@@ -28,7 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.GlobalLinkSearchResult
-import com.romankozak.forwardappmobile.data.database.models.LinkType
+import com.romankozak.forwardappmobile.shared.data.database.models.LinkType
 
 @Composable
 fun LinkSearchResultItem(

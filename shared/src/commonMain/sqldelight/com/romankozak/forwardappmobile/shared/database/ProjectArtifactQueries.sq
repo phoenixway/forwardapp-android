@@ -1,0 +1,29 @@
+CREATE TABLE project_artifacts (
+  id TEXT NOT NULL PRIMARY KEY,
+  projectId TEXT NOT NULL,
+  content TEXT NOT NULL,
+  createdAt INTEGER NOT NULL,
+  updatedAt INTEGER NOT NULL
+);
+
+CREATE INDEX index_project_artifacts_project_id
+ON project_artifacts(projectId);
+
+getArtifactForProject:
+SELECT *
+FROM project_artifacts
+WHERE projectId = ?1
+LIMIT 1;
+
+insertProjectArtifact:
+INSERT OR REPLACE INTO project_artifacts(
+  id,
+  projectId,
+  content,
+  createdAt,
+  updatedAt
+) VALUES (?1, ?2, ?3, ?4, ?5);
+
+deleteProjectArtifact:
+DELETE FROM project_artifacts
+WHERE id = ?1;

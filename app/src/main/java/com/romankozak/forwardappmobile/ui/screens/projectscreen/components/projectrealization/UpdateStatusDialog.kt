@@ -22,7 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.data.database.models.ProjectStatusValues
+import com.romankozak.forwardappmobile.shared.data.database.models.ProjectStatusValues
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

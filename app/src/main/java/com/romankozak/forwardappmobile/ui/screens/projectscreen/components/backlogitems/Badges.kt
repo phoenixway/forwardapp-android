@@ -57,10 +57,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.romankozak.forwardappmobile.data.database.models.LinkType
+import com.romankozak.forwardappmobile.shared.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.Reminder
-import com.romankozak.forwardappmobile.data.database.models.RelatedLink
-import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
+import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
+import com.romankozak.forwardappmobile.shared.data.database.models.ScoringStatusValues
 import kotlinx.coroutines.delay
 
 

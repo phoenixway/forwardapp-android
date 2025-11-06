@@ -28,6 +28,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -63,7 +64,7 @@ fun SwipeableBacklogItem(
     onAddToDayPlan: (ListItemContent) -> Unit,
     onStartTracking: (ListItemContent) -> Unit,
     onShowGoalTransportMenu: (ListItemContent) -> Unit,
-    onRelatedLinkClick: (com.romankozak.forwardappmobile.data.database.models.RelatedLink) -> Unit,
+    onRelatedLinkClick: (RelatedLink) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current

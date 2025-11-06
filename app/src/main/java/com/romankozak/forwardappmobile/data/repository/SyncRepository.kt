@@ -30,10 +30,10 @@ import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.ListItem
 import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
-import com.romankozak.forwardappmobile.data.database.models.ProjectLogLevelValues
-import com.romankozak.forwardappmobile.data.database.models.ProjectStatusValues
-import com.romankozak.forwardappmobile.data.database.models.ProjectType
-import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
+import com.romankozak.forwardappmobile.shared.data.database.models.ProjectLogLevelValues
+import com.romankozak.forwardappmobile.shared.data.database.models.ProjectStatusValues
+import com.romankozak.forwardappmobile.shared.data.database.models.ProjectType
+import com.romankozak.forwardappmobile.shared.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -46,6 +46,8 @@ import io.ktor.serialization.gson.gson
 import com.romankozak.forwardappmobile.data.sync.DesktopBackupFile
 import com.romankozak.forwardappmobile.data.sync.toGoal
 import com.romankozak.forwardappmobile.data.sync.toProject
+import com.romankozak.forwardappmobile.features.projects.data.toEntity
+import com.romankozak.forwardappmobile.features.projects.data.toShared
 import kotlinx.coroutines.flow.first
 import java.text.SimpleDateFormat
 import java.time.OffsetDateTime
@@ -418,7 +420,7 @@ constructor(
         val desktopData = gson.fromJson(jsonString, DesktopBackupFile::class.java).data ?: return SyncReport(emptyList())
 
         val localGoals = goalDao.getAll().associateBy { it.id }
-        val localProjects = projectDao.getAll().associateBy { it.id }
+        val localProjects = projectDao.getAll().map { it.toShared() }.associateBy { it.id }
 
         val changes = mutableListOf<SyncChange>()
 
@@ -519,7 +521,7 @@ constructor(
 
         changesByType[ChangeType.Update]?.forEach { change ->
             when (change.entityType) {
-                "Список" -> projectDao.update(change.entity as Project)
+                "Список" -> projectDao.update((change.entity as Project).toEntity())
                 "Ціль" -> goalDao.updateGoal(change.entity as Goal)
             }
         }
@@ -527,7 +529,7 @@ constructor(
         val addsAndMoves = (changesByType[ChangeType.Add] ?: emptyList()) + (changesByType[ChangeType.Move] ?: emptyList())
         addsAndMoves.forEach { change ->
             when (change.entityType) {
-                "Список" -> projectDao.insert(change.entity as Project)
+                "Список" -> projectDao.insert((change.entity as Project).toEntity())
                 "Ціль" -> goalDao.insertGoal(change.entity as Goal)
                 "Привʼязка" -> listItemDao.insertItem(change.entity as ListItem)
             }

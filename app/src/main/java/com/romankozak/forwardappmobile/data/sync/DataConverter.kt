@@ -1,8 +1,8 @@
 package com.romankozak.forwardappmobile.data.sync
 
 import com.romankozak.forwardappmobile.data.database.models.Goal
-import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
+import com.romankozak.forwardappmobile.shared.data.database.models.ScoringStatusValues
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 

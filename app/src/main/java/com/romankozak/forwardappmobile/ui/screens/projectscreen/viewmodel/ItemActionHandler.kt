@@ -4,6 +4,8 @@ package com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel
 
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.shared.data.database.models.LinkType
+import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.GoalActionDialogState
@@ -62,7 +64,7 @@ class ItemActionHandler
                             }
                         }
                         is ListItemContent.LinkItem -> {
-                            if (item.link.linkData.type == com.romankozak.forwardappmobile.data.database.models.LinkType.OBSIDIAN) {
+                            if (item.link.linkData.type == LinkType.OBSIDIAN) {
                                 recentItemsRepository.logObsidianLinkAccess(item.link.linkData)
                             }
                         }
@@ -165,7 +167,7 @@ class ItemActionHandler
             _itemForTransportMenu.value = null
         }
 
-        fun onRelatedLinkClick(link: com.romankozak.forwardappmobile.data.database.models.RelatedLink) {
+        fun onRelatedLinkClick(link: RelatedLink) {
             resultListener.requestNavigation(BacklogViewModel.HANDLE_LINK_CLICK_ROUTE + "/${link.target}")
         }
 

@@ -14,6 +14,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
 import sh.calvin.reorderable.ReorderableCollectionItemScope
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
@@ -36,7 +37,7 @@ fun BacklogListScreen(
     onAddToDayPlan: (ListItemContent) -> Unit,
     onStartTracking: (ListItemContent) -> Unit,
     onShowGoalTransportMenu: (ListItemContent) -> Unit,
-    onRelatedLinkClick: (com.romankozak.forwardappmobile.data.database.models.RelatedLink) -> Unit,
+    onRelatedLinkClick: (RelatedLink) -> Unit,
     onRemindersClick: (ListItemContent) -> Unit,
     onCopyContent: (ListItemContent) -> Unit,
 ) {

@@ -14,7 +14,7 @@ private val json =
         ignoreUnknownKeys = true
     }
 
-internal fun Projects.toModel(): Project =
+fun Projects.toModel(): Project =
     Project(
         id = id,
         name = name,
@@ -50,7 +50,7 @@ internal fun Projects.toModel(): Project =
         reservedGroup = reserved_group,
     )
 
-internal fun ProjectQueriesQueries.insertOrReplace(project: Project) {
+fun ProjectQueriesQueries.insertOrReplace(project: Project) {
     insertProject(
         id = project.id,
         name = project.name,

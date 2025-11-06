@@ -4,7 +4,8 @@ import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.data.database.models.*
+import com.romankozak.forwardappmobile.data.database.models.Goal
+import com.romankozak.forwardappmobile.data.database.models.Reminder
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.logic.GoalScoringManager
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
@@ -14,6 +15,9 @@ import com.romankozak.forwardappmobile.ui.screens.projectsettings.ProjectSetting
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.TagUtils
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.RemindersTabActions
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.EvaluationTabActions
+import com.romankozak.forwardappmobile.shared.data.database.models.LinkType
+import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
+import com.romankozak.forwardappmobile.shared.data.database.models.ScoringStatusValues
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow

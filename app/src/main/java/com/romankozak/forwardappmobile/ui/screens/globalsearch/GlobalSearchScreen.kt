@@ -38,8 +38,8 @@ import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
 import com.romankozak.forwardappmobile.data.database.models.GlobalGoalSearchResult
 import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResultItem
-import com.romankozak.forwardappmobile.data.database.models.LinkType
-import com.romankozak.forwardappmobile.data.database.models.RelatedLink
+import com.romankozak.forwardappmobile.shared.data.database.models.LinkType
+import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.InboxSearchResultItem
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.LinkSearchResultItem
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.ProjectSearchResultItem

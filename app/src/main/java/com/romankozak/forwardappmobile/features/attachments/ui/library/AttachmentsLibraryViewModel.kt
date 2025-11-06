@@ -54,7 +54,6 @@ class AttachmentsLibraryViewModel @Inject constructor(
             @Suppress("UNCHECKED_CAST")
             val checklists = array[4] as List<ChecklistEntity>
             @Suppress("UNCHECKED_CAST")
-            @Suppress("UNCHECKED_CAST")
             val projects = array[5] as List<Project>
             val query = array[6] as String
             val filter = array[7] as AttachmentLibraryFilter

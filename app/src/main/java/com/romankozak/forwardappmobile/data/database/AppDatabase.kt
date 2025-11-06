@@ -17,7 +17,6 @@ import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
 import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.data.dao.NoteDocumentDao
-import com.romankozak.forwardappmobile.data.dao.ProjectArtifactDao
 import com.romankozak.forwardappmobile.data.dao.ProjectDao
 import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
 import com.romankozak.forwardappmobile.data.dao.RecentItemDao
@@ -32,7 +31,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAt
     entities = [
         ConversationEntity::class,
         Goal::class,
-        Project::class,
+        ProjectEntity::class,
         ListItem::class,
         ActivityRecord::class,
         LinkItemEntity::class,
@@ -52,7 +51,6 @@ import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAt
         ConversationFolderEntity::class,
         RecurringTask::class,
         Reminder::class,
-        ProjectArtifact::class,
         ProjectAttachmentCrossRefRoom::class,
 
         GoalFts::class,
@@ -101,10 +99,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun checklistDao(): ChecklistDao
 
     abstract fun recentItemDao(): RecentItemDao
-
-    abstract fun projectArtifactDao(): ProjectArtifactDao
-
-
 
     abstract fun recurringTaskDao(): RecurringTaskDao
 

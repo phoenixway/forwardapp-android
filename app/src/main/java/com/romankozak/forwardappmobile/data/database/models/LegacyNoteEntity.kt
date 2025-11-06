@@ -10,7 +10,7 @@ import java.util.UUID
     tableName = "notes",
     foreignKeys = [
         ForeignKey(
-            entity = Project::class,
+            entity = ProjectEntity::class,
             parentColumns = ["id"],
             childColumns = ["projectId"],
             onDelete = ForeignKey.CASCADE,

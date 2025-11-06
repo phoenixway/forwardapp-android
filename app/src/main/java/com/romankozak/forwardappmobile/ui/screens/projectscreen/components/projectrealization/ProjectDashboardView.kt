@@ -6,9 +6,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog
-import com.romankozak.forwardappmobile.data.database.models.ProjectStatusValues
+import com.romankozak.forwardappmobile.shared.data.database.models.ProjectStatusValues
 import com.romankozak.forwardappmobile.data.database.models.ProjectTimeMetrics
-import com.romankozak.forwardappmobile.data.database.models.ProjectArtifact
+import com.romankozak.forwardappmobile.shared.features.projects.data.model.ProjectArtifact
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.projectrealization.DashboardContent
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.projectrealization.InsightsContent
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.projectrealization.LogContent

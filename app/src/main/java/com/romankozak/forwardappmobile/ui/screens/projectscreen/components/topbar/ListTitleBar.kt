@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
-import com.romankozak.forwardappmobile.data.database.models.ProjectStatusValues
+import com.romankozak.forwardappmobile.shared.data.database.models.ProjectStatusValues
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import kotlinx.coroutines.delay
 
@@ -307,7 +307,9 @@ fun ListTitleBar(
 
                 if (isProjectManagementActive) {
                     Spacer(Modifier.width(8.dp))
-                    BriefStatusIndicator(status = project.projectStatus!!)
+                    project.projectStatus?.let { status ->
+                        BriefStatusIndicator(status = status)
+                    }
                 }
 
                 Spacer(Modifier.width(8.dp))
@@ -321,9 +323,9 @@ fun ListTitleBar(
             }
 
             AnimatedVisibility(visible = isStatusExpanded) {
-                if (project?.projectStatus != null) {
+                project?.projectStatus?.let { status ->
                     ProjectStatusIndicator(
-                        status = project.projectStatus,
+                        status = status,
                         statusText = project.projectStatusText,
                     )
                 }

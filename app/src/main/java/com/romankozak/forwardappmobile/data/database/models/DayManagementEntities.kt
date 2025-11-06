@@ -60,7 +60,7 @@ data class DayPlan(
             onDelete = ForeignKey.SET_NULL,
         ),
         ForeignKey(
-            entity = Project::class,
+            entity = ProjectEntity::class,
             parentColumns = ["id"],
             childColumns = ["projectId"],
             onDelete = ForeignKey.SET_NULL,

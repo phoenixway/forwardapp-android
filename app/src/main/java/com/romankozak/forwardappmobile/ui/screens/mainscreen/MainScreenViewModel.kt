@@ -6,6 +6,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
+import com.romankozak.forwardappmobile.shared.data.database.models.LinkType
+import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.domain.reminders.cancelForActivityRecord
@@ -610,10 +612,10 @@ constructor(
                 _uiEventChannel.send(ProjectUiEvent.Navigate("checklist_screen?checklistId=${item.target}"))
             }
             com.romankozak.forwardappmobile.data.database.models.RecentItemType.OBSIDIAN_LINK -> {
-                val link = com.romankozak.forwardappmobile.data.database.models.RelatedLink(
+                val link = RelatedLink(
                     target = item.target,
                     displayName = item.displayName,
-                    type = com.romankozak.forwardappmobile.data.database.models.LinkType.OBSIDIAN
+                    type = LinkType.OBSIDIAN,
                 )
                 recentItemsRepository.logObsidianLinkAccess(link)
                 val vaultName = settingsRepo.obsidianVaultNameFlow.first()

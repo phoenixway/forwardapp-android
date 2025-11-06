@@ -16,7 +16,6 @@ import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
 import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.dao.InboxRecordDao
-import com.romankozak.forwardappmobile.data.dao.ProjectArtifactDao
 import com.romankozak.forwardappmobile.data.dao.DayPlanDao
 import com.romankozak.forwardappmobile.data.dao.DayTaskDao
 import com.romankozak.forwardappmobile.data.dao.DailyMetricDao
@@ -243,10 +242,6 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideChecklistDao(appDatabase: AppDatabase): ChecklistDao = appDatabase.checklistDao()
-
-    @Provides
-    @Singleton
-    fun provideProjectArtifactDao(appDatabase: AppDatabase) = appDatabase.projectArtifactDao()
 
     @Provides
     @Singleton

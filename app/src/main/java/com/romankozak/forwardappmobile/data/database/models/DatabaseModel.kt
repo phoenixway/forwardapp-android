@@ -12,6 +12,12 @@ import androidx.room.TypeConverters
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
+import com.romankozak.forwardappmobile.shared.data.database.models.LinkType
+import com.romankozak.forwardappmobile.shared.data.database.models.ProjectLogLevelValues
+import com.romankozak.forwardappmobile.shared.data.database.models.ProjectStatusValues
+import com.romankozak.forwardappmobile.shared.data.database.models.ProjectType
+import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
+import com.romankozak.forwardappmobile.shared.data.database.models.ScoringStatusValues
 
 
 
@@ -75,38 +81,6 @@ class Converters {
     }
 }
 
-object ProjectStatusValues {
-    const val NO_PLAN = "NO_PLAN"
-    const val PLANNING = "PLANNING"
-    const val IN_PROGRESS = "IN_PROGRESS"
-    const val COMPLETED = "COMPLETED"
-    const val ON_HOLD = "ON_HOLD"
-    const val PAUSED = "PAUSED"
-    
-    fun getDisplayName(status: String?): String {
-        return when (status) {
-            NO_PLAN -> "Без плану"
-            PLANNING -> "Планується"
-            IN_PROGRESS -> "В реалізації"
-            COMPLETED -> "Завершено"
-            ON_HOLD -> "Відкладено"
-            PAUSED -> "На паузі"
-            else -> "Без плану"
-        }
-    }
-}
-
-object ScoringStatusValues {
-    const val NOT_ASSESSED = "NOT_ASSESSED"
-    const val IMPOSSIBLE_TO_ASSESS = "IMPOSSIBLE_TO_ASSESS"
-    const val ASSESSED = "ASSESSED"
-}
-
-object ProjectLogLevelValues {
-    const val DETAILED = "DETAILED"
-    const val NORMAL = "NORMAL"
-}
-
 object ProjectLogEntryTypeValues {
     const val STATUS_CHANGE = "STATUS_CHANGE"
     const val COMMENT = "COMMENT"
@@ -130,8 +104,6 @@ object ListItemTypeValues {
 
 enum class ProjectViewMode { BACKLOG, INBOX, ADVANCED, ATTACHMENTS }
 
-enum class LinkType { PROJECT, URL, OBSIDIAN }
-
 enum class DayStatus { PLANNED, IN_PROGRESS, COMPLETED, MISSED, ARCHIVED }
 
 enum class TaskPriority { LOW, MEDIUM, HIGH, CRITICAL, NONE;
@@ -148,14 +120,6 @@ enum class TaskPriority { LOW, MEDIUM, HIGH, CRITICAL, NONE;
 }
 
 enum class TaskStatus { NOT_STARTED, IN_PROGRESS, COMPLETED, CANCELLED, DEFERRED }
-
-
-
-data class RelatedLink(
-    val type: LinkType?,
-    val target: String,
-    val displayName: String? = null,
-)
 
 @Entity(tableName = "link_items")
 data class LinkItemEntity(
@@ -191,24 +155,6 @@ data class Goal(
     @ColumnInfo(defaultValue = "0.0") val timeCost: Float? = null,
     @ColumnInfo(defaultValue = "0.0") val financialCost: Float? = null,
 )
-
-
-
-enum class ProjectType {
-    DEFAULT,
-    RESERVED,
-    SYSTEM;
-
-    companion object {
-        fun fromString(value: String?): ProjectType {
-            return try {
-                if (value == null) ProjectType.DEFAULT else valueOf(value)
-            } catch (e: IllegalArgumentException) {
-                ProjectType.DEFAULT
-            }
-        }
-    }
-}
 
 class ProjectTypeConverter {
     @TypeConverter

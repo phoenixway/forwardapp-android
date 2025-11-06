@@ -6,7 +6,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import com.romankozak.forwardappmobile.shared.data.database.models.Project
+import com.romankozak.forwardappmobile.data.database.models.ProjectEntity
 import com.romankozak.forwardappmobile.shared.features.attachments.data.model.AttachmentEntity as SharedAttachmentEntity
 import com.romankozak.forwardappmobile.shared.features.attachments.data.model.AttachmentWithProject as SharedAttachmentWithProject
 import com.romankozak.forwardappmobile.shared.features.attachments.data.model.ProjectAttachmentCrossRef as SharedProjectAttachmentCrossRef
@@ -18,7 +18,7 @@ import com.romankozak.forwardappmobile.shared.features.attachments.data.model.Pr
         Index(value = ["entity_id"]),
     ],
 )
-internal data class AttachmentRoomEntity(
+data class AttachmentRoomEntity(
     @PrimaryKey val id: String,
     @ColumnInfo(name = "attachment_type") val attachmentType: String,
     @ColumnInfo(name = "entity_id") val entityId: String,
@@ -32,7 +32,7 @@ internal data class AttachmentRoomEntity(
     primaryKeys = ["project_id", "attachment_id"],
     foreignKeys = [
         ForeignKey(
-            entity = Project::class,
+            entity = ProjectEntity::class,
             parentColumns = ["id"],
             childColumns = ["project_id"],
             onDelete = ForeignKey.CASCADE,
@@ -48,13 +48,13 @@ internal data class AttachmentRoomEntity(
         Index(value = ["attachment_id"]),
     ],
 )
-internal data class ProjectAttachmentCrossRefRoom(
+data class ProjectAttachmentCrossRefRoom(
     @ColumnInfo(name = "project_id") val projectId: String,
     @ColumnInfo(name = "attachment_id") val attachmentId: String,
     @ColumnInfo(name = "attachment_order") val attachmentOrder: Long,
 )
 
-internal data class AttachmentWithProjectRoom(
+data class AttachmentWithProjectRoom(
     @Embedded val attachment: AttachmentRoomEntity,
     @ColumnInfo(name = "project_id") val projectId: String?,
     @ColumnInfo(name = "attachment_order") val attachmentOrder: Long?,

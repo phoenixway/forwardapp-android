@@ -34,6 +34,7 @@
    - Створити новий репозиторій у `shared/commonMain` і замінити Room DAO на виклики SQLDelight (`AttachmentQueries`, тощо).
    - Інжектити кросплатформні інтерфейси для платформних сутностей.
    - Для потоків використовувати `mapToList` + `CoroutineContext` з `Dispatchers.IO` (передається під час DI).
+   - Якщо Android-проєкт покладався на `@Inject`/Room-репозиторій, залиште у `app/data/repository` тонку обгортку, яка делегує до KMP-реалізації. Це зберігає існуючі зв'язки Hilt та дозволяє поступово переводити споживачів.
 
 6. **Оновлення Android DI**
    - У `DatabaseModule` ініціалізувати `ForwardAppDatabase` через `createForwardAppDatabase(DatabaseDriverFactory(context))`.
@@ -49,6 +50,7 @@
    - Прогнати `./gradlew :app:compileDebugKotlin` + `./gradlew :shared:compileKotlinJs` (за можливості поза sandbox).
    - Оновити `TESTING_MANUAL.md` з новими кроками.
    - Задокументувати прогрес у `PROGRESS_LOG.md`.
+    - Якщо Gradle блокують sandbox-права (`gradle-*-bin.zip.lck`), встановіть тимчасовий `GRADLE_USER_HOME` у робочу директорію або запустіть збірку поза sandbox.
 
 ## Рекомендовані команди
 

@@ -1,5 +1,7 @@
 package com.romankozak.forwardappmobile.data.database.models
 
+import com.romankozak.forwardappmobile.shared.data.database.models.Project
+
 sealed class ListItemContent {
     
     

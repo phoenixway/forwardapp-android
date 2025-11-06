@@ -4,7 +4,7 @@ import android.content.Context
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.dao.ProjectDao
 import com.romankozak.forwardappmobile.data.database.models.ProjectEntity
-import com.romankozak.forwardappmobile.data.database.models.ProjectType
+import com.romankozak.forwardappmobile.shared.data.database.models.ProjectType
 import com.romankozak.forwardappmobile.data.database.models.ReservedGroup
 import java.util.UUID
 import javax.inject.Inject

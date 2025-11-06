@@ -187,6 +187,7 @@ dependencies {
     // Other Libraries
     implementation(libs.google.gson)
     implementation(libs.compose.dnd)
+    implementation(libs.sqldelight.coroutines)
 
     // Testing
     testImplementation(libs.junit)

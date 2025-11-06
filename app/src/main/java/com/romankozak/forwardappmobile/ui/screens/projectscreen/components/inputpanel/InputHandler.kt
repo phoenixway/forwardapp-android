@@ -2,8 +2,8 @@ package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.inpu
 
 import android.util.Log
 import androidx.compose.ui.text.input.TextFieldValue
-import com.romankozak.forwardappmobile.data.database.models.LinkType
-import com.romankozak.forwardappmobile.data.database.models.RelatedLink
+import com.romankozak.forwardappmobile.shared.data.database.models.LinkType
+import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
 import com.romankozak.forwardappmobile.domain.ner.ReminderParser
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler

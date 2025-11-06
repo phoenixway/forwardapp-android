@@ -11,12 +11,14 @@ import com.romankozak.forwardappmobile.data.dao.ReminderDao
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
+import com.romankozak.forwardappmobile.data.repository.ProjectArtifactRepository
 import com.romankozak.forwardappmobile.data.repository.ProjectLogRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.features.attachments.data.AndroidLinkItemDataSource
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 import com.romankozak.forwardappmobile.shared.database.AttachmentQueriesQueries
+import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import com.romankozak.forwardappmobile.shared.features.attachments.data.model.LinkItemDataSource
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import dagger.Module
@@ -45,6 +47,16 @@ object RepositoryModule {
     ): ProjectLogRepository {
         return ProjectLogRepository(projectManagementDao)
     }
+
+    @Provides
+    @Singleton
+    fun provideProjectArtifactRepository(
+        forwardAppDatabase: ForwardAppDatabase,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+    ): ProjectArtifactRepository = ProjectArtifactRepository(
+        forwardAppDatabase.projectArtifactQueriesQueries,
+        ioDispatcher,
+    )
 
     @Provides
     @Singleton

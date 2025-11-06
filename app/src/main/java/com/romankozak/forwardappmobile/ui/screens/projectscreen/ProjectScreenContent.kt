@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
+import com.romankozak.forwardappmobile.shared.features.projects.data.model.ProjectArtifact
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.projectrealization.ProjectDashboardView
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.projectrealization.ProjectManagementTab
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.views.AttachmentsView
@@ -26,7 +27,7 @@ fun GoalDetailContent(
     onEditLog: (com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog) -> Unit,
     onDeleteLog: (com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog) -> Unit,
     onSaveArtifact: (String) -> Unit,
-    onEditArtifact: (com.romankozak.forwardappmobile.data.database.models.ProjectArtifact) -> Unit,
+    onEditArtifact: (com.romankozak.forwardappmobile.shared.features.projects.data.model.ProjectArtifact) -> Unit,
     onRemindersClick: (ListItemContent) -> Unit,
 ) {
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()

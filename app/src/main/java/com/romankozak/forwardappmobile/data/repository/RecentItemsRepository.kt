@@ -7,7 +7,7 @@ import com.romankozak.forwardappmobile.data.database.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.RecentItem
 import com.romankozak.forwardappmobile.data.database.models.RecentItemType
-import com.romankozak.forwardappmobile.data.database.models.RelatedLink
+import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.data.database.models.ChecklistEntity
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
