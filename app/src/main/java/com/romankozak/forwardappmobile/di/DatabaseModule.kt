@@ -5,8 +5,6 @@ import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.romankozak.forwardappmobile.data.database.AppDatabase
-import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
-import com.romankozak.forwardappmobile.data.dao.NoteDocumentDao
 import com.romankozak.forwardappmobile.data.dao.GoalDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
@@ -27,6 +25,8 @@ import com.romankozak.forwardappmobile.shared.database.ProjectQueriesQueries
 import com.romankozak.forwardappmobile.shared.database.ReminderQueriesQueries
 import com.romankozak.forwardappmobile.shared.database.RecentItemQueriesQueries
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
+import com.romankozak.forwardappmobile.shared.database.LegacyNoteQueriesQueries
+import com.romankozak.forwardappmobile.shared.database.NoteDocumentQueriesQueries
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.EntryPoint
@@ -191,9 +191,6 @@ object DatabaseModule {
     @Singleton
     fun provideListItemDao(appDatabase: AppDatabase) = appDatabase.listItemDao()
 
-    @Provides
-    @Singleton
-    fun provideLegacyNoteDao(appDatabase: AppDatabase): LegacyNoteDao = appDatabase.legacyNoteDao()
 
     @Provides
     @Singleton
@@ -244,8 +241,15 @@ object DatabaseModule {
     ): RecentItemQueriesQueries = forwardAppDatabase.recentItemQueriesQueries
 
     @Provides
-    @Singleton
-    fun provideNoteDocumentDao(appDatabase: AppDatabase): NoteDocumentDao = appDatabase.noteDocumentDao()
+    fun provideLegacyNoteQueries(
+        forwardAppDatabase: ForwardAppDatabase,
+    ): LegacyNoteQueriesQueries = forwardAppDatabase.legacyNoteQueriesQueries
+
+    @Provides
+    fun provideNoteDocumentQueries(
+        forwardAppDatabase: ForwardAppDatabase,
+    ): NoteDocumentQueriesQueries = forwardAppDatabase.noteDocumentQueriesQueries
+
 
     @Provides
     @Singleton

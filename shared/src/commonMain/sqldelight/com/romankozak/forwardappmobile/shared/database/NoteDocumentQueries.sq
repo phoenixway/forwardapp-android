@@ -1,0 +1,128 @@
+CREATE TABLE note_documents (
+  id TEXT NOT NULL PRIMARY KEY,
+  projectId TEXT NOT NULL,
+  name TEXT NOT NULL,
+  createdAt INTEGER NOT NULL,
+  updatedAt INTEGER NOT NULL,
+  content TEXT,
+  lastCursorPosition INTEGER NOT NULL DEFAULT 0,
+  FOREIGN KEY(projectId) REFERENCES projects(id) ON DELETE CASCADE
+);
+
+CREATE INDEX index_note_documents_projectId
+ON note_documents(projectId);
+
+CREATE TABLE note_document_items (
+  id TEXT NOT NULL PRIMARY KEY,
+  listId TEXT NOT NULL,
+  parentId TEXT,
+  content TEXT NOT NULL,
+  isCompleted INTEGER NOT NULL,
+  itemOrder INTEGER NOT NULL,
+  createdAt INTEGER NOT NULL,
+  updatedAt INTEGER NOT NULL,
+  FOREIGN KEY(listId) REFERENCES note_documents(id) ON DELETE CASCADE,
+  FOREIGN KEY(parentId) REFERENCES note_document_items(id) ON DELETE CASCADE
+);
+
+CREATE INDEX index_note_document_items_listId
+ON note_document_items(listId);
+
+CREATE INDEX index_note_document_items_parentId
+ON note_document_items(parentId);
+
+getNoteDocumentsForProject:
+SELECT note_documents.*
+FROM note_documents
+INNER JOIN attachments
+ON attachments.entity_id = note_documents.id AND attachments.attachment_type = ?2
+INNER JOIN project_attachment_cross_ref AS link
+ON link.attachment_id = attachments.id
+WHERE link.project_id = ?1
+ORDER BY note_documents.updatedAt DESC;
+
+getAllNoteDocuments:
+SELECT *
+FROM note_documents;
+
+getNoteDocumentById:
+SELECT *
+FROM note_documents
+WHERE id = ?1
+LIMIT 1;
+
+insertNoteDocument:
+INSERT INTO note_documents(
+  id,
+  projectId,
+  name,
+  createdAt,
+  updatedAt,
+  content,
+  lastCursorPosition
+) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);
+
+updateNoteDocument:
+UPDATE note_documents
+SET name = ?2,
+    content = ?3,
+    updatedAt = ?4,
+    lastCursorPosition = ?5
+WHERE id = ?1;
+
+deleteNoteDocumentById:
+DELETE FROM note_documents
+WHERE id = ?1;
+
+deleteAllNoteDocuments:
+DELETE FROM note_documents;
+
+getNoteDocumentItems:
+SELECT *
+FROM note_document_items
+WHERE listId = ?1
+ORDER BY itemOrder ASC;
+
+getNoteDocumentItemById:
+SELECT *
+FROM note_document_items
+WHERE id = ?1
+LIMIT 1;
+
+insertNoteDocumentItem:
+INSERT INTO note_document_items(
+  id,
+  listId,
+  parentId,
+  content,
+  isCompleted,
+  itemOrder,
+  createdAt,
+  updatedAt
+) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8);
+
+updateNoteDocumentItem:
+UPDATE note_document_items
+SET listId = ?2,
+    parentId = ?3,
+    content = ?4,
+    isCompleted = ?5,
+    itemOrder = ?6,
+    createdAt = ?7,
+    updatedAt = ?8
+WHERE id = ?1;
+
+deleteNoteDocumentItemById:
+DELETE FROM note_document_items
+WHERE id = ?1;
+
+deleteNoteDocumentItemsByIds:
+DELETE FROM note_document_items
+WHERE id IN ?1;
+
+deleteAllNoteDocumentItems:
+DELETE FROM note_document_items;
+
+getAllNoteDocumentItems:
+SELECT *
+FROM note_document_items;

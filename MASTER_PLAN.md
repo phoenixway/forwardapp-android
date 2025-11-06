@@ -34,11 +34,11 @@
     - [ ] Додати мапери між SQLDelight row ↔ KMP-моделями у `shared/features/projects/data`.
     - [ ] Видалити/знеактивувати дублікати Room-залежностей проєктів у `app`.
 
-- [ ] **1.5. Міграція фічі "Notes" та "Legacy Notes":**
-    - [ ] Створити `NoteQueries.sq` та `LegacyNoteQueries.sq` в `shared` модулі.
-    - [ ] Описати таблиці та перенести всі SQL-запити з `NoteDao`, `NoteFtsDao`, `LegacyNoteDao`.
-    - [ ] Перемістити `NoteRepository` та `LegacyNoteRepository` в `shared` модуль (`.../features/notes/data`).
-    - [ ] Адаптувати репозиторії для роботи зі згенерованими SQLDelight `Queries`.
+- [x] **1.5. Міграція фічі "Notes" та "Legacy Notes":**
+    - [x] Створити `NoteQueries.sq` та `LegacyNoteQueries.sq` в `shared` модулі.
+    - [x] Описати таблиці та перенести всі SQL-запити з `NoteDao`, `NoteFtsDao`, `LegacyNoteDao`.
+    - [x] Перемістити `NoteRepository` та `LegacyNoteRepository` в `shared` модуль (`.../features/notes/data`).
+    - [x] Адаптувати репозиторії для роботи зі згенерованими SQLDelight `Queries`.
 - [ ] **1.6. Міграція фічі "Checklists":**
     - [ ] Створити `ChecklistQueries.sq` в `shared` модулі.
     - [ ] Описати таблицю `checklists` та перенести запити з `ChecklistDao`.

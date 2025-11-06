@@ -13,10 +13,8 @@ import com.romankozak.forwardappmobile.data.dao.DayPlanDao
 import com.romankozak.forwardappmobile.data.dao.DayTaskDao
 import com.romankozak.forwardappmobile.data.dao.GoalDao
 import com.romankozak.forwardappmobile.data.dao.InboxRecordDao
-import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
 import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
-import com.romankozak.forwardappmobile.data.dao.NoteDocumentDao
 import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
 import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
 import com.romankozak.forwardappmobile.data.database.models.*
@@ -39,9 +37,9 @@ import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAt
         DayPlan::class,
         DayTask::class,
         DailyMetric::class,
-        LegacyNoteEntity::class,
-        NoteDocumentEntity::class,
-        NoteDocumentItemEntity::class,
+        LegacyNoteRoomEntity::class,
+        NoteDocumentRoomEntity::class,
+        NoteDocumentItemRoomEntity::class,
         ChecklistEntity::class,
         ChecklistItemEntity::class,
         RecentItemRoomEntity::class,
@@ -85,10 +83,6 @@ abstract class AppDatabase : RoomDatabase() {
 
 
     abstract fun dailyMetricDao(): DailyMetricDao
-
-    abstract fun legacyNoteDao(): LegacyNoteDao
-
-    abstract fun noteDocumentDao(): NoteDocumentDao
 
     abstract fun checklistDao(): ChecklistDao
     abstract fun recurringTaskDao(): RecurringTaskDao

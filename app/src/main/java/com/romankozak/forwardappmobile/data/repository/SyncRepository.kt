@@ -11,12 +11,12 @@ import androidx.room.withTransaction
 import com.google.gson.GsonBuilder
 import com.romankozak.forwardappmobile.data.sync.ReservedGroupAdapter
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
-import com.romankozak.forwardappmobile.data.dao.NoteDocumentDao
+import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.dao.GoalDao
 import com.romankozak.forwardappmobile.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
-import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
+import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
 import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
 import com.romankozak.forwardappmobile.data.dao.ChecklistDao
 import com.romankozak.forwardappmobile.data.database.AppDatabase
@@ -100,8 +100,8 @@ constructor(
     private val inboxRecordDao: InboxRecordDao,
     private val settingsRepository: SettingsRepository,
     private val projectManagementDao: ProjectManagementDao,
-    private val legacyNoteDao: LegacyNoteDao,
-    private val noteDocumentDao: NoteDocumentDao,
+    private val legacyNoteRepository: LegacyNoteRepository,
+    private val noteDocumentRepository: NoteDocumentRepository,
     private val checklistDao: ChecklistDao,
     private val recentItemQueries: RecentItemQueriesQueries,
     private val attachmentRepository: AttachmentRepository,
@@ -151,9 +151,9 @@ constructor(
                 goals = goalDao.getAll(),
                 projects = projectLocalDataSource.getAll().map { it.toEntity() },
                 listItems = listItemDao.getAll(),
-                legacyNotes = legacyNoteDao.getAll(),
-                documents = noteDocumentDao.getAllDocuments(),
-                documentItems = noteDocumentDao.getAllDocumentItems(),
+                legacyNotes = legacyNoteRepository.getAllSnapshot(),
+                documents = noteDocumentRepository.getAllDocumentsSnapshot(),
+                documentItems = noteDocumentRepository.getAllDocumentItemsSnapshot(),
                 checklists = checklistDao.getAllChecklists(),
                 checklistItems = checklistDao.getAllChecklistItems(),
                 activityRecords = activityRecordDao.getAllRecordsStream().first(),
@@ -310,13 +310,13 @@ constructor(
             goalDao.deleteAll()
             Log.d(FULL_IMPORT_TAG, "TX stage: goals cleared")
             Log.d(IMPORT_TAG, "  - goals очищено")
-            legacyNoteDao.deleteAll()
+            legacyNoteRepository.deleteAll()
             Log.d(FULL_IMPORT_TAG, "TX stage: legacy notes cleared")
             Log.d(IMPORT_TAG, "  - legacy_notes очищено")
-            noteDocumentDao.deleteAllDocuments()
+            noteDocumentRepository.deleteAllDocuments()
             Log.d(FULL_IMPORT_TAG, "TX stage: note documents cleared")
             Log.d(IMPORT_TAG, "  - note_documents очищено")
-            noteDocumentDao.deleteAllDocumentItems()
+            noteDocumentRepository.deleteAllDocumentItems()
             Log.d(FULL_IMPORT_TAG, "TX stage: note document items cleared")
             Log.d(IMPORT_TAG, "  - note_document_items очищено")
             checklistDao.deleteAllChecklistItems()
@@ -345,17 +345,17 @@ constructor(
 
                 backup.legacyNotes?.let {
                     Log.d(IMPORT_TAG, "  -> Inserting legacyNotes: ${it.size}")
-                    legacyNoteDao.insertAll(it.orEmpty())
+                    legacyNoteRepository.replaceAll(it.orEmpty())
                     Log.d(IMPORT_TAG, "  - legacy_notes вставлено: ${it.size}")
                 }
                 backup.documents?.let {
                     Log.d(IMPORT_TAG, "  -> Inserting documents: ${it.size}")
-                    noteDocumentDao.insertAllDocuments(it.orEmpty())
+                    noteDocumentRepository.replaceAllDocuments(it.orEmpty())
                     Log.d(IMPORT_TAG, "  - documents вставлено: ${it.size}")
                 }
                 backup.documentItems?.let {
                     Log.d(IMPORT_TAG, "  -> Inserting documentItems: ${it.size}")
-                    noteDocumentDao.insertAllDocumentItems(it.orEmpty())
+                    noteDocumentRepository.replaceAllDocumentItems(it.orEmpty())
                     Log.d(IMPORT_TAG, "  - document_items вставлено: ${it.size}")
                 }
                 if (backupChecklists.isNotEmpty()) {
