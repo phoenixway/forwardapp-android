@@ -21,6 +21,12 @@ actual class DatabaseDriverFactory actual constructor(
             name = DATABASE_NAME,
             callback =
                 object : AndroidSqliteDriver.Callback(schema) {
+                    override fun onConfigure(db: SupportSQLiteDatabase) {
+                        super.onConfigure(db)
+                        db.execSQL("PRAGMA busy_timeout = 5000")
+                        db.execSQL("PRAGMA journal_mode=WAL")
+                    }
+
                     override fun onDowngrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) {
                         // Room already manages migrations. We simply keep existing schema.
                         // No-op to avoid crashes when SQLDelight opens Room's database.
