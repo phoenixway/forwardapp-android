@@ -17,7 +17,6 @@ import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
 import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.data.dao.NoteDocumentDao
-import com.romankozak.forwardappmobile.data.dao.ProjectDao
 import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
 import com.romankozak.forwardappmobile.data.dao.RecentItemDao
 import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
@@ -64,8 +63,6 @@ import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAt
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class, ProjectTypeConverter::class)
 abstract class AppDatabase : RoomDatabase() {
-    abstract fun projectDao(): ProjectDao
-
     abstract fun goalDao(): GoalDao
 
     abstract fun listItemDao(): ListItemDao

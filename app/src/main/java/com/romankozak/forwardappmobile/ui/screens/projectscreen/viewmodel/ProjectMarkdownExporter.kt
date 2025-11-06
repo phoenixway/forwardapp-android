@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel
 
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
-import com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog
+import com.romankozak.forwardappmobile.shared.features.projects.logs.data.model.ProjectExecutionLog
 import com.romankozak.forwardappmobile.shared.data.database.models.ProjectStatusValues
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogMarkdownHandlerResultListener
 import java.text.SimpleDateFormat

@@ -8,9 +8,9 @@ import com.romankozak.forwardappmobile.data.database.models.GlobalSubprojectSear
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
-import com.romankozak.forwardappmobile.data.database.models.ProjectLogEntryTypeValues
+import com.romankozak.forwardappmobile.shared.data.database.models.ProjectLogEntryTypeValues
 import com.romankozak.forwardappmobile.data.database.models.ProjectTimeMetrics
-import com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog
+import com.romankozak.forwardappmobile.shared.features.projects.logs.data.model.ProjectExecutionLog
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.shared.data.database.models.ProjectStatusValues

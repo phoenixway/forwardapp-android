@@ -13,6 +13,7 @@ import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
 import com.romankozak.forwardappmobile.shared.data.database.models.LinkType
+import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.shared.data.database.models.ProjectLogLevelValues
 import com.romankozak.forwardappmobile.shared.data.database.models.ProjectStatusValues
 import com.romankozak.forwardappmobile.shared.data.database.models.ProjectType
@@ -81,13 +82,7 @@ class Converters {
     }
 }
 
-object ProjectLogEntryTypeValues {
-    const val STATUS_CHANGE = "STATUS_CHANGE"
-    const val COMMENT = "COMMENT"
-    const val AUTOMATIC = "AUTOMATIC"
-    const val INSIGHT = "INSIGHT"
-    const val MILESTONE = "MILESTONE"
-}
+
 
 
 
@@ -311,18 +306,14 @@ data class GlobalLinkSearchResult(
 )
 
 data class GlobalSubprojectSearchResult(
-    @Embedded
-    val subproject: ProjectEntity,
+    val subproject: Project,
     val parentProjectId: String,
     val parentProjectName: String,
-    @TypeConverters(PathSegmentsConverter::class)
     val pathSegments: List<String>,
 )
 
 data class GlobalProjectSearchResult(
-    @Embedded
-    val project: ProjectEntity,
-    @TypeConverters(PathSegmentsConverter::class)
+    val project: Project,
     val pathSegments: List<String>,
 )
 

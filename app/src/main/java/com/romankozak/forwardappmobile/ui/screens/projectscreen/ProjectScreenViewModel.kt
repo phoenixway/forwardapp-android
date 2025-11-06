@@ -23,8 +23,8 @@ import com.romankozak.forwardappmobile.data.database.models.ListItem
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.data.database.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog
-import com.romankozak.forwardappmobile.data.database.models.ProjectLogEntryTypeValues
+import com.romankozak.forwardappmobile.shared.features.projects.logs.data.model.ProjectExecutionLog
+import com.romankozak.forwardappmobile.shared.data.database.models.ProjectLogEntryTypeValues
 import com.romankozak.forwardappmobile.data.database.models.ProjectTimeMetrics
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.data.database.models.Reminder
@@ -146,7 +146,7 @@ data class UiState(
   val showRemindersDialog: Boolean = false,
   val itemForRemindersDialog: ListItemContent? = null,
       val remindersForDialog: List<Reminder> = emptyList(),
-      val logEntryToEdit: ProjectExecutionLog? = null,
+      val logEntryToEdit: com.romankozak.forwardappmobile.shared.features.projects.logs.data.model.ProjectExecutionLog? = null,
       val artifactToEdit: ProjectArtifact? = null,
       val selectedDashboardTab: ProjectManagementTab = ProjectManagementTab.Dashboard,
       val showNoteDocumentEditor: Boolean = false,
@@ -1778,11 +1778,11 @@ constructor(
     }
   }
 
-    fun onEditLogEntry(log: ProjectExecutionLog) {
+    fun onEditLogEntry(log: com.romankozak.forwardappmobile.shared.features.projects.logs.data.model.ProjectExecutionLog) {
         _uiState.update { it.copy(logEntryToEdit = log) }
     }
 
-    fun onDeleteLogEntry(log: ProjectExecutionLog) {
+    fun onDeleteLogEntry(log: com.romankozak.forwardappmobile.shared.features.projects.logs.data.model.ProjectExecutionLog) {
         viewModelScope.launch {
             projectLogRepository.deleteProjectExecutionLog(log)
         }

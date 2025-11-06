@@ -11,7 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog
+import com.romankozak.forwardappmobile.shared.features.projects.logs.data.model.ProjectExecutionLog
 
 @Composable
 fun EditLogEntryDialog(

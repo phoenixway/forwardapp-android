@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.data.repository
 
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
-import com.romankozak.forwardappmobile.data.database.models.ProjectLogEntryTypeValues
+import com.romankozak.forwardappmobile.shared.data.database.models.ProjectLogEntryTypeValues
 import com.romankozak.forwardappmobile.data.database.models.ProjectTimeMetrics
 import java.util.Calendar
 import java.util.Locale

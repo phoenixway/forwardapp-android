@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.ui.screens.mainscreen
 
 import android.app.Application
+import android.util.Log
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -359,8 +360,11 @@ constructor(
         }
       }
       is MainScreenEvent.FullImportConfirm -> {
+        Log.d("FullImportFlow", "FullImportConfirm received, uri=$event.uri")
         viewModelScope.launch {
+          Log.d("FullImportFlow", "Starting import coroutine (dialogState=${uiState.value.dialogState})")
           val result = projectActionsUseCase.onFullImportConfirmed(event.uri)
+          Log.d("FullImportFlow", "Import coroutine finished, success=${result.isSuccess}")
           dialogUseCase.dismissDialog()
           _uiEventChannel.send(
             if (result.isSuccess) {

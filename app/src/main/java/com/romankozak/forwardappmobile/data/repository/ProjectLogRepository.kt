@@ -1,19 +1,30 @@
 package com.romankozak.forwardappmobile.data.repository
 
-import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
-import com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog
-import com.romankozak.forwardappmobile.data.database.models.ProjectLogEntryTypeValues
+import app.cash.sqldelight.coroutines.asFlow
+import app.cash.sqldelight.coroutines.mapToList
+import com.romankozak.forwardappmobile.di.IoDispatcher
+import com.romankozak.forwardappmobile.shared.data.database.models.ProjectLogEntryTypeValues
+import com.romankozak.forwardappmobile.shared.database.ProjectExecutionLogQueriesQueries
+import com.romankozak.forwardappmobile.shared.features.projects.logs.data.mappers.toSharedModel
+import com.romankozak.forwardappmobile.shared.features.projects.logs.data.model.ProjectExecutionLog
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class ProjectLogRepository @Inject constructor(
-    private val projectManagementDao: ProjectManagementDao
+    private val projectExecutionLogQueries: ProjectExecutionLogQueriesQueries,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) {
     fun getProjectLogsStream(projectId: String): Flow<List<ProjectExecutionLog>> =
-        projectManagementDao.getLogsForProjectStream(projectId)
+        projectExecutionLogQueries.selectByProjectId(projectId)
+            .asFlow()
+            .mapToList(ioDispatcher)
+            .map { logs -> logs.map { it.toSharedModel() } }
 
     suspend fun addToggleProjectManagementLog(projectId: String, isEnabled: Boolean) {
         val status = if (isEnabled) "активовано" else "деактивовано"
@@ -52,7 +63,7 @@ class ProjectLogRepository @Inject constructor(
         description: String,
         details: String? = null,
     ) {
-        val logEntry = 
+        val logEntry =
             ProjectExecutionLog(
                 id = UUID.randomUUID().toString(),
                 projectId = projectId,
@@ -61,14 +72,34 @@ class ProjectLogRepository @Inject constructor(
                 description = description,
                 details = details,
             )
-        projectManagementDao.insertLog(logEntry)
+        withContext(ioDispatcher) {
+            projectExecutionLogQueries.insert(
+                id = logEntry.id,
+                projectId = logEntry.projectId,
+                timestamp = logEntry.timestamp,
+                type = logEntry.type,
+                description = logEntry.description,
+                details = logEntry.details
+            )
+        }
     }
 
     suspend fun updateProjectExecutionLog(log: ProjectExecutionLog) {
-        projectManagementDao.updateLog(log)
+        withContext(ioDispatcher) {
+            projectExecutionLogQueries.insert(
+                id = log.id,
+                projectId = log.projectId,
+                timestamp = log.timestamp,
+                type = log.type,
+                description = log.description,
+                details = log.details
+            )
+        }
     }
 
     suspend fun deleteProjectExecutionLog(log: ProjectExecutionLog) {
-        projectManagementDao.deleteLog(log)
+        withContext(ioDispatcher) {
+            projectExecutionLogQueries.deleteById(log.id)
+        }
     }
 }

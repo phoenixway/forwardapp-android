@@ -51,15 +51,7 @@ CREATE TABLE list_items (
 CREATE INDEX list_items_project_index
 ON list_items(project_id);
 
-CREATE TABLE project_execution_logs (
-  id TEXT NOT NULL PRIMARY KEY,
-  projectId TEXT NOT NULL,
-  timestamp INTEGER NOT NULL,
-  type TEXT NOT NULL,
-  description TEXT NOT NULL,
-  details TEXT,
-  FOREIGN KEY(projectId) REFERENCES projects(id) ON DELETE CASCADE
-);
+
 
 getAllProjects:
 SELECT *
@@ -90,10 +82,22 @@ SELECT *
 FROM projects
 WHERE project_type = ?1;
 
+getProjectsByNameLike:
+SELECT *
+FROM projects
+WHERE name LIKE '%' || ?1 || '%';
+
 getProjectsByReservedGroup:
 SELECT *
 FROM projects
 WHERE reserved_group = ?1;
+
+getProjectByParentAndReservedGroup:
+SELECT *
+FROM projects
+WHERE (parentId = ?1 OR (parentId IS NULL AND ?1 IS NULL))
+  AND reserved_group = ?2
+LIMIT 1;
 
 getProjectsByParentId:
 SELECT *
@@ -151,7 +155,7 @@ deleteProjectById:
 DELETE FROM projects
 WHERE id = ?1 AND project_type = 'DEFAULT';
 
-deleteAllProjects:
+deleteProjectsForReset:
 DELETE FROM projects;
 
 updateProjectOrder:

@@ -17,7 +17,6 @@ import com.romankozak.forwardappmobile.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
-import com.romankozak.forwardappmobile.data.dao.ProjectDao
 import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
 import com.romankozak.forwardappmobile.data.dao.RecentItemDao
 import com.romankozak.forwardappmobile.data.dao.ChecklistDao
@@ -36,6 +35,8 @@ import com.romankozak.forwardappmobile.shared.data.database.models.ProjectType
 import com.romankozak.forwardappmobile.shared.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
+import com.romankozak.forwardappmobile.features.projects.data.ProjectLocalDataSource
+import com.romankozak.forwardappmobile.data.database.DatabaseInitializer
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -46,8 +47,8 @@ import io.ktor.serialization.gson.gson
 import com.romankozak.forwardappmobile.data.sync.DesktopBackupFile
 import com.romankozak.forwardappmobile.data.sync.toGoal
 import com.romankozak.forwardappmobile.data.sync.toProject
-import com.romankozak.forwardappmobile.features.projects.data.toEntity
 import com.romankozak.forwardappmobile.features.projects.data.toShared
+import com.romankozak.forwardappmobile.features.projects.data.toEntity
 import kotlinx.coroutines.flow.first
 import java.text.SimpleDateFormat
 import java.time.OffsetDateTime
@@ -56,6 +57,8 @@ import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
+
+private const val FULL_IMPORT_TAG = "FullImportFlow"
 
 enum class ChangeType {
     Add,
@@ -90,7 +93,7 @@ constructor(
     private val appDatabase: AppDatabase,
     @ApplicationContext private val context: Context,
     private val goalDao: GoalDao,
-    private val projectDao: ProjectDao,
+    private val projectLocalDataSource: ProjectLocalDataSource,
     private val listItemDao: ListItemDao,
     private val linkItemDao: LinkItemDao,
     private val activityRecordDao: ActivityRecordDao,
@@ -102,6 +105,7 @@ constructor(
     private val checklistDao: ChecklistDao,
     private val recentItemDao: RecentItemDao,
     private val attachmentRepository: AttachmentRepository,
+    private val databaseInitializer: DatabaseInitializer,
 ) {
     private val TAG = "SyncRepository"
     private val gson = GsonBuilder()
@@ -145,7 +149,7 @@ constructor(
         val databaseContent =
             DatabaseContent(
                 goals = goalDao.getAll(),
-                projects = projectDao.getAll(),
+                projects = projectLocalDataSource.getAll().map { it.toEntity() },
                 listItems = listItemDao.getAll(),
                 legacyNotes = legacyNoteDao.getAll(),
                 documents = noteDocumentDao.getAllDocuments(),
@@ -169,6 +173,7 @@ constructor(
     suspend fun importFullBackupFromFile(uri: Uri): Result<String> {
         val IMPORT_TAG = "SyncRepository_IMPORT"
         try {
+            Log.d(FULL_IMPORT_TAG, "importFullBackupFromFile invoked with uri=$uri on thread ${Thread.currentThread().name}")
             Log.d(IMPORT_TAG, "Починаємо імпорт з URI: $uri")
             val jsonString =
                 context.contentResolver
@@ -240,7 +245,7 @@ constructor(
                         rawScore = projectFromBackup.rawScore,
                         displayScore = projectFromBackup.displayScore,
                     )
-                }
+                }.map { it.toShared() }
             Log.d(IMPORT_TAG, "Очищення даних Project завершено.")
 
             val cleanedListItems =
@@ -280,83 +285,114 @@ constructor(
             val backupChecklists = backup.checklists.orEmpty()
             val backupChecklistItems = backup.checklistItems.orEmpty()
 
-            Log.d(IMPORT_TAG, "Перед транзакцією. projectDao=${projectDao.hashCode()}")
-            appDatabase.withTransaction {
-                Log.d(IMPORT_TAG, "Транзакція: очищення таблиць.")
-                projectManagementDao.deleteAllLogs()
-                Log.d(IMPORT_TAG, "  - logs очищено")
-                inboxRecordDao.deleteAll()
-                Log.d(IMPORT_TAG, "  - inbox очищено")
-                linkItemDao.deleteAll()
-                Log.d(IMPORT_TAG, "  - link_items очищено")
-                activityRecordDao.clearAll()
-                Log.d(IMPORT_TAG, "  - activity очищено")
-                listItemDao.deleteAll()
-                Log.d(IMPORT_TAG, "  - list_items очищено")
-                projectDao.deleteAll()
-                Log.d(IMPORT_TAG, "  - projects очищено")
-                goalDao.deleteAll()
-                Log.d(IMPORT_TAG, "  - goals очищено")
-                legacyNoteDao.deleteAll()
-                Log.d(IMPORT_TAG, "  - legacy_notes очищено")
-                noteDocumentDao.deleteAllDocuments()
-                Log.d(IMPORT_TAG, "  - note_documents очищено")
-                noteDocumentDao.deleteAllDocumentItems()
-                Log.d(IMPORT_TAG, "  - note_document_items очищено")
-                checklistDao.deleteAllChecklistItems()
-                Log.d(IMPORT_TAG, "  - checklist_items очищено")
-                checklistDao.deleteAllChecklists()
-                Log.d(IMPORT_TAG, "  - checklists очищено")
-                recentItemDao.deleteAll()
-                Log.d(IMPORT_TAG, "  - recent_items очищено")
+        appDatabase.withTransaction {
+            Log.d(FULL_IMPORT_TAG, "Room transaction started")
+            Log.d(IMPORT_TAG, "Транзакція: очищення таблиць.")
+            Log.d(FULL_IMPORT_TAG, "TX stage: clearing project logs")
+            projectManagementDao.deleteAllLogs()
+            Log.d(FULL_IMPORT_TAG, "TX stage: project logs cleared")
+            Log.d(IMPORT_TAG, "  - logs очищено")
+            inboxRecordDao.deleteAll()
+            Log.d(FULL_IMPORT_TAG, "TX stage: inbox cleared")
+            Log.d(IMPORT_TAG, "  - inbox очищено")
+            linkItemDao.deleteAll()
+            Log.d(FULL_IMPORT_TAG, "TX stage: link items cleared")
+            Log.d(IMPORT_TAG, "  - link_items очищено")
+            activityRecordDao.clearAll()
+            Log.d(FULL_IMPORT_TAG, "TX stage: activity records cleared")
+            Log.d(IMPORT_TAG, "  - activity очищено")
+            listItemDao.deleteAll()
+            Log.d(FULL_IMPORT_TAG, "TX stage: list items cleared")
+            Log.d(IMPORT_TAG, "  - list_items очищено")
+            projectLocalDataSource.deleteAllWithinTransaction()
+            Log.d(FULL_IMPORT_TAG, "TX stage: projects cleared")
+            Log.d(IMPORT_TAG, "  - projects очищено")
+            goalDao.deleteAll()
+            Log.d(FULL_IMPORT_TAG, "TX stage: goals cleared")
+            Log.d(IMPORT_TAG, "  - goals очищено")
+            legacyNoteDao.deleteAll()
+            Log.d(FULL_IMPORT_TAG, "TX stage: legacy notes cleared")
+            Log.d(IMPORT_TAG, "  - legacy_notes очищено")
+            noteDocumentDao.deleteAllDocuments()
+            Log.d(FULL_IMPORT_TAG, "TX stage: note documents cleared")
+            Log.d(IMPORT_TAG, "  - note_documents очищено")
+            noteDocumentDao.deleteAllDocumentItems()
+            Log.d(FULL_IMPORT_TAG, "TX stage: note document items cleared")
+            Log.d(IMPORT_TAG, "  - note_document_items очищено")
+            checklistDao.deleteAllChecklistItems()
+            Log.d(FULL_IMPORT_TAG, "TX stage: checklist items cleared")
+            Log.d(IMPORT_TAG, "  - checklist_items очищено")
+            checklistDao.deleteAllChecklists()
+            Log.d(FULL_IMPORT_TAG, "TX stage: checklists cleared")
+            Log.d(IMPORT_TAG, "  - checklists очищено")
+            recentItemDao.deleteAll()
+            Log.d(FULL_IMPORT_TAG, "TX stage: recent items cleared")
+            Log.d(IMPORT_TAG, "  - recent_items очищено")
 
                 Log.d(IMPORT_TAG, "Транзакція: вставка базових сутностей.")
+                Log.d(IMPORT_TAG, "  -> Inserting goals: ${backup.goals.size}")
                 goalDao.insertGoals(backup.goals)
                 Log.d(IMPORT_TAG, "  - goals вставлено: ${backup.goals.size}")
-                projectDao.insertProjects(cleanedProjects)
+
+                Log.d(IMPORT_TAG, "  -> Inserting projects: ${cleanedProjects.size}")
+                projectLocalDataSource.upsert(cleanedProjects, useTransaction = true)
                 Log.d(IMPORT_TAG, "  - projects вставлено: ${cleanedProjects.size}")
+
+                Log.d(IMPORT_TAG, "  -> Inserting backlogListItems: ${backlogListItems.size}")
                 listItemDao.insertItems(backlogListItems)
+                Log.d(FULL_IMPORT_TAG, "TX stage: base entities inserted")
                 Log.d(IMPORT_TAG, "  - list_items вставлено: ${backlogListItems.size}")
 
                 backup.legacyNotes?.let {
+                    Log.d(IMPORT_TAG, "  -> Inserting legacyNotes: ${it.size}")
                     legacyNoteDao.insertAll(it.orEmpty())
                     Log.d(IMPORT_TAG, "  - legacy_notes вставлено: ${it.size}")
                 }
                 backup.documents?.let {
+                    Log.d(IMPORT_TAG, "  -> Inserting documents: ${it.size}")
                     noteDocumentDao.insertAllDocuments(it.orEmpty())
                     Log.d(IMPORT_TAG, "  - documents вставлено: ${it.size}")
                 }
                 backup.documentItems?.let {
+                    Log.d(IMPORT_TAG, "  -> Inserting documentItems: ${it.size}")
                     noteDocumentDao.insertAllDocumentItems(it.orEmpty())
                     Log.d(IMPORT_TAG, "  - document_items вставлено: ${it.size}")
                 }
                 if (backupChecklists.isNotEmpty()) {
+                    Log.d(IMPORT_TAG, "  -> Inserting checklists: ${backupChecklists.size}")
                     checklistDao.insertChecklists(backupChecklists)
                     Log.d(IMPORT_TAG, "  - checklists вставлено: ${backupChecklists.size}")
                 }
                 if (backupChecklistItems.isNotEmpty()) {
+                    Log.d(IMPORT_TAG, "  -> Inserting checklistItems: ${backupChecklistItems.size}")
                     checklistDao.insertItems(backupChecklistItems)
                     Log.d(IMPORT_TAG, "  - checklist_items вставлено: ${backupChecklistItems.size}")
                 }
 
                 backup.activityRecords?.let {
+                    Log.d(IMPORT_TAG, "  -> Inserting activityRecords: ${it.size}")
                     activityRecordDao.insertAll(it)
                     Log.d(IMPORT_TAG, "  - activity_records вставлено: ${it.size}")
                 }
                 backup.linkItemEntities?.let {
+                    Log.d(IMPORT_TAG, "  -> Inserting linkItemEntities: ${it.size}")
                     linkItemDao.insertAll(it)
                     Log.d(IMPORT_TAG, "  - link_items вставлено: ${it.size}")
                 }
                 backup.inboxRecords?.let {
+                    Log.d(IMPORT_TAG, "  -> Inserting inboxRecords: ${it.size}")
                     inboxRecordDao.insertAll(it)
                     Log.d(IMPORT_TAG, "  - inbox_records вставлено: ${it.size}")
                 }
                 backup.projectExecutionLogs?.let {
+                    Log.d(IMPORT_TAG, "  -> Inserting projectExecutionLogs: ${it.size}")
                     projectManagementDao.insertAllLogs(it)
                     Log.d(IMPORT_TAG, "  - project_logs вставлено: ${it.size}")
                 }
                 recentItemsToInsert?.let {
+                    Log.d(IMPORT_TAG, "  -> Inserting recentItems: ${it.size}")
                     recentItemDao.insertAll(it)
+                    Log.d(FULL_IMPORT_TAG, "TX stage: secondary entities inserted (${it.size})")
                     Log.d(IMPORT_TAG, "  - recent_items вставлено: ${it.size}")
                 }
 
@@ -380,24 +416,28 @@ constructor(
                         attachmentRepository.updateAttachmentOrders(projectId, updates)
                     }
                     Log.d(IMPORT_TAG, "Транзакція: attachments сформовано для ${orderUpdatesByProject.size} проєктів")
+                    Log.d(FULL_IMPORT_TAG, "TX stage: attachments synchronized (${orderUpdatesByProject.size})")
                 }
 
                 Log.d(IMPORT_TAG, "Транзакція: відновлення settings. Entries=${backupSettingsMap.size}")
                 settingsRepository.restoreFromMap(backupSettingsMap)
                 Log.d(IMPORT_TAG, "Транзакція: запуск DatabaseInitializer.prePopulate().")
-                com.romankozak.forwardappmobile.data.database.DatabaseInitializer(projectDao, context).prePopulate()
+                databaseInitializer.prePopulate()
                 Log.d(IMPORT_TAG, "Транзакція: вставка завершена.")
+                Log.d(FULL_IMPORT_TAG, "Room transaction committed")
             }
 
-            runPostBackupMigration()
+        runPostBackupMigration()
 
-            Log.i(IMPORT_TAG, "Імпорт бекапу успішно завершено.")
-            return Result.success("Backup imported successfully!")
-        } catch (e: Exception) {
-            Log.e(IMPORT_TAG, "Під час імпорту сталася критична помилка.", e)
-            return Result.failure(e)
-        }
+        Log.i(IMPORT_TAG, "Імпорт бекапу успішно завершено.")
+        Log.i(FULL_IMPORT_TAG, "Backup import finished successfully")
+        return Result.success("Backup imported successfully!")
+    } catch (e: Exception) {
+        Log.e(IMPORT_TAG, "Під час імпорту сталася критична помилка.", e)
+        Log.e(FULL_IMPORT_TAG, "Backup import failed", e)
+        return Result.failure(e)
     }
+}
 
     suspend fun fetchBackupFromWifi(address: String): Result<String> =
         try {
@@ -420,7 +460,7 @@ constructor(
         val desktopData = gson.fromJson(jsonString, DesktopBackupFile::class.java).data ?: return SyncReport(emptyList())
 
         val localGoals = goalDao.getAll().associateBy { it.id }
-        val localProjects = projectDao.getAll().map { it.toShared() }.associateBy { it.id }
+        val localProjects = projectLocalDataSource.getAll().associateBy { it.id }
 
         val changes = mutableListOf<SyncChange>()
 
@@ -514,14 +554,14 @@ constructor(
         changesByType[ChangeType.Delete]?.forEach { change ->
             when (change.entityType) {
                 "Привʼязка" -> listItemDao.deleteItemsByIds(listOf(change.id))
-                "Список" -> projectDao.deleteProjectById(change.id)
+                "Список" -> projectLocalDataSource.deleteDefault(change.id)
                 "Ціль" -> goalDao.deleteGoalById(change.id)
             }
         }
 
         changesByType[ChangeType.Update]?.forEach { change ->
             when (change.entityType) {
-                "Список" -> projectDao.update((change.entity as Project).toEntity())
+                "Список" -> projectLocalDataSource.upsert(change.entity as Project)
                 "Ціль" -> goalDao.updateGoal(change.entity as Goal)
             }
         }
@@ -529,7 +569,7 @@ constructor(
         val addsAndMoves = (changesByType[ChangeType.Add] ?: emptyList()) + (changesByType[ChangeType.Move] ?: emptyList())
         addsAndMoves.forEach { change ->
             when (change.entityType) {
-                "Список" -> projectDao.insert((change.entity as Project).toEntity())
+                "Список" -> projectLocalDataSource.upsert(change.entity as Project)
                 "Ціль" -> goalDao.insertGoal(change.entity as Goal)
                 "Привʼязка" -> listItemDao.insertItem(change.entity as ListItem)
             }

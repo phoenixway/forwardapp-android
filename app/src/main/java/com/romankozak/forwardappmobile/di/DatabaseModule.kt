@@ -24,6 +24,7 @@ import com.romankozak.forwardappmobile.data.dao.ConversationFolderDao
 import com.romankozak.forwardappmobile.data.dao.ChecklistDao
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import com.romankozak.forwardappmobile.shared.database.AttachmentQueriesQueries
+import com.romankozak.forwardappmobile.shared.database.ProjectExecutionLogQueriesQueries
 import com.romankozak.forwardappmobile.shared.database.ProjectQueriesQueries
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import dagger.Module
@@ -236,6 +237,12 @@ object DatabaseModule {
     fun provideProjectQueries(
         forwardAppDatabase: ForwardAppDatabase,
     ): ProjectQueriesQueries = forwardAppDatabase.projectQueriesQueries
+
+    @Provides
+    @Singleton
+    fun provideProjectExecutionLogQueries(
+        forwardAppDatabase: ForwardAppDatabase,
+    ): ProjectExecutionLogQueriesQueries = forwardAppDatabase.projectExecutionLogQueriesQueries
 
     @Provides
     @Singleton

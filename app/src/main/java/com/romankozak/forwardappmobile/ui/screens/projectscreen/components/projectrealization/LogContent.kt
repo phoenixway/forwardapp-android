@@ -41,8 +41,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog
-import com.romankozak.forwardappmobile.data.database.models.ProjectLogEntryTypeValues
+import com.romankozak.forwardappmobile.shared.features.projects.logs.data.model.ProjectExecutionLog
+import com.romankozak.forwardappmobile.shared.data.database.models.ProjectLogEntryTypeValues
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.abs
@@ -371,9 +371,9 @@ internal fun PlaceholderContent(text: String) {
 private fun LogContentPreview() {
     val now = System.currentTimeMillis()
     val sample = listOf(
-        ProjectExecutionLog(id = "1", projectId = "0", timestamp = now - 20 * 60_000, type = ProjectLogEntryTypeValues.STATUS_CHANGE, description = "Перенесено до 'Робота'", details = "Завершено перевірку"),
-        ProjectExecutionLog(id = "2", projectId = "0", timestamp = now - 120 * 60_000, type = ProjectLogEntryTypeValues.COMMENT, description = "Коментар", details = "Потрібно уточнити терміни"),
-        ProjectExecutionLog(id = "3", projectId = "0", timestamp = now - 3_600_000 * 5, type = ProjectLogEntryTypeValues.INSIGHT, description = "Ідея: кешування", details = "Зменшить навантаження"),
+        com.romankozak.forwardappmobile.shared.features.projects.logs.data.model.ProjectExecutionLog(id = "1", projectId = "0", timestamp = now - 20 * 60_000, type = ProjectLogEntryTypeValues.STATUS_CHANGE, description = "Перенесено до 'Робота'", details = "Завершено перевірку"),
+        com.romankozak.forwardappmobile.shared.features.projects.logs.data.model.ProjectExecutionLog(id = "2", projectId = "0", timestamp = now - 120 * 60_000, type = ProjectLogEntryTypeValues.COMMENT, description = "Коментар", details = "Потрібно уточнити терміни"),
+        com.romankozak.forwardappmobile.shared.features.projects.logs.data.model.ProjectExecutionLog(id = "3", projectId = "0", timestamp = now - 3_600_000 * 5, type = ProjectLogEntryTypeValues.INSIGHT, description = "Ідея: кешування", details = "Зменшить навантаження"),
     )
     MaterialTheme {
         LogContent(sample, true, {}, {})

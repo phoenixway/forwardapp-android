@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
 
 import android.net.Uri
+import android.util.Log
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
@@ -136,7 +137,12 @@ class ProjectActionsUseCase @Inject constructor(
     suspend fun exportToFile() = withContext(ioDispatcher) { syncRepository.exportFullBackupToFile() }
 
     suspend fun onFullImportConfirmed(uri: Uri) =
-        withContext(ioDispatcher) { syncRepository.importFullBackupFromFile(uri) }
+        withContext(ioDispatcher) {
+            Log.d("FullImportFlow", "ProjectActionsUseCase.onFullImportConfirmed uri=$uri")
+            val result = syncRepository.importFullBackupFromFile(uri)
+            Log.d("FullImportFlow", "ProjectActionsUseCase.onFullImportConfirmed result=${result.isSuccess}")
+            result
+        }
 
     suspend fun onBottomNavExpandedChange(expanded: Boolean) =
         withContext(ioDispatcher) { settingsRepository.saveBottomNavExpanded(expanded) }

@@ -17,6 +17,7 @@ import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.features.attachments.data.AndroidLinkItemDataSource
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
+import com.romankozak.forwardappmobile.shared.database.ProjectExecutionLogQueriesQueries
 import com.romankozak.forwardappmobile.shared.database.AttachmentQueriesQueries
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import com.romankozak.forwardappmobile.shared.features.attachments.data.model.LinkItemDataSource
@@ -43,9 +44,10 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideProjectLogRepository(
-        projectManagementDao: ProjectManagementDao
+        projectExecutionLogQueries: ProjectExecutionLogQueriesQueries,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher
     ): ProjectLogRepository {
-        return ProjectLogRepository(projectManagementDao)
+        return ProjectLogRepository(projectExecutionLogQueries, ioDispatcher)
     }
 
     @Provides
