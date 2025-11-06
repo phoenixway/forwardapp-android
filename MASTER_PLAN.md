@@ -118,6 +118,7 @@
 - [x] Перенести `ProjectLogRepository` у `shared` (`ProjectExecutionLogQueries.sq`, оновити log-флоу).
 - [x] Перевести `ReminderRepository` на SQLDelight + KMP `AlarmScheduler` через expect/actual.
 - [x] Перенести `RecentItemsRepository` у `shared` (KMP моделі доступу, SQLDelight).
+- [ ] Розпочати міграцію нотаток (`LegacyNoteRepository`/`NoteDocumentRepository`) на SQLDelight у `shared`.
 - [ ] Після хвилі дрібних репозиторіїв — довести "Attachments" до 100% SQLDelight у `app`.
 
 ---
