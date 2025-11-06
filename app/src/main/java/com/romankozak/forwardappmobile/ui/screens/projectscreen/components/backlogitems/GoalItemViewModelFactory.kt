@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.back
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.romankozak.forwardappmobile.data.database.models.Goal
-import com.romankozak.forwardappmobile.data.database.models.Reminder
+import com.romankozak.forwardappmobile.shared.features.reminders.data.model.Reminder
 import com.romankozak.forwardappmobile.ui.common.ParsedTextData
 
 class GoalItemViewModelFactory(

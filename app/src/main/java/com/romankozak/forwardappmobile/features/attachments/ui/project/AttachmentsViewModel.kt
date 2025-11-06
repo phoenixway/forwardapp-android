@@ -14,7 +14,8 @@ import com.romankozak.forwardappmobile.data.repository.ListItemRepository
 import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
-import com.romankozak.forwardappmobile.data.database.models.Reminder
+import com.romankozak.forwardappmobile.shared.features.reminders.data.model.Reminder
+import com.romankozak.forwardappmobile.shared.features.reminders.data.repository.uuid4
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -253,13 +254,16 @@ class AttachmentsViewModel @Inject constructor(
         viewModelScope.launch {
             uiState.value.project?.let { project ->
                 uiState.value.reminderTime?.let { reminderTime ->
-                    val reminder = Reminder(
-                        entityId = project.id,
-                        entityType = "PROJECT",
-                        reminderTime = reminderTime,
-                        status = "SCHEDULED",
-                        creationTime = System.currentTimeMillis()
-                    )
+                        val reminder =
+                            Reminder(
+                                id = uuid4(),
+                                entityId = project.id,
+                                entityType = "PROJECT",
+                                reminderTime = reminderTime,
+                                status = "SCHEDULED",
+                                creationTime = System.currentTimeMillis(),
+                                snoozeUntil = null,
+                            )
                     alarmScheduler.schedule(reminder)
                 }
             }

@@ -20,7 +20,6 @@ import com.romankozak.forwardappmobile.data.dao.NoteDocumentDao
 import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
 import com.romankozak.forwardappmobile.data.dao.RecentItemDao
 import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
-import com.romankozak.forwardappmobile.data.dao.ReminderDao
 import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentRoomEntity
@@ -49,7 +48,6 @@ import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAt
         RecentItem::class,
         ConversationFolderEntity::class,
         RecurringTask::class,
-        Reminder::class,
         ProjectAttachmentCrossRefRoom::class,
 
         GoalFts::class,
@@ -58,7 +56,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAt
         LegacyNoteFts::class,
         RecurringTaskFts::class,
     ],
-    version = 64,
+    version = 65,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class, ProjectTypeConverter::class)
@@ -98,6 +96,4 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun recentItemDao(): RecentItemDao
 
     abstract fun recurringTaskDao(): RecurringTaskDao
-
-    abstract fun reminderDao(): ReminderDao
 }

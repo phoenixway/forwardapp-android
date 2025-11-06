@@ -1,0 +1,43 @@
+CREATE TABLE reminders (
+    id TEXT NOT NULL PRIMARY KEY,
+    entityId TEXT NOT NULL,
+    entityType TEXT NOT NULL,
+    reminderTime INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    creationTime INTEGER NOT NULL,
+    snoozeUntil INTEGER
+);
+
+-- Queries
+
+insert:
+INSERT OR REPLACE INTO reminders(id, entityId, entityType, reminderTime, status, creationTime, snoozeUntil)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+update:
+UPDATE reminders
+SET entityId = ?,
+    entityType = ?,
+    reminderTime = ?,
+    status = ?,
+    creationTime = ?,
+    snoozeUntil = ?
+WHERE id = ?;
+
+delete:
+DELETE FROM reminders WHERE id = ?;
+
+getAllReminders:
+SELECT * FROM reminders ORDER BY reminderTime DESC;
+
+getReminderById:
+SELECT * FROM reminders WHERE id = ?;
+
+getRemindersForEntity:
+SELECT * FROM reminders WHERE entityId = ?;
+
+deleteByEntityId:
+DELETE FROM reminders WHERE entityId = ?;
+
+deleteAll:
+DELETE FROM reminders;

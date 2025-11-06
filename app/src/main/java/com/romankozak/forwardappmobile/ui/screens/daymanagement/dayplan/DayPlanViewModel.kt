@@ -21,7 +21,7 @@ import java.util.Calendar
 import java.util.UUID
 import javax.inject.Inject
 
-import com.romankozak.forwardappmobile.data.database.models.Reminder
+import com.romankozak.forwardappmobile.shared.features.reminders.data.model.Reminder
 
 data class ParentInfo(
     val id: String, // This is the ID of the goal or project

@@ -10,7 +10,6 @@ import com.romankozak.forwardappmobile.data.dao.NoteDocumentDao
 import com.romankozak.forwardappmobile.data.dao.GoalDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.data.dao.RecentItemDao
-import com.romankozak.forwardappmobile.data.dao.ReminderDao
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
 import com.romankozak.forwardappmobile.data.dao.LinkItemDao
@@ -26,6 +25,7 @@ import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import com.romankozak.forwardappmobile.shared.database.AttachmentQueriesQueries
 import com.romankozak.forwardappmobile.shared.database.ProjectExecutionLogQueriesQueries
 import com.romankozak.forwardappmobile.shared.database.ProjectQueriesQueries
+import com.romankozak.forwardappmobile.shared.database.ReminderQueriesQueries
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import dagger.Module
 import dagger.Provides
@@ -93,6 +93,7 @@ import com.romankozak.forwardappmobile.data.database.MIGRATION_60_61
 import com.romankozak.forwardappmobile.data.database.MIGRATION_61_62
 import com.romankozak.forwardappmobile.data.database.MIGRATION_62_63
 import com.romankozak.forwardappmobile.data.database.MIGRATION_63_64
+import com.romankozak.forwardappmobile.data.database.MIGRATION_64_65
 
 
 
@@ -178,6 +179,7 @@ object DatabaseModule {
             MIGRATION_61_62,
             MIGRATION_62_63,
             MIGRATION_63_64,
+            MIGRATION_64_65,
         ).addCallback(callback).build()
     }
 
@@ -196,10 +198,6 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideRecentItemDao(appDatabase: AppDatabase) = appDatabase.recentItemDao()
-
-    @Provides
-    @Singleton
-    fun provideReminderDao(appDatabase: AppDatabase) = appDatabase.reminderDao()
 
     @Provides
     @Singleton
@@ -239,10 +237,10 @@ object DatabaseModule {
     ): ProjectQueriesQueries = forwardAppDatabase.projectQueriesQueries
 
     @Provides
-    @Singleton
-    fun provideProjectExecutionLogQueries(
-        forwardAppDatabase: ForwardAppDatabase,
-    ): ProjectExecutionLogQueriesQueries = forwardAppDatabase.projectExecutionLogQueriesQueries
+    fun provideReminderQueries(db: ForwardAppDatabase): ReminderQueriesQueries = db.reminderQueriesQueries
+
+    @Provides
+    fun provideProjectExecutionLogQueries(db: ForwardAppDatabase): ProjectExecutionLogQueriesQueries = db.projectExecutionLogQueriesQueries
 
     @Provides
     @Singleton

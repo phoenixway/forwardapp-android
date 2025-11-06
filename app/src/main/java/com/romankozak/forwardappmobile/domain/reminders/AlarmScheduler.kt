@@ -5,16 +5,19 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.widget.Toast
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.PowerManager
 import android.util.Log
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
-import com.romankozak.forwardappmobile.data.database.models.Reminder
+import com.romankozak.forwardappmobile.shared.features.reminders.data.model.Reminder
+import com.romankozak.forwardappmobile.shared.features.reminders.domain.AlarmScheduler as KmpAlarmScheduler
 import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
 import com.romankozak.forwardappmobile.BuildConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -35,12 +38,12 @@ class AlarmScheduler
         private val projectRepositoryProvider: Provider<ProjectRepository>,
         private val dayManagementRepository: com.romankozak.forwardappmobile.data.repository.DayManagementRepository,
         private val goalRepositoryProvider: Provider<com.romankozak.forwardappmobile.data.repository.GoalRepository>,
-    ) : AlarmSchedulerInterface {
+    ) : KmpAlarmScheduler {
         private val alarmManager = context.getSystemService(AlarmManager::class.java)
         private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository by lazy { goalRepositoryProvider.get() }
         private val tag = "ReminderFlow"
 
-        suspend fun schedule(reminder: Reminder) {
+        override suspend fun schedule(reminder: Reminder) {
             val projectRepository = projectRepositoryProvider.get()
             Log.d(
                 tag,
@@ -96,7 +99,7 @@ class AlarmScheduler
             setExactAlarm(ReminderBroadcastReceiver.Companion.getNotificationId(reminder.id), adjustedTime, intent)
         }
 
-        fun cancel(reminder: Reminder) {
+        override fun cancel(reminder: Reminder) {
             Log.d(tag, "AlarmScheduler: cancel() called for reminder ID: ${reminder.id}")
             cancelAlarm(ReminderBroadcastReceiver.Companion.getNotificationId(reminder.id))
         }
@@ -182,7 +185,7 @@ class AlarmScheduler
             )
             if (notificationPermission != PackageManager.PERMISSION_GRANTED) {
                 Log.e(tag, "AlarmScheduler: POST_NOTIFICATIONS permission not granted")
-                Toast.makeText(context, "Please grant notification permission to schedule reminders.", Toast.LENGTH_LONG).show()
+                showToast("Please grant notification permission to schedule reminders.")
                 return false
             }
         }
@@ -192,7 +195,7 @@ class AlarmScheduler
             if (!alarmManager.canScheduleExactAlarms()) {
                 Log.e(tag, "AlarmScheduler: Cannot schedule exact alarms. Permission denied.")
                 Log.e(tag, "AlarmScheduler: User needs to grant SCHEDULE_EXACT_ALARM permission in system settings")
-                Toast.makeText(context, "Please grant permission to schedule exact alarms.", Toast.LENGTH_LONG).show()
+                showToast("Please grant permission to schedule exact alarms.")
                 return false
             }
         }
@@ -201,7 +204,7 @@ class AlarmScheduler
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (!Settings.canDrawOverlays(context)) {
                 Log.e(tag, "AlarmScheduler: Cannot draw over other apps. Permission denied.")
-                Toast.makeText(context, "Please grant permission to display over other apps.", Toast.LENGTH_LONG).show()
+                showToast("Please grant permission to display over other apps.")
                 return false
             }
         }
@@ -212,7 +215,13 @@ class AlarmScheduler
         return true
     }
 
-        private fun checkBatteryOptimization() {
+    private fun showToast(message: String) {
+        Handler(Looper.getMainLooper()).post {
+            Toast.makeText(context.applicationContext, message, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun checkBatteryOptimization() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
                 val isIgnoringBatteryOptimizations = powerManager.isIgnoringBatteryOptimizations(context.packageName)

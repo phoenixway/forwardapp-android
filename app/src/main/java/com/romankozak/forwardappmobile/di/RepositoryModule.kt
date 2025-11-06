@@ -5,23 +5,21 @@ import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
 import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.data.dao.NoteDocumentDao
-import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
 import com.romankozak.forwardappmobile.data.dao.RecentItemDao
-import com.romankozak.forwardappmobile.data.dao.ReminderDao
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.ProjectArtifactRepository
 import com.romankozak.forwardappmobile.data.repository.ProjectLogRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
-import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.features.attachments.data.AndroidLinkItemDataSource
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 import com.romankozak.forwardappmobile.shared.database.ProjectExecutionLogQueriesQueries
-import com.romankozak.forwardappmobile.shared.database.AttachmentQueriesQueries
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
+import com.romankozak.forwardappmobile.shared.database.AttachmentQueriesQueries
+import com.romankozak.forwardappmobile.shared.database.ReminderQueriesQueries
 import com.romankozak.forwardappmobile.shared.features.attachments.data.model.LinkItemDataSource
-import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
+import com.romankozak.forwardappmobile.shared.features.reminders.domain.AlarmScheduler
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -36,10 +34,12 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideReminderRepository(
-        reminderDao: ReminderDao,
+        reminderQueries: ReminderQueriesQueries,
         alarmScheduler: AlarmScheduler,
         @IoDispatcher ioDispatcher: CoroutineDispatcher
-    ): ReminderRepository = ReminderRepository(reminderDao, alarmScheduler, ioDispatcher)
+    ): com.romankozak.forwardappmobile.shared.features.reminders.data.repository.ReminderRepository {
+        return com.romankozak.forwardappmobile.shared.features.reminders.data.repository.ReminderRepository(reminderQueries, alarmScheduler, ioDispatcher)
+    }
 
     @Provides
     @Singleton

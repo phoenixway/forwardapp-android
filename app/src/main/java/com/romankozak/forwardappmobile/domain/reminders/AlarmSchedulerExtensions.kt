@@ -23,14 +23,4 @@ fun AlarmScheduler.cancelForActivityRecord(record: ActivityRecord) {
     cancelNotification(requestCode)
 }
 
-interface AlarmSchedulerInterface {
-    fun scheduleNotification(
-        requestCode: Int,
-        triggerTime: Long,
-        title: String,
-        message: String,
-        extraInfo: String? = null,
-    )
 
-    fun cancelNotification(requestCode: Int)
-}

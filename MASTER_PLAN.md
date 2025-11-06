@@ -25,7 +25,7 @@
 - [ ] **1.3. Міграція легких репозиторіїв (перед Projects):**
 - [x] `ProjectArtifactRepository` → SQLDelight (`ProjectArtifactQueries.sq`), винести в `shared/.../features/projects/data/artifacts`.
     - [x] `ProjectLogRepository` → SQLDelight (`ProjectExecutionLogQueries.sq`), винести в `shared/.../features/projects/data/logs`.
-    - [ ] `ReminderRepository` → SQLDelight (`ReminderQueries.sq`), винести в `shared/.../features/reminders/data`; задати expect/actual для `AlarmScheduler`.
+    - [x] `ReminderRepository` → SQLDelight (`ReminderQueries.sq`), винести в `shared/.../features/reminders/data`; задати expect/actual для `AlarmScheduler`.
     - [ ] `RecentItemsRepository` → SQLDelight (`RecentItemQueries.sq`), винести в `shared/.../features/recentitems/data`.
 
 - [ ] **1.4. Міграція фічі "Projects" (частково розпочато):**
@@ -116,7 +116,7 @@
 
 - [x] Перенести `ProjectArtifactRepository` у `shared` (`ProjectArtifactQueries.sq`, оновлений DI).
 - [x] Перенести `ProjectLogRepository` у `shared` (`ProjectExecutionLogQueries.sq`, оновити log-флоу).
-- [ ] Перевести `ReminderRepository` на SQLDelight + KMP `AlarmScheduler` через expect/actual.
+- [x] Перевести `ReminderRepository` на SQLDelight + KMP `AlarmScheduler` через expect/actual.
 - [ ] Перенести `RecentItemsRepository` у `shared` (KMP моделі доступу, SQLDelight).
 - [ ] Після хвилі дрібних репозиторіїв — довести "Attachments" до 100% SQLDelight у `app`.
 

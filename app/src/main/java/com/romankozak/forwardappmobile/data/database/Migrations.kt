@@ -612,3 +612,13 @@ val MIGRATION_63_64 = object : Migration(63, 64) {
         )
     }
 }
+
+val MIGRATION_64_65 = object : Migration(64, 65) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            DROP TABLE IF EXISTS `reminders`
+            """.trimIndent(),
+        )
+    }
+}

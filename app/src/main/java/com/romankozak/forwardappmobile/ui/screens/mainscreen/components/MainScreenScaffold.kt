@@ -25,6 +25,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.shared.features.reminders.data.model.Reminder
+import com.romankozak.forwardappmobile.shared.features.reminders.data.repository.uuid4
 import com.romankozak.forwardappmobile.ui.components.NewRecentListsSheet
 import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.ui.reminders.dialogs.ReminderPropertiesDialog
@@ -207,7 +209,18 @@ fun MainScreenScaffold(
             onDismiss = { viewModel.onReminderDialogDismiss() },
             onSetReminder = { timestamp -> viewModel.onSetReminder(timestamp) },
             onRemoveReminder = if (record.reminderTime != null) { { viewModel.onClearReminder() } } else null,
-            currentReminders = listOfNotNull(record.reminderTime).map { com.romankozak.forwardappmobile.data.database.models.Reminder(entityId = record.id, entityType = "TASK", reminderTime = it, status = "SCHEDULED", creationTime = System.currentTimeMillis()) },
+            currentReminders =
+                listOfNotNull(record.reminderTime).map {
+                    Reminder(
+                        id = uuid4(),
+                        entityId = record.id,
+                        entityType = "TASK",
+                        reminderTime = it,
+                        status = "SCHEDULED",
+                        creationTime = System.currentTimeMillis(),
+                        snoozeUntil = null,
+                    )
+                },
         )
     }
 

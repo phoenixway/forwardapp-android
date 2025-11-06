@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems
 
-import com.romankozak.forwardappmobile.data.database.models.Reminder
+import com.romankozak.forwardappmobile.shared.features.reminders.data.model.Reminder
 import androidx.compose.material.icons.filled.AccountTree
 import android.util.Log
 import androidx.compose.foundation.background

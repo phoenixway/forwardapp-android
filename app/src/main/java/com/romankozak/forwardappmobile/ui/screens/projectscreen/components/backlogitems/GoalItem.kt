@@ -18,7 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.data.database.models.Goal
-import com.romankozak.forwardappmobile.data.database.models.Reminder
+import com.romankozak.forwardappmobile.shared.features.reminders.data.model.Reminder
 import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import androidx.lifecycle.viewmodel.compose.viewModel

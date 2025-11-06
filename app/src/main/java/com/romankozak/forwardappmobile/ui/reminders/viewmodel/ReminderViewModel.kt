@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
-import com.romankozak.forwardappmobile.data.database.models.Reminder
+import com.romankozak.forwardappmobile.shared.features.reminders.data.model.Reminder
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository

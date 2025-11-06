@@ -15,7 +15,7 @@ import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.shared.data.database.models.ProjectStatusValues
 import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
-import com.romankozak.forwardappmobile.data.database.models.Reminder
+import com.romankozak.forwardappmobile.shared.features.reminders.data.model.Reminder
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.database.models.LinkItemEntity
 import com.romankozak.forwardappmobile.data.database.models.ListItem

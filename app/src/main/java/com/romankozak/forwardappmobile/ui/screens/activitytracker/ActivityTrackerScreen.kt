@@ -37,6 +37,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
+import com.romankozak.forwardappmobile.shared.features.reminders.data.model.Reminder
+import com.romankozak.forwardappmobile.shared.features.reminders.data.repository.uuid4
 import com.romankozak.forwardappmobile.ui.reminders.dialogs.ReminderPropertiesDialog
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.TimePickerDialog
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.formatDuration
@@ -49,9 +51,6 @@ import kotlin.math.max
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.viewinterop.AndroidView
-
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.core.tween
 
 private val ActivityRecord.isTimeless: Boolean
     get() = this.startTime == null
@@ -163,7 +162,18 @@ fun ActivityTrackerScreen(
                     onDismiss = viewModel::onReminderDialogDismiss,
 onSetReminder = { time -> viewModel.onSetReminder(time) },
                     onRemoveReminder = if (record.reminderTime != null) { { viewModel.onClearReminder() } } else null,
-                    currentReminders = listOfNotNull(record.reminderTime).map { com.romankozak.forwardappmobile.data.database.models.Reminder(entityId = record.id, entityType = "TASK", reminderTime = it, status = "SCHEDULED", creationTime = System.currentTimeMillis()) },
+                    currentReminders =
+                        listOfNotNull(record.reminderTime).map {
+                            Reminder(
+                                id = uuid4(),
+                                entityId = record.id,
+                                entityType = "TASK",
+                                reminderTime = it,
+                                status = "SCHEDULED",
+                                creationTime = System.currentTimeMillis(),
+                                snoozeUntil = null,
+                            )
+                        },
                 )
             }
         }
