@@ -18,7 +18,6 @@ import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
 import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
-import com.romankozak.forwardappmobile.data.dao.RecentItemDao
 import com.romankozak.forwardappmobile.data.dao.ChecklistDao
 import com.romankozak.forwardappmobile.data.database.AppDatabase
 import com.romankozak.forwardappmobile.data.database.models.ChecklistEntity
@@ -49,6 +48,7 @@ import com.romankozak.forwardappmobile.data.sync.toGoal
 import com.romankozak.forwardappmobile.data.sync.toProject
 import com.romankozak.forwardappmobile.features.projects.data.toShared
 import com.romankozak.forwardappmobile.features.projects.data.toEntity
+import com.romankozak.forwardappmobile.shared.database.RecentItemQueriesQueries
 import kotlinx.coroutines.flow.first
 import java.text.SimpleDateFormat
 import java.time.OffsetDateTime
@@ -103,7 +103,7 @@ constructor(
     private val legacyNoteDao: LegacyNoteDao,
     private val noteDocumentDao: NoteDocumentDao,
     private val checklistDao: ChecklistDao,
-    private val recentItemDao: RecentItemDao,
+    private val recentItemQueries: RecentItemQueriesQueries,
     private val attachmentRepository: AttachmentRepository,
     private val databaseInitializer: DatabaseInitializer,
 ) {
@@ -325,7 +325,7 @@ constructor(
             checklistDao.deleteAllChecklists()
             Log.d(FULL_IMPORT_TAG, "TX stage: checklists cleared")
             Log.d(IMPORT_TAG, "  - checklists очищено")
-            recentItemDao.deleteAll()
+            recentItemQueries.deleteAllRecentItems()
             Log.d(FULL_IMPORT_TAG, "TX stage: recent items cleared")
             Log.d(IMPORT_TAG, "  - recent_items очищено")
 
@@ -389,11 +389,20 @@ constructor(
                     projectManagementDao.insertAllLogs(it)
                     Log.d(IMPORT_TAG, "  - project_logs вставлено: ${it.size}")
                 }
-                recentItemsToInsert?.let {
-                    Log.d(IMPORT_TAG, "  -> Inserting recentItems: ${it.size}")
-                    recentItemDao.insertAll(it)
-                    Log.d(FULL_IMPORT_TAG, "TX stage: secondary entities inserted (${it.size})")
-                    Log.d(IMPORT_TAG, "  - recent_items вставлено: ${it.size}")
+                recentItemsToInsert?.let { items ->
+                    Log.d(IMPORT_TAG, "  -> Inserting recentItems: ${items.size}")
+                    items.forEach { recent ->
+                        recentItemQueries.insertRecentItem(
+                            id = recent.id,
+                            type = recent.type.name,
+                            lastAccessed = recent.lastAccessed,
+                            displayName = recent.displayName,
+                            target = recent.target,
+                            isPinned = if (recent.isPinned) 1L else 0L,
+                        )
+                    }
+                    Log.d(FULL_IMPORT_TAG, "TX stage: secondary entities inserted (${items.size})")
+                    Log.d(IMPORT_TAG, "  - recent_items вставлено: ${items.size}")
                 }
 
                 if (attachmentListItems.isNotEmpty()) {

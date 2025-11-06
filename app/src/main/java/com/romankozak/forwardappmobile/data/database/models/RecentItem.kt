@@ -1,23 +1,4 @@
 package com.romankozak.forwardappmobile.data.database.models
 
-import androidx.room.Entity
-import androidx.room.PrimaryKey
-
-enum class RecentItemType {
-    PROJECT,
-    NOTE,
-    NOTE_DOCUMENT,
-    OBSIDIAN_LINK,
-    CHECKLIST,
-}
-
-@Entity(tableName = "recent_items")
-data class RecentItem(
-    @PrimaryKey
-    val id: String,
-    val type: RecentItemType,
-    val lastAccessed: Long,
-    val displayName: String,
-    val target: String, // Project ID, Legacy Note ID, Note ID, or Obsidian URI
-    val isPinned: Boolean = false
-)
+typealias RecentItem = com.romankozak.forwardappmobile.shared.features.recentitems.data.model.RecentItem
+typealias RecentItemType = com.romankozak.forwardappmobile.shared.features.recentitems.data.model.RecentItemType

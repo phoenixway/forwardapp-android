@@ -9,7 +9,6 @@ import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
 import com.romankozak.forwardappmobile.data.dao.NoteDocumentDao
 import com.romankozak.forwardappmobile.data.dao.GoalDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
-import com.romankozak.forwardappmobile.data.dao.RecentItemDao
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
 import com.romankozak.forwardappmobile.data.dao.LinkItemDao
@@ -26,6 +25,7 @@ import com.romankozak.forwardappmobile.shared.database.AttachmentQueriesQueries
 import com.romankozak.forwardappmobile.shared.database.ProjectExecutionLogQueriesQueries
 import com.romankozak.forwardappmobile.shared.database.ProjectQueriesQueries
 import com.romankozak.forwardappmobile.shared.database.ReminderQueriesQueries
+import com.romankozak.forwardappmobile.shared.database.RecentItemQueriesQueries
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import dagger.Module
 import dagger.Provides
@@ -197,10 +197,6 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideRecentItemDao(appDatabase: AppDatabase) = appDatabase.recentItemDao()
-
-    @Provides
-    @Singleton
     fun provideActivityRecordDao(appDatabase: AppDatabase) = appDatabase.activityRecordDao()
 
     @Provides
@@ -241,6 +237,11 @@ object DatabaseModule {
 
     @Provides
     fun provideProjectExecutionLogQueries(db: ForwardAppDatabase): ProjectExecutionLogQueriesQueries = db.projectExecutionLogQueriesQueries
+
+    @Provides
+    fun provideRecentItemQueries(
+        forwardAppDatabase: ForwardAppDatabase,
+    ): RecentItemQueriesQueries = forwardAppDatabase.recentItemQueriesQueries
 
     @Provides
     @Singleton

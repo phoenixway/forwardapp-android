@@ -82,7 +82,7 @@ class NoteDocumentRepository @Inject constructor(
             ownerProjectId = document.projectId,
             createdAt = document.createdAt,
         )
-        recentItemsRepository.logNoteDocumentAccess(document)
+        recentItemsRepository.logNoteDocumentAccess(document.id, document.name)
     }
 
     suspend fun updateDocumentItems(items: List<NoteDocumentItemEntity>) {

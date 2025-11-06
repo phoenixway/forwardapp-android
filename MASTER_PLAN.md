@@ -26,7 +26,7 @@
 - [x] `ProjectArtifactRepository` → SQLDelight (`ProjectArtifactQueries.sq`), винести в `shared/.../features/projects/data/artifacts`.
     - [x] `ProjectLogRepository` → SQLDelight (`ProjectExecutionLogQueries.sq`), винести в `shared/.../features/projects/data/logs`.
     - [x] `ReminderRepository` → SQLDelight (`ReminderQueries.sq`), винести в `shared/.../features/reminders/data`; задати expect/actual для `AlarmScheduler`.
-    - [ ] `RecentItemsRepository` → SQLDelight (`RecentItemQueries.sq`), винести в `shared/.../features/recentitems/data`.
+    - [x] `RecentItemsRepository` → SQLDelight (`RecentItemQueries.sq`), винести в `shared/.../features/recentitems/data`.
 
 - [ ] **1.4. Міграція фічі "Projects" (частково розпочато):**
     - [x] Створити `ProjectQueries.sq` у `shared` (є).
@@ -86,7 +86,7 @@
     - [ ] Створити Android-обгортку.
     - [ ] Адаптувати `ChecklistScreen.kt`.
 - [ ] **3.3. Міграція ViewModel для "Recent Items":**
-    - [ ] Перенести логіку `RecentItems` у `shared` модуль.
+- [x] Перенести логіку `RecentItems` у `shared` модуль.
     - [ ] Створити/адаптувати ViewModel.
     - [ ] Оновити відповідні UI компоненти.
 - [ ] **3.4. (і т.д. для решти фіч)**
@@ -117,7 +117,7 @@
 - [x] Перенести `ProjectArtifactRepository` у `shared` (`ProjectArtifactQueries.sq`, оновлений DI).
 - [x] Перенести `ProjectLogRepository` у `shared` (`ProjectExecutionLogQueries.sq`, оновити log-флоу).
 - [x] Перевести `ReminderRepository` на SQLDelight + KMP `AlarmScheduler` через expect/actual.
-- [ ] Перенести `RecentItemsRepository` у `shared` (KMP моделі доступу, SQLDelight).
+- [x] Перенести `RecentItemsRepository` у `shared` (KMP моделі доступу, SQLDelight).
 - [ ] Після хвилі дрібних репозиторіїв — довести "Attachments" до 100% SQLDelight у `app`.
 
 ---

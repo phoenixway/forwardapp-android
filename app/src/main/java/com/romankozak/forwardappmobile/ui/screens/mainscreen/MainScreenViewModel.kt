@@ -590,7 +590,7 @@ constructor(
         _showRecentListsSheet.value = false
         when (item.type) {
             com.romankozak.forwardappmobile.data.database.models.RecentItemType.PROJECT -> {
-                projectRepository.getProjectById(item.target)?.let { recentItemsRepository.logProjectAccess(it) }
+                projectRepository.getProjectById(item.target)?.let { recentItemsRepository.logProjectAccess(it.id, it.name) }
                 val project = _allProjectsFlat.value.find { it.id == item.target }
                 if (project != null) {
                     searchUseCase.popToSubState(MainSubState.Hierarchy)
@@ -599,19 +599,19 @@ constructor(
             }
             com.romankozak.forwardappmobile.data.database.models.RecentItemType.NOTE -> {
                 noteRepository.getNoteById(item.target)?.let {
-                    recentItemsRepository.logNoteAccess(it)
+                    recentItemsRepository.logLegacyNoteAccess(it.id, it.title)
                 }
                 _uiEventChannel.send(ProjectUiEvent.ShowToast("Legacy note editing is no longer supported"))
             }
             com.romankozak.forwardappmobile.data.database.models.RecentItemType.NOTE_DOCUMENT -> {
                 noteDocumentRepository.getDocumentById(item.target)?.let {
-                    recentItemsRepository.logNoteDocumentAccess(it)
+                    recentItemsRepository.logNoteDocumentAccess(it.id, it.name)
                 }
                 _uiEventChannel.send(ProjectUiEvent.Navigate("note_document_screen/${item.target}"))
             }
             com.romankozak.forwardappmobile.data.database.models.RecentItemType.CHECKLIST -> {
                 checklistRepository.getChecklistById(item.target)?.let {
-                    recentItemsRepository.logChecklistAccess(it)
+                    recentItemsRepository.logChecklistAccess(it.id, it.name)
                 }
                 _uiEventChannel.send(ProjectUiEvent.Navigate("checklist_screen?checklistId=${item.target}"))
             }
@@ -621,7 +621,7 @@ constructor(
                     displayName = item.displayName,
                     type = LinkType.OBSIDIAN,
                 )
-                recentItemsRepository.logObsidianLinkAccess(link)
+                recentItemsRepository.logObsidianLinkAccess(link.target, link.displayName)
                 val vaultName = settingsRepo.obsidianVaultNameFlow.first()
                 val encodedNoteName = java.net.URLEncoder.encode(item.target, "UTF-8")
                 val uri = "obsidian://new?vault=$vaultName&name=$encodedNoteName"

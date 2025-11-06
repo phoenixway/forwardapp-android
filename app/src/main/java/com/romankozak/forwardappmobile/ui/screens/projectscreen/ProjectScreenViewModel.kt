@@ -556,7 +556,7 @@ constructor(
         .filter { it.isNotEmpty() }
         .collect { id ->
             projectRepository.getProjectById(id)?.let {
-                recentItemsRepository.logProjectAccess(it)
+                recentItemsRepository.logProjectAccess(it.id, it.name)
             }
         }
     }
@@ -1020,21 +1020,21 @@ constructor(
 
   fun onNoteItemClick(note: LegacyNoteEntity) {
     viewModelScope.launch {
-      recentItemsRepository.logNoteAccess(note)
+      recentItemsRepository.logLegacyNoteAccess(note.id, note.title)
           // legacy notes no longer have dedicated editor; no-op
     }
   }
 
   fun onNoteDocumentItemClick(noteDocument: NoteDocumentEntity) {
     viewModelScope.launch {
-      recentItemsRepository.logNoteDocumentAccess(noteDocument)
+      recentItemsRepository.logNoteDocumentAccess(noteDocument.id, noteDocument.name)
       _uiEventFlow.send(UiEvent.Navigate("note_document_screen/${noteDocument.id}"))
     }
   }
 
   fun onChecklistItemClick(checklist: ChecklistEntity) {
     viewModelScope.launch {
-      recentItemsRepository.logChecklistAccess(checklist)
+      recentItemsRepository.logChecklistAccess(checklist.id, checklist.name)
       _uiEventFlow.send(UiEvent.Navigate("checklist_screen?checklistId=${checklist.id}"))
     }
   }
@@ -1048,7 +1048,7 @@ constructor(
           enhancedNavigationManager.navigateToProject(link.target, projectName)
         }
         LinkType.OBSIDIAN -> {
-          recentItemsRepository.logObsidianLinkAccess(link)
+          recentItemsRepository.logObsidianLinkAccess(link.target, link.displayName)
           val vaultName = settingsRepository.obsidianVaultNameFlow.first()
           if (vaultName.isNotBlank()) {
             val encodedNoteName = URLEncoder.encode(link.target, "UTF-8")
@@ -1705,16 +1705,16 @@ constructor(
     viewModelScope.launch {
       when (item.type) {
         RecentItemType.PROJECT -> {
-          projectRepository.getProjectById(item.target)?.let { recentItemsRepository.logProjectAccess(it) }
+          projectRepository.getProjectById(item.target)?.let { recentItemsRepository.logProjectAccess(it.id, it.name) }
           enhancedNavigationManager.navigateToProject(item.target, item.displayName)
         }
         RecentItemType.NOTE -> _uiEventFlow.send(UiEvent.ShowSnackbar("Застарілі нотатки доступні лише для читання"))
         RecentItemType.NOTE_DOCUMENT -> {
-          noteDocumentRepository.getDocumentById(item.target)?.let { recentItemsRepository.logNoteDocumentAccess(it) }
+          noteDocumentRepository.getDocumentById(item.target)?.let { recentItemsRepository.logNoteDocumentAccess(it.id, it.name) }
           _uiEventFlow.send(UiEvent.Navigate("note_document_screen/${item.target}"))
         }
         RecentItemType.CHECKLIST -> {
-          checklistRepository.getChecklistById(item.target)?.let { recentItemsRepository.logChecklistAccess(it) }
+          checklistRepository.getChecklistById(item.target)?.let { recentItemsRepository.logChecklistAccess(it.id, it.name) }
           _uiEventFlow.send(UiEvent.Navigate("checklist_screen?checklistId=${item.target}"))
         }
         RecentItemType.OBSIDIAN_LINK -> {
@@ -1724,7 +1724,7 @@ constructor(
               target = item.target,
               displayName = item.displayName,
             )
-          recentItemsRepository.logObsidianLinkAccess(link)
+          recentItemsRepository.logObsidianLinkAccess(link.target, link.displayName)
           onLinkItemClick(link)
         }
       }

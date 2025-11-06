@@ -5,7 +5,6 @@ import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
 import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.data.dao.NoteDocumentDao
-import com.romankozak.forwardappmobile.data.dao.RecentItemDao
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
@@ -19,6 +18,7 @@ import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import com.romankozak.forwardappmobile.shared.database.AttachmentQueriesQueries
 import com.romankozak.forwardappmobile.shared.database.ReminderQueriesQueries
 import com.romankozak.forwardappmobile.shared.features.attachments.data.model.LinkItemDataSource
+import com.romankozak.forwardappmobile.shared.database.RecentItemQueriesQueries
 import com.romankozak.forwardappmobile.shared.features.reminders.domain.AlarmScheduler
 import dagger.Module
 import dagger.Provides
@@ -63,10 +63,9 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideRecentItemsRepository(
-        recentItemDao: RecentItemDao
-    ): RecentItemsRepository {
-        return RecentItemsRepository(recentItemDao)
-    }
+        recentItemQueries: RecentItemQueriesQueries,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+    ): RecentItemsRepository = RecentItemsRepository(recentItemQueries, ioDispatcher)
 
     @Provides
     @Singleton

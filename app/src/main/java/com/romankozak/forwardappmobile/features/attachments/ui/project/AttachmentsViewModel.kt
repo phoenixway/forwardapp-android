@@ -203,7 +203,7 @@ class AttachmentsViewModel @Inject constructor(
                     _uiEventFlow.send(UiEvent.OpenUri(link.target))
                 }
                 LinkType.OBSIDIAN -> {
-                    recentItemsRepository.logObsidianLinkAccess(link)
+                    recentItemsRepository.logObsidianLinkAccess(link.target, link.displayName)
                     val vaultName = settingsRepository.obsidianVaultNameFlow.first()
                     val encodedNoteName = URLEncoder.encode(link.target, "UTF-8")
                     val uri = "obsidian://new?vault=$vaultName&name=$encodedNoteName"

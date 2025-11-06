@@ -56,19 +56,19 @@ class ItemActionHandler
             } else {
                 scope.launch {
                     when (item) {
-                        is ListItemContent.NoteItem -> recentItemsRepository.logNoteAccess(item.note)
-                        is ListItemContent.NoteDocumentItem -> recentItemsRepository.logNoteDocumentAccess(item.document)
+                        is ListItemContent.NoteItem -> recentItemsRepository.logLegacyNoteAccess(item.note.id, item.note.title)
+                        is ListItemContent.NoteDocumentItem -> recentItemsRepository.logNoteDocumentAccess(item.document.id, item.document.name)
                         is ListItemContent.SublistItem -> {
                             projectRepository.getProjectById(item.project.id)?.let {
-                                recentItemsRepository.logProjectAccess(it)
+                                recentItemsRepository.logProjectAccess(it.id, it.name)
                             }
                         }
                         is ListItemContent.LinkItem -> {
                             if (item.link.linkData.type == LinkType.OBSIDIAN) {
-                                recentItemsRepository.logObsidianLinkAccess(item.link.linkData)
+                                recentItemsRepository.logObsidianLinkAccess(item.link.linkData.target, item.link.linkData.displayName)
                             }
                         }
-                        is ListItemContent.ChecklistItem -> recentItemsRepository.logChecklistAccess(item.checklist)
+                        is ListItemContent.ChecklistItem -> recentItemsRepository.logChecklistAccess(item.checklist.id, item.checklist.name)
                         else -> {}
                     }
                 }

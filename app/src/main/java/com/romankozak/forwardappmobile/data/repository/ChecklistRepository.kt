@@ -35,13 +35,13 @@ class ChecklistRepository @Inject constructor(
             ownerProjectId = projectId,
             createdAt = System.currentTimeMillis(),
         )
-        recentItemsRepository.logChecklistAccess(checklist)
+        recentItemsRepository.logChecklistAccess(checklist.id, checklist.name)
         return checklist.id
     }
 
     suspend fun updateChecklist(checklist: ChecklistEntity) {
         checklistDao.updateChecklist(checklist)
-        recentItemsRepository.logChecklistAccess(checklist)
+        recentItemsRepository.logChecklistAccess(checklist.id, checklist.name)
     }
 
     suspend fun deleteChecklist(checklistId: String) {
