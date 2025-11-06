@@ -149,6 +149,7 @@ dependencies {
     implementation(libs.compose.foundation.layout)
     implementation(libs.compose.animation.core)
     implementation(libs.compose.animation)
+    implementation(libs.sqldelight.driver.android)
 
     // Lifecycle для Compose
     implementation(libs.androidx.lifecycle.viewmodel.compose)
