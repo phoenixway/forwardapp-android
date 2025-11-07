@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.ui.screens.mainscreen.models
 
 import androidx.compose.ui.text.input.TextFieldValue
-import com.romankozak.forwardappmobile.core.database.models.ListHierarchyData
+import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 
@@ -24,7 +24,7 @@ data class MainScreenUiState(
     val showRecentListsSheet: Boolean = false,
     val isBottomNavExpanded: Boolean = false,
     
-    val recentItems: List<com.romankozak.forwardappmobile.core.database.models.RecentItem> = emptyList(),
+    val recentItems: List<com.romankozak.forwardappmobile.data.database.models.RecentItem> = emptyList(),
     val allContexts: List<UiContext> = emptyList(),
     val listChooserFinalExpandedIds: Set<String> = emptySet(),
     val filteredListHierarchyForDialog: ListHierarchyData = ListHierarchyData(),
@@ -43,7 +43,7 @@ data class MainScreenUiState(
     val desktopAddress: String = "",
     val showSearchDialog: Boolean = false,
     val searchResults: List<SearchResult> = emptyList(),
-    val recordForReminderDialog: com.romankozak.forwardappmobile.core.database.models.ActivityRecord? = null,
+    val recordForReminderDialog: com.romankozak.forwardappmobile.data.database.models.ActivityRecord? = null,
     val contextMarkerToEmojiMap: Map<String, String> = emptyMap(),
 ) {
     val currentSubState: MainSubState

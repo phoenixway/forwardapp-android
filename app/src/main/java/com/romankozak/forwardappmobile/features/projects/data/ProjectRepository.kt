@@ -1,26 +1,26 @@
 package com.romankozak.forwardappmobile.features.projects.data
 
 import android.util.Log
-import com.romankozak.forwardappmobile.core.database.models.ChecklistEntity
-import com.romankozak.forwardappmobile.core.database.models.GlobalProjectSearchResult
-import com.romankozak.forwardappmobile.core.database.models.GlobalSearchResultItem
-import com.romankozak.forwardappmobile.core.database.models.GlobalSubprojectSearchResult
-import com.romankozak.forwardappmobile.core.database.models.Goal
-import com.romankozak.forwardappmobile.core.database.models.LegacyNoteEntity
-import com.romankozak.forwardappmobile.core.database.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.data.database.models.ChecklistEntity
+import com.romankozak.forwardappmobile.data.database.models.GlobalProjectSearchResult
+import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResultItem
+import com.romankozak.forwardappmobile.data.database.models.GlobalSubprojectSearchResult
+import com.romankozak.forwardappmobile.data.database.models.Goal
+import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
+import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.shared.data.database.models.ProjectLogEntryTypeValues
-import com.romankozak.forwardappmobile.core.database.models.ProjectTimeMetrics
+import com.romankozak.forwardappmobile.data.database.models.ProjectTimeMetrics
 import com.romankozak.forwardappmobile.shared.features.projects.logs.data.model.ProjectExecutionLog
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
-import com.romankozak.forwardappmobile.core.database.models.ProjectViewMode
+import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.shared.data.database.models.ProjectStatusValues
 import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.shared.features.reminders.data.model.Reminder
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
-
-import com.romankozak.forwardappmobile.core.database.models.ListItem
-import com.romankozak.forwardappmobile.core.database.models.ListItemContent
-import com.romankozak.forwardappmobile.core.database.models.NoteDocumentEntity
+import com.romankozak.forwardappmobile.data.database.models.LinkItemEntity
+import com.romankozak.forwardappmobile.data.database.models.ListItem
+import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.data.database.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.shared.data.database.models.ProjectType
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
@@ -48,10 +48,10 @@ import java.util.UUID
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Provider
-import com.romankozak.forwardappmobile.shared.features.attachments.data.model.LinkItemDataSource
-import com.romankozak.forwardappmobile.shared.features.attachments.data.model.LinkItemRecord
-import kotlinx.coroutines.runBlocking
 import javax.inject.Singleton
+
+internal enum class ContextTextAction { ADD, REMOVE }
+
 
 @Singleton
 class ProjectRepository
@@ -73,8 +73,9 @@ constructor(
     private val projectTimeTrackingRepository: ProjectTimeTrackingRepository,
     private val projectArtifactRepository: ProjectArtifactRepository,
     private val listItemRepository: ListItemRepository,
-    private val linkItemDataSource: LinkItemDataSource,
 ) {
+    private val contextHandler: ContextHandler by lazy { contextHandlerProvider.get() }
+    private val TAG = "NOTE_DOCUMENT_DEBUG"
 
     fun getProjectLogsStream(projectId: String): Flow<List<ProjectExecutionLog>> =
         projectLogRepository.getProjectLogsStream(projectId)
@@ -84,6 +85,8 @@ constructor(
         isEnabled: Boolean,
     ) {
         val project = getProjectById(projectId) ?: return
+        if (project.isProjectManagementEnabled == isEnabled) return
+
         updateProject(project.copy(isProjectManagementEnabled = isEnabled))
         projectLogRepository.addToggleProjectManagementLog(projectId, isEnabled)
     }
@@ -113,14 +116,26 @@ constructor(
         projectLogRepository.addProjectComment(projectId, comment)
     }
 
+    suspend fun updateProjectViewMode(
+        projectId: String,
+        viewMode: ProjectViewMode,
+    ) {
+        projectLocalDataSource.updateDefaultViewMode(projectId, viewMode.name)
+    }
+
     fun getProjectContentStream(projectId: String): Flow<List<ListItemContent>> {
         return combine(
             listItemRepository.getItemsForProjectStream(projectId),
             reminderRepository.getAllReminders(),
             goalRepository.getAllGoalsFlow(),
             projectLocalDataSource.observeAll(),
+            listItemRepository.getAllEntitiesAsFlow(),
+            legacyNoteRepository.getAllAsFlow(),
+            noteDocumentRepository.getAllDocumentsAsFlow(),
+            checklistRepository.getAllChecklistsAsFlow(),
             attachmentRepository.getAttachmentsForProject(projectId),
         ) { array ->
+            @Suppress("UNCHECKED_CAST")
             val items = array[0] as List<ListItem>
             @Suppress("UNCHECKED_CAST")
             val reminders = array[1] as List<Reminder>
@@ -129,8 +144,15 @@ constructor(
             @Suppress("UNCHECKED_CAST")
             val projects = array[3] as List<Project>
             @Suppress("UNCHECKED_CAST")
-            val attachments = array[4] as List<AttachmentWithProject>
-
+            val links = array[4] as List<LinkItemEntity>
+            @Suppress("UNCHECKED_CAST")
+            val notes = array[5] as List<LegacyNoteEntity>
+            @Suppress("UNCHECKED_CAST")
+            val noteDocuments = array[6] as List<NoteDocumentEntity>
+            @Suppress("UNCHECKED_CAST")
+            val checklists = array[7] as List<ChecklistEntity>
+            @Suppress("UNCHECKED_CAST")
+            val attachments = array[8] as List<AttachmentWithProject>
             mapToListItemContent(
                 projectId = projectId,
                 items = items,
@@ -138,6 +160,10 @@ constructor(
                 reminders = reminders,
                 goals = goals,
                 projects = projects,
+                links = links,
+                notes = notes,
+                noteDocuments = noteDocuments,
+                checklists = checklists,
             )
         }
     }
@@ -149,30 +175,33 @@ constructor(
         reminders: List<Reminder>,
         goals: List<Goal>,
         projects: List<Project>,
+        links: List<LinkItemEntity>,
+        notes: List<LegacyNoteEntity>,
+        noteDocuments: List<NoteDocumentEntity>,
+        checklists: List<ChecklistEntity>,
     ): List<ListItemContent> {
-        val linkItemsMap = runBlocking { linkItemDataSource.observeAll().first().associateBy { it.id } }
-
         val attachmentListItems =
             attachments.map { attachment ->
                 val order = attachment.attachmentOrder ?: -attachment.attachment.createdAt
-                val title = if (attachment.attachment.attachmentType == ListItemTypeValues.LINK_ITEM) {
-                    linkItemsMap[attachment.attachment.entityId]?.linkData?.title
-                } else {
-                    null
-                }
                 ListItem(
                     id = attachment.attachment.id,
                     projectId = projectId,
                     itemType = attachment.attachment.attachmentType,
                     entityId = attachment.attachment.entityId,
                     order = order,
-                    title = title
                 )
             }
-        val combinedItems = items + attachmentListItems
+        val combinedItems =
+            (items + attachmentListItems).sortedWith(
+                compareBy<ListItem> { it.order }.thenBy { it.id },
+            )
         val remindersMap = reminders.groupBy { it.entityId }
         val goalsMap = goals.associateBy { it.id }
         val projectsMap = projects.associateBy { it.id }
+        val linksMap = links.associateBy { it.id }
+        val notesMap = notes.associateBy { it.id }
+        val noteDocumentsMap = noteDocuments.associateBy { it.id }
+        val checklistsMap = checklists.associateBy { it.id }
 
         val backlogItems = combinedItems.mapNotNull { item ->
             when (item.itemType) {
@@ -187,8 +216,20 @@ constructor(
                         ListItemContent.SublistItem(project, itemReminders, item)
                     }
                 ListItemTypeValues.LINK_ITEM ->
-                    linkItemsMap[item.entityId]?.let { linkItemRecord ->
-                        ListItemContent.LinkItem(linkItemRecord.linkData, item)
+                    linksMap[item.entityId]?.let { link ->
+                        ListItemContent.LinkItem(link, item)
+                    }
+                ListItemTypeValues.NOTE ->
+                    notesMap[item.entityId]?.let { note ->
+                        ListItemContent.NoteItem(note, item)
+                    }
+                ListItemTypeValues.NOTE_DOCUMENT ->
+                    noteDocumentsMap[item.entityId]?.let { document ->
+                        ListItemContent.NoteDocumentItem(document, item)
+                    }
+                ListItemTypeValues.CHECKLIST ->
+                    checklistsMap[item.entityId]?.let { checklist ->
+                        ListItemContent.ChecklistItem(checklist, item)
                     }
                 else -> null
             }
@@ -377,17 +418,8 @@ constructor(
         projectId: String,
         link: RelatedLink,
     ): String {
-        val (attachment, linkItem) = attachmentRepository.createLinkAttachment(projectId, link)
-        val listItem = ListItem(
-            id = attachment.id, // Use attachment id for the list item
-            projectId = projectId,
-            itemType = ListItemTypeValues.LINK_ITEM,
-            entityId = linkItem.id,
-            order = -attachment.createdAt, // Use negative timestamp for default order
-            title = link.title
-        )
-        listItemRepository.insert(listItem)
-        return listItem.id
+        val attachment = attachmentRepository.createLinkAttachment(projectId, link)
+        return attachment.id
     }
 
     suspend fun findProjectIdsByTag(tag: String): List<String> = projectLocalDataSource.getIdsByTag(tag)
@@ -414,29 +446,27 @@ constructor(
 
 
     suspend fun cleanupDanglingListItems() {
-        val allProjects = projectLocalDataSource.getAll()
-        allProjects.forEach { project ->
-            val allListItems = listItemRepository.getItemsForProjectStream(project.id).first()
-            val itemsToDelete = mutableListOf<String>()
+        val allListItems = listItemRepository.getAll()
+        val itemsToDelete = mutableListOf<String>()
 
-            allListItems.forEach { item ->
-                val entityExists = when (item.itemType) {
-                    ListItemTypeValues.GOAL -> goalRepository.getGoalById(item.entityId) != null
-                    ListItemTypeValues.SUBLIST -> projectLocalDataSource.getById(item.entityId) != null
-                    ListItemTypeValues.NOTE -> legacyNoteRepository.getNoteById(item.entityId) != null
-                    ListItemTypeValues.NOTE_DOCUMENT -> noteDocumentRepository.getDocumentById(item.entityId) != null
-                    ListItemTypeValues.CHECKLIST -> checklistRepository.getChecklistById(item.entityId) != null
-                    else -> true // Assume unknown types are valid to avoid deleting them
-                }
-                if (!entityExists) {
-                    itemsToDelete.add(item.id)
-                }
+        allListItems.forEach { item ->
+            val entityExists = when (item.itemType) {
+                ListItemTypeValues.GOAL -> goalRepository.getGoalById(item.entityId) != null
+                ListItemTypeValues.SUBLIST -> projectLocalDataSource.getById(item.entityId) != null
+                ListItemTypeValues.LINK_ITEM -> listItemRepository.getLinkItemById(item.entityId) != null
+                ListItemTypeValues.NOTE -> legacyNoteRepository.getNoteById(item.entityId) != null
+                ListItemTypeValues.NOTE_DOCUMENT -> noteDocumentRepository.getDocumentById(item.entityId) != null
+                ListItemTypeValues.CHECKLIST -> checklistRepository.getChecklistById(item.entityId) != null
+                else -> true // Assume unknown types are valid to avoid deleting them
             }
+            if (!entityExists) {
+                itemsToDelete.add(item.id)
+            }
+        }
 
-            if (itemsToDelete.isNotEmpty()) {
-                listItemRepository.deleteListItems(itemsToDelete)
-                Log.d("DB_CLEANUP", "Deleted ${itemsToDelete.size} dangling ListItem records for project ${project.id}.")
-            }
+        if (itemsToDelete.isNotEmpty()) {
+            listItemRepository.deleteListItems(itemsToDelete)
+            Log.d("DB_CLEANUP", "Deleted ${itemsToDelete.size} dangling ListItem records.")
         }
     }
 

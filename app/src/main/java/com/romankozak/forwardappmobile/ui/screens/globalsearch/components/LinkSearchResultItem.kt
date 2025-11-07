@@ -27,7 +27,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.core.database.models.GlobalLinkSearchResult
+import com.romankozak.forwardappmobile.data.database.models.GlobalLinkSearchResult
 import com.romankozak.forwardappmobile.shared.data.database.models.LinkType
 
 @Composable
@@ -46,7 +46,7 @@ fun LinkSearchResultItem(
         label = "scale_animation",
     )
 
-    val linkType = result.link.type
+    val linkType = result.link.linkData.type
     val (icon, colors, actionHandler, actionIcon, actionDescription) =
         getLinkDisplayData(
             linkType = linkType,
@@ -109,8 +109,8 @@ fun LinkSearchResultItem(
             Column(
                 modifier = Modifier.weight(1f),
             ) {
-            Text(
-                text = result.link.target,
+                Text(
+                    text = result.link.linkData.displayName ?: result.link.linkData.target,
                     style =
                         MaterialTheme.typography.bodyLarge.copy(
                             fontWeight = FontWeight.SemiBold,

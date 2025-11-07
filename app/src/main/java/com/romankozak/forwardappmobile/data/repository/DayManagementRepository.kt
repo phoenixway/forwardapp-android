@@ -2,30 +2,9 @@
 package com.romankozak.forwardappmobile.data.repository
 
 import androidx.room.Transaction
-import com.romankozak.forwardappmobile.shared.database.ListItemQueries
-
-import com.romankozak.forwardappmobile.shared.database.Day_plans
-import com.romankozak.forwardappmobile.core.database.models.DayStatus
-import com.romankozak.forwardappmobile.core.database.models.DayTask
-import com.romankozak.forwardappmobile.core.database.models.DailyMetric
-import com.romankozak.forwardappmobile.core.database.models.Goal
-import com.romankozak.forwardappmobile.core.database.models.InboxRecord
-import com.romankozak.forwardappmobile.core.database.models.LegacyNoteRoomEntity
-import com.romankozak.forwardappmobile.core.database.models.NoteDocumentItemRoomEntity
-import com.romankozak.forwardappmobile.core.database.models.NoteDocumentRoomEntity
-import com.romankozak.forwardappmobile.core.database.models.ProjectEntity
-import com.romankozak.forwardappmobile.core.database.models.ProjectExecutionLog
-import com.romankozak.forwardappmobile.core.database.models.RecentItemRoomEntity
-import com.romankozak.forwardappmobile.core.database.models.RecurringTask
-import com.romankozak.forwardappmobile.core.database.models.TaskPriority
-import com.romankozak.forwardappmobile.core.database.models.TaskStatus
-import com.romankozak.forwardappmobile.core.database.models.WeeklyInsights
-import com.romankozak.forwardappmobile.core.database.models.DailyAnalytics
-
-import app.cash.sqldelight.coroutines.asFlow
-import app.cash.sqldelight.coroutines.mapToList
-import app.cash.sqldelight.coroutines.mapToOneOrNull
-import com.romankozak.forwardappmobile.core.database.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.data.dao.*
+import com.romankozak.forwardappmobile.data.database.models.*
+import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.features.projects.data.ProjectLocalDataSource
@@ -42,40 +21,40 @@ import javax.inject.Singleton
 
 @Singleton
 class DayManagementRepository
-    //    @Inject
-//    constructor(
-//        private val dayPlanQueries: com.romankozak.forwardappmobile.shared.database.DayPlanQueries,
-//        private val dayTaskDao: DayTaskDao,
-//        private val dailyMetricDao: DailyMetricDao,
-//        private val goalDao: GoalDao,
-//        private val projectLocalDataSource: ProjectLocalDataSource,
-//        private val recurringTaskDao: RecurringTaskDao,
-//        private val listItemQueries: ListItemQueries,
-//        private val activityRepository: ActivityRepository,
-//        private val alarmScheduler: javax.inject.Provider<AlarmScheduler>,
-//        @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-//    ) {
+    @Inject
+    constructor(
+        private val dayPlanDao: DayPlanDao,
+        private val dayTaskDao: DayTaskDao,
+        private val dailyMetricDao: DailyMetricDao,
+        private val goalDao: GoalDao,
+        private val projectLocalDataSource: ProjectLocalDataSource,
+        private val recurringTaskDao: RecurringTaskDao,
+        private val listItemDao: ListItemDao, 
+        private val activityRepository: ActivityRepository,
+        private val alarmScheduler: javax.inject.Provider<AlarmScheduler>,
+        @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    ) {
         @Volatile
         private var cachedBestCompletedPoints: Int? = null
 
-        fun getPlanByIdStream(planId: String): Flow<com.romankozak.forwardappmobile.shared.database.Day_plans?> = dayPlanQueries.getPlanById(planId).asFlow().mapToOneOrNull(ioDispatcher)
+        fun getPlanByIdStream(planId: String): Flow<DayPlan?> = dayPlanDao.getPlanByIdStream(planId)
 
-        fun getPlanForDate(date: Long): Flow<com.romankozak.forwardappmobile.shared.database.Day_plans?> = dayPlanQueries.getPlanForDate(getDayStart(date)).asFlow().mapToOneOrNull(ioDispatcher)
+        fun getPlanForDate(date: Long): Flow<DayPlan?> = dayPlanDao.getPlanForDate(getDayStart(date))
 
         
         suspend fun getPlanIdForDate(date: Long): String? =
             withContext(ioDispatcher) {
                 val dayStart = getDayStart(date)
-                dayPlanQueries.getPlanForDateSync(dayStart).executeAsOneOrNull()?.id
+                dayPlanDao.getPlanForDateSync(dayStart)?.id
             }
 
         suspend fun createOrUpdateDayPlan(
             date: Long,
             name: String? = null,
-        ): com.romankozak.forwardappmobile.shared.database.Day_plans =
+        ): DayPlan =
             withContext(ioDispatcher) {
                 val dayStart = getDayStart(date)
-                val existingPlan = dayPlanQueries.getPlanForDateSync(dayStart).executeAsOneOrNull()
+                val existingPlan = dayPlanDao.getPlanForDateSync(dayStart)
 
                 if (existingPlan != null) {
                     val updated =
@@ -83,72 +62,37 @@ class DayManagementRepository
                             name = name ?: existingPlan.name,
                             updatedAt = System.currentTimeMillis(),
                         )
-                    dayPlanQueries.update(
-                        id = updated.id,
-                        date = updated.date,
-                        name = updated.name,
-                        status = updated.status,
-                        reflection = updated.reflection,
-                        totalCompletedMinutes = updated.totalCompletedMinutes,
-                        completionPercentage = updated.completionPercentage,
-                        createdAt = updated.createdAt,
-                        updatedAt = updated.updatedAt
-                    )
+                    dayPlanDao.update(updated)
                     updated
                 } else {
                     val newPlan =
-                        com.romankozak.forwardappmobile.shared.database.Day_plans(
-                            id = UUID.randomUUID().toString(),
+                        DayPlan(
                             date = dayStart,
                             name = name,
-                            status = "PLANNED",
-                            reflection = null,
-                            totalCompletedMinutes = 0,
-                            completionPercentage = 0.0,
-                            createdAt = System.currentTimeMillis(),
-                            updatedAt = System.currentTimeMillis()
+                            status = DayStatus.PLANNED,
                         )
-                    dayPlanQueries.insert(
-                        id = newPlan.id,
-                        date = newPlan.date,
-                        name = newPlan.name,
-                        status = newPlan.status,
-                        reflection = newPlan.reflection,
-                        totalCompletedMinutes = newPlan.totalCompletedMinutes,
-                        completionPercentage = newPlan.completionPercentage,
-                        createdAt = newPlan.createdAt,
-                        updatedAt = newPlan.updatedAt
-                    )
+                    dayPlanDao.insert(newPlan)
                     newPlan
                 }
             }
 
         suspend fun updatePlanStatus(
             planId: String,
-            status: String,
+            status: DayStatus,
         ) = withContext(ioDispatcher) {
-            dayPlanQueries.updatePlanStatus(status, System.currentTimeMillis(), planId)
+            dayPlanDao.updatePlanStatus(planId, status, System.currentTimeMillis())
         }
 
         suspend fun updatePlanReflection(
             planId: String,
             reflection: String,
         ) = withContext(ioDispatcher) {
-            val plan = dayPlanQueries.getPlanById(planId).executeAsOneOrNull() ?: return@withContext
-            val updatedPlan = plan.copy(
-                reflection = reflection,
-                updatedAt = System.currentTimeMillis(),
-            )
-            dayPlanQueries.update(
-                id = updatedPlan.id,
-                date = updatedPlan.date,
-                name = updatedPlan.name,
-                status = updatedPlan.status,
-                reflection = updatedPlan.reflection,
-                totalCompletedMinutes = updatedPlan.totalCompletedMinutes,
-                completionPercentage = updatedPlan.completionPercentage,
-                createdAt = updatedPlan.createdAt,
-                updatedAt = updatedPlan.updatedAt
+            val plan = dayPlanDao.getPlanById(planId) ?: return@withContext
+            dayPlanDao.update(
+                plan.copy(
+                    reflection = reflection,
+                    updatedAt = System.currentTimeMillis(),
+                ),
             )
         }
 
@@ -165,7 +109,7 @@ class DayManagementRepository
             points: Int = 0,
         ) {
             withContext(ioDispatcher) {
-                val dayPlan = dayPlanQueries.getPlanById(dayPlanId).executeAsOneOrNull() ?: return@withContext
+                val dayPlan = dayPlanDao.getPlanById(dayPlanId) ?: return@withContext
 
                 val resolvedTaskType =
                     taskType
@@ -241,7 +185,7 @@ class DayManagementRepository
     ): DayTask =
         withContext(ioDispatcher) {
 
-            val projectId = listItemQueries.findProjectIdForGoal(goalId).executeAsOneOrNull()
+            val projectId = listItemDao.findProjectIdForGoal(goalId)
                 ?: throw IllegalStateException("Goal $goalId is not associated with any project.")
 
             val goal =
@@ -314,7 +258,7 @@ class DayManagementRepository
             }
 
         suspend fun moveTaskToTomorrow(taskToMove: DayTask) = withContext(ioDispatcher) {
-            val currentPlan = dayPlanQueries.getPlanById(taskToMove.dayPlanId).executeAsOneOrNull() ?: return@withContext
+            val currentPlan = dayPlanDao.getPlanById(taskToMove.dayPlanId) ?: return@withContext
 
             val calendar = Calendar.getInstance().apply {
                 timeInMillis = currentPlan.date
@@ -443,7 +387,7 @@ class DayManagementRepository
             withContext(ioDispatcher) {
                 val recurringTaskId = originalTask.recurringTaskId ?: return@withContext
                 val originalRecurringTask = recurringTaskDao.getById(recurringTaskId) ?: return@withContext
-                val dayPlan = dayPlanQueries.getPlanById(originalTask.dayPlanId).executeAsOneOrNull() ?: return@withContext
+                val dayPlan = dayPlanDao.getPlanById(originalTask.dayPlanId) ?: return@withContext
 
                 // 1. End the old recurring task
                 val yesterday = Calendar.getInstance().apply {
@@ -466,7 +410,7 @@ class DayManagementRepository
                 recurringTaskDao.insert(newRecurringTask)
 
                 // 3. Delete future instances of the old task
-                val futureDayPlanIds = dayPlanQueries.getFutureDayPlanIds(dayPlan.date).executeAsList()
+                val futureDayPlanIds = dayPlanDao.getFutureDayPlanIds(dayPlan.date)
                 if (futureDayPlanIds.isNotEmpty()) {
                     dayTaskDao.deleteTasksForDayPlanIds(recurringTaskId, futureDayPlanIds)
                 }
@@ -519,7 +463,7 @@ class DayManagementRepository
             endDate: Long,
         ): Flow<List<DailyAnalytics>> {
             return combine(
-                dayPlanQueries.getPlansForDateRange(startDate, endDate).asFlow().mapToList(ioDispatcher),
+                dayPlanDao.getPlansForDateRange(startDate, endDate),
                 dailyMetricDao.getMetricsForDateRange(startDate, endDate),
             ) { plans, metrics ->
                 plans.map { plan ->
@@ -527,8 +471,8 @@ class DayManagementRepository
                     DailyAnalytics(
                         dayPlan = plan,
                         metric = metric,
-                        completionRate = plan.completionPercentage.toFloat(),
-                        totalTimeSpent = plan.totalCompletedMinutes.toLong(),
+                        completionRate = plan.completionPercentage,
+                        totalTimeSpent = plan.totalCompletedMinutes,
                     )
                 }
             }
@@ -539,7 +483,7 @@ class DayManagementRepository
                 cachedBestCompletedPoints = null
 
                 val tasks = dayTaskDao.getTasksForDaySync(dayPlanId)
-                val plan = dayPlanQueries.getPlanById(dayPlanId).executeAsOneOrNull() ?: return@withContext
+                val plan = dayPlanDao.getPlanById(dayPlanId) ?: return@withContext
 
                 val completedTasks = tasks.count { it.completed }
                 val totalTasks = tasks.size
@@ -563,11 +507,11 @@ class DayManagementRepository
 
                 dailyMetricDao.insert(metric)
 
-                dayPlanQueries.updatePlanProgress(
-                    totalCompletedMinutes = totalActiveTime,
-                    completionPercentage = completionRate.toDouble(),
+                dayPlanDao.updatePlanProgress(
+                    planId = dayPlanId,
+                    minutes = totalActiveTime,
+                    percentage = completionRate,
                     updatedAt = System.currentTimeMillis(),
-                    id = dayPlanId
                 )
             }
 
@@ -605,7 +549,7 @@ class DayManagementRepository
 
         suspend fun generateRecurringTasksForDate(date: Long) {
             withContext(ioDispatcher) {
-                val dayPlan = dayPlanQueries.getPlanForDateSync(date).executeAsOneOrNull()
+                val dayPlan = dayPlanDao.getPlanForDateSync(date)
                 if (dayPlan != null) {
                     val recurringTasks = recurringTaskDao.getAll()
                     recurringTasks.forEach { recurringTask ->
@@ -705,7 +649,7 @@ class DayManagementRepository
                 val recurringTask = recurringTaskDao.getById(recurringTaskId)
                 if (recurringTask != null) {
                     android.util.Log.d(TAG, "Found recurringTask: $recurringTask")
-                    val dayPlan = dayPlanQueries.getPlanById(dayPlanId).executeAsOneOrNull()
+                    val dayPlan = dayPlanDao.getPlanById(dayPlanId)
                     if (dayPlan != null) {
                         android.util.Log.d(TAG, "Found dayPlan: $dayPlan")
                         val yesterday = Calendar.getInstance().apply {
@@ -715,7 +659,7 @@ class DayManagementRepository
                         android.util.Log.d(TAG, "Setting endDate to: $yesterday")
                         recurringTaskDao.update(recurringTask.copy(endDate = yesterday))
 
-                        val futureDayPlanIds = dayPlanQueries.getFutureDayPlanIds(dayPlan.date).executeAsList()
+                        val futureDayPlanIds = dayPlanDao.getFutureDayPlanIds(dayPlan.date)
                         android.util.Log.d(TAG, "Found future day plan IDs: $futureDayPlanIds")
                         if (futureDayPlanIds.isNotEmpty()) {
                             android.util.Log.d(TAG, "Deleting tasks for future day plans")
@@ -771,7 +715,7 @@ class DayManagementRepository
 
         suspend fun findProjectIdForGoal(goalId: String): String? {
             return withContext(ioDispatcher) {
-                listItemQueries.findProjectIdForGoal(goalId).executeAsOneOrNull()
+                listItemDao.findProjectIdForGoal(goalId)
             }
         }
 

@@ -17,7 +17,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.romankozak.forwardappmobile.core.database.models.ListItemContent
+import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import androidx.navigation.navigation
 import com.romankozak.forwardappmobile.ui.navigation.AppNavigationViewModel
 import com.romankozak.forwardappmobile.ui.navigation.NavigationCommand

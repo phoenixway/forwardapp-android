@@ -6,9 +6,7 @@ plugins {
 }
 
 kotlin {
-    androidTarget {
-        publishLibraryVariants("debug", "release")
-    }
+    androidTarget()
 
     js(IR) {
         nodejs()
@@ -41,7 +39,7 @@ kotlin {
 
 android {
     namespace = "com.romankozak.forwardappmobile.shared"
-    compileSdk = 35
+    compileSdk = 34
     defaultConfig {
         minSdk = 24
     }
@@ -49,16 +47,14 @@ android {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
-    publishing {
-        singleVariant("release")
-        singleVariant("debug")
-    }
 }
 
 sqldelight {
     databases {
         create("ForwardAppDatabase") {
-            packageName.set("com.romankozak.forwardappmobile.shared.database")
+            packageName = "com.romankozak.forwardappmobile.shared.database"
+            srcDirs = files("src/commonMain/sqldelight")
+            deriveSchemaFromMigrations.set(true)
         }
     }
 }

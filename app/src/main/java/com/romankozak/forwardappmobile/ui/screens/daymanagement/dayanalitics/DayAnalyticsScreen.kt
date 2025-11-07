@@ -27,7 +27,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.romankozak.forwardappmobile.core.database.models.WeeklyInsights
+import com.romankozak.forwardappmobile.data.database.models.WeeklyInsights
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date

@@ -2,10 +2,9 @@ package com.romankozak.forwardappmobile.features.checklists.data
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
-import app.cash.sqldelight.coroutines.mapToOneOrNull
 import com.benasher44.uuid.uuid4
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
-import com.romankozak.forwardappmobile.shared.database.ChecklistQueries
+import com.romankozak.forwardappmobile.shared.database.ChecklistQueriesQueries
 import com.romankozak.forwardappmobile.shared.database.Checklist_items
 import com.romankozak.forwardappmobile.shared.database.Checklists
 import com.romankozak.forwardappmobile.shared.features.checklists.data.model.Checklist
@@ -25,7 +24,7 @@ private const val CHECKLIST_ATTACHMENT_TYPE = "CHECKLIST"
 private fun nowMillis(): Long = Clock.System.now().toEpochMilliseconds()
 
 class ChecklistRepository(
-    private val checklistQueries: ChecklistQueries,
+    private val checklistQueries: ChecklistQueriesQueries,
     private val attachmentRepository: AttachmentRepository,
     private val recentItemsRepository: RecentItemsRepository,
     private val queryContext: CoroutineContext = EmptyCoroutineContext,
@@ -35,7 +34,7 @@ class ChecklistRepository(
 
     fun getChecklistsForProject(projectId: String): Flow<List<Checklist>> =
         checklistQueries
-            .getChecklistsForProject(projectId)
+            .getChecklistsForProject(projectId, CHECKLIST_ATTACHMENT_TYPE)
             .asFlow()
             .mapToList(queryContext)
             .map { rows -> rows.map { it.toModel() } }
@@ -51,8 +50,8 @@ class ChecklistRepository(
         checklistQueries
             .getChecklistById(checklistId)
             .asFlow()
-            .mapToOneOrNull(queryContext)
-            .map { it?.toModel() }
+            .mapToList(queryContext)
+            .map { rows -> rows.firstOrNull()?.toModel() }
 
     suspend fun getChecklistById(checklistId: String): Checklist? =
         withContext(queryContext) {
@@ -106,7 +105,7 @@ class ChecklistRepository(
 
     fun getItemsForChecklist(checklistId: String): Flow<List<ChecklistItem>> =
         checklistQueries
-            .getItemsForProjectStream(checklistId)
+            .getItemsForChecklist(checklistId)
             .asFlow()
             .mapToList(queryContext)
             .map { rows -> rows.map { it.toModel() } }
@@ -152,17 +151,17 @@ class ChecklistRepository(
     }
 
     suspend fun deleteItem(itemId: String) {
-        withContext(queryContext) { checklistQueries.deleteItemsByIds(listOf(itemId)) }
+        withContext(queryContext) { checklistQueries.deleteChecklistItemById(itemId) }
     }
 
     suspend fun deleteItemsByChecklist(checklistId: String) {
-        withContext(queryContext) { checklistQueries.deleteItemsForProjects(listOf(checklistId)) }
+        withContext(queryContext) { checklistQueries.deleteChecklistItemsByChecklistId(checklistId) }
     }
 
     suspend fun getItemsSnapshot(checklistId: String): List<ChecklistItem> =
         withContext(queryContext) {
             checklistQueries
-                .getItemsForProjectStream(checklistId)
+                .getItemsForChecklist(checklistId)
                 .executeAsList()
                 .map { it.toModel() }
         }
@@ -170,7 +169,7 @@ class ChecklistRepository(
     suspend fun getAllItemsSnapshot(): List<ChecklistItem> =
         withContext(queryContext) {
             checklistQueries
-                .getAll()
+                .getAllChecklistItems()
                 .executeAsList()
                 .map { it.toModel() }
         }
@@ -180,7 +179,7 @@ class ChecklistRepository(
     }
 
     suspend fun deleteAllChecklistItems() {
-        withContext(queryContext) { checklistQueries.deleteAll() }
+        withContext(queryContext) { checklistQueries.deleteAllChecklistItems() }
     }
 
     suspend fun replaceAll(checklists: List<Checklist>) {
@@ -195,7 +194,7 @@ class ChecklistRepository(
     suspend fun replaceAllItems(items: List<ChecklistItem>) {
         withContext(queryContext) {
             checklistQueries.transaction {
-                checklistQueries.deleteAll()
+                checklistQueries.deleteAllChecklistItems()
                 items.forEach { insertItemInternal(it) }
             }
         }
@@ -218,11 +217,11 @@ class ChecklistRepository(
     }
 
     private fun insertItemInternal(item: ChecklistItem) {
-        checklistQueries.insertItem(
+        checklistQueries.insertChecklistItem(
             id = item.id,
             checklistId = item.checklistId,
             content = item.content,
-            isCompleted = item.isChecked.toLong(),
+            isChecked = item.isChecked.toLong(),
             itemOrder = item.itemOrder,
         )
     }
@@ -232,7 +231,7 @@ class ChecklistRepository(
             id = item.id,
             checklistId = item.checklistId,
             content = item.content,
-            isCompleted = item.isChecked.toLong(),
+            isChecked = item.isChecked.toLong(),
             itemOrder = item.itemOrder,
         )
     }
@@ -251,7 +250,7 @@ class ChecklistRepository(
             id = id,
             checklistId = checklistId,
             content = content,
-            isChecked = isCompleted != 0L,
+            isChecked = isChecked != 0L,
             itemOrder = itemOrder,
         )
 }

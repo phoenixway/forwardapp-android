@@ -4,7 +4,7 @@ package com.romankozak.forwardappmobile.ui.navigation
 
 import android.util.Log
 import androidx.lifecycle.SavedStateHandle
-import com.romankozak.forwardappmobile.core.database.models.NavigationEntry
+import com.romankozak.forwardappmobile.data.database.models.NavigationEntry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

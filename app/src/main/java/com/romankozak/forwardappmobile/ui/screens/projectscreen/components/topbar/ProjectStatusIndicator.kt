@@ -20,7 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.romankozak.forwardappmobile.core.database.models.ProjectStatus
+import com.romankozak.forwardappmobile.data.database.models.ProjectStatus
 import kotlinx.coroutines.delay
 
 data class StatusVisuals(

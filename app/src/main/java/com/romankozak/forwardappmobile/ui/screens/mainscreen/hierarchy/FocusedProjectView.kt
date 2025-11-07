@@ -22,7 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mohamedrejeb.compose.dnd.DragAndDropState
-import com.romankozak.forwardappmobile.core.database.models.ListHierarchyData
+import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DropPosition

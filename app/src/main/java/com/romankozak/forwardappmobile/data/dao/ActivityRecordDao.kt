@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.data.dao
 
 import androidx.room.*
-import com.romankozak.forwardappmobile.core.database.models.ActivityRecord
+import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
 import kotlinx.coroutines.flow.Flow
 
 @Dao

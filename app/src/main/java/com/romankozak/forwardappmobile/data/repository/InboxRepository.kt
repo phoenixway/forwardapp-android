@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.data.repository
 
 import androidx.room.Transaction
 import com.romankozak.forwardappmobile.data.dao.InboxRecordDao
-import com.romankozak.forwardappmobile.core.database.models.InboxRecord
+import com.romankozak.forwardappmobile.data.database.models.InboxRecord
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject

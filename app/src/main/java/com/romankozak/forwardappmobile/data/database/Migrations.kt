@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.core.database
+package com.romankozak.forwardappmobile.data.database
 
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
@@ -631,8 +631,6 @@ val MIGRATION_65_66 = object : Migration(65, 66) {
 
 val MIGRATION_66_67 = object : Migration(66, 67) {
     override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL("DROP TABLE IF EXISTS `link_items`")
-        db.execSQL("DROP TABLE IF EXISTS `checklists`")
-        db.execSQL("DROP TABLE IF EXISTS `checklist_items`")
+        // Empty migration.
     }
 }

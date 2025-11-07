@@ -6,8 +6,8 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
-import com.romankozak.forwardappmobile.core.database.models.GlobalGoalSearchResult
-import com.romankozak.forwardappmobile.core.database.models.Goal
+import com.romankozak.forwardappmobile.data.database.models.GlobalGoalSearchResult
+import com.romankozak.forwardappmobile.data.database.models.Goal
 import kotlinx.coroutines.flow.Flow
 
 @Dao

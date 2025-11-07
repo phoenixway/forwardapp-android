@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.ui.screens.mainscreen.utils
 
-import com.romankozak.forwardappmobile.core.database.models.ListHierarchyData
+import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbItem
 

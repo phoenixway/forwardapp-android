@@ -13,8 +13,8 @@ import android.os.PowerManager
 import android.util.Log
 import android.widget.Toast
 import androidx.core.content.ContextCompat
-import com.romankozak.forwardappmobile.core.database.models.DayTask
-import com.romankozak.forwardappmobile.core.database.models.Goal
+import com.romankozak.forwardappmobile.data.database.models.DayTask
+import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.shared.features.reminders.data.model.Reminder
 import com.romankozak.forwardappmobile.shared.features.reminders.domain.AlarmScheduler as KmpAlarmScheduler

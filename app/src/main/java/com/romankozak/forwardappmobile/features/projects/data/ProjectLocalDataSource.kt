@@ -6,7 +6,7 @@ import app.cash.sqldelight.coroutines.mapToOneOrNull
 import android.util.Log
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.di.IoDispatcher
-import com.romankozak.forwardappmobile.shared.database.ProjectQueries
+import com.romankozak.forwardappmobile.shared.database.ProjectQueriesQueries
 import com.romankozak.forwardappmobile.shared.features.projects.data.insertOrReplace
 import com.romankozak.forwardappmobile.shared.features.projects.data.toModel
 import kotlinx.coroutines.CoroutineDispatcher
@@ -18,7 +18,7 @@ import javax.inject.Inject
 class ProjectLocalDataSource
 @Inject
 constructor(
-    private val projectQueries: ProjectQueries,
+    private val projectQueries: ProjectQueriesQueries,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) {
 

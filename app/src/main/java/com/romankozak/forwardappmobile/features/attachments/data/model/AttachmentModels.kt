@@ -6,7 +6,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import com.romankozak.forwardappmobile.core.database.models.ProjectEntity
+import com.romankozak.forwardappmobile.data.database.models.ProjectEntity
 import com.romankozak.forwardappmobile.shared.features.attachments.data.model.AttachmentEntity as SharedAttachmentEntity
 import com.romankozak.forwardappmobile.shared.features.attachments.data.model.AttachmentWithProject as SharedAttachmentWithProject
 import com.romankozak.forwardappmobile.shared.features.attachments.data.model.ProjectAttachmentCrossRef as SharedProjectAttachmentCrossRef

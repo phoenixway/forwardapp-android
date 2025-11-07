@@ -23,7 +23,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.core.database.models.GlobalSubprojectSearchResult
+import com.romankozak.forwardappmobile.data.database.models.GlobalSubprojectSearchResult
 
 @Composable
 fun SubprojectSearchResultItem(

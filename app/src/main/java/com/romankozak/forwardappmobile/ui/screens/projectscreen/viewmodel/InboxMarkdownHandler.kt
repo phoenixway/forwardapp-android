@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel
 
 import android.util.Log
-import com.romankozak.forwardappmobile.core.database.models.InboxRecord
+import com.romankozak.forwardappmobile.data.database.models.InboxRecord
 import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

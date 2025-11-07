@@ -1,40 +1,45 @@
 package com.romankozak.forwardappmobile.data.repository
 
 import android.util.Log
-import app.cash.sqldelight.coroutines.asFlow
-import app.cash.sqldelight.coroutines.mapToList
-import com.romankozak.forwardappmobile.core.database.models.ListItem
-import com.romankozak.forwardappmobile.core.database.models.ListItemTypeValues
-import com.romankozak.forwardappmobile.shared.database.LinkItem
-import com.romankozak.forwardappmobile.shared.database.LinkItemQueries
-import com.romankozak.forwardappmobile.shared.database.ListItemQueries
+import com.romankozak.forwardappmobile.data.dao.LinkItemDao
+import com.romankozak.forwardappmobile.data.dao.ListItemDao
+import com.romankozak.forwardappmobile.data.database.models.ListItem
+import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 
 @Singleton
 class ListItemRepository @Inject constructor(
-    private val listItemQueries: ListItemQueries,
-    private val linkItemQueries: LinkItemQueries
+    private val listItemDao: ListItemDao,
+    private val linkItemDao: LinkItemDao
 ) {
     private val TAG = "ListItemRepository"
 
+    @androidx.room.Transaction
     suspend fun addProjectLinkToProject(
         targetProjectId: String,
         currentProjectId: String,
     ): String {
         Log.d(TAG, "addProjectLinkToProject: targetProjectId=$targetProjectId, currentProjectId=$currentProjectId")
-        val newListItemId = UUID.randomUUID().toString()
-        listItemQueries.insertItem(
-            id = newListItemId,
-            project_id = currentProjectId,
-            item_type = ListItemTypeValues.SUBLIST,
-            entity_id = targetProjectId,
-            item_order = -System.currentTimeMillis()
-        )
-        return newListItemId
+        val newListItem =
+            ListItem(
+                id = UUID.randomUUID().toString(),
+                projectId = currentProjectId,
+                itemType = ListItemTypeValues.SUBLIST,
+                entityId = targetProjectId,
+                order = -System.currentTimeMillis(),
+            )
+        Log.d(TAG, "Constructed ListItem to insert: $newListItem")
+        try {
+            Log.d(TAG, "Attempting to insert via listItemDao.insertItems...")
+            listItemDao.insertItems(listOf(newListItem))
+            Log.d(TAG, "Insertion successful for ListItem ID: ${newListItem.id}")
+        } catch (e: Exception) {
+            Log.e(TAG, "DATABASE INSERTION FAILED for ListItem: $newListItem", e)
+            throw e
+        }
+        return newListItem.id
     }
 
     suspend fun moveListItems(
@@ -42,90 +47,59 @@ class ListItemRepository @Inject constructor(
         targetProjectId: String,
     ) {
         if (itemIds.isNotEmpty()) {
-            listItemQueries.updateListItemProjectIds(targetProjectId, itemIds)
+            listItemDao.updateListItemProjectIds(itemIds, targetProjectId)
         }
     }
 
     suspend fun deleteListItems(itemIds: List<String>) {
         if (itemIds.isNotEmpty()) {
-            listItemQueries.deleteItemsByIds(itemIds)
+            listItemDao.deleteItemsByIds(itemIds)
         }
     }
 
     suspend fun restoreListItems(items: List<ListItem>) {
         if (items.isNotEmpty()) {
-            items.forEach { item ->
-                listItemQueries.insertItem(
-                    id = item.id,
-                    project_id = item.projectId,
-                    item_type = item.itemType,
-                    entity_id = item.entityId,
-                    item_order = item.order
-                )
-            }
+            listItemDao.insertItems(items)
         }
     }
 
     suspend fun updateListItemsOrder(items: List<ListItem>) {
         if (items.isNotEmpty()) {
-            items.forEach { item ->
-                listItemQueries.updateItem(item.order, item.id)
-            }
+            listItemDao.updateItems(items)
         }
     }
 
     suspend fun doesLinkExist(
         entityId: String,
         projectId: String,
-    ): Boolean = listItemQueries.getLinkCount(entityId, projectId).executeAsOne() > 0
+    ): Boolean = listItemDao.getLinkCount(entityId, projectId) > 0
 
     suspend fun deleteLinkByEntityIdAndProjectId(
         entityId: String,
         projectId: String,
-    ) = listItemQueries.deleteLinkByEntityAndProject(entityId, projectId)
+    ) = listItemDao.deleteLinkByEntityAndProject(entityId, projectId)
 
     suspend fun deleteItemByEntityId(entityId: String) {
-        listItemQueries.deleteItemByEntityId(entityId)
+        listItemDao.deleteItemByEntityId(entityId)
     }
 
-    fun getItemsForProjectStream(projectId: String): Flow<List<ListItem>> {
-        return listItemQueries.getItemsForProject(projectId)
-            .asFlow()
-            .mapToList()
-            .map { list ->
-                list.map {
-                    ListItem(
-                        id = it.id,
-                        projectId = it.project_id,
-                        itemType = it.item_type,
-                        entityId = it.entity_id,
-                        order = it.item_order
-                    )
-                }
-            }
+    fun getItemsForProjectStream(projectId: String): kotlinx.coroutines.flow.Flow<List<com.romankozak.forwardappmobile.data.database.models.ListItem>> {
+        return listItemDao.getItemsForProjectStream(projectId)
     }
 
-    fun getAllEntitiesAsFlow(): Flow<List<LinkItem>> {
-        return linkItemQueries.getAllLinkItems().asFlow().mapToList()
+    fun getAllEntitiesAsFlow(): kotlinx.coroutines.flow.Flow<List<com.romankozak.forwardappmobile.data.database.models.LinkItemEntity>> {
+        return linkItemDao.getAllEntitiesAsFlow()
     }
 
-    suspend fun getAll(): List<ListItem> {
-        return listItemQueries.getAll().executeAsList().map {
-             ListItem(
-                id = it.id,
-                projectId = it.project_id,
-                itemType = it.item_type,
-                entityId = it.entity_id,
-                order = it.item_order
-            )
-        }
+    suspend fun getAll(): List<com.romankozak.forwardappmobile.data.database.models.ListItem> {
+        return listItemDao.getAll()
     }
 
-    suspend fun getLinkItemById(id: String): LinkItem? {
-        return linkItemQueries.getLinkItemById(id).executeAsOneOrNull()
+    suspend fun getLinkItemById(id: String): com.romankozak.forwardappmobile.data.database.models.LinkItemEntity? {
+        return linkItemDao.getLinkItemById(id)
     }
 
     suspend fun deleteItemsForProjects(projectIds: List<String>) {
-        listItemQueries.deleteItemsForProjects(projectIds)
+        listItemDao.deleteItemsForProjects(projectIds)
     }
 }

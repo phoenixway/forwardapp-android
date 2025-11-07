@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.data.sync
 
 import com.google.gson.annotations.SerializedName
-import com.romankozak.forwardappmobile.core.database.models.*
+import com.romankozak.forwardappmobile.data.database.models.*
 
 data class FullAppBackup(
     val backupSchemaVersion: Int = 1,
@@ -26,7 +26,7 @@ data class DatabaseContent(
     val activityRecords: List<ActivityRecord>? = null,
     @SerializedName(value = "recentProjectEntries", alternate = ["recentListEntries"])
     val recentProjectEntries: List<RecentProjectEntry>? = null,
-
+    val linkItemEntities: List<LinkItemEntity>? = null,
     val inboxRecords: List<InboxRecord>? = null,
     val projectExecutionLogs: List<ProjectExecutionLog>? = null,
 )

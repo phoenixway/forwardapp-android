@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.ui.screens.globalsearch
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.core.database.models.GlobalSearchResultItem
+import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResultItem
 import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager

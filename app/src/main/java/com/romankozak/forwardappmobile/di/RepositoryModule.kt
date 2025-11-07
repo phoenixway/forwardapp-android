@@ -1,35 +1,33 @@
 package com.romankozak.forwardappmobile.di
 
+import com.romankozak.forwardappmobile.data.dao.LinkItemDao
+import com.romankozak.forwardappmobile.data.dao.ListItemDao
+import com.romankozak.forwardappmobile.data.notes.AndroidNoteBacklogLinkDataSource
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.ProjectArtifactRepository
 import com.romankozak.forwardappmobile.data.repository.ProjectLogRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
+import com.romankozak.forwardappmobile.features.attachments.data.AndroidLinkItemDataSource
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 import com.romankozak.forwardappmobile.shared.database.AttachmentQueriesQueries
-import com.romankozak.forwardappmobile.shared.database.ChecklistQueries
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import com.romankozak.forwardappmobile.shared.database.LegacyNoteQueriesQueries
-import com.romankozak.forwardappmobile.shared.database.ListItemQueries
 import com.romankozak.forwardappmobile.shared.database.NoteDocumentQueriesQueries
-import com.romankozak.forwardappmobile.shared.database.ProjectArtifactQueriesQueries
 import com.romankozak.forwardappmobile.shared.database.ProjectExecutionLogQueriesQueries
 import com.romankozak.forwardappmobile.shared.database.RecentItemQueriesQueries
 import com.romankozak.forwardappmobile.shared.database.ReminderQueriesQueries
-import com.romankozak.forwardappmobile.shared.features.attachments.data.SqlDelightLinkItemDataSource
+import com.romankozak.forwardappmobile.shared.database.ChecklistQueriesQueries
 import com.romankozak.forwardappmobile.shared.features.attachments.data.model.LinkItemDataSource
 import com.romankozak.forwardappmobile.shared.features.notes.data.datasource.NoteBacklogLinkDataSource
-import com.romankozak.forwardappmobile.shared.features.reminders.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.shared.features.reminders.domain.AlarmScheduler
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.serialization.json.Json
 import javax.inject.Singleton
-import com.romankozak.forwardappmobile.data.notes.AndroidNoteBacklogLinkDataSource
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -41,8 +39,8 @@ object RepositoryModule {
         reminderQueries: ReminderQueriesQueries,
         alarmScheduler: AlarmScheduler,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
-    ): ReminderRepository =
-        ReminderRepository(
+    ): com.romankozak.forwardappmobile.shared.features.reminders.data.repository.ReminderRepository =
+        com.romankozak.forwardappmobile.shared.features.reminders.data.repository.ReminderRepository(
             reminderQueries,
             alarmScheduler,
             ioDispatcher,
@@ -58,10 +56,10 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideProjectArtifactRepository(
-        projectArtifactQueries: ProjectArtifactQueriesQueries,
+        forwardAppDatabase: ForwardAppDatabase,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
     ): ProjectArtifactRepository =
-        ProjectArtifactRepository(projectArtifactQueries, ioDispatcher)
+        ProjectArtifactRepository(forwardAppDatabase.projectArtifactQueriesQueries, ioDispatcher)
 
     @Provides
     @Singleton
@@ -73,8 +71,8 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideNoteBacklogLinkDataSource(
-        listItemQueries: ListItemQueries,
-    ): NoteBacklogLinkDataSource = AndroidNoteBacklogLinkDataSource(listItemQueries)
+        listItemDao: ListItemDao,
+    ): NoteBacklogLinkDataSource = AndroidNoteBacklogLinkDataSource(listItemDao)
 
     @Provides
     @Singleton
@@ -96,14 +94,9 @@ object RepositoryModule {
 
     @Provides
     @Singleton
-    fun provideJson(): Json = Json { ignoreUnknownKeys = true }
-
-    @Provides
-    @Singleton
     fun provideLinkItemDataSource(
-        db: ForwardAppDatabase,
-        json: Json,
-    ): LinkItemDataSource = SqlDelightLinkItemDataSource(db, json)
+        linkItemDao: LinkItemDao,
+    ): LinkItemDataSource = AndroidLinkItemDataSource(linkItemDao)
 
     @Provides
     @Singleton
@@ -118,7 +111,7 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideChecklistRepository(
-        checklistQueries: ChecklistQueries,
+        checklistQueries: ChecklistQueriesQueries,
         attachmentRepository: AttachmentRepository,
         recentItemsRepository: RecentItemsRepository,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,

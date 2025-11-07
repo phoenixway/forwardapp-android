@@ -15,21 +15,21 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.lifecycle.viewModelScope
 
 
-import com.romankozak.forwardappmobile.core.database.models.ActivityRecord
-import com.romankozak.forwardappmobile.core.database.models.ChecklistEntity
-import com.romankozak.forwardappmobile.core.database.models.Goal
-import com.romankozak.forwardappmobile.core.database.models.LegacyNoteEntity
-import com.romankozak.forwardappmobile.core.database.models.ListItem
-import com.romankozak.forwardappmobile.core.database.models.ListItemContent
-import com.romankozak.forwardappmobile.core.database.models.ListItemTypeValues
-import com.romankozak.forwardappmobile.core.database.models.NoteDocumentEntity
+import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
+import com.romankozak.forwardappmobile.data.database.models.ChecklistEntity
+import com.romankozak.forwardappmobile.data.database.models.Goal
+import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
+import com.romankozak.forwardappmobile.data.database.models.ListItem
+import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.data.database.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.shared.features.projects.logs.data.model.ProjectExecutionLog
 import com.romankozak.forwardappmobile.shared.data.database.models.ProjectLogEntryTypeValues
-import com.romankozak.forwardappmobile.core.database.models.ProjectTimeMetrics
-import com.romankozak.forwardappmobile.core.database.models.ProjectViewMode
+import com.romankozak.forwardappmobile.data.database.models.ProjectTimeMetrics
+import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.shared.features.reminders.data.model.Reminder
-import com.romankozak.forwardappmobile.core.database.models.RecentItem
-import com.romankozak.forwardappmobile.core.database.models.RecentItemType
+import com.romankozak.forwardappmobile.data.database.models.RecentItem
+import com.romankozak.forwardappmobile.data.database.models.RecentItemType
 import com.romankozak.forwardappmobile.shared.data.database.models.LinkType
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
@@ -187,8 +187,8 @@ constructor(
 
           is ListItemContent.SublistItem -> "- [С] ${item.project.name}"
           is ListItemContent.LinkItem -> {
-            val displayName = item.link.displayName ?: item.link.target
-            "- [Л] [$displayName](${item.link.target})"
+            val displayName = item.link.linkData.displayName ?: item.link.linkData.target
+            "- [Л] [$displayName](${item.link.linkData.target})"
           }
           is ListItemContent.NoteItem -> "- [Н] ${item.note.title}"
           is ListItemContent.NoteDocumentItem -> "- [К] ${item.document.name}"
@@ -444,7 +444,7 @@ constructor(
                     is ListItemContent.GoalItem -> itemContent.goal.text
                     is ListItemContent.SublistItem -> itemContent.project.name
                     is ListItemContent.LinkItem ->
-                      itemContent.link.displayName ?: itemContent.link.target
+                      itemContent.link.linkData.displayName ?: itemContent.link.linkData.target
                     is ListItemContent.NoteItem -> itemContent.note.title
                     is ListItemContent.NoteDocumentItem -> itemContent.document.name
                     is ListItemContent.ChecklistItem -> itemContent.checklist.name
@@ -743,7 +743,7 @@ constructor(
         val link =
           listContent.value
             .filterIsInstance<ListItemContent.LinkItem>()
-            .map { it.link }
+            .map { it.link.linkData }
             .find { it.target == target }
         if (link != null) {
           onLinkItemClick(link)
@@ -1474,8 +1474,8 @@ constructor(
                 }
                 is ListItemContent.SublistItem -> "- [С] ${item.project.name}"
                 is ListItemContent.LinkItem -> {
-                    val displayName = item.link.displayName ?: item.link.target
-                    "- [Л] [$displayName](${item.link.target})"
+                    val displayName = item.link.linkData.displayName ?: item.link.linkData.target
+                    "- [Л] [$displayName](${item.link.linkData.target})"
                 }
                 is ListItemContent.NoteItem -> "- [Н] ${item.note.title}"
                 is ListItemContent.NoteDocumentItem -> "- [К] ${item.document.name}"

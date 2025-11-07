@@ -1,10 +1,13 @@
 package com.romankozak.forwardappmobile.data.repository
 
-import com.romankozak.forwardappmobile.shared.database.ListItemQueries
-import com.romankozak.forwardappmobile.core.database.models.GlobalProjectSearchResult
-import com.romankozak.forwardappmobile.core.database.models.GlobalSearchResultItem
-import com.romankozak.forwardappmobile.core.database.models.GlobalSubprojectSearchResult
-import com.romankozak.forwardappmobile.core.database.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.data.dao.GoalDao
+import com.romankozak.forwardappmobile.data.dao.InboxRecordDao
+import com.romankozak.forwardappmobile.data.dao.LinkItemDao
+import com.romankozak.forwardappmobile.data.dao.ListItemDao
+import com.romankozak.forwardappmobile.data.database.models.GlobalProjectSearchResult
+import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResultItem
+import com.romankozak.forwardappmobile.data.database.models.GlobalSubprojectSearchResult
+import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.features.projects.data.ProjectLocalDataSource
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import javax.inject.Inject
@@ -22,13 +25,13 @@ private val GlobalSearchResultItem.typeOrder: Int
 
 @Singleton
 class SearchRepository
-// @Inject
-// constructor(
-//    private val projectLocalDataSource: ProjectLocalDataSource,
-//    private val listItemQueries: ListItemQueries,
-//    private val activityRepository: ActivityRepository,
-//    private val inboxRecordDao: InboxRecordDao,
-// ) {
+@Inject
+constructor(
+    private val projectLocalDataSource: ProjectLocalDataSource,
+    private val listItemDao: ListItemDao,
+    private val activityRepository: ActivityRepository,
+    private val inboxRecordDao: InboxRecordDao,
+) {
     suspend fun searchGlobal(query: String): List<GlobalSearchResultItem> {
         val allProjects = projectLocalDataSource.getAll()
         val projectMap = allProjects.associateBy { it.id }
@@ -47,13 +50,13 @@ class SearchRepository
         val normalizedQuery = query.trim()
 
         val subprojectResults =
-            listItemQueries.getAll().executeAsList()
+            listItemDao.getAll()
                 .asSequence()
-                .filter { it.item_type == ListItemTypeValues.SUBLIST }
+                .filter { it.itemType == ListItemTypeValues.SUBLIST }
                 .mapNotNull { listItem ->
-                    val subproject = projectMap[listItem.entity_id] ?: return@mapNotNull null
+                    val subproject = projectMap[listItem.entityId] ?: return@mapNotNull null
                     if (!subproject.name.contains(normalizedQuery, ignoreCase = true)) return@mapNotNull null
-                    val parentProject = projectMap[listItem.project_id] ?: return@mapNotNull null
+                    val parentProject = projectMap[listItem.projectId] ?: return@mapNotNull null
                     GlobalSearchResultItem.SublistItem(
                         GlobalSubprojectSearchResult(
                             subproject = subproject,

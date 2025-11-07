@@ -33,7 +33,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.shared.data.database.models.ProjectStatusValues
-import com.romankozak.forwardappmobile.core.database.models.ProjectTimeMetrics
+import com.romankozak.forwardappmobile.data.database.models.ProjectTimeMetrics
 import com.romankozak.forwardappmobile.ui.utils.formatDurationForUi
 
 @OptIn(ExperimentalAnimationApi::class)

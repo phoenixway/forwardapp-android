@@ -103,7 +103,7 @@ fun UniversalEditorScreen(
         is UniversalEditorEvent.ShowLocation -> {
           val projectId = it.projectId
           android.util.Log.d("ProjectRevealDebug", "Navigating to project screen for projectId: $projectId in ATTACHMENTS mode")
-          navController.navigate("goal_detail_screen/$projectId?initialViewMode=${com.romankozak.forwardappmobile.core.database.models.ProjectViewMode.ATTACHMENTS.name}")
+          navController.navigate("goal_detail_screen/$projectId?initialViewMode=${com.romankozak.forwardappmobile.data.database.models.ProjectViewMode.ATTACHMENTS.name}")
         }
 
         is UniversalEditorEvent.ShowError -> {

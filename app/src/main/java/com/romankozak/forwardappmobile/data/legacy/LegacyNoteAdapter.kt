@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.data.legacy
 
-import com.romankozak.forwardappmobile.core.database.models.LegacyNoteEntity
-import com.romankozak.forwardappmobile.core.database.models.NoteDocumentEntity
+import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
+import com.romankozak.forwardappmobile.data.database.models.NoteDocumentEntity
 
 /**
  * Адаптер для перетворення застарілих нотаток у нову модель `NoteDocument`.

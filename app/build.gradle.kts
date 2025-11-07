@@ -47,10 +47,9 @@ android {
         compose = true
         buildConfig = true
     }
-
-    sourceSets {
+    ksp {
+        arg("room.schemaLocation", "$projectDir/schemas")
     }
-
 
     packaging {
         jniLibs {
@@ -108,7 +107,7 @@ android {
         }
     }
 
-    sourceSets["androidTest"].assets.srcDir("\$projectDir/schemas")
+    sourceSets["androidTest"].assets.srcDir("$projectDir/schemas")
 
 }
 
@@ -117,11 +116,8 @@ tasks.withType<Test> {
     systemProperties.put("mockk.mock-maker-inline", "true")
 }
 
-
-
 dependencies {
-    debugImplementation(project(":shared"))
-    releaseImplementation(project(":shared"))
+    implementation(project(":shared"))
 
     // AndroidX Core & Lifecycle
     implementation(libs.androidx.core.ktx)
@@ -178,7 +174,7 @@ dependencies {
     // Ktor (Server & Client)
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
-    // --- ВИПРАВЛЕНО: Додано Ktor CIO Server Engine, необхідний для WifiSyncServer.kt ---\
+    // --- ВИПРАВЛЕНО: Додано Ktor CIO Server Engine, необхідний для WifiSyncServer.kt ---
     implementation("io.ktor:ktor-server-cio-jvm:2.3.12")
     implementation(libs.ktor.server.content.negotiation)
     implementation(libs.ktor.serialization.gson)
@@ -283,14 +279,5 @@ dependencies {
     implementation("androidx.compose.ui:ui")
 
     // Рекомендується використовувати останню версію бібліотеки
-    implementation("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
-}
-
-afterEvaluate {
-    tasks.matching { it.name == "kspDebugKotlin" }.configureEach {
-        dependsOn(":shared:compileDebugKotlinAndroid")
-    }
-    tasks.matching { it.name == "kspReleaseKotlin" }.configureEach {
-        dependsOn(":shared:compileReleaseKotlinAndroid")
-    }
+implementation("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
 }

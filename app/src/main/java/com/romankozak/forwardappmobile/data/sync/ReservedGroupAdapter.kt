@@ -4,7 +4,7 @@ import com.google.gson.TypeAdapter
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonToken
 import com.google.gson.stream.JsonWriter
-import com.romankozak.forwardappmobile.core.database.models.ReservedGroup
+import com.romankozak.forwardappmobile.data.database.models.ReservedGroup
 
 class ReservedGroupAdapter : TypeAdapter<ReservedGroup>() {
     override fun write(out: JsonWriter, value: ReservedGroup?) {

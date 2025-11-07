@@ -1,7 +1,7 @@
-package com.romankozak.forwardappmobile.core.database
+package com.romankozak.forwardappmobile.data.database
 
-import com.romankozak.forwardappmobile.core.database.models.ProjectViewMode
-import com.romankozak.forwardappmobile.core.database.models.ReservedGroup
+import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
+import com.romankozak.forwardappmobile.data.database.models.ReservedGroup
 import com.romankozak.forwardappmobile.features.projects.data.ProjectLocalDataSource
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.shared.data.database.models.ProjectLogLevelValues

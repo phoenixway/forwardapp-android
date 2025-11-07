@@ -8,8 +8,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.core.database.models.RecurrenceFrequency
-import com.romankozak.forwardappmobile.core.database.models.RecurrenceRule
+import com.romankozak.forwardappmobile.data.database.models.RecurrenceFrequency
+import com.romankozak.forwardappmobile.data.database.models.RecurrenceRule
 import java.time.DayOfWeek
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -1,8 +1,8 @@
 package com.romankozak.forwardappmobile.data.repository
 
-import com.romankozak.forwardappmobile.shared.database.ListItemQueries
+import com.romankozak.forwardappmobile.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.shared.data.database.models.ProjectLogEntryTypeValues
-import com.romankozak.forwardappmobile.core.database.models.ProjectTimeMetrics
+import com.romankozak.forwardappmobile.data.database.models.ProjectTimeMetrics
 import java.util.Calendar
 import java.util.Locale
 import java.util.concurrent.TimeUnit
@@ -12,7 +12,7 @@ import javax.inject.Singleton
 @Singleton
 class ProjectTimeTrackingRepository @Inject constructor(
     private val activityRepository: ActivityRepository,
-    private val listItemQueries: ListItemQueries,
+    private val listItemDao: ListItemDao,
     private val projectLogRepository: ProjectLogRepository
 ) {
     suspend fun logProjectTimeSummaryForDate(
@@ -29,7 +29,7 @@ class ProjectTimeTrackingRepository @Inject constructor(
         calendar.add(Calendar.DAY_OF_YEAR, 1)
         val endTime = calendar.timeInMillis - 1
 
-        val goalIds = listItemQueries.getGoalIdsForProject(projectId).executeAsList()
+        val goalIds = listItemDao.getGoalIdsForProject(projectId)
 
         val activities =
             activityRepository.getCompletedActivitiesForProject(
@@ -84,7 +84,7 @@ class ProjectTimeTrackingRepository @Inject constructor(
     }
 
     private suspend fun logTotalProjectTimeSummary(projectId: String) {
-        val goalIds = listItemQueries.getGoalIdsForProject(projectId).executeAsList()
+        val goalIds = listItemDao.getGoalIdsForProject(projectId)
         val activities = activityRepository.getAllCompletedActivitiesForProject(projectId, goalIds)
 
         if (activities.isEmpty()) return
@@ -117,7 +117,7 @@ class ProjectTimeTrackingRepository @Inject constructor(
         todayCalendar.add(Calendar.DAY_OF_YEAR, 1)
         val endTime = todayCalendar.timeInMillis - 1
 
-        val goalIds = listItemQueries.getGoalIdsForProject(projectId).executeAsList()
+        val goalIds = listItemDao.getGoalIdsForProject(projectId)
         val todayActivities = activityRepository.getCompletedActivitiesForProject(projectId, goalIds, startTime, endTime)
         val timeToday = todayActivities.sumOf { (it.endTime ?: 0) - (it.startTime ?: 0) }
 

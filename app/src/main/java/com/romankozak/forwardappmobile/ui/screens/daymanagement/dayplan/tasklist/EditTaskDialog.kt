@@ -12,8 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
-import com.romankozak.forwardappmobile.core.database.models.DayTask
-import com.romankozak.forwardappmobile.core.database.models.TaskPriority
+import com.romankozak.forwardappmobile.data.database.models.DayTask
+import com.romankozak.forwardappmobile.data.database.models.TaskPriority
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.core.database
+package com.romankozak.forwardappmobile.data.database
 
 import androidx.sqlite.db.SupportSQLiteDatabase
 import android.util.Log
