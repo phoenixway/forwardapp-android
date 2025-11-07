@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.shared.features.projects.data
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.shared.data.database.models.ProjectType
 import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
-import com.romankozak.forwardappmobile.shared.database.ProjectQueriesQueries
+import com.romankozak.forwardappmobile.shared.database.ProjectQueries
 import com.romankozak.forwardappmobile.shared.database.Projects
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -14,25 +14,25 @@ private val json =
         ignoreUnknownKeys = true
     }
 
-fun Projects.toModel(): Project =
-    Project(
+fun Projects.toModel(): Project {
+    return Project(
         id = id,
         name = name,
-        description = description,
+        description = description ?: "",
         parentId = parentId?.normalizeParentIdFromDb(),
         createdAt = createdAt,
-        updatedAt = updatedAt,
+        updatedAt = updatedAt ?: 0L,
         tags = tags?.toTagList(),
         relatedLinks = relatedLinks?.toRelatedLinkList(),
         isExpanded = is_expanded.toBoolean(),
         order = goal_order,
         isAttachmentsExpanded = is_attachments_expanded.toBoolean(),
-        defaultViewModeName = default_view_mode,
+        defaultViewModeName = default_view_mode ?: "",
         isCompleted = is_completed.toBoolean(),
-        isProjectManagementEnabled = is_project_management_enabled?.toBoolean(),
-        projectStatus = project_status,
-        projectStatusText = project_status_text,
-        projectLogLevel = project_log_level,
+        isProjectManagementEnabled = is_project_management_enabled.toBoolean(),
+        projectStatus = project_status ?: "",
+        projectStatusText = project_status_text ?: "",
+        projectLogLevel = project_log_level ?: "",
         totalTimeSpentMinutes = total_time_spent_minutes,
         valueImportance = valueImportance.toFloat(),
         valueImpact = valueImpact.toFloat(),
@@ -44,32 +44,33 @@ fun Projects.toModel(): Project =
         weightRisk = weightRisk.toFloat(),
         rawScore = rawScore.toFloat(),
         displayScore = displayScore.toInt(),
-        scoringStatus = scoring_status,
+        scoringStatus = scoring_status ?: "",
         showCheckboxes = show_checkboxes.toBoolean(),
-        projectType = ProjectType.fromString(project_type),
-        reservedGroup = reserved_group,
+        projectType = ProjectType.fromString(project_type ?: "DEFAULT"),
+        reservedGroup = reserved_group ?: "",
     )
+}
 
-fun ProjectQueriesQueries.insertOrReplace(project: Project) {
+fun ProjectQueries.insertOrReplace(project: Project) {
     insertProject(
         id = project.id,
         name = project.name,
         description = project.description,
         parentId = project.parentId?.normalizeParentIdForStorage(),
         createdAt = project.createdAt,
-        updatedAt = project.updatedAt,
+        updatedAt = project.updatedAt ?: 0L,
         tags = project.tags.toTagString(),
         relatedLinks = project.relatedLinks.toRelatedLinkString(),
-        is_expanded = project.isExpanded.toLong(),
+        is_expanded = (project.isExpanded ?: false).toLong(),
         goal_order = project.order,
-        is_attachments_expanded = project.isAttachmentsExpanded.toLong(),
+        is_attachments_expanded = (project.isAttachmentsExpanded ?: false).toLong(),
         default_view_mode = project.defaultViewModeName,
-        is_completed = project.isCompleted.toLong(),
-        is_project_management_enabled = project.isProjectManagementEnabled?.toLong(),
+        is_completed = (project.isCompleted ?: false).toLong(),
+        is_project_management_enabled = (project.isProjectManagementEnabled ?: false).toLong(),
         project_status = project.projectStatus,
         project_status_text = project.projectStatusText,
         project_log_level = project.projectLogLevel,
-        total_time_spent_minutes = project.totalTimeSpentMinutes,
+        total_time_spent_minutes = project.totalTimeSpentMinutes ?: 0L,
         valueImportance = project.valueImportance.toDouble(),
         valueImpact = project.valueImpact.toDouble(),
         effort = project.effort.toDouble(),
@@ -79,9 +80,9 @@ fun ProjectQueriesQueries.insertOrReplace(project: Project) {
         weightCost = project.weightCost.toDouble(),
         weightRisk = project.weightRisk.toDouble(),
         rawScore = project.rawScore.toDouble(),
-        displayScore = project.displayScore.toLong(),
+        displayScore = project.displayScore.toDouble(),
         scoring_status = project.scoringStatus,
-        show_checkboxes = project.showCheckboxes.toLong(),
+        show_checkboxes = (project.showCheckboxes ?: false).toLong(),
         project_type = project.projectType.name,
         reserved_group = project.reservedGroup,
     )
@@ -99,11 +100,7 @@ private fun String.normalizeParentIdForStorage(): String? =
 
 private fun Long.toBoolean(): Boolean = this != 0L
 
-private fun Long?.toBoolean(): Boolean? = this?.let { it != 0L }
-
 private fun Boolean.toLong(): Long = if (this) 1L else 0L
-
-private fun Boolean?.toLong(): Long? = this?.let { if (it) 1L else 0L }
 
 private fun String?.toTagList(): List<String>? =
     this

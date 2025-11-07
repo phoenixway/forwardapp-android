@@ -2,8 +2,8 @@
 
 package com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel
 
-import com.romankozak.forwardappmobile.data.database.models.Goal
-import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.core.database.models.Goal
+import com.romankozak.forwardappmobile.core.database.models.ListItemContent
 import com.romankozak.forwardappmobile.shared.data.database.models.LinkType
 import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
@@ -64,8 +64,8 @@ class ItemActionHandler
                             }
                         }
                         is ListItemContent.LinkItem -> {
-                            if (item.link.linkData.type == LinkType.OBSIDIAN) {
-                                recentItemsRepository.logObsidianLinkAccess(item.link.linkData.target, item.link.linkData.displayName)
+                            if (item.link.type == LinkType.OBSIDIAN) {
+                                recentItemsRepository.logObsidianLinkAccess(item.link.target, item.link.displayName)
                             }
                         }
                         is ListItemContent.ChecklistItem -> recentItemsRepository.logChecklistAccess(item.checklist.id, item.checklist.name)
@@ -82,7 +82,7 @@ class ItemActionHandler
                     is ListItemContent.SublistItem ->
                         resultListener.requestNavigation("goal_detail_screen/${item.project.id}")
                     is ListItemContent.LinkItem ->
-                        resultListener.requestNavigation(BacklogViewModel.HANDLE_LINK_CLICK_ROUTE + "/${item.link.linkData.target}")
+                        resultListener.requestNavigation(BacklogViewModel.HANDLE_LINK_CLICK_ROUTE + "/${item.link.target}")
                     is ListItemContent.NoteItem ->
                         resultListener.showSnackbar("Застарілі нотатки недоступні для редагування", null)
                     is ListItemContent.NoteDocumentItem ->
@@ -135,7 +135,7 @@ class ItemActionHandler
                     when (content) {
                         is ListItemContent.GoalItem -> Pair("Текст скопійовано", content.goal.text)
                         is ListItemContent.LinkItem -> {
-                            val linkText = content.link.linkData.displayName ?: content.link.linkData.target
+                            val linkText = content.link.displayName ?: content.link.target
                             Pair("Посилання скопійовано", linkText)
                         }
                         is ListItemContent.SublistItem -> Pair("Назва проекту скопійована", content.project.name)

@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.features.projects.data
 
-import com.romankozak.forwardappmobile.data.database.models.ProjectEntity
-import com.romankozak.forwardappmobile.data.database.models.ReservedGroup
+import com.romankozak.forwardappmobile.core.database.models.ProjectEntity
+import com.romankozak.forwardappmobile.core.database.models.ReservedGroup
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
 
 internal fun ProjectEntity.toShared(): Project =

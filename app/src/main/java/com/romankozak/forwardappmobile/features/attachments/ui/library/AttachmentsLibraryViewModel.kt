@@ -3,9 +3,9 @@ package com.romankozak.forwardappmobile.features.attachments.ui.library
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.config.FeatureToggles
-import com.romankozak.forwardappmobile.data.database.models.ChecklistEntity
-import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
-import com.romankozak.forwardappmobile.data.database.models.NoteDocumentEntity
+import com.romankozak.forwardappmobile.core.database.models.ChecklistEntity
+import com.romankozak.forwardappmobile.core.database.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.core.database.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository

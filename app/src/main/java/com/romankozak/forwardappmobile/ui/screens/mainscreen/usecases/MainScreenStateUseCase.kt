@@ -1,9 +1,9 @@
 package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
 
 import androidx.compose.ui.text.input.TextFieldValue
-import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
+import com.romankozak.forwardappmobile.core.database.models.ListHierarchyData
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
-import com.romankozak.forwardappmobile.data.database.models.RecentItem
+import com.romankozak.forwardappmobile.core.database.models.RecentItem
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
@@ -200,7 +200,7 @@ constructor(
           val isProcessingRevealValue = values[7] as Boolean
           val isReadyForFiltering = values[8] as Boolean
           val recordForReminder =
-            values[9] as com.romankozak.forwardappmobile.data.database.models.ActivityRecord?
+            values[9] as com.romankozak.forwardappmobile.core.database.models.ActivityRecord?
           val obsidianVaultName = values[10] as String
           val navSnapshot = values[11] as NavigationSnapshot
           @Suppress("UNCHECKED_CAST")

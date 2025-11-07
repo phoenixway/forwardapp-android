@@ -25,7 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.core.database.models.ListItemContent
 import com.romankozak.forwardappmobile.shared.data.database.models.LinkType
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.SwipeableListItem
 
@@ -52,8 +52,6 @@ fun LinkItemRow(
         label = "link_item_background",
     )
 
-    val link = linkItem.link.linkData
-
     SwipeableListItem(
         modifier = modifier,
         isDragging = false,
@@ -70,20 +68,19 @@ fun LinkItemRow(
         backgroundColor = backgroundColor,
         content = {
             Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .pointerInput(onClick, onLongClick) {
-                            detectTapGestures(
-                                onLongPress = { onLongClick() },
-                                onTap = { onClick() },
-                            )
-                        }
-                        .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .pointerInput(onClick, onLongClick) {
+                        detectTapGestures(
+                            onLongPress = { onLongClick() },
+                            onTap = { onClick() },
+                        )
+                    }
+                    .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 val iconImageVector =
-                    when (link.type) {
+                    when (linkItem.link.type) {
                         LinkType.PROJECT -> Icons.AutoMirrored.Filled.ListAlt
                         LinkType.URL -> Icons.Default.Language
                         LinkType.OBSIDIAN -> Icons.AutoMirrored.Filled.Note
@@ -99,16 +96,16 @@ fun LinkItemRow(
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = link.displayName ?: link.target,
+                        text = linkItem.link.displayName ?: linkItem.link.target,
                         style = MaterialTheme.typography.bodyLarge,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
                         text =
-                            when (link.type) {
+                            when (linkItem.link.type) {
                                 LinkType.PROJECT -> "Посилання на список"
-                                LinkType.URL -> link.target
+                                LinkType.URL -> linkItem.link.target
                                 LinkType.OBSIDIAN -> "Нотатка Obsidian"
                                 null -> "Broken"
                                 else -> "Broken"

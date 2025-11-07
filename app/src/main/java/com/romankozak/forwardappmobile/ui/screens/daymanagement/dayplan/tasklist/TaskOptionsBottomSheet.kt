@@ -15,8 +15,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.data.database.models.DayTask
-import com.romankozak.forwardappmobile.data.database.models.TaskPriority
+import com.romankozak.forwardappmobile.core.database.models.DayTask
+import com.romankozak.forwardappmobile.core.database.models.TaskPriority
 
 
 import java.time.Instant

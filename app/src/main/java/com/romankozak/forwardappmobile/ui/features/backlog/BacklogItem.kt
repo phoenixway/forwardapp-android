@@ -35,8 +35,8 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.data.database.models.Goal
-import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.core.database.models.Goal
+import com.romankozak.forwardappmobile.core.database.models.ListItemContent
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.shared.features.reminders.data.model.Reminder

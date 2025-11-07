@@ -9,7 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.mohamedrejeb.compose.dnd.DragAndDropContainer
 import com.mohamedrejeb.compose.dnd.rememberDragAndDropState
-import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
+import com.romankozak.forwardappmobile.core.database.models.ListHierarchyData
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DropPosition

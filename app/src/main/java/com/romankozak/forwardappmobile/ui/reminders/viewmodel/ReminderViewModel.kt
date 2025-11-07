@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.ui.reminders.viewmodel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.data.database.models.Goal
+import com.romankozak.forwardappmobile.core.database.models.Goal
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.shared.features.reminders.data.model.Reminder
 import com.romankozak.forwardappmobile.data.repository.GoalRepository

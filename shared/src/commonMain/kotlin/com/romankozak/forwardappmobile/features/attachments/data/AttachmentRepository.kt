@@ -114,7 +114,7 @@ class AttachmentRepository(
     suspend fun createLinkAttachment(
         projectId: String,
         link: RelatedLink,
-    ): AttachmentEntity {
+    ): Pair<AttachmentEntity, LinkItemRecord> {
         val timestamp = currentTimeMillis()
         val linkItem =
             LinkItemRecord(
@@ -146,7 +146,7 @@ class AttachmentRepository(
             attachment_id = attachment.id,
             attachment_order = -timestamp,
         )
-        return attachment
+        return attachment to linkItem
     }
 
     suspend fun linkAttachmentToProject(

@@ -49,7 +49,7 @@ fun MainScreenScaffold(
     uiState: MainScreenUiState,
     onEvent: (MainScreenEvent) -> Unit,
     enhancedNavigationManager: EnhancedNavigationManager,
-    lastOngoingActivity: com.romankozak.forwardappmobile.data.database.models.ActivityRecord?,
+    lastOngoingActivity: com.romankozak.forwardappmobile.core.database.models.ActivityRecord?,
     viewModel: MainScreenViewModel,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope

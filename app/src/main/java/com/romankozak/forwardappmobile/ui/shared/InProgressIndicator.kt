@@ -32,7 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material3.FloatingActionButton
-import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
+import com.romankozak.forwardappmobile.core.database.models.ActivityRecord
 
 @Composable
 fun InProgressIndicator(

@@ -1,7 +1,7 @@
 
 package com.romankozak.forwardappmobile.data.logic
 
-import com.romankozak.forwardappmobile.data.database.models.Goal
+import com.romankozak.forwardappmobile.core.database.models.Goal
 import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext

@@ -1,0 +1,17 @@
+CREATE TABLE link_items (
+    id TEXT NOT NULL PRIMARY KEY,
+    link_data TEXT NOT NULL,
+    createdAt INTEGER NOT NULL
+);
+
+-- Queries
+
+getAllLinkItems: SELECT * FROM link_items;
+
+getLinkItemById: SELECT * FROM link_items WHERE id = ?;
+
+insertLinkItem: INSERT INTO link_items (id, link_data, createdAt) VALUES (?, ?, ?);
+
+deleteLinkItemById: DELETE FROM link_items WHERE id = ?;
+
+deleteAllLinkItems: DELETE FROM link_items;

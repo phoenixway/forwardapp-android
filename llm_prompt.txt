@@ -1,0 +1,111 @@
+I am working on a Kotlin Multiplatform project and migrating from Room to SQLDelight. I am facing a build issue where the SQLDelight-generated classes are not being found by the compiler, resulting in "Unresolved reference" errors.
+
+Here is the context:
+
+**Goal:** Successfully build the project after migrating from Room to SQLDelight.
+
+**Problem:** The build fails with "Unresolved reference" for all SQLDelight-generated classes (e.g., `ChecklistQueries`, `Projects`). I have confirmed that the generated source directory `shared/build/generated/sqldelight/source/` is not being created.
+
+**What I have tried:**
+1.  Verifying the location of the `.sq` files. They are in `shared/src/commonMain/sqldelight/com/romankozak/forwardappmobile/shared/database/`.
+2.  Verifying the `packageName` in `shared/build.gradle.kts`. It is set to `com.romankozak.forwardappmobile.shared.database.shared`.
+3.  Verifying the import statements in the Kotlin files. They are correct, e.g., `import com.romankozak.forwardappmobile.shared.database.shared.ChecklistQueries`.
+4.  Cleaning the project multiple times using `./gradlew clean` and `rm -rf build .gradle`.
+5.  Attempting to explicitly set the source folders in `shared/build.gradle.kts` using various syntaxes, but all attempts have resulted in build script errors.
+
+**`shared/build.gradle.kts`:**
+```kotlin
+plugins {
+    id("org.jetbrains.kotlin.multiplatform")
+    id("org.jetbrains.kotlin.plugin.serialization")
+    id("com.android.library")
+    alias(libs.plugins.sqldelight)
+}
+
+kotlin {
+    androidTarget()
+
+    js(IR) {
+        nodejs()
+        binaries.executable()
+        generateTypeScriptDefinitions()
+    }
+
+    sourceSets {
+        val commonMain by getting {
+            dependencies {
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+                implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
+                implementation("com.benasher44:uuid:0.8.4")
+                implementation(libs.sqldelight.runtime)
+                implementation(libs.sqldelight.coroutines)
+            }
+        }
+        val androidMain by getting {
+            dependencies {
+                implementation(libs.sqldelight.android.driver)
+            }
+        }
+        val jsMain by getting {
+            dependencies {
+                implementation(libs.sqldelight.sqljs.driver)
+            }
+        }
+    }
+}
+
+android {
+    namespace = "com.romankozak.forwardappmobile.shared"
+    compileSdk = 34
+    defaultConfig {
+        minSdk = 24
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+}
+
+sqldelight {
+    databases {
+        create("ForwardAppDatabase") {
+            packageName.set("com.romankozak.forwardappmobile.shared.database.shared")
+        }
+    }
+}
+```
+
+**Example of a file with errors (`ChecklistRepository.kt`):**
+```kotlin
+package com.romankozak.forwardappmobile.features.checklists.data
+
+import app.cash.sqldelight.coroutines.asFlow
+import app.cash.sqldelight.coroutines.mapToList
+import com.romankozak.forwardappmobile.features.checklists.data.mappers.toModel
+import com.romankozak.forwardappmobile.features.checklists.domain.model.Checklist
+import com.romankozak.forwardappmobile.features.checklists.domain.model.ChecklistItem
+import com.romankozak.forwardappmobile.shared.database.shared.ChecklistQueries
+import com.romankozak.forwardappmobile.shared.database.shared.Checklist_items
+import com.romankozak.forwardappmobile.shared.database.shared.Checklists
+import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
+
+class ChecklistRepository(
+    private val db: ForwardAppDatabase,
+    private val dispatcher: CoroutineDispatcher = Dispatchers.Default
+) {
+    private val queries = db.checklistQueries
+
+    // ...
+}
+```
+
+**Error messages:**
+The build fails with a long list of "Unresolved reference" errors, all pointing to the SQLDelight-generated classes.
+
+**Question:**
+What could be the reason why the SQLDelight classes are not being generated, and how can I fix it? I suspect the issue is in the `sqldelight` block in `shared/build.gradle.kts`, but I have not been able to find the correct syntax for my setup.

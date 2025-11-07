@@ -1,0 +1,58 @@
+
+CREATE TABLE day_plans (
+    id TEXT NOT NULL PRIMARY KEY,
+    date INTEGER NOT NULL,
+    name TEXT,
+    status TEXT NOT NULL,
+    reflection TEXT,
+    totalCompletedMinutes INTEGER NOT NULL DEFAULT 0,
+    completionPercentage REAL NOT NULL DEFAULT 0.0,
+    createdAt INTEGER NOT NULL,
+    updatedAt INTEGER NOT NULL
+);
+
+insert:
+INSERT OR REPLACE INTO day_plans (id, date, name, status, reflection, totalCompletedMinutes, completionPercentage, createdAt, updatedAt)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+update:
+UPDATE day_plans SET date = ?, name = ?, status = ?, reflection = ?, totalCompletedMinutes = ?, completionPercentage = ?, createdAt = ?, updatedAt = ? WHERE id = ?;
+
+delete:
+DELETE FROM day_plans WHERE id = ?;
+
+getPlanById:
+SELECT * FROM day_plans WHERE id = ?;
+
+getPlanForDateSync:
+SELECT * FROM day_plans WHERE date = ?;
+
+getPlanForDate:
+SELECT * FROM day_plans WHERE date = ?;
+
+getPlansForDateRange:
+SELECT * FROM day_plans WHERE date BETWEEN ? AND ? ORDER BY date ASC;
+
+getRecentPlans:
+SELECT * FROM day_plans ORDER BY date DESC LIMIT ?;
+
+getPlansByStatus:
+SELECT * FROM day_plans WHERE status = ? ORDER BY date ASC;
+
+getAllPlans:
+SELECT * FROM day_plans ORDER BY date ASC;
+
+updatePlanStatus:
+UPDATE day_plans SET status = ?, updatedAt = ? WHERE id = ?;
+
+updatePlanProgress:
+UPDATE day_plans SET totalCompletedMinutes = ?, completionPercentage = ?, updatedAt = ? WHERE id = ?;
+
+getFutureDayPlanIds:
+SELECT id FROM day_plans WHERE date >= ?;
+
+getPlanByIdStream:
+SELECT * FROM day_plans WHERE id = ?;
+
+deleteAll:
+DELETE FROM day_plans;

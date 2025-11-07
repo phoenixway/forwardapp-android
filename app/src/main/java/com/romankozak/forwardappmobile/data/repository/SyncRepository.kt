@@ -14,28 +14,28 @@ import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.dao.GoalDao
 import com.romankozak.forwardappmobile.data.dao.InboxRecordDao
-import com.romankozak.forwardappmobile.data.dao.LinkItemDao
-import com.romankozak.forwardappmobile.data.dao.ListItemDao
+
+import com.romankozak.forwardappmobile.shared.database.ListItemQueries
 import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
 import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
-import com.romankozak.forwardappmobile.data.database.AppDatabase
-import com.romankozak.forwardappmobile.data.database.models.ChecklistEntity
-import com.romankozak.forwardappmobile.data.database.models.ChecklistItemEntity
+import com.romankozak.forwardappmobile.core.database.AppDatabase
+import com.romankozak.forwardappmobile.core.database.models.ChecklistEntity
+import com.romankozak.forwardappmobile.core.database.models.ChecklistItemEntity
 import com.romankozak.forwardappmobile.data.sync.DatabaseContent
 import com.romankozak.forwardappmobile.data.sync.FullAppBackup
-import com.romankozak.forwardappmobile.data.database.models.Goal
-import com.romankozak.forwardappmobile.data.database.models.ListItem
-import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.core.database.models.Goal
+import com.romankozak.forwardappmobile.core.database.models.ListItem
+import com.romankozak.forwardappmobile.core.database.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.shared.data.database.models.ProjectLogLevelValues
 import com.romankozak.forwardappmobile.shared.data.database.models.ProjectStatusValues
 import com.romankozak.forwardappmobile.shared.data.database.models.ProjectType
 import com.romankozak.forwardappmobile.shared.data.database.models.ScoringStatusValues
-import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
+import com.romankozak.forwardappmobile.core.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 import com.romankozak.forwardappmobile.features.projects.data.ProjectLocalDataSource
-import com.romankozak.forwardappmobile.data.database.DatabaseInitializer
+import com.romankozak.forwardappmobile.core.database.DatabaseInitializer
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -94,8 +94,7 @@ constructor(
     @ApplicationContext private val context: Context,
     private val goalDao: GoalDao,
     private val projectLocalDataSource: ProjectLocalDataSource,
-    private val listItemDao: ListItemDao,
-    private val linkItemDao: LinkItemDao,
+    private val listItemQueries: ListItemQueries,
     private val activityRecordDao: ActivityRecordDao,
     private val inboxRecordDao: InboxRecordDao,
     private val settingsRepository: SettingsRepository,
@@ -109,7 +108,7 @@ constructor(
 ) {
     private val TAG = "SyncRepository"
     private val gson = GsonBuilder()
-        .registerTypeAdapter(com.romankozak.forwardappmobile.data.database.models.ReservedGroup::class.java, ReservedGroupAdapter())
+        .registerTypeAdapter(com.romankozak.forwardappmobile.core.database.models.ReservedGroup::class.java, ReservedGroupAdapter())
         .create()
     private val client: HttpClient by lazy {
         HttpClient(CIO) {
@@ -150,14 +149,13 @@ constructor(
             DatabaseContent(
                 goals = goalDao.getAll(),
                 projects = projectLocalDataSource.getAll().map { it.toEntity() },
-                listItems = listItemDao.getAll(),
+                listItems = listItemQueries.getAll().executeAsList(),
                 legacyNotes = legacyNoteRepository.getAllSnapshot(),
                 documents = noteDocumentRepository.getAllDocumentsSnapshot(),
                 documentItems = noteDocumentRepository.getAllDocumentItemsSnapshot(),
                 checklists = checklistRepository.getAllChecklistsSnapshot(),
                 checklistItems = checklistRepository.getAllItemsSnapshot(),
                 activityRecords = activityRecordDao.getAllRecordsStream().first(),
-                linkItemEntities = linkItemDao.getAllEntities(),
                 inboxRecords = inboxRecordDao.getAll(),
                 projectExecutionLogs = projectManagementDao.getAllLogs(),
                 recentProjectEntries = null
@@ -216,7 +214,7 @@ constructor(
                 IMPORT_TAG,
                 "Структура бекапу: projects=${backup.projects.size}, goals=${backup.goals.size}, " +
                     "listItems=${backup.listItems.size}, noteDocs=${backup.documents?.size}, " +
-                    "checklists=${backup.checklists?.size}, linkItems=${backup.linkItemEntities?.size}",
+                    "checklists=${backup.checklists?.size}",
             )
 
             val backupSettingsMap = backupData.settings?.settings ?: emptyMap()
@@ -226,7 +224,7 @@ constructor(
                 backup.projects.map { projectFromBackup ->
                     projectFromBackup.copy(
                         projectType = projectFromBackup.projectType ?: ProjectType.DEFAULT,
-                        reservedGroup = com.romankozak.forwardappmobile.data.database.models.ReservedGroup.fromString(projectFromBackup.reservedGroup?.groupName),
+                        reservedGroup = com.romankozak.forwardappmobile.core.database.models.ReservedGroup.fromString(projectFromBackup.reservedGroup?.groupName),
                         defaultViewModeName = projectFromBackup.defaultViewModeName ?: ProjectViewMode.BACKLOG.name,
                         isProjectManagementEnabled = projectFromBackup.isProjectManagementEnabled ?: false,
                         projectStatus = projectFromBackup.projectStatus ?: ProjectStatusValues.NO_PLAN,
@@ -270,9 +268,9 @@ constructor(
             val recentItemsToInsert = backup.recentProjectEntries?.mapNotNull { entry ->
                 val project = backup.projects.find { it.id == entry.projectId }
                 if (project != null) {
-                    com.romankozak.forwardappmobile.data.database.models.RecentItem(
+                    com.romankozak.forwardappmobile.core.database.models.RecentItem(
                         id = project.id,
-                        type = com.romankozak.forwardappmobile.data.database.models.RecentItemType.PROJECT,
+                        type = com.romankozak.forwardappmobile.core.database.models.RecentItemType.PROJECT,
                         lastAccessed = entry.timestamp,
                         displayName = project.name,
                         target = project.id
@@ -295,13 +293,11 @@ constructor(
             inboxRecordDao.deleteAll()
             Log.d(FULL_IMPORT_TAG, "TX stage: inbox cleared")
             Log.d(IMPORT_TAG, "  - inbox очищено")
-            linkItemDao.deleteAll()
-            Log.d(FULL_IMPORT_TAG, "TX stage: link items cleared")
-            Log.d(IMPORT_TAG, "  - link_items очищено")
+
             activityRecordDao.clearAll()
             Log.d(FULL_IMPORT_TAG, "TX stage: activity records cleared")
             Log.d(IMPORT_TAG, "  - activity очищено")
-            listItemDao.deleteAll()
+            listItemQueries.deleteAll()
             Log.d(FULL_IMPORT_TAG, "TX stage: list items cleared")
             Log.d(IMPORT_TAG, "  - list_items очищено")
             projectLocalDataSource.deleteAllWithinTransaction()
@@ -339,7 +335,15 @@ constructor(
                 Log.d(IMPORT_TAG, "  - projects вставлено: ${cleanedProjects.size}")
 
                 Log.d(IMPORT_TAG, "  -> Inserting backlogListItems: ${backlogListItems.size}")
-                listItemDao.insertItems(backlogListItems)
+                backlogListItems.forEach { listItem ->
+                    listItemQueries.insert(
+                        id = listItem.id,
+                        project_id = listItem.projectId,
+                        item_type = listItem.itemType,
+                        entity_id = listItem.entityId,
+                        item_order = listItem.order
+                    )
+                }
                 Log.d(FULL_IMPORT_TAG, "TX stage: base entities inserted")
                 Log.d(IMPORT_TAG, "  - list_items вставлено: ${backlogListItems.size}")
 
@@ -374,11 +378,7 @@ constructor(
                     activityRecordDao.insertAll(it)
                     Log.d(IMPORT_TAG, "  - activity_records вставлено: ${it.size}")
                 }
-                backup.linkItemEntities?.let {
-                    Log.d(IMPORT_TAG, "  -> Inserting linkItemEntities: ${it.size}")
-                    linkItemDao.insertAll(it)
-                    Log.d(IMPORT_TAG, "  - link_items вставлено: ${it.size}")
-                }
+
                 backup.inboxRecords?.let {
                     Log.d(IMPORT_TAG, "  -> Inserting inboxRecords: ${it.size}")
                     inboxRecordDao.insertAll(it)
@@ -562,7 +562,7 @@ constructor(
 
         changesByType[ChangeType.Delete]?.forEach { change ->
             when (change.entityType) {
-                "Привʼязка" -> listItemDao.deleteItemsByIds(listOf(change.id))
+                "Привʼязка" -> listItemQueries.deleteByIds(listOf(change.id))
                 "Список" -> projectLocalDataSource.deleteDefault(change.id)
                 "Ціль" -> goalDao.deleteGoalById(change.id)
             }
@@ -580,7 +580,16 @@ constructor(
             when (change.entityType) {
                 "Список" -> projectLocalDataSource.upsert(change.entity as Project)
                 "Ціль" -> goalDao.insertGoal(change.entity as Goal)
-                "Привʼязка" -> listItemDao.insertItem(change.entity as ListItem)
+                "Привʼязка" -> {
+                    val listItem = change.entity as ListItem
+                    listItemQueries.insert(
+                        id = listItem.id,
+                        project_id = listItem.projectId,
+                        item_type = listItem.itemType,
+                        entity_id = listItem.entityId,
+                        item_order = listItem.order
+                    )
+                }
             }
         }
     }
@@ -588,7 +597,7 @@ constructor(
     suspend fun runPostBackupMigration() {
         Log.d(TAG, "runPostBackupMigration: Starting post-backup migration")
         val db = appDatabase.openHelper.writableDatabase
-        com.romankozak.forwardappmobile.data.database.migrateSpecialProjects(db)
+        com.romankozak.forwardappmobile.core.database.migrateSpecialProjects(db)
         Log.d(TAG, "runPostBackupMigration: Finished post-backup migration")
     }
 }

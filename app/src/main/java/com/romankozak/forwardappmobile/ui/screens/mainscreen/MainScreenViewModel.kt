@@ -110,7 +110,7 @@ constructor(
   val uiState: StateFlow<MainScreenUiState>
     get() = mainScreenStateUseCase.uiState
 
-  val lastOngoingActivity: StateFlow<com.romankozak.forwardappmobile.data.database.models.ActivityRecord?> =
+  val lastOngoingActivity: StateFlow<com.romankozak.forwardappmobile.core.database.models.ActivityRecord?> =
       activityRepository
           .getLogStream()
           .map { log ->
@@ -531,7 +531,7 @@ constructor(
             return@launch
           }
 
-          val inboxProject = _allProjectsFlat.value.find { it.reservedGroup == com.romankozak.forwardappmobile.data.database.models.ReservedGroup.Inbox.groupName && it.parentId == specialProject.id }
+          val inboxProject = _allProjectsFlat.value.find { it.reservedGroup == com.romankozak.forwardappmobile.core.database.models.ReservedGroup.Inbox.groupName && it.parentId == specialProject.id }
           if (inboxProject == null) {
             _uiEventChannel.send(ProjectUiEvent.ShowToast("Inbox project not found"))
             return@launch
@@ -585,11 +585,11 @@ constructor(
     }
   }
 
-  private fun onRecentItemSelected(item: com.romankozak.forwardappmobile.data.database.models.RecentItem) {
+  private fun onRecentItemSelected(item: com.romankozak.forwardappmobile.core.database.models.RecentItem) {
     viewModelScope.launch {
         _showRecentListsSheet.value = false
         when (item.type) {
-            com.romankozak.forwardappmobile.data.database.models.RecentItemType.PROJECT -> {
+            com.romankozak.forwardappmobile.core.database.models.RecentItemType.PROJECT -> {
                 projectRepository.getProjectById(item.target)?.let { recentItemsRepository.logProjectAccess(it.id, it.name) }
                 val project = _allProjectsFlat.value.find { it.id == item.target }
                 if (project != null) {
@@ -597,25 +597,25 @@ constructor(
                     enhancedNavigationManager?.navigateToProject(item.target, project.name)
                 }
             }
-            com.romankozak.forwardappmobile.data.database.models.RecentItemType.NOTE -> {
+            com.romankozak.forwardappmobile.core.database.models.RecentItemType.NOTE -> {
                 noteRepository.getNoteById(item.target)?.let {
                     recentItemsRepository.logLegacyNoteAccess(it.id, it.title)
                 }
                 _uiEventChannel.send(ProjectUiEvent.ShowToast("Legacy note editing is no longer supported"))
             }
-            com.romankozak.forwardappmobile.data.database.models.RecentItemType.NOTE_DOCUMENT -> {
+            com.romankozak.forwardappmobile.core.database.models.RecentItemType.NOTE_DOCUMENT -> {
                 noteDocumentRepository.getDocumentById(item.target)?.let {
                     recentItemsRepository.logNoteDocumentAccess(it.id, it.name)
                 }
                 _uiEventChannel.send(ProjectUiEvent.Navigate("note_document_screen/${item.target}"))
             }
-            com.romankozak.forwardappmobile.data.database.models.RecentItemType.CHECKLIST -> {
+            com.romankozak.forwardappmobile.core.database.models.RecentItemType.CHECKLIST -> {
                 checklistRepository.getChecklistById(item.target)?.let {
                     recentItemsRepository.logChecklistAccess(it.id, it.name)
                 }
                 _uiEventChannel.send(ProjectUiEvent.Navigate("checklist_screen?checklistId=${item.target}"))
             }
-            com.romankozak.forwardappmobile.data.database.models.RecentItemType.OBSIDIAN_LINK -> {
+            com.romankozak.forwardappmobile.core.database.models.RecentItemType.OBSIDIAN_LINK -> {
                 val link = RelatedLink(
                     target = item.target,
                     displayName = item.displayName,
@@ -631,7 +631,7 @@ constructor(
     }
   }
 
-  private fun toggleRecentItemPin(item: com.romankozak.forwardappmobile.data.database.models.RecentItem) {
+  private fun toggleRecentItemPin(item: com.romankozak.forwardappmobile.core.database.models.RecentItem) {
     viewModelScope.launch {
         val updatedItem = item.copy(isPinned = !item.isPinned)
         recentItemsRepository.updateRecentItem(updatedItem)

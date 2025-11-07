@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.data.repository
 
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 import com.romankozak.forwardappmobile.data.dao.GoalDao
-import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
+import com.romankozak.forwardappmobile.core.database.models.ActivityRecord
 import com.romankozak.forwardappmobile.features.projects.data.ProjectLocalDataSource
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID

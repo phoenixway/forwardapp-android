@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.shared.database
 
 import app.cash.sqldelight.db.SqlDriver
+import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 
 /**
  * Platform-specific configuration needed to create a SQLDelight driver.

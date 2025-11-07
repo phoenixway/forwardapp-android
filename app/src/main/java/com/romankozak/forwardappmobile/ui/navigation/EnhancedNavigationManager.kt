@@ -4,8 +4,8 @@ import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.navigation.NavOptionsBuilder
-import com.romankozak.forwardappmobile.data.database.models.NavigationEntry
-import com.romankozak.forwardappmobile.data.database.models.NavigationType
+import com.romankozak.forwardappmobile.core.database.models.NavigationEntry
+import com.romankozak.forwardappmobile.core.database.models.NavigationType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*

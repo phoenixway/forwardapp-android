@@ -4,7 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asFlow
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.core.database.models.ListItemContent
 import com.romankozak.forwardappmobile.shared.data.database.models.LinkType
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink

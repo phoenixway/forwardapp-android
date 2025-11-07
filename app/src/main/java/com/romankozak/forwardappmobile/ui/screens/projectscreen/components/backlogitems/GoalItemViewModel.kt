@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems
 
 import androidx.lifecycle.ViewModel
-import com.romankozak.forwardappmobile.data.database.models.Goal
+import com.romankozak.forwardappmobile.core.database.models.Goal
 import com.romankozak.forwardappmobile.shared.features.reminders.data.model.Reminder
 import com.romankozak.forwardappmobile.shared.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.ui.common.ParsedTextData

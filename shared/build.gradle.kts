@@ -39,7 +39,7 @@ kotlin {
 
 android {
     namespace = "com.romankozak.forwardappmobile.shared"
-    compileSdk = 34
+    compileSdk = 35
     defaultConfig {
         minSdk = 24
     }
@@ -47,14 +47,16 @@ android {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
+    publishing {
+        singleVariant("release")
+        singleVariant("debug")
+    }
 }
 
 sqldelight {
     databases {
         create("ForwardAppDatabase") {
-            packageName = "com.romankozak.forwardappmobile.shared.database"
-            srcDirs = files("src/commonMain/sqldelight")
-            deriveSchemaFromMigrations.set(true)
+            packageName.set("com.romankozak.forwardappmobile.shared.database")
         }
     }
 }

@@ -53,9 +53,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.data.database.models.DayPlan
-import com.romankozak.forwardappmobile.data.database.models.DayTask
-import com.romankozak.forwardappmobile.data.database.models.TaskPriority
+import com.romankozak.forwardappmobile.core.database.models.DayPlan
+import com.romankozak.forwardappmobile.core.database.models.DayTask
+import com.romankozak.forwardappmobile.core.database.models.TaskPriority
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.CompactDayPlanHeader
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayTaskWithReminder
 import sh.calvin.reorderable.ReorderableItem

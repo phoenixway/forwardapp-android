@@ -7,8 +7,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.romankozak.forwardappmobile.data.database.models.ListItemContent
-import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
+import com.romankozak.forwardappmobile.core.database.models.ListItemContent
+import com.romankozak.forwardappmobile.core.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.shared.features.projects.data.model.ProjectArtifact
 import com.romankozak.forwardappmobile.shared.features.projects.logs.data.model.ProjectExecutionLog
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.projectrealization.ProjectDashboardView

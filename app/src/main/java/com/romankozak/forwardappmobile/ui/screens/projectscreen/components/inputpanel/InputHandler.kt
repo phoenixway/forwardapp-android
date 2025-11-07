@@ -313,21 +313,21 @@ class InputHandler(
 
     fun onDismissRecentLists() = resultListener.showRecentListsSheet(false)
 
-    fun onRecentListSelected(item: com.romankozak.forwardappmobile.data.database.models.RecentItem) {
+    fun onRecentListSelected(item: com.romankozak.forwardappmobile.core.database.models.RecentItem) {
         when (item.type) {
-            com.romankozak.forwardappmobile.data.database.models.RecentItemType.PROJECT -> {
+            com.romankozak.forwardappmobile.core.database.models.RecentItemType.PROJECT -> {
                 resultListener.requestNavigation("goal_detail_screen/${item.target}")
             }
-            com.romankozak.forwardappmobile.data.database.models.RecentItemType.NOTE -> {
+            com.romankozak.forwardappmobile.core.database.models.RecentItemType.NOTE -> {
                 resultListener.requestNavigation("note_edit_screen?noteId=${item.target}")
             }
-            com.romankozak.forwardappmobile.data.database.models.RecentItemType.NOTE_DOCUMENT -> {
+            com.romankozak.forwardappmobile.core.database.models.RecentItemType.NOTE_DOCUMENT -> {
                 resultListener.requestNavigation("note_document_screen/${item.target}")
             }
-            com.romankozak.forwardappmobile.data.database.models.RecentItemType.CHECKLIST -> {
+            com.romankozak.forwardappmobile.core.database.models.RecentItemType.CHECKLIST -> {
                 resultListener.requestNavigation("checklist_screen?checklistId=${item.target}")
             }
-            com.romankozak.forwardappmobile.data.database.models.RecentItemType.OBSIDIAN_LINK -> {
+            com.romankozak.forwardappmobile.core.database.models.RecentItemType.OBSIDIAN_LINK -> {
                 resultListener.createObsidianNote(item.target)
             }
         }

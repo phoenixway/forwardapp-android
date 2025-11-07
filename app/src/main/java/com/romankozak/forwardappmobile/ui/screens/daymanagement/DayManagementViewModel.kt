@@ -5,7 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.shared.data.database.models.ProjectType
-import com.romankozak.forwardappmobile.data.database.models.ReservedGroup
+import com.romankozak.forwardappmobile.core.database.models.ReservedGroup
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
 import com.romankozak.forwardappmobile.di.IoDispatcher

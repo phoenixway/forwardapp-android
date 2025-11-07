@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.shared.data.database.models.ProjectStatusValues
-import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
+import com.romankozak.forwardappmobile.core.database.models.ProjectViewMode
 import kotlinx.coroutines.delay
 
 import androidx.compose.material.icons.Icons

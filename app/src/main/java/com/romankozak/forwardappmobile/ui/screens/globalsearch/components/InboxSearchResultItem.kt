@@ -41,7 +41,7 @@ import java.util.Locale
 
 @Composable
 internal fun InboxSearchResultItem(
-    record: com.romankozak.forwardappmobile.data.database.models.InboxRecord,
+    record: com.romankozak.forwardappmobile.core.database.models.InboxRecord,
     onClick: () -> Unit,
 ) {
     val formatter = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())

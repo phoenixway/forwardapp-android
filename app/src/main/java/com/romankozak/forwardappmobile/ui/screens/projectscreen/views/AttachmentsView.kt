@@ -18,7 +18,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.core.database.models.ListItemContent
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
 import com.romankozak.forwardappmobile.features.attachments.ui.project.AttachmentType
 import com.romankozak.forwardappmobile.features.attachments.ui.project.components.NoteDocumentItemRow

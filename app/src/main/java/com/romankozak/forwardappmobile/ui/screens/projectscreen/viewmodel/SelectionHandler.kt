@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel
 
 import android.util.Log
-import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.core.database.models.ListItemContent
 import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.GoalActionType
 import kotlinx.coroutines.CoroutineScope

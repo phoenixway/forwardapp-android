@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.shared.database
 import android.content.Context
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
+import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 
 actual typealias PlatformContext = Context
 

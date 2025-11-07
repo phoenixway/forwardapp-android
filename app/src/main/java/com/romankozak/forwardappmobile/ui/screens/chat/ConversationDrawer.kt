@@ -28,7 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.data.database.models.ConversationWithLastMessage
+import com.romankozak.forwardappmobile.core.database.models.ConversationWithLastMessage
 
 @Composable
 fun ConversationDrawer(

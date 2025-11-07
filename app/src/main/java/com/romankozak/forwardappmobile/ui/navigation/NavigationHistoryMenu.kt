@@ -26,7 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.data.database.models.NavigationType
+import com.romankozak.forwardappmobile.core.database.models.NavigationType
 
 
 @OptIn(ExperimentalMaterial3Api::class)

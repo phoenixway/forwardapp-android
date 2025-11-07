@@ -4,29 +4,30 @@ import android.content.Context
 import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.romankozak.forwardappmobile.data.database.AppDatabase
+import com.romankozak.forwardappmobile.core.database.AppDatabase
 import com.romankozak.forwardappmobile.data.dao.GoalDao
-import com.romankozak.forwardappmobile.data.dao.ListItemDao
+
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
-import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.dao.InboxRecordDao
-import com.romankozak.forwardappmobile.data.dao.DayPlanDao
+
 import com.romankozak.forwardappmobile.data.dao.DayTaskDao
 import com.romankozak.forwardappmobile.data.dao.DailyMetricDao
 import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
 import com.romankozak.forwardappmobile.data.dao.ChatDao
 import com.romankozak.forwardappmobile.data.dao.ConversationFolderDao
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
-import com.romankozak.forwardappmobile.shared.database.AttachmentQueriesQueries
-import com.romankozak.forwardappmobile.shared.database.ProjectExecutionLogQueriesQueries
-import com.romankozak.forwardappmobile.shared.database.ProjectQueriesQueries
-import com.romankozak.forwardappmobile.shared.database.ReminderQueriesQueries
-import com.romankozak.forwardappmobile.shared.database.RecentItemQueriesQueries
+import com.romankozak.forwardappmobile.shared.database.AttachmentQueries
+import com.romankozak.forwardappmobile.shared.database.LinkItemQueries
+import com.romankozak.forwardappmobile.shared.database.ListItemQueries
+import com.romankozak.forwardappmobile.shared.database.ProjectExecutionLogQueries
+import com.romankozak.forwardappmobile.shared.database.ProjectQueries
+import com.romankozak.forwardappmobile.shared.database.ReminderQueries
+import com.romankozak.forwardappmobile.shared.database.RecentItemQueries
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
-import com.romankozak.forwardappmobile.shared.database.LegacyNoteQueriesQueries
-import com.romankozak.forwardappmobile.shared.database.NoteDocumentQueriesQueries
-import com.romankozak.forwardappmobile.shared.database.ChecklistQueriesQueries
+import com.romankozak.forwardappmobile.shared.database.LegacyNoteQueries
+import com.romankozak.forwardappmobile.shared.database.NoteDocumentQueries
+import com.romankozak.forwardappmobile.shared.database.ChecklistQueries
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.EntryPoint
@@ -39,61 +40,63 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import androidx.room.RoomDatabase
-import com.romankozak.forwardappmobile.data.database.DatabaseInitializer
-import com.romankozak.forwardappmobile.data.database.MIGRATION_8_9
-import com.romankozak.forwardappmobile.data.database.MIGRATION_10_11
-import com.romankozak.forwardappmobile.data.database.MIGRATION_11_12
-import com.romankozak.forwardappmobile.data.database.MIGRATION_12_13
-import com.romankozak.forwardappmobile.data.database.MIGRATION_13_14
-import com.romankozak.forwardappmobile.data.database.MIGRATION_14_15
-import com.romankozak.forwardappmobile.data.database.MIGRATION_15_16
-import com.romankozak.forwardappmobile.data.database.MIGRATION_16_17
-import com.romankozak.forwardappmobile.data.database.MIGRATION_17_18
-import com.romankozak.forwardappmobile.data.database.MIGRATION_18_19
-import com.romankozak.forwardappmobile.data.database.MIGRATION_19_20
-import com.romankozak.forwardappmobile.data.database.MIGRATION_20_21
-import com.romankozak.forwardappmobile.data.database.MIGRATION_21_22
-import com.romankozak.forwardappmobile.data.database.MIGRATION_22_23
-import com.romankozak.forwardappmobile.data.database.MIGRATION_23_24
-import com.romankozak.forwardappmobile.data.database.MIGRATION_24_25
-import com.romankozak.forwardappmobile.data.database.MIGRATION_25_26
-import com.romankozak.forwardappmobile.data.database.MIGRATION_26_27
-import com.romankozak.forwardappmobile.data.database.MIGRATION_27_28
-import com.romankozak.forwardappmobile.data.database.MIGRATION_28_29
-import com.romankozak.forwardappmobile.data.database.MIGRATION_29_30
-import com.romankozak.forwardappmobile.data.database.MIGRATION_30_31
-import com.romankozak.forwardappmobile.data.database.MIGRATION_31_32
-import com.romankozak.forwardappmobile.data.database.MIGRATION_32_33
-import com.romankozak.forwardappmobile.data.database.MIGRATION_33_34
-import com.romankozak.forwardappmobile.data.database.MIGRATION_34_35
-import com.romankozak.forwardappmobile.data.database.MIGRATION_35_36
-import com.romankozak.forwardappmobile.data.database.MIGRATION_36_37
-import com.romankozak.forwardappmobile.data.database.MIGRATION_37_38
-import com.romankozak.forwardappmobile.data.database.MIGRATION_38_39
-import com.romankozak.forwardappmobile.data.database.MIGRATION_39_40
-import com.romankozak.forwardappmobile.data.database.MIGRATION_40_41
-import com.romankozak.forwardappmobile.data.database.MIGRATION_41_42
-import com.romankozak.forwardappmobile.data.database.MIGRATION_42_43
-import com.romankozak.forwardappmobile.data.database.MIGRATION_44_45
-import com.romankozak.forwardappmobile.data.database.MIGRATION_45_46
-import com.romankozak.forwardappmobile.data.database.MIGRATION_46_47
-import com.romankozak.forwardappmobile.data.database.MIGRATION_47_48
-import com.romankozak.forwardappmobile.data.database.MIGRATION_48_49
-import com.romankozak.forwardappmobile.data.database.MIGRATION_49_50
-import com.romankozak.forwardappmobile.data.database.MIGRATION_50_51
-import com.romankozak.forwardappmobile.data.database.MIGRATION_51_52
-import com.romankozak.forwardappmobile.data.database.MIGRATION_52_53
-import com.romankozak.forwardappmobile.data.database.MIGRATION_53_54
-import com.romankozak.forwardappmobile.data.database.MIGRATION_54_55
-import com.romankozak.forwardappmobile.data.database.MIGRATION_55_56
-import com.romankozak.forwardappmobile.data.database.MIGRATION_57_58
-import com.romankozak.forwardappmobile.data.database.MIGRATION_58_59
-import com.romankozak.forwardappmobile.data.database.MIGRATION_59_60
-import com.romankozak.forwardappmobile.data.database.MIGRATION_60_61
-import com.romankozak.forwardappmobile.data.database.MIGRATION_61_62
-import com.romankozak.forwardappmobile.data.database.MIGRATION_62_63
-import com.romankozak.forwardappmobile.data.database.MIGRATION_63_64
-import com.romankozak.forwardappmobile.data.database.MIGRATION_64_65
+import com.romankozak.forwardappmobile.core.database.DatabaseInitializer
+import com.romankozak.forwardappmobile.core.database.MIGRATION_8_9
+import com.romankozak.forwardappmobile.core.database.MIGRATION_10_11
+import com.romankozak.forwardappmobile.core.database.MIGRATION_11_12
+import com.romankozak.forwardappmobile.core.database.MIGRATION_12_13
+import com.romankozak.forwardappmobile.core.database.MIGRATION_13_14
+import com.romankozak.forwardappmobile.core.database.MIGRATION_14_15
+import com.romankozak.forwardappmobile.core.database.MIGRATION_15_16
+import com.romankozak.forwardappmobile.core.database.MIGRATION_16_17
+import com.romankozak.forwardappmobile.core.database.MIGRATION_17_18
+import com.romankozak.forwardappmobile.core.database.MIGRATION_18_19
+import com.romankozak.forwardappmobile.core.database.MIGRATION_19_20
+import com.romankozak.forwardappmobile.core.database.MIGRATION_20_21
+import com.romankozak.forwardappmobile.core.database.MIGRATION_21_22
+import com.romankozak.forwardappmobile.core.database.MIGRATION_22_23
+import com.romankozak.forwardappmobile.core.database.MIGRATION_23_24
+import com.romankozak.forwardappmobile.core.database.MIGRATION_24_25
+import com.romankozak.forwardappmobile.core.database.MIGRATION_25_26
+import com.romankozak.forwardappmobile.core.database.MIGRATION_26_27
+import com.romankozak.forwardappmobile.core.database.MIGRATION_27_28
+import com.romankozak.forwardappmobile.core.database.MIGRATION_28_29
+import com.romankozak.forwardappmobile.core.database.MIGRATION_29_30
+import com.romankozak.forwardappmobile.core.database.MIGRATION_30_31
+import com.romankozak.forwardappmobile.core.database.MIGRATION_31_32
+import com.romankozak.forwardappmobile.core.database.MIGRATION_32_33
+import com.romankozak.forwardappmobile.core.database.MIGRATION_33_34
+import com.romankozak.forwardappmobile.core.database.MIGRATION_34_35
+import com.romankozak.forwardappmobile.core.database.MIGRATION_35_36
+import com.romankozak.forwardappmobile.core.database.MIGRATION_36_37
+import com.romankozak.forwardappmobile.core.database.MIGRATION_37_38
+import com.romankozak.forwardappmobile.core.database.MIGRATION_38_39
+import com.romankozak.forwardappmobile.core.database.MIGRATION_39_40
+import com.romankozak.forwardappmobile.core.database.MIGRATION_40_41
+import com.romankozak.forwardappmobile.core.database.MIGRATION_41_42
+import com.romankozak.forwardappmobile.core.database.MIGRATION_42_43
+import com.romankozak.forwardappmobile.core.database.MIGRATION_44_45
+import com.romankozak.forwardappmobile.core.database.MIGRATION_45_46
+import com.romankozak.forwardappmobile.core.database.MIGRATION_46_47
+import com.romankozak.forwardappmobile.core.database.MIGRATION_47_48
+import com.romankozak.forwardappmobile.core.database.MIGRATION_48_49
+import com.romankozak.forwardappmobile.core.database.MIGRATION_49_50
+import com.romankozak.forwardappmobile.core.database.MIGRATION_50_51
+import com.romankozak.forwardappmobile.core.database.MIGRATION_51_52
+import com.romankozak.forwardappmobile.core.database.MIGRATION_52_53
+import com.romankozak.forwardappmobile.core.database.MIGRATION_53_54
+import com.romankozak.forwardappmobile.core.database.MIGRATION_54_55
+import com.romankozak.forwardappmobile.core.database.MIGRATION_55_56
+import com.romankozak.forwardappmobile.core.database.MIGRATION_57_58
+import com.romankozak.forwardappmobile.core.database.MIGRATION_58_59
+import com.romankozak.forwardappmobile.core.database.MIGRATION_59_60
+import com.romankozak.forwardappmobile.core.database.MIGRATION_60_61
+import com.romankozak.forwardappmobile.core.database.MIGRATION_61_62
+import com.romankozak.forwardappmobile.core.database.MIGRATION_62_63
+import com.romankozak.forwardappmobile.core.database.MIGRATION_63_64
+import com.romankozak.forwardappmobile.core.database.MIGRATION_64_65
+import com.romankozak.forwardappmobile.core.database.MIGRATION_65_66
+import com.romankozak.forwardappmobile.core.database.MIGRATION_66_67
 
 
 
@@ -118,10 +121,6 @@ object DatabaseModule {
                         )
                     entryPoint.databaseInitializer().prePopulate()
                 }
-            }
-
-            override fun onOpen(db: SupportSQLiteDatabase) {
-                super.onOpen(db)
             }
         }
 
@@ -184,105 +183,70 @@ object DatabaseModule {
             MIGRATION_62_63,
             MIGRATION_63_64,
             MIGRATION_64_65,
+            MIGRATION_65_66,
+            MIGRATION_66_67,
         ).addCallback(callback).build()
     }
 
     @Provides
     @Singleton
-    fun provideGoalDao(appDatabase: AppDatabase) = appDatabase.goalDao()
-
-    @Provides
-    @Singleton
-    fun provideListItemDao(appDatabase: AppDatabase) = appDatabase.listItemDao()
-
-
-    @Provides
-    @Singleton
-    fun provideActivityRecordDao(appDatabase: AppDatabase) = appDatabase.activityRecordDao()
-
-    @Provides
-    @Singleton
-    fun provideProjectManagementDao(appDatabase: AppDatabase) = appDatabase.projectManagementDao()
-
-    @Provides
-    @Singleton
-    fun provideLinkItemDao(appDatabase: AppDatabase) = appDatabase.linkItemDao()
-
-    @Provides
-    @Singleton
-    fun provideInboxRecordDao(appDatabase: AppDatabase) = appDatabase.inboxRecordDao()
-
-    @Provides
-    @Singleton
     fun provideForwardAppDatabase(
-        @ApplicationContext context: Context,
+        appDatabase: AppDatabase
     ): ForwardAppDatabase {
-        val driver = AndroidSqliteDriver(ForwardAppDatabase.Schema, context, "forward_app.db")
+        val driver = AndroidSqliteDriver(schema = ForwardAppDatabase.Schema, openHelper = appDatabase.openHelper)
         return ForwardAppDatabase(driver)
     }
+
+    @Provides
+    fun provideListItemQueries(db: ForwardAppDatabase): ListItemQueries = db.listItemQueries
+
+    @Provides
+    fun provideLinkItemQueries(db: ForwardAppDatabase): LinkItemQueries = db.linkItemQueries
 
     @Provides
     @Singleton
     fun provideAttachmentQueries(
         forwardAppDatabase: ForwardAppDatabase,
-    ): AttachmentQueriesQueries = forwardAppDatabase.attachmentQueriesQueries
+    ): AttachmentQueries = forwardAppDatabase.attachmentQueries
 
     @Provides
     @Singleton
     fun provideProjectQueries(
         forwardAppDatabase: ForwardAppDatabase,
-    ): ProjectQueriesQueries = forwardAppDatabase.projectQueriesQueries
+    ): ProjectQueries = forwardAppDatabase.projectQueries
 
     @Provides
-    fun provideReminderQueries(db: ForwardAppDatabase): ReminderQueriesQueries = db.reminderQueriesQueries
+    fun provideReminderQueries(db: ForwardAppDatabase): ReminderQueries = db.reminderQueries
 
     @Provides
-    fun provideProjectExecutionLogQueries(db: ForwardAppDatabase): ProjectExecutionLogQueriesQueries = db.projectExecutionLogQueriesQueries
+    fun provideProjectExecutionLogQueries(db: ForwardAppDatabase): ProjectExecutionLogQueries = db.projectExecutionLogQueries
 
     @Provides
     fun provideRecentItemQueries(
         forwardAppDatabase: ForwardAppDatabase,
-    ): RecentItemQueriesQueries = forwardAppDatabase.recentItemQueriesQueries
+    ): RecentItemQueries = forwardAppDatabase.recentItemQueries
 
     @Provides
     fun provideLegacyNoteQueries(
         forwardAppDatabase: ForwardAppDatabase,
-    ): LegacyNoteQueriesQueries = forwardAppDatabase.legacyNoteQueriesQueries
+    ): LegacyNoteQueries = forwardAppDatabase.legacyNoteQueries
 
     @Provides
     fun provideNoteDocumentQueries(
         forwardAppDatabase: ForwardAppDatabase,
-    ): NoteDocumentQueriesQueries = forwardAppDatabase.noteDocumentQueriesQueries
+    ): NoteDocumentQueries = forwardAppDatabase.noteDocumentQueries
+
+    @Provides
+    fun provideDayPlanQueries(db: ForwardAppDatabase): com.romankozak.forwardappmobile.shared.database.DayPlanQueries = db.dayPlanQueries
 
     @Provides
     fun provideChecklistQueries(
         forwardAppDatabase: ForwardAppDatabase,
-    ): ChecklistQueriesQueries = forwardAppDatabase.checklistQueriesQueries
+    ): ChecklistQueries = forwardAppDatabase.checklistQueries
 
 
-    @Provides
-    @Singleton
-    fun provideDayPlanDao(appDatabase: AppDatabase) = appDatabase.dayPlanDao()
 
-    @Provides
-    @Singleton
-    fun provideDayTaskDao(appDatabase: AppDatabase) = appDatabase.dayTaskDao()
 
-    @Provides
-    @Singleton
-    fun provideDailyMetricDao(appDatabase: AppDatabase) = appDatabase.dailyMetricDao()
-
-    @Provides
-    @Singleton
-    fun provideRecurringTaskDao(appDatabase: AppDatabase) = appDatabase.recurringTaskDao()
-
-    @Provides
-    @Singleton
-    fun provideChatDao(appDatabase: AppDatabase) = appDatabase.chatDao()
-
-    @Provides
-    @Singleton
-    fun provideConversationFolderDao(appDatabase: AppDatabase) = appDatabase.conversationFolderDao()
 }
 
 @EntryPoint

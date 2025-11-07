@@ -2,9 +2,9 @@
 package com.romankozak.forwardappmobile.data.dao
 
 import androidx.room.*
-import com.romankozak.forwardappmobile.data.database.models.DayTask
-import com.romankozak.forwardappmobile.data.database.models.TaskPriority
-import com.romankozak.forwardappmobile.data.database.models.TaskStatus
+import com.romankozak.forwardappmobile.core.database.models.DayTask
+import com.romankozak.forwardappmobile.core.database.models.TaskPriority
+import com.romankozak.forwardappmobile.core.database.models.TaskStatus
 import kotlinx.coroutines.flow.Flow
 
 @Dao

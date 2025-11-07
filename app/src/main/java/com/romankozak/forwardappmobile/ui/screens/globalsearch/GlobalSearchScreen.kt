@@ -35,9 +35,9 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
-import com.romankozak.forwardappmobile.data.database.models.GlobalGoalSearchResult
-import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResultItem
+import com.romankozak.forwardappmobile.core.database.models.ActivityRecord
+import com.romankozak.forwardappmobile.core.database.models.GlobalGoalSearchResult
+import com.romankozak.forwardappmobile.core.database.models.GlobalSearchResultItem
 import com.romankozak.forwardappmobile.shared.data.database.models.LinkType
 import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.InboxSearchResultItem
@@ -192,6 +192,7 @@ fun GlobalSearchScreen(
                         obsidianVaultName = obsidianVaultName,
                         context = context,
                         listState = listState,
+                        navController = navController,
                         modifier =
                             Modifier
                                 .fillMaxSize()
@@ -294,6 +295,7 @@ private fun SearchResultsContent(
     obsidianVaultName: String,
     context: Context,
     listState: LazyListState,
+    navController: NavController,
     modifier: Modifier = Modifier,
 ) {
     val haptic = LocalHapticFeedback.current
@@ -349,34 +351,41 @@ private fun SearchResultsContent(
                         }
                         is GlobalSearchResultItem.LinkItem -> {
                             val searchResult = result.searchResult
-                            val linkData = searchResult.link.linkData
-                            LinkSearchResultItem(
-                                result = searchResult,
-                                onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    viewModel.navigateToProjectForResult(searchResult.projectId, searchResult.projectName)
-                                },
-                                onGoToTargetProject = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    viewModel.navigateToProjectForResult(linkData.target, null)
-                                },
-                                onOpenInObsidian = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    handleRelatedLinkClick(
-                                        link = linkData,
-                                        obsidianVaultName = obsidianVaultName,
-                                        context = context,
-                                    )
-                                },
-                                onOpenUrl = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    handleRelatedLinkClick(
-                                        link = linkData,
-                                        obsidianVaultName = obsidianVaultName,
-                                        context = context,
-                                    )
-                                },
-                            )
+                            val listItem = searchResult.link
+                            val linkContent = listItem.content as? ListItemContent.LinkItem
+
+                            if (linkContent != null) {
+                                val relatedLink = linkContent.link
+                                LinkSearchResultItem(
+                                    result = searchResult,
+                                    onClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        viewModel.navigateToProjectForResult(searchResult.projectId, searchResult.projectName)
+                                    },
+                                    onGoToTargetProject = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        navController.navigate(
+                                            "project/${relatedLink.target}"
+                                        )
+                                    },
+                                    onOpenInObsidian = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        handleRelatedLinkClick(
+                                            link = relatedLink,
+                                            obsidianVaultName = obsidianVaultName,
+                                            context = context,
+                                        )
+                                    },
+                                    onOpenUrl = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        handleRelatedLinkClick(
+                                            link = relatedLink,
+                                            obsidianVaultName = obsidianVaultName,
+                                            context = context,
+                                        )
+                                    },
+                                )
+                            }
                         }
                         is GlobalSearchResultItem.SublistItem -> {
                             val subproject = result.searchResult.subproject

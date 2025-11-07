@@ -39,7 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
-import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.core.database.models.ListItemContent
 import sh.calvin.reorderable.ReorderableCollectionItemScope
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch

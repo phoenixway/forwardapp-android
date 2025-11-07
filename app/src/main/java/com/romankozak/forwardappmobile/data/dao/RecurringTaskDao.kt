@@ -5,7 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-import com.romankozak.forwardappmobile.data.database.models.RecurringTask
+import com.romankozak.forwardappmobile.core.database.models.RecurringTask
 
 @Dao
 interface RecurringTaskDao {

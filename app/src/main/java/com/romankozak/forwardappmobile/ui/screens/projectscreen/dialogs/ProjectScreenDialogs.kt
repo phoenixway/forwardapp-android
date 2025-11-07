@@ -20,8 +20,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.romankozak.forwardappmobile.data.database.models.ListItemContent
-import com.romankozak.forwardappmobile.data.database.models.RecentItemType
+import com.romankozak.forwardappmobile.core.database.models.ListItemContent
+import com.romankozak.forwardappmobile.core.database.models.RecentItemType
 
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.GoalActionDialogState

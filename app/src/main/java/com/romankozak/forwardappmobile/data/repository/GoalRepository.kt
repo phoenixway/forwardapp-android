@@ -1,10 +1,10 @@
 package com.romankozak.forwardappmobile.data.repository
 
 import com.romankozak.forwardappmobile.data.dao.GoalDao
-import com.romankozak.forwardappmobile.data.dao.ListItemDao
-import com.romankozak.forwardappmobile.data.database.models.Goal
-import com.romankozak.forwardappmobile.data.database.models.ListItem
-import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.shared.database.ListItemQueries
+import com.romankozak.forwardappmobile.core.database.models.Goal
+import com.romankozak.forwardappmobile.core.database.models.ListItem
+import com.romankozak.forwardappmobile.core.database.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.features.projects.data.ProjectLocalDataSource
 import com.romankozak.forwardappmobile.features.projects.data.ContextTextAction
@@ -17,7 +17,7 @@ import javax.inject.Singleton
 @Singleton
 class GoalRepository @Inject constructor(
     private val goalDao: GoalDao,
-    private val listItemDao: ListItemDao,
+    private val listItemQueries: ListItemQueries,
     private val reminderRepository: ReminderRepository,
     private val contextHandlerProvider: Provider<ContextHandler>,
     private val projectLocalDataSource: ProjectLocalDataSource,
@@ -50,9 +50,13 @@ class GoalRepository @Inject constructor(
                 entityId = newGoal.id,
                 order = -currentTime,
             )
-        listItemDao.insertItem(newListItem)
-
-        val finalGoalState = goalDao.getGoalById(newGoal.id)!!
+        listItemQueries.insert(
+            id = newListItem.id,
+            project_id = newListItem.projectId,
+            item_type = newListItem.itemType,
+            entity_id = newListItem.entityId,
+            item_order = newListItem.order
+        )
         contextHandler.handleContextsOnCreate(finalGoalState)
         return newListItem.id
     }
@@ -105,8 +109,15 @@ class GoalRepository @Inject constructor(
                         entityId = it,
                         order = -System.currentTimeMillis(),
                     )
-                }
-            listItemDao.insertItems(newItems)
+        newItems.forEach { listItem ->
+            listItemQueries.insert(
+                id = listItem.id,
+                project_id = listItem.projectId,
+                item_type = listItem.itemType,
+                entity_id = listItem.entityId,
+                item_order = listItem.order
+            )
+        }
         }
     }
 
@@ -142,7 +153,7 @@ class GoalRepository @Inject constructor(
     @androidx.room.Transaction
     suspend fun deleteGoal(goalId: String) {
         goalDao.deleteGoalById(goalId)
-        listItemDao.deleteItemByEntityId(goalId)
+        listItemQueries.deleteByEntityId(goalId)
     }
 
     suspend fun updateGoal(goal: Goal) = goalDao.updateGoal(goal)
@@ -156,7 +167,7 @@ class GoalRepository @Inject constructor(
     suspend fun getAllGoals(): List<Goal> = goalDao.getAll()
 
     suspend fun findProjectIdForGoal(goalId: String): String? {
-        return listItemDao.findProjectIdForGoal(goalId)
+        return listItemQueries.findProjectIdForGoal(goalId).executeAsOneOrNull()
     }
 
     private suspend fun syncContextMarker(

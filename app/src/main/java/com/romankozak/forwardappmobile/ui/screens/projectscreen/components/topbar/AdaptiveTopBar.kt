@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
-import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
+import com.romankozak.forwardappmobile.core.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.GoalActionType
 
 import androidx.compose.animation.AnimatedVisibilityScope
