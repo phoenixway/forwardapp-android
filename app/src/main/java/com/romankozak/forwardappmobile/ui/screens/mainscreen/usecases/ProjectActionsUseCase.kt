@@ -17,7 +17,7 @@ import kotlinx.coroutines.withContext
 
 class ProjectActionsUseCase @Inject constructor(
     private val projectRepository: ProjectRepository,
-    private val syncRepository: SyncRepository,
+    // private val syncRepository: SyncRepository,
     private val settingsRepository: SettingsRepository,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) {
@@ -134,15 +134,15 @@ class ProjectActionsUseCase @Inject constructor(
         projectRepository.updateProject(project.copy(isExpanded = !project.isExpanded))
     }
 
-    suspend fun exportToFile() = withContext(ioDispatcher) { syncRepository.exportFullBackupToFile() }
+    // suspend fun exportToFile() = withContext(ioDispatcher) { syncRepository.exportFullBackupToFile() }
 
-    suspend fun onFullImportConfirmed(uri: Uri) =
-        withContext(ioDispatcher) {
-            Log.d("FullImportFlow", "ProjectActionsUseCase.onFullImportConfirmed uri=$uri")
-            val result = syncRepository.importFullBackupFromFile(uri)
-            Log.d("FullImportFlow", "ProjectActionsUseCase.onFullImportConfirmed result=${result.isSuccess}")
-            result
-        }
+    // suspend fun onFullImportConfirmed(uri: Uri) =
+    //     withContext(ioDispatcher) {
+    //         Log.d("FullImportFlow", "ProjectActionsUseCase.onFullImportConfirmed uri=$uri")
+    //         val result = syncRepository.importFullBackupFromFile(uri)
+    //         Log.d("FullImportFlow", "ProjectActionsUseCase.onFullImportConfirmed result=${result.isSuccess}")
+    //         result
+    //     }
 
     suspend fun onBottomNavExpandedChange(expanded: Boolean) =
         withContext(ioDispatcher) { settingsRepository.saveBottomNavExpanded(expanded) }

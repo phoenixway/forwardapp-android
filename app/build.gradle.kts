@@ -120,7 +120,8 @@ tasks.withType<Test> {
 
 
 dependencies {
-    implementation(project(":shared"))
+    debugImplementation(project(":shared"))
+    releaseImplementation(project(":shared"))
 
     // AndroidX Core & Lifecycle
     implementation(libs.androidx.core.ktx)
@@ -177,7 +178,8 @@ dependencies {
     // Ktor (Server & Client)
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
-    // --- ВИПРАВЛЕНО: Додано Ktor CIO Server Engine, необхідний для WifiSyncServer.kt ---\n    implementation("io.ktor:ktor-server-cio-jvm:2.3.12")
+    // --- ВИПРАВЛЕНО: Додано Ktor CIO Server Engine, необхідний для WifiSyncServer.kt ---\
+    implementation("io.ktor:ktor-server-cio-jvm:2.3.12")
     implementation(libs.ktor.server.content.negotiation)
     implementation(libs.ktor.serialization.gson)
     implementation(libs.ktor.client.core)
@@ -285,10 +287,10 @@ dependencies {
 }
 
 afterEvaluate {
-    tasks.named("kspDebugKotlin") {
-        dependsOn(":shared:generateSqlDelightInterface")
+    tasks.matching { it.name == "kspDebugKotlin" }.configureEach {
+        dependsOn(":shared:compileDebugKotlinAndroid")
     }
-    tasks.named("kspReleaseKotlin") {
-        dependsOn(":shared:generateSqlDelightInterface")
+    tasks.matching { it.name == "kspReleaseKotlin" }.configureEach {
+        dependsOn(":shared:compileReleaseKotlinAndroid")
     }
 }

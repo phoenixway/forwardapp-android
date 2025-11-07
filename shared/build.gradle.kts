@@ -6,7 +6,9 @@ plugins {
 }
 
 kotlin {
-    androidTarget()
+    androidTarget {
+        publishLibraryVariants("debug", "release")
+    }
 
     js(IR) {
         nodejs()

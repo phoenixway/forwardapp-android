@@ -42,19 +42,19 @@ import javax.inject.Singleton
 
 @Singleton
 class DayManagementRepository
-    @Inject
-    constructor(
-        private val dayPlanQueries: com.romankozak.forwardappmobile.shared.database.DayPlanQueries,
-        private val dayTaskDao: DayTaskDao,
-        private val dailyMetricDao: DailyMetricDao,
-        private val goalDao: GoalDao,
-        private val projectLocalDataSource: ProjectLocalDataSource,
-        private val recurringTaskDao: RecurringTaskDao,
-        private val listItemQueries: ListItemQueries, 
-        private val activityRepository: ActivityRepository,
-        private val alarmScheduler: javax.inject.Provider<AlarmScheduler>,
-        @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-    ) {
+    //    @Inject
+//    constructor(
+//        private val dayPlanQueries: com.romankozak.forwardappmobile.shared.database.DayPlanQueries,
+//        private val dayTaskDao: DayTaskDao,
+//        private val dailyMetricDao: DailyMetricDao,
+//        private val goalDao: GoalDao,
+//        private val projectLocalDataSource: ProjectLocalDataSource,
+//        private val recurringTaskDao: RecurringTaskDao,
+//        private val listItemQueries: ListItemQueries,
+//        private val activityRepository: ActivityRepository,
+//        private val alarmScheduler: javax.inject.Provider<AlarmScheduler>,
+//        @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+//    ) {
         @Volatile
         private var cachedBestCompletedPoints: Int? = null
 

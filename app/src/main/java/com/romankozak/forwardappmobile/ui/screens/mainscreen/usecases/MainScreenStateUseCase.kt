@@ -39,7 +39,7 @@ constructor(
   private val planningUseCase: PlanningUseCase,
   private val hierarchyUseCase: HierarchyUseCase,
   private val dialogUseCase: DialogUseCase,
-  private val syncUseCase: SyncUseCase,
+  // private val syncUseCase: SyncUseCase,
   private val navigationUseCase: NavigationUseCase,
   private val settingsRepository: SettingsRepository,
   private val contextHandler: ContextHandler,
@@ -182,7 +182,7 @@ constructor(
           searchResultsFlow,
           searchUseCase.searchHistory,
           planningUseCase.planningSettingsState,
-          syncUseCase.syncUiState,
+          // syncUseCase.syncUiState,
           navigationUseCase.isProcessingReveal,
           planningUseCase.isReadyForFiltering,
           dialogUseCase.recordForReminderDialog,
@@ -196,15 +196,15 @@ constructor(
           @Suppress("UNCHECKED_CAST") val searchResults = values[3] as List<SearchResult>
           @Suppress("UNCHECKED_CAST") val searchHistory = values[4] as List<String>
           val planningSettings = values[5] as PlanningSettingsState
-          val syncState = values[6] as SyncUseCase.SyncUiState
-          val isProcessingRevealValue = values[7] as Boolean
-          val isReadyForFiltering = values[8] as Boolean
+          // val syncState = values[6] as SyncUseCase.SyncUiState
+          val isProcessingRevealValue = values[6] as Boolean
+          val isReadyForFiltering = values[7] as Boolean
           val recordForReminder =
-            values[9] as com.romankozak.forwardappmobile.core.database.models.ActivityRecord?
-          val obsidianVaultName = values[10] as String
-          val navSnapshot = values[11] as NavigationSnapshot
+            values[8] as com.romankozak.forwardappmobile.core.database.models.ActivityRecord?
+          val obsidianVaultName = values[9] as String
+          val navSnapshot = values[10] as NavigationSnapshot
           @Suppress("UNCHECKED_CAST")
-          val contextMarkerToEmojiMap = values[12] as Map<String, String>
+          val contextMarkerToEmojiMap = values[11] as Map<String, String>
 
           MainScreenUiState(
             subStateStack = coreState.subStateStack,
@@ -227,10 +227,10 @@ constructor(
             isReadyForFiltering = isReadyForFiltering,
             obsidianVaultName = obsidianVaultName,
             appStatistics = AppStatistics(),
-            showWifiServerDialog = syncState.showWifiServerDialog,
-            wifiServerAddress = syncState.wifiServerAddress,
-            showWifiImportDialog = syncState.showWifiImportDialog,
-            desktopAddress = syncState.desktopAddress,
+            showWifiServerDialog = false, // syncState.showWifiServerDialog,
+            wifiServerAddress = "", // syncState.wifiServerAddress,
+            showWifiImportDialog = false, // syncState.showWifiImportDialog,
+            desktopAddress = "", // syncState.desktopAddress,
             showSearchDialog = dialogState.showSearchDialog,
             searchResults = searchResults,
             recordForReminderDialog = recordForReminder,

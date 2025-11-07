@@ -22,13 +22,13 @@ private val GlobalSearchResultItem.typeOrder: Int
 
 @Singleton
 class SearchRepository
-@Inject
-constructor(
-    private val projectLocalDataSource: ProjectLocalDataSource,
-    private val listItemQueries: ListItemQueries,
-    private val activityRepository: ActivityRepository,
-    private val inboxRecordDao: InboxRecordDao,
-) {
+// @Inject
+// constructor(
+//    private val projectLocalDataSource: ProjectLocalDataSource,
+//    private val listItemQueries: ListItemQueries,
+//    private val activityRepository: ActivityRepository,
+//    private val inboxRecordDao: InboxRecordDao,
+// ) {
     suspend fun searchGlobal(query: String): List<GlobalSearchResultItem> {
         val allProjects = projectLocalDataSource.getAll()
         val projectMap = allProjects.associateBy { it.id }

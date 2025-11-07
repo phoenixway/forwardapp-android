@@ -67,7 +67,7 @@ constructor(
   private val application: Application,
   private val savedStateHandle: SavedStateHandle,
   private val planningUseCase: PlanningUseCase,
-  private val syncUseCase: SyncUseCase,
+  // private val syncUseCase: SyncUseCase,
   private val projectActionsUseCase: ProjectActionsUseCase,
   private val navigationUseCase: NavigationUseCase,
   private val themingUseCase: ThemingUseCase,
@@ -146,11 +146,11 @@ constructor(
       scope = viewModelScope,
       allProjectsFlat = _allProjectsFlat,
     )
-    syncUseCase.initialize(
-      scope = viewModelScope,
-      application = application,
-      uiEventChannel = _uiEventChannel,
-    )
+    // syncUseCase.initialize(
+    //   scope = viewModelScope,
+    //   application = application,
+    //   uiEventChannel = _uiEventChannel,
+    // )
     mainScreenStateUseCase.initialize(
       scope = viewModelScope,
       allProjectsFlat = _allProjectsFlat,
@@ -422,19 +422,19 @@ constructor(
       is MainScreenEvent.ShowSearchDialog -> _showSearchDialog.value = true
       is MainScreenEvent.DismissSearchDialog -> _showSearchDialog.value = false
 
-      is MainScreenEvent.ShowWifiServerDialog -> syncUseCase.onShowWifiServerDialog()
-      is MainScreenEvent.ShowWifiImportDialog -> syncUseCase.onShowWifiImportDialog()
-      is MainScreenEvent.ExportToFile ->
-        viewModelScope.launch {
-          val result = projectActionsUseCase.exportToFile()
-          _uiEventChannel.send(
-            if (result.isSuccess) {
-              ProjectUiEvent.ShowToast(result.getOrNull() ?: "Export successful")
-            } else {
-              ProjectUiEvent.ShowToast("Export error: ${result.exceptionOrNull()?.message}")
-            }
-          )
-        }
+      is MainScreenEvent.ShowWifiServerDialog -> {} // syncUseCase.onShowWifiServerDialog()
+      is MainScreenEvent.ShowWifiImportDialog -> {} // syncUseCase.onShowWifiImportDialog()
+      // is MainScreenEvent.ExportToFile ->
+      //   viewModelScope.launch {
+      //     val result = projectActionsUseCase.exportToFile()
+      //     _uiEventChannel.send(
+      //       if (result.isSuccess) {
+      //         ProjectUiEvent.ShowToast(result.getOrNull() ?: "Export successful")
+      //       } else {
+      //         ProjectUiEvent.ShowToast("Export error: ${result.exceptionOrNull()?.message}")
+      //       }
+      //     )
+      //   }
       is MainScreenEvent.NavigateToChat -> {
         viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate(CHAT_ROUTE)) }
       }
@@ -462,11 +462,10 @@ constructor(
       is MainScreenEvent.SaveAllContexts -> {
         settingsUseCase.saveAllContexts(viewModelScope, event.updatedContexts)
       }
-      is MainScreenEvent.DismissWifiServerDialog -> syncUseCase.onDismissWifiServerDialog()
-      is MainScreenEvent.DismissWifiImportDialog -> syncUseCase.onDismissWifiImportDialog()
-      is MainScreenEvent.DesktopAddressChange ->
-        syncUseCase.onDesktopAddressChange(event.address)
-      is MainScreenEvent.PerformWifiImport -> syncUseCase.performWifiImport(event.address)
+      is MainScreenEvent.DismissWifiServerDialog -> {} // syncUseCase.onDismissWifiServerDialog()
+      is MainScreenEvent.DismissWifiImportDialog -> {} // syncUseCase.onDismissWifiImportDialog()
+      is MainScreenEvent.DesktopAddressChange -> {} // syncUseCase.onDesktopAddressChange(event.address)
+      is MainScreenEvent.PerformWifiImport -> {} // syncUseCase.performWifiImport(event.address)
       is MainScreenEvent.AddProjectConfirm -> {
         viewModelScope.launch {
           projectActionsUseCase.addNewProject(
