@@ -1,3 +1,5 @@
+
+
 getAllProjects:
 SELECT *
 FROM projects

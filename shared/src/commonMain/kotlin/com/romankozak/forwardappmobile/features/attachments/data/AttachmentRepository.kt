@@ -5,6 +5,7 @@ import app.cash.sqldelight.coroutines.mapToList
 import com.benasher44.uuid.uuid4
 import com.romankozak.forwardappmobile.shared.database.Attachments
 import com.romankozak.forwardappmobile.shared.database.AttachmentQueriesQueries
+import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import com.romankozak.forwardappmobile.shared.database.GetAttachmentsForProject
 import com.romankozak.forwardappmobile.shared.database.Project_attachment_cross_ref
 import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
@@ -20,27 +21,27 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 
 class AttachmentRepository(
-    private val attachmentQueries: AttachmentQueriesQueries,
+    private val database: ForwardAppDatabase,
     private val linkItemDataSource: LinkItemDataSource,
     private val queryContext: CoroutineContext = EmptyCoroutineContext,
 ) {
 
     fun getAttachmentsForProject(projectId: String): Flow<List<AttachmentWithProject>> =
-        attachmentQueries
+        database.attachmentQueriesQueries
             .getAttachmentsForProject(projectId)
             .asFlow()
             .mapToList(queryContext)
             .map { rows -> rows.map { it.toModel() } }
 
     fun getAllAttachments(): Flow<List<AttachmentEntity>> =
-        attachmentQueries
+        database.attachmentQueriesQueries
             .getAllAttachments()
             .asFlow()
             .mapToList(queryContext)
             .map { rows -> rows.map { it.toModel() } }
 
     fun getAllAttachmentLinks(): Flow<List<ProjectAttachmentCrossRef>> =
-        attachmentQueries
+        database.attachmentQueriesQueries
             .getAllProjectAttachmentLinks()
             .asFlow()
             .mapToList(queryContext)
@@ -52,13 +53,13 @@ class AttachmentRepository(
         attachmentType: String,
         entityId: String,
     ): AttachmentEntity? =
-        attachmentQueries
+        database.attachmentQueriesQueries
             .findAttachmentByEntity(attachmentType, entityId)
             .executeAsOneOrNull()
             ?.toModel()
 
     suspend fun getAttachmentById(attachmentId: String): AttachmentEntity? =
-        attachmentQueries
+        database.attachmentQueriesQueries
             .getAttachmentById(attachmentId)
             .executeAsOneOrNull()
             ?.toModel()
@@ -70,14 +71,14 @@ class AttachmentRepository(
         createdAt: Long = currentTimeMillis(),
     ): AttachmentEntity {
         val existing =
-            attachmentQueries
+            database.attachmentQueriesQueries
                 .findAttachmentByEntity(attachmentType, entityId)
                 .executeAsOneOrNull()
                 ?.toModel()
         if (existing != null) return existing
 
         val attachmentId = uuid4().toString()
-        attachmentQueries.insertAttachment(
+        database.attachmentQueriesQueries.insertAttachment(
             id = attachmentId,
             attachment_type = attachmentType,
             entity_id = entityId,
@@ -103,7 +104,7 @@ class AttachmentRepository(
         createdAt: Long = currentTimeMillis(),
     ): AttachmentEntity {
         val attachment = ensureAttachmentForEntity(attachmentType, entityId, ownerProjectId, createdAt)
-        attachmentQueries.insertProjectAttachmentLink(
+        database.attachmentQueriesQueries.insertProjectAttachmentLink(
             project_id = projectId,
             attachment_id = attachment.id,
             attachment_order = -createdAt,
@@ -133,7 +134,7 @@ class AttachmentRepository(
                 createdAt = timestamp,
                 updatedAt = timestamp,
             )
-        attachmentQueries.insertAttachment(
+        database.attachmentQueriesQueries.insertAttachment(
             id = attachment.id,
             attachment_type = attachment.attachmentType,
             entity_id = attachment.entityId,
@@ -141,7 +142,7 @@ class AttachmentRepository(
             createdAt = attachment.createdAt,
             updatedAt = attachment.updatedAt,
         )
-        attachmentQueries.insertProjectAttachmentLink(
+        database.attachmentQueriesQueries.insertProjectAttachmentLink(
             project_id = projectId,
             attachment_id = attachment.id,
             attachment_order = -timestamp,
@@ -154,7 +155,7 @@ class AttachmentRepository(
         projectId: String,
         order: Long = -currentTimeMillis(),
     ) {
-        attachmentQueries.insertProjectAttachmentLink(
+        database.attachmentQueriesQueries.insertProjectAttachmentLink(
             project_id = projectId,
             attachment_id = attachmentId,
             attachment_order = order,
@@ -166,22 +167,22 @@ class AttachmentRepository(
         projectId: String,
     ): Boolean {
         val attachment =
-            attachmentQueries
+            database.attachmentQueriesQueries
                 .getAttachmentById(attachmentId)
                 .executeAsOneOrNull()
                 ?.toModel()
                 ?: return false
 
-        attachmentQueries.deleteProjectAttachmentLink(project_id = projectId, attachment_id = attachmentId)
+        database.attachmentQueriesQueries.deleteProjectAttachmentLink(project_id = projectId, attachment_id = attachmentId)
 
         val remainingLinks =
-            attachmentQueries
+            database.attachmentQueriesQueries
                 .countLinksForAttachment(attachmentId)
                 .executeAsOne()
 
         val noMoreLinks = remainingLinks <= 0L
         if (noMoreLinks) {
-            attachmentQueries.deleteAttachment(attachmentId)
+            database.attachmentQueriesQueries.deleteAttachment(attachmentId)
             if (attachment.attachmentType == LINK_ITEM_TYPE) {
                 linkItemDataSource.deleteById(attachment.entityId)
             }
@@ -191,12 +192,12 @@ class AttachmentRepository(
 
     suspend fun deleteAttachment(attachmentId: String) {
         val attachment =
-            attachmentQueries
+            database.attachmentQueriesQueries
                 .getAttachmentById(attachmentId)
                 .executeAsOneOrNull()
                 ?.toModel()
-        attachmentQueries.deleteAllLinksForAttachment(attachmentId)
-        attachmentQueries.deleteAttachment(attachmentId)
+        database.attachmentQueriesQueries.deleteAllLinksForAttachment(attachmentId)
+        database.attachmentQueriesQueries.deleteAttachment(attachmentId)
         if (attachment != null && attachment.attachmentType == LINK_ITEM_TYPE) {
             linkItemDataSource.deleteById(attachment.entityId)
         }
@@ -207,9 +208,9 @@ class AttachmentRepository(
         updates: List<Pair<String, Long>>,
     ) {
         if (updates.isEmpty()) return
-        attachmentQueries.transaction {
+        database.transaction {
             updates.forEach { (attachmentId, order) ->
-                attachmentQueries.updateAttachmentOrder(
+                database.attachmentQueriesQueries.updateAttachmentOrder(
                     project_id = projectId,
                     attachment_id = attachmentId,
                     attachment_order = order,

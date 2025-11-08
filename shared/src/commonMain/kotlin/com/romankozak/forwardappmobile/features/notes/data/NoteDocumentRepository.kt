@@ -4,7 +4,7 @@ import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import com.benasher44.uuid.uuid4
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
-import com.romankozak.forwardappmobile.shared.database.NoteDocumentQueriesQueries
+
 import com.romankozak.forwardappmobile.shared.database.Note_document_items
 import com.romankozak.forwardappmobile.shared.database.Note_documents
 import com.romankozak.forwardappmobile.shared.features.notes.data.model.LegacyNote
@@ -23,21 +23,21 @@ private const val NOTE_DOCUMENT_ATTACHMENT_TYPE = "NOTE_DOCUMENT"
 private fun nowMillis(): Long = Clock.System.now().toEpochMilliseconds()
 
 class NoteDocumentRepository(
-    private val noteQueries: NoteDocumentQueriesQueries,
+    private val database: ForwardAppDatabase,
     private val attachmentRepository: AttachmentRepository,
     private val recentItemsRepository: RecentItemsRepository,
     private val queryContext: CoroutineContext = EmptyCoroutineContext,
 ) {
 
     fun getDocumentsForProject(projectId: String): Flow<List<NoteDocument>> =
-        noteQueries
+        database.noteDocumentQueries
             .getNoteDocumentsForProject(projectId, NOTE_DOCUMENT_ATTACHMENT_TYPE)
             .asFlow()
             .mapToList(queryContext)
             .map { rows -> rows.map { it.toModel() } }
 
     fun getAllDocumentsAsFlow(): Flow<List<NoteDocument>> =
-        noteQueries
+        database.noteDocumentQueries
             .getAllNoteDocuments()
             .asFlow()
             .mapToList(queryContext)
@@ -45,7 +45,7 @@ class NoteDocumentRepository(
 
     suspend fun getDocumentById(documentId: String): NoteDocument? =
         withContext(queryContext) {
-            noteQueries
+            database.noteDocumentQueries
                 .getNoteDocumentById(documentId)
                 .executeAsOneOrNull()
                 ?.toModel()
@@ -65,11 +65,7 @@ class NoteDocumentRepository(
                 content = content,
                 createdAt = timestamp,
                 updatedAt = timestamp,
-                lastCursorPosition = 0,
-            )
-
-        withContext(queryContext) {
-            noteQueries.insertNoteDocument(
+            database.noteDocumentQueriesQueries.insertNoteDocument(
                 id = document.id,
                 projectId = document.projectId,
                 name = document.name,
@@ -91,14 +87,14 @@ class NoteDocumentRepository(
     }
 
     suspend fun deleteDocument(documentId: String) {
-        withContext(queryContext) { noteQueries.deleteNoteDocumentById(documentId) }
+        withContext(queryContext) { database.noteDocumentQueriesQueries.deleteNoteDocumentById(documentId) }
         attachmentRepository.findAttachmentByEntity(NOTE_DOCUMENT_ATTACHMENT_TYPE, documentId)?.let { attachment ->
             attachmentRepository.deleteAttachment(attachment.id)
         }
     }
 
     fun getDocumentItems(documentId: String): Flow<List<NoteDocumentItem>> =
-        noteQueries
+        database.noteDocumentQueriesQueries
             .getNoteDocumentItems(documentId)
             .asFlow()
             .mapToList(queryContext)
@@ -107,9 +103,9 @@ class NoteDocumentRepository(
     suspend fun saveDocumentItem(item: NoteDocumentItem) {
         val timestamp = nowMillis()
         withContext(queryContext) {
-            val existing = noteQueries.getNoteDocumentItemById(item.id).executeAsOneOrNull()
+            val existing = database.noteDocumentQueriesQueries.getNoteDocumentItemById(item.id).executeAsOneOrNull()
             if (existing == null) {
-                noteQueries.insertNoteDocumentItem(
+                database.noteDocumentQueriesQueries.insertNoteDocumentItem(
                     id = item.id,
                     listId = item.listId,
                     parentId = item.parentId,
@@ -120,7 +116,7 @@ class NoteDocumentRepository(
                     updatedAt = item.updatedAt,
                 )
             } else {
-                noteQueries.updateNoteDocumentItem(
+                database.noteDocumentQueriesQueries.updateNoteDocumentItem(
                     id = item.id,
                     listId = item.listId,
                     parentId = item.parentId,
@@ -135,15 +131,15 @@ class NoteDocumentRepository(
     }
 
     suspend fun deleteDocumentItem(itemId: String) {
-        withContext(queryContext) { noteQueries.deleteNoteDocumentItemById(itemId) }
+        withContext(queryContext) { database.noteDocumentQueriesQueries.deleteNoteDocumentItemById(itemId) }
     }
 
     suspend fun updateDocumentItems(items: List<NoteDocumentItem>) {
         if (items.isEmpty()) return
         withContext(queryContext) {
-            noteQueries.transaction {
+            database.transaction {
                 items.forEach { item ->
-                    noteQueries.updateNoteDocumentItem(
+                    database.noteDocumentQueriesQueries.updateNoteDocumentItem(
                         id = item.id,
                         listId = item.listId,
                         parentId = item.parentId,
@@ -161,7 +157,7 @@ class NoteDocumentRepository(
     suspend fun importFromLegacy(note: LegacyNote) {
         val document = note.toDocument()
         withContext(queryContext) {
-            noteQueries.insertNoteDocument(
+            database.noteDocumentQueriesQueries.insertNoteDocument(
                 id = document.id,
                 projectId = document.projectId,
                 name = document.name,
@@ -183,7 +179,7 @@ class NoteDocumentRepository(
 
     suspend fun updateDocument(document: NoteDocument) {
         withContext(queryContext) {
-            noteQueries.updateNoteDocument(
+            database.noteDocumentQueriesQueries.updateNoteDocument(
                 id = document.id,
                 name = document.name,
                 content = document.content,
@@ -195,19 +191,19 @@ class NoteDocumentRepository(
     }
 
     suspend fun deleteAllDocuments() {
-        withContext(queryContext) { noteQueries.deleteAllNoteDocuments() }
+        withContext(queryContext) { database.noteDocumentQueriesQueries.deleteAllNoteDocuments() }
     }
 
     suspend fun deleteAllDocumentItems() {
-        withContext(queryContext) { noteQueries.deleteAllNoteDocumentItems() }
+        withContext(queryContext) { database.noteDocumentQueriesQueries.deleteAllNoteDocumentItems() }
     }
 
     suspend fun replaceAllDocuments(documents: List<NoteDocument>) {
         withContext(queryContext) {
-            noteQueries.transaction {
-                noteQueries.deleteAllNoteDocuments()
+            database.transaction {
+                database.noteDocumentQueriesQueries.deleteAllNoteDocuments()
                 documents.forEach { document ->
-                    noteQueries.insertNoteDocument(
+                    database.noteDocumentQueriesQueries.insertNoteDocument(
                         id = document.id,
                         projectId = document.projectId,
                         name = document.name,
@@ -223,10 +219,10 @@ class NoteDocumentRepository(
 
     suspend fun replaceAllDocumentItems(items: List<NoteDocumentItem>) {
         withContext(queryContext) {
-            noteQueries.transaction {
-                noteQueries.deleteAllNoteDocumentItems()
+            database.transaction {
+                database.noteDocumentQueriesQueries.deleteAllNoteDocumentItems()
                 items.forEach { item ->
-                    noteQueries.insertNoteDocumentItem(
+                    database.noteDocumentQueriesQueries.insertNoteDocumentItem(
                         id = item.id,
                         listId = item.listId,
                         parentId = item.parentId,
@@ -243,7 +239,7 @@ class NoteDocumentRepository(
 
     suspend fun getAllDocumentsSnapshot(): List<NoteDocument> =
         withContext(queryContext) {
-            noteQueries
+            database.noteDocumentQueriesQueries
                 .getAllNoteDocuments()
                 .executeAsList()
                 .map { it.toModel() }
@@ -251,7 +247,7 @@ class NoteDocumentRepository(
 
     suspend fun getAllDocumentItemsSnapshot(): List<NoteDocumentItem> =
         withContext(queryContext) {
-            noteQueries
+            database.noteDocumentQueriesQueries
                 .getAllNoteDocumentItems()
                 .executeAsList()
                 .map { it.toModel() }

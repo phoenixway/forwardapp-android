@@ -1,0 +1,6 @@
+CREATE TABLE project_attachment_cross_ref (
+  project_id TEXT NOT NULL,
+  attachment_id TEXT NOT NULL,
+  attachment_order INTEGER NOT NULL,
+  PRIMARY KEY(project_id, attachment_id)
+);

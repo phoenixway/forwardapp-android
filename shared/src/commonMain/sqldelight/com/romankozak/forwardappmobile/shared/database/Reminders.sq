@@ -1,4 +1,4 @@
--- Queries
+
 
 insert:
 INSERT OR REPLACE INTO reminders(id, entityId, entityType, reminderTime, status, creationTime, snoozeUntil)

@@ -1,0 +1,45 @@
+
+
+getItemsForChecklist:
+SELECT *
+FROM checklist_items
+WHERE checklistId = ?1
+ORDER BY itemOrder ASC, id ASC;
+
+getChecklistItemById:
+SELECT *
+FROM checklist_items
+WHERE id = ?1
+LIMIT 1;
+
+insertChecklistItem:
+INSERT OR REPLACE INTO checklist_items(
+  id,
+  checklistId,
+  content,
+  isChecked,
+  itemOrder
+) VALUES (?1, ?2, ?3, ?4, ?5);
+
+updateChecklistItem:
+UPDATE checklist_items
+SET checklistId = ?2,
+    content = ?3,
+    isChecked = ?4,
+    itemOrder = ?5
+WHERE id = ?1;
+
+deleteChecklistItemById:
+DELETE FROM checklist_items
+WHERE id = ?1;
+
+deleteChecklistItemsByChecklistId:
+DELETE FROM checklist_items
+WHERE checklistId = ?1;
+
+deleteAllChecklistItems:
+DELETE FROM checklist_items;
+
+getAllChecklistItems:
+SELECT *
+FROM checklist_items;

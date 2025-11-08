@@ -1,0 +1,41 @@
+
+
+getChecklistsForProject:
+SELECT checklists.*
+FROM checklists
+INNER JOIN attachments
+ON attachments.entity_id = checklists.id AND attachments.attachment_type = ?2
+INNER JOIN project_attachment_cross_ref AS link
+ON link.attachment_id = attachments.id
+WHERE link.project_id = ?1
+ORDER BY checklists.name COLLATE NOCASE ASC;
+
+getAllChecklists:
+SELECT *
+FROM checklists;
+
+getChecklistById:
+SELECT *
+FROM checklists
+WHERE id = ?1
+LIMIT 1;
+
+insertChecklist:
+INSERT OR REPLACE INTO checklists(
+  id,
+  projectId,
+  name
+) VALUES (?1, ?2, ?3);
+
+updateChecklist:
+UPDATE checklists
+SET projectId = ?2,
+    name = ?3
+WHERE id = ?1;
+
+deleteChecklistById:
+DELETE FROM checklists
+WHERE id = ?1;
+
+deleteAllChecklists:
+DELETE FROM checklists;

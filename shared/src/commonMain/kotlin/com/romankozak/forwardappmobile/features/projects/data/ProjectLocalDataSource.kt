@@ -14,19 +14,19 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
 class ProjectLocalDataSource(
-    private val projectQueries: ProjectQueriesQueries,
+    private val database: ForwardAppDatabase,
     private val ioDispatcher: CoroutineDispatcher,
 ) {
 
     fun observeAll(): Flow<List<Project>> =
-        projectQueries
+        database.projectQueriesQueries
             .getAllProjects()
             .asFlow()
             .mapToList(ioDispatcher)
             .map { rows -> rows.map { it.toModel() } }
 
     fun observeById(projectId: String): Flow<Project?> =
-        projectQueries
+        database.projectQueriesQueries
             .getProjectById(projectId)
             .asFlow()
             .mapToOneOrNull(ioDispatcher)
@@ -34,7 +34,7 @@ class ProjectLocalDataSource(
 
     suspend fun getAll(): List<Project> =
         withContext(ioDispatcher) {
-            projectQueries
+            database.projectQueriesQueries
                 .getAllProjectsUnordered()
                 .executeAsList()
                 .map { it.toModel() }
@@ -43,7 +43,7 @@ class ProjectLocalDataSource(
     suspend fun getByIds(ids: List<String>): List<Project> =
         withContext(ioDispatcher) {
             if (ids.isEmpty()) return@withContext emptyList<Project>()
-            projectQueries
+            database.projectQueriesQueries
                 .getProjectsByIds(ids)
                 .executeAsList()
                 .map { it.toModel() }
@@ -51,7 +51,7 @@ class ProjectLocalDataSource(
 
     suspend fun getById(projectId: String): Project? =
         withContext(ioDispatcher) {
-            projectQueries
+            database.projectQueriesQueries
                 .getProjectById(projectId)
                 .executeAsOneOrNull()
                 ?.toModel()
@@ -59,7 +59,7 @@ class ProjectLocalDataSource(
 
     suspend fun upsert(project: Project) {
         withContext(ioDispatcher) {
-            projectQueries.insertOrReplace(project)
+            database.projectQueriesQueries.insertOrReplace(project)
         }
     }
 
@@ -67,38 +67,38 @@ class ProjectLocalDataSource(
         if (projects.isEmpty()) return
         withContext(ioDispatcher) {
             if (useTransaction) {
-                projectQueries.transaction {
-                    projects.forEach { projectQueries.insertOrReplace(it) }
+                database.transaction {
+                    projects.forEach { database.projectQueriesQueries.insertOrReplace(it) }
                 }
             } else {
-                projects.forEach { projectQueries.insertOrReplace(it) }
+                projects.forEach { database.projectQueriesQueries.insertOrReplace(it) }
             }
         }
     }
 
     suspend fun delete(projectId: String) {
         withContext(ioDispatcher) {
-            projectQueries.deleteProject(projectId)
+            database.projectQueriesQueries.deleteProject(projectId)
         }
     }
 
     suspend fun delete(projectIds: List<String>) {
         withContext(ioDispatcher) {
-            projectQueries.transaction {
-                projectIds.forEach { projectQueries.deleteProject(it) }
+            database.transaction {
+                projectIds.forEach { database.projectQueriesQueries.deleteProject(it) }
             }
         }
     }
 
     suspend fun deleteDefault(projectId: String) {
         withContext(ioDispatcher) {
-            projectQueries.deleteProjectById(projectId)
+            database.projectQueriesQueries.deleteProjectById(projectId)
         }
     }
 
     private fun deleteAllInternal() {
         logd("FullImportFlow", "ProjectLocalDataSource.deleteAllInternal() executing on ${Thread.currentThread().name}")
-        projectQueries.deleteProjectsForReset()
+        database.projectQueriesQueries.deleteProjectsForReset()
     }
 
     suspend fun deleteAll() {
@@ -115,7 +115,7 @@ class ProjectLocalDataSource(
 
     suspend fun getByParent(parentId: String): List<Project> =
         withContext(ioDispatcher) {
-            projectQueries
+            database.projectQueriesQueries
                 .getProjectsByParentId(parentId)
                 .executeAsList()
                 .map { it.toModel() }
@@ -123,7 +123,7 @@ class ProjectLocalDataSource(
 
     suspend fun getTopLevel(): List<Project> =
         withContext(ioDispatcher) {
-            projectQueries
+            database.projectQueriesQueries
                 .getTopLevelProjects()
                 .executeAsList()
                 .map { it.toModel() }
@@ -132,13 +132,13 @@ class ProjectLocalDataSource(
     suspend fun getByTag(tag: String): List<Project> =
         withContext(ioDispatcher) {
             val ids =
-                projectQueries
+                database.projectQueriesQueries
                     .getProjectIdsByTag(tag)
                     .executeAsList()
             if (ids.isEmpty()) {
                 emptyList()
             } else {
-                projectQueries
+                database.projectQueriesQueries
                     .getProjectsByIds(ids)
                     .executeAsList()
                     .map { it.toModel() }
@@ -147,14 +147,14 @@ class ProjectLocalDataSource(
 
     suspend fun getIdsByTag(tag: String): List<String> =
         withContext(ioDispatcher) {
-            projectQueries
+            database.projectQueriesQueries
                 .getProjectIdsByTag(tag)
                 .executeAsList()
         }
 
     suspend fun getByType(projectType: String): List<Project> =
         withContext(ioDispatcher) {
-            projectQueries
+            database.projectQueriesQueries
                 .getProjectsByType(projectType)
                 .executeAsList()
                 .map { it.toModel() }
@@ -162,7 +162,7 @@ class ProjectLocalDataSource(
 
     suspend fun getByReservedGroup(reservedGroup: String): List<Project> =
         withContext(ioDispatcher) {
-            projectQueries
+            database.projectQueriesQueries
                 .getProjectsByReservedGroup(reservedGroup)
                 .executeAsList()
                 .map { it.toModel() }
@@ -170,13 +170,13 @@ class ProjectLocalDataSource(
 
     suspend fun updateOrder(projectId: String, order: Long) {
         withContext(ioDispatcher) {
-            projectQueries.updateProjectOrder(projectId, order)
+            database.projectQueriesQueries.updateProjectOrder(projectId, order)
         }
     }
 
     suspend fun updateDefaultViewMode(projectId: String, viewMode: String) {
         withContext(ioDispatcher) {
-            projectQueries.updateProjectViewMode(projectId, viewMode)
+            database.projectQueriesQueries.updateProjectViewMode(projectId, viewMode)
         }
     }
 
@@ -185,7 +185,7 @@ class ProjectLocalDataSource(
         reservedGroup: String,
     ): Project? =
         withContext(ioDispatcher) {
-            projectQueries
+            database.projectQueriesQueries
                 .getProjectByParentAndReservedGroup(parentId, reservedGroup)
                 .executeAsOneOrNull()
                 ?.toModel()
@@ -193,7 +193,7 @@ class ProjectLocalDataSource(
 
     suspend fun getByNameLike(query: String): List<Project> =
         withContext(ioDispatcher) {
-            projectQueries
+            database.projectQueriesQueries
                 .getProjectsByNameLike(query)
                 .executeAsList()
                 .map { it.toModel() }

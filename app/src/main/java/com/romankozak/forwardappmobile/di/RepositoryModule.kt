@@ -23,14 +23,7 @@ import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.attachments.data.AndroidLinkItemDataSource
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 import com.romankozak.forwardappmobile.features.projects.data.ProjectRepositoryImpl
-import com.romankozak.forwardappmobile.shared.database.AttachmentQueriesQueries
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
-import com.romankozak.forwardappmobile.shared.database.LegacyNoteQueriesQueries
-import com.romankozak.forwardappmobile.shared.database.NoteDocumentQueriesQueries
-import com.romankozak.forwardappmobile.shared.database.ProjectExecutionLogQueriesQueries
-import com.romankozak.forwardappmobile.shared.database.ProjectQueriesQueries
-import com.romankozak.forwardappmobile.shared.database.RecentItemQueriesQueries
-import com.romankozak.forwardappmobile.shared.database.ReminderQueriesQueries
 import com.romankozak.forwardappmobile.shared.features.attachments.data.model.LinkItemDataSource
 import com.romankozak.forwardappmobile.shared.features.notes.data.datasource.NoteBacklogLinkDataSource
 import com.romankozak.forwardappmobile.shared.features.projects.data.ProjectLocalDataSource
@@ -52,19 +45,19 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideProjectLocalDataSource(
-        projectQueries: ProjectQueriesQueries,
+        forwardAppDatabase: ForwardAppDatabase,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
-    ): ProjectLocalDataSource = ProjectLocalDataSource(projectQueries, ioDispatcher)
+    ): ProjectLocalDataSource = ProjectLocalDataSource(forwardAppDatabase.projectQueriesQueries, ioDispatcher)
 
     @Provides
     @Singleton
     fun provideReminderRepository(
-        reminderQueries: ReminderQueriesQueries,
+        forwardAppDatabase: ForwardAppDatabase,
         alarmScheduler: AlarmScheduler,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
     ): com.romankozak.forwardappmobile.data.repository.ReminderRepository =
         com.romankozak.forwardappmobile.shared.features.reminders.data.repository.ReminderRepository(
-            reminderQueries,
+            forwardAppDatabase.reminderQueriesQueries,
             alarmScheduler,
             ioDispatcher,
         )
@@ -72,9 +65,9 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideProjectLogRepository(
-        projectExecutionLogQueries: ProjectExecutionLogQueriesQueries,
+        forwardAppDatabase: ForwardAppDatabase,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
-    ): ProjectLogRepository = ProjectLogRepository(projectExecutionLogQueries, ioDispatcher)
+    ): ProjectLogRepository = ProjectLogRepository(forwardAppDatabase.projectExecutionLogQueriesQueries, ioDispatcher)
 
     @Provides
     @Singleton
@@ -87,9 +80,9 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideRecentItemsRepository(
-        recentItemQueries: RecentItemQueriesQueries,
+        forwardAppDatabase: ForwardAppDatabase,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
-    ): RecentItemsRepository = RecentItemsRepository(recentItemQueries, ioDispatcher)
+    ): RecentItemsRepository = RecentItemsRepository(forwardAppDatabase.recentItemQueriesQueries, ioDispatcher)
 
     @Provides
     @Singleton
@@ -100,20 +93,20 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideLegacyNoteRepository(
-        legacyNoteQueries: LegacyNoteQueriesQueries,
+        forwardAppDatabase: ForwardAppDatabase,
         backlogLinkDataSource: NoteBacklogLinkDataSource,
         recentItemsRepository: RecentItemsRepository,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
     ): LegacyNoteRepository =
-        LegacyNoteRepository(legacyNoteQueries, backlogLinkDataSource, recentItemsRepository, ioDispatcher)
+        LegacyNoteRepository(forwardAppDatabase.legacyNoteQueriesQueries, backlogLinkDataSource, recentItemsRepository, ioDispatcher)
 
     @Provides
     @Singleton
     fun provideAttachmentRepository(
-        attachmentQueries: AttachmentQueriesQueries,
+        forwardAppDatabase: ForwardAppDatabase,
         linkItemDataSource: LinkItemDataSource,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
-    ): AttachmentRepository = AttachmentRepository(attachmentQueries, linkItemDataSource, ioDispatcher)
+    ): AttachmentRepository = AttachmentRepository(forwardAppDatabase.attachmentQueriesQueries, linkItemDataSource, ioDispatcher)
 
     @Provides
     @Singleton
@@ -124,22 +117,22 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideNoteDocumentRepository(
-        noteDocumentQueries: NoteDocumentQueriesQueries,
+        forwardAppDatabase: ForwardAppDatabase,
         attachmentRepository: AttachmentRepository,
         recentItemsRepository: RecentItemsRepository,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
     ): NoteDocumentRepository =
-        NoteDocumentRepository(noteDocumentQueries, attachmentRepository, recentItemsRepository, ioDispatcher)
+        NoteDocumentRepository(forwardAppDatabase.noteDocumentQueriesQueries, attachmentRepository, recentItemsRepository, ioDispatcher)
 
     @Provides
     @Singleton
     fun provideChecklistRepository(
-        checklistQueries: com.romankozak.forwardappmobile.shared.database.ChecklistQueriesQueries,
+        forwardAppDatabase: ForwardAppDatabase,
         attachmentRepository: AttachmentRepository,
         recentItemsRepository: RecentItemsRepository,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
     ): ChecklistRepository =
-        ChecklistRepository(checklistQueries, attachmentRepository, recentItemsRepository, ioDispatcher)
+        ChecklistRepository(forwardAppDatabase, attachmentRepository, recentItemsRepository, ioDispatcher)
 
     @Provides
     @Singleton
