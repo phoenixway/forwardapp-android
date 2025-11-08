@@ -1,0 +1,31 @@
+CREATE TABLE recurring_tasks (
+    id TEXT NOT NULL PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT,
+    goal_id TEXT,
+    duration INTEGER,
+    priority TEXT NOT NULL,
+    points INTEGER NOT NULL DEFAULT 0,
+    frequency TEXT NOT NULL,
+    "interval" INTEGER NOT NULL DEFAULT 1,
+    days_of_week TEXT,
+    start_date INTEGER NOT NULL,
+    end_date INTEGER
+);
+
+-- Get all recurring tasks
+selectAll:
+SELECT * FROM recurring_tasks;
+
+-- Get a recurring task by its ID
+selectById:
+SELECT * FROM recurring_tasks WHERE id = :id;
+
+-- Insert a new recurring task
+insert:
+INSERT OR REPLACE INTO recurring_tasks(id, title, description, goal_id, duration, priority, points, frequency, "interval", days_of_week, start_date, end_date)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Delete a recurring task by its ID
+deleteById:
+DELETE FROM recurring_tasks WHERE id = :id;

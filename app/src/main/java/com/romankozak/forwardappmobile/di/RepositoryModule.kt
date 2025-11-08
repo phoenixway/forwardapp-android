@@ -45,12 +45,21 @@ import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import com.romankozak.forwardappmobile.shared.features.inbox.InboxRecordRepository
 import com.romankozak.forwardappmobile.shared.features.inbox.InboxRecordRepositoryImpl
 import com.romankozak.forwardappmobile.shared.features.projects.data.logs.ProjectLogRepository
+import com.romankozak.forwardappmobile.shared.features.recurring_tasks.RecurringTaskRepository
+import com.romankozak.forwardappmobile.shared.features.recurring_tasks.RecurringTaskRepositoryImpl
 import com.romankozak.forwardappmobile.shared.features.projects.data.logs.ProjectLogRepositoryImpl
 
 
 @Module
 @InstallIn(SingletonComponent::class)
 object RepositoryModule {
+
+    @Provides
+    @Singleton
+    fun provideRecurringTaskRepository(
+        db: ForwardAppDatabase,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher
+    ): RecurringTaskRepository = RecurringTaskRepositoryImpl(db, ioDispatcher)
 
     @Provides
     @Singleton
