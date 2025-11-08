@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.ui.screens.listchooser
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
-import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
+import com.romankozak.forwardappmobile.shared.features.projects.domain.ProjectRepositoryCore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
@@ -20,7 +20,7 @@ data class ChooserUiState(
 class FilterableListChooserViewModel
     @Inject
     constructor(
-        private val projectRepository: ProjectRepository,
+        private val projectRepository: ProjectRepositoryCore,
     ) : ViewModel() {
         private val TAG = "FilterChooserVM"
 

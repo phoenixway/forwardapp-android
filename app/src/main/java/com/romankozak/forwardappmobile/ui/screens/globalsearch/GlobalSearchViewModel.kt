@@ -4,7 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResultItem
-import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
+import com.romankozak.forwardappmobile.shared.features.projects.domain.ProjectRepositoryCore
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,7 +26,7 @@ data class GlobalSearchUiState(
 class GlobalSearchViewModel
     @Inject
     constructor(
-        private val projectRepository: ProjectRepository,
+        private val projectRepository: ProjectRepositoryCore,
         private val settingsRepository: SettingsRepository,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {

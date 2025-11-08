@@ -18,7 +18,7 @@ import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.shared.features.reminders.data.model.Reminder
 import com.romankozak.forwardappmobile.shared.features.reminders.domain.AlarmScheduler as KmpAlarmScheduler
-import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
+import com.romankozak.forwardappmobile.shared.features.projects.domain.ProjectRepositoryCore
 import com.romankozak.forwardappmobile.BuildConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.text.SimpleDateFormat
@@ -35,7 +35,7 @@ class AlarmScheduler
     @Inject
     constructor(
         @ApplicationContext private val context: Context,
-        private val projectRepositoryProvider: Provider<ProjectRepository>,
+        private val projectRepositoryProvider: Provider<ProjectRepositoryCore>,
         private val dayManagementRepository: com.romankozak.forwardappmobile.data.repository.DayManagementRepository,
         private val goalRepositoryProvider: Provider<com.romankozak.forwardappmobile.data.repository.GoalRepository>,
     ) : KmpAlarmScheduler {
