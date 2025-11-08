@@ -19,7 +19,7 @@ class ReminderRepository(
 ) {
 
     fun getAllReminders(): Flow<List<Reminder>> {
-        return database.reminderQueries.getAllReminders()
+        return database.remindersQueries.getAllReminders()
             .asFlow()
             .mapToList(ioDispatcher)
             .map { list -> list.map { it.toKmpReminder() } }
@@ -39,7 +39,7 @@ class ReminderRepository(
             creationTime = Clock.System.now().toEpochMilliseconds(),
             snoozeUntil = null
         )
-        database.reminderQueries.insert(
+        database.remindersQueries.insert(
             id = reminder.id,
             entityId = reminder.entityId,
             entityType = reminder.entityType,
@@ -52,12 +52,12 @@ class ReminderRepository(
     }
 
     suspend fun removeReminder(reminder: Reminder) = withContext(ioDispatcher) {
-        database.reminderQueries.delete(reminder.id)
+        database.remindersQueries.delete(reminder.id)
         alarmScheduler.cancel(reminder)
     }
 
     suspend fun updateReminder(reminder: Reminder) = withContext(ioDispatcher) {
-        database.reminderQueries.update(
+        database.remindersQueries.update(
             id = reminder.id,
             entityId = reminder.entityId,
             entityType = reminder.entityType,
@@ -70,15 +70,15 @@ class ReminderRepository(
     }
 
     suspend fun clearRemindersForEntity(entityId: String) = withContext(ioDispatcher) {
-        val reminders = database.reminderQueries.getRemindersForEntity(entityId).executeAsList().map { it.toKmpReminder() }
+        val reminders = database.remindersQueries.getRemindersForEntity(entityId).executeAsList().map { it.toKmpReminder() }
         reminders.forEach { reminder ->
             alarmScheduler.cancel(reminder)
         }
-        database.reminderQueries.deleteByEntityId(entityId)
+        database.remindersQueries.deleteByEntityId(entityId)
     }
 
     suspend fun snoozeReminder(reminderId: String) = withContext(ioDispatcher) {
-        val reminder = database.reminderQueries.getReminderById(reminderId).executeAsList().firstOrNull()?.toKmpReminder()
+        val reminder = database.remindersQueries.getReminderById(reminderId).executeAsList().firstOrNull()?.toKmpReminder()
         if (reminder != null) {
             val snoozeTime = Clock.System.now().toEpochMilliseconds() + 15 * 60 * 1000 // 15 minutes
             val snoozedReminder = reminder.copy(status = "SNOOZED", snoozeUntil = snoozeTime, reminderTime = snoozeTime)
@@ -87,7 +87,7 @@ class ReminderRepository(
     }
 
     suspend fun dismissReminder(reminderId: String) = withContext(ioDispatcher) {
-        val reminder = database.reminderQueries.getReminderById(reminderId).executeAsList().firstOrNull()?.toKmpReminder()
+        val reminder = database.remindersQueries.getReminderById(reminderId).executeAsList().firstOrNull()?.toKmpReminder()
         if (reminder != null) {
             val dismissedReminder = reminder.copy(status = "DISMISSED", reminderTime = Clock.System.now().toEpochMilliseconds())
             updateReminder(dismissedReminder)
@@ -96,7 +96,7 @@ class ReminderRepository(
     }
 
     suspend fun markAsCompleted(reminderId: String) = withContext(ioDispatcher) {
-        val reminder = database.reminderQueries.getReminderById(reminderId).executeAsList().firstOrNull()?.toKmpReminder()
+        val reminder = database.remindersQueries.getReminderById(reminderId).executeAsList().firstOrNull()?.toKmpReminder()
         if (reminder != null) {
             val completedReminder = reminder.copy(status = "COMPLETED")
             updateReminder(completedReminder)
@@ -105,18 +105,18 @@ class ReminderRepository(
     }
 
     fun getRemindersForEntityFlow(entityId: String): Flow<List<Reminder>> {
-        return database.reminderQueries.getRemindersForEntity(entityId)
+        return database.remindersQueries.getRemindersForEntity(entityId)
             .asFlow()
             .mapToList(ioDispatcher)
             .map { list -> list.map { it.toKmpReminder() } }
     }
 
     suspend fun clearAllReminders() = withContext(ioDispatcher) {
-        val allReminders = database.reminderQueries.getAllReminders().executeAsList().map { it.toKmpReminder() }
+        val allReminders = database.remindersQueries.getAllReminders().executeAsList().map { it.toKmpReminder() }
         allReminders.forEach { reminder ->
             alarmScheduler.cancel(reminder)
         }
-        database.reminderQueries.deleteAll()
+        database.remindersQueries.deleteAll()
     }
 }
 

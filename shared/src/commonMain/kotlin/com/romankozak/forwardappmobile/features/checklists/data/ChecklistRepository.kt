@@ -235,14 +235,14 @@ class ChecklistRepository(
 
     private fun Boolean.toLong(): Long = if (this) 1L else 0L
 
-    private fun com.romankozak.forwardappmobile.shared.database.Checklist.toModel(): com.romankozak.forwardappmobile.shared.features.checklists.data.model.Checklist =
+    private fun com.romankozak.forwardappmobile.shared.database.Checklists.toModel(): com.romankozak.forwardappmobile.shared.features.checklists.data.model.Checklist =
         com.romankozak.forwardappmobile.shared.features.checklists.data.model.Checklist(
             id = id,
             projectId = projectId,
             name = name,
         )
 
-    private fun com.romankozak.forwardappmobile.shared.database.ChecklistItem.toModel(): com.romankozak.forwardappmobile.shared.features.checklists.data.model.ChecklistItem =
+    private fun com.romankozak.forwardappmobile.shared.database.Checklist_items.toModel(): com.romankozak.forwardappmobile.shared.features.checklists.data.model.ChecklistItem =
         com.romankozak.forwardappmobile.shared.features.checklists.data.model.ChecklistItem(
             id = id,
             checklistId = checklistId,

@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.shared.features.projects.data
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.shared.data.database.models.ProjectType
 import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
-import com.romankozak.forwardappmobile.shared.database.ProjectQueriesQueries
+import com.romankozak.forwardappmobile.shared.database.ProjectsQueries
 import com.romankozak.forwardappmobile.shared.database.Projects
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -50,7 +50,7 @@ fun Projects.toModel(): Project =
         reservedGroup = reserved_group,
     )
 
-fun ProjectQueriesQueries.insertOrReplace(project: Project) {
+fun ProjectsQueries.insertOrReplace(project: Project) {
     insertProject(
         id = project.id,
         name = project.name,
