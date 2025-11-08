@@ -1,0 +1,32 @@
+CREATE TABLE inbox_records (
+    id TEXT NOT NULL PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    text TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    item_order INTEGER NOT NULL
+);
+
+-- Queries for InboxRecord
+-- Assuming you have a table named inbox_records
+
+-- Get all records for a specific project, ordered by item_order
+selectAllByProjectId:
+SELECT *
+FROM inbox_records
+WHERE project_id = :projectId
+ORDER BY item_order;
+
+-- Insert a new record
+insert:
+INSERT OR REPLACE INTO inbox_records (id, project_id, text, created_at, item_order)
+VALUES (?, ?, ?, ?, ?);
+
+-- Delete a record by its ID
+deleteById:
+DELETE FROM inbox_records
+WHERE id = :id;
+
+-- Delete all records for a project
+deleteAllByProjectId:
+DELETE FROM inbox_records
+WHERE project_id = :projectId;

@@ -42,6 +42,8 @@ import javax.inject.Singleton
 import com.romankozak.forwardappmobile.shared.features.projects.data.ProjectLocalDataSource
 import com.romankozak.forwardappmobile.shared.features.projects.data.ProjectLocalDataSourceImpl
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
+import com.romankozak.forwardappmobile.shared.features.inbox.InboxRecordRepository
+import com.romankozak.forwardappmobile.shared.features.inbox.InboxRecordRepositoryImpl
 import com.romankozak.forwardappmobile.shared.features.projects.data.logs.ProjectLogRepository
 import com.romankozak.forwardappmobile.shared.features.projects.data.logs.ProjectLogRepositoryImpl
 
@@ -49,6 +51,13 @@ import com.romankozak.forwardappmobile.shared.features.projects.data.logs.Projec
 @Module
 @InstallIn(SingletonComponent::class)
 object RepositoryModule {
+
+    @Provides
+    @Singleton
+    fun provideInboxRecordRepository(
+        db: ForwardAppDatabase,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher
+    ): InboxRecordRepository = InboxRecordRepositoryImpl(db, ioDispatcher)
 
     @Provides
     @Singleton
