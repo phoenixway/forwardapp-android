@@ -23,7 +23,6 @@ import com.romankozak.forwardappmobile.features.checklists.data.ChecklistReposit
 import com.romankozak.forwardappmobile.features.notes.data.LegacyNoteRepository
 import com.romankozak.forwardappmobile.features.notes.data.NoteDocumentRepository
 import com.romankozak.forwardappmobile.shared.features.projects.domain.ProjectArtifactRepository
-import com.romankozak.forwardappmobile.shared.features.projects.data.ProjectLogRepository
 import com.romankozak.forwardappmobile.features.projects.data.artifacts.ProjectArtifactRepositoryImpl
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import com.romankozak.forwardappmobile.shared.features.attachments.data.model.LinkItemDataSource
@@ -43,6 +42,8 @@ import javax.inject.Singleton
 import com.romankozak.forwardappmobile.shared.features.projects.data.ProjectLocalDataSource
 import com.romankozak.forwardappmobile.shared.features.projects.data.ProjectLocalDataSourceImpl
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
+import com.romankozak.forwardappmobile.shared.features.projects.data.logs.ProjectLogRepository
+import com.romankozak.forwardappmobile.shared.features.projects.data.logs.ProjectLogRepositoryImpl
 
 
 @Module
@@ -88,8 +89,12 @@ object RepositoryModule {
     @Singleton
     fun provideProjectLogRepository(
         db: ForwardAppDatabase,
-        @IoDispatcher ioDispatcher: CoroutineDispatcher,
-    ): ProjectLogRepository = ProjectLogRepository(db.projectExecutionLogQueries, ioDispatcher)
+        @IoDispatcher ioDispatcher: CoroutineDispatcher
+    ): ProjectLogRepository = ProjectLogRepositoryImpl(
+        db.projectExecutionLogQueries,
+        ioDispatcher
+    )
+
 
     @Provides
     @Singleton
