@@ -1,9 +1,9 @@
 package com.romankozak.forwardappmobile.shared.features.projects.domain
 
-import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResultItem
-import com.romankozak.forwardappmobile.data.database.models.ListItem
-import com.romankozak.forwardappmobile.data.database.models.ListItemContent
-import com.romankozak.forwardappmobile.data.database.models.ProjectTimeMetrics
+import com.romankozak.forwardappmobile.shared.database.GlobalSearchResultItem
+import com.romankozak.forwardappmobile.shared.database.ListItem
+import com.romankozak.forwardappmobile.shared.database.ListItemContent
+import com.romankozak.forwardappmobile.shared.database.ProjectTimeMetrics
 import com.romankozak.forwardappmobile.shared.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.shared.data.database.models.ProjectType
