@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.di
 
+import ProjectRepositoryImpl
 import android.content.Context
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
@@ -21,13 +22,12 @@ import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepos
 import com.romankozak.forwardappmobile.features.checklists.data.ChecklistRepository
 import com.romankozak.forwardappmobile.features.notes.data.LegacyNoteRepository
 import com.romankozak.forwardappmobile.features.notes.data.NoteDocumentRepository
-import com.romankozak.forwardappmobile.shared.features.projects.data.ProjectArtifactRepository
+import com.romankozak.forwardappmobile.shared.features.projects.domain.ProjectArtifactRepository
 import com.romankozak.forwardappmobile.shared.features.projects.data.ProjectLogRepository
-import com.romankozak.forwardappmobile.features.projects.data.ProjectRepositoryImpl
+import com.romankozak.forwardappmobile.features.projects.data.artifacts.ProjectArtifactRepositoryImpl
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import com.romankozak.forwardappmobile.shared.features.attachments.data.model.LinkItemDataSource
 import com.romankozak.forwardappmobile.shared.features.notes.data.datasource.NoteBacklogLinkDataSource
-import com.romankozak.forwardappmobile.shared.features.projects.data.ProjectLocalDataSource
 import com.romankozak.forwardappmobile.shared.features.projects.domain.ProjectRepositoryCore
 import com.romankozak.forwardappmobile.shared.features.recentitems.data.RecentItemsRepository
 import com.romankozak.forwardappmobile.shared.features.reminders.data.repository.ReminderRepository
@@ -40,6 +40,8 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineDispatcher
 import javax.inject.Provider
 import javax.inject.Singleton
+import com.romankozak.forwardappmobile.shared.features.projects.data.ProjectLocalDataSource
+
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -64,7 +66,7 @@ object RepositoryModule {
     fun provideProjectLocalDataSource(
         db: ForwardAppDatabase,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
-    ): ProjectLocalDataSource = ProjectLocalDataSource(db.projectsQueries, ioDispatcher)
+    ): ProjectLocalDataSource = ProjectLocalDataSource(db, ioDispatcher)
 
     @Provides
     @Singleton
@@ -74,7 +76,7 @@ object RepositoryModule {
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
     ): ReminderRepository =
         ReminderRepository(
-            db.remindersQueries,
+            db,
             alarmScheduler,
             ioDispatcher,
         )
@@ -92,14 +94,15 @@ object RepositoryModule {
         db: ForwardAppDatabase,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
     ): ProjectArtifactRepository =
-        ProjectArtifactRepository(db.projectArtifactsQueries, ioDispatcher)
+        ProjectArtifactRepositoryImpl(db, ioDispatcher)
+
 
     @Provides
     @Singleton
     fun provideRecentItemsRepository(
         db: ForwardAppDatabase,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
-    ): RecentItemsRepository = RecentItemsRepository(db.recentItemQueries, ioDispatcher)
+    ): RecentItemsRepository = RecentItemsRepository(db, ioDispatcher)
 
     @Provides
     @Singleton
@@ -115,7 +118,7 @@ object RepositoryModule {
         recentItemsRepository: RecentItemsRepository,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
     ): LegacyNoteRepository =
-        LegacyNoteRepository(db.legacyNoteQueries, backlogLinkDataSource, recentItemsRepository, ioDispatcher)
+        LegacyNoteRepository(db, backlogLinkDataSource, recentItemsRepository, ioDispatcher)
 
     @Provides
     @Singleton
@@ -123,7 +126,7 @@ object RepositoryModule {
         db: ForwardAppDatabase,
         linkItemDataSource: LinkItemDataSource,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
-    ): AttachmentRepository = AttachmentRepository(db.attachmentQueries, linkItemDataSource, ioDispatcher)
+    ): AttachmentRepository = AttachmentRepository(db, linkItemDataSource, ioDispatcher)
 
     @Provides
     @Singleton
@@ -139,7 +142,7 @@ object RepositoryModule {
         recentItemsRepository: RecentItemsRepository,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
     ): NoteDocumentRepository =
-        NoteDocumentRepository(db.noteDocumentQueries, attachmentRepository, recentItemsRepository, ioDispatcher)
+        NoteDocumentRepository(db, attachmentRepository, recentItemsRepository, ioDispatcher)
 
     @Provides
     @Singleton

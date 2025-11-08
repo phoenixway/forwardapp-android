@@ -5,32 +5,33 @@ import app.cash.sqldelight.coroutines.mapToOneOrNull
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import com.romankozak.forwardappmobile.shared.database.Project_artifacts
 import com.romankozak.forwardappmobile.shared.features.projects.data.model.ProjectArtifact
+import com.romankozak.forwardappmobile.shared.features.projects.domain.ProjectArtifactRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
-class ProjectArtifactRepository(
+class ProjectArtifactRepositoryImpl(
     private val database: ForwardAppDatabase,
     private val ioDispatcher: CoroutineDispatcher,
-) {
+) : ProjectArtifactRepository {
 
-    fun getProjectArtifactStream(projectId: String): Flow<ProjectArtifact?> =
+    override fun getProjectArtifactStream(projectId: String): Flow<ProjectArtifact?> =
         database.projectArtifactsQueries
             .getArtifactForProject(projectId)
             .asFlow()
             .mapToOneOrNull(ioDispatcher)
             .map { row -> row?.toModel() }
 
-    suspend fun updateProjectArtifact(artifact: ProjectArtifact) {
+    override suspend fun updateProjectArtifact(artifact: ProjectArtifact) {
         withContext(ioDispatcher) { upsertProjectArtifact(artifact) }
     }
 
-    suspend fun createProjectArtifact(artifact: ProjectArtifact) {
+    override suspend fun createProjectArtifact(artifact: ProjectArtifact) {
         withContext(ioDispatcher) { upsertProjectArtifact(artifact) }
     }
 
-    suspend fun deleteProjectArtifact(artifactId: String) {
+    override suspend fun deleteProjectArtifact(artifactId: String) {
         withContext(ioDispatcher) { database.projectArtifactsQueries.deleteProjectArtifact(artifactId) }
     }
 

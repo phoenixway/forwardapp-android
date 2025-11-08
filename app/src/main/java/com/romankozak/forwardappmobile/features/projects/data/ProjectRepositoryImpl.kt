@@ -27,7 +27,7 @@ import com.romankozak.forwardappmobile.data.repository.InboxRepository
 import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
 import com.romankozak.forwardappmobile.data.repository.ListItemRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
-import com.romankozak.forwardappmobile.data.repository.ProjectArtifactRepository
+import com.romankozak.forwardappmobile.shared.features.projects.data.artifacts.ProjectArtifactRepository
 import com.romankozak.forwardappmobile.data.repository.ProjectLogRepository
 import com.romankozak.forwardappmobile.data.repository.ProjectTimeTrackingRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
