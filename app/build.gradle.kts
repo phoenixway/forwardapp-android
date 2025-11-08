@@ -6,20 +6,10 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
-    alias(libs.plugins.ksp)
-    alias(libs.plugins.hilt.android)
     id("org.jetbrains.kotlin.plugin.serialization")
-    //kotlin("kapt")
-    //id("com.google.devtools.ksp")
-//    id("org.jetbrains.kotlin.plugin.parcelize")
-    id("org.jetbrains.kotlin.plugin.parcelize")   // ✅ ПРАВИЛЬНО!
-
-
-    alias(libs.plugins.google.services.plugin)
-    alias(libs.plugins.firebase.crashlytics.plugin)
-
-    //id("io.gitlab.arturbosch.detekt")
-
+    id("kotlin-parcelize")
+    id("com.google.devtools.ksp")   // ✅ без version!
+    id("com.google.dagger.hilt.android")
 }
 
 android {

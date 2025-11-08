@@ -1,10 +1,12 @@
 plugins {
     id("org.jetbrains.kotlin.multiplatform")
     id("org.jetbrains.kotlin.plugin.serialization")
-    alias(libs.plugins.android.library)
-    alias(libs.plugins.sqldelight)
-    alias(libs.plugins.ksp)
+    id("app.cash.sqldelight")
+    id("com.android.library") // щоб мати androidTarget (androidMain)
+//    alias(libs.plugins.ksp)
+
 }
+
 
 kotlin {
     // ✅ Лишаємо тільки Android + JS
@@ -70,6 +72,8 @@ sqldelight {
             packageName = "com.romankozak.forwardappmobile.shared.database"
             srcDirs = files("src/commonMain/sqldelight")
             deriveSchemaFromMigrations.set(true)
+            schemaOutputDirectory.set(file("src/commonMain/sqldelight/databases"))
+
         }
     }
 }
