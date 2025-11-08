@@ -34,7 +34,7 @@ import com.romankozak.forwardappmobile.shared.data.database.models.ProjectType
 import com.romankozak.forwardappmobile.shared.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
-import com.romankozak.forwardappmobile.features.projects.data.ProjectLocalDataSource
+import com.romankozak.forwardappmobile.shared.features.projects.data.ProjectLocalDataSource
 import com.romankozak.forwardappmobile.data.database.DatabaseInitializer
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.ktor.client.HttpClient

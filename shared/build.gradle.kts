@@ -3,6 +3,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
     alias(libs.plugins.android.library)
     alias(libs.plugins.sqldelight)
+    alias(libs.plugins.ksp)
 }
 
 kotlin {
@@ -56,6 +57,11 @@ android {
     kotlin {
         jvmToolchain(17)  // ✅ Додати це
     }
+    sourceSets {
+        getByName("main") {
+            kotlin.srcDir("build/generated/ksp/androidMain/kotlin")
+        }
+    }
 }
 
 sqldelight {
@@ -66,4 +72,8 @@ sqldelight {
             deriveSchemaFromMigrations.set(true)
         }
     }
+}
+
+dependencies {
+    implementation(libs.sqldelight.coroutines)
 }

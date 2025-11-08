@@ -8,7 +8,7 @@ import com.romankozak.forwardappmobile.data.database.models.GlobalProjectSearchR
 import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResultItem
 import com.romankozak.forwardappmobile.data.database.models.GlobalSubprojectSearchResult
 import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
-import com.romankozak.forwardappmobile.features.projects.data.ProjectLocalDataSource
+import com.romankozak.forwardappmobile.shared.features.projects.data.ProjectLocalDataSource
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import javax.inject.Inject
 import javax.inject.Singleton
