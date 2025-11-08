@@ -1,11 +1,12 @@
 plugins {
-    id("org.jetbrains.kotlin.multiplatform")
+    alias(libs.plugins.kotlin.multiplatform)
     id("org.jetbrains.kotlin.plugin.serialization")
-    id("com.android.library")
+    alias(libs.plugins.android.library)
     alias(libs.plugins.sqldelight)
 }
 
 kotlin {
+    // ✅ Лишаємо тільки Android + JS
     androidTarget()
 
     js(IR) {
@@ -24,16 +25,20 @@ kotlin {
                 implementation(libs.sqldelight.coroutines)
             }
         }
+
         val androidMain by getting {
             dependencies {
                 implementation(libs.sqldelight.android.driver)
             }
         }
+
         val jsMain by getting {
             dependencies {
                 implementation(libs.sqldelight.sqljs.driver)
             }
         }
+
+        // ❌ Більше немає jvmMain — прибрано
     }
 }
 

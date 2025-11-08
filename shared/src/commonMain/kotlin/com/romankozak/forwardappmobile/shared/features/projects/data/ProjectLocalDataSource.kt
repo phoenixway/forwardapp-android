@@ -1,25 +1,21 @@
-package com.romankozak.forwardappmobile.features.projects.data
+package com.romankozak.forwardappmobile.shared.features.projects.data
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import app.cash.sqldelight.coroutines.mapToOneOrNull
-import android.util.Log
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
-import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.shared.database.ProjectQueriesQueries
 import com.romankozak.forwardappmobile.shared.features.projects.data.insertOrReplace
 import com.romankozak.forwardappmobile.shared.features.projects.data.toModel
+import com.romankozak.forwardappmobile.shared.logging.logd
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
-import javax.inject.Inject
 
-class ProjectLocalDataSource
-@Inject
-constructor(
+class ProjectLocalDataSource(
     private val projectQueries: ProjectQueriesQueries,
-    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    private val ioDispatcher: CoroutineDispatcher,
 ) {
 
     fun observeAll(): Flow<List<Project>> =
@@ -101,20 +97,20 @@ constructor(
     }
 
     private fun deleteAllInternal() {
-        Log.d("FullImportFlow", "ProjectLocalDataSource.deleteAllInternal() executing on ${Thread.currentThread().name}")
+        logd("FullImportFlow", "ProjectLocalDataSource.deleteAllInternal() executing on ${Thread.currentThread().name}")
         projectQueries.deleteProjectsForReset()
     }
 
     suspend fun deleteAll() {
         withContext<Unit>(ioDispatcher) {
             deleteAllInternal()
-            Log.d("FullImportFlow", "ProjectLocalDataSource.deleteAll() done")
+            logd("FullImportFlow", "ProjectLocalDataSource.deleteAll() done")
         }
     }
 
     fun deleteAllWithinTransaction() {
         deleteAllInternal()
-        Log.d("FullImportFlow", "ProjectLocalDataSource.deleteAllWithinTransaction() done")
+        logd("FullImportFlow", "ProjectLocalDataSource.deleteAllWithinTransaction() done")
     }
 
     suspend fun getByParent(parentId: String): List<Project> =

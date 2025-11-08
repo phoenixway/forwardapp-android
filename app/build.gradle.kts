@@ -8,10 +8,10 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.2.0"
+    id("org.jetbrains.kotlin.plugin.serialization")
     //kotlin("kapt")
     //id("com.google.devtools.ksp")
-    id("org.jetbrains.kotlin.plugin.parcelize") version "2.2.20"
+    id("org.jetbrains.kotlin.plugin.parcelize")
 
     alias(libs.plugins.google.services.plugin)
     alias(libs.plugins.firebase.crashlytics.plugin)
@@ -183,7 +183,6 @@ dependencies {
     implementation(libs.ktor.client.content.negotiation)
 
     // Logging
-    implementation(libs.kotlin.logging.jvm)
     implementation(libs.slf4j.android)
 
     // Other Libraries

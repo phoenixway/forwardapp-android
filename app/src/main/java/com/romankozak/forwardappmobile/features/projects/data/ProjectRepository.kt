@@ -1,6 +1,4 @@
-package com.romankozak.forwardappmobile.features.projects.data
-
-import android.util.Log
+import com.romankozak.forwardappmobile.shared.features.projects.data.ProjectLocalDataSource
 import com.romankozak.forwardappmobile.data.database.models.ChecklistEntity
 import com.romankozak.forwardappmobile.data.database.models.GlobalProjectSearchResult
 import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResultItem

@@ -15,12 +15,8 @@ import com.romankozak.forwardappmobile.shared.database.AttachmentQueriesQueries
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import com.romankozak.forwardappmobile.shared.database.LegacyNoteQueriesQueries
 import com.romankozak.forwardappmobile.shared.database.NoteDocumentQueriesQueries
-import com.romankozak.forwardappmobile.shared.database.ProjectExecutionLogQueriesQueries
-import com.romankozak.forwardappmobile.shared.database.RecentItemQueriesQueries
-import com.romankozak.forwardappmobile.shared.database.ReminderQueriesQueries
-import com.romankozak.forwardappmobile.shared.database.ChecklistQueriesQueries
-import com.romankozak.forwardappmobile.shared.features.attachments.data.model.LinkItemDataSource
-import com.romankozak.forwardappmobile.shared.features.notes.data.datasource.NoteBacklogLinkDataSource
+import com.romankozak.forwardappmobile.shared.database.ProjectQueriesQueries
+import com.romankozak.forwardappmobile.shared.features.projects.data.ProjectLocalDataSource
 import com.romankozak.forwardappmobile.shared.features.reminders.domain.AlarmScheduler
 import dagger.Module
 import dagger.Provides
@@ -32,6 +28,13 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object RepositoryModule {
+
+    @Provides
+    @Singleton
+    fun provideProjectLocalDataSource(
+        projectQueries: ProjectQueriesQueries,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+    ): ProjectLocalDataSource = ProjectLocalDataSource(projectQueries, ioDispatcher)
 
     @Provides
     @Singleton
@@ -117,4 +120,43 @@ object RepositoryModule {
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
     ): ChecklistRepository =
         ChecklistRepository(checklistQueries, attachmentRepository, recentItemsRepository, ioDispatcher)
+
+    @Provides
+    @Singleton
+    fun provideProjectRepository(
+        projectLocalDataSource: ProjectLocalDataSource,
+        legacyNoteRepository: LegacyNoteRepository,
+        contextHandlerProvider: Provider<ContextHandler>,
+        activityRepository: ActivityRepository,
+        recentItemsRepository: RecentItemsRepository,
+        reminderRepository: com.romankozak.forwardappmobile.shared.features.reminders.data.repository.ReminderRepository,
+        projectLogRepository: ProjectLogRepository,
+        searchRepository: SearchRepository,
+        noteDocumentRepository: NoteDocumentRepository,
+        checklistRepository: ChecklistRepository,
+        attachmentRepository: AttachmentRepository,
+        goalRepository: GoalRepository,
+        inboxRepository: InboxRepository,
+        projectTimeTrackingRepository: ProjectTimeTrackingRepository,
+        projectArtifactRepository: ProjectArtifactRepository,
+        listItemRepository: ListItemRepository,
+    ): com.romankozak.forwardappmobile.features.projects.data.ProjectRepository =
+        com.romankozak.forwardappmobile.features.projects.data.ProjectRepository(
+            projectLocalDataSource,
+            legacyNoteRepository,
+            contextHandlerProvider,
+            activityRepository,
+            recentItemsRepository,
+            reminderRepository,
+            projectLogRepository,
+            searchRepository,
+            noteDocumentRepository,
+            checklistRepository,
+            attachmentRepository,
+            goalRepository,
+            inboxRepository,
+            projectTimeTrackingRepository,
+            projectArtifactRepository,
+            listItemRepository,
+        )
 }
