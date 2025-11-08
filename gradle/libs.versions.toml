@@ -45,6 +45,8 @@ jetbrainsKotlinJvm = "2.0.21"
 #foundationDesktop = "1.7.0"
 
 [libraries]
+
+
 # ДОДАНІ БІБЛІОТЕКИ ДЛЯ АНІМАЦІЇ
 accompanist-navigation-animation = { module = "com.google.accompanist:accompanist-navigation-animation", version.ref = "accompanistSharedElement" }
 accompanist-shared-element = { module = "com.google.accompanist:accompanist-shared-element", version.ref = "accompanistSharedElement" }

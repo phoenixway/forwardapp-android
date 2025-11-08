@@ -3,6 +3,8 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
     id("app.cash.sqldelight")
     id("com.android.library") // щоб мати androidTarget (androidMain)
+    id("com.google.devtools.ksp") // ✅ додати!
+
 //    alias(libs.plugins.ksp)
 
 }
@@ -80,4 +82,5 @@ sqldelight {
 
 dependencies {
     implementation(libs.sqldelight.coroutines)
+    add("kspAndroid", libs.hilt.compiler)
 }
