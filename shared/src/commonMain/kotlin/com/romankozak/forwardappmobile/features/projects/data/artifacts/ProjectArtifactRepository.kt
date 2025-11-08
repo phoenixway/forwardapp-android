@@ -17,7 +17,7 @@ class ProjectArtifactRepository(
 ) {
 
     fun getProjectArtifactStream(projectId: String): Flow<ProjectArtifact?> =
-        database.projectArtifactQueries
+        database.projectArtifactsQueries
             .getArtifactForProject(projectId)
             .asFlow()
             .mapToOneOrNull(queryContext)
@@ -32,11 +32,11 @@ class ProjectArtifactRepository(
     }
 
     suspend fun deleteProjectArtifact(artifactId: String) {
-        withContext(queryContext) { database.projectArtifactQueries.deleteProjectArtifact(artifactId) }
+        withContext(queryContext) { database.projectArtifactsQueries.deleteProjectArtifact(artifactId) }
     }
 
     private fun upsertProjectArtifact(artifact: ProjectArtifact) {
-        database.projectArtifactQueries.insertProjectArtifact(
+        database.projectArtifactsQueries.insertProjectArtifact(
             id = artifact.id,
             projectId = artifact.projectId,
             content = artifact.content,

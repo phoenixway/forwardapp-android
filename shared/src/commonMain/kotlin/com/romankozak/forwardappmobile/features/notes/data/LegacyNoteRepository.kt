@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.features.notes.data
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import com.benasher44.uuid.uuid4
-
+import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import com.romankozak.forwardappmobile.shared.database.Notes
 import com.romankozak.forwardappmobile.shared.features.notes.data.datasource.NoteBacklogLink
 import com.romankozak.forwardappmobile.shared.features.notes.data.datasource.NoteBacklogLinkDataSource
@@ -45,6 +45,7 @@ class LegacyNoteRepository(
         withContext(queryContext) {
             database.legacyNoteQueries
                 .getLegacyNoteById(noteId)
+                .executeAsOneOrNull()
                 ?.toModel()
         }
 
