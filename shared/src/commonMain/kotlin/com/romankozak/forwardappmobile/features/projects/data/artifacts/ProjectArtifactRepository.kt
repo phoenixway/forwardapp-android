@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.features.projects.data.artifacts
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToOneOrNull
-import com.romankozak.forwardappmobile.shared.database.ProjectArtifactQueriesQueries
+import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import com.romankozak.forwardappmobile.shared.database.Project_artifacts
 import com.romankozak.forwardappmobile.shared.features.projects.data.model.ProjectArtifact
 import kotlinx.coroutines.flow.Flow
@@ -12,12 +12,12 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 
 class ProjectArtifactRepository(
-    private val projectArtifactQueries: ProjectArtifactQueriesQueries,
+    private val database: ForwardAppDatabase,
     private val queryContext: CoroutineContext = EmptyCoroutineContext,
 ) {
 
     fun getProjectArtifactStream(projectId: String): Flow<ProjectArtifact?> =
-        projectArtifactQueries
+        database.projectArtifactQueries
             .getArtifactForProject(projectId)
             .asFlow()
             .mapToOneOrNull(queryContext)
@@ -32,11 +32,11 @@ class ProjectArtifactRepository(
     }
 
     suspend fun deleteProjectArtifact(artifactId: String) {
-        withContext(queryContext) { projectArtifactQueries.deleteProjectArtifact(artifactId) }
+        withContext(queryContext) { database.projectArtifactQueries.deleteProjectArtifact(artifactId) }
     }
 
     private fun upsertProjectArtifact(artifact: ProjectArtifact) {
-        projectArtifactQueries.insertProjectArtifact(
+        database.projectArtifactQueries.insertProjectArtifact(
             id = artifact.id,
             projectId = artifact.projectId,
             content = artifact.content,

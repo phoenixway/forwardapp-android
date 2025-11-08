@@ -5,9 +5,10 @@ import app.cash.sqldelight.coroutines.mapToList
 import com.benasher44.uuid.uuid4
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
-
-import com.romankozak.forwardappmobile.shared.features.checklists.data.model.Checklist
-import com.romankozak.forwardappmobile.shared.features.checklists.data.model.ChecklistItem
+import com.romankozak.forwardappmobile.shared.database.Checklist as DbChecklist
+import com.romankozak.forwardappmobile.shared.database.ChecklistItem as DbChecklistItem
+import com.romankozak.forwardappmobile.shared.features.checklists.data.model.Checklist as DomainChecklist
+import com.romankozak.forwardappmobile.shared.features.checklists.data.model.ChecklistItem as DomainChecklistItem
 import com.romankozak.forwardappmobile.shared.features.recentitems.data.RecentItemsRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -15,7 +16,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
-
 import com.romankozak.forwardappmobile.shared.logging.logError
 
 private const val CHECKLIST_ATTACHMENT_TYPE = "CHECKLIST"
@@ -31,28 +31,28 @@ class ChecklistRepository(
 
     private val tag = "ChecklistRepository"
 
-    fun getChecklistsForProject(projectId: String): Flow<List<Checklist>> =
+    fun getChecklistsForProject(projectId: String): Flow<List<DomainChecklist>> =
         database.checklistsQueries
             .getChecklistsForProject(projectId, CHECKLIST_ATTACHMENT_TYPE)
             .asFlow()
             .mapToList(queryContext)
             .map { rows -> rows.map { it.toModel() } }
 
-    fun getAllChecklistsAsFlow(): Flow<List<Checklist>> =
+    fun getAllChecklistsAsFlow(): Flow<List<DomainChecklist>> =
         database.checklistsQueries
             .getAllChecklists()
             .asFlow()
             .mapToList(queryContext)
             .map { rows -> rows.map { it.toModel() } }
 
-    fun observeChecklistById(checklistId: String): Flow<Checklist?> =
+    fun observeChecklistById(checklistId: String): Flow<DomainChecklist?> =
         database.checklistsQueries
             .getChecklistById(checklistId)
             .asFlow()
             .mapToList(queryContext)
             .map { rows -> rows.firstOrNull()?.toModel() }
 
-    suspend fun getChecklistById(checklistId: String): Checklist? =
+    suspend fun getChecklistById(checklistId: String): DomainChecklist? =
         withContext(queryContext) {
             database.checklistsQueries
                 .getChecklistById(checklistId)
@@ -62,8 +62,8 @@ class ChecklistRepository(
 
     suspend fun createChecklist(name: String, projectId: String): String? {
         return try {
-            val checklist = 
-                Checklist(
+            val checklist =
+                DomainChecklist(
                     id = uuid4().toString(),
                     projectId = projectId,
                     name = name,
@@ -84,7 +84,7 @@ class ChecklistRepository(
         }
     }
 
-    suspend fun updateChecklist(checklist: Checklist) {
+    suspend fun updateChecklist(checklist: DomainChecklist) {
         withContext(queryContext) {
             database.checklistsQueries.updateChecklist(
                 id = checklist.id,
@@ -102,7 +102,7 @@ class ChecklistRepository(
         }
     }
 
-    fun getItemsForChecklist(checklistId: String): Flow<List<ChecklistItem>> =
+    fun getItemsForChecklist(checklistId: String): Flow<List<DomainChecklistItem>> =
         database.checklistItemsQueries
             .getItemsForChecklist(checklistId)
             .asFlow()
@@ -116,7 +116,7 @@ class ChecklistRepository(
         order: Long = nowMillis(),
     ): String {
         val item =
-            ChecklistItem(
+            DomainChecklistItem(
                 id = uuid4().toString(),
                 checklistId = checklistId,
                 content = content,
@@ -127,7 +127,7 @@ class ChecklistRepository(
         return item.id
     }
 
-    suspend fun addItems(items: List<ChecklistItem>) {
+    suspend fun addItems(items: List<DomainChecklistItem>) {
         if (items.isEmpty()) return
         withContext(queryContext) {
             database.transaction {
@@ -136,11 +136,11 @@ class ChecklistRepository(
         }
     }
 
-    suspend fun updateItem(item: ChecklistItem) {
+    suspend fun updateItem(item: DomainChecklistItem) {
         withContext(queryContext) { updateItemInternal(item) }
     }
 
-    suspend fun updateItems(items: List<ChecklistItem>) {
+    suspend fun updateItems(items: List<DomainChecklistItem>) {
         if (items.isEmpty()) return
         withContext(queryContext) {
             database.transaction {
@@ -157,7 +157,7 @@ class ChecklistRepository(
         withContext(queryContext) { database.checklistItemsQueries.deleteChecklistItemsByChecklistId(checklistId) }
     }
 
-    suspend fun getItemsSnapshot(checklistId: String): List<ChecklistItem> =
+    suspend fun getItemsSnapshot(checklistId: String): List<DomainChecklistItem> =
         withContext(queryContext) {
             database.checklistItemsQueries
                 .getItemsForChecklist(checklistId)
@@ -165,7 +165,7 @@ class ChecklistRepository(
                 .map { it.toModel() }
         }
 
-    suspend fun getAllItemsSnapshot(): List<ChecklistItem> =
+    suspend fun getAllItemsSnapshot(): List<DomainChecklistItem> =
         withContext(queryContext) {
             database.checklistItemsQueries
                 .getAllChecklistItems()
@@ -181,7 +181,7 @@ class ChecklistRepository(
         withContext(queryContext) { database.checklistItemsQueries.deleteAllChecklistItems() }
     }
 
-    suspend fun replaceAll(checklists: List<Checklist>) {
+    suspend fun replaceAll(checklists: List<DomainChecklist>) {
         withContext(queryContext) {
             database.transaction {
                 database.checklistsQueries.deleteAllChecklists()
@@ -190,7 +190,7 @@ class ChecklistRepository(
         }
     }
 
-    suspend fun replaceAllItems(items: List<ChecklistItem>) {
+    suspend fun replaceAllItems(items: List<DomainChecklistItem>) {
         withContext(queryContext) {
             database.transaction {
                 database.checklistItemsQueries.deleteAllChecklistItems()
@@ -199,7 +199,7 @@ class ChecklistRepository(
         }
     }
 
-    suspend fun getAllChecklistsSnapshot(): List<Checklist> =
+    suspend fun getAllChecklistsSnapshot(): List<DomainChecklist> =
         withContext(queryContext) {
             database.checklistsQueries
                 .getAllChecklists()
@@ -207,7 +207,7 @@ class ChecklistRepository(
                 .map { it.toModel() }
         }
 
-    private fun insertChecklistInternal(checklist: Checklist) {
+    private fun insertChecklistInternal(checklist: DomainChecklist) {
         database.checklistsQueries.insertChecklist(
             id = checklist.id,
             projectId = checklist.projectId,
@@ -215,7 +215,7 @@ class ChecklistRepository(
         )
     }
 
-    private fun insertItemInternal(item: ChecklistItem) {
+    private fun insertItemInternal(item: DomainChecklistItem) {
         database.checklistItemsQueries.insertChecklistItem(
             id = item.id,
             checklistId = item.checklistId,
@@ -225,7 +225,7 @@ class ChecklistRepository(
         )
     }
 
-    private fun updateItemInternal(item: ChecklistItem) {
+    private fun updateItemInternal(item: DomainChecklistItem) {
         database.checklistItemsQueries.updateChecklistItem(
             id = item.id,
             checklistId = item.checklistId,
@@ -237,15 +237,15 @@ class ChecklistRepository(
 
     private fun Boolean.toLong(): Long = if (this) 1L else 0L
 
-    private fun com.romankozak.forwardappmobile.shared.database.Checklist.toModel(): com.romankozak.forwardappmobile.shared.features.checklists.data.model.Checklist =
-        com.romankozak.forwardappmobile.shared.features.checklists.data.model.Checklist(
+    private fun DbChecklist.toModel(): DomainChecklist =
+        DomainChecklist(
             id = id,
             projectId = projectId,
             name = name,
         )
 
-    private fun com.romankozak.forwardappmobile.shared.database.ChecklistItem.toModel(): com.romankozak.forwardappmobile.shared.features.checklists.data.model.ChecklistItem =
-        com.romankozak.forwardappmobile.shared.features.checklists.data.model.ChecklistItem(
+    private fun DbChecklistItem.toModel(): DomainChecklistItem =
+        DomainChecklistItem(
             id = id,
             checklistId = checklistId,
             content = content,

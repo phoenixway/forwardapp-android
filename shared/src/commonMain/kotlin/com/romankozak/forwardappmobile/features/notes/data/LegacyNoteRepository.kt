@@ -53,7 +53,7 @@ class LegacyNoteRepository(
             withContext(queryContext) {
                 val existing = database.legacyNoteQueries.getLegacyNoteById(note.id).executeAsOneOrNull()
                 if (existing == null) {
-                    database.legacyNoteQueriesQueries.insertLegacyNote(
+                    database.legacyNoteQueries.insertLegacyNote(
                         id = note.id,
                         projectId = note.projectId,
                         title = note.title,
@@ -111,12 +111,12 @@ class LegacyNoteRepository(
     }
 
     suspend fun deleteAll() {
-        withContext(queryContext) { database.legacyNoteQueriesQueries.deleteAllLegacyNotes() }
+        withContext(queryContext) { database.legacyNoteQueries.deleteAllLegacyNotes() }
     }
 
     suspend fun getAllSnapshot(): List<LegacyNote> =
         withContext(queryContext) {
-            database.legacyNoteQueriesQueries
+            database.legacyNoteQueries
                 .getAllLegacyNotes()
                 .executeAsList()
                 .map { it.toModel() }

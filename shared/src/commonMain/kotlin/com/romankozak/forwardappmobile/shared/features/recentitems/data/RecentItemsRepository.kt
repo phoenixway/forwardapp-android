@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.shared.features.recentitems.data
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
-import com.romankozak.forwardappmobile.shared.database.RecentItemQueriesQueries
+import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import com.romankozak.forwardappmobile.shared.features.recentitems.data.model.RecentItem
 import com.romankozak.forwardappmobile.shared.features.recentitems.data.model.RecentItemType
 import kotlinx.coroutines.CoroutineDispatcher
@@ -11,12 +11,12 @@ import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 
 class RecentItemsRepository(
-    private val recentItemQueries: RecentItemQueriesQueries,
+    private val database: ForwardAppDatabase,
     private val ioDispatcher: CoroutineDispatcher,
 ) {
 
     fun getRecentItems(limit: Long = 20): Flow<List<RecentItem>> =
-        recentItemQueries
+        database.recentItemQueries
             .getRecentItems(limit, ::mapRow)
             .asFlow()
             .mapToList(ioDispatcher)
@@ -95,13 +95,13 @@ class RecentItemsRepository(
 
     suspend fun clearAll() =
         withContext(ioDispatcher) {
-            recentItemQueries.deleteAllRecentItems()
+            database.recentItemQueries.deleteAllRecentItems()
         }
 
     suspend fun replaceAll(items: List<RecentItem>) =
         withContext(ioDispatcher) {
-            recentItemQueries.transaction {
-                recentItemQueries.deleteAllRecentItems()
+            database.transaction {
+                database.recentItemQueries.deleteAllRecentItems()
                 items.forEach { insertRecord(it) }
             }
         }
@@ -125,12 +125,12 @@ class RecentItemsRepository(
         }
 
     private fun getRecentItemByIdInternal(id: String): RecentItem? =
-        recentItemQueries.getRecentItemById(id, ::mapRow).executeAsOneOrNull()
+        database.recentItemQueries.getRecentItemById(id, ::mapRow).executeAsOneOrNull()
 
     private fun currentTimestamp(): Long = Clock.System.now().toEpochMilliseconds()
 
     private fun insertRecord(item: RecentItem) {
-        recentItemQueries.insertRecentItem(
+        database.recentItemQueries.insertRecentItem(
             id = item.id,
             type = item.type.name,
             lastAccessed = item.lastAccessed,
