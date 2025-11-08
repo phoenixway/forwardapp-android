@@ -10,13 +10,13 @@ import com.romankozak.forwardappmobile.shared.data.database.models.ProjectLogEnt
 import com.romankozak.forwardappmobile.data.database.models.ProjectTimeMetrics
 import com.romankozak.forwardappmobile.shared.features.projects.logs.data.model.ProjectExecutionLog
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
-import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
+//import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.shared.data.database.models.ProjectStatusValues
 import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.shared.features.reminders.data.model.Reminder
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.database.models.LinkItemEntity
-import com.romankozak.forwardappmobile.data.database.models.ListItem
+//import com.romankozak.forwardappmobile.data.database.models.ListItem
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.shared.data.database.models.ProjectType
@@ -27,15 +27,18 @@ import com.romankozak.forwardappmobile.data.repository.InboxRepository
 import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
 import com.romankozak.forwardappmobile.data.repository.ListItemRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
-import com.romankozak.forwardappmobile.shared.features.projects.data.artifacts.ProjectArtifactRepository
+//import com.romankozak.forwardappmobile.shared.features.projects.data.artifacts.ProjectArtifactRepository
 import com.romankozak.forwardappmobile.shared.features.projects.data.logs.ProjectLogRepository
 import com.romankozak.forwardappmobile.data.repository.ProjectTimeTrackingRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.data.repository.SearchRepository
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
+import com.romankozak.forwardappmobile.shared.data.database.models.ListItem
+import com.romankozak.forwardappmobile.shared.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.shared.features.attachments.data.model.AttachmentWithProject
 import com.romankozak.forwardappmobile.shared.features.projects.data.model.ProjectArtifact
+import com.romankozak.forwardappmobile.shared.features.projects.domain.ProjectArtifactRepository
 import com.romankozak.forwardappmobile.shared.features.projects.domain.ProjectRepositoryCore // New import
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
