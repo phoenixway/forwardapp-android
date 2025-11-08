@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.gradle.api.tasks.testing.Test
 
 plugins {
-    alias(libs.plugins.android.application)
+    id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     alias(libs.plugins.ksp)
@@ -11,7 +11,9 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
     //kotlin("kapt")
     //id("com.google.devtools.ksp")
-    id("org.jetbrains.kotlin.plugin.parcelize")
+//    id("org.jetbrains.kotlin.plugin.parcelize")
+    id("org.jetbrains.kotlin.plugin.parcelize")   // ✅ ПРАВИЛЬНО!
+
 
     alias(libs.plugins.google.services.plugin)
     alias(libs.plugins.firebase.crashlytics.plugin)
@@ -51,7 +53,7 @@ android {
     ksp {
         arg("room.schemaLocation", "$projectDir/schemas")
     }
-    
+
     // ✅ КРИТИЧНО: Додайте конфігурацію для KSP джерел
     applicationVariants.all {
         val variantName = name
@@ -77,13 +79,13 @@ android {
             excludes += "META-INF/LICENSE.md"
             excludes += "META-INF/LICENSE-notice.md"
 
-        excludes += listOf(
-            "META-INF/DEPENDENCIES",
-            "META-INF/LICENSE",
-            "META-INF/LICENSE.txt",
-            "META-INF/NOTICE",
-            "META-INF/NOTICE.txt"
-        )
+            excludes += listOf(
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt"
+            )
         }
 
     }
@@ -263,7 +265,7 @@ dependencies {
 
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
-            implementation("org.jmdns:jmdns:3.5.9")
+    implementation("org.jmdns:jmdns:3.5.9")
     implementation("com.squareup.okhttp3:logging-interceptor:4.11.0") // Для дебагу
 
     // Для безпечного зберігання даних
@@ -293,7 +295,7 @@ dependencies {
     implementation("androidx.compose.ui:ui")
 
     // Рекомендується використовувати останню версію бібліотеки
-implementation("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
+    implementation("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
 
     implementation("app.cash.sqldelight:android-driver:2.0.2")
     implementation("app.cash.sqldelight:coroutines-extensions:2.0.2")
