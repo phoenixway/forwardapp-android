@@ -4,7 +4,7 @@ import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
+import com.romankozak.forwardappmobile.shared.features.projects.domain.ProjectRepositoryCore
 import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEditorViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 class InboxEditorViewModel
 @Inject
 constructor(
-  private val projectRepository: ProjectRepository,
+  private val projectRepository: ProjectRepositoryCore,
   private val inboxRepository: com.romankozak.forwardappmobile.data.repository.InboxRepository,
   private val application: Application,
   private val savedStateHandle: SavedStateHandle,

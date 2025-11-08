@@ -11,7 +11,7 @@ import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.shared.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.data.logic.GoalScoringManager
 import com.romankozak.forwardappmobile.data.repository.ListItemRepository
-import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
+import com.romankozak.forwardappmobile.shared.features.projects.domain.ProjectRepositoryCore
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.shared.features.reminders.data.model.Reminder
@@ -70,7 +70,7 @@ data class AttachmentsUiState(
 
 @HiltViewModel
 class AttachmentsViewModel @Inject constructor(
-    private val projectRepository: ProjectRepository,
+    private val projectRepository: ProjectRepositoryCore,
     private val settingsRepository: SettingsRepository,
     private val alarmScheduler: AlarmScheduler,
     private val recentItemsRepository: RecentItemsRepository,

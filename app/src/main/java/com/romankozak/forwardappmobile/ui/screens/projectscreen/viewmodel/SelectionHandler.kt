@@ -2,14 +2,14 @@ package com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel
 
 import android.util.Log
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
-import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
+import com.romankozak.forwardappmobile.shared.features.projects.domain.ProjectRepositoryCore
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.GoalActionType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class SelectionHandler(
-    private val projectRepository: ProjectRepository,
+    private val projectRepository: ProjectRepositoryCore,
     private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
     private val scope: CoroutineScope,
     private val projectIdFlow: StateFlow<String>,

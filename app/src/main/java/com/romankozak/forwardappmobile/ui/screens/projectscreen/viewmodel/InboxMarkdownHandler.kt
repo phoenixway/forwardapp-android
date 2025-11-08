@@ -2,14 +2,14 @@ package com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel
 
 import android.util.Log
 import com.romankozak.forwardappmobile.data.database.models.InboxRecord
-import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
+import com.romankozak.forwardappmobile.shared.features.projects.domain.ProjectRepositoryCore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class InboxMarkdownHandler(
-    private val projectRepository: ProjectRepository,
+    private val projectRepository: ProjectRepositoryCore,
     private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
     private val scope: CoroutineScope,
     private val listener: ResultListener,

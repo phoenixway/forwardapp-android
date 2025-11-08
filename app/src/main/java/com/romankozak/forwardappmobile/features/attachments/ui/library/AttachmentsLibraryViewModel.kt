@@ -10,7 +10,7 @@ import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
-import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
+import com.romankozak.forwardappmobile.shared.features.projects.domain.ProjectRepositoryCore
 import com.romankozak.forwardappmobile.shared.features.attachments.data.model.AttachmentEntity
 import com.romankozak.forwardappmobile.shared.features.attachments.data.model.LinkItemRecord
 import com.romankozak.forwardappmobile.shared.features.attachments.data.model.ProjectAttachmentCrossRef
@@ -26,7 +26,7 @@ class AttachmentsLibraryViewModel @Inject constructor(
     private val attachmentRepository: AttachmentRepository,
     private val noteDocumentRepository: NoteDocumentRepository,
     private val checklistRepository: ChecklistRepository,
-    private val projectRepository: ProjectRepository,
+    private val projectRepository: ProjectRepositoryCore,
 ) : ViewModel() {
 
     private val queryState = MutableStateFlow("")

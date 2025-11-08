@@ -37,7 +37,7 @@ import com.romankozak.forwardappmobile.shared.features.projects.data.model.Proje
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
-import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
+import com.romankozak.forwardappmobile.shared.features.projects.domain.ProjectRepositoryCore
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
@@ -166,7 +166,7 @@ data class UiState(
 class BacklogMarkdownHandler
 @Inject
 constructor(
-  private val projectRepository: ProjectRepository,
+  private val projectRepository: ProjectRepositoryCore,
   private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
   private val scope: CoroutineScope,
   private val listener: BacklogMarkdownHandlerResultListener,
@@ -253,7 +253,7 @@ class BacklogViewModel
 constructor(
   private val searchUseCase: SearchUseCase,
   private val application: Application,
-  private val projectRepository: ProjectRepository,
+  private val projectRepository: ProjectRepositoryCore,
   private val settingsRepository: SettingsRepository,
   private val contextHandler: ContextHandler,
   private val alarmScheduler: AlarmScheduler,
@@ -318,11 +318,11 @@ constructor(
   private val _listContent = MutableStateFlow<List<ListItemContent>>(emptyList())
   val listContent: StateFlow<List<ListItemContent>> = _listContent.asStateFlow()
 
-  val itemActionHandler = ItemActionHandler(projectRepository, goalRepository, recentItemsRepository, viewModelScope, projectIdFlow, this)
-  val selectionHandler = SelectionHandler(projectRepository, goalRepository, viewModelScope, projectIdFlow, _listContent, this)
-  val inboxHandler = InboxHandler(projectRepository, inboxRepository, viewModelScope, projectIdFlow, this)
-  val inboxMarkdownHandler = InboxMarkdownHandler(projectRepository, goalRepository, viewModelScope, this)
-  val backlogMarkdownHandler = BacklogMarkdownHandler(projectRepository, goalRepository, viewModelScope, this)
+  val itemActionHandler = ItemActionHandler(projectRepository as ProjectRepositoryCore, goalRepository, recentItemsRepository, viewModelScope, projectIdFlow, this)
+  val selectionHandler = SelectionHandler(projectRepository as ProjectRepositoryCore, goalRepository, viewModelScope, projectIdFlow, _listContent, this)
+  val inboxHandler = InboxHandler(projectRepository as ProjectRepositoryCore, inboxRepository, viewModelScope, projectIdFlow, this)
+  val inboxMarkdownHandler = InboxMarkdownHandler(projectRepository as ProjectRepositoryCore, goalRepository, viewModelScope, this)
+  val backlogMarkdownHandler = BacklogMarkdownHandler(projectRepository as ProjectRepositoryCore, goalRepository, viewModelScope, this)
 
   private lateinit var lazyListState: LazyListState
 
@@ -366,7 +366,7 @@ constructor(
 
   val inputHandler =
     InputHandler(
-      projectRepository,
+      projectRepository as ProjectRepositoryCore,
       goalRepository,
       listItemRepository,
       viewModelScope,
@@ -1593,6 +1593,7 @@ constructor(
       searchUseCase = searchUseCase, // This will be injected
       planningModeManager =
         com.romankozak.forwardappmobile.ui.screens.mainscreen.state.PlanningModeManager(),
+      projectRepository = projectRepository,
       enhancedNavigationManager = enhancedNavigationManager,
       uiEventChannel =
         Channel<com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectUiEvent>(),

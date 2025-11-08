@@ -30,29 +30,9 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
-import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
-import com.romankozak.forwardappmobile.domain.reminders.ReminderBroadcastReceiver
-import com.romankozak.forwardappmobile.routes.AppNavigation
-import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
-import com.romankozak.forwardappmobile.ui.theme.ForwardAppMobileTheme
-import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
-import java.util.Calendar
-import androidx.core.net.toUri
-import javax.inject.Inject
-import com.romankozak.forwardappmobile.ui.common.LocalContextUtils
-import com.romankozak.forwardappmobile.ui.common.ContextUtils
-import androidx.compose.runtime.CompositionLocalProvider
-import com.romankozak.forwardappmobile.ui.common.RemoteConfigManager
-import androidx.lifecycle.lifecycleScope
-
-@AndroidEntryPoint
-class MainActivity : ComponentActivity() {
-    private val syncDataViewModel: SyncDataViewModel by viewModels()
-    private val tag = "MainActivity"
-
-    @Inject
-    lateinit var projectRepository: ProjectRepository
+import com.romankozak.forwardappmobile.shared.features.projects.domain.ProjectRepositoryCore
+// ...
+    lateinit var projectRepository: ProjectRepositoryCore
 
     @Inject
     lateinit var settingsRepository: com.romankozak.forwardappmobile.data.repository.SettingsRepository

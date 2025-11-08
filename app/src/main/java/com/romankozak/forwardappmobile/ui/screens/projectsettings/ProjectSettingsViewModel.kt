@@ -4,7 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.shared.data.database.models.ScoringStatusValues
-import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
+import com.romankozak.forwardappmobile.shared.features.projects.domain.ProjectRepositoryCore
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.RemindersTabActions
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.EvaluationTabActions
@@ -20,7 +20,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ProjectSettingsViewModel @Inject constructor(
-    private val projectRepository: ProjectRepository,
+    private val projectRepository: ProjectRepositoryCore,
     private val reminderRepository: ReminderRepository,
     private val savedStateHandle: SavedStateHandle,
 ) : ViewModel(), EvaluationTabActions, RemindersTabActions {

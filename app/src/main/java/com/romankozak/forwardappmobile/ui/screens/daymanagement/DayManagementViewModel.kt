@@ -7,7 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.shared.data.database.models.ProjectType
 import com.romankozak.forwardappmobile.data.database.models.ReservedGroup
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
-import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
+import com.romankozak.forwardappmobile.shared.features.projects.domain.ProjectRepositoryCore
 import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.routes.DAY_PLAN_DATE_ARG
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -33,7 +33,7 @@ class DayManagementViewModel
 @Inject
 constructor(
     private val dayManagementRepository: DayManagementRepository,
-    private val projectRepository: ProjectRepository,
+    private val projectRepository: ProjectRepositoryCore,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {

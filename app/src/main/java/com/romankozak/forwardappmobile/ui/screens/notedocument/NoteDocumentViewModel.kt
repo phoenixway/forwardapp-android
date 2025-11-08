@@ -10,7 +10,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
+import com.romankozak.forwardappmobile.shared.features.projects.domain.ProjectRepositoryCore
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.ui.common.editor.components.ListFormatMode
 import com.romankozak.forwardappmobile.ui.common.editor.components.ListToolbarState
@@ -46,7 +46,7 @@ data class NoteDocumentUiState(
 @HiltViewModel
 class NoteDocumentViewModel @Inject constructor(
     private val application: Application,
-    private val projectRepository: ProjectRepository,
+    private val projectRepository: ProjectRepositoryCore,
     private val noteDocumentRepository: NoteDocumentRepository,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {

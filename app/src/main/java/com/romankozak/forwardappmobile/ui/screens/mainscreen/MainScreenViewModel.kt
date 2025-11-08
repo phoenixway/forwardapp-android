@@ -13,7 +13,7 @@ import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.domain.reminders.cancelForActivityRecord
 import com.romankozak.forwardappmobile.domain.reminders.scheduleForActivityRecord
-import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
+import com.romankozak.forwardappmobile.shared.features.projects.domain.ProjectRepositoryCore
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
@@ -51,7 +51,7 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.MainScreen
 class MainScreenViewModel
 @Inject
 constructor(
-  private val projectRepository: ProjectRepository,
+  private val projectRepository: ProjectRepositoryCore,
   private val settingsRepo: SettingsRepository,
   private val searchUseCase: SearchUseCase,
   private val dialogUseCase: DialogUseCase,

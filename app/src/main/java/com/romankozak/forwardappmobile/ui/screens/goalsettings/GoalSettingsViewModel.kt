@@ -9,7 +9,7 @@ import com.romankozak.forwardappmobile.shared.features.reminders.data.model.Remi
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.logic.GoalScoringManager
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
-import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
+import com.romankozak.forwardappmobile.shared.features.projects.domain.ProjectRepositoryCore
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.ui.screens.projectsettings.ProjectSettingsEvent
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.TagUtils
@@ -33,7 +33,7 @@ import javax.inject.Inject
 @HiltViewModel
 class GoalSettingsViewModel @Inject constructor(
     private val goalRepository: GoalRepository,
-    private val projectRepository: ProjectRepository,
+    private val projectRepository: ProjectRepositoryCore,
     private val contextHandler: ContextHandler,
     private val reminderRepository: ReminderRepository,
     private val savedStateHandle: SavedStateHandle,

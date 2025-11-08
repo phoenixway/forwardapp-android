@@ -4,7 +4,7 @@ import android.net.Uri
 import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
-import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
+import com.romankozak.forwardappmobile.shared.features.projects.domain.ProjectRepositoryCore
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DialogState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.state.DialogStateManager
@@ -21,7 +21,7 @@ class DialogUseCase @Inject constructor(
     private val dialogStateManager: DialogStateManager,
     private val activityRepository: ActivityRepository,
     private val reminderRepository: ReminderRepository,
-    private val projectRepository: ProjectRepository,
+    private val projectRepository: ProjectRepositoryCore,
 ) {
     val dialogState: StateFlow<DialogState> = dialogStateManager.dialogState
 

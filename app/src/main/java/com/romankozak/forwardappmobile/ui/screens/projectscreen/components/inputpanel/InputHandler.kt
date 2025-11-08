@@ -4,7 +4,7 @@ import android.util.Log
 import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.shared.data.database.models.LinkType
 import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
-import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
+import com.romankozak.forwardappmobile.shared.features.projects.domain.ProjectRepositoryCore
 import com.romankozak.forwardappmobile.domain.ner.ReminderParser
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.GoalActionType
@@ -56,7 +56,7 @@ class SmartDebouncer(
 }
 
 class InputHandler(
-    private val projectRepository: ProjectRepository,
+    private val projectRepository: ProjectRepositoryCore,
     private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
     private val listItemRepository: com.romankozak.forwardappmobile.data.repository.ListItemRepository,
     private val scope: CoroutineScope,

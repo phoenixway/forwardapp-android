@@ -6,7 +6,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
-import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
+import com.romankozak.forwardappmobile.shared.features.projects.domain.ProjectRepositoryCore
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.HierarchyDisplaySettings
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectUiEvent
@@ -31,7 +31,7 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
 
 @ViewModelScoped
 class SearchUseCase @Inject constructor(
-    private val projectRepository: ProjectRepository,
+    private val projectRepository: ProjectRepositoryCore,
     private val savedStateHandle: SavedStateHandle,
 ): PlanningSearchAdapter {
     private lateinit var scope: CoroutineScope

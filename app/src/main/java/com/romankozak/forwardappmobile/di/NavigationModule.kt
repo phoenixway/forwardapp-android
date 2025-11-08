@@ -1,7 +1,7 @@
 
 package com.romankozak.forwardappmobile.di
 
-import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
+import com.romankozak.forwardappmobile.shared.features.projects.domain.ProjectRepositoryCore
 import com.romankozak.forwardappmobile.ui.navigation.ClearAndNavigateHomeUseCase
 import dagger.Module
 import dagger.Provides
@@ -16,7 +16,7 @@ object NavigationModule {
     @Provides
     @Singleton
     fun provideClearAndNavigateHomeUseCase(
-        projectRepository: ProjectRepository,
+        projectRepository: ProjectRepositoryCore,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
     ): ClearAndNavigateHomeUseCase {
         return ClearAndNavigateHomeUseCase(

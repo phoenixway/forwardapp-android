@@ -6,7 +6,7 @@ import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.shared.data.database.models.LinkType
 import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
-import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
+import com.romankozak.forwardappmobile.shared.features.projects.domain.ProjectRepositoryCore
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.GoalActionDialogState
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.GoalActionType
@@ -23,7 +23,7 @@ import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 class ItemActionHandler
     @Inject
     constructor(
-        private val projectRepository: ProjectRepository,
+        private val projectRepository: ProjectRepositoryCore,
         private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
         private val recentItemsRepository: RecentItemsRepository,
         val scope: CoroutineScope,
