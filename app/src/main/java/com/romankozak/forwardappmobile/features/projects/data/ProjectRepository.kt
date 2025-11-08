@@ -57,7 +57,6 @@ class ProjectRepository
 constructor(
     private val projectLocalDataSource: ProjectLocalDataSource,
     private val legacyNoteRepository: LegacyNoteRepository,
-    private val contextHandlerProvider: Provider<ContextHandler>,
     private val activityRepository: ActivityRepository,
     private val recentItemsRepository: RecentItemsRepository,
     private val reminderRepository: ReminderRepository,
@@ -72,7 +71,6 @@ constructor(
     private val projectArtifactRepository: ProjectArtifactRepository,
     private val listItemRepository: ListItemRepository,
 ) {
-    private val contextHandler: ContextHandler by lazy { contextHandlerProvider.get() }
     private val TAG = "NOTE_DOCUMENT_DEBUG"
 
     fun getProjectLogsStream(projectId: String): Flow<List<ProjectExecutionLog>> =

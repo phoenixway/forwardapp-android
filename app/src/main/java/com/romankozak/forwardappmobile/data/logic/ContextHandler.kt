@@ -20,12 +20,11 @@ import javax.inject.Singleton
 class ContextHandler
     @Inject
     constructor(
-        private val projectRepositoryProvider: Provider<ProjectRepository>,
+        private val projectRepository: ProjectRepository,
         private val settingsRepository: SettingsRepository,
         private val goalRepositoryProvider: Provider<com.romankozak.forwardappmobile.data.repository.GoalRepository>,
         private val iconProvider: com.romankozak.forwardappmobile.ui.common.IconProvider,
     ) {
-        private val projectRepository: ProjectRepository by lazy { projectRepositoryProvider.get() }
         private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository by lazy { goalRepositoryProvider.get() }
 
         private val contextTagMap = mutableMapOf<String, String>()
