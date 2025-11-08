@@ -1,11 +1,11 @@
-package com.romankozak.forwardappmobile.data.database.models
+package com.romankozak.forwardappmobile.shared.data.database.models
 
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.shared.features.reminders.data.model.Reminder
 
 sealed class ListItemContent {
-    
-    
+
+
     abstract val listItem: ListItem
 
     data class GoalItem(val goal: Goal, val reminders: List<Reminder>, override val listItem: ListItem) : ListItemContent()

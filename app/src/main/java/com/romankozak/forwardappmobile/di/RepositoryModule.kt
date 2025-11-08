@@ -22,6 +22,7 @@ import com.romankozak.forwardappmobile.data.repository.SearchRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.attachments.data.AndroidLinkItemDataSource
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
+import com.romankozak.forwardappmobile.features.projects.data.ProjectRepositoryImpl
 import com.romankozak.forwardappmobile.shared.database.AttachmentQueriesQueries
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import com.romankozak.forwardappmobile.shared.database.LegacyNoteQueriesQueries
@@ -33,6 +34,7 @@ import com.romankozak.forwardappmobile.shared.database.ReminderQueriesQueries
 import com.romankozak.forwardappmobile.shared.features.attachments.data.model.LinkItemDataSource
 import com.romankozak.forwardappmobile.shared.features.notes.data.datasource.NoteBacklogLinkDataSource
 import com.romankozak.forwardappmobile.shared.features.projects.data.ProjectLocalDataSource
+import com.romankozak.forwardappmobile.shared.features.projects.domain.ProjectRepositoryCore
 import com.romankozak.forwardappmobile.shared.features.reminders.domain.AlarmScheduler
 import com.romankozak.forwardappmobile.ui.common.IconProvider
 import dagger.Module
@@ -190,15 +192,6 @@ object RepositoryModule {
 
     @Provides
     @Singleton
-    fun provideContextHandler(
-        projectRepository: com.romankozak.forwardappmobile.features.projects.data.ProjectRepository,
-        settingsRepository: SettingsRepository,
-        goalRepositoryProvider: Provider<GoalRepository>,
-        iconProvider: IconProvider,
-    ): ContextHandler = ContextHandler(projectRepository, settingsRepository, goalRepositoryProvider, iconProvider)
-
-    @Provides
-    @Singleton
     fun provideProjectRepository(
         projectLocalDataSource: ProjectLocalDataSource,
         legacyNoteRepository: LegacyNoteRepository,
@@ -215,22 +208,22 @@ object RepositoryModule {
         projectTimeTrackingRepository: ProjectTimeTrackingRepository,
         projectArtifactRepository: ProjectArtifactRepository,
         listItemRepository: ListItemRepository,
-    ): com.romankozak.forwardappmobile.features.projects.data.ProjectRepository =
-        com.romankozak.forwardappmobile.features.projects.data.ProjectRepository(
-            projectLocalDataSource,
-            legacyNoteRepository,
-            activityRepository,
-            recentItemsRepository,
-            reminderRepository,
-            projectLogRepository,
-            searchRepository,
-            noteDocumentRepository,
-            checklistRepository,
-            attachmentRepository,
-            goalRepository,
-            inboxRepository,
-            projectTimeTrackingRepository,
-            projectArtifactRepository,
-            listItemRepository,
-        )
+    ): ProjectRepositoryCore = ProjectRepositoryImpl(
+        projectLocalDataSource,
+        legacyNoteRepository,
+        activityRepository,
+        recentItemsRepository,
+        reminderRepository,
+        projectLogRepository,
+        searchRepository,
+        noteDocumentRepository,
+        checklistRepository,
+        attachmentRepository,
+        goalRepository,
+        inboxRepository,
+        projectTimeTrackingRepository,
+        projectArtifactRepository,
+        listItemRepository,
+    )
+
 }

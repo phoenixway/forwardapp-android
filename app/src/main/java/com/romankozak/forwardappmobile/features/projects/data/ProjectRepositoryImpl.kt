@@ -36,6 +36,7 @@ import com.romankozak.forwardappmobile.data.repository.SearchRepository
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 import com.romankozak.forwardappmobile.shared.features.attachments.data.model.AttachmentWithProject
 import com.romankozak.forwardappmobile.shared.features.projects.data.model.ProjectArtifact
+import com.romankozak.forwardappmobile.shared.features.projects.domain.ProjectRepositoryCore // New import
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -52,9 +53,7 @@ internal enum class ContextTextAction { ADD, REMOVE }
 
 
 @Singleton
-class ProjectRepository
-@Inject
-constructor(
+class ProjectRepositoryImpl @Inject constructor( // Changed class name
     private val projectLocalDataSource: ProjectLocalDataSource,
     private val legacyNoteRepository: LegacyNoteRepository,
     private val activityRepository: ActivityRepository,
@@ -70,13 +69,13 @@ constructor(
     private val projectTimeTrackingRepository: ProjectTimeTrackingRepository,
     private val projectArtifactRepository: ProjectArtifactRepository,
     private val listItemRepository: ListItemRepository,
-) {
+) : ProjectRepositoryCore { // Implements interface
     private val TAG = "NOTE_DOCUMENT_DEBUG"
 
-    fun getProjectLogsStream(projectId: String): Flow<List<ProjectExecutionLog>> =
+    override fun getProjectLogsStream(projectId: String): Flow<List<ProjectExecutionLog>> = // Added override
         projectLogRepository.getProjectLogsStream(projectId)
 
-    suspend fun toggleProjectManagement(
+    override suspend fun toggleProjectManagement( // Added override
         projectId: String,
         isEnabled: Boolean,
     ) {
@@ -87,7 +86,7 @@ constructor(
         projectLogRepository.addToggleProjectManagementLog(projectId, isEnabled)
     }
 
-    suspend fun updateProjectStatus(
+    override suspend fun updateProjectStatus( // Added override
         projectId: String,
         newStatus: String,
         statusText: String?,
@@ -105,21 +104,21 @@ constructor(
         projectLogRepository.addUpdateProjectStatusLog(projectId, newStatus, statusText)
     }
 
-    suspend fun addProjectComment(
+    override suspend fun addProjectComment( // Added override
         projectId: String,
         comment: String,
     ) {
         projectLogRepository.addProjectComment(projectId, comment)
     }
 
-    suspend fun updateProjectViewMode(
+    override suspend fun updateProjectViewMode( // Added override
         projectId: String,
         viewMode: ProjectViewMode,
     ) {
         projectLocalDataSource.updateDefaultViewMode(projectId, viewMode.name)
     }
 
-    fun getProjectContentStream(projectId: String): Flow<List<ListItemContent>> {
+    override fun getProjectContentStream(projectId: String): Flow<List<ListItemContent>> { // Added override
         return combine(
             listItemRepository.getItemsForProjectStream(projectId),
             reminderRepository.getAllReminders(),
@@ -164,7 +163,7 @@ constructor(
         }
     }
 
-    private fun mapToListItemContent(
+    private fun mapToListItemContent( // Private method, no override
         projectId: String,
         items: List<ListItem>,
         attachments: List<AttachmentWithProject>,
@@ -233,17 +232,17 @@ constructor(
 
         return backlogItems
     }
-    suspend fun addProjectLinkToProject(
+    override suspend fun addProjectLinkToProject( // Added override
         targetProjectId: String,
         currentProjectId: String,
     ): String = listItemRepository.addProjectLinkToProject(targetProjectId, currentProjectId)
 
-    suspend fun moveListItems(
+    override suspend fun moveListItems( // Added override
         itemIds: List<String>,
         targetProjectId: String,
     ) = listItemRepository.moveListItems(itemIds, targetProjectId)
 
-    suspend fun deleteListItems(
+    override suspend fun deleteListItems( // Added override
         projectId: String,
         itemIds: List<String>,
     ) {
@@ -274,39 +273,39 @@ constructor(
         }
     }
 
-    suspend fun restoreListItems(items: List<ListItem>) = listItemRepository.restoreListItems(items)
+    override suspend fun restoreListItems(items: List<ListItem>) = listItemRepository.restoreListItems(items) // Added override
 
-    suspend fun updateListItemsOrder(items: List<ListItem>) = listItemRepository.updateListItemsOrder(items)
+    override suspend fun updateListItemsOrder(items: List<ListItem>) = listItemRepository.updateListItemsOrder(items) // Added override
 
-    suspend fun updateAttachmentOrders(
+    override suspend fun updateAttachmentOrders( // Added override
         projectId: String,
         updates: List<Pair<String, Long>>,
     ) = attachmentRepository.updateAttachmentOrders(projectId, updates)
 
 
 
-    suspend fun doesLinkExist(
+    override suspend fun doesLinkExist( // Added override
         entityId: String,
         projectId: String,
     ): Boolean = listItemRepository.doesLinkExist(entityId, projectId)
 
-    suspend fun deleteLinkByEntityIdAndProjectId(
+    override suspend fun deleteLinkByEntityIdAndProjectId( // Added override
         entityId: String,
         projectId: String,
     ) = listItemRepository.deleteLinkByEntityIdAndProjectId(entityId, projectId)
 
-    fun getAllProjectsFlow(): Flow<List<Project>> =
+    override fun getAllProjectsFlow(): Flow<List<Project>> = // Added override
         projectLocalDataSource
             .observeAll()
             .map { projects -> projects.map { it.withNormalizedParentId() } }
 
-    suspend fun getProjectById(id: String): Project? =
+    override suspend fun getProjectById(id: String): Project? = // Added override
         projectLocalDataSource.getById(id)?.withNormalizedParentId()
 
-    fun getProjectByIdFlow(id: String): Flow<Project?> =
+    override fun getProjectByIdFlow(id: String): Flow<Project?> = // Added override
         projectLocalDataSource.observeById(id).map { project -> project?.withNormalizedParentId() }
 
-    private fun Project.withNormalizedParentId(): Project {
+    private fun Project.withNormalizedParentId(): Project { // Private method, no override
         val normalizedParentId =
             parentId
                 ?.trim()
@@ -319,25 +318,25 @@ constructor(
         }
     }
 
-    suspend fun updateProject(project: Project) {
+    override suspend fun updateProject(project: Project) { // Added override
         projectLocalDataSource.upsert(project)
         recentItemsRepository.updateRecentItemDisplayName(project.id, project.name)
     }
 
-    suspend fun updateProjects(projects: List<Project>): Int {
+    override suspend fun updateProjects(projects: List<Project>): Int { // Added override
         if (projects.isEmpty()) return 0
         projectLocalDataSource.upsert(projects)
         return projects.size
     }
 
-    suspend fun deleteProjectsAndSubProjects(projectsToDelete: List<Project>) {
+    override suspend fun deleteProjectsAndSubProjects(projectsToDelete: List<Project>) { // Added override
         if (projectsToDelete.isEmpty()) return
         val projectIds = projectsToDelete.map { it.id }
         listItemRepository.deleteItemsForProjects(projectIds)
         projectLocalDataSource.delete(projectIds)
     }
 
-    suspend fun createProjectWithId(
+    override suspend fun createProjectWithId( // Added override
         id: String,
         name: String,
         parentId: String?,
@@ -356,12 +355,12 @@ constructor(
             listItemRepository.addProjectLinkToProject(id, parentId)
         }
     }
-    suspend fun searchGlobal(query: String): List<GlobalSearchResultItem> {
+    override suspend fun searchGlobal(query: String): List<GlobalSearchResultItem> { // Added override
         return searchRepository.searchGlobal(query)
     }
 
 
-    suspend fun moveProject(
+    override suspend fun moveProject( // Added override
         projectToMove: Project,
         newParentId: String?,
     ) {
@@ -410,7 +409,7 @@ constructor(
         projectLocalDataSource.upsert(finalProjectToMove)
     }
 
-    suspend fun addLinkItemToProjectFromLink(
+    override suspend fun addLinkItemToProjectFromLink( // Added override
         projectId: String,
         link: RelatedLink,
     ): String {
@@ -418,30 +417,30 @@ constructor(
         return attachment.id
     }
 
-    suspend fun findProjectIdsByTag(tag: String): List<String> = projectLocalDataSource.getIdsByTag(tag)
+    override suspend fun findProjectIdsByTag(tag: String): List<String> = projectLocalDataSource.getIdsByTag(tag) // Added override
 
-    suspend fun getProjectsByType(projectType: ProjectType): List<Project> = projectLocalDataSource.getByType(projectType.name)
+    override suspend fun getProjectsByType(projectType: ProjectType): List<Project> = projectLocalDataSource.getByType(projectType.name) // Added override
 
-    suspend fun getProjectsByReservedGroup(reservedGroup: String): List<Project> = projectLocalDataSource.getByReservedGroup(reservedGroup)
+    override suspend fun getProjectsByReservedGroup(reservedGroup: String): List<Project> = projectLocalDataSource.getByReservedGroup(reservedGroup) // Added override
 
-    suspend fun getAllProjects(): List<Project> = projectLocalDataSource.getAll()
+    override suspend fun getAllProjects(): List<Project> = projectLocalDataSource.getAll() // Added override
 
 
 
-    suspend fun deleteItemByEntityId(entityId: String) = listItemRepository.deleteItemByEntityId(entityId)
+    override suspend fun deleteItemByEntityId(entityId: String) = listItemRepository.deleteItemByEntityId(entityId) // Added override
 
-    suspend fun logProjectTimeSummaryForDate(
+    override suspend fun logProjectTimeSummaryForDate( // Added override
         projectId: String,
         dayToLog: Calendar,
     ) = projectTimeTrackingRepository.logProjectTimeSummaryForDate(projectId, dayToLog)
 
-    suspend fun recalculateAndLogProjectTime(projectId: String) = projectTimeTrackingRepository.recalculateAndLogProjectTime(projectId)
+    override suspend fun recalculateAndLogProjectTime(projectId: String) = projectTimeTrackingRepository.recalculateAndLogProjectTime(projectId) // Added override
 
-    suspend fun calculateProjectTimeMetrics(projectId: String): ProjectTimeMetrics = projectTimeTrackingRepository.calculateProjectTimeMetrics(projectId)
+    override suspend fun calculateProjectTimeMetrics(projectId: String): ProjectTimeMetrics = projectTimeTrackingRepository.calculateProjectTimeMetrics(projectId) // Added override
 
 
 
-    suspend fun cleanupDanglingListItems() {
+    override suspend fun cleanupDanglingListItems() { // Added override
         val allListItems = listItemRepository.getAll()
         val itemsToDelete = mutableListOf<String>()
 
@@ -466,13 +465,13 @@ constructor(
         }
     }
 
-    fun getProjectArtifactStream(projectId: String): Flow<ProjectArtifact?> = projectArtifactRepository.getProjectArtifactStream(projectId)
+    override fun getProjectArtifactStream(projectId: String): Flow<ProjectArtifact?> = projectArtifactRepository.getProjectArtifactStream(projectId) // Added override
 
-    suspend fun updateProjectArtifact(artifact: ProjectArtifact) = projectArtifactRepository.updateProjectArtifact(artifact)
+    override suspend fun updateProjectArtifact(artifact: ProjectArtifact) = projectArtifactRepository.updateProjectArtifact(artifact) // Added override
 
-    suspend fun createProjectArtifact(artifact: ProjectArtifact) = projectArtifactRepository.createProjectArtifact(artifact)
+    override suspend fun createProjectArtifact(artifact: ProjectArtifact) = projectArtifactRepository.createProjectArtifact(artifact) // Added override
 
-    suspend fun ensureChildProjectListItemsExist(projectId: String) {
+    override suspend fun ensureChildProjectListItemsExist(projectId: String) { // Added override
         val children = projectLocalDataSource.getByParent(projectId)
         val backlogItems = listItemRepository.getItemsForProjectStream(projectId).first()
         val backlogSubprojectIds = backlogItems.filter { it.itemType == ListItemTypeValues.SUBLIST }.map { it.entityId }.toSet()

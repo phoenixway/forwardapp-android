@@ -2,8 +2,8 @@
 package com.romankozak.forwardappmobile.data.logic
 
 import com.romankozak.forwardappmobile.data.database.models.Goal
-import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.shared.features.projects.domain.ProjectRepositoryCore
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -20,11 +20,12 @@ import javax.inject.Singleton
 class ContextHandler
     @Inject
     constructor(
-        private val projectRepository: ProjectRepository,
+        private val projectRepositoryProvider: Provider<ProjectRepositoryCore>,
         private val settingsRepository: SettingsRepository,
         private val goalRepositoryProvider: Provider<com.romankozak.forwardappmobile.data.repository.GoalRepository>,
         private val iconProvider: com.romankozak.forwardappmobile.ui.common.IconProvider,
     ) {
+        private val projectRepository: ProjectRepositoryCore by lazy { projectRepositoryProvider.get() }
         private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository by lazy { goalRepositoryProvider.get() }
 
         private val contextTagMap = mutableMapOf<String, String>()

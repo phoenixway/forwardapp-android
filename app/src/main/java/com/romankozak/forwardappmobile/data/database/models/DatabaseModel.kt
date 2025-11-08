@@ -97,7 +97,7 @@ object ListItemTypeValues {
 
 
 
-enum class ProjectViewMode { BACKLOG, INBOX, ADVANCED, ATTACHMENTS }
+
 
 enum class DayStatus { PLANNED, IN_PROGRESS, COMPLETED, MISSED, ARCHIVED }
 
@@ -235,18 +235,7 @@ data class InboxRecord(
     @ColumnInfo(name = "item_order") val order: Long,
 )
 
-@Entity(
-    tableName = "list_items",
-)
-data class ListItem(
-    @PrimaryKey val id: String,
-    @SerializedName(value = "projectId", alternate = ["listId"])
-    @ColumnInfo(name = "project_id", index = true)
-    val projectId: String,
-    val itemType: String,
-    val entityId: String,
-    @ColumnInfo(name = "item_order") val order: Long,
-)
+
 
 @Fts4(contentEntity = Goal::class)
 @Entity(tableName = "goals_fts")
