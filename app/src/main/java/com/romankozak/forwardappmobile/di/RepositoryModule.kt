@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.di
 import ProjectRepositoryImpl
 import android.content.Context
 import app.cash.sqldelight.db.SqlDriver
-import app.cash.sqldelight.driver.android.AndroidSqliteDriver
+//import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 import com.romankozak.forwardappmobile.data.dao.GoalDao
 import com.romankozak.forwardappmobile.data.dao.InboxRecordDao
@@ -41,6 +41,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import javax.inject.Provider
 import javax.inject.Singleton
 import com.romankozak.forwardappmobile.shared.features.projects.data.ProjectLocalDataSource
+import com.romankozak.forwardappmobile.shared.features.projects.data.ProjectLocalDataSourceImpl
+import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 
 
 @Module
@@ -65,8 +67,9 @@ object RepositoryModule {
     @Singleton
     fun provideProjectLocalDataSource(
         db: ForwardAppDatabase,
-        @IoDispatcher ioDispatcher: CoroutineDispatcher,
-    ): ProjectLocalDataSource = ProjectLocalDataSource(db, ioDispatcher)
+        @IoDispatcher ioDispatcher: CoroutineDispatcher
+    ): ProjectLocalDataSource = ProjectLocalDataSourceImpl(db, ioDispatcher)
+
 
     @Provides
     @Singleton

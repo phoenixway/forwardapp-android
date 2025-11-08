@@ -204,8 +204,12 @@ dependencies {
 
     // Testing
     testImplementation(libs.junit)
-    testImplementation(libs.kotlinx.coroutines.test)
-    androidTestImplementation(libs.kotlinx.coroutines.test)
+//    testImplementation(libs.kotlinx.coroutines.test)
+//    androidTestImplementation(libs.kotlinx.coroutines.test)
+
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
+    androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
+
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.room.testing)
@@ -290,4 +294,9 @@ dependencies {
 
     // Рекомендується використовувати останню версію бібліотеки
 implementation("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
+
+    implementation("app.cash.sqldelight:android-driver:2.0.2")
+    implementation("app.cash.sqldelight:coroutines-extensions:2.0.2")
+
+
 }

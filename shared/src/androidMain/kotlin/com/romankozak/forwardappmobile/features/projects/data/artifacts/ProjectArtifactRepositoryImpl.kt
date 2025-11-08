@@ -35,6 +35,7 @@ class ProjectArtifactRepositoryImpl(
         withContext(ioDispatcher) { database.projectArtifactsQueries.deleteProjectArtifact(artifactId) }
     }
 
+
     private fun upsertProjectArtifact(artifact: ProjectArtifact) {
         database.projectArtifactsQueries.insertProjectArtifact(
             id = artifact.id,
@@ -44,6 +45,8 @@ class ProjectArtifactRepositoryImpl(
             updatedAt = artifact.updatedAt,
         )
     }
+
+
 
     private fun Project_artifacts.toModel(): ProjectArtifact =
         ProjectArtifact(
