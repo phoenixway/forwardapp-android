@@ -39,6 +39,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
     kotlin {
+        jvmToolchain(11)  // ✅ Додайте це
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_11)
         }
@@ -49,6 +50,16 @@ android {
     }
     ksp {
         arg("room.schemaLocation", "$projectDir/schemas")
+    }
+    
+    // ✅ КРИТИЧНО: Додайте конфігурацію для KSP джерел
+    applicationVariants.all {
+        val variantName = name
+        kotlin.sourceSets {
+            getByName(variantName) {
+                kotlin.srcDir("build/generated/ksp/$variantName/kotlin")
+            }
+        }
     }
 
     packaging {

@@ -1,24 +1,20 @@
-package com.romankozak.forwardappmobile.data.repository
+package com.romankozak.forwardappmobile.shared.features.projects.data
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
-import com.romankozak.forwardappmobile.di.IoDispatcher
+import com.benasher44.uuid.uuid4
 import com.romankozak.forwardappmobile.shared.data.database.models.ProjectLogEntryTypeValues
-import com.romankozak.forwardappmobile.shared.database.ProjectExecutionLogQueriesQueries
+import com.romankozak.forwardappmobile.shared.database.ProjectExecutionLogQueries
 import com.romankozak.forwardappmobile.shared.features.projects.logs.data.mappers.toSharedModel
 import com.romankozak.forwardappmobile.shared.features.projects.logs.data.model.ProjectExecutionLog
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
-import java.util.UUID
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class ProjectLogRepository @Inject constructor(
-    private val projectExecutionLogQueries: ProjectExecutionLogQueriesQueries,
-    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
+class ProjectLogRepository(
+    private val projectExecutionLogQueries: ProjectExecutionLogQueries,
+    private val ioDispatcher: CoroutineDispatcher
 ) {
     fun getProjectLogsStream(projectId: String): Flow<List<ProjectExecutionLog>> =
         projectExecutionLogQueries.selectByProjectId(projectId)
@@ -65,7 +61,7 @@ class ProjectLogRepository @Inject constructor(
     ) {
         val logEntry =
             ProjectExecutionLog(
-                id = UUID.randomUUID().toString(),
+                id = uuid4().toString(),
                 projectId = projectId,
                 timestamp = System.currentTimeMillis(),
                 type = type,

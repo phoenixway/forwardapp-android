@@ -44,13 +44,17 @@ kotlin {
 
 android {
     namespace = "com.romankozak.forwardappmobile.shared"
-    compileSdk = 34
+    compileSdk = 36  // ✅ Має збігатися з :app
     defaultConfig {
-        minSdk = 24
+        minSdk = 29  // ✅ Має збігатися з :app
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        // ✅ КРИТИЧНО: Має збігатися з :app
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+    kotlin {
+        jvmToolchain(11)  // ✅ Додати це
     }
 }
 

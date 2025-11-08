@@ -48,7 +48,7 @@ import com.romankozak.forwardappmobile.data.sync.toGoal
 import com.romankozak.forwardappmobile.data.sync.toProject
 import com.romankozak.forwardappmobile.features.projects.data.toShared
 import com.romankozak.forwardappmobile.features.projects.data.toEntity
-import com.romankozak.forwardappmobile.shared.database.RecentItemQueriesQueries
+import com.romankozak.forwardappmobile.shared.database.RecentItemQueries
 import kotlinx.coroutines.flow.first
 import java.text.SimpleDateFormat
 import java.time.OffsetDateTime
@@ -103,7 +103,7 @@ constructor(
     private val legacyNoteRepository: LegacyNoteRepository,
     private val noteDocumentRepository: NoteDocumentRepository,
     private val checklistRepository: ChecklistRepository,
-    private val recentItemQueries: RecentItemQueriesQueries,
+    private val recentItemQueries: RecentItemQueries,
     private val attachmentRepository: AttachmentRepository,
     private val databaseInitializer: DatabaseInitializer,
 ) {
