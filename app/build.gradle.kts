@@ -121,6 +121,8 @@ tasks.withType<Test> {
 
 dependencies {
     implementation(project(":shared"))
+    ksp(libs.hilt.compiler)            // ✅ тільки KSP processors
+    //ksp(libs.room.compiler)
 
     // AndroidX Core & Lifecycle
     implementation(libs.androidx.core.ktx)
@@ -172,6 +174,7 @@ dependencies {
     implementation(libs.hilt.navigation.compose)
     //kapt(libs.hilt.compiler)
     ksp(libs.hilt.compiler)
+    //ksp(project(":shared"))
 
 
     // Ktor (Server & Client)
