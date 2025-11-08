@@ -121,7 +121,7 @@ tasks.withType<Test> {
 
 dependencies {
     implementation(project(":shared"))
-    ksp(project(":shared"))
+    //ksp(project(":shared"))
     //ksp(libs.hilt.compiler)            // ✅ тільки KSP processors
     ksp(libs.androidx.room.compiler)
 

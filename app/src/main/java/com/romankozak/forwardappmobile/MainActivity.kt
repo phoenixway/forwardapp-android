@@ -30,7 +30,6 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
-import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
 import com.romankozak.forwardappmobile.domain.reminders.ReminderBroadcastReceiver
 import com.romankozak.forwardappmobile.routes.AppNavigation
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
@@ -45,6 +44,7 @@ import com.romankozak.forwardappmobile.ui.common.ContextUtils
 import androidx.compose.runtime.CompositionLocalProvider
 import com.romankozak.forwardappmobile.ui.common.RemoteConfigManager
 import androidx.lifecycle.lifecycleScope
+import com.romankozak.forwardappmobile.shared.features.projects.domain.ProjectRepositoryCore
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
