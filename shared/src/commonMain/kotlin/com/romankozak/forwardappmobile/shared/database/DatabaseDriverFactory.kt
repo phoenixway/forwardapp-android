@@ -63,6 +63,9 @@ fun createForwardAppDatabase(
 ): ForwardAppDatabase {
     return ForwardAppDatabase(
         driver = driverFactory.createDriver(),
+        ActivityRecordsAdapter = ActivityRecords.Adapter(
+            relatedLinksAdapter = relatedLinksListAdapter
+        ),
         DayPlansAdapter = DayPlans.Adapter(statusAdapter = dayStatusAdapter),
         DayTasksAdapter = DayTasks.Adapter(
             priorityAdapter = taskPriorityAdapter,

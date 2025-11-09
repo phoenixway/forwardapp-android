@@ -12,16 +12,16 @@ interface ActivityRecordRepository {
 
     suspend fun findLastOngoingActivity(): ActivityRecord?
 
-    suspend fun findLastOngoingActivityForGoal(goalId: String): ActivityRecord?
+    // suspend fun findLastOngoingActivityForGoal(goalId: String): ActivityRecord?
 
     suspend fun findLastOngoingActivityForProject(projectId: String): ActivityRecord?
 
-    suspend fun getCompletedActivitiesForProject(
-        projectId: String,
-        goalIds: List<String>,
-        startTime: Long,
-        endTime: Long,
-    ): List<ActivityRecord>
+    // suspend fun getCompletedActivitiesForProject(
+    //     projectId: String,
+    //     goalIds: List<String>,
+    //     startTime: Long,
+    //     endTime: Long,
+    // ): List<ActivityRecord>
 
     suspend fun clearAll()
 
@@ -31,10 +31,10 @@ interface ActivityRecordRepository {
 
     suspend fun search(query: String): List<ActivityRecord>
 
-    suspend fun getAllCompletedActivitiesForProject(
-        projectId: String,
-        goalIds: List<String>,
-    ): List<ActivityRecord>
+    // suspend fun getAllCompletedActivitiesForProject(
+    //     projectId: String,
+    //     goalIds: List<String>,
+    // ): List<ActivityRecord>
 
     suspend fun findById(recordId: String): ActivityRecord?
 }

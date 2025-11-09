@@ -40,11 +40,11 @@ class ActivityRecordRepositoryImpl(
         }
     }
 
-    override suspend fun findLastOngoingActivityForGoal(goalId: String): ActivityRecord? {
-        return withContext(ioDispatcher) {
-            db.activityRecordsQueries.findLastOngoingActivityForGoal(goalId).executeAsOneOrNull()?.toDomain()
-        }
-    }
+    // override suspend fun findLastOngoingActivityForGoal(goalId: String): ActivityRecord? {
+    //     return withContext(ioDispatcher) {
+    //         db.activityRecordsQueries.findLastOngoingActivityForGoal(goalId).executeAsOneOrNull()?.toDomain()
+    //     }
+    // }
 
     override suspend fun findLastOngoingActivityForProject(projectId: String): ActivityRecord? {
         return withContext(ioDispatcher) {
@@ -52,18 +52,18 @@ class ActivityRecordRepositoryImpl(
         }
     }
 
-    override suspend fun getCompletedActivitiesForProject(
-        projectId: String,
-        goalIds: List<String>,
-        startTime: Long,
-        endTime: Long,
-    ): List<ActivityRecord> {
-        return withContext(ioDispatcher) {
-            db.activityRecordsQueries.getCompletedActivitiesForProject(projectId, goalIds, startTime, endTime)
-                .executeAsList()
-                .map { it.toDomain() }
-        }
-    }
+    // override suspend fun getCompletedActivitiesForProject(
+    //     projectId: String,
+    //     goalIds: List<String>,
+    //     startTime: Long,
+    //     endTime: Long,
+    // ): List<ActivityRecord> {
+    //     return withContext(ioDispatcher) {
+    //         db.activityRecordsQueries.getCompletedActivitiesForProject(projectId, goalIds, startTime, endTime)
+    //             .executeAsList()
+    //             .map { it.toDomain() }
+    //     }
+    // }
 
     override suspend fun clearAll() {
         withContext(ioDispatcher) {
@@ -91,16 +91,16 @@ class ActivityRecordRepositoryImpl(
         }
     }
 
-    override suspend fun getAllCompletedActivitiesForProject(
-        projectId: String,
-        goalIds: List<String>,
-    ): List<ActivityRecord> {
-        return withContext(ioDispatcher) {
-            db.activityRecordsQueries.getAllCompletedActivitiesForProject(projectId, goalIds)
-                .executeAsList()
-                .map { it.toDomain() }
-        }
-    }
+    // override suspend fun getAllCompletedActivitiesForProject(
+    //     projectId: String,
+    //     goalIds: List<String>,
+    // ): List<ActivityRecord> {
+    //     return withContext(ioDispatcher) {
+    //         db.activityRecordsQueries.getAllCompletedActivitiesForProject(projectId, goalIds)
+    //             .executeAsList()
+    //             .map { it.toDomain() }
+    //     }
+    // }
 
     override suspend fun findById(recordId: String): ActivityRecord? {
         return withContext(ioDispatcher) {

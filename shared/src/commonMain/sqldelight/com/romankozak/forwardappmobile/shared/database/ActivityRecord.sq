@@ -1,49 +1,49 @@
+import kotlin.Boolean;
+import kotlin.collections.List;
+import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink;
+
 -- ================================================
 -- 🗃 Основна таблиця ActivityRecords
 -- ================================================
 CREATE TABLE ActivityRecords (
-    id TEXT PRIMARY KEY,
-    text TEXT NOT NULL,
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
     createdAt INTEGER NOT NULL,
     startTime INTEGER,
     endTime INTEGER,
-    reminderTime INTEGER,
-    targetId TEXT,
-    targetType TEXT,
-    goalId TEXT,
-    projectId TEXT
+    totalTimeSpentMinutes INTEGER,
+    tags TEXT, -- Stored as JSON string
+    relatedLinks TEXT AS List<RelatedLink>,
+    isCompleted INTEGER AS kotlin.Boolean NOT NULL,
+    activityType TEXT NOT NULL,
+    parentProjectId TEXT
 );
 
 -- ================================================
--- 🔍 FTS5 таблиця (без content=, без rowid JOIN)
+-- 🔍 FTS5 таблиця
 -- ================================================
 CREATE VIRTUAL TABLE ActivityRecordsFts USING fts5(
-    id UNINDEXED,      -- зберігаємо id, але не індексуємо
-    text               -- тільки текст індексується
+    id UNINDEXED,
+    name,
+    description
 );
 
 -- ================================================
 -- 🔄 Тригери — синхрон FTS ↔ ActivityRecords
 -- ================================================
-
--- INSERT
-CREATE TRIGGER activityrecords_ai AFTER INSERT ON ActivityRecords
-BEGIN
-    INSERT INTO ActivityRecordsFts(id, text)
-    VALUES (new.id, new.text);
+CREATE TRIGGER activityrecords_ai AFTER INSERT ON ActivityRecords BEGIN
+    INSERT INTO ActivityRecordsFts(id, name, description)
+    VALUES (new.id, new.name, new.description);
 END;
 
--- UPDATE
-CREATE TRIGGER activityrecords_au AFTER UPDATE ON ActivityRecords
-BEGIN
+CREATE TRIGGER activityrecords_au AFTER UPDATE ON ActivityRecords BEGIN
     DELETE FROM ActivityRecordsFts WHERE id = old.id;
-    INSERT INTO ActivityRecordsFts(id, text)
-    VALUES (new.id, new.text);
+    INSERT INTO ActivityRecordsFts(id, name, description)
+    VALUES (new.id, new.name, new.description);
 END;
 
--- DELETE
-CREATE TRIGGER activityrecords_ad AFTER DELETE ON ActivityRecords
-BEGIN
+CREATE TRIGGER activityrecords_ad AFTER DELETE ON ActivityRecords BEGIN
     DELETE FROM ActivityRecordsFts WHERE id = old.id;
 END;
 
@@ -52,39 +52,67 @@ END;
 -- ================================================
 
 insert:
-INSERT INTO ActivityRecords(id, text, createdAt, startTime, endTime, reminderTime, targetId, targetType, goalId, projectId)
-VALUES (:id, :text, :createdAt, :startTime, :endTime, :reminderTime, :targetId, :targetType, :goalId, :projectId);
+INSERT INTO ActivityRecords(id, name, description, createdAt, startTime, endTime, totalTimeSpentMinutes, tags, relatedLinks, isCompleted, activityType, parentProjectId)
+VALUES (:id, :name, :description, :createdAt, :startTime, :endTime, :totalTimeSpentMinutes, :tags, :relatedLinks, :isCompleted, :activityType, :parentProjectId);
 
 update:
 UPDATE ActivityRecords SET
-    text = :text,
+    name = :name,
+    description = :description,
     createdAt = :createdAt,
     startTime = :startTime,
     endTime = :endTime,
-    reminderTime = :reminderTime,
-    targetId = :targetId,
-    targetType = :targetType,
-    goalId = :goalId,
-    projectId = :projectId
+    totalTimeSpentMinutes = :totalTimeSpentMinutes,
+    tags = :tags,
+    relatedLinks = :relatedLinks,
+    isCompleted = :isCompleted,
+    activityType = :activityType,
+    parentProjectId = :parentProjectId
 WHERE id = :id;
 
 delete:
 DELETE FROM ActivityRecords WHERE id = :id;
 
-getById:
+findById:
 SELECT * FROM ActivityRecords WHERE id = :id;
 
-getAll:
+selectAll:
 SELECT * FROM ActivityRecords ORDER BY createdAt DESC;
 
+clearAll:
+DELETE FROM ActivityRecords;
+
 -- ================================================
--- 🔎 FTS-пошук БЕЗ JOIN (безпечний для SQLDelight)
+-- 🔎 Специфічні запити
 -- ================================================
+
+findLastOngoingActivity:
+SELECT * FROM ActivityRecords WHERE endTime IS NULL ORDER BY startTime DESC LIMIT 1;
+
+findLastOngoingActivityForProject:
+SELECT * FROM ActivityRecords WHERE parentProjectId = :projectId AND endTime IS NULL ORDER BY startTime DESC LIMIT 1;
+
+-- findLastOngoingActivityForGoal:
+-- SELECT * FROM ActivityRecords WHERE goalId = :goalId AND endTime IS NULL ORDER BY startTime DESC LIMIT 1;
+
+-- getCompletedActivitiesForProject:
+-- SELECT * FROM ActivityRecords
+-- WHERE parentProjectId = :projectId
+-- AND id IN (SELECT targetId FROM GoalTargets WHERE goalId IN :goalIds)
+-- AND startTime >= :startTime AND endTime <= :endTime
+-- ORDER BY createdAt DESC;
+
+-- getAllCompletedActivitiesForProject:
+-- SELECT * FROM ActivityRecords
+-- WHERE parentProjectId = :projectId
+-- AND id IN (SELECT targetId FROM GoalTargets WHERE goalId IN :goalIds)
+-- ORDER BY createdAt DESC;
+
 search:
-SELECT id, text, createdAt, startTime, endTime, reminderTime, targetId, targetType, goalId, projectId
+SELECT *
 FROM ActivityRecords
 WHERE id IN (
-    SELECT rowid FROM ActivityRecordsFts
-    WHERE ActivityRecordsFts MATCH ?1
+    SELECT id FROM ActivityRecordsFts
+    WHERE ActivityRecordsFts MATCH :query
 )
 ORDER BY createdAt DESC;

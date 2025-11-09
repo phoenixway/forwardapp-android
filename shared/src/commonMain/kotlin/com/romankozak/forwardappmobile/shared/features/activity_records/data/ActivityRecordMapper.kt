@@ -2,35 +2,42 @@ package com.romankozak.forwardappmobile.shared.features.activity_records.data
 
 import com.romankozak.forwardappmobile.shared.database.ActivityRecords
 import com.romankozak.forwardappmobile.shared.data.database.models.ActivityRecord as DomainActivityRecord
+import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 fun ActivityRecords.toDomain(): DomainActivityRecord {
     return DomainActivityRecord(
         id = this.id,
-        name = this.text,
-        description = null,
+        name = this.name,
+        description = this.description,
         createdAt = this.createdAt,
         startTime = this.startTime,
         endTime = this.endTime,
-        totalTimeSpentMinutes = if (this.startTime != null && this.endTime != null) (this.endTime - this.startTime) / 60000 else null,
-        tags = null,
-        relatedLinks = null,
-        isCompleted = this.endTime != null,
-        activityType = this.targetType ?: "",
-        parentProjectId = this.projectId,
+        totalTimeSpentMinutes = this.totalTimeSpentMinutes,
+        tags = this.tags?.let { Json.decodeFromString<List<String>>(it) },
+        relatedLinks = this.relatedLinks,
+        isCompleted = this.isCompleted,
+        activityType = this.activityType,
+        parentProjectId = this.parentProjectId
     )
 }
 
 fun DomainActivityRecord.toSqlDelight(): ActivityRecords {
     return ActivityRecords(
         id = this.id,
-        text = this.name,
+        name = this.name,
+        description = this.description,
         createdAt = this.createdAt,
         startTime = this.startTime,
         endTime = this.endTime,
-        reminderTime = null,
-        targetId = null,
-        targetType = this.activityType,
-        goalId = null,
-        projectId = this.parentProjectId,
+        totalTimeSpentMinutes = this.totalTimeSpentMinutes,
+        tags = this.tags?.let { Json.encodeToString(it) },
+        relatedLinks = this.relatedLinks,
+        isCompleted = this.isCompleted,
+        activityType = this.activityType,
+        parentProjectId = this.parentProjectId
     )
 }
