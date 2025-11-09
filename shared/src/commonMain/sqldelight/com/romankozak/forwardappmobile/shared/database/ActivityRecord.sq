@@ -1,6 +1,8 @@
--- Основна таблиця
+-- ================================================
+-- 🗃 Основна таблиця ActivityRecords
+-- ================================================
 CREATE TABLE ActivityRecords (
-    id TEXT NOT NULL PRIMARY KEY,
+    id TEXT PRIMARY KEY,
     text TEXT NOT NULL,
     createdAt INTEGER NOT NULL,
     startTime INTEGER,
@@ -12,12 +14,46 @@ CREATE TABLE ActivityRecords (
     projectId TEXT
 );
 
--- Queries
+-- ================================================
+-- 🔍 FTS5 таблиця (без content=, без rowid JOIN)
+-- ================================================
+CREATE VIRTUAL TABLE ActivityRecordsFts USING fts5(
+    id UNINDEXED,      -- зберігаємо id, але не індексуємо
+    text               -- тільки текст індексується
+);
+
+-- ================================================
+-- 🔄 Тригери — синхрон FTS ↔ ActivityRecords
+-- ================================================
+
+-- INSERT
+CREATE TRIGGER activityrecords_ai AFTER INSERT ON ActivityRecords
+BEGIN
+    INSERT INTO ActivityRecordsFts(id, text)
+    VALUES (new.id, new.text);
+END;
+
+-- UPDATE
+CREATE TRIGGER activityrecords_au AFTER UPDATE ON ActivityRecords
+BEGIN
+    DELETE FROM ActivityRecordsFts WHERE id = old.id;
+    INSERT INTO ActivityRecordsFts(id, text)
+    VALUES (new.id, new.text);
+END;
+
+-- DELETE
+CREATE TRIGGER activityrecords_ad AFTER DELETE ON ActivityRecords
+BEGIN
+    DELETE FROM ActivityRecordsFts WHERE id = old.id;
+END;
+
+-- ================================================
+-- ✅ CRUD-запити
+-- ================================================
 
 insert:
-INSERT OR REPLACE INTO ActivityRecords(
-    id, text, createdAt, startTime, endTime, reminderTime, targetId, targetType, goalId, projectId
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO ActivityRecords(id, text, createdAt, startTime, endTime, reminderTime, targetId, targetType, goalId, projectId)
+VALUES (:id, :text, :createdAt, :startTime, :endTime, :reminderTime, :targetId, :targetType, :goalId, :projectId);
 
 update:
 UPDATE ActivityRecords SET
@@ -32,43 +68,23 @@ UPDATE ActivityRecords SET
     projectId = :projectId
 WHERE id = :id;
 
-selectAll:
-SELECT * FROM ActivityRecords ORDER BY createdAt ASC;
-
-findLastOngoingActivity:
-SELECT * FROM ActivityRecords 
-WHERE endTime IS NULL AND startTime IS NOT NULL 
-ORDER BY startTime DESC 
-LIMIT 1;
-
-findLastOngoingActivityForGoal:
-SELECT * FROM ActivityRecords 
-WHERE goalId = :goalId AND endTime IS NULL AND startTime IS NOT NULL 
-ORDER BY startTime DESC 
-LIMIT 1;
-
-findLastOngoingActivityForProject:
-SELECT * FROM ActivityRecords 
-WHERE projectId = :projectId AND endTime IS NULL AND startTime IS NOT NULL 
-ORDER BY startTime DESC 
-LIMIT 1;
-
-getCompletedActivitiesForProject:
-SELECT * FROM ActivityRecords
-WHERE (projectId = :projectId OR goalId IN :goalIds)
-AND createdAt BETWEEN :startTime AND :endTime
-AND startTime IS NOT NULL AND endTime IS NOT NULL;
-
-clearAll:
-DELETE FROM ActivityRecords;
-
 delete:
 DELETE FROM ActivityRecords WHERE id = :id;
 
-getAllCompletedActivitiesForProject:
-SELECT * FROM ActivityRecords
-WHERE (projectId = :projectId OR goalId IN :goalIds)
-AND startTime IS NOT NULL AND endTime IS NOT NULL;
+getById:
+SELECT * FROM ActivityRecords WHERE id = :id;
 
-findById:
-SELECT * FROM ActivityRecords WHERE id = :recordId;
+getAll:
+SELECT * FROM ActivityRecords ORDER BY createdAt DESC;
+
+-- ================================================
+-- 🔎 FTS-пошук БЕЗ JOIN (безпечний для SQLDelight)
+-- ================================================
+search:
+SELECT id, text, createdAt, startTime, endTime, reminderTime, targetId, targetType, goalId, projectId
+FROM ActivityRecords
+WHERE id IN (
+    SELECT rowid FROM ActivityRecordsFts
+    WHERE ActivityRecordsFts MATCH ?1
+)
+ORDER BY createdAt DESC;

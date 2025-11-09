@@ -28,4 +28,4 @@ import com.romankozak.forwardappmobile.shared.database.reminders;
 import com.romankozak.forwardappmobile.shared.database.Reminders;
 import com.romankozak.forwardappmobile.shared.database.LinkItem;
 import com.romankozak.forwardappmobile.shared.database.ActivityRecord;
-import com.romankozak.forwardappmobile.shared.database.ActivityRecordSearch;
+
