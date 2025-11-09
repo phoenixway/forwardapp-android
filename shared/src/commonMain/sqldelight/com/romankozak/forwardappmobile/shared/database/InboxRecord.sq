@@ -1,22 +1,24 @@
+import kotlin.Long;
+
 CREATE TABLE InboxRecords (
     id TEXT NOT NULL PRIMARY KEY,
     projectId TEXT NOT NULL,
     text TEXT NOT NULL,
-    createdAt INTEGER NOT NULL,
-    item_order INTEGER NOT NULL DEFAULT 0
+    createdAt INTEGER AS kotlin.Long NOT NULL,
+    `order` INTEGER AS kotlin.Long NOT NULL DEFAULT 0
 );
 
 getRecordsForProject:
-SELECT * FROM InboxRecords WHERE projectId = :projectId ORDER BY item_order DESC;
+SELECT * FROM InboxRecords WHERE projectId = :projectId ORDER BY `order` DESC;
 
 getRecordById:
 SELECT * FROM InboxRecords WHERE id = :id;
 
 insert:
-INSERT OR REPLACE INTO InboxRecords(id, projectId, text, createdAt, item_order) VALUES (?, ?, ?, ?, ?);
+INSERT INTO InboxRecords(id, projectId, text, createdAt, `order`) VALUES (:id, :projectId, :text, :createdAt, :order);
 
 update:
-UPDATE InboxRecords SET projectId = :projectId, text = :text, createdAt = :createdAt, item_order = :item_order WHERE id = :id;
+UPDATE InboxRecords SET projectId = :projectId, text = :text, createdAt = :createdAt, `order` = :order WHERE id = :id;
 
 deleteById:
 DELETE FROM InboxRecords WHERE id = :id;

@@ -9,7 +9,7 @@ fun InboxRecords.toDomain(): DomainInboxRecord {
         projectId = this.projectId,
         text = this.text,
         createdAt = this.createdAt,
-        order = this.item_order
+        order = this.order
     )
 }
 
@@ -19,6 +19,6 @@ fun DomainInboxRecord.toSqlDelight(): InboxRecords {
         projectId = this.projectId,
         text = this.text,
         createdAt = this.createdAt,
-        item_order = this.order
+        `order` = this.order
     )
 }

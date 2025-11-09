@@ -66,11 +66,12 @@ fun createForwardAppDatabase(
         ActivityRecordsAdapter = ActivityRecords.Adapter(
             relatedLinksAdapter = relatedLinksListAdapter
         ),
-        DayPlansAdapter = DayPlans.Adapter(statusAdapter = dayStatusAdapter),
-        DayTasksAdapter = DayTasks.Adapter(
-            priorityAdapter = taskPriorityAdapter,
-            statusAdapter = taskStatusAdapter
-        ),
+        InboxRecordsAdapter = InboxRecords.Adapter(),
+        // DayPlansAdapter = DayPlans.Adapter(statusAdapter = dayStatusAdapter),
+        // DayTasksAdapter = DayTasks.Adapter(
+        //     priorityAdapter = taskPriorityAdapter,
+        //     statusAdapter = taskStatusAdapter
+        // ),
         GoalsAdapter = Goals.Adapter(
             relatedLinksAdapter = relatedLinksListAdapter
         )
