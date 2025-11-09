@@ -9,9 +9,6 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
-import com.romankozak.forwardappmobile.shared.features.daily_metrics.toDomain
 
 class DailyMetricRepositoryImpl(
     private val db: ForwardAppDatabase,
@@ -49,7 +46,7 @@ class DailyMetricRepositoryImpl(
                 date = metric.date,
                 tasksPlanned = metric.tasksPlanned.toLong(),
                 tasksCompleted = metric.tasksCompleted.toLong(),
-                completionRate = metric.completionRate.toDouble(),
+                completionRate = metric.completionRate,
                 totalPlannedTime = metric.totalPlannedTime,
                 totalActiveTime = metric.totalActiveTime,
                 completedPoints = metric.completedPoints.toLong(),
@@ -58,7 +55,7 @@ class DailyMetricRepositoryImpl(
                 eveningEnergyLevel = metric.eveningEnergyLevel?.toLong(),
                 overallMood = metric.overallMood,
                 stressLevel = metric.stressLevel?.toLong(),
-                customMetrics = metric.customMetrics?.let { Json.encodeToString(it) },
+                customMetrics = metric.customMetrics?.mapValues { it.value.toDouble() },
                 createdAt = metric.createdAt,
                 updatedAt = metric.updatedAt
             )

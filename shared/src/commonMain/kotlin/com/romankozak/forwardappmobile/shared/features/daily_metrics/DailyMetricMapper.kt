@@ -2,9 +2,6 @@ package com.romankozak.forwardappmobile.shared.features.daily_metrics
 
 import com.romankozak.forwardappmobile.shared.data.database.models.DailyMetric
 import com.romankozak.forwardappmobile.shared.database.DailyMetrics
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 
 fun DailyMetrics.toDomain(): DailyMetric {
     return DailyMetric(
@@ -14,7 +11,6 @@ fun DailyMetrics.toDomain(): DailyMetric {
         tasksPlanned = tasksPlanned.toInt(),
         tasksCompleted = tasksCompleted.toInt(),
         completionRate = completionRate,
-        customMetrics = customMetrics?.let { Json.decodeFromString(it) },
         totalPlannedTime = totalPlannedTime,
         totalActiveTime = totalActiveTime,
         completedPoints = completedPoints.toInt(),

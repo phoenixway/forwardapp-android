@@ -1,9 +1,6 @@
 package com.romankozak.forwardappmobile.shared.data.database.models
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 
 @Serializable
 data class DailyMetric(
@@ -13,7 +10,6 @@ data class DailyMetric(
     val tasksPlanned: Int = 0,
     val tasksCompleted: Int = 0,
     val completionRate: Double = 0.0,
-    val customMetrics: Map<String, Double>? = null,
     val totalPlannedTime: Long = 0,
     val totalActiveTime: Long = 0,
     val completedPoints: Int = 0,
