@@ -1,18 +1,19 @@
 package com.romankozak.forwardappmobile.shared.database
 
+import app.cash.sqldelight.ColumnAdapter
 import app.cash.sqldelight.db.SqlDriver
+import com.romankozak.forwardappmobile.shared.data.database.models.ProjectType
+import com.romankozak.forwardappmobile.shared.data.database.models.RecurrenceFrequency
+import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
+import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLinkList
+import com.romankozak.forwardappmobile.shared.data.database.models.ReservedGroup
 import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.DayStatus
 import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.TaskPriority
 import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.TaskStatus
-import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
-import app.cash.sqldelight.ColumnAdapter
-import com.romankozak.forwardappmobile.shared.data.database.models.ProjectType
-import com.romankozak.forwardappmobile.shared.data.database.models.RecurrenceFrequency
-import com.romankozak.forwardappmobile.shared.data.database.models.ReservedGroup
-import kotlinx.serialization.json.Json
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.Json
 
 /**
  * Platform-specific configuration needed to create a SQLDelight driver.
@@ -33,6 +34,11 @@ private val booleanAdapter = object : ColumnAdapter<Boolean, Long> {
     override fun encode(value: Boolean) = if (value) 1L else 0L
 }
 
+private val intAdapter = object : ColumnAdapter<Int, Long> {
+    override fun decode(databaseValue: Long) = databaseValue.toInt()
+    override fun encode(value: Int) = value.toLong()
+}
+
 private val longAdapter = object : ColumnAdapter<Long, Long> {
     override fun decode(databaseValue: Long) = databaseValue
     override fun encode(value: Long) = value
@@ -50,8 +56,8 @@ private val stringListAdapter = object : ColumnAdapter<List<String>, String> {
     override fun encode(value: List<String>) = value.joinToString(separator = ",")
 }
 
-private val relatedLinksListAdapter = object : ColumnAdapter<List<RelatedLink>, String> {
-    override fun decode(databaseValue: String): List<RelatedLink> {
+private val relatedLinksListAdapter = object : ColumnAdapter<RelatedLinkList, String> {
+    override fun decode(databaseValue: String): RelatedLinkList {
         return if (databaseValue.isEmpty()) {
             emptyList()
         } else {
@@ -59,7 +65,7 @@ private val relatedLinksListAdapter = object : ColumnAdapter<List<RelatedLink>, 
         }
     }
 
-    override fun encode(value: List<RelatedLink>): String {
+    override fun encode(value: RelatedLinkList): String {
         return Json.encodeToString(ListSerializer(RelatedLink.serializer()), value)
     }
 }
@@ -74,18 +80,17 @@ private val customMetricsAdapter = object : ColumnAdapter<Map<String, Double>, S
     }
 }
 
-private val taskPriorityAdapter =
-    EnumColumnAdapter<TaskPriority>()
-private val taskStatusAdapter =
-    EnumColumnAdapter<TaskStatus>()
-private val dayStatusAdapter =
-    EnumColumnAdapter<DayStatus>()
-private val recurrenceFrequencyAdapter =
-    EnumColumnAdapter<RecurrenceFrequency>()
-private val projectTypeAdapter =
-    EnumColumnAdapter<ProjectType>()
-private val reservedGroupAdapter =
-    EnumColumnAdapter<ReservedGroup>()
+private inline fun <reified T : Enum<T>> EnumColumnAdapter() = object : ColumnAdapter<T, String> {
+    override fun decode(databaseValue: String): T = enumValueOf(databaseValue)
+    override fun encode(value: T): String = value.name
+}
+
+private val taskPriorityAdapter: ColumnAdapter<TaskPriority, String> = EnumColumnAdapter()
+private val taskStatusAdapter: ColumnAdapter<TaskStatus, String> = EnumColumnAdapter()
+private val dayStatusAdapter: ColumnAdapter<DayStatus, String> = EnumColumnAdapter()
+private val recurrenceFrequencyAdapter: ColumnAdapter<RecurrenceFrequency, String> = EnumColumnAdapter()
+private val projectTypeAdapter: ColumnAdapter<ProjectType, String> = EnumColumnAdapter()
+private val reservedGroupAdapter: ColumnAdapter<ReservedGroup, String> = EnumColumnAdapter()
 
 fun createForwardAppDatabase(
     driverFactory: DatabaseDriverFactory,
@@ -106,7 +111,24 @@ fun createForwardAppDatabase(
         ),
         GoalsAdapter = Goals.Adapter(
             completedAdapter = booleanAdapter,
-            relatedLinksAdapter = relatedLinksListAdapter
+            createdAtAdapter = longAdapter,
+            updatedAtAdapter = longAdapter,
+            tagsAdapter = stringListAdapter,
+            relatedLinksAdapter = relatedLinksListAdapter,
+            valueImportanceAdapter = doubleAdapter,
+            valueImpactAdapter = doubleAdapter,
+            effortAdapter = doubleAdapter,
+            costAdapter = doubleAdapter,
+            riskAdapter = doubleAdapter,
+            weightEffortAdapter = doubleAdapter,
+            weightCostAdapter = doubleAdapter,
+            weightRiskAdapter = doubleAdapter,
+            rawScoreAdapter = doubleAdapter,
+            displayScoreAdapter = intAdapter,
+            parentValueImportanceAdapter = doubleAdapter,
+            impactOnParentGoalAdapter = doubleAdapter,
+            timeCostAdapter = doubleAdapter,
+            financialCostAdapter = doubleAdapter
         ),
         NoteDocumentsAdapter = NoteDocuments.Adapter(),
         NoteDocumentItemsAdapter = NoteDocumentItems.Adapter(
@@ -138,18 +160,18 @@ fun createForwardAppDatabase(
         ProjectExecutionLogsAdapter = ProjectExecutionLogs.Adapter(),
         ConversationFoldersAdapter = ConversationFolders.Adapter(),
         DailyMetricsAdapter = DailyMetrics.Adapter(
+            dateAdapter = longAdapter,
             tasksPlannedAdapter = longAdapter,
             tasksCompletedAdapter = longAdapter,
             completionRateAdapter = doubleAdapter,
+            totalPlannedTimeAdapter = longAdapter,
+            totalActiveTimeAdapter = longAdapter,
             completedPointsAdapter = longAdapter,
+            totalBreakTimeAdapter = longAdapter,
             morningEnergyLevelAdapter = longAdapter,
             eveningEnergyLevelAdapter = longAdapter,
             stressLevelAdapter = longAdapter,
             customMetricsAdapter = customMetricsAdapter,
-            dateAdapter = longAdapter,
-            totalPlannedTimeAdapter = longAdapter,
-            totalActiveTimeAdapter = longAdapter,
-            totalBreakTimeAdapter = longAdapter,
             createdAtAdapter = longAdapter,
             updatedAtAdapter = longAdapter
         ),

@@ -1,71 +1,51 @@
 import kotlin.Boolean;
-import kotlin.collections.List;
-import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink;
+import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLinkList;
 import kotlin.Long;
-import kotlin.Float;
+import kotlin.Double;
 import kotlin.Int;
 import kotlin.String;
+import kotlin.collections.List;
 
--- ============================================
--- 📌 TABLE: Goals
--- ============================================
 CREATE TABLE Goals (
-    id TEXT AS kotlin.String NOT NULL PRIMARY KEY,
-    text TEXT AS kotlin.String NOT NULL,
-    description TEXT AS kotlin.String,
-    completed INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
-    createdAt INTEGER AS kotlin.Long NOT NULL,
-    updatedAt INTEGER AS kotlin.Long,
-    tags TEXT AS kotlin.collections.List<kotlin.String>,
-    relatedLinks TEXT AS kotlin.collections.List<com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink>,
-    valueImportance REAL AS kotlin.Float NOT NULL DEFAULT 0.0,
-    valueImpact REAL AS kotlin.Float NOT NULL DEFAULT 0.0,
-    effort REAL AS kotlin.Float NOT NULL DEFAULT 0.0,
-    cost REAL AS kotlin.Float NOT NULL DEFAULT 0.0,
-    risk REAL AS kotlin.Float NOT NULL DEFAULT 0.0,
-    weightEffort REAL AS kotlin.Float NOT NULL DEFAULT 1.0,
-    weightCost REAL AS kotlin.Float NOT NULL DEFAULT 1.0,
-    weightRisk REAL AS kotlin.Float NOT NULL DEFAULT 1.0,
-    rawScore REAL AS kotlin.Float NOT NULL DEFAULT 0.0,
-    displayScore INTEGER AS kotlin.Int NOT NULL DEFAULT 0,
-    scoringStatus TEXT AS kotlin.String NOT NULL,
-    parentValueImportance REAL AS kotlin.Float,
-    impactOnParentGoal REAL AS kotlin.Float,
-    timeCost REAL AS kotlin.Float,
-    financialCost REAL AS kotlin.Float,
-    markdown TEXT AS kotlin.String
+    id TEXT NOT NULL PRIMARY KEY,
+    text TEXT NOT NULL,
+    description TEXT,
+    completed INTEGER AS Boolean NOT NULL DEFAULT 0,
+    createdAt INTEGER AS Long NOT NULL,
+    updatedAt INTEGER AS Long,
+    tags TEXT AS List<String>,
+    relatedLinks TEXT AS RelatedLinkList,
+    valueImportance REAL AS Double NOT NULL DEFAULT 0.0,
+    valueImpact REAL AS Double NOT NULL DEFAULT 0.0,
+    effort REAL AS Double NOT NULL DEFAULT 0.0,
+    cost REAL AS Double NOT NULL DEFAULT 0.0,
+    risk REAL AS Double NOT NULL DEFAULT 0.0,
+    weightEffort REAL AS Double NOT NULL DEFAULT 1.0,
+    weightCost REAL AS Double NOT NULL DEFAULT 1.0,
+    weightRisk REAL AS Double NOT NULL DEFAULT 1.0,
+    rawScore REAL AS Double NOT NULL DEFAULT 0.0,
+    displayScore INTEGER AS Int NOT NULL DEFAULT 0,
+    scoringStatus TEXT NOT NULL,
+    parentValueImportance REAL AS Double,
+    impactOnParentGoal REAL AS Double,
+    timeCost REAL AS Double,
+    financialCost REAL AS Double,
+    markdown TEXT
 );
 
--- ============================================
--- ✅ INSERT
--- ============================================
 insertGoal:
-INSERT INTO Goals (
-    id, text, description, completed,
-    createdAt, updatedAt,
-    tags, relatedLinks,
-    valueImportance, valueImpact, effort, cost, risk,
-    weightEffort, weightCost, weightRisk,
-    rawScore, displayScore,
-    scoringStatus,
-    parentValueImportance, impactOnParentGoal,
-    timeCost, financialCost, markdown
-)
-VALUES (
-    :id, :text, :description, :completed,
-    :createdAt, :updatedAt,
-    :tags, :relatedLinks,
-    :valueImportance, :valueImpact, :effort, :cost, :risk,
-    :weightEffort, :weightCost, :weightRisk,
-    :rawScore, :displayScore,
-    :scoringStatus,
-    :parentValueImportance, :impactOnParentGoal,
-    :timeCost, :financialCost, :markdown
+INSERT OR REPLACE INTO Goals (
+    id, text, description, completed, createdAt, updatedAt, tags, relatedLinks,
+    valueImportance, valueImpact, effort, cost, risk, weightEffort, weightCost,
+    weightRisk, rawScore, displayScore, scoringStatus, parentValueImportance,
+    impactOnParentGoal, timeCost, financialCost, markdown
+) VALUES (
+    :id, :text, :description, :completed, :createdAt, :updatedAt, :tags, :relatedLinks,
+    :valueImportance, :valueImpact, :effort, :cost, :risk, :weightEffort, :weightCost,
+    :weightRisk, :rawScore, :displayScore, :scoringStatus, :parentValueImportance,
+    :impactOnParentGoal, :timeCost, :financialCost, :markdown
 );
 
--- ============================================
--- ✅ UPDATE
--- ============================================
 updateGoal:
 UPDATE Goals SET
     text = :text,
@@ -92,47 +72,26 @@ UPDATE Goals SET
     markdown = :markdown
 WHERE id = :id;
 
--- ============================================
--- ✅ DELETE
--- ============================================
 deleteGoal:
 DELETE FROM Goals WHERE id = :id;
 
 deleteAll:
 DELETE FROM Goals;
 
--- ============================================
--- ✅ SELECT: BY ID
--- ============================================
 getGoalById:
 SELECT * FROM Goals WHERE id = :id;
 
--- ============================================
--- ✅ SELECT: ALL
--- ============================================
 getAllGoals:
 SELECT * FROM Goals ORDER BY createdAt DESC;
 
--- ============================================
--- ✅ SELECT: BY IDs
--- ============================================
 getGoalsByIds:
 SELECT * FROM Goals WHERE id IN :ids;
 
--- ============================================
--- ✅ SEARCH
--- ============================================
 searchGoalsByText:
 SELECT * FROM Goals WHERE text LIKE '%' || :query || '%' OR description LIKE '%' || :query || '%';
 
--- ============================================
--- ✅ COUNT
--- ============================================
 getAllGoalsCount:
 SELECT count(*) FROM Goals;
 
--- ============================================
--- ✅ UPDATE MARKDOWN
--- ============================================
 updateMarkdown:
 UPDATE Goals SET markdown = :markdown WHERE id = :goalId;
