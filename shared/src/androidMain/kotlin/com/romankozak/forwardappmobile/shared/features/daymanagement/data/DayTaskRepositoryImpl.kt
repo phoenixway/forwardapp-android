@@ -5,6 +5,7 @@ import app.cash.sqldelight.coroutines.mapToList
 import app.cash.sqldelight.coroutines.mapToOneOrNull
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.DayTask
+import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.TaskStatus
 import com.romankozak.forwardappmobile.shared.features.daymanagement.domain.DayTaskRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
@@ -33,7 +34,7 @@ class DayTaskRepositoryImpl(
 
     override suspend fun getMaxOrderForDayPlan(dayPlanId: String): Long? {
         return withContext(ioDispatcher) {
-            db.dayTaskQueries.getMaxOrderForDayPlan(dayPlanId).executeAsOneOrNull()
+            db.dayTaskQueries.getMaxOrderForDayPlan(dayPlanId).executeAsOneOrNull()?.MAX?.toLong()
         }
     }
 
@@ -74,7 +75,7 @@ class DayTaskRepositoryImpl(
             db.dayTaskQueries.updateTaskCompletion(
                 taskId = taskId,
                 completed = if (completed) 1L else 0L,
-                status = status.name,
+                status = status,
                 completedAt = completedAt,
                 updatedAt = updatedAt
             )
@@ -83,19 +84,30 @@ class DayTaskRepositoryImpl(
 
     override suspend fun deleteTasksForDayPlanIds(recurringTaskId: String, dayPlanIds: List<String>) {
         withContext(ioDispatcher) {
-            db.dayTaskQueries.deleteTasksForDayPlanIds(recurringTaskId, dayPlanIds)
+            db.dayTaskQueries.deleteTasksForDayPlanIds(
+                recurringTaskId = recurringTaskId,
+                dayPlanIds = dayPlanIds
+            )
         }
     }
 
     override suspend fun linkTaskWithActivity(taskId: String, activityRecordId: String, updatedAt: Long) {
         withContext(ioDispatcher) {
-            db.dayTaskQueries.linkTaskWithActivity(taskId, activityRecordId, updatedAt)
+            db.dayTaskQueries.linkTaskWithActivity(
+                activityRecordId = activityRecordId,
+                updatedAt = updatedAt,
+                taskId = taskId
+            )
         }
     }
 
     override suspend fun updateTaskDuration(taskId: String, durationMinutes: Long, updatedAt: Long) {
         withContext(ioDispatcher) {
-            db.dayTaskQueries.updateTaskDuration(taskId, durationMinutes, updatedAt)
+            db.dayTaskQueries.updateTaskDuration(
+                durationMinutes = durationMinutes,
+                updatedAt = updatedAt,
+                taskId = taskId
+            )
         }
     }
 
@@ -113,25 +125,97 @@ class DayTaskRepositoryImpl(
 
     override suspend fun detachFromRecurrence(taskId: String) {
         withContext(ioDispatcher) {
-            db.dayTaskQueries.detachFromRecurrence(taskId, Clock.System.now().toEpochMilliseconds())
+            db.dayTaskQueries.detachFromRecurrence(
+                updatedAt = Clock.System.now().toEpochMilliseconds(),
+                taskId = taskId
+            )
         }
     }
 
     override suspend fun updateNextOccurrenceTime(taskId: String, nextOccurrenceTime: Long) {
         withContext(ioDispatcher) {
-            db.dayTaskQueries.updateNextOccurrenceTime(taskId, nextOccurrenceTime, Clock.System.now().toEpochMilliseconds())
+            db.dayTaskQueries.updateNextOccurrenceTime(
+                nextOccurrenceTime = nextOccurrenceTime,
+                updatedAt = Clock.System.now().toEpochMilliseconds(),
+                taskId = taskId
+            )
         }
     }
 
     override suspend fun insertDayTask(dayTask: DayTask) {
         withContext(ioDispatcher) {
-            db.dayTaskQueries.insert(dayTask.toSqlDelight())
+            val task = dayTask.toSqlDelight()
+            db.dayTaskQueries.insert(
+                id = task.id,
+                dayPlanId = task.dayPlanId,
+                title = task.title,
+                description = task.description,
+                goalId = task.goalId,
+                projectId = task.projectId,
+                activityRecordId = task.activityRecordId,
+                recurringTaskId = task.recurringTaskId,
+                taskType = task.taskType,
+                entityId = task.entityId,
+                order = task.order,
+                priority = task.priority,
+                status = task.status,
+                completed = task.completed,
+                scheduledTime = task.scheduledTime,
+                estimatedDurationMinutes = task.estimatedDurationMinutes,
+                actualDurationMinutes = task.actualDurationMinutes,
+                dueTime = task.dueTime,
+                valueImportance = task.valueImportance,
+                valueImpact = task.valueImpact,
+                effort = task.effort,
+                cost = task.cost,
+                risk = task.risk,
+                location = task.location,
+                tags = task.tags,
+                notes = task.notes,
+                createdAt = task.createdAt,
+                updatedAt = task.updatedAt,
+                completedAt = task.completedAt,
+                nextOccurrenceTime = task.nextOccurrenceTime,
+                points = task.points
+            )
         }
     }
 
     override suspend fun updateDayTask(dayTask: DayTask) {
         withContext(ioDispatcher) {
-            db.dayTaskQueries.update(dayTask.toSqlDelight())
+            val task = dayTask.toSqlDelight()
+            db.dayTaskQueries.update(
+                id = task.id,
+                dayPlanId = task.dayPlanId,
+                title = task.title,
+                description = task.description,
+                goalId = task.goalId,
+                projectId = task.projectId,
+                activityRecordId = task.activityRecordId,
+                recurringTaskId = task.recurringTaskId,
+                taskType = task.taskType,
+                entityId = task.entityId,
+                order = task.order,
+                priority = task.priority,
+                status = task.status,
+                completed = task.completed,
+                scheduledTime = task.scheduledTime,
+                estimatedDurationMinutes = task.estimatedDurationMinutes,
+                actualDurationMinutes = task.actualDurationMinutes,
+                dueTime = task.dueTime,
+                valueImportance = task.valueImportance,
+                valueImpact = task.valueImpact,
+                effort = task.effort,
+                cost = task.cost,
+                risk = task.risk,
+                location = task.location,
+                tags = task.tags,
+                notes = task.notes,
+                updatedAt = task.updatedAt,
+                completedAt = task.completedAt,
+                nextOccurrenceTime = task.nextOccurrenceTime,
+                points = task.points
+            )
         }
     }
 

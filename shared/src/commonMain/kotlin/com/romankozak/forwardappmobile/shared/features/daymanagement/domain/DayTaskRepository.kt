@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.shared.features.daymanagement.domain
 
 import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.DayTask
+import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.TaskStatus
 import kotlinx.coroutines.flow.Flow
 
 interface DayTaskRepository {

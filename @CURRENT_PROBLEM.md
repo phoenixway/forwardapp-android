@@ -1,324 +1,185 @@
-поможи виправити помилки. в чому причина їх? може з таблиць не генеруються класи? як це перевірити? 
+# Поточна проблема: Численні помилки компіляції, пов'язані з невідповідністю типів у SQLDelight
 
-> Task :shared:compileDebugKotlinAndroid
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/features/projects/data/logs/ProjectLogRepositoryImpl.kt:6:56 Unresolved reference 'ProjectExecutionLogQueries'.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/features/projects/data/logs/ProjectLogRepositoryImpl.kt:8:75 Unresolved reference 'mappers'.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/features/projects/data/logs/ProjectLogRepositoryImpl.kt:16:26 Unresolved reference 'ProjectExecutionLogQueries'.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/features/projects/data/logs/ProjectLogRepositoryImpl.kt:21:17 Unresolved reference 'selectByProjectId'.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/features/projects/data/logs/ProjectLogRepositoryImpl.kt:22:14 Cannot infer type for this parameter. Please specify it explicitly.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/features/projects/data/logs/ProjectLogRepositoryImpl.kt:23:14 Cannot infer type for this parameter. Please specify it explicitly.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/features/projects/data/logs/ProjectLogRepositoryImpl.kt:23:14 Not enough information to infer type argument for 'T'.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/features/projects/data/logs/ProjectLogRepositoryImpl.kt:24:14 Cannot infer type for this parameter. Please specify it explicitly.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/features/projects/data/logs/ProjectLogRepositoryImpl.kt:24:14 Not enough information to infer type argument for 'T'.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/features/projects/data/logs/ProjectLogRepositoryImpl.kt:24:20 Cannot infer type for this parameter. Please specify it explicitly.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/features/projects/data/logs/ProjectLogRepositoryImpl.kt:24:28 Type mismatch: inferred type is 'kotlinx.coroutines.flow.Flow<R>', but 'kotlin.collections.List<com.romankozak.forwardappmobile.shared.features.projects.logs.data.model.ProjectExecutionLog>' was expected.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/features/projects/data/logs/ProjectLogRepositoryImpl.kt:24:33 Cannot infer type for this parameter. Please specify it explicitly.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/features/projects/data/logs/ProjectLogRepositoryImpl.kt:24:37 Cannot infer type for this parameter. Please specify it explicitly.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/features/projects/data/logs/ProjectLogRepositoryImpl.kt:24:42 Unresolved reference 'toSharedModel'.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/features/projects/data/logs/ProjectLogRepositoryImpl.kt:46:9 Cannot infer type for this parameter. Please specify it explicitly.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/features/projects/data/logs/ProjectLogRepositoryImpl.kt:46:35 Cannot infer type for this parameter. Please specify it explicitly.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/features/projects/data/logs/ProjectLogRepositoryImpl.kt:47:21 None of the following candidates is applicable:
-fun StringBuilder.insert(index: Int, value: Byte): StringBuilder
-fun StringBuilder.insert(index: Int, value: Short): StringBuilder
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/features/projects/data/logs/ProjectLogRepositoryImpl.kt:59:9 Cannot infer type for this parameter. Please specify it explicitly.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/features/projects/data/logs/ProjectLogRepositoryImpl.kt:59:35 Cannot infer type for this parameter. Please specify it explicitly.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/features/projects/data/logs/ProjectLogRepositoryImpl.kt:60:21 None of the following candidates is applicable:
-fun StringBuilder.insert(index: Int, value: Byte): StringBuilder
-fun StringBuilder.insert(index: Int, value: Short): StringBuilder
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/features/projects/data/logs/ProjectLogRepositoryImpl.kt:72:9 Cannot infer type for this parameter. Please specify it explicitly.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/features/projects/data/logs/ProjectLogRepositoryImpl.kt:72:35 Cannot infer type for this parameter. Please specify it explicitly.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/features/projects/data/logs/ProjectLogRepositoryImpl.kt:73:21 Unresolved reference 'deleteById'.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/shared/features/projects/logs/data/ProjectExecutionLogRepositoryImpl.kt:22:42 Unresolved reference. None of the following candidates is applicable because of a receiver type mismatch:
-fun ProjectExecutionLog.toDomain(): ProjectExecutionLog
+Привіт! Я мовна модель, і я намагаюся вирішити серію помилок компіляції в Android-проекті, який використовує Kotlin Multiplatform та SQLDelight. Після того, як користувач відкотив код до попередньої версії, з'явилося багато помилок, пов'язаних з невідповідністю типів.
 
+## Опис проблеми
+
+Основна проблема полягає в невідповідності типів між:
+1.  **Доменними моделями** (наприклад, `DayTask.kt`, `DayPlan.kt`), які використовуються в бізнес-логіці.
+2.  **Згенерованими SQLDelight класами** (наприклад, `DayTasks.kt`, `DayPlans.kt`), які представляють таблиці бази даних.
+3.  **Функціями-мапперами** (`DayTaskMapper.kt`, `DayPlanMapper.kt`), які повинні перетворювати дані між цими двома моделями.
+4.  **Репозиторіями** (`DayTaskRepositoryImpl.kt`, `DayPlanRepositoryImpl.kt`), які використовують маппери та згенеровані класи для взаємодії з базою даних.
+
+Компілятор видає багато помилок `Argument type mismatch`, `Unresolved reference` та `No value passed for parameter`.
+
+## Текст помилок (останній релевантний)
+
+```
 > Task :shared:compileDebugKotlinAndroid FAILED
+e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/shared/features/daymanagement/data/DayPlanRepositoryImpl.kt:47:26 Argument type mismatch: actual type is 'kotlin.String', but 'com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.DayStatus' was expected.
+e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/shared/features/daymanagement/data/DayPlanRepositoryImpl.kt:49:31 Argument type mismatch: actual type is 'kotlin.Int?', but 'kotlin.Long?' was expected.
+e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/shared/features/daymanagement/data/DayPlanRepositoryImpl.kt:54:40 Argument type mismatch: actual type is 'kotlin.Float', but 'kotlin.Double' was expected.
+e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/shared/features/daymanagement/data/DayTaskRepositoryImpl.kt:36:13 Argument type mismatch: actual type is 'com.romankozak.forwardappmobile.shared.database.GetMaxOrderForDayPlan?', but 'kotlin.Long?' was expected.
+e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/shared/features/daymanagement/data/DayTaskRepositoryImpl.kt:69:17 Unresolved reference 'TaskStatus'.
+e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/shared/features/daymanagement/data/DayTaskRepositoryImpl.kt:128:38 No value passed for parameter 'dayPlanId'.
+e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/shared/features/daymanagement/data/DayPlanMapper.kt:12:36 Argument type mismatch: actual type is 'com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.DayStatus', but 'kotlin.String' was expected.
+e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/shared/features/daymanagement/data/DayTaskMapper.kt:20:22 Unresolved reference 'order_'.
+e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/shared/features/daymanagement/domain/DayTaskRepository.kt:14:82 Unresolved reference 'TaskStatus'.
+```
 
-***
+## Значимі файли
 
-// File: ProjectExecutionLog.kt
+1.  `shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/shared/features/daymanagement/data/DayPlanRepositoryImpl.kt`
+2.  `shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/shared/features/daymanagement/data/DayTaskRepositoryImpl.kt`
+3.  `shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/shared/features/daymanagement/data/DayPlanMapper.kt`
+4.  `shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/shared/features/daymanagement/data/DayTaskMapper.kt`
+5.  `shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/shared/features/daymanagement/domain/DayTaskRepository.kt`
+6.  `shared/src/commonMain/sqldelight/com/romankozak/forwardappmobile/shared/database/DayPlan.sq`
+7.  `shared/src/commonMain/sqldelight/com/romankozak/forwardappmobile/shared/database/DayTask.sq`
 
-package com.romankozak.forwardappmobile.shared.features.projects.logs.data.model
+## Вміст релевантних файлів
 
-import kotlinx.serialization.Serializable
+### `DayPlan.sq`
 
-@Serializable
-data class ProjectExecutionLog(
-val id: String,
-val projectId: String,
-val timestamp: Long,
-val type: String,
-val description: String,
-val details: String? = null,
-)
+```sql
+import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.DayStatus;
 
-***
-
-// File: ProjectExecutionLogMapper.kt
-
-package com.romankozak.forwardappmobile.shared.features.projects.logs.data
-
-import com.romankozak.forwardappmobile.shared.features.projects.logs.data.model.ProjectExecutionLog
-
-fun ProjectExecutionLog.toDomain(): ProjectExecutionLog {
-return ProjectExecutionLog(
-id = this.id,
-projectId = this.projectId,
-timestamp = this.timestamp,
-type = this.type,
-description = this.description,
-details = this.details
-)
-}
-
-***
-
-package com.romankozak.forwardappmobile.shared.features.projects.logs.domain
-
-import com.romankozak.forwardappmobile.shared.features.projects.logs.data.model.ProjectExecutionLog
-import kotlinx.coroutines.flow.Flow
-
-interface ProjectExecutionLogRepository {
-fun getProjectLogsStream(projectId: String): Flow<List<ProjectExecutionLog>>
-suspend fun addProjectLogEntry(log: ProjectExecutionLog)
-suspend fun updateProjectExecutionLog(log: ProjectExecutionLog)
-suspend fun deleteProjectExecutionLog(log: ProjectExecutionLog)
-}
-
-***
-
-// File: ProjectExecutionLogRepositoryImpl.kt
-
-package com.romankozak.forwardappmobile.shared.features.projects.logs.data
-
-import app.cash.sqldelight.coroutines.asFlow
-import app.cash.sqldelight.coroutines.mapToList
-import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
-import com.romankozak.forwardappmobile.shared.features.projects.logs.data.model.ProjectExecutionLog
-import com.romankozak.forwardappmobile.shared.features.projects.logs.domain.ProjectExecutionLogRepository
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.withContext
-
-class ProjectExecutionLogRepositoryImpl(
-// WARNING: Class "ProjectExecutionLogRepositoryImpl" is never used
-private val db: ForwardAppDatabase,
-private val ioDispatcher: CoroutineDispatcher
-) : ProjectExecutionLogRepository {
-
-    override fun getProjectLogsStream(projectId: String): Flow<List<ProjectExecutionLog>> {
-        return db.projectExecutionLogsQueries.selectAllByProjectId(projectId)
-            .asFlow()
-            .mapToList(ioDispatcher)
-            .map { logs -> logs.map { it.toDomain() } }
-// INFO: Automatically declared based on the expected type
-// ERROR: Unresolved reference. None of the following candidates is applicable because of a receiver type mismatch:
-fun ProjectExecutionLog.toDomain(): ProjectExecutionLog
-}
-
-    override suspend fun addProjectLogEntry(log: ProjectExecutionLog) {
-        withContext(ioDispatcher) {
-            db.projectExecutionLogsQueries.insert(
-                id = log.id,
-                projectId = log.projectId,
-                timestamp = log.timestamp,
-                type = log.type,
-                description = log.description,
-                details = log.details
-            )
-        }
-    }
-
-    override suspend fun updateProjectExecutionLog(log: ProjectExecutionLog) {
-        withContext(ioDispatcher) {
-            db.projectExecutionLogsQueries.update(
-                id = log.id,
-                description = log.description,
-                details = log.details
-            )
-        }
-    }
-
-    override suspend fun deleteProjectExecutionLog(log: ProjectExecutionLog) {
-        withContext(ioDispatcher) {
-            db.projectExecutionLogsQueries.deleteById(log.id)
-        }
-    }
-}
-
-***
-
-// File: ProjectExecutionLogs.sq
-
-CREATE TABLE project_execution_logs (
-id TEXT NOT NULL PRIMARY KEY,
-projectId TEXT NOT NULL,
-timestamp INTEGER NOT NULL,
-type TEXT NOT NULL,
-description TEXT NOT NULL,
-details TEXT,
-FOREIGN KEY(projectId) REFERENCES projects(id) ON DELETE CASCADE
+CREATE TABLE DayPlans (
+    id TEXT NOT NULL PRIMARY KEY,
+    date INTEGER NOT NULL,
+    name TEXT,
+    status TEXT AS DayStatus NOT NULL DEFAULT 'PLANNED',
+    reflection TEXT,
+    energyLevel INTEGER,
+    mood TEXT,
+    weatherConditions TEXT,
+    totalPlannedMinutes INTEGER NOT NULL DEFAULT 0,
+    totalCompletedMinutes INTEGER NOT NULL DEFAULT 0,
+    completionPercentage REAL NOT NULL DEFAULT 0.0,
+    createdAt INTEGER NOT NULL,
+    updatedAt INTEGER
 );
+```
 
--- Get all logs for a specific project
-selectAllByProjectId:
-SELECT * FROM project_execution_logs WHERE projectId = :projectId ORDER BY timestamp DESC;
+### `DayTask.sq`
 
--- Insert a new log
-insert:
-INSERT OR REPLACE INTO project_execution_logs(id, projectId, timestamp, type, description, details)
-VALUES (?, ?, ?, ?, ?, ?);
+```sql
+import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.TaskPriority;
+import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.TaskStatus;
 
--- Delete a log by its ID
-deleteById:
-DELETE FROM project_execution_logs WHERE id = :id;
+CREATE TABLE DayTasks (
+    id TEXT NOT NULL PRIMARY KEY,
+    dayPlanId TEXT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT,
+    "order" INTEGER NOT NULL DEFAULT 0,
+    priority TEXT AS TaskPriority NOT NULL DEFAULT 'MEDIUM',
+    status TEXT AS TaskStatus NOT NULL DEFAULT 'NOT_STARTED',
+    -- ...
+);
+```
 
--- Update a log
-update:
-UPDATE project_execution_logs
-SET description = :description, details = :details
-WHERE id = :id;
+### `DayPlanMapper.kt`
 
+```kotlin
+package com.romankozak.forwardappmobile.shared.features.daymanagement.data
 
-***
+import com.romankozak.forwardappmobile.shared.database.DayPlans
+import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.DayPlan
+import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.DayStatus
 
-// File: ProjectExecutionLogsQueries.kt
+fun DayPlans.toDomain(): DayPlan {
+    return DayPlan(
+        id = this.id,
+        date = this.date,
+        name = this.name,
+        status = DayStatus.valueOf(this.status),
+        reflection = this.reflection,
+        energyLevel = this.energyLevel,
+        mood = this.mood,
+        weatherConditions = this.weatherConditions,
+        totalPlannedMinutes = this.totalPlannedMinutes,
+        totalCompletedMinutes = this.totalCompletedMinutes,
+        completionPercentage = this.completionPercentage,
+        createdAt = this.createdAt,
+        updatedAt = this.updatedAt,
+    )
+}
+```
 
-package com.romankozak.forwardappmobile.shared.database
+### `DayTaskMapper.kt`
 
-import app.cash.sqldelight.Query
-import app.cash.sqldelight.TransacterImpl
-import app.cash.sqldelight.db.QueryResult
-import app.cash.sqldelight.db.SqlCursor
-import app.cash.sqldelight.db.SqlDriver
-import kotlin.Any
-import kotlin.Long
-import kotlin.String
+```kotlin
+package com.romankozak.forwardappmobile.shared.features.daymanagement.data
 
-public class ProjectExecutionLogsQueries(
-driver: SqlDriver,
-) : TransacterImpl(driver) {
-public fun <T : Any> selectAllByProjectId(projectId: String, mapper: (
-id: String,
-projectId: String,
-timestamp: Long,
-type: String,
-description: String,
-details: String?,
-) -> T): Query<T> = SelectAllByProjectIdQuery(projectId) { cursor ->
-mapper(
-cursor.getString(0)!!,
-cursor.getString(1)!!,
-cursor.getLong(2)!!,
-cursor.getString(3)!!,
-cursor.getString(4)!!,
-cursor.getString(5)
-)
+import com.romankozak.forwardappmobile.shared.database.DayTasks
+import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.DayTask
+import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.TaskPriority
+import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.TaskStatus
+
+fun DayTasks.toDomain(): DayTask {
+    return DayTask(
+        id = this.id,
+        dayPlanId = this.dayPlanId,
+        title = this.title,
+        description = this.description,
+        order = this.order_, // SQLDelight uses order_ for "order" column
+        priority = TaskPriority.valueOf(this.priority),
+        status = TaskStatus.valueOf(this.status),
+        // ...
+    )
 }
 
-public fun selectAllByProjectId(projectId: String): Query<Project_execution_logs> =
-selectAllByProjectId(projectId) { id, projectId_, timestamp, type, description, details ->
-Project_execution_logs(
-id,
-projectId_,
-timestamp,
-type,
-description,
-details
-)
+fun DayTask.toSqlDelight(): DayTasks {
+    return DayTasks(
+        id = this.id,
+        dayPlanId = this.dayPlanId,
+        title = this.title,
+        description = this.description,
+        order_ = this.order,
+        priority = this.priority.name,
+        status = this.status.name,
+        // ...
+    )
 }
+```
 
-public fun insert(
-id: String,
-projectId: String,
-timestamp: Long,
-type: String,
-description: String,
-details: String?,
-) {
-driver.execute(-442_824_899, """
-|INSERT OR REPLACE INTO project_execution_logs(id, projectId, timestamp, type, description, details)
-|VALUES (?, ?, ?, ?, ?, ?)
-""".trimMargin(), 6) {
-bindString(0, id)
-bindString(1, projectId)
-bindLong(2, timestamp)
-bindString(3, type)
-bindString(4, description)
-bindString(5, details)
-}
-notifyQueries(-442_824_899) { emit ->
-emit("project_execution_logs")
-}
-}
+### `DayPlanRepositoryImpl.kt`
 
-public fun deleteById(id: String) {
-driver.execute(902_949_537, """DELETE FROM project_execution_logs WHERE id = ?""", 1) {
-bindString(0, id)
-}
-notifyQueries(902_949_537) { emit ->
-emit("project_execution_logs")
-}
-}
-
-public fun update(
-description: String,
-details: String?,
-id: String,
-) {
-driver.execute(-97_878_707, """
-|UPDATE project_execution_logs
-|SET description = ?, details = ?
-|WHERE id = ?
-""".trimMargin(), 3) {
-bindString(0, description)
-bindString(1, details)
-bindString(2, id)
-}
-notifyQueries(-97_878_707) { emit ->
-emit("project_execution_logs")
-}
-}
-
-private inner class SelectAllByProjectIdQuery<out T : Any>(
-public val projectId: String,
-mapper: (SqlCursor) -> T,
-) : Query<T>(mapper) {
-override fun addListener(listener: Query.Listener) {
-driver.addListener("project_execution_logs", listener = listener)
-}
-
-    override fun removeListener(listener: Query.Listener) {
-      driver.removeListener("project_execution_logs", listener = listener)
+```kotlin
+// ...
+    override suspend fun insertDayPlan(dayPlan: DayPlan) {
+        withContext(ioDispatcher) {
+            db.dayPlanQueries.insert(
+                id = dayPlan.id,
+                date = dayPlan.date,
+                name = dayPlan.name,
+                status = dayPlan.status.name,
+                reflection = dayPlan.reflection,
+                energyLevel = dayPlan.energyLevel,
+                mood = dayPlan.mood,
+                weatherConditions = dayPlan.weatherConditions,
+                totalPlannedMinutes = dayPlan.totalPlannedMinutes,
+                totalCompletedMinutes = dayPlan.totalCompletedMinutes,
+                completionPercentage = dayPlan.completionPercentage,
+                createdAt = dayPlan.createdAt,
+                updatedAt = dayPlan.updatedAt,
+            )
+        }
     }
+// ...
+```
 
-    override fun <R> execute(mapper: (SqlCursor) -> QueryResult<R>): QueryResult<R> =
-        driver.executeQuery(1_890_069_692,
-        """SELECT project_execution_logs.id, project_execution_logs.projectId, project_execution_logs.timestamp, project_execution_logs.type, project_execution_logs.description, project_execution_logs.details FROM project_execution_logs WHERE projectId = ? ORDER BY timestamp DESC""",
-        mapper, 1) {
-      bindString(0, projectId)
-    }
+## План дій
 
-    override fun toString(): String = "ProjectExecutionLogs.sq:selectAllByProjectId"
-}
-}
+1.  **Виправити `DayPlanMapper.kt` та `DayTaskMapper.kt`**:
+    *   Переконатися, що всі перетворення типів між доменними моделями та згенерованими класами SQLDelight є правильними. Наприклад, `String` в `Enum`, `Int` в `Long`, `Float` в `Double` і навпаки.
+    *   Виправити посилання на `order_` на `order`.
+2.  **Виправити `DayPlanRepositoryImpl.kt` та `DayTaskRepositoryImpl.kt`**:
+    *   Переконатися, що параметри, які передаються в запити SQLDelight, відповідають типам, визначеним у файлах `.sq`.
+    *   Додати відсутні імпорти (наприклад, `TaskStatus`).
+3.  **Виправити `DayTaskRepository.kt`**:
+    *   Додати відсутній імпорт для `TaskStatus`.
+4.  **Перекомпілювати проект** після кожного виправлення, щоб перевірити, чи були усунені помилки.
 
-
-***
-
-// File: Project_execution_logs.kt
-
-package com.romankozak.forwardappmobile.shared.database
-
-import kotlin.Long
-import kotlin.String
-
-public data class Project_execution_logs(
-public val id: String,
-public val projectId: String,
-public val timestamp: Long,
-public val type: String,
-public val description: String,
-public val details: String?,
-)
-
+**Примітка:** Я можу додавати або змінювати код. Якщо у вас є конкретні пропозиції щодо виправлення, будь ласка, надайте їх.

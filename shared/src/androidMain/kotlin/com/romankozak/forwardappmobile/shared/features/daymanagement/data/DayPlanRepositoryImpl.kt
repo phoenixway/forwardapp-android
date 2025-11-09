@@ -44,14 +44,14 @@ class DayPlanRepositoryImpl(
                 id = dayPlan.id,
                 date = dayPlan.date,
                 name = dayPlan.name,
-                status = dayPlan.status.name,
+                status = dayPlan.status,
                 reflection = dayPlan.reflection,
-                energyLevel = dayPlan.energyLevel,
+                energyLevel = dayPlan.energyLevel?.toLong(),
                 mood = dayPlan.mood,
                 weatherConditions = dayPlan.weatherConditions,
                 totalPlannedMinutes = dayPlan.totalPlannedMinutes,
                 totalCompletedMinutes = dayPlan.totalCompletedMinutes,
-                completionPercentage = dayPlan.completionPercentage,
+                completionPercentage = dayPlan.completionPercentage.toDouble(),
                 createdAt = dayPlan.createdAt,
                 updatedAt = dayPlan.updatedAt,
             )
@@ -64,14 +64,14 @@ class DayPlanRepositoryImpl(
                 id = dayPlan.id,
                 date = dayPlan.date,
                 name = dayPlan.name,
-                status = dayPlan.status.name,
+                status = dayPlan.status,
                 reflection = dayPlan.reflection,
-                energyLevel = dayPlan.energyLevel,
+                energyLevel = dayPlan.energyLevel?.toLong(),
                 mood = dayPlan.mood,
                 weatherConditions = dayPlan.weatherConditions,
                 totalPlannedMinutes = dayPlan.totalPlannedMinutes,
                 totalCompletedMinutes = dayPlan.totalCompletedMinutes,
-                completionPercentage = dayPlan.completionPercentage,
+                completionPercentage = dayPlan.completionPercentage.toDouble(),
                 updatedAt = Clock.System.now().toEpochMilliseconds(),
             )
         }
@@ -107,7 +107,7 @@ class DayPlanRepositoryImpl(
             db.dayPlanQueries.updatePlanProgress(
                 planId = planId,
                 minutes = minutes,
-                percentage = percentage,
+                percentage = percentage.toDouble(),
                 updatedAt = updatedAt
             )
         }
