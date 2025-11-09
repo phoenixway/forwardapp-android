@@ -10,6 +10,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
+import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.encodeToString
+
 class GoalRepositoryImpl(
     private val db: ForwardAppDatabase,
     private val ioDispatcher: CoroutineDispatcher
@@ -17,28 +22,122 @@ class GoalRepositoryImpl(
 
     override suspend fun insertGoal(goal: Goal) {
         withContext(ioDispatcher) {
-            db.goalsQueries.insertGoal(goal.toSqlDelight())
+            db.goalQueries.insertGoal(
+                id = goal.id,
+                text = goal.text,
+                description = goal.description,
+                completed = if (goal.completed) 1 else 0,
+                createdAt = goal.createdAt,
+                updatedAt = goal.updatedAt,
+                tags = goal.tags,
+                relatedLinks = goal.relatedLinks?.let { Json.encodeToString(ListSerializer(RelatedLink.serializer()), it) },
+                valueImportance = goal.valueImportance.toDouble(),
+                valueImpact = goal.valueImpact.toDouble(),
+                effort = goal.effort.toDouble(),
+                cost = goal.cost.toDouble(),
+                risk = goal.risk.toDouble(),
+                weightEffort = goal.weightEffort.toDouble(),
+                weightCost = goal.weightCost.toDouble(),
+                weightRisk = goal.weightRisk.toDouble(),
+                rawScore = goal.rawScore.toDouble(),
+                displayScore = goal.displayScore.toLong(),
+                scoringStatus = goal.scoringStatus,
+                parentValueImportance = goal.parentValueImportance?.toDouble(),
+                impactOnParentGoal = goal.impactOnParentGoal?.toDouble(),
+                timeCost = goal.timeCost?.toDouble(),
+                financialCost = goal.financialCost?.toDouble()
+            )
         }
     }
 
     override suspend fun insertGoals(goals: List<Goal>) {
         withContext(ioDispatcher) {
             goals.forEach { goal ->
-                db.goalsQueries.insertGoal(goal.toSqlDelight())
+                db.goalQueries.insertGoal(
+                    id = goal.id,
+                    text = goal.text,
+                    description = goal.description,
+                    completed = if (goal.completed) 1 else 0,
+                    createdAt = goal.createdAt,
+                    updatedAt = goal.updatedAt,
+                    tags = goal.tags,
+                    relatedLinks = goal.relatedLinks?.let { Json.encodeToString(ListSerializer(RelatedLink.serializer()), it) },
+                    valueImportance = goal.valueImportance.toDouble(),
+                    valueImpact = goal.valueImpact.toDouble(),
+                    effort = goal.effort.toDouble(),
+                    cost = goal.cost.toDouble(),
+                    risk = goal.risk.toDouble(),
+                    weightEffort = goal.weightEffort.toDouble(),
+                    weightCost = goal.weightCost.toDouble(),
+                    weightRisk = goal.weightRisk.toDouble(),
+                    rawScore = goal.rawScore.toDouble(),
+                    displayScore = goal.displayScore.toLong(),
+                    scoringStatus = goal.scoringStatus,
+                    parentValueImportance = goal.parentValueImportance?.toDouble(),
+                    impactOnParentGoal = goal.impactOnParentGoal?.toDouble(),
+                    timeCost = goal.timeCost?.toDouble(),
+                    financialCost = goal.financialCost?.toDouble()
+                )
             }
         }
     }
 
     override suspend fun updateGoal(goal: Goal) {
         withContext(ioDispatcher) {
-            db.goalsQueries.updateGoal(goal.toSqlDelight())
+            db.goalQueries.updateGoal(
+                id = goal.id,
+                text = goal.text,
+                description = goal.description,
+                completed = if (goal.completed) 1 else 0,
+                updatedAt = goal.updatedAt,
+                tags = goal.tags,
+                relatedLinks = goal.relatedLinks?.let { Json.encodeToString(ListSerializer(RelatedLink.serializer()), it) },
+                valueImportance = goal.valueImportance.toDouble(),
+                valueImpact = goal.valueImpact.toDouble(),
+                effort = goal.effort.toDouble(),
+                cost = goal.cost.toDouble(),
+                risk = goal.risk.toDouble(),
+                weightEffort = goal.weightEffort.toDouble(),
+                weightCost = goal.weightCost.toDouble(),
+                weightRisk = goal.weightRisk.toDouble(),
+                rawScore = goal.rawScore.toDouble(),
+                displayScore = goal.displayScore.toLong(),
+                scoringStatus = goal.scoringStatus,
+                parentValueImportance = goal.parentValueImportance?.toDouble(),
+                impactOnParentGoal = goal.impactOnParentGoal?.toDouble(),
+                timeCost = goal.timeCost?.toDouble(),
+                financialCost = goal.financialCost?.toDouble()
+            )
         }
     }
 
     override suspend fun updateGoals(goals: List<Goal>) {
         withContext(ioDispatcher) {
             goals.forEach { goal ->
-                db.goalsQueries.updateGoal(goal.toSqlDelight())
+                db.goalQueries.updateGoal(
+                    id = goal.id,
+                    text = goal.text,
+                    description = goal.description,
+                    completed = if (goal.completed) 1 else 0,
+                    updatedAt = goal.updatedAt,
+                    tags = goal.tags,
+                    relatedLinks = goal.relatedLinks?.let { Json.encodeToString(ListSerializer(RelatedLink.serializer()), it) },
+                    valueImportance = goal.valueImportance.toDouble(),
+                    valueImpact = goal.valueImpact.toDouble(),
+                    effort = goal.effort.toDouble(),
+                    cost = goal.cost.toDouble(),
+                    risk = goal.risk.toDouble(),
+                    weightEffort = goal.weightEffort.toDouble(),
+                    weightCost = goal.weightCost.toDouble(),
+                    weightRisk = goal.weightRisk.toDouble(),
+                    rawScore = goal.rawScore.toDouble(),
+                    displayScore = goal.displayScore.toLong(),
+                    scoringStatus = goal.scoringStatus,
+                    parentValueImportance = goal.parentValueImportance?.toDouble(),
+                    impactOnParentGoal = goal.impactOnParentGoal?.toDouble(),
+                    timeCost = goal.timeCost?.toDouble(),
+                    financialCost = goal.financialCost?.toDouble()
+                )
             }
         }
     }
