@@ -1,0 +1,41 @@
+import kotlin.Long;
+import kotlin.Double;
+import kotlin.Int;
+import kotlin.collections.Map;
+import kotlin.collections.List; // For custom_metrics if it's a list of strings
+
+CREATE TABLE DailyMetrics (
+    id TEXT NOT NULL PRIMARY KEY,
+    dayPlanId TEXT NOT NULL,
+    date INTEGER AS kotlin.Long NOT NULL,
+    tasksPlanned INTEGER AS kotlin.Long NOT NULL DEFAULT 0,
+    tasksCompleted INTEGER AS kotlin.Long NOT NULL DEFAULT 0,
+    completionRate REAL AS kotlin.Double NOT NULL DEFAULT 0.0,
+    totalPlannedTime INTEGER AS kotlin.Long NOT NULL DEFAULT 0,
+    totalActiveTime INTEGER AS kotlin.Long NOT NULL DEFAULT 0,
+    completedPoints INTEGER AS kotlin.Long NOT NULL DEFAULT 0,
+    totalBreakTime INTEGER AS kotlin.Long NOT NULL DEFAULT 0,
+    morningEnergyLevel INTEGER AS kotlin.Long,
+    eveningEnergyLevel INTEGER AS kotlin.Long,
+    overallMood TEXT,
+    stressLevel INTEGER AS kotlin.Long,
+    customMetrics TEXT AS Map<String, Float>, -- Assuming custom_metrics is a JSON string of Map<String, Float>
+    createdAt INTEGER AS kotlin.Long NOT NULL,
+    updatedAt INTEGER AS kotlin.Long
+);
+
+selectAll:
+SELECT * FROM DailyMetrics;
+
+selectById:
+SELECT * FROM DailyMetrics WHERE id = :id;
+
+selectByDayPlanId:
+SELECT * FROM DailyMetrics WHERE dayPlanId = :dayPlanId;
+
+insert:
+INSERT OR REPLACE INTO DailyMetrics(id, dayPlanId, date, tasksPlanned, tasksCompleted, completionRate, totalPlannedTime, totalActiveTime, completedPoints, totalBreakTime, morningEnergyLevel, eveningEnergyLevel, overallMood, stressLevel, customMetrics, createdAt, updatedAt)
+VALUES (:id, :dayPlanId, :date, :tasksPlanned, :tasksCompleted, :completionRate, :totalPlannedTime, :totalActiveTime, :completedPoints, :totalBreakTime, :morningEnergyLevel, :eveningEnergyLevel, :overallMood, :stressLevel, :customMetrics, :createdAt, :updatedAt);
+
+deleteById:
+DELETE FROM DailyMetrics WHERE id = :id;
