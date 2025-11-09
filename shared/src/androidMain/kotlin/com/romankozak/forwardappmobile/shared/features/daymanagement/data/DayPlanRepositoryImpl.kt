@@ -40,6 +40,15 @@ class DayPlanRepositoryImpl(
 
     override suspend fun insertDayPlan(dayPlan: DayPlan) {
         withContext(ioDispatcher) {
+            db.dayPlanQueries.insert(
+                id = dayPlan.id,
+                date = dayPlan.date,
+                name = dayPlan.name,
+                status = dayPlan.status,
+                reflection = dayPlan.reflection,
+                energyLevel = dayPlan.energyLevel?.toLong(),
+                mood = dayPlan.mood,
+                weatherConditions = dayPlan.weatherConditions,
                 totalPlannedMinutes = dayPlan.totalPlannedMinutes.toLong(),
                 totalCompletedMinutes = dayPlan.totalCompletedMinutes.toLong(),
                 completionPercentage = dayPlan.completionPercentage.toDouble(),
