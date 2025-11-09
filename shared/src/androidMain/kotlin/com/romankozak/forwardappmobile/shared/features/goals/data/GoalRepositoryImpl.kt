@@ -20,7 +20,33 @@ class GoalRepositoryImpl(
 
     override suspend fun insertGoal(goal: Goal) {
         withContext(ioDispatcher) {
-            queries.insertGoal(goal.toSqlDelight())
+            val goalSql = goal.toSqlDelight()
+            queries.insertGoal(
+                id = goalSql.id,
+                text = goalSql.text,
+                description = goalSql.description,
+                completed = goalSql.completed,
+                createdAt = goalSql.createdAt,
+                updatedAt = goalSql.updatedAt,
+                tags = goalSql.tags,
+                relatedLinks = goalSql.relatedLinks,
+                valueImportance = goalSql.valueImportance,
+                valueImpact = goalSql.valueImpact,
+                effort = goalSql.effort,
+                cost = goalSql.cost,
+                risk = goalSql.risk,
+                weightEffort = goalSql.weightEffort,
+                weightCost = goalSql.weightCost,
+                weightRisk = goalSql.weightRisk,
+                rawScore = goalSql.rawScore,
+                displayScore = goalSql.displayScore,
+                scoringStatus = goalSql.scoringStatus,
+                parentValueImportance = goalSql.parentValueImportance,
+                impactOnParentGoal = goalSql.impactOnParentGoal,
+                timeCost = goalSql.timeCost,
+                financialCost = goalSql.financialCost,
+                markdown = goalSql.markdown
+            )
         }
     }
 
@@ -28,7 +54,33 @@ class GoalRepositoryImpl(
         withContext(ioDispatcher) {
             db.transaction {
                 goals.forEach { goal ->
-                    queries.insertGoal(goal.toSqlDelight())
+                    val goalSql = goal.toSqlDelight()
+                    queries.insertGoal(
+                        id = goalSql.id,
+                        text = goalSql.text,
+                        description = goalSql.description,
+                        completed = goalSql.completed,
+                        createdAt = goalSql.createdAt,
+                        updatedAt = goalSql.updatedAt,
+                        tags = goalSql.tags,
+                        relatedLinks = goalSql.relatedLinks,
+                        valueImportance = goalSql.valueImportance,
+                        valueImpact = goalSql.valueImpact,
+                        effort = goalSql.effort,
+                        cost = goalSql.cost,
+                        risk = goalSql.risk,
+                        weightEffort = goalSql.weightEffort,
+                        weightCost = goalSql.weightCost,
+                        weightRisk = goalSql.weightRisk,
+                        rawScore = goalSql.rawScore,
+                        displayScore = goalSql.displayScore,
+                        scoringStatus = goalSql.scoringStatus,
+                        parentValueImportance = goalSql.parentValueImportance,
+                        impactOnParentGoal = goalSql.impactOnParentGoal,
+                        timeCost = goalSql.timeCost,
+                        financialCost = goalSql.financialCost,
+                        markdown = goalSql.markdown
+                    )
                 }
             }
         }
@@ -36,7 +88,32 @@ class GoalRepositoryImpl(
 
     override suspend fun updateGoal(goal: Goal) {
         withContext(ioDispatcher) {
-            queries.updateGoal(goal.toSqlDelight())
+            val goalSql = goal.toSqlDelight()
+            queries.updateGoal(
+                id = goalSql.id,
+                text = goalSql.text,
+                description = goalSql.description,
+                completed = goalSql.completed,
+                updatedAt = goalSql.updatedAt,
+                tags = goalSql.tags,
+                relatedLinks = goalSql.relatedLinks,
+                valueImportance = goalSql.valueImportance,
+                valueImpact = goalSql.valueImpact,
+                effort = goalSql.effort,
+                cost = goalSql.cost,
+                risk = goalSql.risk,
+                weightEffort = goalSql.weightEffort,
+                weightCost = goalSql.weightCost,
+                weightRisk = goalSql.weightRisk,
+                rawScore = goalSql.rawScore,
+                displayScore = goalSql.displayScore,
+                scoringStatus = goalSql.scoringStatus,
+                parentValueImportance = goalSql.parentValueImportance,
+                impactOnParentGoal = goalSql.impactOnParentGoal,
+                timeCost = goalSql.timeCost,
+                financialCost = goalSql.financialCost,
+                markdown = goalSql.markdown
+            )
         }
     }
 
@@ -44,7 +121,32 @@ class GoalRepositoryImpl(
         withContext(ioDispatcher) {
             db.transaction {
                 goals.forEach { goal ->
-                    queries.updateGoal(goal.toSqlDelight())
+                    val goalSql = goal.toSqlDelight()
+                    queries.updateGoal(
+                        id = goalSql.id,
+                        text = goalSql.text,
+                        description = goalSql.description,
+                        completed = goalSql.completed,
+                        updatedAt = goalSql.updatedAt,
+                        tags = goalSql.tags,
+                        relatedLinks = goalSql.relatedLinks,
+                        valueImportance = goalSql.valueImportance,
+                        valueImpact = goalSql.valueImpact,
+                        effort = goalSql.effort,
+                        cost = goalSql.cost,
+                        risk = goalSql.risk,
+                        weightEffort = goalSql.weightEffort,
+                        weightCost = goalSql.weightCost,
+                        weightRisk = goalSql.weightRisk,
+                        rawScore = goalSql.rawScore,
+                        displayScore = goalSql.displayScore,
+                        scoringStatus = goalSql.scoringStatus,
+                        parentValueImportance = goalSql.parentValueImportance,
+                        impactOnParentGoal = goalSql.impactOnParentGoal,
+                        timeCost = goalSql.timeCost,
+                        financialCost = goalSql.financialCost,
+                        markdown = goalSql.markdown
+                    )
                 }
             }
         }
@@ -95,11 +197,10 @@ class GoalRepositoryImpl(
             .map { goals -> goals.map { it.toDomain() } }
     }
 
-    override fun getAllGoalsCountFlow(): Flow<Int> {
+    override fun getAllGoalsCountFlow(): Flow<Long> {
         return queries.getAllGoalsCount()
             .asFlow()
             .mapToOne(ioDispatcher)
-            .map { it.toInt() }
     }
 
     override suspend fun updateMarkdown(

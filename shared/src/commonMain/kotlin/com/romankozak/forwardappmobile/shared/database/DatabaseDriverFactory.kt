@@ -80,17 +80,17 @@ private val customMetricsAdapter = object : ColumnAdapter<Map<String, Double>, S
     }
 }
 
-private inline fun <reified T : Enum<T>> EnumColumnAdapter() = object : ColumnAdapter<T, String> {
-    override fun decode(databaseValue: String): T = enumValueOf(databaseValue)
+private fun <T : Enum<T>> EnumColumnAdapter(valueOf: (String) -> T) = object : ColumnAdapter<T, String> {
+    override fun decode(databaseValue: String): T = valueOf(databaseValue)
     override fun encode(value: T): String = value.name
 }
 
-private val taskPriorityAdapter: ColumnAdapter<TaskPriority, String> = EnumColumnAdapter()
-private val taskStatusAdapter: ColumnAdapter<TaskStatus, String> = EnumColumnAdapter()
-private val dayStatusAdapter: ColumnAdapter<DayStatus, String> = EnumColumnAdapter()
-private val recurrenceFrequencyAdapter: ColumnAdapter<RecurrenceFrequency, String> = EnumColumnAdapter()
-private val projectTypeAdapter: ColumnAdapter<ProjectType, String> = EnumColumnAdapter()
-private val reservedGroupAdapter: ColumnAdapter<ReservedGroup, String> = EnumColumnAdapter()
+private val taskPriorityAdapter: ColumnAdapter<TaskPriority, String> = EnumColumnAdapter(TaskPriority::valueOf)
+private val taskStatusAdapter: ColumnAdapter<TaskStatus, String> = EnumColumnAdapter(TaskStatus::valueOf)
+private val dayStatusAdapter: ColumnAdapter<DayStatus, String> = EnumColumnAdapter(DayStatus::valueOf)
+private val recurrenceFrequencyAdapter: ColumnAdapter<RecurrenceFrequency, String> = EnumColumnAdapter(RecurrenceFrequency::valueOf)
+private val projectTypeAdapter: ColumnAdapter<ProjectType, String> = EnumColumnAdapter(ProjectType::valueOf)
+private val reservedGroupAdapter: ColumnAdapter<ReservedGroup, String> = EnumColumnAdapter(ReservedGroup::valueOf)
 
 fun createForwardAppDatabase(
     driverFactory: DatabaseDriverFactory,

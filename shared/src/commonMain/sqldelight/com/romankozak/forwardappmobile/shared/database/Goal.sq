@@ -1,10 +1,10 @@
 import kotlin.Boolean;
 import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLinkList;
+import com.romankozak.forwardappmobile.shared.data.database.models.StringList;
 import kotlin.Long;
 import kotlin.Double;
 import kotlin.Int;
 import kotlin.String;
-import kotlin.collections.List;
 
 CREATE TABLE Goals (
     id TEXT NOT NULL PRIMARY KEY,
@@ -13,7 +13,7 @@ CREATE TABLE Goals (
     completed INTEGER AS Boolean NOT NULL DEFAULT 0,
     createdAt INTEGER AS Long NOT NULL,
     updatedAt INTEGER AS Long,
-    tags TEXT AS List<String>,
+    tags TEXT AS StringList,
     relatedLinks TEXT AS RelatedLinkList,
     valueImportance REAL AS Double NOT NULL DEFAULT 0.0,
     valueImpact REAL AS Double NOT NULL DEFAULT 0.0,
