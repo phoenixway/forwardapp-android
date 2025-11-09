@@ -18,35 +18,37 @@ class DayTaskRepositoryImpl(
     private val ioDispatcher: CoroutineDispatcher
 ) : DayTaskRepository {
 
+    private val queries = db.dayTasksQueries
+
     override fun getDayTasksForDayPlan(dayPlanId: String): Flow<List<DayTask>> {
-        return db.dayTaskQueries.selectAllByDayPlanId(dayPlanId)
+        return queries.selectAllByDayPlanId(dayPlanId)
             .asFlow()
             .mapToList(ioDispatcher)
             .map { dayTasks -> dayTasks.map { it.toDomain() } }
     }
 
     override fun getDayTaskById(id: String): Flow<DayTask?> {
-        return db.dayTaskQueries.selectById(id)
+        return queries.selectById(id)
             .asFlow()
             .mapToOneOrNull(ioDispatcher)
             .map { it?.toDomain() }
     }
 
-    override suspend fun getMaxOrderForDayPlan(dayPlanId: String): Long? {
+    override suspend fun getMaxOrderForDayPlan(dayPlanId: String): Long {
         return withContext(ioDispatcher) {
-            db.dayTaskQueries.getMaxOrderForDayPlan(dayPlanId).executeAsOneOrNull()
+            queries.getMaxOrderForDayPlan(dayPlanId).executeAsOneOrNull()?.MAX ?: 0L
         }
     }
 
     override fun getTasksForDayPlan(dayPlanId: String): Flow<List<DayTask>> {
-        return db.dayTaskQueries.selectAllByDayPlanId(dayPlanId)
+        return queries.selectAllByDayPlanId(dayPlanId)
             .asFlow()
             .mapToList(ioDispatcher)
             .map { dayTasks -> dayTasks.map { it.toDomain() } }
     }
 
     override fun getTasksForGoal(goalId: String): Flow<List<DayTask>> {
-        return db.dayTaskQueries.selectTasksForGoal(goalId)
+        return queries.selectTasksForGoal(goalId)
             .asFlow()
             .mapToList(ioDispatcher)
             .map { dayTasks -> dayTasks.map { it.toDomain() } }
@@ -54,13 +56,13 @@ class DayTaskRepositoryImpl(
 
     override suspend fun getTasksForDayPlanOnce(dayPlanId: String): List<DayTask> {
         return withContext(ioDispatcher) {
-            db.dayTaskQueries.selectAllByDayPlanId(dayPlanId).executeAsList().map { it.toDomain() }
+            queries.selectAllByDayPlanId(dayPlanId).executeAsList().map { it.toDomain() }
         }
     }
 
     override suspend fun updateTaskOrder(taskId: String, newOrder: Long, updatedAt: Long) {
         withContext(ioDispatcher) {
-            db.dayTaskQueries.updateTaskOrder(
+            queries.updateTaskOrder(
                 taskId = taskId,
                 newOrder = newOrder,
                 updatedAt = updatedAt
@@ -76,7 +78,7 @@ class DayTaskRepositoryImpl(
         updatedAt: Long
     ) {
         withContext(ioDispatcher) {
-            db.dayTaskQueries.updateTaskCompletion(
+            queries.updateTaskCompletion(
                 taskId = taskId,
                 completed = completed,
                 status = status,
@@ -88,7 +90,7 @@ class DayTaskRepositoryImpl(
 
     override suspend fun deleteTasksForDayPlanIds(recurringTaskId: String, dayPlanIds: List<String>) {
         withContext(ioDispatcher) {
-            db.dayTaskQueries.deleteTasksForDayPlanIds(
+            queries.deleteTasksForDayPlanIds(
                 recurringTaskId = recurringTaskId,
                 dayPlanIds = dayPlanIds
             )
@@ -97,7 +99,7 @@ class DayTaskRepositoryImpl(
 
     override suspend fun linkTaskWithActivity(taskId: String, activityRecordId: String, updatedAt: Long) {
         withContext(ioDispatcher) {
-            db.dayTaskQueries.linkTaskWithActivity(
+            queries.linkTaskWithActivity(
                 taskId = taskId,
                 activityRecordId = activityRecordId,
                 updatedAt = updatedAt
@@ -107,7 +109,7 @@ class DayTaskRepositoryImpl(
 
     override suspend fun updateTaskDuration(taskId: String, durationMinutes: Long, updatedAt: Long) {
         withContext(ioDispatcher) {
-            db.dayTaskQueries.updateTaskDuration(
+            queries.updateTaskDuration(
                 taskId = taskId,
                 durationMinutes = durationMinutes,
                 updatedAt = updatedAt
@@ -117,19 +119,19 @@ class DayTaskRepositoryImpl(
 
     override suspend fun findByRecurringIdAndDayPlanId(recurringTaskId: String, dayPlanId: String): DayTask? {
         return withContext(ioDispatcher) {
-            db.dayTaskQueries.selectByRecurringIdAndDayPlanId(recurringTaskId, dayPlanId).executeAsOneOrNull()?.toDomain()
+            queries.selectByRecurringIdAndDayPlanId(recurringTaskId, dayPlanId).executeAsOneOrNull()?.toDomain()
         }
     }
 
     override suspend fun findTemplateForRecurringTask(recurringTaskId: String): DayTask? {
         return withContext(ioDispatcher) {
-            db.dayTaskQueries.selectTemplateForRecurringTask(recurringTaskId).executeAsOneOrNull()?.toDomain()
+            queries.selectTemplateForRecurringTask(recurringTaskId).executeAsOneOrNull()?.toDomain()
         }
     }
 
     override suspend fun detachFromRecurrence(taskId: String) {
         withContext(ioDispatcher) {
-            db.dayTaskQueries.detachFromRecurrence(
+            queries.detachFromRecurrence(
                 taskId = taskId,
                 updatedAt = Clock.System.now().toEpochMilliseconds()
             )
@@ -138,7 +140,7 @@ class DayTaskRepositoryImpl(
 
     override suspend fun updateNextOccurrenceTime(taskId: String, nextOccurrenceTime: Long) {
         withContext(ioDispatcher) {
-            db.dayTaskQueries.updateNextOccurrenceTime(
+            queries.updateNextOccurrenceTime(
                 taskId = taskId,
                 nextOccurrenceTime = nextOccurrenceTime,
                 updatedAt = Clock.System.now().toEpochMilliseconds()
@@ -148,7 +150,7 @@ class DayTaskRepositoryImpl(
 
     override suspend fun insertDayTask(dayTask: DayTask) {
         withContext(ioDispatcher) {
-            db.dayTaskQueries.insert(
+            queries.insert(
                 id = dayTask.id,
                 dayPlanId = dayTask.dayPlanId,
                 title = dayTask.title,
@@ -186,7 +188,7 @@ class DayTaskRepositoryImpl(
 
     override suspend fun updateDayTask(dayTask: DayTask) {
         withContext(ioDispatcher) {
-            db.dayTaskQueries.update(
+            queries.update(
                 id = dayTask.id,
                 dayPlanId = dayTask.dayPlanId,
                 title = dayTask.title,
@@ -223,13 +225,13 @@ class DayTaskRepositoryImpl(
 
     override suspend fun deleteDayTask(id: String) {
         withContext(ioDispatcher) {
-            db.dayTaskQueries.deleteById(id)
+            queries.deleteById(id)
         }
     }
 
     override suspend fun deleteAllDayTasksForDayPlan(dayPlanId: String) {
         withContext(ioDispatcher) {
-            db.dayTaskQueries.deleteAllByDayPlanId(dayPlanId)
+            queries.deleteAllByDayPlanId(dayPlanId)
         }
     }
 }

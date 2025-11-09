@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.Flow
 interface DayTaskRepository {
     fun getDayTasksForDayPlan(dayPlanId: String): Flow<List<DayTask>>
     fun getDayTaskById(id: String): Flow<DayTask?>
-    suspend fun getMaxOrderForDayPlan(dayPlanId: String): Long?
+    suspend fun getMaxOrderForDayPlan(dayPlanId: String): Long
     fun getTasksForDayPlan(dayPlanId: String): Flow<List<DayTask>>
     fun getTasksForGoal(goalId: String): Flow<List<DayTask>>
     suspend fun getTasksForDayPlanOnce(dayPlanId: String): List<DayTask>

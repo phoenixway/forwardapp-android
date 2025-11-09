@@ -39,38 +39,3 @@ fun DayTasks.toDomain(): DayTask {
     )
 }
 
-fun DayTask.toSqlDelight(): DayTasks {
-    return DayTasks(
-        id = this.id,
-        dayPlanId = this.dayPlanId,
-        title = this.title,
-        description = this.description,
-        goalId = this.goalId,
-        projectId = this.projectId,
-        activityRecordId = this.activityRecordId,
-        recurringTaskId = this.recurringTaskId,
-        taskType = this.taskType,
-        entityId = this.entityId,
-        order = this.order,
-        priority = this.priority,
-        status = this.status,
-        completed = this.completed,
-        scheduledTime = this.scheduledTime,
-        estimatedDurationMinutes = this.estimatedDurationMinutes,
-        actualDurationMinutes = this.actualDurationMinutes,
-        dueTime = this.dueTime,
-        valueImportance = this.valueImportance,
-        valueImpact = this.valueImpact,
-        effort = this.effort,
-        cost = this.cost,
-        risk = this.risk,
-        location = this.location,
-        tags = this.tags,
-        notes = this.notes,
-        createdAt = this.createdAt,
-        updatedAt = this.updatedAt,
-        completedAt = this.completedAt,
-        nextOccurrenceTime = this.nextOccurrenceTime,
-        points = this.points,
-    )
-}
