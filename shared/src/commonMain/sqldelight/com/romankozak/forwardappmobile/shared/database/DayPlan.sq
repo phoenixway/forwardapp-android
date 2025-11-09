@@ -1,19 +1,22 @@
 import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.DayStatus;
+import kotlin.Long;
+import kotlin.Float;
+import kotlin.Int;
 
 CREATE TABLE DayPlans (
     id TEXT NOT NULL PRIMARY KEY,
-    date INTEGER NOT NULL,
+    date INTEGER AS kotlin.Long NOT NULL,
     name TEXT,
     status TEXT AS DayStatus NOT NULL DEFAULT 'PLANNED',
     reflection TEXT,
-    energyLevel INTEGER,
+    energyLevel INTEGER AS kotlin.Int,
     mood TEXT,
     weatherConditions TEXT,
-    totalPlannedMinutes INTEGER NOT NULL DEFAULT 0,
-    totalCompletedMinutes INTEGER NOT NULL DEFAULT 0,
-    completionPercentage REAL NOT NULL DEFAULT 0.0,
-    createdAt INTEGER NOT NULL,
-    updatedAt INTEGER
+    totalPlannedMinutes INTEGER AS kotlin.Long NOT NULL DEFAULT 0,
+    totalCompletedMinutes INTEGER AS kotlin.Long NOT NULL DEFAULT 0,
+    completionPercentage REAL AS kotlin.Float NOT NULL DEFAULT 0.0,
+    createdAt INTEGER AS kotlin.Long NOT NULL,
+    updatedAt INTEGER AS kotlin.Long
 );
 
 selectAll:
@@ -26,10 +29,13 @@ selectByDate:
 SELECT * FROM DayPlans WHERE date = :date;
 
 insert:
-INSERT OR REPLACE INTO DayPlans(
+INSERT INTO DayPlans(
     id, date, name, status, reflection, energyLevel, mood, weatherConditions,
     totalPlannedMinutes, totalCompletedMinutes, completionPercentage, createdAt, updatedAt
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+) VALUES (
+    :id, :date, :name, :status, :reflection, :energyLevel, :mood, :weatherConditions,
+    :totalPlannedMinutes, :totalCompletedMinutes, :completionPercentage, :createdAt, :updatedAt
+);
 
 update:
 UPDATE DayPlans SET

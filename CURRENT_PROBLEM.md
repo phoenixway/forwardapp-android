@@ -1,16 +1,17 @@
-# 🚨 Проблема: SQLDelight 2.x генерує некоректний код для кастомних типів
+# 🚨 Проблема: SQLDelight 2.x генерує некоректний код для кастомних типів (Оновлено)
 
 Привіт! Я — мовна модель, яка застрягла на вирішенні проблеми з генерацією коду в SQLDelight 2.x. Незважаючи на успішне виконання Gradle-завдання `generate...Interface`, згенерований Kotlin-код містить помилки, що блокує всю подальшу компіляцію.
 
 ## Контекст
 
-Ми знаходимося в процесі міграції з Room на SQLDelight. Ми намагаємося змусити SQLDelight коректно працювати з нашими `.sq` файлами, які використовують кастомні Kotlin-типи через `ColumnAdapter`.
+Ми знаходимося в процесі міграції з Room на SQLDelight у Kotlin Multiplatform проєкті. Наша мета — змусити SQLDelight коректно працювати з нашими `.sq` файлами, які використовують кастомні Kotlin-типи через `ColumnAdapter`.
 
 ## Ключова проблема: успішна генерація, але некоректний код
 
 1.  Gradle-завдання `:shared:generateCommonMainForwardAppDatabaseInterface` **завершується успішно** (`BUILD SUCCESSFUL`).
-2.  Однак, якщо заглянути у згенерований файл `shared/build/generated/sqldelight/.../Goals.kt`, ми бачимо такий код:
+2.  Однак, якщо заглянути у згенерований файл `shared/build/generated/sqldelight/.../Goals.kt` (або інші), ми бачимо, що SQLDelight не завжди коректно виводить типи з `ColumnAdapter`, які ми передаємо під час ініціалізації бази даних. Замість використання реальних Kotlin-типів (наприклад, `List<RelatedLink>`), він генерує код, який буквально використовує псевдоніми типів (`RelatedLinkList`), що призводить до помилок `Unresolved reference`.
 
+    **Приклад помилкового коду (з `Goals.kt`):**
     ```kotlin
     package com.romankozak.forwardappmobile.shared.database
 
@@ -38,11 +39,15 @@
 
 Ми виходили з гіпотези, що SQLDelight 2.x має автоматично виводити правильні Kotlin-типи з `ColumnAdapter`, які ми передаємо під час ініціалізації бази даних.
 
-1.  **Виправлення `.sq` файлу**: Ми привели `Goal.sq` до формату, який очікує SQLDelight 2.x:
+1.  **Виправлення `.sq` файлу**: Ми привели `.sq` файли до формату, який очікує SQLDelight 2.x, використовуючи `AS <KotlinType>` для кастомних типів та `import` для їх імпорту.
     ```sql
+    -- Приклад з Goal.sq
+    import kotlin.Boolean;
+    import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink;
+
     CREATE TABLE Goals (
-        completed INTEGER AS Boolean NOT NULL DEFAULT 0,
-        relatedLinks TEXT AS RelatedLinkList
+        completed INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
+        relatedLinks TEXT AS List<RelatedLink>
         -- ...
     );
     ```
@@ -51,12 +56,15 @@
 
     ```kotlin
     // DatabaseDriverFactory.kt
+    val booleanAdapter = object : ColumnAdapter<Boolean, Long> { ... }
+    val relatedLinksListAdapter = object : ColumnAdapter<List<RelatedLink>, String> { ... }
+
     fun createForwardAppDatabase(driverFactory: DatabaseDriverFactory): ForwardAppDatabase {
         return ForwardAppDatabase(
             driver = driverFactory.createDriver(),
             GoalsAdapter = Goals.Adapter(
-                completedAdapter = booleanAdapter, // : ColumnAdapter<Boolean, Long>
-                relatedLinksAdapter = relatedLinksListAdapter // : ColumnAdapter<List<RelatedLink>, String>
+                completedAdapter = booleanAdapter,
+                relatedLinksAdapter = relatedLinksListAdapter
             )
             // ...
         )
@@ -77,19 +85,49 @@
 *   **Гіпотеза Б**: Це баг у версії плагіна `2.0.2`, який не дозволяє коректно виводити типи з адаптерів.
 *   **Гіпотеза В**: Структура нашого проєкту або спосіб, у який ми надаємо адаптери, є неправильним, і через це плагін не може їх "побачити" на етапі генерації.
 
-## 📝 План дій
+## 📝 Прогрес та поточний план дій
 
-Оскільки прямі спроби виправити конфігурацію провалилися, потрібно змінити підхід.
+Ми виявили, що проблема `Unresolved reference 'activityRecordsQueries'` була спричинена не Room-дублікатами, а **помилками в інших `.sq` файлах**, які "отруювали" процес кодогенерації SQLDelight.
 
-1.  **Пошук робочого прикладу**: Знайти на GitHub або в офіційних прикладах SQLDelight 2.x **робочий проєкт**, який використовує кастомні типи (особливо `List<T>`) з `ColumnAdapter`, і проаналізувати його `build.gradle.kts` на предмет відмінностей.
-2.  **Ізоляція проблеми**: Створити мінімальний, "чистий" KMP-проєкт з однією таблицею та одним кастомним типом. Якщо проблема відтвориться, це вкаже на баг у бібліотеці або на фундаментальну помилку в нашому розумінні її роботи. Якщо не відтвориться — проблема в нашому поточному проєкті.
-3.  **Тимчасовий обхідний шлях**: Як крайній захід, можна прибрати `AS Boolean` та `AS RelatedLinkList` з `.sq` файлів, залишивши `INTEGER` та `TEXT`. Це змусить SQLDelight згенерувати код з примітивними типами (`Long` та `String`), а всю логіку конвертації перенести з `ColumnAdapter` на шар мапперів у репозиторіях. Це не ідеально, але дозволить продовжити роботу.
+**Виконані кроки:**
+1.  **Видалено дублікати Room-сутностей:** Перейменовано файли `ActivityRecord.kt`, `ActivityRecordDao.kt`, `ActivityRepository.kt` на `.bak`. Видалено посилання на них з `AppDatabase.kt` та `RepositoryModule.kt`.
+2.  **Ізоляція `.sq` файлів:** Переміщено всі `.sq` файли, крім `Goal.sq` та `ActivityRecord.sq`, до тимчасової папки `sqldelight_backup`. Це дозволило підтвердити, що `activityRecordsQueries` генерується коректно, коли інші файли відсутні.
+3.  **Послідовне виправлення `.sq` файлів:**
+    *   **`InboxRecord.sq`:** Виявлено, що він був причиною повернення помилки `activityRecordsQueries`. Виправлено:
+        *   Додано `import kotlin.Long;`.
+        *   Змінено `createdAt INTEGER` на `createdAt INTEGER AS kotlin.Long NOT NULL`.
+        *   Змінено `item_order INTEGER` на `` `order` INTEGER AS kotlin.Long NOT NULL `` (змінено назву колонки та додано `AS`).
+        *   Переведено `INSERT` на іменовані параметри.
+    *   **`ListItem.sq`:** Виправлено:
+        *   Додано `import kotlin.Long;`.
+        *   Змінено `item_order INTEGER` на `item_order INTEGER AS kotlin.Long NOT NULL`.
+        *   Переведено `INSERT` на іменовані параметри.
+    *   **`DayPlan.sq`:** Виправлено:
+        *   Додано `import kotlin.Long;`, `import kotlin.Float;`, `import kotlin.Int;`.
+        *   Виправлено типи для `date`, `energyLevel`, `totalPlannedMinutes`, `totalCompletedMinutes`, `completionPercentage`, `createdAt`, `updatedAt`.
+        *   Переведено `INSERT` на іменовані параметри.
+    *   **`DayTask.sq`:** Виправлено:
+        *   Додано `import kotlin.Long;`, `import kotlin.Boolean;`, `import kotlin.Float;`, `import kotlin.Int;`, `import java.util.List;`.
+        *   Виправлено типи для `order`, `completed`, `scheduledTime`, `estimatedDurationMinutes`, `actualDurationMinutes`, `dueTime`, `valueImportance`, `valueImpact`, `effort`, `cost`, `risk`, `createdAt`, `updatedAt`, `completedAt`, `nextOccurrenceTime`, `points`.
+        *   Додано `tags TEXT AS List<String>`.
+        *   Переведено `INSERT` на іменовані параметри.
+4.  **Оновлено `DatabaseDriverFactory.kt`:** Додано `stringListAdapter` для `List<String>` та оновлено `DayPlansAdapter` та `DayTasksAdapter` з новими адаптерами (`stringListAdapter`, `booleanAdapter`).
+5.  **Видалено дублікати мапперів/репозиторіїв:** Видалено зайві файли `InboxRecordMapper.kt`, `InboxRecordRepositoryImpl.kt`, `ListItemRepository.kt`.
+6.  **Виправлено маппери та репозиторії:** Оновлено `InboxRecordMapper.kt`, `ListItemMapper.kt`, `ListItemRepositoryImpl.kt`, `DayPlanMapper.kt`, `DayPlanRepositoryImpl.kt`, `DayTaskMapper.kt` для відповідності новим схемам та типам.
+
+**Поточний стан:**
+Наразі ми знаходимося на етапі виправлення `DayTaskRepositoryImpl.kt`.
+
+**Поточний план:**
+1.  **Виправити `DayTaskRepositoryImpl.kt`:**
+    *   Прочитати `shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/shared/features/daymanagement/data/DayTaskRepositoryImpl.kt`.
+    *   Виправити всі невідповідності типів та параметрів запитів, які виникли після оновлення `DayTask.sq` та `DayTaskMapper.kt`.
+2.  **Перевірити збірку:** Запустити `./gradlew clean assembleDebug`.
+3.  **Продовжити міграцію:** Повторювати процес для решти `.sq` файлів з папки `sqldelight_backup`, доки весь проєкт не скомпілюється.
 
 **Я готовий надати будь-який код або виконати команди. Будь ласка, допоможи нам знайти правильний спосіб налаштування типів для SQLDelight 2.x.**
 
----
-
-## 🗂️ Ключові файли
+## 🗂️ Ключові файли (оновлено)
 
 **1. `shared/build.gradle.kts`**
 ```kotlin
@@ -197,16 +235,41 @@ dependencies {
 package com.romankozak.forwardappmobile.shared.database
 
 import app.cash.sqldelight.ColumnAdapter
+import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.DayStatus
+import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.TaskPriority
+import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.TaskStatus
 import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
-import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
-import com.romankozak.forwardappmobile.shared.database.Goals
-import kotlinx.serialization.builtins.ListSerializer
+import app.cash.sqldelight.ColumnAdapter
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
+import kotlinx.serialization.builtins.ListSerializer
 
-expect class DatabaseDriverFactory {
+/**
+ * Platform-specific configuration needed to create a SQLDelight driver.
+ */
+expect abstract class PlatformContext
+
+/**
+ * Factory that creates a platform-specific SQLDelight driver.
+ *
+ * A `PlatformContext` can provide additional information (for example, the Android `Context`).
+ */
+expect class DatabaseDriverFactory(platformContext: PlatformContext? = null) {
     fun createDriver(): SqlDriver
+}
+
+val dayStatusAdapter = object : ColumnAdapter<DayStatus, String> {
+    override fun decode(databaseValue: String): DayStatus = DayStatus.valueOf(databaseValue)
+    override fun encode(value: DayStatus): String = value.name
+}
+val taskPriorityAdapter = object : ColumnAdapter<TaskPriority, String> {
+    override fun decode(databaseValue: String): TaskPriority = TaskPriority.valueOf(databaseValue)
+    override fun encode(value: TaskPriority): String = value.name
+}
+val taskStatusAdapter = object : ColumnAdapter<TaskStatus, String> {
+    override fun decode(databaseValue: String): TaskStatus = TaskStatus.valueOf(databaseValue)
+    override fun encode(value: TaskStatus): String = value.name
 }
 
 val booleanAdapter = object : ColumnAdapter<Boolean, Long> {
@@ -229,9 +292,34 @@ val relatedLinksListAdapter = object : ColumnAdapter<List<RelatedLink>, String> 
     }
 }
 
-fun createForwardAppDatabase(driverFactory: DatabaseDriverFactory): ForwardAppDatabase {
+val stringListAdapter = object : ColumnAdapter<List<String>, String> {
+    override fun decode(databaseValue: String): List<String> {
+        if (databaseValue.isEmpty()) return emptyList()
+        return Json.decodeFromString(ListSerializer(String.serializer()), databaseValue)
+    }
+
+    override fun encode(value: List<String>): String {
+        return Json.encodeToString(ListSerializer(String.serializer()), value)
+    }
+}
+
+fun createForwardAppDatabase(
+    driverFactory: DatabaseDriverFactory,
+): ForwardAppDatabase {
     return ForwardAppDatabase(
         driver = driverFactory.createDriver(),
+        ActivityRecordsAdapter = ActivityRecords.Adapter(
+            relatedLinksAdapter = relatedLinksListAdapter
+        ),
+        InboxRecordsAdapter = InboxRecords.Adapter(),
+        ListItemsAdapter = ListItems.Adapter(),
+        DayPlansAdapter = DayPlans.Adapter(statusAdapter = dayStatusAdapter),
+        DayTasksAdapter = DayTasks.Adapter(
+            priorityAdapter = taskPriorityAdapter,
+            statusAdapter = taskStatusAdapter,
+            tagsAdapter = stringListAdapter,
+            completedAdapter = booleanAdapter
+        ),
         GoalsAdapter = Goals.Adapter(
             completedAdapter = booleanAdapter,
             relatedLinksAdapter = relatedLinksListAdapter
@@ -242,6 +330,12 @@ fun createForwardAppDatabase(driverFactory: DatabaseDriverFactory): ForwardAppDa
 
 **3. `shared/src/commonMain/sqldelight/com/romankozak/forwardappmobile/shared/database/Goal.sq`**
 ```sql
+import kotlin.Boolean;
+import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink;
+import kotlin.Long;
+import kotlin.Float;
+import kotlin.Int;
+
 -- ============================================
 -- 📌 TABLE: Goals
 -- ============================================
@@ -249,26 +343,26 @@ CREATE TABLE Goals (
     id TEXT NOT NULL PRIMARY KEY,
     text TEXT NOT NULL,                     -- Назва/текст цілі
     description TEXT,                       -- Опис (може бути NULL)
-    completed INTEGER NOT NULL DEFAULT 0,  -- true/false як 1/0
-    createdAt INTEGER NOT NULL,             -- timestamp (Long)
-    updatedAt INTEGER,                      -- timestamp або NULL
+    completed INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,  -- true/false як 1/0
+    createdAt INTEGER AS kotlin.Long NOT NULL,             -- timestamp (Long)
+    updatedAt INTEGER AS kotlin.Long,                      -- timestamp або NULL
     tags TEXT,                              -- raw string або JSON (якщо треба)
-    relatedLinks TEXT,   -- ✅ просто TEXT
-    valueImportance REAL NOT NULL DEFAULT 0.0,
-    valueImpact REAL NOT NULL DEFAULT 0.0,
-    effort REAL NOT NULL DEFAULT 0.0,
-    cost REAL NOT NULL DEFAULT 0.0,
-    risk REAL NOT NULL DEFAULT 0.0,
-    weightEffort REAL NOT NULL DEFAULT 1.0,
-    weightCost REAL NOT NULL DEFAULT 1.0,
-    weightRisk REAL NOT NULL DEFAULT 1.0,
-    rawScore REAL NOT NULL DEFAULT 0.0,
-    displayScore INTEGER NOT NULL DEFAULT 0,
+    relatedLinks TEXT AS List<RelatedLink>,   -- ✅ просто TEXT
+    valueImportance REAL AS kotlin.Float NOT NULL DEFAULT 0.0,
+    valueImpact REAL AS kotlin.Float NOT NULL DEFAULT 0.0,
+    effort REAL AS kotlin.Float NOT NULL DEFAULT 0.0,
+    cost REAL AS kotlin.Float NOT NULL DEFAULT 0.0,
+    risk REAL AS kotlin.Float NOT NULL DEFAULT 0.0,
+    weightEffort REAL AS kotlin.Float NOT NULL DEFAULT 1.0,
+    weightCost REAL AS kotlin.Float NOT NULL DEFAULT 1.0,
+    weightRisk REAL AS kotlin.Float NOT NULL DEFAULT 1.0,
+    rawScore REAL AS kotlin.Float NOT NULL DEFAULT 0.0,
+    displayScore INTEGER AS kotlin.Int NOT NULL DEFAULT 0,
     scoringStatus TEXT NOT NULL,
-    parentValueImportance REAL,
-    impactOnParentGoal REAL,
-    timeCost REAL,
-    financialCost REAL,
+    parentValueImportance REAL AS kotlin.Float,
+    impactOnParentGoal REAL AS kotlin.Float,
+    timeCost REAL AS kotlin.Float,
+    financialCost REAL AS kotlin.Float,
     markdown TEXT
 );
 
@@ -404,26 +498,26 @@ class GoalRepositoryImpl(
                 id = goal.id,
                 text = goal.text,
                 description = goal.description,
-                completed = if (goal.completed) 1 else 0,
+                completed = goal.completed,
                 createdAt = goal.createdAt,
                 updatedAt = goal.updatedAt,
                 tags = goal.tags,
-                relatedLinks = goal.relatedLinks?.let { Json.encodeToString(ListSerializer(RelatedLink.serializer()), it) },
-                valueImportance = goal.valueImportance.toDouble(),
-                valueImpact = goal.valueImpact.toDouble(),
-                effort = goal.effort.toDouble(),
-                cost = goal.cost.toDouble(),
-                risk = goal.risk.toDouble(),
-                weightEffort = goal.weightEffort.toDouble(),
-                weightCost = goal.weightCost.toDouble(),
-                weightRisk = goal.weightRisk.toDouble(),
-                rawScore = goal.rawScore.toDouble(),
-                displayScore = goal.displayScore.toLong(),
+                relatedLinks = goal.relatedLinks,
+                valueImportance = goal.valueImportance,
+                valueImpact = goal.valueImpact,
+                effort = goal.effort,
+                cost = goal.cost,
+                risk = goal.risk,
+                weightEffort = goal.weightEffort,
+                weightCost = goal.weightCost,
+                weightRisk = goal.weightRisk,
+                rawScore = goal.rawScore,
+                displayScore = goal.displayScore,
                 scoringStatus = goal.scoringStatus,
-                parentValueImportance = goal.parentValueImportance?.toDouble(),
-                impactOnParentGoal = goal.impactOnParentGoal?.toDouble(),
-                timeCost = goal.timeCost?.toDouble(),
-                financialCost = goal.financialCost?.toDouble()
+                parentValueImportance = goal.parentValueImportance,
+                impactOnParentGoal = goal.impactOnParentGoal,
+                timeCost = goal.timeCost,
+                financialCost = goal.financialCost
             )
         }
     }
@@ -436,26 +530,26 @@ class GoalRepositoryImpl(
                     id = goal.id,
                     text = goal.text,
                     description = goal.description,
-                    completed = if (goal.completed) 1 else 0,
+                    completed = goal.completed,
                     createdAt = goal.createdAt,
                     updatedAt = goal.updatedAt,
                     tags = goal.tags,
-                    relatedLinks = goal.relatedLinks?.let { Json.encodeToString(ListSerializer(RelatedLink.serializer()), it) },
-                    valueImportance = goal.valueImportance.toDouble(),
-                    valueImpact = goal.valueImpact.toDouble(),
-                    effort = goal.effort.toDouble(),
-                    cost = goal.cost.toDouble(),
-                    risk = goal.risk.toDouble(),
-                    weightEffort = goal.weightEffort.toDouble(),
-                    weightCost = goal.weightCost.toDouble(),
-                    weightRisk = goal.weightRisk.toDouble(),
-                    rawScore = goal.rawScore.toDouble(),
-                    displayScore = goal.displayScore.toLong(),
+                    relatedLinks = goal.relatedLinks,
+                    valueImportance = goal.valueImportance,
+                    valueImpact = goal.valueImpact,
+                    effort = goal.effort,
+                    cost = goal.cost,
+                    risk = goal.risk,
+                    weightEffort = goal.weightEffort,
+                    weightCost = goal.weightCost,
+                    weightRisk = goal.weightRisk,
+                    rawScore = goal.rawScore,
+                    displayScore = goal.displayScore,
                     scoringStatus = goal.scoringStatus,
-                    parentValueImportance = goal.parentValueImportance?.toDouble(),
-                    impactOnParentGoal = goal.impactOnParentGoal?.toDouble(),
-                    timeCost = goal.timeCost?.toDouble(),
-                    financialCost = goal.financialCost?.toDouble()
+                    parentValueImportance = goal.parentValueImportance,
+                    impactOnParentGoal = goal.impactOnParentGoal,
+                    timeCost = goal.timeCost,
+                    financialCost = goal.financialCost
                 )
             }
         }
@@ -468,25 +562,25 @@ class GoalRepositoryImpl(
                 id = goal.id,
                 text = goal.text,
                 description = goal.description,
-                completed = if (goal.completed) 1 else 0,
+                completed = goal.completed,
                 updatedAt = goal.updatedAt,
                 tags = goal.tags,
-                relatedLinks = goal.relatedLinks?.let { Json.encodeToString(ListSerializer(RelatedLink.serializer()), it) },
-                valueImportance = goal.valueImportance.toDouble(),
-                valueImpact = goal.valueImpact.toDouble(),
-                effort = goal.effort.toDouble(),
-                cost = goal.cost.toDouble(),
-                risk = goal.risk.toDouble(),
-                weightEffort = goal.weightEffort.toDouble(),
-                weightCost = goal.weightCost.toDouble(),
-                weightRisk = goal.weightRisk.toDouble(),
-                rawScore = goal.rawScore.toDouble(),
-                displayScore = goal.displayScore.toLong(),
+                relatedLinks = goal.relatedLinks,
+                valueImportance = goal.valueImportance,
+                valueImpact = goal.valueImpact,
+                effort = goal.effort,
+                cost = goal.cost,
+                risk = goal.risk,
+                weightEffort = goal.weightEffort,
+                weightCost = goal.weightCost,
+                weightRisk = goal.weightRisk,
+                rawScore = goal.rawScore,
+                displayScore = goal.displayScore,
                 scoringStatus = goal.scoringStatus,
-                parentValueImportance = goal.parentValueImportance?.toDouble(),
-                impactOnParentGoal = goal.impactOnParentGoal?.toDouble(),
-                timeCost = goal.timeCost?.toDouble(),
-                financialCost = goal.financialCost?.toDouble()
+                parentValueImportance = goal.parentValueImportance,
+                impactOnParentGoal = goal.impactOnParentGoal,
+                timeCost = goal.timeCost,
+                financialCost = goal.financialCost
             )
         }
     }
@@ -499,25 +593,25 @@ class GoalRepositoryImpl(
                     id = goal.id,
                     text = goal.text,
                     description = goal.description,
-                    completed = if (goal.completed) 1 else 0,
+                    completed = goal.completed,
                     updatedAt = goal.updatedAt,
                     tags = goal.tags,
-                    relatedLinks = goal.relatedLinks?.let { Json.encodeToString(ListSerializer(RelatedLink.serializer()), it) },
-                    valueImportance = goal.valueImportance.toDouble(),
-                    valueImpact = goal.valueImpact.toDouble(),
-                    effort = goal.effort.toDouble(),
-                    cost = goal.cost.toDouble(),
-                    risk = goal.risk.toDouble(),
-                    weightEffort = goal.weightEffort.toDouble(),
-                    weightCost = goal.weightCost.toDouble(),
-                    weightRisk = goal.weightRisk.toDouble(),
-                    rawScore = goal.rawScore.toDouble(),
-                    displayScore = goal.displayScore.toLong(),
+                    relatedLinks = goal.relatedLinks,
+                    valueImportance = goal.valueImportance,
+                    valueImpact = goal.valueImpact,
+                    effort = goal.effort,
+                    cost = goal.cost,
+                    risk = goal.risk,
+                    weightEffort = goal.weightEffort,
+                    weightCost = goal.weightCost,
+                    weightRisk = goal.weightRisk,
+                    rawScore = goal.rawScore,
+                    displayScore = goal.displayScore,
                     scoringStatus = goal.scoringStatus,
-                    parentValueImportance = goal.parentValueImportance?.toDouble(),
-                    impactOnParentGoal = goal.impactOnParentGoal?.toDouble(),
-                    timeCost = goal.timeCost?.toDouble(),
-                    financialCost = goal.financialCost?.toDouble()
+                    parentValueImportance = goal.parentValueImportance,
+                    impactOnParentGoal = goal.impactOnParentGoal,
+                    timeCost = goal.timeCost,
+                    financialCost = goal.financialCost
                 )
             }
         }

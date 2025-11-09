@@ -2,8 +2,6 @@ package com.romankozak.forwardappmobile.shared.features.daymanagement.data
 
 import com.romankozak.forwardappmobile.shared.database.DayTasks
 import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.DayTask
-import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.TaskPriority
-import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.TaskStatus
 
 fun DayTasks.toDomain(): DayTask {
     return DayTask(
@@ -20,24 +18,24 @@ fun DayTasks.toDomain(): DayTask {
         order = this.order,
         priority = this.priority,
         status = this.status,
-        completed = this.completed != 0L,
+        completed = this.completed,
         scheduledTime = this.scheduledTime,
         estimatedDurationMinutes = this.estimatedDurationMinutes,
         actualDurationMinutes = this.actualDurationMinutes,
         dueTime = this.dueTime,
-        valueImportance = this.valueImportance.toFloat(),
-        valueImpact = this.valueImpact.toFloat(),
-        effort = this.effort.toFloat(),
-        cost = this.cost.toFloat(),
-        risk = this.risk.toFloat(),
+        valueImportance = this.valueImportance,
+        valueImpact = this.valueImpact,
+        effort = this.effort,
+        cost = this.cost,
+        risk = this.risk,
         location = this.location,
-        tags = this.tags?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() },
+        tags = this.tags,
         notes = this.notes,
         createdAt = this.createdAt,
         updatedAt = this.updatedAt,
         completedAt = this.completedAt,
         nextOccurrenceTime = this.nextOccurrenceTime,
-        points = this.points.toInt(),
+        points = this.points,
     )
 }
 
@@ -53,26 +51,26 @@ fun DayTask.toSqlDelight(): DayTasks {
         recurringTaskId = this.recurringTaskId,
         taskType = this.taskType,
         entityId = this.entityId,
-        order = this.order.toLong(),
+        order = this.order,
         priority = this.priority,
         status = this.status,
-        completed = if (this.completed) 1L else 0L,
+        completed = this.completed,
         scheduledTime = this.scheduledTime,
         estimatedDurationMinutes = this.estimatedDurationMinutes,
         actualDurationMinutes = this.actualDurationMinutes,
         dueTime = this.dueTime,
-        valueImportance = this.valueImportance.toDouble(),
-        valueImpact = this.valueImpact.toDouble(),
-        effort = this.effort.toDouble(),
-        cost = this.cost.toDouble(),
-        risk = this.risk.toDouble(),
+        valueImportance = this.valueImportance,
+        valueImpact = this.valueImpact,
+        effort = this.effort,
+        cost = this.cost,
+        risk = this.risk,
         location = this.location,
-        tags = this.tags?.joinToString(","),
+        tags = this.tags,
         notes = this.notes,
         createdAt = this.createdAt,
         updatedAt = this.updatedAt,
         completedAt = this.completedAt,
         nextOccurrenceTime = this.nextOccurrenceTime,
-        points = this.points.toLong(),
+        points = this.points,
     )
 }

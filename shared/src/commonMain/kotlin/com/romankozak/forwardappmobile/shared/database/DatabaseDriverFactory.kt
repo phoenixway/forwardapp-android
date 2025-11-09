@@ -58,6 +58,17 @@ val relatedLinksListAdapter = object : ColumnAdapter<List<RelatedLink>, String> 
     }
 }
 
+val stringListAdapter = object : ColumnAdapter<List<String>, String> {
+    override fun decode(databaseValue: String): List<String> {
+        if (databaseValue.isEmpty()) return emptyList()
+        return Json.decodeFromString(ListSerializer(String.serializer()), databaseValue)
+    }
+
+    override fun encode(value: List<String>): String {
+        return Json.encodeToString(ListSerializer(String.serializer()), value)
+    }
+}
+
 fun createForwardAppDatabase(
     driverFactory: DatabaseDriverFactory,
 ): ForwardAppDatabase {
@@ -68,11 +79,13 @@ fun createForwardAppDatabase(
         ),
         InboxRecordsAdapter = InboxRecords.Adapter(),
         ListItemsAdapter = ListItems.Adapter(),
-        // DayPlansAdapter = DayPlans.Adapter(statusAdapter = dayStatusAdapter),
-        // DayTasksAdapter = DayTasks.Adapter(
-        //     priorityAdapter = taskPriorityAdapter,
-        //     statusAdapter = taskStatusAdapter
-        // ),
+        DayPlansAdapter = DayPlans.Adapter(statusAdapter = dayStatusAdapter),
+        DayTasksAdapter = DayTasks.Adapter(
+            priorityAdapter = taskPriorityAdapter,
+            statusAdapter = taskStatusAdapter,
+            tagsAdapter = stringListAdapter,
+            completedAdapter = booleanAdapter
+        ),
         GoalsAdapter = Goals.Adapter(
             relatedLinksAdapter = relatedLinksListAdapter
         )

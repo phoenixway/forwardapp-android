@@ -46,12 +46,12 @@ class DayPlanRepositoryImpl(
                 name = dayPlan.name,
                 status = dayPlan.status,
                 reflection = dayPlan.reflection,
-                energyLevel = dayPlan.energyLevel?.toLong(),
+                energyLevel = dayPlan.energyLevel,
                 mood = dayPlan.mood,
                 weatherConditions = dayPlan.weatherConditions,
-                totalPlannedMinutes = dayPlan.totalPlannedMinutes.toLong(),
-                totalCompletedMinutes = dayPlan.totalCompletedMinutes.toLong(),
-                completionPercentage = dayPlan.completionPercentage.toDouble(),
+                totalPlannedMinutes = dayPlan.totalPlannedMinutes,
+                totalCompletedMinutes = dayPlan.totalCompletedMinutes,
+                completionPercentage = dayPlan.completionPercentage,
                 createdAt = dayPlan.createdAt,
                 updatedAt = dayPlan.updatedAt
             )
@@ -66,12 +66,12 @@ class DayPlanRepositoryImpl(
                 name = dayPlan.name,
                 status = dayPlan.status,
                 reflection = dayPlan.reflection,
-                energyLevel = dayPlan.energyLevel?.toLong(),
+                energyLevel = dayPlan.energyLevel,
                 mood = dayPlan.mood,
                 weatherConditions = dayPlan.weatherConditions,
-                totalPlannedMinutes = dayPlan.totalPlannedMinutes.toLong(),
-                totalCompletedMinutes = dayPlan.totalCompletedMinutes.toLong(),
-                completionPercentage = dayPlan.completionPercentage.toDouble(),
+                totalPlannedMinutes = dayPlan.totalPlannedMinutes,
+                totalCompletedMinutes = dayPlan.totalCompletedMinutes,
+                completionPercentage = dayPlan.completionPercentage,
                 updatedAt = Clock.System.now().toEpochMilliseconds(),
             )
         }
@@ -107,7 +107,7 @@ class DayPlanRepositoryImpl(
             db.dayPlanQueries.updatePlanProgress(
                 planId = planId,
                 minutes = minutes,
-                percentage = percentage.toDouble(),
+                percentage = percentage,
                 updatedAt = updatedAt
             )
         }
