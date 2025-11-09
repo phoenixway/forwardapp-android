@@ -1,0 +1,7 @@
+CREATE TABLE TestTable (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL
+);
+
+getAll:
+SELECT * FROM TestTable;

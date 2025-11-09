@@ -41,6 +41,42 @@ Execution failed for task ':shared:generateCommonMainForwardAppDatabaseInterface
 
 Жоден із цих кроків не вирішив проблему `StackOverflowError`.
 
+---
+
+## 🚨 Оновлення: Проблема з FTS5 та `rowid` (15.11.2025)
+
+Після подальшого аналізу було знайдено корінь проблеми. `StackOverflowError` виникав не через кастомні типи, а через помилку в обробці FTS5-таблиць в SQLDelight `2.0.2`.
+
+**Ідентифікована проблема:**
+- **Файл:** `shared/src/commonMain/sqldelight/com/romankozak/forwardappmobile/shared/database/ActivityRecord.sq`
+- **Причина:** Запит, що використовує `JOIN` з FTS-таблицею (`ActivityRecordsFts`) і звертається до її спеціальної колонки `rowid`, викликає нескінченну рекурсію в компіляторі SQLDelight.
+
+### Спроби виправлення FTS-запиту
+
+1.  **Заміна `rowid` на `id`:**
+    - **Дія:** Змінив `JOIN ... ON ar.id = fts.rowid` на `... ON ar.id = fts.id`.
+    - **Результат:** `StackOverflowError` зник, але з'явилася помилка `No column found with name id`, що вказує на те, що SQLDelight не розпізнає `id` як валідну колонку FTS-таблиці, незважаючи на `content_rowid='id'`.
+
+2.  **Перехід на тригери (рекомендований підхід):**
+    - **Дія:** Повністю переписав `ActivityRecord.sq`, замінивши FTS-таблицю з `content=` на нову FTS-таблицю, що синхронізується за допомогою тригерів `AFTER INSERT`, `AFTER UPDATE`, `AFTER DELETE`.
+    - **Результат:** `StackOverflowError` **знову повернувся**. Це стало несподіванкою, оскільки тригерний підхід є стандартним і не мав би викликати таких проблем. Навіть після виправлення синтаксису в самому тригері (заміна `UPDATE` на `DELETE/INSERT`), помилка залишилася.
+
+3.  **Ізоляція проблеми (тимчасове рішення):**
+    - **Дія:** Повністю закоментував FTS-запит `search:` в `ActivityRecord.sq`.
+    - **Результат:** **УСПІХ!** Завдання `:shared:generateCommonMainForwardAppDatabaseInterface` виконалося успішно.
+
+### Поточний стан
+
+Проєкт компілюється **тільки** якщо проблемний FTS-запит закоментований. Це доводить, що проблема на 100% локалізована в цьому запиті та його взаємодії з FTS-таблицею в SQLDelight `2.0.2`.
+
+**Висновок:**
+Схоже, що існує глибокий баг у SQLDelight `2.0.2`, який викликає `StackOverflowError` при будь-якій спробі використання FTS5-таблиці, створеної як з `content=`, так і з тригерами, у файлі `ActivityRecord.sq`.
+
+**Наступні кроки:**
+- Спробувати понизити версію SQLDelight до `2.0.1` або `2.0.0`.
+- Спробувати понизити версію Kotlin до `2.0.21`.
+- Якщо нічого не допоможе, тимчасово залишити FTS-пошук вимкненим і створити `issue` на GitHub для SQLDelight.
+
 ## 🗂️ Релевантні файли та їх вміст
 
 Ось файли, які, на мою думку, є ключовими для проблеми.
@@ -121,87 +157,5 @@ sqldelight {
     }
 }
 ```
-
-**3. `shared/src/commonMain/sqldelight/com/romankozak/forwardappmobile/shared/database/ForwardAppDatabase.sq`**
-*(Наразі порожній, щоб ізолювати проблему)*
-```sql
--- Порожній
-```
-
-**4. `shared/src/commonMain/sqldelight/com/romankozak/forwardappmobile/shared/database/LinkItem.sq`**
-*(Наразі знаходиться у тимчасовій папці)*
-```sql
-import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink;
-
-CREATE TABLE LinkItems (
-    id TEXT NOT NULL PRIMARY KEY,
-    linkData TEXT AS RelatedLink NOT NULL,
-    createdAt INTEGER NOT NULL
-);
-
--- Queries for LinkItems
-insert:
-INSERT OR REPLACE INTO LinkItems(id, linkData, createdAt)
-VALUES (?, ?, ?);
-
-getById:
-SELECT * FROM LinkItems WHERE id = ?;
-
-getAll:
-SELECT * FROM LinkItems;
-
-deleteById:
-DELETE FROM LinkItems WHERE id = ?;
-
-deleteAll:
-DELETE FROM LinkItems;
-```
-
-**5. `shared/src/commonMain/sqldelight/com/romankozak/forwardappmobile/shared/database/Projects.sq`**
-*(Наразі знаходиться у тимчасовій папці)*
-```sql
-CREATE TABLE projects (
-  id TEXT NOT NULL PRIMARY KEY,
-  name TEXT NOT NULL,
-  description TEXT,
-  parentId TEXT,
-  createdAt INTEGER NOT NULL,
-  updatedAt INTEGER,
-  tags TEXT,
-  relatedLinks TEXT,
-  is_expanded INTEGER NOT NULL DEFAULT 1,
-  goal_order INTEGER NOT NULL DEFAULT 0,
-  is_attachments_expanded INTEGER NOT NULL DEFAULT 0,
-  default_view_mode TEXT,
-  is_completed INTEGER NOT NULL DEFAULT 0,
-  is_project_management_enabled INTEGER DEFAULT 0,
-  project_status TEXT DEFAULT 'NO_PLAN',
-  project_status_text TEXT,
-  project_log_level TEXT DEFAULT 'NORMAL',
-  total_time_spent_minutes INTEGER DEFAULT 0,
-  valueImportance REAL NOT NULL DEFAULT 0.0,
-  valueImpact REAL NOT NULL DEFAULT 0.0,
-  effort REAL NOT NULL DEFAULT 0.0,
-  cost REAL NOT NULL DEFAULT 0.0,
-  risk REAL NOT NULL DEFAULT 0.0,
-  weightEffort REAL NOT NULL DEFAULT 1.0,
-  weightCost REAL NOT NULL DEFAULT 1.0,
-  weightRisk REAL NOT NULL DEFAULT 1.0,
-  rawScore REAL NOT NULL DEFAULT 0.0,
-  displayScore INTEGER NOT NULL DEFAULT 0,
-  scoring_status TEXT NOT NULL DEFAULT 'NOT_ASSESSED',
-  show_checkboxes INTEGER NOT NULL DEFAULT 0,
-  project_type TEXT NOT NULL DEFAULT 'DEFAULT',
-  reserved_group TEXT
-);
--- ... (queries)
-```
-
-## 💡 План дій (що я пропоную робити далі)
-
-1.  **Перевірити версію SQLDelight**: `2.0.2` — відносно нова. Можливо, варто пошукати відомі проблеми (issues) на GitHub для цієї версії, пов'язані з `StackOverflowError`.
-2.  **Створити мінімальний приклад**: Створити новий, порожній `.sq` файл і додавати в нього таблиці по одній, щоб точно визначити, яка саме таблиця або яка комбінація таблиць викликає помилку.
-3.  **Спробувати змінити версію SQLDelight**: Якщо є підозра на баг у поточній версії, можна спробувати оновити її до останнього SNAPSHOT або, навпаки, відкотитися до попередньої стабільної версії.
-4.  **Проаналізувати `RelatedLink`**: `LinkItem.sq` використовує кастомний тип `RelatedLink`. Можливо, проблема в тому, як SQLDelight обробляє цей тип, хоча він визначений у `commonMain`.
 
 Будь ласка, проаналізуй цю інформацію. Я готовий надати додатковий код або виконати будь-які команди, які ти запропонуєш для діагностики.

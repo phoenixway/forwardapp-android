@@ -1,3 +1,4 @@
+-- Основна таблиця
 CREATE TABLE ActivityRecords (
     id TEXT NOT NULL PRIMARY KEY,
     text TEXT NOT NULL,
@@ -11,7 +12,7 @@ CREATE TABLE ActivityRecords (
     projectId TEXT
 );
 
-CREATE VIRTUAL TABLE ActivityRecordsFts USING fts5(text, content='ActivityRecords', content_rowid='id');
+-- Queries
 
 insert:
 INSERT OR REPLACE INTO ActivityRecords(
@@ -35,13 +36,22 @@ selectAll:
 SELECT * FROM ActivityRecords ORDER BY createdAt ASC;
 
 findLastOngoingActivity:
-SELECT * FROM ActivityRecords WHERE endTime IS NULL AND startTime IS NOT NULL ORDER BY startTime DESC LIMIT 1;
+SELECT * FROM ActivityRecords 
+WHERE endTime IS NULL AND startTime IS NOT NULL 
+ORDER BY startTime DESC 
+LIMIT 1;
 
 findLastOngoingActivityForGoal:
-SELECT * FROM ActivityRecords WHERE goalId = :goalId AND endTime IS NULL AND startTime IS NOT NULL ORDER BY startTime DESC LIMIT 1;
+SELECT * FROM ActivityRecords 
+WHERE goalId = :goalId AND endTime IS NULL AND startTime IS NOT NULL 
+ORDER BY startTime DESC 
+LIMIT 1;
 
 findLastOngoingActivityForProject:
-SELECT * FROM ActivityRecords WHERE projectId = :projectId AND endTime IS NULL AND startTime IS NOT NULL ORDER BY startTime DESC LIMIT 1;
+SELECT * FROM ActivityRecords 
+WHERE projectId = :projectId AND endTime IS NULL AND startTime IS NOT NULL 
+ORDER BY startTime DESC 
+LIMIT 1;
 
 getCompletedActivitiesForProject:
 SELECT * FROM ActivityRecords
@@ -54,12 +64,6 @@ DELETE FROM ActivityRecords;
 
 delete:
 DELETE FROM ActivityRecords WHERE id = :id;
-
-search:
-SELECT ar.* FROM ActivityRecords AS ar
-JOIN ActivityRecordsFts AS fts ON ar.id = fts.rowid
-WHERE fts.text MATCH :query
-ORDER BY ar.createdAt DESC;
 
 getAllCompletedActivitiesForProject:
 SELECT * FROM ActivityRecords

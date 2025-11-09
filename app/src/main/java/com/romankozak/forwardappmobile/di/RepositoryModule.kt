@@ -71,6 +71,7 @@ import com.romankozak.forwardappmobile.shared.features.link_items.data.LinkItemR
 import com.romankozak.forwardappmobile.shared.features.link_items.data.LinkItemRepositoryImpl
 import com.romankozak.forwardappmobile.shared.features.inbox.data.InboxRecordRepository
 import com.romankozak.forwardappmobile.shared.features.inbox.data.InboxRecordRepositoryImpl
+import com.romankozak.forwardappmobile.shared.database.adapters.RelatedLinkAdapter
 import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.DayStatus
 import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.TaskPriority
 import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.TaskStatus
@@ -81,15 +82,6 @@ import com.romankozak.forwardappmobile.shared.database.DayTasks
 @Module
 @InstallIn(SingletonComponent::class)
 object RepositoryModule {
-
-    private val relatedLinkAdapter = object : ColumnAdapter<RelatedLink, String> {
-        override fun decode(databaseValue: String): RelatedLink {
-            return Json.decodeFromString(databaseValue)
-        }
-        override fun encode(value: RelatedLink): String {
-            return Json.encodeToString(value)
-        }
-    }
 
     private val dayStatusAdapter = object : ColumnAdapter<DayStatus, String> {
         override fun decode(databaseValue: String): DayStatus = DayStatus.valueOf(databaseValue)
@@ -191,7 +183,7 @@ object RepositoryModule {
         ForwardAppDatabase(
             driver = driver,
             LinkItemsAdapter = LinkItems.Adapter(
-                linkDataAdapter = relatedLinkAdapter
+                linkDataAdapter = RelatedLinkAdapter
             ),
             DayPlansAdapter = DayPlans.Adapter(
                 statusAdapter = dayStatusAdapter
