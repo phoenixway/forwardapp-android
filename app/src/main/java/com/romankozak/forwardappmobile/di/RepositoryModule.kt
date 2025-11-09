@@ -47,12 +47,21 @@ import com.romankozak.forwardappmobile.shared.features.inbox.InboxRecordReposito
 import com.romankozak.forwardappmobile.shared.features.projects.data.logs.ProjectLogRepository
 import com.romankozak.forwardappmobile.shared.features.recurring_tasks.RecurringTaskRepository
 import com.romankozak.forwardappmobile.shared.features.recurring_tasks.RecurringTaskRepositoryImpl
+import com.romankozak.forwardappmobile.shared.features.daily_metrics.DailyMetricRepository
+import com.romankozak.forwardappmobile.shared.features.daily_metrics.DailyMetricRepositoryImpl
 import com.romankozak.forwardappmobile.shared.features.projects.data.logs.ProjectLogRepositoryImpl
 
 
 @Module
 @InstallIn(SingletonComponent::class)
 object RepositoryModule {
+
+    @Provides
+    @Singleton
+    fun provideDailyMetricRepository(
+        db: ForwardAppDatabase,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher
+    ): DailyMetricRepository = DailyMetricRepositoryImpl(db, ioDispatcher)
 
     @Provides
     @Singleton

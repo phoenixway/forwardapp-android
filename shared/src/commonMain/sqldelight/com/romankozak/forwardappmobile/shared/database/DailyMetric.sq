@@ -1,0 +1,40 @@
+CREATE TABLE daily_metrics (
+    id TEXT NOT NULL PRIMARY KEY,
+    day_plan_id TEXT NOT NULL,
+    date INTEGER NOT NULL,
+    tasks_planned INTEGER NOT NULL DEFAULT 0,
+    tasks_completed INTEGER NOT NULL DEFAULT 0,
+    completion_rate REAL NOT NULL DEFAULT 0.0,
+    total_planned_time INTEGER NOT NULL DEFAULT 0,
+    total_active_time INTEGER NOT NULL DEFAULT 0,
+    completed_points INTEGER NOT NULL DEFAULT 0,
+    total_break_time INTEGER NOT NULL DEFAULT 0,
+    morning_energy_level INTEGER,
+    evening_energy_level INTEGER,
+    overall_mood TEXT,
+    stress_level INTEGER,
+    custom_metrics TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER
+);
+
+-- Get all daily metrics
+selectAll:
+SELECT * FROM daily_metrics;
+
+-- Get a daily metric by its ID
+selectById:
+SELECT * FROM daily_metrics WHERE id = :id;
+
+-- Get daily metrics for a specific day plan
+selectByDayPlanId:
+SELECT * FROM daily_metrics WHERE day_plan_id = :dayPlanId;
+
+-- Insert a new daily metric
+insert:
+INSERT OR REPLACE INTO daily_metrics(id, day_plan_id, date, tasks_planned, tasks_completed, completion_rate, total_planned_time, total_active_time, completed_points, total_break_time, morning_energy_level, evening_energy_level, overall_mood, stress_level, custom_metrics, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Delete a daily metric by its ID
+deleteById:
+DELETE FROM daily_metrics WHERE id = :id;
