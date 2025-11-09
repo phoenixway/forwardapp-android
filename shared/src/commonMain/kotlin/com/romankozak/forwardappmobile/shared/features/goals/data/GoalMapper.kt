@@ -5,6 +5,8 @@ import com.romankozak.forwardappmobile.shared.data.database.models.Goal as Domai
 import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.encodeToString
 
 fun Goals.toDomain(): DomainGoal {
     return DomainGoal(
@@ -43,7 +45,7 @@ fun DomainGoal.toSqlDelight(): Goals {
         createdAt = this.createdAt,
         updatedAt = this.updatedAt,
         tags = this.tags?.joinToString(","),
-        relatedLinks = this.relatedLinks?.let { Json.encodeToString(it) }, // Encode List<RelatedLink> to JSON string
+        relatedLinks = this.relatedLinks?.let { Json.encodeToString(ListSerializer(RelatedLink.serializer()), it) }, // Encode List<RelatedLink> to JSON string
         valueImportance = this.valueImportance.toDouble(),
         valueImpact = this.valueImpact.toDouble(),
         effort = this.effort.toDouble(),

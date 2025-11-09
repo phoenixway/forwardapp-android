@@ -26,6 +26,5 @@ import com.romankozak.forwardappmobile.shared.database.project_attachment_cross_
 import com.romankozak.forwardappmobile.shared.database.ProjectAttachmentCrossRef;
 import com.romankozak.forwardappmobile.shared.database.reminders;
 import com.romankozak.forwardappmobile.shared.database.Reminders;
-import com.romankozak.forwardappmobile.shared.database.LinkItem;
 import com.romankozak.forwardappmobile.shared.database.ActivityRecord;
 
