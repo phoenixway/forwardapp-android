@@ -94,6 +94,12 @@ fun createForwardAppDatabase(
         NoteDocumentItemsAdapter = NoteDocumentItems.Adapter(
             isCompletedAdapter = booleanAdapter
         ),
-        NotesAdapter = Notes.Adapter()
+        NotesAdapter = Notes.Adapter(),
+        ChecklistsAdapter = Checklists.Adapter(),
+        ChecklistItemsAdapter = ChecklistItems.Adapter(
+            isCheckedAdapter = booleanAdapter
+        ),
+        AttachmentsAdapter = Attachments.Adapter(),
+        ProjectAttachmentCrossRefAdapter = ProjectAttachmentCrossRef.Adapter()
     )
 }

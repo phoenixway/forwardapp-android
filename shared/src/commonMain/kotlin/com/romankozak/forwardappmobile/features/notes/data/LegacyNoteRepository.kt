@@ -130,8 +130,8 @@ class LegacyNoteRepository(
             id = id,
             projectId = projectId,
             title = title,
-            content = content,
+            content = content ?: "",
             createdAt = createdAt,
-            updatedAt = updatedAt,
+            updatedAt = updatedAt ?: createdAt,
         )
 }
