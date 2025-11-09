@@ -1,1 +1,42 @@
+import kotlin.Long;
+import kotlin.String;
 
+CREATE TABLE Attachments (
+    id TEXT AS kotlin.String NOT NULL PRIMARY KEY,
+    attachmentType TEXT AS kotlin.String NOT NULL,
+    entityId TEXT AS kotlin.String NOT NULL,
+    ownerProjectId TEXT AS kotlin.String,
+    createdAt INTEGER AS kotlin.Long NOT NULL,
+    updatedAt INTEGER AS kotlin.Long NOT NULL
+);
+
+getAttachmentsForProject:
+SELECT
+    A.*,
+    PAC.projectId,
+    PAC.attachmentOrder
+FROM Attachments AS A
+JOIN ProjectAttachmentCrossRef AS PAC ON A.id = PAC.attachmentId
+WHERE PAC.projectId = :projectId;
+
+findAttachmentByEntity:
+SELECT * FROM Attachments WHERE attachmentType = :attachmentType AND entityId = :entityId;
+
+getAttachmentById:
+SELECT * FROM Attachments WHERE id = :attachmentId;
+
+insertAttachment:
+INSERT INTO Attachments(id, attachmentType, entityId, ownerProjectId, createdAt, updatedAt)
+VALUES (:id, :attachmentType, :entityId, :ownerProjectId, :createdAt, :updatedAt);
+
+deleteAttachment:
+DELETE FROM Attachments WHERE id = :attachmentId;
+
+getAllAttachments:
+SELECT * FROM Attachments;
+
+countLinksForAttachment:
+SELECT COUNT(*) FROM ProjectAttachmentCrossRef WHERE attachmentId = :attachmentId;
+
+deleteAllLinksForAttachment:
+DELETE FROM ProjectAttachmentCrossRef WHERE attachmentId = :attachmentId;

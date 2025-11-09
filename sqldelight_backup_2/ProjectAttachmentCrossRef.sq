@@ -1,0 +1,22 @@
+import kotlin.Long;
+import kotlin.String;
+
+CREATE TABLE ProjectAttachmentCrossRef (
+  projectId TEXT AS kotlin.String NOT NULL,
+  attachmentId TEXT AS kotlin.String NOT NULL,
+  attachmentOrder INTEGER AS kotlin.Long NOT NULL,
+  PRIMARY KEY(projectId, attachmentId)
+);
+
+insertProjectAttachmentLink:
+INSERT OR IGNORE INTO ProjectAttachmentCrossRef(projectId, attachmentId, attachmentOrder)
+VALUES (:projectId, :attachmentId, :attachmentOrder);
+
+deleteProjectAttachmentLink:
+DELETE FROM ProjectAttachmentCrossRef WHERE projectId = :projectId AND attachmentId = :attachmentId;
+
+updateAttachmentOrder:
+UPDATE ProjectAttachmentCrossRef SET attachmentOrder = :attachmentOrder WHERE projectId = :projectId AND attachmentId = :attachmentId;
+
+getAllProjectAttachmentLinks:
+SELECT * FROM ProjectAttachmentCrossRef;

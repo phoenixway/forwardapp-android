@@ -1,16 +1,19 @@
-CREATE TABLE project_artifacts (
-  id TEXT NOT NULL PRIMARY KEY,
-  projectId TEXT NOT NULL,
-  content TEXT NOT NULL,
-  createdAt INTEGER NOT NULL,
-  updatedAt INTEGER NOT NULL
+import kotlin.Long;
+import kotlin.String;
+
+CREATE TABLE ProjectArtifacts (
+  id TEXT AS String NOT NULL PRIMARY KEY,
+  projectId TEXT AS String NOT NULL,
+  content TEXT AS String NOT NULL,
+  createdAt INTEGER AS kotlin.Long NOT NULL,
+  updatedAt INTEGER AS kotlin.Long NOT NULL
 );
 
 getArtifactForProject:
-SELECT * FROM project_artifacts WHERE projectId = ?;
+SELECT * FROM ProjectArtifacts WHERE projectId = :projectId;
 
 insertProjectArtifact:
-INSERT OR REPLACE INTO project_artifacts (id, projectId, content, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO ProjectArtifacts (id, projectId, content, createdAt, updatedAt) VALUES (:id, :projectId, :content, :createdAt, :updatedAt);
 
 deleteProjectArtifact:
-DELETE FROM project_artifacts WHERE id = ?;
+DELETE FROM ProjectArtifacts WHERE id = :id;

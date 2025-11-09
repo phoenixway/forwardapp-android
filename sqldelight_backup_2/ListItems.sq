@@ -1,0 +1,61 @@
+import kotlin.Long;
+import kotlin.String;
+
+CREATE TABLE ListItems (
+    id TEXT AS kotlin.String NOT NULL PRIMARY KEY,
+    projectId TEXT AS kotlin.String NOT NULL,
+    itemOrder INTEGER AS kotlin.Long NOT NULL DEFAULT 0,
+    entityId TEXT AS kotlin.String,
+    itemType TEXT AS kotlin.String
+);
+
+getItemsForProject:
+SELECT * FROM ListItems WHERE projectId = :projectId ORDER BY itemOrder ASC, id ASC;
+
+insertItem:
+INSERT OR REPLACE INTO ListItems(id, projectId, itemOrder, entityId, itemType)
+VALUES (:id, :projectId, :itemOrder, :entityId, :itemType);
+
+updateItem:
+UPDATE ListItems SET
+    projectId = :projectId,
+    itemOrder = :itemOrder,
+    entityId = :entityId,
+    itemType = :itemType
+WHERE id = :id;
+
+deleteItemsByIds:
+DELETE FROM ListItems WHERE id IN :itemIds;
+
+deleteItemsForProjects:
+DELETE FROM ListItems WHERE projectId IN :projectIds;
+
+getAll:
+SELECT * FROM ListItems;
+
+getLinkCount:
+SELECT COUNT(*) FROM ListItems WHERE entityId = :entityId AND projectId = :projectId;
+
+deleteLinkByEntityAndProject:
+DELETE FROM ListItems WHERE entityId = :entityId AND projectId = :projectId;
+
+updateListItemProjectIds:
+UPDATE ListItems SET projectId = :targetProjectId WHERE id IN :itemIds;
+
+getItemsForProjectSyncForDebug:
+SELECT * FROM ListItems WHERE projectId = :projectId ORDER BY itemOrder ASC, id ASC;
+
+deleteAll:
+DELETE FROM ListItems;
+
+getGoalIdsForProject:
+SELECT entityId FROM ListItems WHERE projectId = :projectId AND itemType = 'GOAL';
+
+deleteItemByEntityId:
+DELETE FROM ListItems WHERE entityId = :entityId;
+
+getListItemByEntityId:
+SELECT * FROM ListItems WHERE entityId = :entityId LIMIT 1;
+
+findProjectIdForGoal:
+SELECT projectId FROM ListItems WHERE entityId = :goalId LIMIT 1;

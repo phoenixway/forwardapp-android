@@ -1,0 +1,97 @@
+CREATE TABLE ActivityRecords (
+    id TEXT AS kotlin.String NOT NULL PRIMARY KEY,
+    name TEXT AS kotlin.String NOT NULL,
+    description TEXT AS kotlin.String,
+    createdAt INTEGER AS kotlin.Long NOT NULL,
+    startTime INTEGER AS kotlin.Long,
+    endTime INTEGER AS kotlin.Long,
+    totalTimeSpentMinutes INTEGER AS kotlin.Long,
+    tags TEXT AS kotlin.collections.List<kotlin.String>, -- Stored as JSON string
+    relatedLinks TEXT AS kotlin.collections.List<com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink>,
+    isCompleted INTEGER AS kotlin.Boolean NOT NULL,
+    activityType TEXT AS kotlin.String NOT NULL,
+    parentProjectId TEXT AS kotlin.String
+);
+
+CREATE VIRTUAL TABLE ActivityRecordsFts USING fts5(
+    id UNINDEXED,
+    name,
+    description
+);
+
+CREATE TRIGGER activityrecords_ai AFTER INSERT ON ActivityRecords BEGIN
+    INSERT INTO ActivityRecordsFts(id, name, description)
+    VALUES (new.id, new.name, new.description);
+END;
+
+CREATE TRIGGER activityrecords_au AFTER UPDATE ON ActivityRecords BEGIN
+    DELETE FROM ActivityRecordsFts WHERE id = old.id;
+    INSERT INTO ActivityRecordsFts(id, name, description)
+    VALUES (new.id, new.name, new.description);
+END;
+
+CREATE TRIGGER activityrecords_ad AFTER DELETE ON ActivityRecords BEGIN
+    DELETE FROM ActivityRecordsFts WHERE id = old.id;
+END;
+
+insert:
+INSERT INTO ActivityRecords(id, name, description, createdAt, startTime, endTime, totalTimeSpentMinutes, tags, relatedLinks, isCompleted, activityType, parentProjectId)
+VALUES (:id, :name, :description, :createdAt, :startTime, :endTime, :totalTimeSpentMinutes, :tags, :relatedLinks, :isCompleted, :activityType, :parentProjectId);
+
+update:
+UPDATE ActivityRecords SET
+    name = :name,
+    description = :description,
+    createdAt = :createdAt,
+    startTime = :startTime,
+    endTime = :endTime,
+    totalTimeSpentMinutes = :totalTimeSpentMinutes,
+    tags = :tags,
+    relatedLinks = :relatedLinks,
+    isCompleted = :isCompleted,
+    activityType = :activityType,
+    parentProjectId = :parentProjectId
+WHERE id = :id;
+
+delete:
+DELETE FROM ActivityRecords WHERE id = :id;
+
+findById:
+SELECT * FROM ActivityRecords WHERE id = :id;
+
+selectAll:
+SELECT * FROM ActivityRecords ORDER BY createdAt DESC;
+
+clearAll:
+DELETE FROM ActivityRecords;
+
+findLastOngoingActivity:
+SELECT * FROM ActivityRecords WHERE endTime IS NULL ORDER BY startTime DESC LIMIT 1;
+
+findLastOngoingActivityForProject:
+SELECT * FROM ActivityRecords WHERE parentProjectId = :projectId AND endTime IS NULL ORDER BY startTime DESC LIMIT 1;
+
+-- findLastOngoingActivityForGoal:
+-- SELECT * FROM ActivityRecords WHERE goalId = :goalId AND endTime IS NULL ORDER BY startTime DESC LIMIT 1;
+
+-- getCompletedActivitiesForProject:
+-- SELECT * FROM ActivityRecords
+-- WHERE parentProjectId = :projectId
+-- AND id IN (SELECT targetId FROM GoalTargets WHERE goalId IN :goalIds)
+-- AND startTime >= :startTime AND endTime <= :endTime
+-- ORDER BY createdAt DESC;
+
+-- getAllCompletedActivitiesForProject:
+-- SELECT * FROM ActivityRecords
+-- WHERE parentProjectId = :projectId
+-- AND id IN (SELECT targetId FROM GoalTargets WHERE goalId IN :goalIds)
+-- ORDER BY createdAt DESC;
+
+search:
+SELECT *
+FROM ActivityRecords
+WHERE id IN (
+    SELECT id FROM ActivityRecordsFts
+    WHERE ActivityRecordsFts MATCH :query
+)
+ORDER BY createdAt DESC;

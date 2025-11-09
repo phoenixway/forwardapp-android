@@ -1,0 +1,40 @@
+import kotlin.Long;
+import kotlin.String;
+
+CREATE TABLE InboxRecords (
+    id TEXT AS kotlin.String NOT NULL PRIMARY KEY,
+    projectId TEXT AS kotlin.String NOT NULL,
+    text TEXT AS kotlin.String NOT NULL,
+    createdAt INTEGER AS kotlin.Long NOT NULL,
+    itemOrder INTEGER AS kotlin.Long NOT NULL DEFAULT 0
+);
+
+getRecordsForProject:
+SELECT * FROM InboxRecords WHERE projectId = :projectId ORDER BY itemOrder DESC;
+
+getRecordById:
+SELECT * FROM InboxRecords WHERE id = :id;
+
+insert:
+INSERT OR REPLACE INTO InboxRecords(id, projectId, text, createdAt, itemOrder)
+VALUES (:id, :projectId, :text, :createdAt, :itemOrder);
+
+update:
+UPDATE InboxRecords SET
+    projectId = :projectId,
+    text = :text,
+    createdAt = :createdAt,
+    itemOrder = :itemOrder
+WHERE id = :id;
+
+deleteById:
+DELETE FROM InboxRecords WHERE id = :id;
+
+searchInboxRecordsGlobal:
+SELECT * FROM InboxRecords WHERE text LIKE '%' || :query || '%' ORDER BY createdAt DESC;
+
+getAll:
+SELECT * FROM InboxRecords;
+
+deleteAll:
+DELETE FROM InboxRecords;

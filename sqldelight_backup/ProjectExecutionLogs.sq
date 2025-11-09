@@ -1,28 +1,24 @@
-CREATE TABLE project_execution_logs (
-  id TEXT NOT NULL PRIMARY KEY,
-  projectId TEXT NOT NULL,
-  timestamp INTEGER NOT NULL,
-  type TEXT NOT NULL,
-  description TEXT NOT NULL,
-  details TEXT,
-  FOREIGN KEY(projectId) REFERENCES projects(id) ON DELETE CASCADE
+import kotlin.Long;
+import kotlin.String;
+
+CREATE TABLE ProjectExecutionLogs (
+  id TEXT AS kotlin.String NOT NULL PRIMARY KEY,
+  projectId TEXT AS kotlin.String NOT NULL,
+  timestamp INTEGER AS kotlin.Long NOT NULL,
+  type TEXT AS kotlin.String NOT NULL,
+  description TEXT AS kotlin.String NOT NULL,
+  details TEXT AS kotlin.String
 );
 
--- Get all logs for a specific project
 selectAllByProjectId:
-SELECT * FROM project_execution_logs WHERE projectId = :projectId ORDER BY timestamp DESC;
+SELECT * FROM ProjectExecutionLogs WHERE projectId = :projectId ORDER BY timestamp DESC;
 
--- Insert a new log
 insert:
-INSERT OR REPLACE INTO project_execution_logs(id, projectId, timestamp, type, description, details)
-VALUES (?, ?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO ProjectExecutionLogs(id, projectId, timestamp, type, description, details)
+VALUES (:id, :projectId, :timestamp, :type, :description, :details);
 
--- Delete a log by its ID
 deleteById:
-DELETE FROM project_execution_logs WHERE id = :id;
+DELETE FROM ProjectExecutionLogs WHERE id = :id;
 
--- Update a log
 update:
-UPDATE project_execution_logs
-SET description = :description, details = :details
-WHERE id = :id;
+UPDATE ProjectExecutionLogs SET description = :description, details = :details WHERE id = :id;

@@ -1,52 +1,41 @@
-CREATE TABLE checklist_items (
-  id TEXT NOT NULL PRIMARY KEY,
-  checklistId TEXT NOT NULL,
-  content TEXT NOT NULL,
-  isChecked INTEGER NOT NULL DEFAULT 0,
-  itemOrder INTEGER NOT NULL,
-  FOREIGN KEY(checklistId) REFERENCES checklists(id) ON DELETE CASCADE
+import kotlin.Boolean;
+import kotlin.Long;
+import kotlin.String;
+
+CREATE TABLE ChecklistItems (
+  id TEXT AS kotlin.String NOT NULL PRIMARY KEY,
+  checklistId TEXT AS kotlin.String NOT NULL,
+  content TEXT AS kotlin.String NOT NULL,
+  isChecked INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
+  itemOrder INTEGER AS kotlin.Long NOT NULL
 );
 
 getItemsForChecklist:
-SELECT *
-FROM checklist_items
-WHERE checklistId = ?1
-ORDER BY itemOrder ASC, id ASC;
+SELECT * FROM ChecklistItems WHERE checklistId = :checklistId ORDER BY itemOrder ASC, id ASC;
 
 getChecklistItemById:
-SELECT *
-FROM checklist_items
-WHERE id = ?1
-LIMIT 1;
+SELECT * FROM ChecklistItems WHERE id = :id LIMIT 1;
 
 insertChecklistItem:
-INSERT OR REPLACE INTO checklist_items(
-  id,
-  checklistId,
-  content,
-  isChecked,
-  itemOrder
-) VALUES (?1, ?2, ?3, ?4, ?5);
+INSERT OR REPLACE INTO ChecklistItems(id, checklistId, content, isChecked, itemOrder)
+VALUES (:id, :checklistId, :content, :isChecked, :itemOrder);
 
 updateChecklistItem:
-UPDATE checklist_items
-SET checklistId = ?2,
-    content = ?3,
-    isChecked = ?4,
-    itemOrder = ?5
-WHERE id = ?1;
+UPDATE ChecklistItems SET
+    checklistId = :checklistId,
+    content = :content,
+    isChecked = :isChecked,
+    itemOrder = :itemOrder
+WHERE id = :id;
 
 deleteChecklistItemById:
-DELETE FROM checklist_items
-WHERE id = ?1;
+DELETE FROM ChecklistItems WHERE id = :id;
 
 deleteChecklistItemsByChecklistId:
-DELETE FROM checklist_items
-WHERE checklistId = ?1;
+DELETE FROM ChecklistItems WHERE checklistId = :checklistId;
 
 deleteAllChecklistItems:
-DELETE FROM checklist_items;
+DELETE FROM ChecklistItems;
 
 getAllChecklistItems:
-SELECT *
-FROM checklist_items;
+SELECT * FROM ChecklistItems;

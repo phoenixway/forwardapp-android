@@ -1,0 +1,19 @@
+import kotlin.Long;
+import kotlin.String;
+
+CREATE TABLE ConversationFolders (
+    id INTEGER AS kotlin.Long NOT NULL PRIMARY KEY AUTOINCREMENT,
+    name TEXT AS kotlin.String NOT NULL
+);
+
+selectAll:
+SELECT * FROM ConversationFolders ORDER BY name;
+
+insert:
+INSERT INTO ConversationFolders(name) VALUES (:name);
+
+updateName:
+UPDATE ConversationFolders SET name = :name WHERE id = :id;
+
+deleteById:
+DELETE FROM ConversationFolders WHERE id = :id;

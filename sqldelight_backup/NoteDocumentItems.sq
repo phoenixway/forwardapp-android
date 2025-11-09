@@ -1,1 +1,44 @@
+import kotlin.Long;
+import kotlin.Boolean;
+import kotlin.String;
 
+CREATE TABLE NoteDocumentItems (
+  id TEXT AS kotlin.String NOT NULL PRIMARY KEY,
+  listId TEXT AS kotlin.String NOT NULL,
+  parentId TEXT AS kotlin.String,
+  content TEXT AS kotlin.String NOT NULL,
+  isCompleted INTEGER AS kotlin.Boolean NOT NULL,
+  itemOrder INTEGER AS kotlin.Long NOT NULL,
+  createdAt INTEGER AS kotlin.Long NOT NULL,
+  updatedAt INTEGER AS kotlin.Long NOT NULL
+);
+
+getNoteDocumentItems:
+SELECT * FROM NoteDocumentItems WHERE listId = :documentId;
+
+getNoteDocumentItemById:
+SELECT * FROM NoteDocumentItems WHERE id = :id;
+
+insertNoteDocumentItem:
+INSERT INTO NoteDocumentItems(id, listId, parentId, content, isCompleted, itemOrder, createdAt, updatedAt)
+VALUES (:id, :listId, :parentId, :content, :isCompleted, :itemOrder, :createdAt, :updatedAt);
+
+updateNoteDocumentItem:
+UPDATE NoteDocumentItems SET
+    listId = :listId,
+    parentId = :parentId,
+    content = :content,
+    isCompleted = :isCompleted,
+    itemOrder = :itemOrder,
+    createdAt = :createdAt,
+    updatedAt = :updatedAt
+WHERE id = :id;
+
+deleteNoteDocumentItemById:
+DELETE FROM NoteDocumentItems WHERE id = :itemId;
+
+deleteAllNoteDocumentItems:
+DELETE FROM NoteDocumentItems;
+
+getAllNoteDocumentItems:
+SELECT * FROM NoteDocumentItems;

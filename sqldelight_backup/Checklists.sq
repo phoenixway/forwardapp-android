@@ -1,46 +1,29 @@
-CREATE TABLE checklists (
-  id TEXT NOT NULL PRIMARY KEY,
-  projectId TEXT NOT NULL,
-  name TEXT NOT NULL,
-  FOREIGN KEY(projectId) REFERENCES projects(id) ON DELETE CASCADE
+import kotlin.String;
+
+CREATE TABLE Checklists (
+  id TEXT AS kotlin.String NOT NULL PRIMARY KEY,
+  projectId TEXT AS kotlin.String NOT NULL,
+  name TEXT AS kotlin.String NOT NULL
 );
 
+-- Simplified query for now to avoid JOINs with tables not yet migrated
 getChecklistsForProject:
-SELECT checklists.*
-FROM checklists
-INNER JOIN attachments
-ON attachments.entity_id = checklists.id AND attachments.attachment_type = ?2
-INNER JOIN project_attachment_cross_ref AS link
-ON link.attachment_id = attachments.id
-WHERE link.project_id = ?1
-ORDER BY checklists.name COLLATE NOCASE ASC;
+SELECT * FROM Checklists WHERE projectId = :projectId ORDER BY name COLLATE NOCASE ASC;
 
 getAllChecklists:
-SELECT *
-FROM checklists;
+SELECT * FROM Checklists;
 
 getChecklistById:
-SELECT *
-FROM checklists
-WHERE id = ?1
-LIMIT 1;
+SELECT * FROM Checklists WHERE id = :id LIMIT 1;
 
 insertChecklist:
-INSERT OR REPLACE INTO checklists(
-  id,
-  projectId,
-  name
-) VALUES (?1, ?2, ?3);
+INSERT OR REPLACE INTO Checklists(id, projectId, name) VALUES (:id, :projectId, :name);
 
 updateChecklist:
-UPDATE checklists
-SET projectId = ?2,
-    name = ?3
-WHERE id = ?1;
+UPDATE Checklists SET projectId = :projectId, name = :name WHERE id = :id;
 
 deleteChecklistById:
-DELETE FROM checklists
-WHERE id = ?1;
+DELETE FROM Checklists WHERE id = :id;
 
 deleteAllChecklists:
-DELETE FROM checklists;
+DELETE FROM Checklists;

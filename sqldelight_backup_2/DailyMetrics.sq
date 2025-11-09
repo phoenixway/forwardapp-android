@@ -1,0 +1,47 @@
+import kotlin.Long;
+import kotlin.Double;
+import kotlin.collections.Map;
+import kotlin.String;
+
+CREATE TABLE DailyMetrics (
+    id TEXT NOT NULL PRIMARY KEY,
+    dayPlanId TEXT NOT NULL,
+    date INTEGER AS Long NOT NULL,
+    tasksPlanned INTEGER AS Long NOT NULL DEFAULT 0,
+    tasksCompleted INTEGER AS Long NOT NULL DEFAULT 0,
+    completionRate REAL AS Double NOT NULL DEFAULT 0.0,
+    totalPlannedTime INTEGER AS Long NOT NULL DEFAULT 0,
+    totalActiveTime INTEGER AS Long NOT NULL DEFAULT 0,
+    completedPoints INTEGER AS Long NOT NULL DEFAULT 0,
+    totalBreakTime INTEGER AS Long NOT NULL DEFAULT 0,
+    morningEnergyLevel INTEGER AS Long,
+    eveningEnergyLevel INTEGER AS Long,
+    overallMood TEXT,
+    stressLevel INTEGER AS Long,
+    customMetrics TEXT AS Map<String, Double>,
+    createdAt INTEGER AS Long NOT NULL,
+    updatedAt INTEGER AS Long
+);
+
+selectAll:
+SELECT * FROM DailyMetrics;
+
+selectById:
+SELECT * FROM DailyMetrics WHERE id = :id;
+
+selectByDayPlanId:
+SELECT * FROM DailyMetrics WHERE dayPlanId = :dayPlanId;
+
+insert:
+INSERT OR REPLACE INTO DailyMetrics(
+    id, dayPlanId, date, tasksPlanned, tasksCompleted, completionRate, totalPlannedTime,
+    totalActiveTime, completedPoints, totalBreakTime, morningEnergyLevel, eveningEnergyLevel,
+    overallMood, stressLevel, customMetrics, createdAt, updatedAt
+) VALUES (
+    :id, :dayPlanId, :date, :tasksPlanned, :tasksCompleted, :completionRate, :totalPlannedTime,
+    :totalActiveTime, :completedPoints, :totalBreakTime, :morningEnergyLevel, :eveningEnergyLevel,
+    :overallMood, :stressLevel, :customMetrics, :createdAt, :updatedAt
+);
+
+deleteById:
+DELETE FROM DailyMetrics WHERE id = :id;
