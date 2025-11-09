@@ -3,9 +3,9 @@ import kotlin.Long;
 import kotlin.String;
 
 CREATE TABLE ChecklistItems (
-  id TEXT AS String NOT NULL PRIMARY KEY,
-  checklistId TEXT AS String NOT NULL,
-  content TEXT AS String NOT NULL,
+  id TEXT AS kotlin.String NOT NULL PRIMARY KEY,
+  checklistId TEXT AS kotlin.String NOT NULL,
+  content TEXT AS kotlin.String NOT NULL,
   isChecked INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
   itemOrder INTEGER AS kotlin.Long NOT NULL
 );

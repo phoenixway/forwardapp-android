@@ -9,23 +9,23 @@ import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink;
 import kotlin.collections.List;
 
 CREATE TABLE Projects (
-    id TEXT AS String NOT NULL PRIMARY KEY,
-    name TEXT AS String NOT NULL,
-    description TEXT AS String,
-    parentId TEXT AS String,
+    id TEXT AS kotlin.String NOT NULL PRIMARY KEY,
+    name TEXT AS kotlin.String NOT NULL,
+    description TEXT AS kotlin.String,
+    parentId TEXT AS kotlin.String,
     createdAt INTEGER AS kotlin.Long NOT NULL,
     updatedAt INTEGER AS kotlin.Long,
-    tags TEXT AS List<String>,
-    relatedLinks TEXT AS List<RelatedLink>,
+    tags TEXT AS kotlin.collections.List<kotlin.String>,
+    relatedLinks TEXT AS kotlin.collections.List<com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink>,
     isExpanded INTEGER AS kotlin.Boolean NOT NULL DEFAULT 1,
     goalOrder INTEGER AS kotlin.Long NOT NULL DEFAULT 0,
     isAttachmentsExpanded INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
-    defaultViewMode TEXT AS String,
+    defaultViewMode TEXT AS kotlin.String,
     isCompleted INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
     isProjectManagementEnabled INTEGER AS kotlin.Boolean DEFAULT 0,
-    projectStatus TEXT AS String,
-    projectStatusText TEXT AS String,
-    projectLogLevel TEXT AS String,
+    projectStatus TEXT AS kotlin.String,
+    projectStatusText TEXT AS kotlin.String,
+    projectLogLevel TEXT AS kotlin.String,
     totalTimeSpentMinutes INTEGER AS kotlin.Long DEFAULT 0,
     valueImportance REAL AS kotlin.Double NOT NULL DEFAULT 0.0,
     valueImpact REAL AS kotlin.Double NOT NULL DEFAULT 0.0,
@@ -37,10 +37,10 @@ CREATE TABLE Projects (
     weightRisk REAL AS kotlin.Double NOT NULL DEFAULT 1.0,
     rawScore REAL AS kotlin.Double NOT NULL DEFAULT 0.0,
     displayScore INTEGER AS kotlin.Int NOT NULL DEFAULT 0,
-    scoringStatus TEXT AS String NOT NULL DEFAULT 'NOT_ASSESSED',
+    scoringStatus TEXT AS kotlin.String NOT NULL DEFAULT 'NOT_ASSESSED',
     showCheckboxes INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
-    projectType TEXT AS ProjectType NOT NULL DEFAULT 'DEFAULT',
-    reservedGroup TEXT AS ReservedGroup
+    projectType TEXT AS com.romankozak.forwardappmobile.shared.data.database.models.ProjectType NOT NULL DEFAULT 'DEFAULT',
+    reservedGroup TEXT AS com.romankozak.forwardappmobile.shared.data.database.models.ReservedGroup
 );
 
 getAllProjects:

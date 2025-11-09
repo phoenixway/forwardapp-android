@@ -13,7 +13,8 @@ fun DailyMetrics.toDomain(): DailyMetric {
         date = date,
         tasksPlanned = tasksPlanned.toInt(),
         tasksCompleted = tasksCompleted.toInt(),
-        completionRate = completionRate.toFloat(),
+        completionRate = completionRate,
+        customMetrics = customMetrics?.let { Json.decodeFromString(it) },
         totalPlannedTime = totalPlannedTime,
         totalActiveTime = totalActiveTime,
         completedPoints = completedPoints.toInt(),
@@ -22,7 +23,7 @@ fun DailyMetrics.toDomain(): DailyMetric {
         eveningEnergyLevel = eveningEnergyLevel?.toInt(),
         overallMood = overallMood,
         stressLevel = stressLevel?.toInt(),
-        customMetrics = customMetrics?.let { Json.decodeFromString(it) },
+        customMetrics = customMetrics?.mapValues { it.value.toFloat() },
         createdAt = createdAt,
         updatedAt = updatedAt
     )

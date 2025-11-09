@@ -1,11 +1,3 @@
-import kotlin.Long;
-import kotlin.Double;
-import kotlin.Int;
-import kotlin.String;
-import kotlin.Float;
-import kotlin.collections.Map;
-import kotlin.collections.List;
-
 CREATE TABLE DailyMetrics (
     id TEXT AS kotlin.String NOT NULL PRIMARY KEY,
     dayPlanId TEXT AS kotlin.String NOT NULL,
@@ -21,7 +13,7 @@ CREATE TABLE DailyMetrics (
     eveningEnergyLevel INTEGER AS kotlin.Long,
     overallMood TEXT AS kotlin.String,
     stressLevel INTEGER AS kotlin.Long,
-    customMetrics TEXT AS kotlin.collections.Map<kotlin.String, kotlin.Float>,
+    customMetrics TEXT AS kotlin.collections.Map<kotlin.String, kotlin.Double>,
     createdAt INTEGER AS kotlin.Long NOT NULL,
     updatedAt INTEGER AS kotlin.Long
 );

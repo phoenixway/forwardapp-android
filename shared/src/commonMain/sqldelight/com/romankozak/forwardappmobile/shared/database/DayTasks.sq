@@ -8,22 +8,22 @@ import kotlin.String;
 import kotlin.collections.List;
 
 CREATE TABLE DayTasks (
-    id TEXT AS String NOT NULL PRIMARY KEY,
-    dayPlanId TEXT AS String NOT NULL,
-    title TEXT AS String NOT NULL,
-    description TEXT AS String,
+    id TEXT AS kotlin.String NOT NULL PRIMARY KEY,
+    dayPlanId TEXT AS kotlin.String NOT NULL,
+    title TEXT AS kotlin.String NOT NULL,
+    description TEXT AS kotlin.String,
 
-    goalId TEXT AS String,
-    projectId TEXT AS String,
-    activityRecordId TEXT AS String,
-    recurringTaskId TEXT AS String,
+    goalId TEXT AS kotlin.String,
+    projectId TEXT AS kotlin.String,
+    activityRecordId TEXT AS kotlin.String,
+    recurringTaskId TEXT AS kotlin.String,
 
-    taskType TEXT AS String,
-    entityId TEXT AS String,
+    taskType TEXT AS kotlin.String,
+    entityId TEXT AS kotlin.String,
 
     "order" INTEGER AS kotlin.Long NOT NULL DEFAULT 0,
-    priority TEXT AS TaskPriority NOT NULL DEFAULT 'MEDIUM',
-    status TEXT AS TaskStatus NOT NULL DEFAULT 'NOT_STARTED',
+    priority TEXT AS com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.TaskPriority NOT NULL DEFAULT 'MEDIUM',
+    status TEXT AS com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.TaskStatus NOT NULL DEFAULT 'NOT_STARTED',
     completed INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
 
     scheduledTime INTEGER AS kotlin.Long,
@@ -37,9 +37,9 @@ CREATE TABLE DayTasks (
     cost REAL AS kotlin.Float NOT NULL DEFAULT 0.0,
     risk REAL AS kotlin.Float NOT NULL DEFAULT 0.0,
 
-    location TEXT AS String,
-    tags TEXT AS List<String>, 
-    notes TEXT AS String,
+    location TEXT AS kotlin.String,
+    tags TEXT AS kotlin.collections.List<kotlin.String>, 
+    notes TEXT AS kotlin.String,
 
     createdAt INTEGER AS kotlin.Long NOT NULL,
     updatedAt INTEGER AS kotlin.Long,

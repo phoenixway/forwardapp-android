@@ -6,16 +6,16 @@ import kotlin.Long;
 import kotlin.Int;
 
 CREATE TABLE RecurringTasks (
-    id TEXT AS String NOT NULL PRIMARY KEY,
-    title TEXT AS String NOT NULL,
-    description TEXT AS String,
-    goalId TEXT AS String,
+    id TEXT AS kotlin.String NOT NULL PRIMARY KEY,
+    title TEXT AS kotlin.String NOT NULL,
+    description TEXT AS kotlin.String,
+    goalId TEXT AS kotlin.String,
     duration INTEGER AS kotlin.Int,
-    priority TEXT AS TaskPriority NOT NULL,
+    priority TEXT AS com.romankozak.forwardappmobile.shared.data.database.models.TaskPriority NOT NULL,
     points INTEGER AS kotlin.Int NOT NULL DEFAULT 0,
-    frequency TEXT AS RecurrenceFrequency NOT NULL,
+    frequency TEXT AS com.romankozak.forwardappmobile.shared.data.database.models.RecurrenceFrequency NOT NULL,
     "interval" INTEGER AS kotlin.Int NOT NULL DEFAULT 1,
-    daysOfWeek TEXT AS List<String>,
+    daysOfWeek TEXT AS kotlin.collections.List<kotlin.String>,
     startDate INTEGER AS kotlin.Long NOT NULL,
     endDate INTEGER AS kotlin.Long
 );

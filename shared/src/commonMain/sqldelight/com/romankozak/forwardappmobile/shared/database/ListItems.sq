@@ -2,11 +2,11 @@ import kotlin.Long;
 import kotlin.String;
 
 CREATE TABLE ListItems (
-    id TEXT AS String NOT NULL PRIMARY KEY,
-    projectId TEXT AS String NOT NULL,
+    id TEXT AS kotlin.String NOT NULL PRIMARY KEY,
+    projectId TEXT AS kotlin.String NOT NULL,
     itemOrder INTEGER AS kotlin.Long NOT NULL DEFAULT 0,
-    entityId TEXT AS String,
-    itemType TEXT AS String
+    entityId TEXT AS kotlin.String,
+    itemType TEXT AS kotlin.String
 );
 
 getItemsForProject:

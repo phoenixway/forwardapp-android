@@ -10,14 +10,14 @@ import kotlin.String;
 -- 📌 TABLE: Goals
 -- ============================================
 CREATE TABLE Goals (
-    id TEXT AS String NOT NULL PRIMARY KEY,
-    text TEXT AS String NOT NULL,                     -- Назва/текст цілі
-    description TEXT AS String,                       -- Опис (може бути NULL)
-    completed INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,  -- true/false як 1/0
-    createdAt INTEGER AS kotlin.Long NOT NULL,             -- timestamp (Long)
-    updatedAt INTEGER AS kotlin.Long,                      -- timestamp або NULL
-    tags TEXT AS List<String>,                              -- raw string або JSON (якщо треба)
-    relatedLinks TEXT AS List<RelatedLink>,   -- ✅ просто TEXT
+    id TEXT AS kotlin.String NOT NULL PRIMARY KEY,
+    text TEXT AS kotlin.String NOT NULL,
+    description TEXT AS kotlin.String,
+    completed INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
+    createdAt INTEGER AS kotlin.Long NOT NULL,
+    updatedAt INTEGER AS kotlin.Long,
+    tags TEXT AS kotlin.collections.List<kotlin.String>,
+    relatedLinks TEXT AS kotlin.collections.List<com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink>,
     valueImportance REAL AS kotlin.Float NOT NULL DEFAULT 0.0,
     valueImpact REAL AS kotlin.Float NOT NULL DEFAULT 0.0,
     effort REAL AS kotlin.Float NOT NULL DEFAULT 0.0,
@@ -28,12 +28,12 @@ CREATE TABLE Goals (
     weightRisk REAL AS kotlin.Float NOT NULL DEFAULT 1.0,
     rawScore REAL AS kotlin.Float NOT NULL DEFAULT 0.0,
     displayScore INTEGER AS kotlin.Int NOT NULL DEFAULT 0,
-    scoringStatus TEXT AS String NOT NULL,
+    scoringStatus TEXT AS kotlin.String NOT NULL,
     parentValueImportance REAL AS kotlin.Float,
     impactOnParentGoal REAL AS kotlin.Float,
     timeCost REAL AS kotlin.Float,
     financialCost REAL AS kotlin.Float,
-    markdown TEXT AS String
+    markdown TEXT AS kotlin.String
 );
 
 -- ============================================

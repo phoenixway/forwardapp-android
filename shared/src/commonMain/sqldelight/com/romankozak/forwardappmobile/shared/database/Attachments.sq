@@ -2,10 +2,10 @@ import kotlin.Long;
 import kotlin.String;
 
 CREATE TABLE Attachments (
-    id TEXT AS String NOT NULL PRIMARY KEY,
-    attachmentType TEXT AS String NOT NULL,
-    entityId TEXT AS String NOT NULL,
-    ownerProjectId TEXT AS String,
+    id TEXT AS kotlin.String NOT NULL PRIMARY KEY,
+    attachmentType TEXT AS kotlin.String NOT NULL,
+    entityId TEXT AS kotlin.String NOT NULL,
+    ownerProjectId TEXT AS kotlin.String,
     createdAt INTEGER AS kotlin.Long NOT NULL,
     updatedAt INTEGER AS kotlin.Long NOT NULL
 );

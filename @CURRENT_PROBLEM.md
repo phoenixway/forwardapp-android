@@ -1,141 +1,217 @@
-# 🚨 Проблема: Каскадні помилки компіляції через міграцію на SQLDelight 2.x
+# 🚨 Проблема: SQLDelight 2.x не може розпізнати `kotlin.Float` у `DailyMetrics.sq`
 
-Привіт! Я — мовна модель, яка допомагає з поступовою міграцією бази даних з Room на SQLDelight у Kotlin Multiplatform проєкті. Ми зіткнулися з комплексною проблемою, яка проявляється у вигляді великої кількості помилок компіляції.
+Привіт! Я — мовна модель, яка допомагає з міграцією бази даних. Ми зіткнулися з дуже дивною проблемою, яка виглядає як баг або глибоке нерозуміння роботи SQLDelight 2.x.
 
 ## Контекст
 
-Ми переносимо сутності (entities) з `sqldelight_backup` до основної директорії `shared/src/commonMain/sqldelight`, виправляючи їх по одній. Кожен крок міграції включає:
-1.  Перенесення та виправлення `.sq` файлу.
-2.  Оновлення відповідного репозиторію для роботи з новими згенерованими класами SQLDelight.
-3.  Додавання необхідних `ColumnAdapter` до `DatabaseDriverFactory.kt`.
+Ми майже завершили міграцію всіх таблиць з Room на SQLDelight. Кожна сутність проходить однаковий процес: виправлення `.sq` файлу, оновлення репозиторію та `DatabaseDriverFactory`. Ми успішно виправили багато помилок, але остання проблема з `DailyMetrics.sq` завела нас у глухий кут.
 
-## Ключова проблема: Каскадні помилки та невідповідність типів
+## Ключова проблема: `Unresolved reference 'Float'`
 
-Після міграції кількох сутностей (`Goal`, `NoteDocument`, `Checklist`, `Attachment` та ін.), ми зіткнулися з великою кількістю помилок компіляції, які, ймовірно, пов'язані між собою.
+Після всіх виправлень, збірка падає з помилкою `Unresolved reference 'Float'` у згенерованому файлі `shared/build/generated/sqldelight/code/ForwardAppDatabase/commonMain/com/romankozak/forwardappmobile/shared/database/DailyMetrics.kt`.
 
-**Основні симптоми:**
-1.  **`Unresolved reference`**: Компілятор не може знайти згенеровані класи запитів (наприклад, `dailyMetricQueries`, `conversationFolderQueries`). Це відбувається, коли у відповідних `.sq` файлах є помилки, що переривають генерацію коду.
-2.  **`Argument type mismatch`**: У репозиторіях та мапперах виникають помилки невідповідності типів. Наприклад, згенерований код очікує `java.util.List`, а ми передаємо `kotlin.collections.List`.
-3.  **`No value passed for parameter`**: У `DatabaseDriverFactory.kt` компілятор скаржиться, що для адаптерів не передано параметри, хоча ми їх вказуємо.
+**Що дивно:**
+1.  Ми використовуємо повністю кваліфіковане ім'я `kotlin.Float` у нашому `DailyMetrics.sq` файлі.
+2.  Ми також пробували використовувати `import kotlin.Float;` на початку файлу.
+3.  В обох випадках SQLDelight генерує код, який не може розпізнати базовий тип `kotlin.Float`.
+
+**Приклад згенерованого коду з помилкою:**
+```kotlin
+// DailyMetrics.kt (згенерований)
+package com.romankozak.forwardappmobile.shared.database
+
+import kotlin.Float // ❌ Помилка: Unresolved reference
+// ...
+
+public data class DailyMetrics(
+  // ...
+  public val customMetrics: Map<String, Float>?, // ❌ Тип не розпізнано
+  // ...
+)
+```
+
+Це виглядає так, ніби SQLDelight не має доступу до базових типів Kotlin під час генерації коду, що дуже дивно.
 
 ## 🔬 Що ми вже спробували
 
-Ми послідовно мігрували сутності, і кожна ітерація виправляла одну групу помилок, але відкривала нову.
-
-1.  **Ізоляція сутностей:** Ми перемістили всі `.sq` файли до папки `sqldelight_backup` і повертали їх по одному, щоб локалізувати проблеми.
-2.  **Виправлення `.sq` файлів:** Ми стандартизували іменування таблиць (PascalCase) та колонок (camelCase), додали `AS <KotlinType>` для кастомних типів та відповідні `import`.
-3.  **Оновлення репозиторіїв та мапперів:** Ми переписали код для роботи з новими згенерованими класами.
-4.  **Оновлення `DatabaseDriverFactory.kt`:** Ми додали всі необхідні адаптери для кожної нової сутності.
-
-## Поточний стан та помилки
-
-Остання спроба компіляції після міграції `Projects` та `ProjectExecutionLogs` завершилася невдачею.
-
-**Текст помилок:**
-```
-> Task :shared:compileDebugKotlinAndroid FAILED
-e: file:///.../DailyMetrics.kt:3:8 Unresolved reference 'Float'.
-e: file:///.../DailyMetrics.kt:8:8 Unresolved reference 'String'.
-e: file:///.../DailyMetricsQueries.kt:3:8 Unresolved reference 'Float'.
-e: file:///.../DailyMetricsQueries.kt:13:8 Unresolved reference 'String'.
-e: file:///.../DayTasks.kt:12:8 Unresolved reference 'String'.
-e: file:///.../DayTasksQueries.kt:17:8 Unresolved reference 'String'.
-e: file:///.../Projects.kt:11:8 Unresolved reference 'String'.
-e: file:///.../ProjectsQueries.kt:17:8 Unresolved reference 'String'.
-e: file:///.../RecurringTasks.kt:8:8 Unresolved reference 'String'.
-e: file:///.../RecurringTasksQueries.kt:13:8 Unresolved reference 'String'.
-e: file:///.../ProjectArtifactRepositoryImpl.kt:6:56 Unresolved reference 'Project_artifacts'.
-... and many more ...
-```
+1.  **Повністю кваліфіковані імена:** Ми переписали всі `.sq` файли, щоб вони використовували повні імена типів, наприклад `kotlin.String`, `kotlin.Long`, `kotlin.Float`. Це не допомогло для `Float`.
+2.  **Імпорти:** Ми пробували додавати `import kotlin.Float;` у `.sq` файл. Результат той самий.
+3.  **Чиста збірка:** Ми виконували `./gradlew :shared:clean && rm -rf shared/build/generated/sqldelight && ./gradlew :shared:generateCommonMainForwardAppDatabaseInterface && ./gradlew :shared:compileDebugKotlinAndroid` після кожної зміни, щоб уникнути проблем зі старими артефактами.
 
 ## 🧐 Аналіз для іншої мовної моделі
 
-Ми знаходимося на фінальному етапі міграції бази даних. Залишилося виправити помилки компіляції, які, ймовірно, пов'язані з:
-1.  **Некоректними імпортами у `.sq` файлах:** Помилки `Unresolved reference 'String'` та `Unresolved reference 'Float'` у згенерованих файлах вказують на те, що SQLDelight не може знайти базові типи Kotlin. Можливо, `import kotlin.String;` та `import kotlin.Float;` потрібні у `.sq` файлах.
-2.  **Проблемами з `RelatedLink.serializer()`:** Ця помилка з'являється постійно і може бути пов'язана з плагіном `kotlinx.serialization`.
-3.  **Невідповідністю типів `List`:** Помилка `Argument type mismatch: actual type is 'kotlin.collections.List<kotlin.String>?', but 'kotlin.collections.List<java.lang.String>?' was expected` вказує на плутанину між `java.util.List` та `kotlin.collections.List`.
+Ми впевнені, що проблема не в синтаксисі `.sq` файлу, а в чомусь глибшому.
+
+*   **Гіпотеза А (Найбільш імовірна)**: Існує якась проблема з конфігурацією проєкту, яка заважає SQLDelight бачити базові типи Kotlin. Можливо, це пов'язано з версіями плагінів або Kotlin.
+*   **Гіпотеза Б**: Це баг у версії плагіна `app.cash.sqldelight` (`2.0.2`).
+*   **Гіпотеза В**: Проблема в тому, як ми визначаємо `Map<String, Float>` як кастомний тип. Можливо, SQLDelight не може впоратися з вкладеним `Float` у цьому контексті.
 
 ## 📝 План дій
 
-1.  **Виправити імпорти у `.sq` файлах:** Додати `import kotlin.String;` та `import kotlin.Float;` до всіх `.sq` файлів, де використовуються ці типи.
-2.  **Вирішити проблему з `RelatedLink.serializer()`:** Перевірити конфігурацію плагіна `kotlinx.serialization` та анотації `@Serializable` у класі `RelatedLink`.
-3.  **Виправити невідповідність типів `List`:** Переконатися, що всі адаптери та код використовують `kotlin.collections.List`.
-4.  **Продовжити міграцію решти таблиць:** `Reminders`, `RecentItems`, `ProjectArtifacts`, `ConversationFolders`, `DailyMetrics`.
+1.  **Перевірити гіпотезу з `Map<String, Float>`:** Спробувати тимчасово прибрати поле `customMetrics` з `DailyMetrics.sq` і подивитися, чи зникне помилка `Unresolved reference 'Float'`. Якщо так, то проблема саме в цьому типі.
+2.  **Перевірити версії плагінів:** Переглянути `build.gradle.kts` та `libs.versions.toml` на предмет можливих конфліктів версій.
+3.  **Спробувати інший тип:** Замінити `kotlin.Float` на `kotlin.Double` у `DailyMetrics.sq` та відповідних адаптерах, щоб перевірити, чи проблема специфічна для `Float`.
 
-**Я готовий надати будь-який код або виконати команди. Будь ласка, допоможи нам завершити міграцію та змусити проєкт скомпілюватися.**
+**Я готовий надати будь-який код або виконати команди. Будь ласка, допоможи нам вирішити цю проблему.**
 
 ## 🗂️ Ключові файли
 
-**1. `shared/build.gradle.kts`**
+**1. `shared/src/commonMain/sqldelight/com/romankozak/forwardappmobile/shared/database/DailyMetrics.sq`**
+```sql
+import kotlin.Long;
+import kotlin.Double;
+import kotlin.Int;
+import kotlin.String;
+import kotlin.Float;
+import kotlin.collections.Map;
+import kotlin.collections.List;
+
+CREATE TABLE DailyMetrics (
+    id TEXT AS kotlin.String NOT NULL PRIMARY KEY,
+    dayPlanId TEXT AS kotlin.String NOT NULL,
+    date INTEGER AS kotlin.Long NOT NULL,
+    tasksPlanned INTEGER AS kotlin.Long NOT NULL DEFAULT 0,
+    tasksCompleted INTEGER AS kotlin.Long NOT NULL DEFAULT 0,
+    completionRate REAL AS kotlin.Double NOT NULL DEFAULT 0.0,
+    totalPlannedTime INTEGER AS kotlin.Long NOT NULL DEFAULT 0,
+    totalActiveTime INTEGER AS kotlin.Long NOT NULL DEFAULT 0,
+    completedPoints INTEGER AS kotlin.Long NOT NULL DEFAULT 0,
+    totalBreakTime INTEGER AS kotlin.Long NOT NULL DEFAULT 0,
+    morningEnergyLevel INTEGER AS kotlin.Long,
+    eveningEnergyLevel INTEGER AS kotlin.Long,
+    overallMood TEXT AS kotlin.String,
+    stressLevel INTEGER AS kotlin.Long,
+    customMetrics TEXT AS kotlin.collections.Map<kotlin.String, kotlin.Float>,
+    createdAt INTEGER AS kotlin.Long NOT NULL,
+    updatedAt INTEGER AS kotlin.Long
+);
+
+selectAll:
+SELECT * FROM DailyMetrics;
+
+selectById:
+SELECT * FROM DailyMetrics WHERE id = :id;
+
+selectByDayPlanId:
+SELECT * FROM DailyMetrics WHERE dayPlanId = :dayPlanId;
+
+insert:
+INSERT OR REPLACE INTO DailyMetrics(id, dayPlanId, date, tasksPlanned, tasksCompleted, completionRate, totalPlannedTime, totalActiveTime, completedPoints, totalBreakTime, morningEnergyLevel, eveningEnergyLevel, overallMood, stressLevel, customMetrics, createdAt, updatedAt)
+VALUES (:id, :dayPlanId, :date, :tasksPlanned, :tasksCompleted, :completionRate, :totalPlannedTime, :totalActiveTime, :completedPoints, :totalBreakTime, :morningEnergyLevel, :eveningEnergyLevel, :overallMood, :stressLevel, :customMetrics, :createdAt, :updatedAt);
+
+deleteById:
+DELETE FROM DailyMetrics WHERE id = :id;
+```
+
+**2. `shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/shared/data/database/models/DailyMetric.kt`**
 ```kotlin
-plugins {
-    id("org.jetbrains.kotlin.multiplatform")
-    id("org.jetbrains.kotlin.plugin.serialization")
-    id("app.cash.sqldelight")
-    id("com.android.library")
-    id("com.google.devtools.ksp")
-}
+package com.romankozak.forwardappmobile.shared.data.database.models
 
-kotlin {
-    androidTarget()
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
-    sourceSets {
-        val commonMain by getting {
-            dependencies {
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
-                implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
-                implementation("com.benasher44:uuid:0.8.4")
-                implementation(libs.sqldelight.runtime)
-                implementation(libs.sqldelight.coroutines)
-            }
-            kotlin.srcDir("build/generated/sqldelight/code/ForwardAppDatabase/commonMain")
+@Serializable
+data class DailyMetric(
+    val id: String,
+    val dayPlanId: String,
+    val date: Long,
+    val tasksPlanned: Int = 0,
+    val tasksCompleted: Int = 0,
+    val completionRate: Float = 0f,
+    val totalPlannedTime: Long = 0,
+    val totalActiveTime: Long = 0,
+    val completedPoints: Int = 0,
+    val totalBreakTime: Long = 0,
+    val morningEnergyLevel: Int? = null,
+    val eveningEnergyLevel: Int? = null,
+    val overallMood: String? = null,
+    val stressLevel: Int? = null,
+    val customMetrics: Map<String, Float>? = null,
+    val createdAt: Long,
+    val updatedAt: Long? = null
+)
+```
+
+**3. `shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/shared/features/daily_metrics/DailyMetricRepositoryImpl.kt`**
+```kotlin
+package com.romankozak.forwardappmobile.shared.features.daily_metrics
+
+import app.cash.sqldelight.coroutines.asFlow
+import app.cash.sqldelight.coroutines.mapToList
+import app.cash.sqldelight.coroutines.mapToOneOrNull
+import com.romankozak.forwardappmobile.shared.data.database.models.DailyMetric
+import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import com.romankozak.forwardappmobile.shared.features.daily_metrics.toDomain
+
+class DailyMetricRepositoryImpl(
+    private val db: ForwardAppDatabase,
+    private val ioDispatcher: CoroutineDispatcher
+) : DailyMetricRepository {
+
+    private val queries = db.dailyMetricsQueries
+
+    override fun getDailyMetrics(): Flow<List<DailyMetric>> {
+        return queries.selectAll()
+            .asFlow()
+            .mapToList(ioDispatcher)
+            .map { metrics -> metrics.map { it.toDomain() } }
+    }
+
+    override fun getDailyMetric(id: String): Flow<DailyMetric?> {
+        return queries.selectById(id)
+            .asFlow()
+            .mapToOneOrNull(ioDispatcher)
+            .map { it?.toDomain() }
+    }
+
+    override fun getDailyMetricsForDayPlan(dayPlanId: String): Flow<List<DailyMetric>> {
+        return queries.selectByDayPlanId(dayPlanId)
+            .asFlow()
+            .mapToList(ioDispatcher)
+            .map { metrics -> metrics.map { it.toDomain() } }
+    }
+
+    override suspend fun addDailyMetric(metric: DailyMetric) {
+        withContext(ioDispatcher) {
+            queries.insert(
+                id = metric.id,
+                dayPlanId = metric.dayPlanId,
+                date = metric.date,
+                tasksPlanned = metric.tasksPlanned.toLong(),
+                tasksCompleted = metric.tasksCompleted.toLong(),
+                completionRate = metric.completionRate.toDouble(),
+                totalPlannedTime = metric.totalPlannedTime,
+                totalActiveTime = metric.totalActiveTime,
+                completedPoints = metric.completedPoints.toLong(),
+                totalBreakTime = metric.totalBreakTime,
+                morningEnergyLevel = metric.morningEnergyLevel?.toLong(),
+                eveningEnergyLevel = metric.eveningEnergyLevel?.toLong(),
+                overallMood = metric.overallMood,
+                stressLevel = metric.stressLevel?.toLong(),
+                customMetrics = metric.customMetrics?.let { Json.encodeToString(it) },
+                createdAt = metric.createdAt,
+                updatedAt = metric.updatedAt
+            )
         }
+    }
 
-        val androidMain by getting {
-            dependencies {
-                implementation(libs.sqldelight.android.driver)
-            }
+    override suspend fun deleteDailyMetric(id: String) {
+        withContext(ioDispatcher) {
+            queries.deleteById(id)
         }
     }
-}
-
-android {
-    namespace = "com.romankozak.forwardappmobile.shared"
-    compileSdk = 36
-    defaultConfig {
-        minSdk = 29
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-    kotlin {
-        jvmToolchain(17)
-    }
-    sourceSets {
-        getByName("main") {
-            kotlin.srcDir("build/generated/ksp/androidMain/kotlin")
-        }
-    }
-}
-
-sqldelight {
-    databases {
-        create("ForwardAppDatabase") {
-            packageName = "com.romankozak.forwardappmobile.shared.database"
-            srcDirs = files("src/commonMain/sqldelight")
-            schemaOutputDirectory.set(file("src/commonMain/sqldelight/databases"))
-        }
-    }
-}
-
-dependencies {
-    implementation(libs.sqldelight.coroutines)
-    add("kspAndroid", libs.hilt.compiler)
 }
 ```
 
-**2. `shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/shared/database/DatabaseDriverFactory.kt`**
+**4. `shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/shared/database/DatabaseDriverFactory.kt`**
 ```kotlin
 package com.romankozak.forwardappmobile.shared.database
 

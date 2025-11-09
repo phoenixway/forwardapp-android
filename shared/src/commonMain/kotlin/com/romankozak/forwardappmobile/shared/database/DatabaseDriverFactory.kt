@@ -64,12 +64,12 @@ private val relatedLinksListAdapter = object : ColumnAdapter<List<RelatedLink>, 
     }
 }
 
-private val customMetricsAdapter = object : ColumnAdapter<Map<String, Float>, String> {
-    override fun decode(databaseValue: String): Map<String, Float> {
+private val customMetricsAdapter = object : ColumnAdapter<Map<String, Double>, String> {
+    override fun decode(databaseValue: String): Map<String, Double> {
         return Json.decodeFromString(databaseValue)
     }
 
-    override fun encode(value: Map<String, Float>): String {
+    override fun encode(value: Map<String, Double>): String {
         return Json.encodeToString(value)
     }
 }

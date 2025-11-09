@@ -2,12 +2,12 @@ import kotlin.Long;
 import kotlin.String;
 
 CREATE TABLE NoteDocuments (
-    id TEXT AS String NOT NULL PRIMARY KEY,
-    projectId TEXT AS String NOT NULL,
-    name TEXT AS String NOT NULL,
+    id TEXT AS kotlin.String NOT NULL PRIMARY KEY,
+    projectId TEXT AS kotlin.String NOT NULL,
+    name TEXT AS kotlin.String NOT NULL,
     createdAt INTEGER AS kotlin.Long NOT NULL,
     updatedAt INTEGER AS kotlin.Long NOT NULL,
-    content TEXT AS String,
+    content TEXT AS kotlin.String,
     lastCursorPosition INTEGER AS kotlin.Long NOT NULL DEFAULT 0
 );
 

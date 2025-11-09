@@ -5,14 +5,14 @@ import kotlin.Int;
 import kotlin.String;
 
 CREATE TABLE DayPlans (
-    id TEXT AS String NOT NULL PRIMARY KEY,
+    id TEXT AS kotlin.String NOT NULL PRIMARY KEY,
     date INTEGER AS kotlin.Long NOT NULL,
-    name TEXT AS String,
-    status TEXT AS DayStatus NOT NULL DEFAULT 'PLANNED',
-    reflection TEXT AS String,
+    name TEXT AS kotlin.String,
+    status TEXT AS com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.DayStatus NOT NULL DEFAULT 'PLANNED',
+    reflection TEXT AS kotlin.String,
     energyLevel INTEGER AS kotlin.Int,
-    mood TEXT AS String,
-    weatherConditions TEXT AS String,
+    mood TEXT AS kotlin.String,
+    weatherConditions TEXT AS kotlin.String,
     totalPlannedMinutes INTEGER AS kotlin.Long NOT NULL DEFAULT 0,
     totalCompletedMinutes INTEGER AS kotlin.Long NOT NULL DEFAULT 0,
     completionPercentage REAL AS kotlin.Float NOT NULL DEFAULT 0.0,

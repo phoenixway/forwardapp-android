@@ -2,10 +2,10 @@ import kotlin.Long;
 import kotlin.String;
 
 CREATE TABLE Notes (
-    id TEXT AS String NOT NULL PRIMARY KEY,
-    projectId TEXT AS String NOT NULL,
-    title TEXT AS String NOT NULL,
-    content TEXT AS String,
+    id TEXT AS kotlin.String NOT NULL PRIMARY KEY,
+    projectId TEXT AS kotlin.String NOT NULL,
+    title TEXT AS kotlin.String NOT NULL,
+    content TEXT AS kotlin.String,
     createdAt INTEGER AS kotlin.Long NOT NULL,
     updatedAt INTEGER AS kotlin.Long
 );
