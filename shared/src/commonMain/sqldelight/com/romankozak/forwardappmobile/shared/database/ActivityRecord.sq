@@ -2,9 +2,6 @@ import kotlin.Boolean;
 import kotlin.collections.List;
 import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink;
 
--- ================================================
--- 🗃 Основна таблиця ActivityRecords
--- ================================================
 CREATE TABLE ActivityRecords (
     id TEXT NOT NULL PRIMARY KEY,
     name TEXT NOT NULL,
@@ -20,18 +17,12 @@ CREATE TABLE ActivityRecords (
     parentProjectId TEXT
 );
 
--- ================================================
--- 🔍 FTS5 таблиця
--- ================================================
 CREATE VIRTUAL TABLE ActivityRecordsFts USING fts5(
     id UNINDEXED,
     name,
     description
 );
 
--- ================================================
--- 🔄 Тригери — синхрон FTS ↔ ActivityRecords
--- ================================================
 CREATE TRIGGER activityrecords_ai AFTER INSERT ON ActivityRecords BEGIN
     INSERT INTO ActivityRecordsFts(id, name, description)
     VALUES (new.id, new.name, new.description);
@@ -46,10 +37,6 @@ END;
 CREATE TRIGGER activityrecords_ad AFTER DELETE ON ActivityRecords BEGIN
     DELETE FROM ActivityRecordsFts WHERE id = old.id;
 END;
-
--- ================================================
--- ✅ CRUD-запити
--- ================================================
 
 insert:
 INSERT INTO ActivityRecords(id, name, description, createdAt, startTime, endTime, totalTimeSpentMinutes, tags, relatedLinks, isCompleted, activityType, parentProjectId)
@@ -81,10 +68,6 @@ SELECT * FROM ActivityRecords ORDER BY createdAt DESC;
 
 clearAll:
 DELETE FROM ActivityRecords;
-
--- ================================================
--- 🔎 Специфічні запити
--- ================================================
 
 findLastOngoingActivity:
 SELECT * FROM ActivityRecords WHERE endTime IS NULL ORDER BY startTime DESC LIMIT 1;

@@ -4,13 +4,13 @@ import ProjectRepositoryImpl
 import android.content.Context
 import app.cash.sqldelight.db.SqlDriver
 //import app.cash.sqldelight.driver.android.AndroidSqliteDriver
-import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
+//import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 
 import com.romankozak.forwardappmobile.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.notes.AndroidNoteBacklogLinkDataSource
-import com.romankozak.forwardappmobile.data.repository.ActivityRepository
+//import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 
 import com.romankozak.forwardappmobile.data.repository.InboxRepository
 import com.romankozak.forwardappmobile.data.repository.ListItemRepository
@@ -257,13 +257,13 @@ object RepositoryModule {
     ): ChecklistRepository =
         ChecklistRepository(db, attachmentRepository, recentItemsRepository, ioDispatcher)
 
-    @Provides
-    @Singleton
-    fun provideActivityRepository(
-        activityRecordRepository: ActivityRecordRepository,
-        goalDao: GoalDao,
-        projectLocalDataSource: ProjectLocalDataSource,
-    ): ActivityRepository = ActivityRepository(activityRecordRepository, goalDao, projectLocalDataSource)
+    // @Provides
+    // @Singleton
+    // fun provideActivityRepository(
+    //     activityRecordRepository: ActivityRecordRepository,
+    //     goalDao: GoalDao,
+    //     projectLocalDataSource: ProjectLocalDataSource,
+    // ): ActivityRepository = ActivityRepository(activityRecordRepository, goalDao, projectLocalDataSource)
 
 
 

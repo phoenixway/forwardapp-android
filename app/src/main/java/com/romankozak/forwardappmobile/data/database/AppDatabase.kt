@@ -4,7 +4,7 @@ import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
+// import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 import com.romankozak.forwardappmobile.data.dao.ChatDao
 import com.romankozak.forwardappmobile.data.dao.ConversationFolderDao
 import com.romankozak.forwardappmobile.data.dao.DailyMetricDao
@@ -26,7 +26,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAt
         Goal::class,
         ProjectEntity::class,
         ListItem::class,
-        ActivityRecord::class,
+        // ActivityRecord::class,
         AttachmentRoomEntity::class,
         InboxRecord::class,
         ChatMessageEntity::class,
@@ -44,7 +44,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAt
 
         GoalFts::class,
         ProjectFts::class,
-        ActivityRecordFts::class,
+        // ActivityRecordFts::class,
         LegacyNoteFts::class,
         RecurringTaskFts::class,
     ],
@@ -57,7 +57,7 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun listItemDao(): ListItemDao
 
-    abstract fun activityRecordDao(): ActivityRecordDao
+    // abstract fun activityRecordDao(): ActivityRecordDao
 
     abstract fun inboxRecordDao(): InboxRecordDao
 
