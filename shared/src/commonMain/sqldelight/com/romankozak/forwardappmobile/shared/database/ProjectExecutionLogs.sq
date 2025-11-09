@@ -1,0 +1,23 @@
+import kotlin.Long;
+
+CREATE TABLE ProjectExecutionLogs (
+  id TEXT NOT NULL PRIMARY KEY,
+  projectId TEXT NOT NULL,
+  timestamp INTEGER AS kotlin.Long NOT NULL,
+  type TEXT NOT NULL,
+  description TEXT NOT NULL,
+  details TEXT
+);
+
+selectAllByProjectId:
+SELECT * FROM ProjectExecutionLogs WHERE projectId = :projectId ORDER BY timestamp DESC;
+
+insert:
+INSERT OR REPLACE INTO ProjectExecutionLogs(id, projectId, timestamp, type, description, details)
+VALUES (:id, :projectId, :timestamp, :type, :description, :details);
+
+deleteById:
+DELETE FROM ProjectExecutionLogs WHERE id = :id;
+
+update:
+UPDATE ProjectExecutionLogs SET description = :description, details = :details WHERE id = :id;

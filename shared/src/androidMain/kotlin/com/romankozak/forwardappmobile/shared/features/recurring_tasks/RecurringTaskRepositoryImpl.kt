@@ -43,7 +43,7 @@ class RecurringTaskRepositoryImpl(
                 points = task.points.toLong(),
                 frequency = task.recurrenceRule.frequency,
                 interval = task.recurrenceRule.interval.toLong(),
-                daysOfWeek = task.recurrenceRule.daysOfWeek,
+                daysOfWeek = task.recurrenceRule.daysOfWeek?.joinToString(","),
                 startDate = task.startDate,
                 endDate = task.endDate
             )

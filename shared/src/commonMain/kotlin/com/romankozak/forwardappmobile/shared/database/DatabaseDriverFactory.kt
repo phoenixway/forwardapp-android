@@ -6,6 +6,9 @@ import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.
 import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.TaskStatus
 import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
 import app.cash.sqldelight.ColumnAdapter
+import com.romankozak.forwardappmobile.shared.data.database.models.ProjectType
+import com.romankozak.forwardappmobile.shared.data.database.models.RecurrenceFrequency
+import com.romankozak.forwardappmobile.shared.data.database.models.ReservedGroup
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -25,32 +28,25 @@ expect class DatabaseDriverFactory(platformContext: PlatformContext? = null) {
     fun createDriver(): SqlDriver
 }
 
-val dayStatusAdapter = object : ColumnAdapter<DayStatus, String> {
-    override fun decode(databaseValue: String): DayStatus = DayStatus.valueOf(databaseValue)
-    override fun encode(value: DayStatus): String = value.name
-}
-val taskPriorityAdapter = object : ColumnAdapter<TaskPriority, String> {
-    override fun decode(databaseValue: String): TaskPriority = TaskPriority.valueOf(databaseValue)
-    override fun encode(value: TaskPriority): String = value.name
-}
-val taskStatusAdapter = object : ColumnAdapter<TaskStatus, String> {
-    override fun decode(databaseValue: String): TaskStatus = TaskStatus.valueOf(databaseValue)
-    override fun encode(value: TaskStatus): String = value.name
+private val booleanAdapter = object : ColumnAdapter<Boolean, Long> {
+    override fun decode(databaseValue: Long) = databaseValue != 0L
+    override fun encode(value: Boolean) = if (value) 1L else 0L
 }
 
-val booleanAdapter = object : ColumnAdapter<Boolean, Long> {
-    override fun decode(databaseValue: Long): Boolean {
-        return databaseValue != 0L
-    }
+private val stringListAdapter = object : ColumnAdapter<List<String>, String> {
+    override fun decode(databaseValue: String) =
+        if (databaseValue.isEmpty()) listOf() else databaseValue.split(",")
 
-    override fun encode(value: Boolean): Long {
-        return if (value) 1L else 0L
-    }
+    override fun encode(value: List<String>) = value.joinToString(separator = ",")
 }
 
-val relatedLinksListAdapter = object : ColumnAdapter<List<RelatedLink>, String> {
+private val relatedLinksListAdapter = object : ColumnAdapter<List<RelatedLink>, String> {
     override fun decode(databaseValue: String): List<RelatedLink> {
-        return Json.decodeFromString(ListSerializer(RelatedLink.serializer()), databaseValue)
+        return if (databaseValue.isEmpty()) {
+            emptyList()
+        } else {
+            Json.decodeFromString(ListSerializer(RelatedLink.serializer()), databaseValue)
+        }
     }
 
     override fun encode(value: List<RelatedLink>): String {
@@ -58,16 +54,18 @@ val relatedLinksListAdapter = object : ColumnAdapter<List<RelatedLink>, String> 
     }
 }
 
-val stringListAdapter = object : ColumnAdapter<List<String>, String> {
-    override fun decode(databaseValue: String): List<String> {
-        if (databaseValue.isEmpty()) return emptyList()
-        return Json.decodeFromString(ListSerializer(String.serializer()), databaseValue)
-    }
-
-    override fun encode(value: List<String>): String {
-        return Json.encodeToString(ListSerializer(String.serializer()), value)
-    }
-}
+private val taskPriorityAdapter =
+    EnumColumnAdapter<TaskPriority>()
+private val taskStatusAdapter =
+    EnumColumnAdapter<TaskStatus>()
+private val dayStatusAdapter =
+    EnumColumnAdapter<DayStatus>()
+private val recurrenceFrequencyAdapter =
+    EnumColumnAdapter<RecurrenceFrequency>()
+private val projectTypeAdapter =
+    EnumColumnAdapter<ProjectType>()
+private val reservedGroupAdapter =
+    EnumColumnAdapter<ReservedGroup>()
 
 fun createForwardAppDatabase(
     driverFactory: DatabaseDriverFactory,
@@ -100,6 +98,23 @@ fun createForwardAppDatabase(
             isCheckedAdapter = booleanAdapter
         ),
         AttachmentsAdapter = Attachments.Adapter(),
-        ProjectAttachmentCrossRefAdapter = ProjectAttachmentCrossRef.Adapter()
+        ProjectAttachmentCrossRefAdapter = ProjectAttachmentCrossRef.Adapter(),
+        RecurringTasksAdapter = RecurringTasks.Adapter(
+            priorityAdapter = taskPriorityAdapter,
+            frequencyAdapter = recurrenceFrequencyAdapter,
+            daysOfWeekAdapter = stringListAdapter
+        ),
+        ProjectsAdapter = Projects.Adapter(
+            tagsAdapter = stringListAdapter,
+            relatedLinksAdapter = relatedLinksListAdapter,
+            isExpandedAdapter = booleanAdapter,
+            isAttachmentsExpandedAdapter = booleanAdapter,
+            isCompletedAdapter = booleanAdapter,
+            isProjectManagementEnabledAdapter = booleanAdapter,
+            showCheckboxesAdapter = booleanAdapter,
+            projectTypeAdapter = projectTypeAdapter,
+            reservedGroupAdapter = reservedGroupAdapter
+        ),
+        ProjectExecutionLogsAdapter = ProjectExecutionLogs.Adapter()
     )
 }

@@ -6,8 +6,6 @@ import app.cash.sqldelight.coroutines.mapToList
 import app.cash.sqldelight.coroutines.mapToOneOrNull
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
-import com.romankozak.forwardappmobile.shared.features.projects.data.insertOrReplace
-import com.romankozak.forwardappmobile.shared.features.projects.data.toModel
 import com.romankozak.forwardappmobile.shared.logging.logd
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
@@ -21,40 +19,75 @@ class ProjectLocalDataSourceImpl(
     private val ioDispatcher: CoroutineDispatcher
 ) : ProjectLocalDataSource {
 
+    private val projectsQueries = database.projectsQueries
+
     override fun observeAll(): Flow<List<Project>> =
-        database.projectsQueries.getAllProjects()
+        projectsQueries.getAllProjects()
             .asFlow()
             .mapToList(ioDispatcher)
             .map { rows -> rows.map { it.toModel() } }
 
     override fun observeById(projectId: String): Flow<Project?> =
-        database.projectsQueries.getProjectById(projectId)
+        projectsQueries.getProjectById(projectId)
             .asFlow()
             .mapToOneOrNull(ioDispatcher)
             .map { it?.toModel() }
 
     override suspend fun getAll(): List<Project> = withContext(ioDispatcher) {
-        database.projectsQueries.getAllProjectsUnordered()
+        projectsQueries.getAllProjectsUnordered()
             .executeAsList()
             .map { it.toModel() }
     }
 
     override suspend fun getByIds(ids: List<String>): List<Project> = withContext(ioDispatcher) {
         if (ids.isEmpty()) return@withContext emptyList()
-        database.projectsQueries.getProjectsByIds(ids)
+        projectsQueries.getProjectsByIds(ids)
             .executeAsList()
             .map { it.toModel() }
     }
 
     override suspend fun getById(projectId: String): Project? =
         withContext(ioDispatcher) {
-            database.projectsQueries.getProjectById(projectId)
+            projectsQueries.getProjectById(projectId)
                 .executeAsOneOrNull()
                 ?.toModel()
         }
 
     override suspend fun upsert(project: Project) = withContext(ioDispatcher) {
-        database.projectsQueries.insertOrReplace(project)
+        projectsQueries.insertProject(
+            id = project.id,
+            name = project.name,
+            description = project.description,
+            parentId = project.parentId,
+            createdAt = project.createdAt,
+            updatedAt = project.updatedAt,
+            tags = project.tags,
+            relatedLinks = project.relatedLinks,
+            isExpanded = project.isExpanded,
+            goalOrder = project.order,
+            isAttachmentsExpanded = project.isAttachmentsExpanded,
+            defaultViewMode = project.defaultViewModeName,
+            isCompleted = project.isCompleted,
+            isProjectManagementEnabled = project.isProjectManagementEnabled,
+            projectStatus = project.projectStatus,
+            projectStatusText = project.projectStatusText,
+            projectLogLevel = project.projectLogLevel,
+            totalTimeSpentMinutes = project.totalTimeSpentMinutes,
+            valueImportance = project.valueImportance.toDouble(),
+            valueImpact = project.valueImpact.toDouble(),
+            effort = project.effort.toDouble(),
+            cost = project.cost.toDouble(),
+            risk = project.risk.toDouble(),
+            weightEffort = project.weightEffort.toDouble(),
+            weightCost = project.weightCost.toDouble(),
+            weightRisk = project.weightRisk.toDouble(),
+            rawScore = project.rawScore.toDouble(),
+            displayScore = project.displayScore,
+            scoringStatus = project.scoringStatus,
+            showCheckboxes = project.showCheckboxes,
+            projectType = project.projectType,
+            reservedGroup = project.reservedGroup?.let { ReservedGroup.valueOf(it) }
+        )
     }
 
     override suspend fun upsert(projects: List<Project>, useTransaction: Boolean) {
@@ -62,104 +95,173 @@ class ProjectLocalDataSourceImpl(
         withContext(ioDispatcher) {
             if (useTransaction) {
                 database.transaction {
-                    projects.forEach { database.projectsQueries.insertOrReplace(it) }
+                    projects.forEach { project ->
+                        projectsQueries.insertProject(
+                            id = project.id,
+                            name = project.name,
+                            description = project.description,
+                            parentId = project.parentId,
+                            createdAt = project.createdAt,
+                            updatedAt = project.updatedAt,
+                            tags = project.tags,
+                            relatedLinks = project.relatedLinks,
+                            isExpanded = project.isExpanded,
+                            goalOrder = project.order,
+                            isAttachmentsExpanded = project.isAttachmentsExpanded,
+                            defaultViewMode = project.defaultViewModeName,
+                            isCompleted = project.isCompleted,
+                            isProjectManagementEnabled = project.isProjectManagementEnabled,
+                            projectStatus = project.projectStatus,
+                            projectStatusText = project.projectStatusText,
+                            projectLogLevel = project.projectLogLevel,
+                            totalTimeSpentMinutes = project.totalTimeSpentMinutes,
+                            valueImportance = project.valueImportance.toDouble(),
+                            valueImpact = project.valueImpact.toDouble(),
+                            effort = project.effort.toDouble(),
+                            cost = project.cost.toDouble(),
+                            risk = project.risk.toDouble(),
+                            weightEffort = project.weightEffort.toDouble(),
+                            weightCost = project.weightCost.toDouble(),
+                            weightRisk = project.weightRisk.toDouble(),
+                            rawScore = project.rawScore.toDouble(),
+                            displayScore = project.displayScore,
+                            scoringStatus = project.scoringStatus,
+                            showCheckboxes = project.showCheckboxes,
+                            projectType = project.projectType,
+                            reservedGroup = project.reservedGroup?.let { ReservedGroup.valueOf(it) }
+                        )
+                    }
                 }
             } else {
-                projects.forEach { database.projectsQueries.insertOrReplace(it) }
+                projects.forEach { project ->
+                    projectsQueries.insertProject(
+                        id = project.id,
+                        name = project.name,
+                        description = project.description,
+                        parentId = project.parentId,
+                        createdAt = project.createdAt,
+                        updatedAt = project.updatedAt,
+                        tags = project.tags,
+                        relatedLinks = project.relatedLinks,
+                        isExpanded = project.isExpanded,
+                        goalOrder = project.order,
+                        isAttachmentsExpanded = project.isAttachmentsExpanded,
+                        defaultViewMode = project.defaultViewModeName,
+                        isCompleted = project.isCompleted,
+                        isProjectManagementEnabled = project.isProjectManagementEnabled,
+                        projectStatus = project.projectStatus,
+                        projectStatusText = project.projectStatusText,
+                        projectLogLevel = project.projectLogLevel,
+                        totalTimeSpentMinutes = project.totalTimeSpentMinutes,
+                        valueImportance = project.valueImportance.toDouble(),
+                        valueImpact = project.valueImpact.toDouble(),
+                        effort = project.effort.toDouble(),
+                        cost = project.cost.toDouble(),
+                        risk = project.risk.toDouble(),
+                        weightEffort = project.weightEffort.toDouble(),
+                        weightCost = project.weightCost.toDouble(),
+                        weightRisk = project.weightRisk.toDouble(),
+                        rawScore = project.rawScore.toDouble(),
+                        displayScore = project.displayScore,
+                        scoringStatus = project.scoringStatus,
+                        showCheckboxes = project.showCheckboxes,
+                        projectType = project.projectType,
+                        reservedGroup = project.reservedGroup?.let { ReservedGroup.valueOf(it) }
+                    )
+                }
             }
         }
     }
 
     override suspend fun delete(projectId: String) {
-        withContext(ioDispatcher) { database.projectsQueries.deleteProject(projectId) }
+        withContext(ioDispatcher) { projectsQueries.deleteProject(projectId) }
     }
 
     override suspend fun delete(projectIds: List<String>) {
         withContext(ioDispatcher) {
             database.transaction {
-                projectIds.forEach { database.projectsQueries.deleteProject(it) }
+                projectIds.forEach { projectsQueries.deleteProject(it) }
             }
         }
     }
 
     override suspend fun deleteDefault(projectId: String) {
-        withContext(ioDispatcher) { database.projectsQueries.deleteProjectById(projectId) }
+        withContext(ioDispatcher) { projectsQueries.deleteProjectById(projectId) }
     }
 
     override suspend fun deleteAll() {
         withContext(ioDispatcher) {
-            database.projectsQueries.deleteProjectsForReset()
+            projectsQueries.deleteProjectsForReset()
         }
         Log.d("FullImportFlow", "deleteAll() done")
 
     }
 
     override fun deleteAllWithinTransaction() {
-        database.projectsQueries.deleteProjectsForReset()
+        projectsQueries.deleteProjectsForReset()
         Log.d("FullImportFlow", "deleteAllWithinTransaction() done")
     }
 
     override suspend fun getByParent(parentId: String): List<Project> =
         withContext(ioDispatcher) {
-            database.projectsQueries.getProjectsByParentId(parentId)
+            projectsQueries.getProjectsByParentId(parentId)
                 .executeAsList()
                 .map { it.toModel() }
         }
 
     override suspend fun getTopLevel(): List<Project> =
         withContext(ioDispatcher) {
-            database.projectsQueries.getTopLevelProjects()
+            projectsQueries.getTopLevelProjects()
                 .executeAsList().map { it.toModel() }
         }
 
     override suspend fun getByTag(tag: String): List<Project> =
         withContext(ioDispatcher) {
-            val ids = database.projectsQueries.getProjectIdsByTag(tag).executeAsList()
+            val ids = projectsQueries.getProjectIdsByTag(tag).executeAsList()
             if (ids.isEmpty()) emptyList()
-            else database.projectsQueries.getProjectsByIds(ids)
+            else projectsQueries.getProjectsByIds(ids)
                 .executeAsList().map { it.toModel() }
         }
 
     override suspend fun getIdsByTag(tag: String): List<String> =
         withContext(ioDispatcher) {
-            database.projectsQueries.getProjectIdsByTag(tag).executeAsList()
+            projectsQueries.getProjectIdsByTag(tag).executeAsList()
         }
 
     override suspend fun getByType(projectType: String): List<Project> =
         withContext(ioDispatcher) {
-            database.projectsQueries.getProjectsByType(projectType)
+            projectsQueries.getProjectsByType(projectType)
                 .executeAsList().map { it.toModel() }
         }
 
     override suspend fun getByReservedGroup(reservedGroup: String): List<Project> =
         withContext(ioDispatcher) {
-            database.projectsQueries.getProjectsByReservedGroup(reservedGroup)
+            projectsQueries.getProjectsByReservedGroup(reservedGroup)
                 .executeAsList().map { it.toModel() }
         }
 
     override suspend fun getByParentAndReservedGroup(parentId: String?, reservedGroup: String): Project? =
         withContext(ioDispatcher) {
-            database.projectsQueries
+            projectsQueries
                 .getProjectByParentAndReservedGroup(parentId, reservedGroup)
                 .executeAsOneOrNull()?.toModel()
         }
 
     override suspend fun getByNameLike(query: String): List<Project> =
         withContext(ioDispatcher) {
-            database.projectsQueries.getProjectsByNameLike(query)
+            projectsQueries.getProjectsByNameLike(query)
                 .executeAsList().map { it.toModel() }
         }
 
     override suspend fun updateOrder(projectId: String, order: Long) {
         withContext(ioDispatcher) {
-            database.projectsQueries.updateProjectOrder(projectId, order)
+            projectsQueries.updateProjectOrder(order, projectId)
         }
     }
 
     override suspend fun updateDefaultViewMode(projectId: String, viewMode: String) {
         withContext(ioDispatcher) {
-            database.projectsQueries.updateProjectViewMode(projectId, viewMode)
+            projectsQueries.updateProjectViewMode(viewMode, projectId)
         }
     }
 }
-

@@ -1,0 +1,94 @@
+import kotlin.Boolean;
+import kotlin.Long;
+import kotlin.Double;
+import com.romankozak.forwardappmobile.shared.data.database.models.ProjectType;
+import com.romankozak.forwardappmobile.shared.data.database.models.ReservedGroup;
+import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink;
+import kotlin.collections.List;
+
+CREATE TABLE Projects (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    parentId TEXT,
+    createdAt INTEGER AS kotlin.Long NOT NULL,
+    updatedAt INTEGER AS kotlin.Long,
+    tags TEXT AS List<String>,
+    relatedLinks TEXT AS List<RelatedLink>,
+    isExpanded INTEGER AS kotlin.Boolean NOT NULL DEFAULT 1,
+    goalOrder INTEGER AS kotlin.Long NOT NULL DEFAULT 0,
+    isAttachmentsExpanded INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
+    defaultViewMode TEXT,
+    isCompleted INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
+    isProjectManagementEnabled INTEGER AS kotlin.Boolean DEFAULT 0,
+    projectStatus TEXT,
+    projectStatusText TEXT,
+    projectLogLevel TEXT,
+    totalTimeSpentMinutes INTEGER AS kotlin.Long DEFAULT 0,
+    valueImportance REAL AS kotlin.Double NOT NULL DEFAULT 0.0,
+    valueImpact REAL AS kotlin.Double NOT NULL DEFAULT 0.0,
+    effort REAL AS kotlin.Double NOT NULL DEFAULT 0.0,
+    cost REAL AS kotlin.Double NOT NULL DEFAULT 0.0,
+    risk REAL AS kotlin.Double NOT NULL DEFAULT 0.0,
+    weightEffort REAL AS kotlin.Double NOT NULL DEFAULT 1.0,
+    weightCost REAL AS kotlin.Double NOT NULL DEFAULT 1.0,
+    weightRisk REAL AS kotlin.Double NOT NULL DEFAULT 1.0,
+    rawScore REAL AS kotlin.Double NOT NULL DEFAULT 0.0,
+    displayScore INTEGER NOT NULL DEFAULT 0,
+    scoringStatus TEXT NOT NULL DEFAULT 'NOT_ASSESSED',
+    showCheckboxes INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
+    projectType TEXT AS ProjectType NOT NULL DEFAULT 'DEFAULT',
+    reservedGroup TEXT AS ReservedGroup
+);
+
+getAllProjects:
+SELECT * FROM Projects ORDER BY goalOrder ASC;
+
+getAllProjectsUnordered:
+SELECT * FROM Projects;
+
+getProjectById:
+SELECT * FROM Projects WHERE id = :id;
+
+getProjectsByIds:
+SELECT * FROM Projects WHERE id IN :ids;
+
+getProjectIdsByTag:
+SELECT id FROM Projects WHERE tags LIKE '%' || :tag || '%';
+
+getProjectsByType:
+SELECT * FROM Projects WHERE projectType = :projectType;
+
+getProjectsByNameLike:
+SELECT * FROM Projects WHERE name LIKE '%' || :query || '%';
+
+getProjectsByReservedGroup:
+SELECT * FROM Projects WHERE reservedGroup = :reservedGroup;
+
+getProjectByParentAndReservedGroup:
+SELECT * FROM Projects WHERE (parentId = :parentId OR (parentId IS NULL AND :parentId IS NULL)) AND reservedGroup = :reservedGroup LIMIT 1;
+
+getProjectsByParentId:
+SELECT * FROM Projects WHERE parentId = :parentId ORDER BY goalOrder ASC;
+
+getTopLevelProjects:
+SELECT * FROM Projects WHERE parentId IS NULL ORDER BY goalOrder ASC;
+
+insertProject:
+INSERT OR REPLACE INTO Projects(id, name, description, parentId, createdAt, updatedAt, tags, relatedLinks, isExpanded, goalOrder, isAttachmentsExpanded, defaultViewMode, isCompleted, isProjectManagementEnabled, projectStatus, projectStatusText, projectLogLevel, totalTimeSpentMinutes, valueImportance, valueImpact, effort, cost, risk, weightEffort, weightCost, weightRisk, rawScore, displayScore, scoringStatus, showCheckboxes, projectType, reservedGroup)
+VALUES (:id, :name, :description, :parentId, :createdAt, :updatedAt, :tags, :relatedLinks, :isExpanded, :goalOrder, :isAttachmentsExpanded, :defaultViewMode, :isCompleted, :isProjectManagementEnabled, :projectStatus, :projectStatusText, :projectLogLevel, :totalTimeSpentMinutes, :valueImportance, :valueImpact, :effort, :cost, :risk, :weightEffort, :weightCost, :weightRisk, :rawScore, :displayScore, :scoringStatus, :showCheckboxes, :projectType, :reservedGroup);
+
+deleteProject:
+DELETE FROM Projects WHERE id = :id AND projectType = 'DEFAULT';
+
+deleteProjectById:
+DELETE FROM Projects WHERE id = :id AND projectType = 'DEFAULT';
+
+deleteProjectsForReset:
+DELETE FROM Projects;
+
+updateProjectOrder:
+UPDATE Projects SET goalOrder = :order WHERE id = :id;
+
+updateProjectViewMode:
+UPDATE Projects SET defaultViewMode = :viewMode WHERE id = :id;
