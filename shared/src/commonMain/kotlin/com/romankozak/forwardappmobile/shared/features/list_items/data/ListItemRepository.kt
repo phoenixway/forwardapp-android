@@ -6,13 +6,13 @@ import kotlinx.coroutines.flow.Flow
 interface ListItemRepository {
     fun getItemsForProjectStream(projectId: String): Flow<List<ListItem>>
 
-    suspend fun insertItem(item: ListItem)
+    suspend fun insertItem(item: ListItem, order: Long, entityId: String?, itemType: String?)
 
-    suspend fun insertItems(items: List<ListItem>)
+    suspend fun insertItems(items: List<ListItem>, order: Long, entityId: String?, itemType: String?)
 
-    suspend fun updateItem(item: ListItem)
+    suspend fun updateItem(item: ListItem, order: Long, entityId: String?, itemType: String?)
 
-    suspend fun updateItems(items: List<ListItem>)
+    suspend fun updateItems(items: List<ListItem>, order: Long, entityId: String?, itemType: String?)
 
     suspend fun deleteItemsByIds(itemIds: List<String>)
 

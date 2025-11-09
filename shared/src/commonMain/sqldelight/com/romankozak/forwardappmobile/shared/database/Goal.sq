@@ -1,5 +1,7 @@
 import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink;
 import com.romankozak.forwardappmobile.shared.data.database.models.Goal;
+import kotlin.Boolean;
+import kotlin.collections.List;
 
 CREATE TABLE Goals (
     id TEXT NOT NULL PRIMARY KEY,

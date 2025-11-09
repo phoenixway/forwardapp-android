@@ -23,30 +23,30 @@ class ListItemRepositoryImpl(
             .map { listItems -> listItems.map { it.toDomain() } }
     }
 
-    override suspend fun insertItem(item: ListItem) {
+    override suspend fun insertItem(item: ListItem, order: Long, entityId: String?, itemType: String?) {
         withContext(ioDispatcher) {
-            db.listItemsQueries.insertItem(item.toSqlDelight(0, null, null))
+            db.listItemsQueries.insertItem(item.toSqlDelight(order, entityId, itemType))
         }
     }
 
-    override suspend fun insertItems(items: List<ListItem>) {
+    override suspend fun insertItems(items: List<ListItem>, order: Long, entityId: String?, itemType: String?) {
         withContext(ioDispatcher) {
             items.forEach { item ->
-                db.listItemsQueries.insertItem(item.toSqlDelight(0, null, null))
+                db.listItemsQueries.insertItem(item.toSqlDelight(order, entityId, itemType))
             }
         }
     }
 
-    override suspend fun updateItem(item: ListItem) {
+    override suspend fun updateItem(item: ListItem, order: Long, entityId: String?, itemType: String?) {
         withContext(ioDispatcher) {
-            db.listItemsQueries.updateItem(item.toSqlDelight(0, null, null))
+            db.listItemsQueries.updateItem(item.toSqlDelight(order, entityId, itemType))
         }
     }
 
-    override suspend fun updateItems(items: List<ListItem>) {
+    override suspend fun updateItems(items: List<ListItem>, order: Long, entityId: String?, itemType: String?) {
         withContext(ioDispatcher) {
             items.forEach { item ->
-                db.listItemsQueries.updateItem(item.toSqlDelight(0, null, null))
+                db.listItemsQueries.updateItem(item.toSqlDelight(order, entityId, itemType))
             }
         }
     }
