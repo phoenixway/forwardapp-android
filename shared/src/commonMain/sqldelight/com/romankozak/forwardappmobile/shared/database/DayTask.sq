@@ -1,0 +1,136 @@
+import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.TaskPriority;
+import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.TaskStatus;
+
+CREATE TABLE DayTasks (
+    id TEXT NOT NULL PRIMARY KEY,
+    dayPlanId TEXT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT,
+
+    goalId TEXT,
+    projectId TEXT,
+    activityRecordId TEXT,
+    recurringTaskId TEXT,
+
+    taskType TEXT,
+    entityId TEXT,
+
+    "order" INTEGER NOT NULL DEFAULT 0,
+    priority TEXT AS TaskPriority NOT NULL DEFAULT 'MEDIUM',
+    status TEXT AS TaskStatus NOT NULL DEFAULT 'NOT_STARTED',
+    completed INTEGER NOT NULL DEFAULT 0,
+
+    scheduledTime INTEGER,
+    estimatedDurationMinutes INTEGER,
+    actualDurationMinutes INTEGER,
+    dueTime INTEGER,
+
+    valueImportance REAL NOT NULL DEFAULT 0.0,
+    valueImpact REAL NOT NULL DEFAULT 0.0,
+    effort REAL NOT NULL DEFAULT 0.0,
+    cost REAL NOT NULL DEFAULT 0.0,
+    risk REAL NOT NULL DEFAULT 0.0,
+
+    location TEXT,
+    tags TEXT, -- Stored as JSON string or comma-separated
+    notes TEXT,
+
+    createdAt INTEGER NOT NULL,
+    updatedAt INTEGER,
+    completedAt INTEGER,
+    nextOccurrenceTime INTEGER,
+    points INTEGER NOT NULL DEFAULT 0,
+
+    FOREIGN KEY(dayPlanId) REFERENCES DayPlans(id) ON DELETE CASCADE
+);
+
+selectAllByDayPlanId:
+SELECT * FROM DayTasks WHERE dayPlanId = :dayPlanId ORDER BY "order" ASC;
+
+selectById:
+SELECT * FROM DayTasks WHERE id = :id;
+
+getMaxOrderForDayPlan:
+SELECT MAX("order") FROM DayTasks WHERE dayPlanId = :dayPlanId;
+
+insert:
+INSERT OR REPLACE INTO DayTasks(
+    id, dayPlanId, title, description, goalId, projectId, activityRecordId, recurringTaskId,
+    taskType, entityId, "order", priority, status, completed, scheduledTime, estimatedDurationMinutes,
+    actualDurationMinutes, dueTime, valueImportance, valueImpact, effort, cost, risk, location,
+    tags, notes, createdAt, updatedAt, completedAt, nextOccurrenceTime, points
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+update:
+UPDATE DayTasks SET
+    dayPlanId = :dayPlanId,
+    title = :title,
+    description = :description,
+    goalId = :goalId,
+    projectId = :projectId,
+    activityRecordId = :activityRecordId,
+    recurringTaskId = :recurringTaskId,
+    taskType = :taskType,
+    entityId = :entityId,
+    "order" = :order,
+    priority = :priority,
+    status = :status,
+    completed = :completed,
+    scheduledTime = :scheduledTime,
+    estimatedDurationMinutes = :estimatedDurationMinutes,
+    actualDurationMinutes = :actualDurationMinutes,
+    dueTime = :dueTime,
+    valueImportance = :valueImportance,
+    valueImpact = :valueImpact,
+    effort = :effort,
+    cost = :cost,
+    risk = :risk,
+    location = :location,
+    tags = :tags,
+    notes = :notes,
+    updatedAt = :updatedAt,
+    completedAt = :completedAt,
+    nextOccurrenceTime = :nextOccurrenceTime,
+    points = :points
+WHERE id = :id;
+
+deleteById:
+DELETE FROM DayTasks WHERE id = :id;
+
+deleteAllByDayPlanId:
+DELETE FROM DayTasks WHERE dayPlanId = :dayPlanId;
+
+selectTasksForGoal:
+SELECT * FROM DayTasks WHERE goalId = :goalId ORDER BY "order" ASC;
+
+updateTaskOrder:
+UPDATE DayTasks SET "order" = :newOrder, updatedAt = :updatedAt WHERE id = :taskId;
+
+updateTaskCompletion:
+UPDATE DayTasks SET
+    completed = :completed,
+    status = :status,
+    completedAt = :completedAt,
+    updatedAt = :updatedAt
+WHERE id = :taskId;
+
+deleteTasksForDayPlanIds:
+DELETE FROM DayTasks WHERE recurringTaskId = :recurringTaskId AND dayPlanId IN :dayPlanIds;
+
+linkTaskWithActivity:
+UPDATE DayTasks SET activityRecordId = :activityRecordId, updatedAt = :updatedAt WHERE id = :taskId;
+
+updateTaskDuration:
+UPDATE DayTasks SET actualDurationMinutes = :durationMinutes, updatedAt = :updatedAt WHERE id = :taskId;
+
+selectByRecurringIdAndDayPlanId:
+SELECT * FROM DayTasks WHERE recurringTaskId = :recurringTaskId AND dayPlanId = :dayPlanId;
+
+selectTemplateForRecurringTask:
+SELECT * FROM DayTasks WHERE recurringTaskId = :recurringTaskId AND dayPlanId IS NULL;
+
+detachFromRecurrence:
+UPDATE DayTasks SET recurringTaskId = NULL, updatedAt = :updatedAt WHERE id = :taskId;
+
+updateNextOccurrenceTime:
+UPDATE DayTasks SET nextOccurrenceTime = :nextOccurrenceTime, updatedAt = :updatedAt WHERE id = :taskId;

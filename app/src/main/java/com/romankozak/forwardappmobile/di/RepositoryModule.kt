@@ -53,11 +53,28 @@ import com.romankozak.forwardappmobile.shared.features.conversations.Conversatio
 import com.romankozak.forwardappmobile.shared.features.projects.logs.domain.ProjectExecutionLogRepository
 import com.romankozak.forwardappmobile.shared.features.projects.data.logs.ProjectExecutionLogRepositoryImpl
 import com.romankozak.forwardappmobile.shared.features.conversations.ConversationFolderRepositoryImpl
+import app.cash.sqldelight.ColumnAdapter
+import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
+import com.romankozak.forwardappmobile.shared.database.LinkItems
+import com.romankozak.forwardappmobile.features.attachments.data.SqlDelightLinkItemDataSource
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.decodeFromString
+import com.romankozak.forwardappmobile.di.IoDispatcher
 
 
 @Module
 @InstallIn(SingletonComponent::class)
 object RepositoryModule {
+
+    private val relatedLinkAdapter = object : ColumnAdapter<RelatedLink, String> {
+        override fun decode(databaseValue: String): RelatedLink {
+            return Json.decodeFromString(databaseValue)
+        }
+        override fun encode(value: RelatedLink): String {
+            return Json.encodeToString(value)
+        }
+    }
 
     @Provides
     @Singleton
@@ -106,7 +123,12 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideDatabase(driver: SqlDriver): ForwardAppDatabase =
-        ForwardAppDatabase(driver)
+        ForwardAppDatabase(
+            driver = driver,
+            linkItemsAdapter = LinkItems.Adapter(
+                linkDataAdapter = relatedLinkAdapter
+            )
+        )
 
     @Provides
     @Singleton
@@ -175,8 +197,9 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideLinkItemDataSource(
-        linkItemDao: LinkItemDao,
-    ): LinkItemDataSource = AndroidLinkItemDataSource(linkItemDao)
+        db: ForwardAppDatabase,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher
+    ): LinkItemDataSource = SqlDelightLinkItemDataSource(db, ioDispatcher)
 
     @Provides
     @Singleton

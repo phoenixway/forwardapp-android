@@ -1,0 +1,24 @@
+import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink;
+
+CREATE TABLE LinkItems (
+    id TEXT NOT NULL PRIMARY KEY,
+    linkData TEXT AS RelatedLink NOT NULL,
+    createdAt INTEGER NOT NULL
+);
+
+-- Queries for LinkItems
+insert:
+INSERT OR REPLACE INTO LinkItems(id, linkData, createdAt)
+VALUES (?, ?, ?);
+
+getById:
+SELECT * FROM LinkItems WHERE id = ?;
+
+getAll:
+SELECT * FROM LinkItems;
+
+deleteById:
+DELETE FROM LinkItems WHERE id = ?;
+
+deleteAll:
+DELETE FROM LinkItems;
