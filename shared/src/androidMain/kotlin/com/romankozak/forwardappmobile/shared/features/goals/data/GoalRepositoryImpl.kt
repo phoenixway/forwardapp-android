@@ -2,18 +2,18 @@ package com.romankozak.forwardappmobile.shared.features.goals.data
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
+import app.cash.sqldelight.coroutines.mapToOne
 import app.cash.sqldelight.coroutines.mapToOneOrNull
-import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import com.romankozak.forwardappmobile.shared.data.database.models.Goal
+import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
+import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
-
-import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
 import kotlinx.serialization.builtins.ListSerializer
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 class GoalRepositoryImpl(
     private val db: ForwardAppDatabase,
@@ -21,8 +21,9 @@ class GoalRepositoryImpl(
 ) : GoalRepository {
 
     override suspend fun insertGoal(goal: Goal) {
+        val queries = db.goalQueries
         withContext(ioDispatcher) {
-            db.goalQueries.insertGoal(
+            queries.insertGoal(
                 id = goal.id,
                 text = goal.text,
                 description = goal.description,
@@ -51,9 +52,10 @@ class GoalRepositoryImpl(
     }
 
     override suspend fun insertGoals(goals: List<Goal>) {
+        val queries = db.goalQueries
         withContext(ioDispatcher) {
             goals.forEach { goal ->
-                db.goalQueries.insertGoal(
+                queries.insertGoal(
                     id = goal.id,
                     text = goal.text,
                     description = goal.description,
@@ -83,8 +85,9 @@ class GoalRepositoryImpl(
     }
 
     override suspend fun updateGoal(goal: Goal) {
+        val queries = db.goalQueries
         withContext(ioDispatcher) {
-            db.goalQueries.updateGoal(
+            queries.updateGoal(
                 id = goal.id,
                 text = goal.text,
                 description = goal.description,
@@ -112,9 +115,10 @@ class GoalRepositoryImpl(
     }
 
     override suspend fun updateGoals(goals: List<Goal>) {
+        val queries = db.goalQueries
         withContext(ioDispatcher) {
             goals.forEach { goal ->
-                db.goalQueries.updateGoal(
+                queries.updateGoal(
                     id = goal.id,
                     text = goal.text,
                     description = goal.description,
@@ -143,52 +147,60 @@ class GoalRepositoryImpl(
     }
 
     override suspend fun deleteGoalById(id: String) {
+        val queries = db.goalQueries
         withContext(ioDispatcher) {
-            db.goalsQueries.deleteGoalById(id)
+            queries.deleteGoal(id)
         }
     }
 
     override suspend fun getGoalById(id: String): Goal? {
+        val queries = db.goalQueries
         return withContext(ioDispatcher) {
-            db.goalsQueries.getGoalById(id).executeAsOneOrNull()?.toDomain()
+            queries.getGoalById(id).executeAsOneOrNull()?.toDomain()
         }
     }
 
     override fun getGoalsByIds(ids: List<String>): Flow<List<Goal>> {
-        return db.goalsQueries.getGoalsByIds(ids)
+        val queries = db.goalQueries
+        return queries.getGoalsByIds(ids)
             .asFlow()
             .mapToList(ioDispatcher)
             .map { goals -> goals.map { it.toDomain() } }
     }
 
     override suspend fun getGoalsByIdsSuspend(ids: List<String>): List<Goal> {
+        val queries = db.goalQueries
         return withContext(ioDispatcher) {
-            db.goalsQueries.getGoalsByIds(ids).executeAsList().map { it.toDomain() }
+            queries.getGoalsByIds(ids).executeAsList().map { it.toDomain() }
         }
     }
 
     override suspend fun getAll(): List<Goal> {
+        val queries = db.goalQueries
         return withContext(ioDispatcher) {
-            db.goalsQueries.getAll().executeAsList().map { it.toDomain() }
+            queries.getAll().executeAsList().map { it.toDomain() }
         }
     }
 
     override fun getAllGoalsFlow(): Flow<List<Goal>> {
-        return db.goalsQueries.getAll()
+        val queries = db.goalQueries
+        return queries.getAll()
             .asFlow()
             .mapToList(ioDispatcher)
             .map { goals -> goals.map { it.toDomain() } }
     }
 
     override fun searchGoalsByText(query: String): Flow<List<Goal>> {
-        return db.goalsQueries.searchGoalsByText(query)
+        val queries = db.goalQueries
+        return queries.searchGoalsByText(query)
             .asFlow()
             .mapToList(ioDispatcher)
             .map { goals -> goals.map { it.toDomain() } }
     }
 
     override fun getAllGoalsCountFlow(): Flow<Int> {
-        return db.goalsQueries.getAllGoalsCount()
+        val queries = db.goalQueries
+        return queries.getAllGoalsCount()
             .asFlow()
             .mapToOne(ioDispatcher)
             .map { it.toInt() }
@@ -198,14 +210,17 @@ class GoalRepositoryImpl(
         goalId: String,
         markdown: String,
     ) {
+        val queries = db.goalQueries
         withContext(ioDispatcher) {
-            db.goalsQueries.updateMarkdown(goalId, markdown)
+            queries.updateMarkdown(goalId, markdown)
         }
     }
 
     override suspend fun deleteAll() {
+        val queries = db.goalQueries
         withContext(ioDispatcher) {
-            db.goalsQueries.deleteAll()
+            queries.deleteAll()
         }
     }
 }
+

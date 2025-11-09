@@ -1,3 +1,7 @@
+import kotlin.Boolean;
+import kotlin.collections.List;
+import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink;
+
 -- ============================================
 -- 📌 TABLE: Goals
 -- ============================================
@@ -5,11 +9,11 @@ CREATE TABLE Goals (
     id TEXT NOT NULL PRIMARY KEY,
     text TEXT NOT NULL,                     -- Назва/текст цілі
     description TEXT,                       -- Опис (може бути NULL)
-    completed INTEGER NOT NULL DEFAULT 0,  -- true/false як 1/0
+    completed INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,  -- true/false як 1/0
     createdAt INTEGER NOT NULL,             -- timestamp (Long)
     updatedAt INTEGER,                      -- timestamp або NULL
     tags TEXT,                              -- raw string або JSON (якщо треба)
-    relatedLinks TEXT,   -- ✅ просто TEXT
+    relatedLinks TEXT AS List<RelatedLink>,   -- ✅ просто TEXT
     valueImportance REAL NOT NULL DEFAULT 0.0,
     valueImpact REAL NOT NULL DEFAULT 0.0,
     effort REAL NOT NULL DEFAULT 0.0,
@@ -24,7 +28,8 @@ CREATE TABLE Goals (
     parentValueImportance REAL,
     impactOnParentGoal REAL,
     timeCost REAL,
-    financialCost REAL
+    financialCost REAL,
+    markdown TEXT
 );
 
 -- ============================================
@@ -88,6 +93,9 @@ WHERE id = :id;
 deleteGoal:
 DELETE FROM Goals WHERE id = :id;
 
+deleteAll:
+DELETE FROM Goals;
+
 -- ============================================
 -- ✅ SELECT: BY ID
 -- ============================================
@@ -99,3 +107,27 @@ SELECT * FROM Goals WHERE id = :id;
 -- ============================================
 getAllGoals:
 SELECT * FROM Goals ORDER BY createdAt DESC;
+
+-- ============================================
+-- ✅ SELECT: BY IDs
+-- ============================================
+getGoalsByIds:
+SELECT * FROM Goals WHERE id IN :ids;
+
+-- ============================================
+-- ✅ SEARCH
+-- ============================================
+searchGoalsByText:
+SELECT * FROM Goals WHERE text LIKE '%' || :query || '%' OR description LIKE '%' || :query || '%';
+
+-- ============================================
+-- ✅ COUNT
+-- ============================================
+getAllGoalsCount:
+SELECT count(*) FROM Goals;
+
+-- ============================================
+-- ✅ UPDATE MARKDOWN
+-- ============================================
+updateMarkdown:
+UPDATE Goals SET markdown = :markdown WHERE id = :goalId;

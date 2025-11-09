@@ -265,14 +265,7 @@ object RepositoryModule {
         projectLocalDataSource: ProjectLocalDataSource,
     ): ActivityRepository = ActivityRepository(activityRecordRepository, goalDao, projectLocalDataSource)
 
-    @Provides
-    @Singleton
-    fun provideGoalRepository(
-        goalRepository: GoalRepository,
-        reminderRepository: ReminderRepository,
-        contextHandlerProvider: Provider<ContextHandler>,
-        projectLocalDataSource: ProjectLocalDataSource,
-    ): com.romankozak.forwardappmobile.data.repository.GoalRepository = com.romankozak.forwardappmobile.data.repository.GoalRepository(goalRepository, reminderRepository, contextHandlerProvider, projectLocalDataSource)
+
 
     @Provides
     @Singleton

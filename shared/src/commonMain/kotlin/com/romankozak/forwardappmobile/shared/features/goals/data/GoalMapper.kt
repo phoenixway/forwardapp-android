@@ -33,6 +33,7 @@ fun Goals.toDomain(): DomainGoal {
         impactOnParentGoal = this.impactOnParentGoal?.toFloat(),
         timeCost = this.timeCost?.toFloat(),
         financialCost = this.financialCost?.toFloat(),
+        markdown = this.markdown
     )
 }
 
@@ -61,5 +62,6 @@ fun DomainGoal.toSqlDelight(): Goals {
         impactOnParentGoal = this.impactOnParentGoal?.toDouble(),
         timeCost = this.timeCost?.toDouble(),
         financialCost = this.financialCost?.toDouble(),
+        markdown = this.markdown
     )
 }
