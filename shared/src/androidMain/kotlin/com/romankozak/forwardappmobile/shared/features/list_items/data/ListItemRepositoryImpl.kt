@@ -25,28 +25,52 @@ class ListItemRepositoryImpl(
 
     override suspend fun insertItem(item: ListItem, order: Long, entityId: String?, itemType: String?) {
         withContext(ioDispatcher) {
-            db.listItemsQueries.insertItem(item.toSqlDelight(order, entityId, itemType))
+            db.listItemsQueries.insertItem(
+                id = item.id,
+                projectId = item.projectId,
+                item_order = order,
+                entityId = entityId,
+                itemType = itemType
+            )
         }
     }
 
     override suspend fun insertItems(items: List<ListItem>, order: Long, entityId: String?, itemType: String?) {
         withContext(ioDispatcher) {
             items.forEach { item ->
-                db.listItemsQueries.insertItem(item.toSqlDelight(order, entityId, itemType))
+                db.listItemsQueries.insertItem(
+                    id = item.id,
+                    projectId = item.projectId,
+                    item_order = order,
+                    entityId = entityId,
+                    itemType = itemType
+                )
             }
         }
     }
 
     override suspend fun updateItem(item: ListItem, order: Long, entityId: String?, itemType: String?) {
         withContext(ioDispatcher) {
-            db.listItemsQueries.updateItem(item.toSqlDelight(order, entityId, itemType))
+            db.listItemsQueries.updateItem(
+                id = item.id,
+                projectId = item.projectId,
+                item_order = order,
+                entityId = entityId,
+                itemType = itemType
+            )
         }
     }
 
     override suspend fun updateItems(items: List<ListItem>, order: Long, entityId: String?, itemType: String?) {
         withContext(ioDispatcher) {
             items.forEach { item ->
-                db.listItemsQueries.updateItem(item.toSqlDelight(order, entityId, itemType))
+                db.listItemsQueries.updateItem(
+                    id = item.id,
+                    projectId = item.projectId,
+                    item_order = order,
+                    entityId = entityId,
+                    itemType = itemType
+                )
             }
         }
     }
@@ -83,7 +107,7 @@ class ListItemRepositoryImpl(
 
     override suspend fun updateListItemProjectIds(itemIds: List<String>, targetProjectId: String) {
         withContext(ioDispatcher) {
-            db.listItemsQueries.updateListItemProjectIds(itemIds, targetProjectId)
+            db.listItemsQueries.updateListItemProjectIds(targetProjectId, itemIds)
         }
     }
 

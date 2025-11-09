@@ -1,7 +1,9 @@
+import kotlin.Long;
+
 CREATE TABLE ListItems (
     id TEXT NOT NULL PRIMARY KEY,
     projectId TEXT NOT NULL,
-    item_order INTEGER NOT NULL DEFAULT 0,
+    item_order INTEGER AS kotlin.Long NOT NULL DEFAULT 0,
     entityId TEXT,
     itemType TEXT
 );
@@ -10,7 +12,7 @@ getItemsForProject:
 SELECT * FROM ListItems WHERE projectId = :projectId ORDER BY item_order ASC, id ASC;
 
 insertItem:
-INSERT OR REPLACE INTO ListItems(id, projectId, item_order, entityId, itemType) VALUES (?, ?, ?, ?, ?);
+INSERT INTO ListItems(id, projectId, item_order, entityId, itemType) VALUES (:id, :projectId, :item_order, :entityId, :itemType);
 
 updateItem:
 UPDATE ListItems SET projectId = :projectId, item_order = :item_order, entityId = :entityId, itemType = :itemType WHERE id = :id;
