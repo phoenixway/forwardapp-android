@@ -6,6 +6,7 @@ import androidx.room.Fts4
 import androidx.room.PrimaryKey
 import java.util.UUID
 
+/*
 @Entity(tableName = "recurring_tasks", indices = [androidx.room.Index(value = ["goalId"])])
 data class RecurringTask(
     @PrimaryKey
@@ -30,3 +31,4 @@ data class RecurringTaskFts(
     val title: String,
     val description: String?,
 )
+*/

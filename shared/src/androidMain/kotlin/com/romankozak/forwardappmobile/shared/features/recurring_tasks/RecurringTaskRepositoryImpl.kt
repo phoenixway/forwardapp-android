@@ -15,15 +15,17 @@ class RecurringTaskRepositoryImpl(
     private val ioDispatcher: CoroutineDispatcher
 ) : RecurringTaskRepository {
 
+    private val queries = db.recurringTasksQueries
+
     override fun getRecurringTasks(): Flow<List<RecurringTask>> {
-        return db.recurringTaskQueries.selectAll()
+        return queries.selectAll()
             .asFlow()
             .mapToList(ioDispatcher)
             .map { tasks -> tasks.map { it.toDomain() } }
     }
 
     override fun getRecurringTask(id: String): Flow<RecurringTask?> {
-        return db.recurringTaskQueries.selectById(id)
+        return queries.selectById(id)
             .asFlow()
             .mapToOneOrNull(ioDispatcher)
             .map { it?.toDomain() }
@@ -31,26 +33,26 @@ class RecurringTaskRepositoryImpl(
 
     override suspend fun addRecurringTask(task: RecurringTask) {
         withContext(ioDispatcher) {
-            db.recurringTaskQueries.insert(
+            queries.insert(
                 id = task.id,
                 title = task.title,
                 description = task.description,
-                goal_id = task.goalId,
+                goalId = task.goalId,
                 duration = task.duration?.toLong(),
-                priority = task.priority.name,
+                priority = task.priority,
                 points = task.points.toLong(),
-                frequency = task.recurrenceRule.frequency.name,
+                frequency = task.recurrenceRule.frequency,
                 interval = task.recurrenceRule.interval.toLong(),
-                days_of_week = task.recurrenceRule.daysOfWeek?.joinToString(","),
-                start_date = task.startDate,
-                end_date = task.endDate
+                daysOfWeek = task.recurrenceRule.daysOfWeek,
+                startDate = task.startDate,
+                endDate = task.endDate
             )
         }
     }
 
     override suspend fun deleteRecurringTask(id: String) {
         withContext(ioDispatcher) {
-            db.recurringTaskQueries.deleteById(id)
+            queries.deleteById(id)
         }
     }
 }

@@ -1,0 +1,31 @@
+import com.romankozak.forwardappmobile.shared.data.database.models.TaskPriority;
+import com.romankozak.forwardappmobile.shared.data.database.models.RecurrenceFrequency;
+import kotlin.collections.List;
+
+CREATE TABLE RecurringTasks (
+    id TEXT NOT NULL PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT,
+    goalId TEXT,
+    duration INTEGER,
+    priority TEXT AS TaskPriority NOT NULL,
+    points INTEGER NOT NULL DEFAULT 0,
+    frequency TEXT AS RecurrenceFrequency NOT NULL,
+    "interval" INTEGER NOT NULL DEFAULT 1,
+    daysOfWeek TEXT AS List<String>,
+    startDate INTEGER NOT NULL,
+    endDate INTEGER
+);
+
+selectAll:
+SELECT * FROM RecurringTasks;
+
+selectById:
+SELECT * FROM RecurringTasks WHERE id = :id;
+
+insert:
+INSERT OR REPLACE INTO RecurringTasks(id, title, description, goalId, duration, priority, points, frequency, "interval", daysOfWeek, startDate, endDate)
+VALUES (:id, :title, :description, :goalId, :duration, :priority, :points, :frequency, :interval, :daysOfWeek, :startDate, :endDate);
+
+deleteById:
+DELETE FROM RecurringTasks WHERE id = :id;
