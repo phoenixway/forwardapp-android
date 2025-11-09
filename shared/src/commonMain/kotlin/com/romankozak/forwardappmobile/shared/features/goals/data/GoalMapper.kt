@@ -11,11 +11,11 @@ fun Goals.toDomain(): DomainGoal {
         id = this.id,
         text = this.text,
         description = this.description,
-        completed = this.completed,
+        completed = this.completed != 0L, // Convert Long to Boolean
         createdAt = this.createdAt,
         updatedAt = this.updatedAt,
         tags = this.tags?.split(","),
-        relatedLinks = this.relatedLinks,
+        relatedLinks = this.relatedLinks?.let { Json.decodeFromString<List<RelatedLink>>(it) } ?: emptyList(), // Decode JSON string to List<RelatedLink>
         valueImportance = this.valueImportance.toFloat(),
         valueImpact = this.valueImpact.toFloat(),
         effort = this.effort.toFloat(),
@@ -39,11 +39,11 @@ fun DomainGoal.toSqlDelight(): Goals {
         id = this.id,
         text = this.text,
         description = this.description,
-        completed = this.completed,
+        completed = if (this.completed) 1L else 0L, // Convert Boolean to Long
         createdAt = this.createdAt,
         updatedAt = this.updatedAt,
         tags = this.tags?.joinToString(","),
-        relatedLinks = this.relatedLinks,
+        relatedLinks = this.relatedLinks?.let { Json.encodeToString(it) }, // Encode List<RelatedLink> to JSON string
         valueImportance = this.valueImportance.toDouble(),
         valueImpact = this.valueImpact.toDouble(),
         effort = this.effort.toDouble(),

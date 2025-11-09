@@ -1,8 +1,8 @@
 package com.romankozak.forwardappmobile.di
 
 import android.content.Context
-import app.cash.sqldelight.driver.android.AndroidSqliteDriver
-import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
+import com.romankozak.forwardappmobile.shared.database.DatabaseDriverFactory
+import com.romankozak.forwardappmobile.shared.database.createForwardAppDatabase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -19,11 +19,6 @@ object DatabaseModule {
     fun provideForwardAppDatabase(
         @ApplicationContext context: Context
     ): ForwardAppDatabase {
-        val driver = AndroidSqliteDriver(
-            schema = ForwardAppDatabase.Schema,
-            context = context,
-            name = "forwardapp.db"
-        )
-        return ForwardAppDatabase(driver)
+        return createForwardAppDatabase(DatabaseDriverFactory(context))
     }
 }

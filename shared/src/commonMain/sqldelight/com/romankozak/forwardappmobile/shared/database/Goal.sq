@@ -1,17 +1,15 @@
-import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink;
-import com.romankozak.forwardappmobile.shared.data.database.models.Goal;
-import kotlin.Boolean;
-import kotlin.collections.List;
-
+-- ============================================
+-- 📌 TABLE: Goals
+-- ============================================
 CREATE TABLE Goals (
     id TEXT NOT NULL PRIMARY KEY,
-    text TEXT NOT NULL,
-    description TEXT,
-    completed INTEGER AS Boolean NOT NULL DEFAULT 0,
-    createdAt INTEGER NOT NULL,
-    updatedAt INTEGER,
-    tags TEXT,
-    relatedLinks TEXT AS List<RelatedLink>,
+    text TEXT NOT NULL,                     -- Назва/текст цілі
+    description TEXT,                       -- Опис (може бути NULL)
+    completed INTEGER NOT NULL DEFAULT 0,  -- true/false як 1/0
+    createdAt INTEGER NOT NULL,             -- timestamp (Long)
+    updatedAt INTEGER,                      -- timestamp або NULL
+    tags TEXT,                              -- raw string або JSON (якщо треба)
+    relatedLinks TEXT,   -- ✅ просто TEXT
     valueImportance REAL NOT NULL DEFAULT 0.0,
     valueImpact REAL NOT NULL DEFAULT 0.0,
     effort REAL NOT NULL DEFAULT 0.0,
@@ -29,17 +27,41 @@ CREATE TABLE Goals (
     financialCost REAL
 );
 
+-- ============================================
+-- ✅ INSERT
+-- ============================================
 insertGoal:
-INSERT OR REPLACE INTO Goals(
-    id, text, description, completed, createdAt, updatedAt, tags, relatedLinks, valueImportance, valueImpact, effort, cost, risk, weightEffort, weightCost, weightRisk, rawScore, displayScore, scoringStatus, parentValueImportance, impactOnParentGoal, timeCost, financialCost
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO Goals (
+    id, text, description, completed,
+    createdAt, updatedAt,
+    tags, relatedLinks,
+    valueImportance, valueImpact, effort, cost, risk,
+    weightEffort, weightCost, weightRisk,
+    rawScore, displayScore,
+    scoringStatus,
+    parentValueImportance, impactOnParentGoal,
+    timeCost, financialCost
+)
+VALUES (
+    :id, :text, :description, :completed,
+    :createdAt, :updatedAt,
+    :tags, :relatedLinks,
+    :valueImportance, :valueImpact, :effort, :cost, :risk,
+    :weightEffort, :weightCost, :weightRisk,
+    :rawScore, :displayScore,
+    :scoringStatus,
+    :parentValueImportance, :impactOnParentGoal,
+    :timeCost, :financialCost
+);
 
+-- ============================================
+-- ✅ UPDATE
+-- ============================================
 updateGoal:
 UPDATE Goals SET
     text = :text,
     description = :description,
     completed = :completed,
-    createdAt = :createdAt,
     updatedAt = :updatedAt,
     tags = :tags,
     relatedLinks = :relatedLinks,
@@ -60,26 +82,20 @@ UPDATE Goals SET
     financialCost = :financialCost
 WHERE id = :id;
 
-deleteGoalById:
+-- ============================================
+-- ✅ DELETE
+-- ============================================
+deleteGoal:
 DELETE FROM Goals WHERE id = :id;
 
+-- ============================================
+-- ✅ SELECT: BY ID
+-- ============================================
 getGoalById:
 SELECT * FROM Goals WHERE id = :id;
 
-getGoalsByIds:
-SELECT * FROM Goals WHERE id IN :ids;
-
-getAll:
-SELECT * FROM Goals;
-
-searchGoalsByText:
-SELECT * FROM Goals WHERE text LIKE '%' || :query || '%';
-
-getAllGoalsCount:
-SELECT COUNT(*) FROM Goals;
-
-updateMarkdown:
-UPDATE Goals SET description = :markdown WHERE id = :goalId;
-
-deleteAll:
-DELETE FROM Goals;
+-- ============================================
+-- ✅ SELECT: ALL
+-- ============================================
+getAllGoals:
+SELECT * FROM Goals ORDER BY createdAt DESC;

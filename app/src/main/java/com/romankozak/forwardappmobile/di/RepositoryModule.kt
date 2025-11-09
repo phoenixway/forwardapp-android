@@ -168,32 +168,6 @@ object RepositoryModule {
 
     @Provides
     @Singleton
-    fun provideSqlDriver(@ApplicationContext ctx: Context): SqlDriver =
-        AndroidSqliteDriver(
-            schema = ForwardAppDatabase.Schema,
-            context = ctx,
-            name = "forwardapp.db"
-        )
-
-    @Provides
-    @Singleton
-    fun provideDatabase(driver: SqlDriver): ForwardAppDatabase =
-        ForwardAppDatabase(
-            driver = driver,
-            LinkItemsAdapter = LinkItems.Adapter(
-                linkDataAdapter = RelatedLinkAdapter
-            ),
-            DayPlansAdapter = DayPlans.Adapter(
-                statusAdapter = dayStatusAdapter
-            ),
-            DayTasksAdapter = DayTasks.Adapter(
-                priorityAdapter = taskPriorityAdapter,
-                statusAdapter = taskStatusAdapter
-            )
-        )
-
-    @Provides
-    @Singleton
     fun provideProjectLocalDataSource(
         db: ForwardAppDatabase,
         @IoDispatcher ioDispatcher: CoroutineDispatcher
