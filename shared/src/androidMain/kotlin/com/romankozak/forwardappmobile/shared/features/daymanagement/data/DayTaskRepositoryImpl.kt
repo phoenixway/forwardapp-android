@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
+import com.romankozak.forwardappmobile.shared.features.daymanagement.data.toDayTaskDomain
 
 class DayTaskRepositoryImpl(
     private val db: ForwardAppDatabase,
@@ -24,14 +25,14 @@ class DayTaskRepositoryImpl(
         return queries.selectAllByDayPlanId(dayPlanId)
             .asFlow()
             .mapToList(ioDispatcher)
-            .map { dayTasks -> dayTasks.map { it.toDomain() } }
+            .map { dayTasks: List<com.romankozak.forwardappmobile.shared.database.DayTasks> -> dayTasks.map { it.toDayTaskDomain() } }
     }
 
     override fun getDayTaskById(id: String): Flow<DayTask?> {
         return queries.selectById(id)
             .asFlow()
             .mapToOneOrNull(ioDispatcher)
-            .map { it?.toDomain() }
+            .map { it?.toDayTaskDomain() }
     }
 
     override suspend fun getMaxOrderForDayPlan(dayPlanId: String): Long {
@@ -44,19 +45,19 @@ class DayTaskRepositoryImpl(
         return queries.selectAllByDayPlanId(dayPlanId)
             .asFlow()
             .mapToList(ioDispatcher)
-            .map { dayTasks -> dayTasks.map { it.toDomain() } }
+            .map { dayTasks: List<com.romankozak.forwardappmobile.shared.database.DayTasks> -> dayTasks.map { it.toDayTaskDomain() } }
     }
 
     override fun getTasksForGoal(goalId: String): Flow<List<DayTask>> {
         return queries.selectTasksForGoal(goalId)
             .asFlow()
             .mapToList(ioDispatcher)
-            .map { dayTasks -> dayTasks.map { it.toDomain() } }
+            .map { dayTasks: List<com.romankozak.forwardappmobile.shared.database.DayTasks> -> dayTasks.map { it.toDayTaskDomain() } }
     }
 
     override suspend fun getTasksForDayPlanOnce(dayPlanId: String): List<DayTask> {
         return withContext(ioDispatcher) {
-            queries.selectAllByDayPlanId(dayPlanId).executeAsList().map { it.toDomain() }
+            queries.selectAllByDayPlanId(dayPlanId).executeAsList().map { it.toDayTaskDomain() }
         }
     }
 
@@ -119,13 +120,13 @@ class DayTaskRepositoryImpl(
 
     override suspend fun findByRecurringIdAndDayPlanId(recurringTaskId: String, dayPlanId: String): DayTask? {
         return withContext(ioDispatcher) {
-            queries.selectByRecurringIdAndDayPlanId(recurringTaskId, dayPlanId).executeAsOneOrNull()?.toDomain()
+            queries.selectByRecurringIdAndDayPlanId(recurringTaskId, dayPlanId).executeAsOneOrNull()?.toDayTaskDomain()
         }
     }
 
     override suspend fun findTemplateForRecurringTask(recurringTaskId: String): DayTask? {
         return withContext(ioDispatcher) {
-            queries.selectTemplateForRecurringTask(recurringTaskId).executeAsOneOrNull()?.toDomain()
+            queries.selectTemplateForRecurringTask(recurringTaskId).executeAsOneOrNull()?.toDayTaskDomain()
         }
     }
 

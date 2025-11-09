@@ -3,19 +3,25 @@ import kotlin.Long;
 CREATE TABLE ListItems (
     id TEXT NOT NULL PRIMARY KEY,
     projectId TEXT NOT NULL,
-    item_order INTEGER AS kotlin.Long NOT NULL DEFAULT 0,
+    itemOrder INTEGER AS kotlin.Long NOT NULL DEFAULT 0,
     entityId TEXT,
     itemType TEXT
 );
 
 getItemsForProject:
-SELECT * FROM ListItems WHERE projectId = :projectId ORDER BY item_order ASC, id ASC;
+SELECT * FROM ListItems WHERE projectId = :projectId ORDER BY itemOrder ASC, id ASC;
 
 insertItem:
-INSERT INTO ListItems(id, projectId, item_order, entityId, itemType) VALUES (:id, :projectId, :item_order, :entityId, :itemType);
+INSERT OR REPLACE INTO ListItems(id, projectId, itemOrder, entityId, itemType)
+VALUES (:id, :projectId, :itemOrder, :entityId, :itemType);
 
 updateItem:
-UPDATE ListItems SET projectId = :projectId, item_order = :item_order, entityId = :entityId, itemType = :itemType WHERE id = :id;
+UPDATE ListItems SET
+    projectId = :projectId,
+    itemOrder = :itemOrder,
+    entityId = :entityId,
+    itemType = :itemType
+WHERE id = :id;
 
 deleteItemsByIds:
 DELETE FROM ListItems WHERE id IN :itemIds;
@@ -36,7 +42,7 @@ updateListItemProjectIds:
 UPDATE ListItems SET projectId = :targetProjectId WHERE id IN :itemIds;
 
 getItemsForProjectSyncForDebug:
-SELECT * FROM ListItems WHERE projectId = :projectId ORDER BY item_order ASC, id ASC;
+SELECT * FROM ListItems WHERE projectId = :projectId ORDER BY itemOrder ASC, id ASC;
 
 deleteAll:
 DELETE FROM ListItems;

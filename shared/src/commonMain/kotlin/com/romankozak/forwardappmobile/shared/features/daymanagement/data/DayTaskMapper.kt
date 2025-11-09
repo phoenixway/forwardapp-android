@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.shared.features.daymanagement.data
 import com.romankozak.forwardappmobile.shared.database.DayTasks
 import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.DayTask
 
-fun DayTasks.toDomain(): DayTask {
+fun DayTasks.toDayTaskDomain(): DayTask {
     return DayTask(
         id = this.id,
         dayPlanId = this.dayPlanId,

@@ -5,6 +5,7 @@ import app.cash.sqldelight.coroutines.mapToList
 import app.cash.sqldelight.coroutines.mapToOneOrNull
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import com.romankozak.forwardappmobile.shared.data.database.models.InboxRecord
+import com.romankozak.forwardappmobile.shared.database.InboxRecords
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -15,8 +16,10 @@ class InboxRecordRepositoryImpl(
     private val ioDispatcher: CoroutineDispatcher
 ) : InboxRecordRepository {
 
+    private val queries = db.inboxRecordsQueries
+
     override fun getRecordsForProjectStream(projectId: String): Flow<List<InboxRecord>> {
-        return db.inboxRecordsQueries.getRecordsForProject(projectId)
+        return queries.getRecordsForProject(projectId)
             .asFlow()
             .mapToList(ioDispatcher)
             .map { records -> records.map { it.toDomain() } }
@@ -24,51 +27,79 @@ class InboxRecordRepositoryImpl(
 
     override suspend fun getRecordById(id: String): InboxRecord? {
         return withContext(ioDispatcher) {
-            db.inboxRecordsQueries.getRecordById(id).executeAsOneOrNull()?.toDomain()
+            queries.getRecordById(id).executeAsOneOrNull()?.toDomain()
         }
     }
 
     override suspend fun insert(record: InboxRecord) {
         withContext(ioDispatcher) {
-            db.inboxRecordsQueries.insert(record.toSqlDelight())
+            queries.insert(
+                id = record.id,
+                projectId = record.projectId,
+                text = record.text,
+                createdAt = record.createdAt,
+                itemOrder = record.order
+            )
         }
     }
 
     override suspend fun update(record: InboxRecord) {
         withContext(ioDispatcher) {
-            db.inboxRecordsQueries.update(record.toSqlDelight())
+            queries.update(
+                id = record.id,
+                projectId = record.projectId,
+                text = record.text,
+                createdAt = record.createdAt,
+                itemOrder = record.order
+            )
         }
     }
 
     override suspend fun deleteById(id: String) {
         withContext(ioDispatcher) {
-            db.inboxRecordsQueries.deleteById(id)
+            queries.deleteById(id)
         }
     }
 
     override suspend fun searchInboxRecordsGlobal(query: String): List<InboxRecord> {
         return withContext(ioDispatcher) {
-            db.inboxRecordsQueries.searchInboxRecordsGlobal(query).executeAsList().map { it.toDomain() }
+            queries.searchInboxRecordsGlobal(query).executeAsList().map { it.toDomain() }
         }
     }
 
     override suspend fun getAll(): List<InboxRecord> {
         return withContext(ioDispatcher) {
-            db.inboxRecordsQueries.getAll().executeAsList().map { it.toDomain() }
+            queries.getAll().executeAsList().map { it.toDomain() }
         }
     }
 
     override suspend fun insertAll(records: List<InboxRecord>) {
         withContext(ioDispatcher) {
             records.forEach { record ->
-                db.inboxRecordsQueries.insert(record.toSqlDelight())
+                queries.insert(
+                    id = record.id,
+                    projectId = record.projectId,
+                    text = record.text,
+                    createdAt = record.createdAt,
+                    itemOrder = record.order
+                )
             }
         }
     }
 
     override suspend fun deleteAll() {
         withContext(ioDispatcher) {
-            db.inboxRecordsQueries.deleteAll()
+            queries.deleteAll()
         }
     }
+}
+
+fun InboxRecords.toDomain(): InboxRecord {
+    return InboxRecord(
+        id = id,
+        projectId = projectId,
+        text = text,
+        createdAt = createdAt,
+        order = itemOrder
+    )
 }
