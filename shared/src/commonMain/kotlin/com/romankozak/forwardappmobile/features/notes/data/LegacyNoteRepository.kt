@@ -27,15 +27,17 @@ class LegacyNoteRepository(
     private val queryContext: CoroutineContext = EmptyCoroutineContext,
 ) {
 
+    private val queries = database.notesQueries
+
     fun getNotesForProject(projectId: String): Flow<List<LegacyNote>> =
-        database.legacyNoteQueries
+        queries
             .getNotesForProject(projectId)
             .asFlow()
             .mapToList(queryContext)
             .map { rows -> rows.map { it.toModel() } }
 
     fun getAllAsFlow(): Flow<List<LegacyNote>> =
-        database.legacyNoteQueries
+        queries
             .getAllLegacyNotes()
             .asFlow()
             .mapToList(queryContext)
@@ -43,7 +45,7 @@ class LegacyNoteRepository(
 
     suspend fun getNoteById(noteId: String): LegacyNote? =
         withContext(queryContext) {
-            database.legacyNoteQueries
+            queries
                 .getLegacyNoteById(noteId)
                 .executeAsOneOrNull()
                 ?.toModel()
@@ -52,9 +54,9 @@ class LegacyNoteRepository(
     suspend fun saveNote(note: LegacyNote) {
         val isNewNote =
             withContext(queryContext) {
-                val existing = database.legacyNoteQueries.getLegacyNoteById(note.id).executeAsOneOrNull()
+                val existing = queries.getLegacyNoteById(note.id).executeAsOneOrNull()
                 if (existing == null) {
-                    database.legacyNoteQueries.insertLegacyNote(
+                    queries.insertLegacyNote(
                         id = note.id,
                         projectId = note.projectId,
                         title = note.title,
@@ -73,7 +75,7 @@ class LegacyNoteRepository(
                     )
                     true
                 } else {
-                    database.legacyNoteQueries.updateLegacyNote(
+                    queries.updateLegacyNote(
                         id = note.id,
                         title = note.title,
                         content = note.content,
@@ -89,16 +91,16 @@ class LegacyNoteRepository(
     }
 
     suspend fun deleteNote(noteId: String) {
-        withContext(queryContext) { database.legacyNoteQueries.deleteLegacyNoteById(noteId) }
+        withContext(queryContext) { queries.deleteLegacyNoteById(noteId) }
         backlogLinkDataSource.deleteLinkByEntityId(noteId)
     }
 
     suspend fun replaceAll(notes: List<LegacyNote>) {
         withContext(queryContext) {
             database.transaction {
-                database.legacyNoteQueries.deleteAllLegacyNotes()
+                queries.deleteAllLegacyNotes()
                 notes.forEach { note ->
-                    database.legacyNoteQueries.insertLegacyNote(
+                    queries.insertLegacyNote(
                         id = note.id,
                         projectId = note.projectId,
                         title = note.title,
@@ -112,12 +114,12 @@ class LegacyNoteRepository(
     }
 
     suspend fun deleteAll() {
-        withContext(queryContext) { database.legacyNoteQueries.deleteAllLegacyNotes() }
+        withContext(queryContext) { queries.deleteAllLegacyNotes() }
     }
 
     suspend fun getAllSnapshot(): List<LegacyNote> =
         withContext(queryContext) {
-            database.legacyNoteQueries
+            queries
                 .getAllLegacyNotes()
                 .executeAsList()
                 .map { it.toModel() }

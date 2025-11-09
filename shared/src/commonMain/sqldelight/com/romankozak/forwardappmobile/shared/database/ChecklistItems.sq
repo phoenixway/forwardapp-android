@@ -1,0 +1,40 @@
+import kotlin.Boolean;
+import kotlin.Long;
+
+CREATE TABLE ChecklistItems (
+  id TEXT NOT NULL PRIMARY KEY,
+  checklistId TEXT NOT NULL,
+  content TEXT NOT NULL,
+  isChecked INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
+  itemOrder INTEGER AS kotlin.Long NOT NULL
+);
+
+getItemsForChecklist:
+SELECT * FROM ChecklistItems WHERE checklistId = :checklistId ORDER BY itemOrder ASC, id ASC;
+
+getChecklistItemById:
+SELECT * FROM ChecklistItems WHERE id = :id LIMIT 1;
+
+insertChecklistItem:
+INSERT OR REPLACE INTO ChecklistItems(id, checklistId, content, isChecked, itemOrder)
+VALUES (:id, :checklistId, :content, :isChecked, :itemOrder);
+
+updateChecklistItem:
+UPDATE ChecklistItems SET
+    checklistId = :checklistId,
+    content = :content,
+    isChecked = :isChecked,
+    itemOrder = :itemOrder
+WHERE id = :id;
+
+deleteChecklistItemById:
+DELETE FROM ChecklistItems WHERE id = :id;
+
+deleteChecklistItemsByChecklistId:
+DELETE FROM ChecklistItems WHERE checklistId = :checklistId;
+
+deleteAllChecklistItems:
+DELETE FROM ChecklistItems;
+
+getAllChecklistItems:
+SELECT * FROM ChecklistItems;

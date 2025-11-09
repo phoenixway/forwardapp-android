@@ -4,17 +4,19 @@ import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import com.benasher44.uuid.uuid4
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
+import com.romankozak.forwardappmobile.shared.database.ChecklistItems
+import com.romankozak.forwardappmobile.shared.database.Checklists
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import com.romankozak.forwardappmobile.shared.features.checklists.data.model.Checklist
 import com.romankozak.forwardappmobile.shared.features.checklists.data.model.ChecklistItem
 import com.romankozak.forwardappmobile.shared.features.recentitems.data.RecentItemsRepository
+import com.romankozak.forwardappmobile.shared.logging.logError
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
-import com.romankozak.forwardappmobile.shared.logging.logError
 
 private const val CHECKLIST_ATTACHMENT_TYPE = "CHECKLIST"
 
@@ -28,23 +30,25 @@ class ChecklistRepository(
 ) {
 
     private val tag = "ChecklistRepository"
+    private val checklistsQueries = database.checklistsQueries
+    private val checklistItemsQueries = database.checklistItemsQueries
 
     fun getChecklistsForProject(projectId: String): Flow<List<Checklist>> =
-        database.checklistsQueries
-            .getChecklistsForProject(projectId, CHECKLIST_ATTACHMENT_TYPE)
+        checklistsQueries
+            .getChecklistsForProject(projectId)
             .asFlow()
             .mapToList(queryContext)
             .map { rows -> rows.map { it.toModel() } }
 
     fun getAllChecklistsAsFlow(): Flow<List<Checklist>> =
-        database.checklistsQueries
+        checklistsQueries
             .getAllChecklists()
             .asFlow()
             .mapToList(queryContext)
             .map { rows -> rows.map { it.toModel() } }
 
     fun observeChecklistById(checklistId: String): Flow<Checklist?> =
-        database.checklistsQueries
+        checklistsQueries
             .getChecklistById(checklistId)
             .asFlow()
             .mapToList(queryContext)
@@ -52,7 +56,7 @@ class ChecklistRepository(
 
     suspend fun getChecklistById(checklistId: String): Checklist? =
         withContext(queryContext) {
-            database.checklistsQueries
+            checklistsQueries
                 .getChecklistById(checklistId)
                 .executeAsOneOrNull()
                 ?.toModel()
@@ -84,7 +88,7 @@ class ChecklistRepository(
 
     suspend fun updateChecklist(checklist: Checklist) {
         withContext(queryContext) {
-            database.checklistsQueries.updateChecklist(
+            checklistsQueries.updateChecklist(
                 id = checklist.id,
                 projectId = checklist.projectId,
                 name = checklist.name,
@@ -94,14 +98,14 @@ class ChecklistRepository(
     }
 
     suspend fun deleteChecklist(checklistId: String) {
-        withContext(queryContext) { database.checklistsQueries.deleteChecklistById(checklistId) }
+        withContext(queryContext) { checklistsQueries.deleteChecklistById(checklistId) }
         attachmentRepository.findAttachmentByEntity(CHECKLIST_ATTACHMENT_TYPE, checklistId)?.let {
             attachmentRepository.deleteAttachment(it.id)
         }
     }
 
     fun getItemsForChecklist(checklistId: String): Flow<List<ChecklistItem>> =
-        database.checklistItemsQueries
+        checklistItemsQueries
             .getItemsForChecklist(checklistId)
             .asFlow()
             .mapToList(queryContext)
@@ -148,16 +152,16 @@ class ChecklistRepository(
     }
 
     suspend fun deleteItem(itemId: String) {
-        withContext(queryContext) { database.checklistItemsQueries.deleteChecklistItemById(itemId) }
+        withContext(queryContext) { checklistItemsQueries.deleteChecklistItemById(itemId) }
     }
 
     suspend fun deleteItemsByChecklist(checklistId: String) {
-        withContext(queryContext) { database.checklistItemsQueries.deleteChecklistItemsByChecklistId(checklistId) }
+        withContext(queryContext) { checklistItemsQueries.deleteChecklistItemsByChecklistId(checklistId) }
     }
 
     suspend fun getItemsSnapshot(checklistId: String): List<ChecklistItem> =
         withContext(queryContext) {
-            database.checklistItemsQueries
+            checklistItemsQueries
                 .getItemsForChecklist(checklistId)
                 .executeAsList()
                 .map { it.toModel() }
@@ -165,24 +169,24 @@ class ChecklistRepository(
 
     suspend fun getAllItemsSnapshot(): List<ChecklistItem> =
         withContext(queryContext) {
-            database.checklistItemsQueries
+            checklistItemsQueries
                 .getAllChecklistItems()
                 .executeAsList()
                 .map { it.toModel() }
         }
 
     suspend fun deleteAllChecklists() {
-        withContext(queryContext) { database.checklistsQueries.deleteAllChecklists() }
+        withContext(queryContext) { checklistsQueries.deleteAllChecklists() }
     }
 
     suspend fun deleteAllChecklistItems() {
-        withContext(queryContext) { database.checklistItemsQueries.deleteAllChecklistItems() }
+        withContext(queryContext) { checklistItemsQueries.deleteAllChecklistItems() }
     }
 
     suspend fun replaceAll(checklists: List<Checklist>) {
         withContext(queryContext) {
             database.transaction {
-                database.checklistsQueries.deleteAllChecklists()
+                checklistsQueries.deleteAllChecklists()
                 checklists.forEach { insertChecklistInternal(it) }
             }
         }
@@ -191,7 +195,7 @@ class ChecklistRepository(
     suspend fun replaceAllItems(items: List<ChecklistItem>) {
         withContext(queryContext) {
             database.transaction {
-                database.checklistItemsQueries.deleteAllChecklistItems()
+                checklistItemsQueries.deleteAllChecklistItems()
                 items.forEach { insertItemInternal(it) }
             }
         }
@@ -199,55 +203,53 @@ class ChecklistRepository(
 
     suspend fun getAllChecklistsSnapshot(): List<Checklist> =
         withContext(queryContext) {
-            database.checklistsQueries
+            checklistsQueries
                 .getAllChecklists()
                 .executeAsList()
                 .map { it.toModel() }
         }
 
-    private fun insertChecklistInternal(checklist: Checklist) {
-        database.checklistsQueries.insertChecklist(
-            id = checklist.id,
-            projectId = checklist.projectId,
-            name = checklist.name,
-        )
-    }
+private fun insertChecklistInternal(checklist: Checklist) {
+    checklistsQueries.insertChecklist(
+        id = checklist.id,
+        projectId = checklist.projectId,
+        name = checklist.name,
+    )
+}
 
-    private fun insertItemInternal(item: ChecklistItem) {
-        database.checklistItemsQueries.insertChecklistItem(
-            id = item.id,
-            checklistId = item.checklistId,
-            content = item.content,
-            isChecked = item.isChecked.toLong(),
-            itemOrder = item.itemOrder,
-        )
-    }
+private fun insertItemInternal(item: ChecklistItem) {
+    checklistItemsQueries.insertChecklistItem(
+        id = item.id,
+        checklistId = item.checklistId,
+        content = item.content,
+        isChecked = item.isChecked,
+        itemOrder = item.itemOrder,
+    )
+}
 
-    private fun updateItemInternal(item: ChecklistItem) {
-        database.checklistItemsQueries.updateChecklistItem(
-            id = item.id,
-            checklistId = item.checklistId,
-            content = item.content,
-            isChecked = item.isChecked.toLong(),
-            itemOrder = item.itemOrder,
-        )
-    }
+private fun updateItemInternal(item: ChecklistItem) {
+    checklistItemsQueries.updateChecklistItem(
+        id = item.id,
+        checklistId = item.checklistId,
+        content = item.content,
+isChecked = item.isChecked,
+        itemOrder = item.itemOrder,
+    )
+}
 
-    private fun Boolean.toLong(): Long = if (this) 1L else 0L
-
-    private fun com.romankozak.forwardappmobile.shared.database.Checklists.toModel(): com.romankozak.forwardappmobile.shared.features.checklists.data.model.Checklist =
-        com.romankozak.forwardappmobile.shared.features.checklists.data.model.Checklist(
+    private fun Checklists.toModel(): Checklist =
+        Checklist(
             id = id,
             projectId = projectId,
             name = name,
         )
 
-    private fun com.romankozak.forwardappmobile.shared.database.Checklist_items.toModel(): com.romankozak.forwardappmobile.shared.features.checklists.data.model.ChecklistItem =
-        com.romankozak.forwardappmobile.shared.features.checklists.data.model.ChecklistItem(
+    private fun ChecklistItems.toModel(): ChecklistItem =
+        ChecklistItem(
             id = id,
             checklistId = checklistId,
             content = content,
-            isChecked = isChecked != 0L,
+            isChecked = isChecked,
             itemOrder = itemOrder,
         )
 }

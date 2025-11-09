@@ -87,7 +87,13 @@ fun createForwardAppDatabase(
             completedAdapter = booleanAdapter
         ),
         GoalsAdapter = Goals.Adapter(
+            completedAdapter = booleanAdapter,
             relatedLinksAdapter = relatedLinksListAdapter
-        )
+        ),
+        NoteDocumentsAdapter = NoteDocuments.Adapter(),
+        NoteDocumentItemsAdapter = NoteDocumentItems.Adapter(
+            isCompletedAdapter = booleanAdapter
+        ),
+        NotesAdapter = Notes.Adapter()
     )
 }

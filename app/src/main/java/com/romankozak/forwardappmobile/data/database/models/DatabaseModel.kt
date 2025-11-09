@@ -124,6 +124,7 @@ data class LinkItemEntity(
     val createdAt: Long,
 )
 
+/*
 @Entity(tableName = "goals")
 data class Goal(
     @PrimaryKey val id: String,
@@ -150,6 +151,7 @@ data class Goal(
     @ColumnInfo(defaultValue = "0.0") val timeCost: Float? = null,
     @ColumnInfo(defaultValue = "0.0") val financialCost: Float? = null,
 )
+*/
 
 class ProjectTypeConverter {
     @TypeConverter
@@ -237,12 +239,14 @@ data class InboxRecord(
 
 
 
+/*
 @Fts4(contentEntity = Goal::class)
 @Entity(tableName = "goals_fts")
 data class GoalFts(
     val text: String,
     val description: String?,
 )
+*/
 
 @Fts4(contentEntity = ProjectEntity::class)
 @Entity(tableName = "projects_fts")
