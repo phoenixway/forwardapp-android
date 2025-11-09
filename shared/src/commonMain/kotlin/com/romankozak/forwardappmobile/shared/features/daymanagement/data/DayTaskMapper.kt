@@ -17,7 +17,7 @@ fun DayTasks.toDomain(): DayTask {
         recurringTaskId = this.recurringTaskId,
         taskType = this.taskType,
         entityId = this.entityId,
-        order = this.order.toInt(),
+        order = this.order,
         priority = this.priority,
         status = this.status,
         completed = this.completed != 0L,

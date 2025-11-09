@@ -34,7 +34,7 @@ class DayTaskRepositoryImpl(
 
     override suspend fun getMaxOrderForDayPlan(dayPlanId: String): Long? {
         return withContext(ioDispatcher) {
-            db.dayTaskQueries.getMaxOrderForDayPlan(dayPlanId).executeAsOneOrNull()?.MAX?.toLong()
+            db.dayTaskQueries.getMaxOrderForDayPlan(dayPlanId).executeAsOneOrNull()?.MAX
         }
     }
 
@@ -58,12 +58,18 @@ class DayTaskRepositoryImpl(
         }
     }
 
+    // ВИПРАВЛЕНО: Правильний порядок параметрів
     override suspend fun updateTaskOrder(taskId: String, newOrder: Long, updatedAt: Long) {
         withContext(ioDispatcher) {
-            db.dayTaskQueries.updateTaskOrder(taskId, newOrder, updatedAt)
+            db.dayTaskQueries.updateTaskOrder(
+                taskId = taskId,
+                newOrder = newOrder,
+                updatedAt = updatedAt
+            )
         }
     }
 
+    // ВИПРАВЛЕНО: status передається як enum, не String
     override suspend fun updateTaskCompletion(
         taskId: String,
         completed: Boolean,
@@ -75,7 +81,7 @@ class DayTaskRepositoryImpl(
             db.dayTaskQueries.updateTaskCompletion(
                 taskId = taskId,
                 completed = if (completed) 1L else 0L,
-                status = status,
+                status = status, // Передаємо enum напряму
                 completedAt = completedAt,
                 updatedAt = updatedAt
             )
@@ -94,9 +100,9 @@ class DayTaskRepositoryImpl(
     override suspend fun linkTaskWithActivity(taskId: String, activityRecordId: String, updatedAt: Long) {
         withContext(ioDispatcher) {
             db.dayTaskQueries.linkTaskWithActivity(
+                taskId = taskId,
                 activityRecordId = activityRecordId,
-                updatedAt = updatedAt,
-                taskId = taskId
+                updatedAt = updatedAt
             )
         }
     }
@@ -104,9 +110,9 @@ class DayTaskRepositoryImpl(
     override suspend fun updateTaskDuration(taskId: String, durationMinutes: Long, updatedAt: Long) {
         withContext(ioDispatcher) {
             db.dayTaskQueries.updateTaskDuration(
+                taskId = taskId,
                 durationMinutes = durationMinutes,
-                updatedAt = updatedAt,
-                taskId = taskId
+                updatedAt = updatedAt
             )
         }
     }
@@ -126,8 +132,8 @@ class DayTaskRepositoryImpl(
     override suspend fun detachFromRecurrence(taskId: String) {
         withContext(ioDispatcher) {
             db.dayTaskQueries.detachFromRecurrence(
-                updatedAt = Clock.System.now().toEpochMilliseconds(),
-                taskId = taskId
+                taskId = taskId,
+                updatedAt = Clock.System.now().toEpochMilliseconds()
             )
         }
     }
@@ -135,9 +141,9 @@ class DayTaskRepositoryImpl(
     override suspend fun updateNextOccurrenceTime(taskId: String, nextOccurrenceTime: Long) {
         withContext(ioDispatcher) {
             db.dayTaskQueries.updateNextOccurrenceTime(
+                taskId = taskId,
                 nextOccurrenceTime = nextOccurrenceTime,
-                updatedAt = Clock.System.now().toEpochMilliseconds(),
-                taskId = taskId
+                updatedAt = Clock.System.now().toEpochMilliseconds()
             )
         }
     }
