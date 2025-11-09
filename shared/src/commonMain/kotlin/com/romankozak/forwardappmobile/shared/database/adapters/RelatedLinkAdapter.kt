@@ -2,20 +2,19 @@ package com.romankozak.forwardappmobile.shared.database.adapters
 
 import app.cash.sqldelight.ColumnAdapter
 import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
-object RelatedLinkAdapter : ColumnAdapter<RelatedLink, String> {
-    private val json = Json { 
-        ignoreUnknownKeys = true
-        encodeDefaults = true
+object RelatedLinkAdapter : ColumnAdapter<List<RelatedLink>, String> {
+    override fun decode(databaseValue: String): List<RelatedLink> {
+        if (databaseValue.isEmpty()) {
+            return emptyList()
+        }
+        return Json.decodeFromString(databaseValue)
     }
-    
-    override fun decode(databaseValue: String): RelatedLink {
-        return json.decodeFromString(databaseValue)
-    }
-    
-    override fun encode(value: RelatedLink): String {
-        return json.encodeToString(value)
+
+    override fun encode(value: List<RelatedLink>): String {
+        return Json.encodeToString(value)
     }
 }

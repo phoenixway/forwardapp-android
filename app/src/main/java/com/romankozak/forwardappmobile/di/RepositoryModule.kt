@@ -7,7 +7,6 @@ import app.cash.sqldelight.db.SqlDriver
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 import com.romankozak.forwardappmobile.data.dao.GoalDao
 import com.romankozak.forwardappmobile.data.dao.InboxRecordDao
-import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.notes.AndroidNoteBacklogLinkDataSource
@@ -17,7 +16,6 @@ import com.romankozak.forwardappmobile.data.repository.InboxRepository
 import com.romankozak.forwardappmobile.data.repository.ListItemRepository
 import com.romankozak.forwardappmobile.data.repository.ProjectTimeTrackingRepository
 import com.romankozak.forwardappmobile.data.repository.SearchRepository
-import com.romankozak.forwardappmobile.features.attachments.data.AndroidLinkItemDataSource
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 import com.romankozak.forwardappmobile.features.checklists.data.ChecklistRepository
 import com.romankozak.forwardappmobile.features.notes.data.LegacyNoteRepository

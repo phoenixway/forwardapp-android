@@ -12,7 +12,6 @@ import com.romankozak.forwardappmobile.data.dao.DayPlanDao
 import com.romankozak.forwardappmobile.data.dao.DayTaskDao
 import com.romankozak.forwardappmobile.data.dao.GoalDao
 import com.romankozak.forwardappmobile.data.dao.InboxRecordDao
-import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
 import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
@@ -28,7 +27,6 @@ import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAt
         ProjectEntity::class,
         ListItem::class,
         ActivityRecord::class,
-        LinkItemEntity::class,
         AttachmentRoomEntity::class,
         InboxRecord::class,
         ChatMessageEntity::class,
@@ -60,8 +58,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun listItemDao(): ListItemDao
 
     abstract fun activityRecordDao(): ActivityRecordDao
-
-    abstract fun linkItemDao(): LinkItemDao
 
     abstract fun inboxRecordDao(): InboxRecordDao
 
