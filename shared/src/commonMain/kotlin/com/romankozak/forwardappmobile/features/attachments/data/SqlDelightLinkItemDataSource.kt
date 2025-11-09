@@ -16,7 +16,7 @@ class SqlDelightLinkItemDataSource(
     private val ioDispatcher: CoroutineDispatcher
 ) : LinkItemDataSource {
 
-    private val queries = db.linkItemsQueries
+    private val queries = db.linkItemQueries
 
     override fun observeAll(): Flow<List<LinkItemRecord>> {
         return queries.getAll()

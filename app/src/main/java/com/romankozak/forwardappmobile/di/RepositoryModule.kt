@@ -61,6 +61,11 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.decodeFromString
 import com.romankozak.forwardappmobile.di.IoDispatcher
+import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.DayStatus
+import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.TaskPriority
+import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.TaskStatus
+import com.romankozak.forwardappmobile.shared.database.DayPlans
+import com.romankozak.forwardappmobile.shared.database.DayTasks
 
 
 @Module
@@ -74,6 +79,21 @@ object RepositoryModule {
         override fun encode(value: RelatedLink): String {
             return Json.encodeToString(value)
         }
+    }
+
+    private val dayStatusAdapter = object : ColumnAdapter<DayStatus, String> {
+        override fun decode(databaseValue: String): DayStatus = DayStatus.valueOf(databaseValue)
+        override fun encode(value: DayStatus): String = value.name
+    }
+
+    private val taskPriorityAdapter = object : ColumnAdapter<TaskPriority, String> {
+        override fun decode(databaseValue: String): TaskPriority = TaskPriority.valueOf(databaseValue)
+        override fun encode(value: TaskPriority): String = value.name
+    }
+
+    private val taskStatusAdapter = object : ColumnAdapter<TaskStatus, String> {
+        override fun decode(databaseValue: String): TaskStatus = TaskStatus.valueOf(databaseValue)
+        override fun encode(value: TaskStatus): String = value.name
     }
 
     @Provides
@@ -125,8 +145,15 @@ object RepositoryModule {
     fun provideDatabase(driver: SqlDriver): ForwardAppDatabase =
         ForwardAppDatabase(
             driver = driver,
-            linkItemsAdapter = LinkItems.Adapter(
+            LinkItemsAdapter = LinkItems.Adapter(
                 linkDataAdapter = relatedLinkAdapter
+            ),
+            DayPlansAdapter = DayPlans.Adapter(
+                statusAdapter = dayStatusAdapter
+            ),
+            DayTasksAdapter = DayTasks.Adapter(
+                priorityAdapter = taskPriorityAdapter,
+                statusAdapter = taskStatusAdapter
             )
         )
 
