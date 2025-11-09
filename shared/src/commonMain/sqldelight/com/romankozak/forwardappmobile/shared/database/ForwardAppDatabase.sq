@@ -3,7 +3,7 @@ import com.romankozak.forwardappmobile.shared.database.DayPlan;
 import com.romankozak.forwardappmobile.shared.database.RecentItems;
 import com.romankozak.forwardappmobile.shared.database.ProjectExecutionLogs;
 import com.romankozak.forwardappmobile.shared.database.ConversationFolder;
-import com.romankozak.forwardappmobile.shared.database.DailyMetric;
+import com.romankozak.forwardappappmobile.shared.database.DailyMetric;
 import com.romankozak.forwardappmobile.shared.database.RecurringTask;
 import com.romankozak.forwardappmobile.shared.database.InboxRecord;
 import com.romankozak.forwardappmobile.shared.database.ProjectArtifacts;

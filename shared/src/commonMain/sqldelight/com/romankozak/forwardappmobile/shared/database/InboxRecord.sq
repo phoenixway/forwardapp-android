@@ -1,32 +1,31 @@
-CREATE TABLE inbox_records (
+CREATE TABLE InboxRecords (
     id TEXT NOT NULL PRIMARY KEY,
-    project_id TEXT NOT NULL,
+    projectId TEXT NOT NULL,
     text TEXT NOT NULL,
-    created_at INTEGER NOT NULL,
-    item_order INTEGER NOT NULL
+    createdAt INTEGER NOT NULL,
+    item_order INTEGER NOT NULL DEFAULT 0
 );
 
--- Queries for InboxRecord
--- Assuming you have a table named inbox_records
+getRecordsForProject:
+SELECT * FROM InboxRecords WHERE projectId = :projectId ORDER BY item_order DESC;
 
--- Get all records for a specific project, ordered by item_order
-selectAllByProjectId:
-SELECT *
-FROM inbox_records
-WHERE project_id = :projectId
-ORDER BY item_order;
+getRecordById:
+SELECT * FROM InboxRecords WHERE id = :id;
 
--- Insert a new record
 insert:
-INSERT OR REPLACE INTO inbox_records (id, project_id, text, created_at, item_order)
-VALUES (?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO InboxRecords(id, projectId, text, createdAt, item_order) VALUES (?, ?, ?, ?, ?);
 
--- Delete a record by its ID
+update:
+UPDATE InboxRecords SET projectId = :projectId, text = :text, createdAt = :createdAt, item_order = :item_order WHERE id = :id;
+
 deleteById:
-DELETE FROM inbox_records
-WHERE id = :id;
+DELETE FROM InboxRecords WHERE id = :id;
 
--- Delete all records for a project
-deleteAllByProjectId:
-DELETE FROM inbox_records
-WHERE project_id = :projectId;
+searchInboxRecordsGlobal:
+SELECT * FROM InboxRecords WHERE text LIKE :query ORDER BY createdAt DESC;
+
+getAll:
+SELECT * FROM InboxRecords;
+
+deleteAll:
+DELETE FROM InboxRecords;

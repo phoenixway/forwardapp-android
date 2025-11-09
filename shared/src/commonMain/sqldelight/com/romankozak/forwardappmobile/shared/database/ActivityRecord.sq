@@ -1,0 +1,70 @@
+CREATE TABLE ActivityRecords (
+    id TEXT NOT NULL PRIMARY KEY,
+    text TEXT NOT NULL,
+    createdAt INTEGER NOT NULL,
+    startTime INTEGER,
+    endTime INTEGER,
+    reminderTime INTEGER,
+    targetId TEXT,
+    targetType TEXT,
+    goalId TEXT,
+    projectId TEXT
+);
+
+CREATE VIRTUAL TABLE ActivityRecordsFts USING fts5(text, content='ActivityRecords', content_rowid='id');
+
+insert:
+INSERT OR REPLACE INTO ActivityRecords(
+    id, text, createdAt, startTime, endTime, reminderTime, targetId, targetType, goalId, projectId
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+update:
+UPDATE ActivityRecords SET
+    text = :text,
+    createdAt = :createdAt,
+    startTime = :startTime,
+    endTime = :endTime,
+    reminderTime = :reminderTime,
+    targetId = :targetId,
+    targetType = :targetType,
+    goalId = :goalId,
+    projectId = :projectId
+WHERE id = :id;
+
+selectAll:
+SELECT * FROM ActivityRecords ORDER BY createdAt ASC;
+
+findLastOngoingActivity:
+SELECT * FROM ActivityRecords WHERE endTime IS NULL AND startTime IS NOT NULL ORDER BY startTime DESC LIMIT 1;
+
+findLastOngoingActivityForGoal:
+SELECT * FROM ActivityRecords WHERE goalId = :goalId AND endTime IS NULL AND startTime IS NOT NULL ORDER BY startTime DESC LIMIT 1;
+
+findLastOngoingActivityForProject:
+SELECT * FROM ActivityRecords WHERE projectId = :projectId AND endTime IS NULL AND startTime IS NOT NULL ORDER BY startTime DESC LIMIT 1;
+
+getCompletedActivitiesForProject:
+SELECT * FROM ActivityRecords
+WHERE (projectId = :projectId OR goalId IN :goalIds)
+AND createdAt BETWEEN :startTime AND :endTime
+AND startTime IS NOT NULL AND endTime IS NOT NULL;
+
+clearAll:
+DELETE FROM ActivityRecords;
+
+delete:
+DELETE FROM ActivityRecords WHERE id = :id;
+
+search:
+SELECT ar.* FROM ActivityRecords AS ar
+JOIN ActivityRecordsFts AS fts ON ar.id = fts.rowid
+WHERE fts.text MATCH :query
+ORDER BY ar.createdAt DESC;
+
+getAllCompletedActivitiesForProject:
+SELECT * FROM ActivityRecords
+WHERE (projectId = :projectId OR goalId IN :goalIds)
+AND startTime IS NOT NULL AND endTime IS NOT NULL;
+
+findById:
+SELECT * FROM ActivityRecords WHERE id = :recordId;

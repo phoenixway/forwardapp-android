@@ -61,6 +61,16 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.decodeFromString
 import com.romankozak.forwardappmobile.di.IoDispatcher
+import com.romankozak.forwardappmobile.shared.features.activity_records.data.ActivityRecordRepository
+import com.romankozak.forwardappmobile.shared.features.activity_records.data.ActivityRecordRepositoryImpl
+import com.romankozak.forwardappmobile.shared.features.goals.data.GoalRepository
+import com.romankozak.forwardappmobile.shared.features.goals.data.GoalRepositoryImpl
+import com.romankozak.forwardappmobile.shared.features.list_items.data.ListItemRepository
+import com.romankozak.forwardappmobile.shared.features.list_items.data.ListItemRepositoryImpl
+import com.romankozak.forwardappmobile.shared.features.link_items.data.LinkItemRepository
+import com.romankozak.forwardappmobile.shared.features.link_items.data.LinkItemRepositoryImpl
+import com.romankozak.forwardappmobile.shared.features.inbox.data.InboxRecordRepository
+import com.romankozak.forwardappmobile.shared.features.inbox.data.InboxRecordRepositoryImpl
 import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.DayStatus
 import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.TaskPriority
 import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.TaskStatus
@@ -95,6 +105,41 @@ object RepositoryModule {
         override fun decode(databaseValue: String): TaskStatus = TaskStatus.valueOf(databaseValue)
         override fun encode(value: TaskStatus): String = value.name
     }
+
+    @Provides
+    @Singleton
+    fun provideInboxRecordRepository(
+        db: ForwardAppDatabase,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher
+    ): InboxRecordRepository = InboxRecordRepositoryImpl(db, ioDispatcher)
+
+    @Provides
+    @Singleton
+    fun provideLinkItemRepository(
+        db: ForwardAppDatabase,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher
+    ): LinkItemRepository = LinkItemRepositoryImpl(db, ioDispatcher)
+
+    @Provides
+    @Singleton
+    fun provideListItemRepository(
+        db: ForwardAppDatabase,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher
+    ): ListItemRepository = ListItemRepositoryImpl(db, ioDispatcher)
+
+    @Provides
+    @Singleton
+    fun provideGoalRepository(
+        db: ForwardAppDatabase,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher
+    ): GoalRepository = GoalRepositoryImpl(db, ioDispatcher)
+
+    @Provides
+    @Singleton
+    fun provideActivityRecordRepository(
+        db: ForwardAppDatabase,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher
+    ): ActivityRecordRepository = ActivityRecordRepositoryImpl(db, ioDispatcher)
 
     @Provides
     @Singleton
@@ -251,34 +296,32 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideActivityRepository(
-        activityRecordDao: ActivityRecordDao,
+        activityRecordRepository: ActivityRecordRepository,
         goalDao: GoalDao,
         projectLocalDataSource: ProjectLocalDataSource,
-    ): ActivityRepository = ActivityRepository(activityRecordDao, goalDao, projectLocalDataSource)
+    ): ActivityRepository = ActivityRepository(activityRecordRepository, goalDao, projectLocalDataSource)
 
     @Provides
     @Singleton
     fun provideGoalRepository(
-        goalDao: GoalDao,
-        listItemDao: ListItemDao,
+        goalRepository: GoalRepository,
         reminderRepository: ReminderRepository,
         contextHandlerProvider: Provider<ContextHandler>,
         projectLocalDataSource: ProjectLocalDataSource,
-    ): GoalRepository = GoalRepository(goalDao, listItemDao, reminderRepository, contextHandlerProvider, projectLocalDataSource)
+    ): com.romankozak.forwardappmobile.data.repository.GoalRepository = com.romankozak.forwardappmobile.data.repository.GoalRepository(goalRepository, reminderRepository, contextHandlerProvider, projectLocalDataSource)
 
     @Provides
     @Singleton
     fun provideInboxRepository(
-        inboxRecordDao: InboxRecordDao,
+        inboxRecordRepository: InboxRecordRepository,
         goalRepository: GoalRepository
-    ): InboxRepository = InboxRepository(inboxRecordDao, goalRepository)
+    ): com.romankozak.forwardappmobile.data.repository.InboxRepository = com.romankozak.forwardappmobile.data.repository.InboxRepository(inboxRecordRepository, goalRepository)
 
     @Provides
     @Singleton
     fun provideListItemRepository(
-        listItemDao: ListItemDao,
-        linkItemDao: LinkItemDao
-    ): ListItemRepository = ListItemRepository(listItemDao, linkItemDao)
+        listItemRepository: ListItemRepository
+    ): com.romankozak.forwardappmobile.data.repository.ListItemRepository = com.romankozak.forwardappmobile.data.repository.ListItemRepository(listItemRepository)
 
     @Provides
     @Singleton
