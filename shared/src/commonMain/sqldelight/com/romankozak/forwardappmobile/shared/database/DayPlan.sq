@@ -2,16 +2,17 @@ import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.
 import kotlin.Long;
 import kotlin.Float;
 import kotlin.Int;
+import kotlin.String;
 
 CREATE TABLE DayPlans (
-    id TEXT NOT NULL PRIMARY KEY,
+    id TEXT AS String NOT NULL PRIMARY KEY,
     date INTEGER AS kotlin.Long NOT NULL,
-    name TEXT,
+    name TEXT AS String,
     status TEXT AS DayStatus NOT NULL DEFAULT 'PLANNED',
-    reflection TEXT,
+    reflection TEXT AS String,
     energyLevel INTEGER AS kotlin.Int,
-    mood TEXT,
-    weatherConditions TEXT,
+    mood TEXT AS String,
+    weatherConditions TEXT AS String,
     totalPlannedMinutes INTEGER AS kotlin.Long NOT NULL DEFAULT 0,
     totalCompletedMinutes INTEGER AS kotlin.Long NOT NULL DEFAULT 0,
     completionPercentage REAL AS kotlin.Float NOT NULL DEFAULT 0.0,

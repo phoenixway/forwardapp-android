@@ -1,12 +1,14 @@
 import kotlin.Long;
 import kotlin.Double;
 import kotlin.Int;
+import kotlin.String;
+import kotlin.Float;
 import kotlin.collections.Map;
-import kotlin.collections.List; -- For custom_metrics if it's a list of strings
+import kotlin.collections.List;
 
 CREATE TABLE DailyMetrics (
-    id TEXT NOT NULL PRIMARY KEY,
-    dayPlanId TEXT NOT NULL,
+    id TEXT AS kotlin.String NOT NULL PRIMARY KEY,
+    dayPlanId TEXT AS kotlin.String NOT NULL,
     date INTEGER AS kotlin.Long NOT NULL,
     tasksPlanned INTEGER AS kotlin.Long NOT NULL DEFAULT 0,
     tasksCompleted INTEGER AS kotlin.Long NOT NULL DEFAULT 0,
@@ -17,9 +19,9 @@ CREATE TABLE DailyMetrics (
     totalBreakTime INTEGER AS kotlin.Long NOT NULL DEFAULT 0,
     morningEnergyLevel INTEGER AS kotlin.Long,
     eveningEnergyLevel INTEGER AS kotlin.Long,
-    overallMood TEXT,
+    overallMood TEXT AS kotlin.String,
     stressLevel INTEGER AS kotlin.Long,
-    customMetrics TEXT AS Map<String, Float>, -- Assuming custom_metrics is a JSON string of Map<String, Float>
+    customMetrics TEXT AS kotlin.collections.Map<kotlin.String, kotlin.Float>,
     createdAt INTEGER AS kotlin.Long NOT NULL,
     updatedAt INTEGER AS kotlin.Long
 );

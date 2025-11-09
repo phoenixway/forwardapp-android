@@ -1,20 +1,22 @@
 import kotlin.Boolean;
+import kotlin.Long;
+import kotlin.String;
 import kotlin.collections.List;
 import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink;
 
 CREATE TABLE ActivityRecords (
-    id TEXT NOT NULL PRIMARY KEY,
-    name TEXT NOT NULL,
-    description TEXT,
-    createdAt INTEGER NOT NULL,
-    startTime INTEGER,
-    endTime INTEGER,
-    totalTimeSpentMinutes INTEGER,
-    tags TEXT, -- Stored as JSON string
+    id TEXT AS String NOT NULL PRIMARY KEY,
+    name TEXT AS String NOT NULL,
+    description TEXT AS String,
+    createdAt INTEGER AS Long NOT NULL,
+    startTime INTEGER AS Long,
+    endTime INTEGER AS Long,
+    totalTimeSpentMinutes INTEGER AS Long,
+    tags TEXT AS List<String>, -- Stored as JSON string
     relatedLinks TEXT AS List<RelatedLink>,
     isCompleted INTEGER AS kotlin.Boolean NOT NULL,
-    activityType TEXT NOT NULL,
-    parentProjectId TEXT
+    activityType TEXT AS String NOT NULL,
+    parentProjectId TEXT AS String
 );
 
 CREATE VIRTUAL TABLE ActivityRecordsFts USING fts5(

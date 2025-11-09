@@ -4,21 +4,22 @@ import kotlin.Long;
 import kotlin.Boolean;
 import kotlin.Float;
 import kotlin.Int;
+import kotlin.String;
 import kotlin.collections.List;
 
 CREATE TABLE DayTasks (
-    id TEXT NOT NULL PRIMARY KEY,
-    dayPlanId TEXT NOT NULL,
-    title TEXT NOT NULL,
-    description TEXT,
+    id TEXT AS String NOT NULL PRIMARY KEY,
+    dayPlanId TEXT AS String NOT NULL,
+    title TEXT AS String NOT NULL,
+    description TEXT AS String,
 
-    goalId TEXT,
-    projectId TEXT,
-    activityRecordId TEXT,
-    recurringTaskId TEXT,
+    goalId TEXT AS String,
+    projectId TEXT AS String,
+    activityRecordId TEXT AS String,
+    recurringTaskId TEXT AS String,
 
-    taskType TEXT,
-    entityId TEXT,
+    taskType TEXT AS String,
+    entityId TEXT AS String,
 
     "order" INTEGER AS kotlin.Long NOT NULL DEFAULT 0,
     priority TEXT AS TaskPriority NOT NULL DEFAULT 'MEDIUM',
@@ -36,9 +37,9 @@ CREATE TABLE DayTasks (
     cost REAL AS kotlin.Float NOT NULL DEFAULT 0.0,
     risk REAL AS kotlin.Float NOT NULL DEFAULT 0.0,
 
-    location TEXT,
+    location TEXT AS String,
     tags TEXT AS List<String>, 
-    notes TEXT,
+    notes TEXT AS String,
 
     createdAt INTEGER AS kotlin.Long NOT NULL,
     updatedAt INTEGER AS kotlin.Long,

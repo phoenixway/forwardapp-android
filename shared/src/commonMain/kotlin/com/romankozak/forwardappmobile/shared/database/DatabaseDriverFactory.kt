@@ -152,6 +152,7 @@ fun createForwardAppDatabase(
             totalBreakTimeAdapter = longAdapter,
             createdAtAdapter = longAdapter,
             updatedAtAdapter = longAdapter
-        )
+        ),
+        ProjectArtifactsAdapter = ProjectArtifacts.Adapter()
     )
 }

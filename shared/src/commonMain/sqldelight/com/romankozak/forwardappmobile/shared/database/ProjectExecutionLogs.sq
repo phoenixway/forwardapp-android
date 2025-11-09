@@ -1,12 +1,13 @@
 import kotlin.Long;
+import kotlin.String;
 
 CREATE TABLE ProjectExecutionLogs (
-  id TEXT NOT NULL PRIMARY KEY,
-  projectId TEXT NOT NULL,
+  id TEXT AS String NOT NULL PRIMARY KEY,
+  projectId TEXT AS String NOT NULL,
   timestamp INTEGER AS kotlin.Long NOT NULL,
-  type TEXT NOT NULL,
-  description TEXT NOT NULL,
-  details TEXT
+  type TEXT AS String NOT NULL,
+  description TEXT AS String NOT NULL,
+  details TEXT AS String
 );
 
 selectAllByProjectId:

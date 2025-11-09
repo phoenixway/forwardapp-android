@@ -1,7 +1,9 @@
+import kotlin.String;
+
 CREATE TABLE Checklists (
-  id TEXT NOT NULL PRIMARY KEY,
-  projectId TEXT NOT NULL,
-  name TEXT NOT NULL
+  id TEXT AS String NOT NULL PRIMARY KEY,
+  projectId TEXT AS String NOT NULL,
+  name TEXT AS String NOT NULL
 );
 
 -- Simplified query for now to avoid JOINs with tables not yet migrated

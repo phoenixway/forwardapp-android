@@ -1,59 +1,43 @@
 package com.romankozak.forwardappmobile.features.projects.data.artifacts
 
 import app.cash.sqldelight.coroutines.asFlow
-import app.cash.sqldelight.coroutines.mapToOneOrNull
+import app.cash.sqldelight.coroutines.mapToList
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
-import com.romankozak.forwardappmobile.shared.database.Project_artifacts
 import com.romankozak.forwardappmobile.shared.features.projects.data.model.ProjectArtifact
-import com.romankozak.forwardappmobile.shared.features.projects.domain.ProjectArtifactRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
 class ProjectArtifactRepositoryImpl(
-    private val database: ForwardAppDatabase,
-    private val ioDispatcher: CoroutineDispatcher,
+    private val db: ForwardAppDatabase,
+    private val ioDispatcher: CoroutineDispatcher
 ) : ProjectArtifactRepository {
 
-    override fun getProjectArtifactStream(projectId: String): Flow<ProjectArtifact?> =
-        database.projectArtifactsQueries
-            .getArtifactForProject(projectId)
+    private val queries = db.projectArtifactsQueries
+
+    override fun getArtifactsForProject(projectId: String): Flow<List<ProjectArtifact>> {
+        return queries.getArtifactForProject(projectId)
             .asFlow()
-            .mapToOneOrNull(ioDispatcher)
-            .map { row -> row?.toModel() }
-
-    override suspend fun updateProjectArtifact(artifact: ProjectArtifact) {
-        withContext(ioDispatcher) { upsertProjectArtifact(artifact) }
+            .mapToList(ioDispatcher)
+            .map { artifacts -> artifacts.map { it.toDomain() } }
     }
 
-    override suspend fun createProjectArtifact(artifact: ProjectArtifact) {
-        withContext(ioDispatcher) { upsertProjectArtifact(artifact) }
+    override suspend fun insertProjectArtifact(artifact: ProjectArtifact) {
+        withContext(ioDispatcher) {
+            queries.insertProjectArtifact(
+                id = artifact.id,
+                projectId = artifact.projectId,
+                content = artifact.content,
+                createdAt = artifact.createdAt,
+                updatedAt = artifact.updatedAt
+            )
+        }
     }
 
-    override suspend fun deleteProjectArtifact(artifactId: String) {
-        withContext(ioDispatcher) { database.projectArtifactsQueries.deleteProjectArtifact(artifactId) }
+    override suspend fun deleteProjectArtifact(id: String) {
+        withContext(ioDispatcher) {
+            queries.deleteProjectArtifact(id)
+        }
     }
-
-
-    private fun upsertProjectArtifact(artifact: ProjectArtifact) {
-        database.projectArtifactsQueries.insertProjectArtifact(
-            id = artifact.id,
-            projectId = artifact.projectId,
-            content = artifact.content,
-            createdAt = artifact.createdAt,
-            updatedAt = artifact.updatedAt,
-        )
-    }
-
-
-
-    private fun Project_artifacts.toModel(): ProjectArtifact =
-        ProjectArtifact(
-            id = id,
-            projectId = projectId,
-            content = content,
-            createdAt = createdAt,
-            updatedAt = updatedAt,
-        )
 }

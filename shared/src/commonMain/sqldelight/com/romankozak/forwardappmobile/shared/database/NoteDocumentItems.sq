@@ -1,11 +1,12 @@
 import kotlin.Long;
 import kotlin.Boolean;
+import kotlin.String;
 
 CREATE TABLE NoteDocumentItems (
-  id TEXT NOT NULL PRIMARY KEY,
-  listId TEXT NOT NULL,
-  parentId TEXT,
-  content TEXT NOT NULL,
+  id TEXT AS String NOT NULL PRIMARY KEY,
+  listId TEXT AS String NOT NULL,
+  parentId TEXT AS String,
+  content TEXT AS String NOT NULL,
   isCompleted INTEGER AS kotlin.Boolean NOT NULL,
   itemOrder INTEGER AS kotlin.Long NOT NULL,
   createdAt INTEGER AS kotlin.Long NOT NULL,

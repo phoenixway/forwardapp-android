@@ -5,6 +5,7 @@ import app.cash.sqldelight.coroutines.mapToList
 import app.cash.sqldelight.coroutines.mapToOneOrNull
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import com.romankozak.forwardappmobile.shared.data.database.models.ActivityRecord
+import com.romankozak.forwardappmobile.shared.database.ActivityRecords
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -15,20 +16,48 @@ class ActivityRecordRepositoryImpl(
     private val ioDispatcher: CoroutineDispatcher
 ) : ActivityRecordRepository {
 
+    private val queries = db.activityRecordsQueries
+
     override suspend fun insert(record: ActivityRecord) {
         withContext(ioDispatcher) {
-            db.activityRecordsQueries.insert(record.toSqlDelight())
+            queries.insert(
+                id = record.id,
+                name = record.name,
+                description = record.description,
+                createdAt = record.createdAt,
+                startTime = record.startTime,
+                endTime = record.endTime,
+                totalTimeSpentMinutes = record.totalTimeSpentMinutes,
+                tags = record.tags,
+                relatedLinks = record.relatedLinks,
+                isCompleted = record.isCompleted,
+                activityType = record.activityType,
+                parentProjectId = record.parentProjectId
+            )
         }
     }
 
     override suspend fun update(record: ActivityRecord) {
         withContext(ioDispatcher) {
-            db.activityRecordsQueries.update(record.toSqlDelight())
+            queries.update(
+                id = record.id,
+                name = record.name,
+                description = record.description,
+                createdAt = record.createdAt,
+                startTime = record.startTime,
+                endTime = record.endTime,
+                totalTimeSpentMinutes = record.totalTimeSpentMinutes,
+                tags = record.tags,
+                relatedLinks = record.relatedLinks,
+                isCompleted = record.isCompleted,
+                activityType = record.activityType,
+                parentProjectId = record.parentProjectId
+            )
         }
     }
 
     override fun getAllRecordsStream(): Flow<List<ActivityRecord>> {
-        return db.activityRecordsQueries.selectAll()
+        return queries.selectAll()
             .asFlow()
             .mapToList(ioDispatcher)
             .map { records -> records.map { it.toDomain() } }
@@ -36,75 +65,75 @@ class ActivityRecordRepositoryImpl(
 
     override suspend fun findLastOngoingActivity(): ActivityRecord? {
         return withContext(ioDispatcher) {
-            db.activityRecordsQueries.findLastOngoingActivity().executeAsOneOrNull()?.toDomain()
+            queries.findLastOngoingActivity().executeAsOneOrNull()?.toDomain()
         }
     }
-
-    // override suspend fun findLastOngoingActivityForGoal(goalId: String): ActivityRecord? {
-    //     return withContext(ioDispatcher) {
-    //         db.activityRecordsQueries.findLastOngoingActivityForGoal(goalId).executeAsOneOrNull()?.toDomain()
-    //     }
-    // }
 
     override suspend fun findLastOngoingActivityForProject(projectId: String): ActivityRecord? {
         return withContext(ioDispatcher) {
-            db.activityRecordsQueries.findLastOngoingActivityForProject(projectId).executeAsOneOrNull()?.toDomain()
+            queries.findLastOngoingActivityForProject(projectId).executeAsOneOrNull()?.toDomain()
         }
     }
 
-    // override suspend fun getCompletedActivitiesForProject(
-    //     projectId: String,
-    //     goalIds: List<String>,
-    //     startTime: Long,
-    //     endTime: Long,
-    // ): List<ActivityRecord> {
-    //     return withContext(ioDispatcher) {
-    //         db.activityRecordsQueries.getCompletedActivitiesForProject(projectId, goalIds, startTime, endTime)
-    //             .executeAsList()
-    //             .map { it.toDomain() }
-    //     }
-    // }
-
     override suspend fun clearAll() {
         withContext(ioDispatcher) {
-            db.activityRecordsQueries.clearAll()
+            queries.clearAll()
         }
     }
 
     override suspend fun delete(record: ActivityRecord) {
         withContext(ioDispatcher) {
-            db.activityRecordsQueries.delete(record.id)
+            queries.delete(record.id)
         }
     }
 
     override suspend fun insertAll(records: List<ActivityRecord>) {
         withContext(ioDispatcher) {
             records.forEach { record ->
-                db.activityRecordsQueries.insert(record.toSqlDelight())
+                queries.insert(
+                    id = record.id,
+                    name = record.name,
+                    description = record.description,
+                    createdAt = record.createdAt,
+                    startTime = record.startTime,
+                    endTime = record.endTime,
+                    totalTimeSpentMinutes = record.totalTimeSpentMinutes,
+                    tags = record.tags,
+                    relatedLinks = record.relatedLinks,
+                    isCompleted = record.isCompleted,
+                    activityType = record.activityType,
+                    parentProjectId = record.parentProjectId
+                )
             }
         }
     }
 
     override suspend fun search(query: String): List<ActivityRecord> {
         return withContext(ioDispatcher) {
-            db.activityRecordsQueries.search(query).executeAsList().map { it.toDomain() }
+            queries.search(query).executeAsList().map { it.toDomain() }
         }
     }
-
-    // override suspend fun getAllCompletedActivitiesForProject(
-    //     projectId: String,
-    //     goalIds: List<String>,
-    // ): List<ActivityRecord> {
-    //     return withContext(ioDispatcher) {
-    //         db.activityRecordsQueries.getAllCompletedActivitiesForProject(projectId, goalIds)
-    //             .executeAsList()
-    //             .map { it.toDomain() }
-    //     }
-    // }
 
     override suspend fun findById(recordId: String): ActivityRecord? {
         return withContext(ioDispatcher) {
-            db.activityRecordsQueries.findById(recordId).executeAsOneOrNull()?.toDomain()
+            queries.findById(recordId).executeAsOneOrNull()?.toDomain()
         }
     }
+}
+
+fun ActivityRecords.toDomain(): ActivityRecord {
+    return ActivityRecord(
+        id = id,
+        name = name,
+        description = description,
+        createdAt = createdAt,
+        startTime = startTime,
+        endTime = endTime,
+        totalTimeSpentMinutes = totalTimeSpentMinutes,
+        tags = tags,
+        relatedLinks = relatedLinks,
+        isCompleted = isCompleted,
+        activityType = activityType,
+        parentProjectId = parentProjectId
+    )
 }

@@ -1,10 +1,11 @@
 import kotlin.Boolean;
 import kotlin.Long;
+import kotlin.String;
 
 CREATE TABLE ChecklistItems (
-  id TEXT NOT NULL PRIMARY KEY,
-  checklistId TEXT NOT NULL,
-  content TEXT NOT NULL,
+  id TEXT AS String NOT NULL PRIMARY KEY,
+  checklistId TEXT AS String NOT NULL,
+  content TEXT AS String NOT NULL,
   isChecked INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
   itemOrder INTEGER AS kotlin.Long NOT NULL
 );

@@ -1,16 +1,18 @@
 import kotlin.Boolean;
 import kotlin.Long;
 import kotlin.Double;
+import kotlin.Int;
+import kotlin.String;
 import com.romankozak.forwardappmobile.shared.data.database.models.ProjectType;
 import com.romankozak.forwardappmobile.shared.data.database.models.ReservedGroup;
 import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink;
 import kotlin.collections.List;
 
 CREATE TABLE Projects (
-    id TEXT NOT NULL PRIMARY KEY,
-    name TEXT NOT NULL,
-    description TEXT,
-    parentId TEXT,
+    id TEXT AS String NOT NULL PRIMARY KEY,
+    name TEXT AS String NOT NULL,
+    description TEXT AS String,
+    parentId TEXT AS String,
     createdAt INTEGER AS kotlin.Long NOT NULL,
     updatedAt INTEGER AS kotlin.Long,
     tags TEXT AS List<String>,
@@ -18,12 +20,12 @@ CREATE TABLE Projects (
     isExpanded INTEGER AS kotlin.Boolean NOT NULL DEFAULT 1,
     goalOrder INTEGER AS kotlin.Long NOT NULL DEFAULT 0,
     isAttachmentsExpanded INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
-    defaultViewMode TEXT,
+    defaultViewMode TEXT AS String,
     isCompleted INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
     isProjectManagementEnabled INTEGER AS kotlin.Boolean DEFAULT 0,
-    projectStatus TEXT,
-    projectStatusText TEXT,
-    projectLogLevel TEXT,
+    projectStatus TEXT AS String,
+    projectStatusText TEXT AS String,
+    projectLogLevel TEXT AS String,
     totalTimeSpentMinutes INTEGER AS kotlin.Long DEFAULT 0,
     valueImportance REAL AS kotlin.Double NOT NULL DEFAULT 0.0,
     valueImpact REAL AS kotlin.Double NOT NULL DEFAULT 0.0,
@@ -34,8 +36,8 @@ CREATE TABLE Projects (
     weightCost REAL AS kotlin.Double NOT NULL DEFAULT 1.0,
     weightRisk REAL AS kotlin.Double NOT NULL DEFAULT 1.0,
     rawScore REAL AS kotlin.Double NOT NULL DEFAULT 0.0,
-    displayScore INTEGER NOT NULL DEFAULT 0,
-    scoringStatus TEXT NOT NULL DEFAULT 'NOT_ASSESSED',
+    displayScore INTEGER AS kotlin.Int NOT NULL DEFAULT 0,
+    scoringStatus TEXT AS String NOT NULL DEFAULT 'NOT_ASSESSED',
     showCheckboxes INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
     projectType TEXT AS ProjectType NOT NULL DEFAULT 'DEFAULT',
     reservedGroup TEXT AS ReservedGroup

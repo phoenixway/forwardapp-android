@@ -1,8 +1,9 @@
 import kotlin.Long;
+import kotlin.String;
 
 CREATE TABLE ConversationFolders (
     id INTEGER AS kotlin.Long NOT NULL PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL
+    name TEXT AS String NOT NULL
 );
 
 selectAll:
