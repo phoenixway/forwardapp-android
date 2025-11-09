@@ -4,7 +4,7 @@ import kotlin.Long;
 import kotlin.Boolean;
 import kotlin.Float;
 import kotlin.Int;
-import java.util.List;
+import kotlin.collections.List;
 
 CREATE TABLE DayTasks (
     id TEXT NOT NULL PRIMARY KEY,

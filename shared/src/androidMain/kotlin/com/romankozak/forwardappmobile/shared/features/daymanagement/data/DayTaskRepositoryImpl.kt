@@ -25,14 +25,14 @@ class DayTaskRepositoryImpl(
         return queries.selectAllByDayPlanId(dayPlanId)
             .asFlow()
             .mapToList(ioDispatcher)
-            .map { dayTasks: List<com.romankozak.forwardappmobile.shared.database.DayTasks> -> dayTasks.map { it.toDayTaskDomain() } }
+            .map { dayTasks: List<com.romankozak.forwardappmobile.shared.database.DayTasks> -> dayTasks.map { it: com.romankozak.forwardappmobile.shared.database.DayTasks -> it.toDayTaskDomain() } }
     }
 
     override fun getDayTaskById(id: String): Flow<DayTask?> {
         return queries.selectById(id)
             .asFlow()
             .mapToOneOrNull(ioDispatcher)
-            .map { it?.toDayTaskDomain() }
+            .map { it: com.romankozak.forwardappmobile.shared.database.DayTasks? -> it?.toDayTaskDomain() }
     }
 
     override suspend fun getMaxOrderForDayPlan(dayPlanId: String): Long {
@@ -45,14 +45,14 @@ class DayTaskRepositoryImpl(
         return queries.selectAllByDayPlanId(dayPlanId)
             .asFlow()
             .mapToList(ioDispatcher)
-            .map { dayTasks: List<com.romankozak.forwardappmobile.shared.database.DayTasks> -> dayTasks.map { it.toDayTaskDomain() } }
+            .map { dayTasks: List<com.romankozak.forwardappmobile.shared.database.DayTasks> -> dayTasks.map { it: com.romankozak.forwardappmobile.shared.database.DayTasks -> it.toDayTaskDomain() } }
     }
 
     override fun getTasksForGoal(goalId: String): Flow<List<DayTask>> {
         return queries.selectTasksForGoal(goalId)
             .asFlow()
             .mapToList(ioDispatcher)
-            .map { dayTasks: List<com.romankozak.forwardappmobile.shared.database.DayTasks> -> dayTasks.map { it.toDayTaskDomain() } }
+            .map { dayTasks: List<com.romankozak.forwardappmobile.shared.database.DayTasks> -> dayTasks.map { it: com.romankozak.forwardappmobile.shared.database.DayTasks -> it.toDayTaskDomain() } }
     }
 
     override suspend fun getTasksForDayPlanOnce(dayPlanId: String): List<DayTask> {
