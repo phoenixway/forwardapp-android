@@ -34,7 +34,7 @@ class DayTaskRepositoryImpl(
 
     override suspend fun getMaxOrderForDayPlan(dayPlanId: String): Long? {
         return withContext(ioDispatcher) {
-            db.dayTaskQueries.getMaxOrderForDayPlan(dayPlanId).executeAsOneOrNull()?.MAX
+            db.dayTaskQueries.getMaxOrderForDayPlan(dayPlanId).executeAsOneOrNull()?.MAX?.toLong()
         }
     }
 
