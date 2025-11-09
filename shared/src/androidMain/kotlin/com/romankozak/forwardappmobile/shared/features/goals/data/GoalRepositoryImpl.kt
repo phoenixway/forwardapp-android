@@ -27,10 +27,10 @@ class GoalRepositoryImpl(
                 id = goal.id,
                 text = goal.text,
                 description = goal.description,
-                completed = if (goal.completed) 1 else 0,
+                completed = if (goal.completed) 1L else 0L,
                 createdAt = goal.createdAt,
                 updatedAt = goal.updatedAt,
-                tags = goal.tags,
+                tags = goal.tags?.let { Json.encodeToString(it) },
                 relatedLinks = goal.relatedLinks?.let { Json.encodeToString(ListSerializer(RelatedLink.serializer()), it) },
                 valueImportance = goal.valueImportance.toDouble(),
                 valueImpact = goal.valueImpact.toDouble(),
@@ -46,7 +46,8 @@ class GoalRepositoryImpl(
                 parentValueImportance = goal.parentValueImportance?.toDouble(),
                 impactOnParentGoal = goal.impactOnParentGoal?.toDouble(),
                 timeCost = goal.timeCost?.toDouble(),
-                financialCost = goal.financialCost?.toDouble()
+                financialCost = goal.financialCost?.toDouble(),
+                markdown = goal.markdown
             )
         }
     }
@@ -59,10 +60,10 @@ class GoalRepositoryImpl(
                     id = goal.id,
                     text = goal.text,
                     description = goal.description,
-                    completed = if (goal.completed) 1 else 0,
+                    completed = if (goal.completed) 1L else 0L,
                     createdAt = goal.createdAt,
                     updatedAt = goal.updatedAt,
-                    tags = goal.tags,
+                    tags = goal.tags?.let { Json.encodeToString(it) },
                     relatedLinks = goal.relatedLinks?.let { Json.encodeToString(ListSerializer(RelatedLink.serializer()), it) },
                     valueImportance = goal.valueImportance.toDouble(),
                     valueImpact = goal.valueImpact.toDouble(),
@@ -78,7 +79,8 @@ class GoalRepositoryImpl(
                     parentValueImportance = goal.parentValueImportance?.toDouble(),
                     impactOnParentGoal = goal.impactOnParentGoal?.toDouble(),
                     timeCost = goal.timeCost?.toDouble(),
-                    financialCost = goal.financialCost?.toDouble()
+                    financialCost = goal.financialCost?.toDouble(),
+                    markdown = goal.markdown
                 )
             }
         }
@@ -91,9 +93,9 @@ class GoalRepositoryImpl(
                 id = goal.id,
                 text = goal.text,
                 description = goal.description,
-                completed = if (goal.completed) 1 else 0,
+                completed = if (goal.completed) 1L else 0L,
                 updatedAt = goal.updatedAt,
-                tags = goal.tags,
+                tags = goal.tags?.let { Json.encodeToString(it) },
                 relatedLinks = goal.relatedLinks?.let { Json.encodeToString(ListSerializer(RelatedLink.serializer()), it) },
                 valueImportance = goal.valueImportance.toDouble(),
                 valueImpact = goal.valueImpact.toDouble(),
@@ -109,7 +111,8 @@ class GoalRepositoryImpl(
                 parentValueImportance = goal.parentValueImportance?.toDouble(),
                 impactOnParentGoal = goal.impactOnParentGoal?.toDouble(),
                 timeCost = goal.timeCost?.toDouble(),
-                financialCost = goal.financialCost?.toDouble()
+                financialCost = goal.financialCost?.toDouble(),
+                markdown = goal.markdown
             )
         }
     }
@@ -122,9 +125,9 @@ class GoalRepositoryImpl(
                     id = goal.id,
                     text = goal.text,
                     description = goal.description,
-                    completed = if (goal.completed) 1 else 0,
+                    completed = if (goal.completed) 1L else 0L,
                     updatedAt = goal.updatedAt,
-                    tags = goal.tags,
+                    tags = goal.tags?.let { Json.encodeToString(it) },
                     relatedLinks = goal.relatedLinks?.let { Json.encodeToString(ListSerializer(RelatedLink.serializer()), it) },
                     valueImportance = goal.valueImportance.toDouble(),
                     valueImpact = goal.valueImpact.toDouble(),
@@ -140,7 +143,8 @@ class GoalRepositoryImpl(
                     parentValueImportance = goal.parentValueImportance?.toDouble(),
                     impactOnParentGoal = goal.impactOnParentGoal?.toDouble(),
                     timeCost = goal.timeCost?.toDouble(),
-                    financialCost = goal.financialCost?.toDouble()
+                    financialCost = goal.financialCost?.toDouble(),
+                    markdown = goal.markdown
                 )
             }
         }
@@ -178,13 +182,13 @@ class GoalRepositoryImpl(
     override suspend fun getAll(): List<Goal> {
         val queries = db.goalQueries
         return withContext(ioDispatcher) {
-            queries.getAll().executeAsList().map { it.toDomain() }
+            queries.getAllGoals().executeAsList().map { it.toDomain() }
         }
     }
 
     override fun getAllGoalsFlow(): Flow<List<Goal>> {
         val queries = db.goalQueries
-        return queries.getAll()
+        return queries.getAllGoals()
             .asFlow()
             .mapToList(ioDispatcher)
             .map { goals -> goals.map { it.toDomain() } }

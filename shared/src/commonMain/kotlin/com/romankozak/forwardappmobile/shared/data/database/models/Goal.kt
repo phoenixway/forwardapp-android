@@ -24,4 +24,5 @@ data class Goal(
     val impactOnParentGoal: Float? = null,
     val timeCost: Float? = null,
     val financialCost: Float? = null,
+    val markdown: String? = null,
 )

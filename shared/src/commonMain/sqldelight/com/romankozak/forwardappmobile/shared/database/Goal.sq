@@ -9,11 +9,11 @@ CREATE TABLE Goals (
     id TEXT NOT NULL PRIMARY KEY,
     text TEXT NOT NULL,                     -- Назва/текст цілі
     description TEXT,                       -- Опис (може бути NULL)
-    completed INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,  -- true/false як 1/0
+    completed INTEGER NOT NULL DEFAULT 0,  -- true/false як 1/0
     createdAt INTEGER NOT NULL,             -- timestamp (Long)
     updatedAt INTEGER,                      -- timestamp або NULL
     tags TEXT,                              -- raw string або JSON (якщо треба)
-    relatedLinks TEXT AS List<RelatedLink>,   -- ✅ просто TEXT
+    relatedLinks TEXT,   -- ✅ просто TEXT
     valueImportance REAL NOT NULL DEFAULT 0.0,
     valueImpact REAL NOT NULL DEFAULT 0.0,
     effort REAL NOT NULL DEFAULT 0.0,
@@ -45,7 +45,7 @@ INSERT INTO Goals (
     rawScore, displayScore,
     scoringStatus,
     parentValueImportance, impactOnParentGoal,
-    timeCost, financialCost
+    timeCost, financialCost, markdown
 )
 VALUES (
     :id, :text, :description, :completed,
@@ -56,7 +56,7 @@ VALUES (
     :rawScore, :displayScore,
     :scoringStatus,
     :parentValueImportance, :impactOnParentGoal,
-    :timeCost, :financialCost
+    :timeCost, :financialCost, :markdown
 );
 
 -- ============================================
@@ -84,7 +84,8 @@ UPDATE Goals SET
     parentValueImportance = :parentValueImportance,
     impactOnParentGoal = :impactOnParentGoal,
     timeCost = :timeCost,
-    financialCost = :financialCost
+    financialCost = :financialCost,
+    markdown = :markdown
 WHERE id = :id;
 
 -- ============================================
