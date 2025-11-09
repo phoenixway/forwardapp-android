@@ -49,12 +49,29 @@ import com.romankozak.forwardappmobile.shared.features.recurring_tasks.Recurring
 import com.romankozak.forwardappmobile.shared.features.recurring_tasks.RecurringTaskRepositoryImpl
 import com.romankozak.forwardappmobile.shared.features.daily_metrics.DailyMetricRepository
 import com.romankozak.forwardappmobile.shared.features.daily_metrics.DailyMetricRepositoryImpl
-import com.romankozak.forwardappmobile.shared.features.projects.data.logs.ProjectLogRepositoryImpl
+import com.romankozak.forwardappmobile.shared.features.conversations.ConversationFolderRepository
+import com.romankozak.forwardappmobile.shared.features.projects.logs.domain.ProjectExecutionLogRepository
+import com.romankozak.forwardappmobile.shared.features.projects.data.logs.ProjectExecutionLogRepositoryImpl
+import com.romankozak.forwardappmobile.shared.features.conversations.ConversationFolderRepositoryImpl
 
 
 @Module
 @InstallIn(SingletonComponent::class)
 object RepositoryModule {
+
+    @Provides
+    @Singleton
+    fun provideProjectExecutionLogRepository(
+        db: ForwardAppDatabase,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher
+    ): ProjectExecutionLogRepository = ProjectExecutionLogRepositoryImpl(db, ioDispatcher)
+
+    @Provides
+    @Singleton
+    fun provideConversationFolderRepository(
+        db: ForwardAppDatabase,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher
+    ): ConversationFolderRepository = ConversationFolderRepositoryImpl(db, ioDispatcher)
 
     @Provides
     @Singleton
@@ -112,15 +129,7 @@ object RepositoryModule {
             ioDispatcher,
         )
 
-    @Provides
-    @Singleton
-    fun provideProjectLogRepository(
-        db: ForwardAppDatabase,
-        @IoDispatcher ioDispatcher: CoroutineDispatcher
-    ): ProjectLogRepository = ProjectLogRepositoryImpl(
-        db.projectExecutionLogQueries,
-        ioDispatcher
-    )
+
 
 
     @Provides
@@ -246,7 +255,7 @@ object RepositoryModule {
         activityRepository: ActivityRepository,
         recentItemsRepository: RecentItemsRepository,
         reminderRepository: ReminderRepository,
-        projectLogRepository: ProjectLogRepository,
+        projectLogRepository: ProjectExecutionLogRepository,
         searchRepository: SearchRepository,
         noteDocumentRepository: NoteDocumentRepository,
         checklistRepository: ChecklistRepository,

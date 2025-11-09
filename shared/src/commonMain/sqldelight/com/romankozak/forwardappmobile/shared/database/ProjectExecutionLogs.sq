@@ -1,1 +1,28 @@
+CREATE TABLE project_execution_logs (
+  id TEXT NOT NULL PRIMARY KEY,
+  projectId TEXT NOT NULL,
+  timestamp INTEGER NOT NULL,
+  type TEXT NOT NULL,
+  description TEXT NOT NULL,
+  details TEXT,
+  FOREIGN KEY(projectId) REFERENCES projects(id) ON DELETE CASCADE
+);
 
+-- Get all logs for a specific project
+selectAllByProjectId:
+SELECT * FROM project_execution_logs WHERE projectId = :projectId ORDER BY timestamp DESC;
+
+-- Insert a new log
+insert:
+INSERT OR REPLACE INTO project_execution_logs(id, projectId, timestamp, type, description, details)
+VALUES (?, ?, ?, ?, ?, ?);
+
+-- Delete a log by its ID
+deleteById:
+DELETE FROM project_execution_logs WHERE id = :id;
+
+-- Update a log
+update:
+UPDATE project_execution_logs
+SET description = :description, details = :details
+WHERE id = :id;
