@@ -9,11 +9,11 @@ CREATE TABLE Goals (
     id TEXT NOT NULL PRIMARY KEY,
     text TEXT NOT NULL,                     -- Назва/текст цілі
     description TEXT,                       -- Опис (може бути NULL)
-    completed INTEGER NOT NULL DEFAULT 0,  -- true/false як 1/0
+    completed INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,  -- true/false як 1/0
     createdAt INTEGER NOT NULL,             -- timestamp (Long)
     updatedAt INTEGER,                      -- timestamp або NULL
     tags TEXT,                              -- raw string або JSON (якщо треба)
-    relatedLinks TEXT,   -- ✅ просто TEXT
+    relatedLinks TEXT AS List<RelatedLink>,   -- ✅ просто TEXT
     valueImportance REAL NOT NULL DEFAULT 0.0,
     valueImpact REAL NOT NULL DEFAULT 0.0,
     effort REAL NOT NULL DEFAULT 0.0,

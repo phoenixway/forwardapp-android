@@ -9,6 +9,7 @@ import app.cash.sqldelight.ColumnAdapter
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.builtins.ListSerializer
 
 /**
  * Platform-specific configuration needed to create a SQLDelight driver.
@@ -37,6 +38,26 @@ val taskStatusAdapter = object : ColumnAdapter<TaskStatus, String> {
     override fun encode(value: TaskStatus): String = value.name
 }
 
+val booleanAdapter = object : ColumnAdapter<Boolean, Long> {
+    override fun decode(databaseValue: Long): Boolean {
+        return databaseValue != 0L
+    }
+
+    override fun encode(value: Boolean): Long {
+        return if (value) 1L else 0L
+    }
+}
+
+val relatedLinksListAdapter = object : ColumnAdapter<List<RelatedLink>, String> {
+    override fun decode(databaseValue: String): List<RelatedLink> {
+        return Json.decodeFromString(ListSerializer(RelatedLink.serializer()), databaseValue)
+    }
+
+    override fun encode(value: List<RelatedLink>): String {
+        return Json.encodeToString(ListSerializer(RelatedLink.serializer()), value)
+    }
+}
+
 fun createForwardAppDatabase(
     driverFactory: DatabaseDriverFactory,
 ): ForwardAppDatabase {
@@ -46,6 +67,9 @@ fun createForwardAppDatabase(
         DayTasksAdapter = DayTasks.Adapter(
             priorityAdapter = taskPriorityAdapter,
             statusAdapter = taskStatusAdapter
+        ),
+        GoalsAdapter = Goals.Adapter(
+            relatedLinksAdapter = relatedLinksListAdapter
         )
     )
 }
