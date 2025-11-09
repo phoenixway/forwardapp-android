@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.data.repository
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.shared.data.database.models.ProjectLogEntryTypeValues
 import com.romankozak.forwardappmobile.data.database.models.ProjectTimeMetrics
-import com.romankozak.forwardappmobile.shared.features.projects.data.logs.ProjectLogRepository
+import com.romankozak.forwardappmobile.shared.features.projects.logs.domain.ProjectExecutionLogRepository
 import java.util.Calendar
 import java.util.Locale
 import java.util.concurrent.TimeUnit
@@ -14,7 +14,7 @@ import javax.inject.Singleton
 class ProjectTimeTrackingRepository @Inject constructor(
     private val activityRepository: ActivityRepository,
     private val listItemDao: ListItemDao,
-    private val projectLogRepository: ProjectLogRepository
+    private val projectLogRepository: ProjectExecutionLogRepository
 ) {
     suspend fun logProjectTimeSummaryForDate(
         projectId: String,

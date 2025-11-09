@@ -235,7 +235,7 @@ object RepositoryModule {
     fun provideProjectTimeTrackingRepository(
         activityRepository: ActivityRepository,
         listItemDao: ListItemDao,
-        projectLogRepository: ProjectLogRepository
+        projectLogRepository: ProjectExecutionLogRepository
     ): ProjectTimeTrackingRepository = ProjectTimeTrackingRepository(activityRepository, listItemDao, projectLogRepository)
 
     @Provides

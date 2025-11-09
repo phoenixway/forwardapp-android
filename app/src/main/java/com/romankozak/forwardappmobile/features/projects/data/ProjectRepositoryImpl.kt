@@ -28,7 +28,7 @@ import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
 import com.romankozak.forwardappmobile.data.repository.ListItemRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 //import com.romankozak.forwardappmobile.shared.features.projects.data.artifacts.ProjectArtifactRepository
-import com.romankozak.forwardappmobile.shared.features.projects.data.logs.ProjectLogRepository
+import com.romankozak.forwardappmobile.shared.features.projects.logs.domain.ProjectExecutionLogRepository
 import com.romankozak.forwardappmobile.data.repository.ProjectTimeTrackingRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
@@ -62,7 +62,7 @@ class ProjectRepositoryImpl @Inject constructor( // Changed class name
     private val activityRepository: ActivityRepository,
     private val recentItemsRepository: RecentItemsRepository,
     private val reminderRepository: ReminderRepository,
-    private val projectLogRepository: ProjectLogRepository,
+    private val projectLogRepository: ProjectExecutionLogRepository,
     private val searchRepository: SearchRepository,
     private val noteDocumentRepository: NoteDocumentRepository,
     private val checklistRepository: ChecklistRepository,

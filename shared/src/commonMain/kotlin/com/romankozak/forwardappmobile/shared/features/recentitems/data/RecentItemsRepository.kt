@@ -16,7 +16,7 @@ class RecentItemsRepository(
 ) {
 
     fun getRecentItems(limit: Long = 20): Flow<List<RecentItem>> =
-        database.recentItemQueries
+        database.recentItemsQueries
             .getRecentItems(limit, ::mapRow)
             .asFlow()
             .mapToList(ioDispatcher)
@@ -95,13 +95,13 @@ class RecentItemsRepository(
 
     suspend fun clearAll() =
         withContext(ioDispatcher) {
-            database.recentItemQueries.deleteAllRecentItems()
+            database.recentItemsQueries.deleteAllRecentItems()
         }
 
     suspend fun replaceAll(items: List<RecentItem>) =
         withContext(ioDispatcher) {
             database.transaction {
-                database.recentItemQueries.deleteAllRecentItems()
+                database.recentItemsQueries.deleteAllRecentItems()
                 items.forEach { insertRecord(it) }
             }
         }
@@ -125,12 +125,12 @@ class RecentItemsRepository(
         }
 
     private fun getRecentItemByIdInternal(id: String): RecentItem? =
-        database.recentItemQueries.getRecentItemById(id, ::mapRow).executeAsOneOrNull()
+        database.recentItemsQueries.getRecentItemById(id, ::mapRow).executeAsOneOrNull()
 
     private fun currentTimestamp(): Long = Clock.System.now().toEpochMilliseconds()
 
     private fun insertRecord(item: RecentItem) {
-        database.recentItemQueries.insertRecentItem(
+        database.recentItemsQueries.insertRecentItem(
             id = item.id,
             type = item.type.name,
             lastAccessed = item.lastAccessed,

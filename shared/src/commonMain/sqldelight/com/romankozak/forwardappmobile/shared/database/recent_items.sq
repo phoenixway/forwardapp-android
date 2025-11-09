@@ -1,8 +1,0 @@
-CREATE TABLE recent_items (
-    id TEXT NOT NULL PRIMARY KEY,
-    type TEXT NOT NULL,
-    lastAccessed INTEGER NOT NULL,
-    displayName TEXT NOT NULL,
-    target TEXT NOT NULL,
-    isPinned INTEGER NOT NULL
-);

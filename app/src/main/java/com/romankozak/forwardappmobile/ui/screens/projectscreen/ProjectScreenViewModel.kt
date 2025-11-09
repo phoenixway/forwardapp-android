@@ -271,8 +271,7 @@ constructor(
   private val checklistRepository: ChecklistRepository,
   private val reminderRepository: com.romankozak.forwardappmobile.data.repository.ReminderRepository,
   private val recentItemsRepository: com.romankozak.forwardappmobile.data.repository.RecentItemsRepository,
-  private val projectLogRepository: com.romankozak.forwardappmobile.shared.features.projects.data.logs.ProjectLogRepository,
-  private val noteRepository: com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository,
+      private val projectLogRepository: com.romankozak.forwardappmobile.shared.features.projects.logs.domain.ProjectExecutionLogRepository,  private val noteRepository: com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository,
   private val inboxRepository: com.romankozak.forwardappmobile.data.repository.InboxRepository,
 ) :
   ViewModel(),

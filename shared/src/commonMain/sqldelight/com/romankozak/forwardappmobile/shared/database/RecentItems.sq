@@ -1,1 +1,42 @@
+CREATE TABLE recent_items (
+    id TEXT NOT NULL PRIMARY KEY,
+    type TEXT NOT NULL,
+    lastAccessed INTEGER NOT NULL,
+    displayName TEXT NOT NULL,
+    target TEXT NOT NULL,
+    isPinned INTEGER NOT NULL
+);
 
+getRecentItems:
+SELECT id,
+       type,
+       lastAccessed,
+       displayName,
+       target,
+       isPinned
+FROM recent_items
+ORDER BY isPinned DESC, lastAccessed DESC
+LIMIT ?;
+
+getRecentItemById:
+SELECT id,
+       type,
+       lastAccessed,
+       displayName,
+       target,
+       isPinned
+FROM recent_items
+WHERE id = ?;
+
+insertRecentItem:
+INSERT OR REPLACE INTO recent_items(
+    id,
+    type,
+    lastAccessed,
+    displayName,
+    target,
+    isPinned
+) VALUES (?1, ?2, ?3, ?4, ?5, ?6);
+
+deleteAllRecentItems:
+DELETE FROM recent_items;

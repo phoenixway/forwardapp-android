@@ -103,7 +103,7 @@ constructor(
     private val legacyNoteRepository: LegacyNoteRepository,
     private val noteDocumentRepository: NoteDocumentRepository,
     private val checklistRepository: ChecklistRepository,
-    private val recentItemQueries: RecentItemQueries,
+    private val recentItemsRepository: RecentItemsRepository,
     private val attachmentRepository: AttachmentRepository,
     private val databaseInitializer: DatabaseInitializer,
 ) {
@@ -325,7 +325,7 @@ constructor(
             checklistRepository.deleteAllChecklists()
             Log.d(FULL_IMPORT_TAG, "TX stage: checklists cleared")
             Log.d(IMPORT_TAG, "  - checklists очищено")
-            recentItemQueries.deleteAllRecentItems()
+            recentItemsRepository.clearAll()
             Log.d(FULL_IMPORT_TAG, "TX stage: recent items cleared")
             Log.d(IMPORT_TAG, "  - recent_items очищено")
 
@@ -391,16 +391,7 @@ constructor(
                 }
                 recentItemsToInsert?.let { items ->
                     Log.d(IMPORT_TAG, "  -> Inserting recentItems: ${items.size}")
-                    items.forEach { recent ->
-                        recentItemQueries.insertRecentItem(
-                            id = recent.id,
-                            type = recent.type.name,
-                            lastAccessed = recent.lastAccessed,
-                            displayName = recent.displayName,
-                            target = recent.target,
-                            isPinned = if (recent.isPinned) 1L else 0L,
-                        )
-                    }
+                    recentItemsRepository.replaceAll(items)
                     Log.d(FULL_IMPORT_TAG, "TX stage: secondary entities inserted (${items.size})")
                     Log.d(IMPORT_TAG, "  - recent_items вставлено: ${items.size}")
                 }
