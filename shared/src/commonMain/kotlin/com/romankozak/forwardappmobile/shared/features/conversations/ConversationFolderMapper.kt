@@ -1,11 +1,11 @@
 package com.romankozak.forwardappmobile.shared.features.conversations
 
 import com.romankozak.forwardappmobile.shared.data.database.models.ConversationFolder
-import com.romankozak.forwardappmobile.shared.database.Conversation_folders
+import com.romankozak.forwardappmobile.shared.database.ConversationFolders
 
-fun Conversation_folders.toDomain(): ConversationFolder {
+fun ConversationFolders.toDomain(): ConversationFolder {
     return ConversationFolder(
-        id = this.id,
-        name = this.name
+        id = id,
+        name = name
     )
 }

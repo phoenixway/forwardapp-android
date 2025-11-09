@@ -2,7 +2,7 @@ import kotlin.Long;
 import kotlin.Double;
 import kotlin.Int;
 import kotlin.collections.Map;
-import kotlin.collections.List; // For custom_metrics if it's a list of strings
+import kotlin.collections.List; -- For custom_metrics if it's a list of strings
 
 CREATE TABLE DailyMetrics (
     id TEXT NOT NULL PRIMARY KEY,

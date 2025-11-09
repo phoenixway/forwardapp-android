@@ -9,14 +9,17 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import com.romankozak.forwardappmobile.shared.features.conversations.toDomain
 
 class ConversationFolderRepositoryImpl(
     private val db: ForwardAppDatabase,
     private val ioDispatcher: CoroutineDispatcher
 ) : ConversationFolderRepository {
 
+    private val queries = db.conversationFoldersQueries
+
     override fun getFolders(): Flow<List<ConversationFolder>> {
-        return db.conversationFolderQueries.selectAll()
+        return queries.selectAll()
             .asFlow()
             .mapToList(ioDispatcher)
             .map { folders -> folders.map { it.toDomain() } }
@@ -24,19 +27,19 @@ class ConversationFolderRepositoryImpl(
 
     override suspend fun addFolder(name: String) {
         withContext(ioDispatcher) {
-            db.conversationFolderQueries.insert(name)
+            queries.insert(name)
         }
     }
 
     override suspend fun updateFolder(id: Long, name: String) {
         withContext(ioDispatcher) {
-            db.conversationFolderQueries.updateName(name = name, id = id)
+            queries.updateName(name = name, id = id)
         }
     }
 
     override suspend fun deleteFolder(id: Long) {
         withContext(ioDispatcher) {
-            db.conversationFolderQueries.deleteById(id)
+            queries.deleteById(id)
         }
     }
 }

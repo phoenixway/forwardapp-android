@@ -33,6 +33,16 @@ private val booleanAdapter = object : ColumnAdapter<Boolean, Long> {
     override fun encode(value: Boolean) = if (value) 1L else 0L
 }
 
+private val longAdapter = object : ColumnAdapter<Long, Long> {
+    override fun decode(databaseValue: Long) = databaseValue
+    override fun encode(value: Long) = value
+}
+
+private val doubleAdapter = object : ColumnAdapter<Double, Double> {
+    override fun decode(databaseValue: Double) = databaseValue
+    override fun encode(value: Double) = value
+}
+
 private val stringListAdapter = object : ColumnAdapter<List<String>, String> {
     override fun decode(databaseValue: String) =
         if (databaseValue.isEmpty()) listOf() else databaseValue.split(",")
@@ -51,6 +61,16 @@ private val relatedLinksListAdapter = object : ColumnAdapter<List<RelatedLink>, 
 
     override fun encode(value: List<RelatedLink>): String {
         return Json.encodeToString(ListSerializer(RelatedLink.serializer()), value)
+    }
+}
+
+private val customMetricsAdapter = object : ColumnAdapter<Map<String, Float>, String> {
+    override fun decode(databaseValue: String): Map<String, Float> {
+        return Json.decodeFromString(databaseValue)
+    }
+
+    override fun encode(value: Map<String, Float>): String {
+        return Json.encodeToString(value)
     }
 }
 
@@ -115,6 +135,23 @@ fun createForwardAppDatabase(
             projectTypeAdapter = projectTypeAdapter,
             reservedGroupAdapter = reservedGroupAdapter
         ),
-        ProjectExecutionLogsAdapter = ProjectExecutionLogs.Adapter()
+        ProjectExecutionLogsAdapter = ProjectExecutionLogs.Adapter(),
+        ConversationFoldersAdapter = ConversationFolders.Adapter(),
+        DailyMetricsAdapter = DailyMetrics.Adapter(
+            tasksPlannedAdapter = longAdapter,
+            tasksCompletedAdapter = longAdapter,
+            completionRateAdapter = doubleAdapter,
+            completedPointsAdapter = longAdapter,
+            morningEnergyLevelAdapter = longAdapter,
+            eveningEnergyLevelAdapter = longAdapter,
+            stressLevelAdapter = longAdapter,
+            customMetricsAdapter = customMetricsAdapter,
+            dateAdapter = longAdapter,
+            totalPlannedTimeAdapter = longAdapter,
+            totalActiveTimeAdapter = longAdapter,
+            totalBreakTimeAdapter = longAdapter,
+            createdAtAdapter = longAdapter,
+            updatedAtAdapter = longAdapter
+        )
     )
 }
