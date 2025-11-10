@@ -28,6 +28,7 @@ kotlin {
                 implementation("com.benasher44:uuid:0.8.4")
                 implementation(libs.sqldelight.runtime)
                 implementation(libs.sqldelight.coroutines)
+                implementation(libs.kotlinx.coroutines.core)
             }
         }
 

@@ -192,6 +192,7 @@ dependencies {
     implementation(libs.compose.dnd)
     implementation(libs.sqldelight.coroutines)
     implementation(libs.sqldelight.android.driver)
+    implementation(libs.kotlinx.coroutines.core)
 
     // Testing
     testImplementation(libs.junit)
@@ -288,6 +289,10 @@ dependencies {
 
     implementation("app.cash.sqldelight:android-driver:2.0.2")
     implementation("app.cash.sqldelight:coroutines-extensions:2.0.2")
+
+    ksp(libs.kotlin.inject.compiler.ksp)
+    implementation(libs.kotlin.inject.runtime)
+
 
 
 }

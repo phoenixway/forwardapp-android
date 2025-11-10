@@ -13,10 +13,6 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.romankozak.forwardappmobile.routes.AppNavigation
 import com.romankozak.forwardappmobile.ui.theme.ForwardAppMobileTheme
-import dagger.hilt.android.AndroidEntryPoint
-import androidx.activity.viewModels
-
-@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     // private val syncDataViewModel: SyncDataViewModel by viewModels() // Removed
 
@@ -29,8 +25,11 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            ForwardAppMobileTheme(themeSettings = com.romankozak.forwardappmobile.ui.theme.ThemeSettings()) {
-                AppNavigation()
+            val appComponent = (application as ForwardAppMobileApplication).appComponent
+            androidx.compose.runtime.CompositionLocalProvider(com.romankozak.forwardappmobile.di.LocalAppComponent provides appComponent) {
+                ForwardAppMobileTheme(themeSettings = com.romankozak.forwardappmobile.ui.theme.ThemeSettings()) {
+                    AppNavigation()
+                }
             }
         }
     }
