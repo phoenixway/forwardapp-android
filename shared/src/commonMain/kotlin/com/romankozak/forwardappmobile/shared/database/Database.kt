@@ -108,6 +108,8 @@ fun createForwardAppDatabase(driverFactory: DatabaseDriverFactory): ForwardAppDa
         ),
         goalsAdapter = Goals.Adapter(
             completedAdapter = booleanAdapter,
+            createdAtAdapter = longAdapter,
+            updatedAtAdapter = longAdapter,
             tagsAdapter = stringListAdapter,
             relatedLinksAdapter = relatedLinksListAdapter,
             valueImportanceAdapter = doubleAdapter,
@@ -128,7 +130,9 @@ fun createForwardAppDatabase(driverFactory: DatabaseDriverFactory): ForwardAppDa
         listItemsAdapter = ListItems.Adapter(
             idAdapter = stringAdapter,
             projectIdAdapter = stringAdapter,
-            itemOrderAdapter = longAdapter
+            itemOrderAdapter = longAdapter,
+            entityIdAdapter = stringAdapter,
+            itemTypeAdapter = stringAdapter
         )
     )
 }
