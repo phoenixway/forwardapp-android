@@ -1,38 +1,36 @@
 import kotlin.Boolean;
+import kotlin.String;
+import kotlin.Double;
+import kotlin.Long;
 import kotlin.collections.List;
 import com.romankozak.forwardappmobile.shared.data.models.RelatedLink;
 
 CREATE TABLE Goals (
-    id TEXT NOT NULL PRIMARY KEY,
-    text TEXT NOT NULL,
-    description TEXT,
+    id TEXT AS String NOT NULL PRIMARY KEY,
+    text TEXT AS String NOT NULL,
+    description TEXT AS String,
     completed INTEGER AS Boolean NOT NULL DEFAULT 0,
-    createdAt INTEGER NOT NULL,
-    updatedAt INTEGER,
+    createdAt INTEGER AS Long NOT NULL,
+    updatedAt INTEGER AS Long,
     tags TEXT AS List<String>,
     relatedLinks TEXT AS List<RelatedLink>,
-    valueImportance REAL NOT NULL DEFAULT 0.0,
-    valueImpact REAL NOT NULL DEFAULT 0.0,
-    effort REAL NOT NULL DEFAULT 0.0,
-    cost REAL NOT NULL DEFAULT 0.0,
-    risk REAL NOT NULL DEFAULT 0.0,
-    weightEffort REAL NOT NULL DEFAULT 1.0,
-    weightCost REAL NOT NULL DEFAULT 1.0,
-    weightRisk REAL NOT NULL DEFAULT 1.0,
-    rawScore REAL NOT NULL DEFAULT 0.0,
-    displayScore INTEGER NOT NULL DEFAULT 0,
-    scoringStatus TEXT NOT NULL DEFAULT 'NOT_ASSESSED',
-    parentValueImportance REAL,
-    impactOnParentGoal REAL,
-    timeCost REAL,
-    financialCost REAL
+    valueImportance REAL AS Double NOT NULL DEFAULT 0.0,
+    valueImpact REAL AS Double NOT NULL DEFAULT 0.0,
+    effort REAL AS Double NOT NULL DEFAULT 0.0,
+    cost REAL AS Double NOT NULL DEFAULT 0.0,
+    risk REAL AS Double NOT NULL DEFAULT 0.0,
+    weightEffort REAL AS Double NOT NULL DEFAULT 1.0,
+    weightCost REAL AS Double NOT NULL DEFAULT 1.0,
+    weightRisk REAL AS Double NOT NULL DEFAULT 1.0,
+    rawScore REAL AS Double NOT NULL DEFAULT 0.0,
+    displayScore INTEGER AS Long NOT NULL DEFAULT 0,
+    scoringStatus TEXT AS String NOT NULL DEFAULT 'NOT_ASSESSED',
+    parentValueImportance REAL AS Double,
+    impactOnParentGoal REAL AS Double,
+    timeCost REAL AS Double,
+    financialCost REAL AS Double
 );
 
 getAllGoals:
 SELECT * FROM Goals;
 
-getGoalById:
-SELECT * FROM Goals WHERE id = ?;
-
-getGoalsByIds:
-SELECT * FROM Goals WHERE id IN ?;

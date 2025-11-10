@@ -5,7 +5,6 @@ import com.romankozak.forwardappmobile.shared.data.models.RelatedLink
 import com.romankozak.forwardappmobile.shared.data.models.ProjectType
 import com.romankozak.forwardappmobile.shared.data.models.ReservedGroup
 import kotlinx.serialization.builtins.ListSerializer
-import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 
 // ------------------------------------------------------
@@ -86,17 +85,54 @@ val reservedGroupAdapter = object : ColumnAdapter<ReservedGroup, String> {
 fun createForwardAppDatabase(driverFactory: DatabaseDriverFactory): ForwardAppDatabase {
     val driver = driverFactory.createDriver()
 
+    val goalsAdapter = Goals.Adapter(
+        idAdapter = stringAdapter,
+        textAdapter = stringAdapter,
+        createdAtAdapter = longAdapter,
+        tagsAdapter = stringListAdapter,
+        relatedLinksAdapter = relatedLinksListAdapter,
+        valueImportanceAdapter = doubleAdapter,
+        valueImpactAdapter = doubleAdapter,
+        effortAdapter = doubleAdapter,
+        costAdapter = doubleAdapter,
+        riskAdapter = doubleAdapter,
+        weightEffortAdapter = doubleAdapter,
+        weightCostAdapter = doubleAdapter,
+        weightRiskAdapter = doubleAdapter,
+        rawScoreAdapter = doubleAdapter,
+        displayScoreAdapter = intAdapter,
+        scoringStatusAdapter = stringAdapter,
+    )
+
+    val projectsAdapter = Projects.Adapter(
+        idAdapter = stringAdapter,
+        nameAdapter = stringAdapter,
+        createdAtAdapter = longAdapter,
+        goalOrderAdapter = longAdapter,
+        tagsAdapter = stringListAdapter,
+        relatedLinksAdapter = relatedLinksListAdapter,
+        isExpandedAdapter = booleanAdapter,
+        isAttachmentsExpandedAdapter = booleanAdapter,
+        isCompletedAdapter = booleanAdapter,
+        isProjectManagementEnabledAdapter = booleanAdapter,
+        projectTypeAdapter = projectTypeAdapter,
+        reservedGroupAdapter = reservedGroupAdapter,
+        valueImportanceAdapter = doubleAdapter,
+        valueImpactAdapter = doubleAdapter,
+        effortAdapter = doubleAdapter,
+        costAdapter = doubleAdapter,
+        riskAdapter = doubleAdapter,
+        weightEffortAdapter = doubleAdapter,
+        weightCostAdapter = doubleAdapter,
+        weightRiskAdapter = doubleAdapter,
+        rawScoreAdapter = doubleAdapter,
+        displayScoreAdapter = longAdapter,
+    )
+
     return ForwardAppDatabase(
         driver = driver,
-        GoalsAdapter = Goals.Adapter(
-            tagsAdapter = stringListAdapter,
-            relatedLinksAdapter = relatedLinksListAdapter
-        ),
-        projectsAdapter = Projects.Adapter(
-            tagsAdapter = stringListAdapter,
-            relatedLinksAdapter = relatedLinksListAdapter,
-            projectTypeAdapter = projectTypeAdapter,
-            reservedGroupAdapter = reservedGroupAdapter
-        )
+        GoalsAdapter = goalsAdapter,
+        projectsAdapter = projectsAdapter,
     )
 }
+
