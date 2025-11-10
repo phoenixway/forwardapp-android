@@ -8,5 +8,5 @@ fun ListItems.toDomain(): ListItem = ListItem(
     projectId = projectId,
     entityId = entityId,
     itemType = itemType,
-    itemOrder = itemOrder
+    orderIndex = itemOrder
 )
