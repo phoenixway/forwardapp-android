@@ -92,5 +92,5 @@ sqldelight {
 
 dependencies {
     implementation(libs.sqldelight.coroutines)
-    add("kspAndroid", libs.hilt.compiler)
+
 }

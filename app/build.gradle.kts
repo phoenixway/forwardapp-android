@@ -9,7 +9,6 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
     id("kotlin-parcelize")
     id("com.google.devtools.ksp")   // ✅ без version!
-    id("com.google.dagger.hilt.android")
 }
 
 android {
@@ -170,11 +169,7 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
 
-    // Hilt
-    implementation(libs.hilt.android)
-    implementation(libs.hilt.navigation.compose)
-    //kapt(libs.hilt.compiler)
-    ksp(libs.hilt.compiler)
+    
     //ksp(project(":shared"))
 
 
