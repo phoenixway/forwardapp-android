@@ -89,45 +89,12 @@ fun createForwardAppDatabase(driverFactory: DatabaseDriverFactory): ForwardAppDa
     return ForwardAppDatabase(
         driver = driver,
         GoalsAdapter = Goals.Adapter(
-            idAdapter = stringAdapter,
-            textAdapter = stringAdapter,
-            createdAtAdapter = longAdapter,
             tagsAdapter = stringListAdapter,
-            relatedLinksAdapter = relatedLinksListAdapter,
-            valueImportanceAdapter = doubleAdapter,
-            valueImpactAdapter = doubleAdapter,
-            effortAdapter = doubleAdapter,
-            costAdapter = doubleAdapter,
-            riskAdapter = doubleAdapter,
-            weightEffortAdapter = doubleAdapter,
-            weightCostAdapter = doubleAdapter,
-            weightRiskAdapter = doubleAdapter,
-            rawScoreAdapter = doubleAdapter,
-            displayScoreAdapter = intAdapter,
-            scoringStatusAdapter = stringAdapter
-        ),
-        ListItemsAdapter = ListItems.Adapter(
-            idAdapter = stringAdapter,
-            projectIdAdapter = stringAdapter,
-            itemOrderAdapter = longAdapter
+            relatedLinksAdapter = relatedLinksListAdapter
         ),
         projectsAdapter = Projects.Adapter(
-            idAdapter = stringAdapter,
-            nameAdapter = stringAdapter,
-            createdAtAdapter = longAdapter,
             tagsAdapter = stringListAdapter,
             relatedLinksAdapter = relatedLinksListAdapter,
-            goalOrderAdapter = longAdapter,
-            valueImportanceAdapter = doubleAdapter,
-            valueImpactAdapter = doubleAdapter,
-            effortAdapter = doubleAdapter,
-            costAdapter = doubleAdapter,
-            riskAdapter = doubleAdapter,
-            weightEffortAdapter = doubleAdapter,
-            weightCostAdapter = doubleAdapter,
-            weightRiskAdapter = doubleAdapter,
-            rawScoreAdapter = doubleAdapter,
-            displayScoreAdapter = intAdapter,
             projectTypeAdapter = projectTypeAdapter,
             reservedGroupAdapter = reservedGroupAdapter
         )
