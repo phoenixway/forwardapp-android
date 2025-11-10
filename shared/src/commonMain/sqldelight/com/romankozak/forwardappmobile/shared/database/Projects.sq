@@ -48,6 +48,12 @@ SELECT * FROM Projects;
 getById:
 SELECT * FROM Projects WHERE id = :id;
 
+getProjectsByType:
+SELECT * FROM Projects WHERE projectType = :projectType;
+
+getProjectsByReservedGroup:
+SELECT * FROM Projects WHERE reservedGroup = :reservedGroup;
+
 insertProject:
 INSERT INTO Projects (
     id, name, description, parentId, createdAt, updatedAt, tags, relatedLinks,

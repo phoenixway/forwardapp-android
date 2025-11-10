@@ -1,14 +1,12 @@
 package com.romankozak.forwardappmobile.shared.features.projects.data.mappers
 
 import com.romankozak.forwardappmobile.shared.database.ListItems
-import com.romankozak.forwardappmobile.shared.features.projects.data.models.ListItem
+import com.romankozak.forwardappmobile.shared.data.models.ListItem
 
-fun ListItems.toDomain(): ListItem {
-    return ListItem(
-        id = id,
-        projectId = projectId,
-        itemType = itemType,
-        entityId = entityId,
-        order = order
-    )
-}
+fun ListItems.toDomain(): ListItem = ListItem(
+    id = id,
+    projectId = projectId,
+    entityId = entityId,
+    itemType = itemType,
+    orderIndex = orderIndex // ✅ виправлено (раніше було "order")
+)

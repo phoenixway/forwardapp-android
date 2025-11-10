@@ -9,5 +9,5 @@ data class ListItem(
     val projectId: String,
     val itemType: String,
     val entityId: String,
-    val order: Long,
+    val orderIndex: Long,
 )

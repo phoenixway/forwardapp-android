@@ -2,8 +2,6 @@ package com.romankozak.forwardappmobile.di
 
 import android.app.Application
 import com.romankozak.forwardappmobile.shared.database.DatabaseDriverFactory
-import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
-import com.romankozak.forwardappmobile.shared.database.createForwardAppDatabase
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.MainScreenViewModel
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.state.DialogStateManager
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.state.PlanningModeManager
@@ -14,12 +12,13 @@ import kotlinx.coroutines.Dispatchers
 import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.di.MainDispatcher
 import com.romankozak.forwardappmobile.di.DefaultDispatcher
+import com.romankozak.forwardappmobile.di.AndroidCommonModule
 
 @Singleton
 @Component
 abstract class AppComponent(
     @get:Provides val application: Application,
-) {
+) : AndroidCommonModule {
     val planningModeManager: PlanningModeManager
         @Provides get() = PlanningModeManager()
 
@@ -31,10 +30,6 @@ abstract class AppComponent(
 
     @Provides
     fun databaseDriverFactory(): DatabaseDriverFactory = DatabaseDriverFactory(application)
-
-    @Provides
-    @Singleton
-    fun database(driverFactory: DatabaseDriverFactory): ForwardAppDatabase = createForwardAppDatabase(driverFactory)
 
     @Provides
     @IoDispatcher

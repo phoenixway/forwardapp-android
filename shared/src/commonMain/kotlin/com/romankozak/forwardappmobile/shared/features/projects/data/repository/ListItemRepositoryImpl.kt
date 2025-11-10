@@ -15,7 +15,7 @@ class ListItemRepositoryImpl(
 ) : ListItemRepository {
 
     override fun getListItems(projectId: String): Flow<List<ListItem>> {
-        return db.listItemsQueries.getByProjectId(projectId)
+        return db.listItemsQueries.getItemsForProject(projectId)
             .asFlow()
             .mapToList(dispatcher)
             .map { listItems -> listItems.map { it.toDomain() } }

@@ -1,12 +1,24 @@
-import kotlin.Long;
+-- @kotlinType String kotlin.String
 
 CREATE TABLE ListItems (
     id TEXT NOT NULL PRIMARY KEY,
     projectId TEXT NOT NULL,
     itemType TEXT NOT NULL,
     entityId TEXT NOT NULL,
-    "order" INTEGER AS kotlin.Long NOT NULL DEFAULT 0
+    orderIndex INTEGER NOT NULL
 );
 
-getByProjectId:
-SELECT * FROM ListItems WHERE projectId = :projectId;
+getAllListItems:
+SELECT * FROM ListItems ORDER BY orderIndex ASC;
+
+insertListItem:
+INSERT OR REPLACE INTO ListItems (
+    id, projectId, itemType, entityId, orderIndex
+) VALUES (?, ?, ?, ?, ?);
+
+deleteListItem:
+DELETE FROM ListItems WHERE id = ?;
+
+getItemsForProject:
+SELECT * FROM ListItems
+WHERE projectId = ?;

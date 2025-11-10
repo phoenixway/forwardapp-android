@@ -15,7 +15,7 @@ class GoalRepositoryImpl(
 ) : GoalRepository {
 
     override fun getGoalsByIds(ids: List<String>): Flow<List<Goal>> {
-        return db.goalsQueries.getByIds(ids)
+        return db.goalsQueries.getGoalsByIds(ids)
             .asFlow()
             .mapToList(dispatcher)
             .map { goals -> goals.map { it.toDomain() } }

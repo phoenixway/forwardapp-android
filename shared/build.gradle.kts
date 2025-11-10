@@ -7,11 +7,13 @@ plugins {
 }
 
 kotlin {
+    // ✅ Основні таргети
     androidTarget()
-    jvm() // 👈 додаємо JVM таргет для тестів
+    jvm()
 
     sourceSets {
         val commonMain by getting {
+            kotlin.srcDir("build/generated/sqldelight/code/ForwardAppDatabase/commonMain")
             dependencies {
                 implementation(libs.kotlinx.serialization.json)
                 implementation(libs.kotlinx.coroutines.core)
@@ -19,31 +21,18 @@ kotlin {
                 implementation(libs.benasher.uuid)
                 implementation(libs.sqldelight.runtime)
                 implementation(libs.sqldelight.coroutines)
+
+                // ✅ Kotlin Inject runtime (KMP)
+                implementation("me.tatarka.inject:kotlin-inject-runtime-kmp:0.7.1")
             }
         }
 
         val commonTest by getting {
             dependencies {
                 implementation(kotlin("test"))
-            }
-        }
-
-        val jvmMain by getting {
-            dependencies {
-                implementation(libs.sqldelight.sqlite.driver)
-            }
-        }
-
-        val jvmTest by getting {
-            dependencies {
-                implementation(kotlin("test"))
-                implementation(libs.junit)
                 implementation(libs.kotlinx.coroutines.test)
                 implementation(libs.sqldelight.sqlite.driver)
             }
-
-            // 👇 підключаємо SQLDelight згенерований код
-            kotlin.srcDir("build/generated/sqldelight/code/ForwardAppDatabase/commonMain")
         }
 
         val androidMain by getting {
@@ -59,9 +48,24 @@ kotlin {
                 implementation(libs.sqldelight.sqlite.driver)
             }
         }
+
+        val jvmMain by getting {
+            dependencies {
+                implementation(libs.sqldelight.sqlite.driver)
+            }
+        }
+
+        val jvmTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
+                implementation(libs.junit)
+                implementation(libs.kotlinx.coroutines.test)
+            }
+        }
     }
 }
 
+// ✅ Android конфігурація
 android {
     namespace = "com.romankozak.forwardappmobile.shared"
     compileSdk = 36
@@ -79,7 +83,6 @@ android {
         jvmToolchain(17)
     }
 
-    // ✅ Підключаємо код, згенерований KSP
     sourceSets {
         getByName("main") {
             kotlin.srcDir("build/generated/ksp/androidMain/kotlin")
@@ -87,15 +90,30 @@ android {
     }
 }
 
+// ✅ SQLDelight конфігурація
 sqldelight {
     databases {
         create("ForwardAppDatabase") {
-            packageName = "com.romankozak.forwardappmobile.shared.database"
-
-            // ✅ Використовуємо правильний синтаксис без listOf()
-            srcDirs("src/commonMain/sqldelight")
-
+            packageName.set("com.romankozak.forwardappmobile.shared.database")
+            srcDirs.from("src/commonMain/sqldelight")
             schemaOutputDirectory.set(file("src/commonMain/sqldelight/databases"))
+            deriveSchemaFromMigrations.set(true)
+            generateAsync.set(false)
+            dialect("app.cash.sqldelight:sqlite-3-24-dialect:2.0.2")
         }
     }
+}
+
+// ✅ Kotlin Inject compiler через KSP для multiplatform
+dependencies {
+    add("kspCommonMainMetadata", "me.tatarka.inject:kotlin-inject-compiler-ksp:0.7.1")
+    add("kspJvm", "me.tatarka.inject:kotlin-inject-compiler-ksp:0.7.1")
+    add("kspAndroid", "me.tatarka.inject:kotlin-inject-compiler-ksp:0.7.1")
+}
+
+// ✅ Репозиторії
+repositories {
+    google()
+    mavenCentral()
+    maven("https://oss.sonatype.org/content/repositories/snapshots/")
 }

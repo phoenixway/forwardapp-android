@@ -414,7 +414,6 @@ class ProjectRepositoryTest {
             projectStatus = project1.projectStatus,
             projectStatusText = project1.projectStatusText,
             projectLogLevel = project1.projectLogLevel,
-.
             totalTimeSpentMinutes = project1.totalTimeSpentMinutes,
             valueImportance = project1.valueImportance.toDouble(),
             valueImpact = project1.valueImpact.toDouble(),
@@ -557,8 +556,7 @@ androidx-material3 = { group = "androidx.compose.material3", name = "material3" 
 
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
 androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycleRuntimeKtx" }
-androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeKtx" }
-compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
+androidx-lifecycle-runtime-compose = { group = "androidx.compose.foundation", name = "foundation" }
 
 # Navigation
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
