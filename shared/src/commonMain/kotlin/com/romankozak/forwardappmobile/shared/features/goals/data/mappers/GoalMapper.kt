@@ -2,16 +2,19 @@ package com.romankozak.forwardappmobile.shared.features.goals.data.mappers
 
 import com.romankozak.forwardappmobile.shared.database.Goals
 import com.romankozak.forwardappmobile.shared.features.goals.data.models.Goal
+import com.romankozak.forwardappmobile.shared.database.booleanAdapter
+import com.romankozak.forwardappmobile.shared.database.stringListAdapter
+import com.romankozak.forwardappmobile.shared.database.relatedLinksListAdapter
 
 fun Goals.toDomain(): Goal = Goal(
     id = id,
     text = text,
     description = description,
-    completed = completed,
+    completed = booleanAdapter.decode(completed),
     createdAt = createdAt,
     updatedAt = updatedAt,
-    tags = tags,
-    relatedLinks = relatedLinks,
+    tags = tags?.let { stringListAdapter.decode(it) },
+    relatedLinks = relatedLinks?.let { relatedLinksListAdapter.decode(it) },
     valueImportance = valueImportance.toFloat(),
     valueImpact = valueImpact.toFloat(),
     effort = effort.toFloat(),
@@ -21,8 +24,8 @@ fun Goals.toDomain(): Goal = Goal(
     weightCost = weightCost.toFloat(),
     weightRisk = weightRisk.toFloat(),
     rawScore = rawScore.toFloat(),
-    displayScore = displayScore,
-    scoringStatus = scoring_status,
+    displayScore = displayScore.toInt(),
+    scoringStatus = scoringStatus,
     parentValueImportance = parentValueImportance?.toFloat(),
     impactOnParentGoal = impactOnParentGoal?.toFloat(),
     timeCost = timeCost?.toFloat(),

@@ -51,13 +51,9 @@ val stringAdapter = object : ColumnAdapter<String, String> {
 // ------------------------------------------------------
 
 val stringListAdapter = object : ColumnAdapter<List<String>, String> {
-    override fun decode(databaseValue: String): List<String> {
-        if (databaseValue.isEmpty()) return emptyList()
-        return json.decodeFromString(ListSerializer(String.serializer()), databaseValue)
-    }
-
-    override fun encode(value: List<String>): String =
-        json.encodeToString(ListSerializer(String.serializer()), value)
+    override fun decode(databaseValue: String): List<String> =
+        if (databaseValue.isEmpty()) emptyList() else databaseValue.split(",")
+    override fun encode(value: List<String>) = value.joinToString(",")
 }
 
 val relatedLinksListAdapter = object : ColumnAdapter<List<RelatedLink>, String> {
