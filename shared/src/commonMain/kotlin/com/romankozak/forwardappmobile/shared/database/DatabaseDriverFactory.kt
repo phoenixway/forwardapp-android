@@ -15,3 +15,11 @@ expect abstract class PlatformContext
 expect class DatabaseDriverFactory(platformContext: PlatformContext? = null) {
     fun createDriver(): SqlDriver
 }
+
+fun createForwardAppDatabase(
+    driverFactory: DatabaseDriverFactory,
+): ForwardAppDatabase {
+    return ForwardAppDatabase(
+        driver = driverFactory.createDriver()
+    )
+}
