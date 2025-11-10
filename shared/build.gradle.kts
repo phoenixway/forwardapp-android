@@ -72,6 +72,7 @@ sqldelight {
 
 // ✅ Kotlin Inject через KSP
 dependencies {
+    implementation("me.tatarka.inject:kotlin-inject-runtime-kmp:0.7.1")
     add("kspCommonMainMetadata", libs.kotlin.inject.compiler.ksp)
     add("kspJvm", libs.kotlin.inject.compiler.ksp)
     add("kspAndroid", libs.kotlin.inject.compiler.ksp)
