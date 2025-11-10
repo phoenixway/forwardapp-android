@@ -1,0 +1,31 @@
+package com.romankozak.forwardappmobile.shared.features.projects.data.repository
+
+import app.cash.sqldelight.coroutines.asFlow
+import app.cash.sqldelight.coroutines.mapToList
+import app.cash.sqldelight.coroutines.mapToOneOrNull
+import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
+import com.romankozak.forwardappmobile.shared.features.projects.data.mappers.toDomain
+import com.romankozak.forwardappmobile.shared.features.projects.data.models.Project
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+
+class ProjectRepositoryImpl(
+    private val db: ForwardAppDatabase,
+    private val dispatcher: CoroutineDispatcher
+) : ProjectRepository {
+
+    override fun getAllProjects(): Flow<List<Project>> {
+        return db.projectsQueries.getAll()
+            .asFlow()
+            .mapToList(dispatcher)
+            .map { projects -> projects.map { it.toDomain() } }
+    }
+
+    override fun getProjectById(id: String): Flow<Project?> {
+        return db.projectsQueries.getById(id)
+            .asFlow()
+            .mapToOneOrNull(dispatcher)
+            .map { it?.toDomain() }
+    }
+}

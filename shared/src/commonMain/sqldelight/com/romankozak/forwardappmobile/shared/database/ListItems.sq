@@ -1,0 +1,12 @@
+import kotlin.Long;
+
+CREATE TABLE ListItems (
+    id TEXT NOT NULL PRIMARY KEY,
+    projectId TEXT NOT NULL,
+    itemType TEXT NOT NULL,
+    entityId TEXT NOT NULL,
+    "order" INTEGER AS kotlin.Long NOT NULL DEFAULT 0
+);
+
+getByProjectId:
+SELECT * FROM ListItems WHERE projectId = :projectId;

@@ -1,0 +1,49 @@
+import kotlin.Boolean;
+import kotlin.Long;
+import kotlin.Int;
+import kotlin.Double;
+import kotlin.collections.List;
+import com.romankozak.forwardappmobile.shared.data.models.RelatedLink;
+import com.romankozak.forwardappmobile.shared.data.models.ProjectType;
+import com.romankozak.forwardappmobile.shared.data.models.ReservedGroup;
+
+CREATE TABLE Projects (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    parentId TEXT,
+    createdAt INTEGER AS kotlin.Long NOT NULL,
+    updatedAt INTEGER AS kotlin.Long,
+    tags TEXT AS List<kotlin.String>,
+    relatedLinks TEXT AS List<RelatedLink>,
+    isExpanded INTEGER AS kotlin.Boolean NOT NULL DEFAULT 1,
+    "order" INTEGER AS kotlin.Long NOT NULL DEFAULT 0, -- "order" is a keyword, so quote it
+    isAttachmentsExpanded INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
+    defaultViewModeName TEXT,
+    isCompleted INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
+    isProjectManagementEnabled INTEGER AS kotlin.Boolean,
+    projectStatus TEXT,
+    projectStatusText TEXT,
+    projectLogLevel TEXT,
+    totalTimeSpentMinutes INTEGER AS kotlin.Long,
+    valueImportance REAL AS kotlin.Double NOT NULL DEFAULT 0.0,
+    valueImpact REAL AS kotlin.Double NOT NULL DEFAULT 0.0,
+    effort REAL AS kotlin.Double NOT NULL DEFAULT 0.0,
+    cost REAL AS kotlin.Double NOT NULL DEFAULT 0.0,
+    risk REAL AS kotlin.Double NOT NULL DEFAULT 0.0,
+    weightEffort REAL AS kotlin.Double NOT NULL DEFAULT 1.0,
+    weightCost REAL AS kotlin.Double NOT NULL DEFAULT 1.0,
+    weightRisk REAL AS kotlin.Double NOT NULL DEFAULT 1.0,
+    rawScore REAL AS kotlin.Double NOT NULL DEFAULT 0.0,
+    displayScore INTEGER AS kotlin.Int NOT NULL DEFAULT 0,
+    scoringStatus TEXT NOT NULL,
+    showCheckboxes INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
+    projectType TEXT AS ProjectType NOT NULL DEFAULT 'DEFAULT',
+    reservedGroup TEXT AS ReservedGroup
+);
+
+getAll:
+SELECT * FROM Projects;
+
+getById:
+SELECT * FROM Projects WHERE id = :id;

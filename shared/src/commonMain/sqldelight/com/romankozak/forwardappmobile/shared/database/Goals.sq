@@ -1,0 +1,36 @@
+import kotlin.Boolean;
+import kotlin.Long;
+import kotlin.Int;
+import kotlin.Double;
+import kotlin.collections.List;
+import com.romankozak.forwardappmobile.shared.data.models.RelatedLink;
+import com.romankozak.forwardappmobile.shared.data.models.ScoringStatusValues;
+
+CREATE TABLE Goals (
+    id TEXT NOT NULL PRIMARY KEY,
+    text TEXT NOT NULL,
+    description TEXT,
+    completed INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
+    createdAt INTEGER AS kotlin.Long NOT NULL,
+    updatedAt INTEGER AS kotlin.Long,
+    tags TEXT AS List<kotlin.String>,
+    relatedLinks TEXT AS List<RelatedLink>,
+    valueImportance REAL AS kotlin.Double NOT NULL DEFAULT 0.0,
+    valueImpact REAL AS kotlin.Double NOT NULL DEFAULT 0.0,
+    effort REAL AS kotlin.Double NOT NULL DEFAULT 0.0,
+    cost REAL AS kotlin.Double NOT NULL DEFAULT 0.0,
+    risk REAL AS kotlin.Double NOT NULL DEFAULT 0.0,
+    weightEffort REAL AS kotlin.Double NOT NULL DEFAULT 1.0,
+    weightCost REAL AS kotlin.Double NOT NULL DEFAULT 1.0,
+    weightRisk REAL AS kotlin.Double NOT NULL DEFAULT 1.0,
+    rawScore REAL AS kotlin.Double NOT NULL DEFAULT 0.0,
+    displayScore INTEGER AS kotlin.Int NOT NULL DEFAULT 0,
+    scoringStatus TEXT NOT NULL,
+    parentValueImportance REAL AS kotlin.Double,
+    impactOnParentGoal REAL AS kotlin.Double,
+    timeCost REAL AS kotlin.Double,
+    financialCost REAL AS kotlin.Double
+);
+
+getByIds:
+SELECT * FROM Goals WHERE id IN :ids;
