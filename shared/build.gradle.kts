@@ -1,3 +1,5 @@
+import com.google.devtools.ksp.gradle.KspTaskJvm
+
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotlin.serialization)
@@ -7,13 +9,20 @@ plugins {
 }
 
 kotlin {
-    // ✅ Основні таргети
-    androidTarget()
-    jvm()
+    androidTarget {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        }
+    }
+
+    jvm {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        }
+    }
 
     sourceSets {
         val commonMain by getting {
-            kotlin.srcDir("build/generated/sqldelight/code/ForwardAppDatabase/commonMain")
             dependencies {
                 implementation(libs.kotlinx.serialization.json)
                 implementation(libs.kotlinx.coroutines.core)
@@ -21,17 +30,7 @@ kotlin {
                 implementation(libs.benasher.uuid)
                 implementation(libs.sqldelight.runtime)
                 implementation(libs.sqldelight.coroutines)
-
-                // ✅ Kotlin Inject runtime (KMP)
-                implementation("me.tatarka.inject:kotlin-inject-runtime-kmp:0.7.1")
-            }
-        }
-
-        val commonTest by getting {
-            dependencies {
-                implementation(kotlin("test"))
-                implementation(libs.kotlinx.coroutines.test)
-                implementation(libs.sqldelight.sqlite.driver)
+                implementation(libs.kotlin.inject.runtime)
             }
         }
 
@@ -41,79 +40,73 @@ kotlin {
             }
         }
 
-        val androidUnitTest by getting {
-            dependencies {
-                implementation(libs.junit)
-                implementation(libs.kotlinx.coroutines.test)
-                implementation(libs.sqldelight.sqlite.driver)
-            }
-        }
-
         val jvmMain by getting {
             dependencies {
                 implementation(libs.sqldelight.sqlite.driver)
             }
         }
-
-        val jvmTest by getting {
-            dependencies {
-                implementation(kotlin("test"))
-                implementation(libs.junit)
-                implementation(libs.kotlinx.coroutines.test)
-            }
-        }
     }
 }
 
-// ✅ Android конфігурація
 android {
     namespace = "com.romankozak.forwardappmobile.shared"
-    compileSdk = 36
-
-    defaultConfig {
-        minSdk = 29
-    }
+    compileSdk = 34
+    defaultConfig { minSdk = 29 }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-
-    kotlin {
-        jvmToolchain(17)
-    }
-
-    sourceSets {
-        getByName("main") {
-            kotlin.srcDir("build/generated/ksp/androidMain/kotlin")
-        }
-    }
 }
 
-// ✅ SQLDelight конфігурація
+// ✅ SQLDelight
 sqldelight {
     databases {
         create("ForwardAppDatabase") {
             packageName.set("com.romankozak.forwardappmobile.shared.database")
-            srcDirs.from("src/commonMain/sqldelight")
-            schemaOutputDirectory.set(file("src/commonMain/sqldelight/databases"))
             deriveSchemaFromMigrations.set(true)
-            generateAsync.set(false)
-            dialect("app.cash.sqldelight:sqlite-3-24-dialect:2.0.2")
+            schemaOutputDirectory.set(file("src/commonMain/sqldelight/databases"))
         }
     }
 }
 
-// ✅ Kotlin Inject compiler через KSP для multiplatform
+// ✅ Kotlin Inject через KSP
 dependencies {
-    add("kspCommonMainMetadata", "me.tatarka.inject:kotlin-inject-compiler-ksp:0.7.1")
-    add("kspJvm", "me.tatarka.inject:kotlin-inject-compiler-ksp:0.7.1")
-    add("kspAndroid", "me.tatarka.inject:kotlin-inject-compiler-ksp:0.7.1")
+    add("kspCommonMainMetadata", libs.kotlin.inject.compiler.ksp)
+    add("kspJvm", libs.kotlin.inject.compiler.ksp)
+    add("kspAndroid", libs.kotlin.inject.compiler.ksp)
 }
 
-// ✅ Репозиторії
-repositories {
-    google()
-    mavenCentral()
-    maven("https://oss.sonatype.org/content/repositories/snapshots/")
+ksp {
+    arg("me.tatarka.inject.generateCompanionExtensions", "true")
 }
+
+// ✅ РУЧНЕ створення KSP-тасок (оновлено для Gradle 8.5 +)
+afterEvaluate {
+    // JVM
+    tasks.register<KspTaskJvm>("kspJvmKotlin") {
+        group = "ksp"
+        description = "Runs KSP for JVM target"
+        outputs.upToDateWhen { false }
+    }
+
+    // Android Debug
+    tasks.register<KspTaskJvm>("kspAndroidDebugKotlin") {
+        group = "ksp"
+        description = "Runs KSP for Android debug target"
+        outputs.upToDateWhen { false }
+    }
+
+    // Android Release
+    tasks.register<KspTaskJvm>("kspAndroidReleaseKotlin") {
+        group = "ksp"
+        description = "Runs KSP for Android release target"
+        outputs.upToDateWhen { false }
+    }
+
+    // Пов’язуємо метадані
+    tasks.matching { it.name.startsWith("ksp") }.configureEach {
+        dependsOn("kspCommonMainKotlinMetadata")
+    }
+}
+
