@@ -3,8 +3,8 @@ package com.romankozak.forwardappmobile.shared.database
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.cash.sqldelight.db.SqlDriver
 
-// ✅ порожній interface
-actual interface PlatformContext
+// ✅ Порожній клас-заглушка
+actual class PlatformContext
 
 actual class DatabaseDriverFactory actual constructor(
     platformContext: PlatformContext?

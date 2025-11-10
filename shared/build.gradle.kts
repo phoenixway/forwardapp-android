@@ -103,10 +103,14 @@ afterEvaluate {
         description = "Runs KSP for Android release target"
         outputs.upToDateWhen { false }
     }
+// Пов’язуємо всі KSP-таски з метаданими, окрім самої metadata
+tasks.matching { it.name.startsWith("ksp") && it.name != "kspCommonMainKotlinMetadata" }.configureEach {
+    dependsOn("kspCommonMainKotlinMetadata")
+}
+}
 
-    // Пов’язуємо метадані
-    tasks.matching { it.name.startsWith("ksp") }.configureEach {
-        dependsOn("kspCommonMainKotlinMetadata")
-    }
+// ✅ Додаємо згенерований код до сорсів
+kotlin.sourceSets.all {
+    kotlin.srcDir("build/generated/ksp/${name}/kotlin")
 }
 
