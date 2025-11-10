@@ -1,12 +1,14 @@
 [versions]
 # Core Plugins & Tools -> Встановлюємо стабільну, сумісну пару
 accompanistSharedElement = "0.36.0"
-agp = "8.13.0"
+agp = "8.5.2"
 javapoet = "1.13.0"
-kotlin = "2.2.20"
+kotlin = "2.0.21"
 ksp = "2.0.21-1.0.25"
 
 kotlinxSerialization = "1.6.3"
+kotlinxDatetime = "0.6.1"
+benasherUuid = "0.8.4"
 sqlDelight = "2.0.2"
 
 # Compose -> Використовуємо актуальну стабільну версію BOM
@@ -30,7 +32,7 @@ gson = "2.11.0"
 ktor = "2.3.12"
 kotlin-logging = "3.0.5"
 slf4j-android = "1.7.36"
-hilt = "2.57.2"
+hilt = "2.51.1"
 hilt-navigation-compose = "1.2.0"
 compose-dnd = "0.4.0"
 reorderable = "3.0.0"
@@ -131,10 +133,13 @@ play-services-auth = { group = "com.google.android.gms", name = "play-services-a
 accompanist-flowlayout = { group = "com.google.accompanist", name = "accompanist-flowlayout", version.ref = "accompanist" }
 #androidx-foundation-desktop = { group = "androidx.compose.foundation", name = "foundation-desktop", version.ref = "foundationDesktop" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
+benasher-uuid = { module = "com.benasher44:uuid", version.ref = "benasherUuid" }
 sqldelight-runtime = { module = "app.cash.sqldelight:runtime", version.ref = "sqlDelight" }
 sqldelight-coroutines = { module = "app.cash.sqldelight:coroutines-extensions", version.ref = "sqlDelight" }
 sqldelight-android-driver = { module = "app.cash.sqldelight:android-driver", version.ref = "sqlDelight" }
 sqldelight-jvm-driver = { module = "app.cash.sqldelight:sqlite-driver", version.ref = "sqlDelight" }
+sqldelight-sqlite-driver = { module = "app.cash.sqldelight:sqlite-driver", version.ref = "sqlDelight" }
 sqldelight-sqljs-driver = { module = "app.cash.sqldelight:sqljs-driver", version.ref = "sqlDelight" }
 
 kotlin-inject-compiler-ksp = { module = "me.tatarka.inject:kotlin-inject-compiler-ksp", version.ref = "kotlinInject" }

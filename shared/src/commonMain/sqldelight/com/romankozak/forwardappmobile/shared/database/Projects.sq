@@ -47,3 +47,13 @@ SELECT * FROM Projects;
 
 getById:
 SELECT * FROM Projects WHERE id = :id;
+
+insertProject:
+INSERT INTO Projects (
+    id, name, description, parentId, createdAt, updatedAt, tags, relatedLinks,
+    isExpanded, "order", isAttachmentsExpanded, defaultViewModeName, isCompleted,
+    isProjectManagementEnabled, projectStatus, projectStatusText, projectLogLevel,
+    totalTimeSpentMinutes, valueImportance, valueImpact, effort, cost, risk,
+    weightEffort, weightCost, weightRisk, rawScore, displayScore, scoringStatus,
+    showCheckboxes, projectType, reservedGroup
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);

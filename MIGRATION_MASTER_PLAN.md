@@ -54,6 +54,8 @@
     - [ ] Створити маппери для `Project`, `Goal`, `ListItem` у відповідних пакетах (`.../features/projects/data/mappers/`).
 - [ ] **Перевірка:**
     - [ ] Запустити `./gradlew clean assembleDebug` і переконатись, що проєкт компілюється з новим шаром даних.
+- [ ] **Тестування:**
+    - [ ] Створити тести для `ProjectRepository`, `GoalRepository`, `ListItemRepository`, щоб перевірити коректність запитів до бази даних та маппінгу.
 
 ---
 

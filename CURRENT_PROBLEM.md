@@ -1,167 +1,105 @@
-# 🚨 Проблема: SQLDelight 2.x генерує некоректний код для кастомних типів (Оновлено)
+# 🚨 Проблема: Неможливо запустити тести для `commonTest` в KMP модулі (Оновлено)
 
-Привіт! Я — мовна модель, яка застрягла на вирішенні проблеми з генерацією коду в SQLDelight 2.x. Незважаючи на успішне виконання Gradle-завдання `generate...Interface`, згенерований Kotlin-код містить помилки, що блокує всю подальшу компіляцію.
+Привіт! Я — мовна модель, і я застряг на налаштуванні тестів для KMP модуля. Я не можу змусити `commonTest` бачити класи з `commonMain` та згенерований SQLDelight код.
 
 ## Контекст
 
-Ми знаходимося в процесі міграції з Room на SQLDelight у Kotlin Multiplatform проєкті. Наша мета — змусити SQLDelight коректно працювати з нашими `.sq` файлами, які використовують кастомні Kotlin-типи через `ColumnAdapter`.
+Ми працюємо над KMP проєктом, де `shared` модуль містить бізнес-логіку та доступ до даних через SQLDelight. Ми успішно відновили основний шар даних і тепер хочемо покрити його тестами.
 
-## Ключова проблема: успішна генерація, але некоректний код
+## Ключова проблема: `Unresolved reference` та конфлікти версій
 
-1.  Gradle-завдання `:shared:generateCommonMainForwardAppDatabaseInterface` **завершується успішно** (`BUILD SUCCESSFUL`).
-2.  Однак, якщо заглянути у згенерований файл `shared/build/generated/sqldelight/.../Goals.kt` (або інші), ми бачимо, що SQLDelight не завжди коректно виводить типи з `ColumnAdapter`, які ми передаємо під час ініціалізації бази даних. Замість використання реальних Kotlin-типів (наприклад, `List<RelatedLink>`), він генерує код, який буквально використовує псевдоніми типів (`RelatedLinkList`), що призводить до помилок `Unresolved reference`.
+Тести в `shared/src/commonTest` не компілюються через кілька проблем:
+1.  **Конфлікт версій плагіна Kotlin:** Gradle намагається завантажити плагін `org.jetbrains.kotlin.multiplatform` версії `2.2.20`, але на classpath вже є версія `2.0.21`. Це вказує на розбіжність між `gradle/libs.versions.toml` та `settings.gradle.kts`.
+2.  **`Unresolved reference` для `libs["kotlinx-coroutines-test"]`:** Gradle не може розпізнати синтаксис `libs["..."]` для деяких залежностей.
+3.  **`Val cannot be reassigned` для `srcDirs`:** У `sqldelight` блоці `srcDirs` не може бути переприсвоєно за допомогою `listOf()`.
 
-    **Приклад помилкового коду (з `Goals.kt`):**
-    ```kotlin
-    package com.romankozak.forwardappmobile.shared.database
+**Текст помилок:**
+```
+Error resolving plugin [id: 'org.jetbrains.kotlin.multiplatform', version: '2.2.20'] > The request for this plugin could not be satisfied because the plugin is already on the classpath with a different version (2.0.21).
 
-    import Boolean         // ❌ Помилка: Unresolved reference
-    import RelatedLinkList // ❌ Помилка: Unresolved reference
-    import app.cash.sqldelight.ColumnAdapter
-    // ...
+e: file:///.../shared/build.gradle.kts:28:32: Unresolved reference. None of the following candidates is applicable because of receiver type mismatch: public inline operator fun <K, V> Map<out TypeVariable(K), TypeVariable(V)>.get(key: TypeVariable(K)): TypeVariable(V)? defined in kotlin.collections
+e: file:///.../shared/build.gradle.kts:28:36: No get method providing array access
+e: file:///.../shared/build.gradle.kts:44:32: Unresolved reference. None of the following candidates is applicable because of receiver type mismatch: public inline operator fun <K, V> Map<out TypeVariable(K), TypeVariable(V)>.get(key: TypeVariable(K)): TypeVariable(V)? defined in kotlin.collections
+e: file:///.../shared/build.gradle.kts:44:36: No get method providing array access
 
-    public data class Goals(
-      // ...
-      public val completed: Boolean, // ❌ Тип не розпізнано
-      public val relatedLinks: RelatedLinkList?, // ❌ Тип не розпізнано
-      // ...
-    ) {
-      public class Adapter(
-        public val completedAdapter: ColumnAdapter<Boolean, Long>, // ❌ Тип не розпізнано
-        public val relatedLinksAdapter: ColumnAdapter<RelatedLinkList, String>, // ❌ Тип не розпізнано
-      )
-    }
-    ```
+e: file:///.../shared/build.gradle.kts:77:13: Val cannot be reassigned
+e: file:///.../shared/build.gradle.kts:77:21: No applicable 'assign' function found for '=' overload
+e: file:///.../shared/build.gradle.kts:77:23: Type mismatch: inferred type is List<String> but ConfigurableFileCollection was expected
+```
 
-3.  Через ці помилки у згенерованому файлі, подальша компіляція проєкту падає з сотнями помилок `Unresolved reference`, оскільки класи `...Queries` та `Goals` є некоректними.
+## 🔬 Що ми вже пробували
 
-## 🔬 Що ми вже спробували (і в чому полягає протиріччя)
+1.  **Додавання `kotlin.srcDir` до `commonTest`:**
+    *   **Що робили:** Додавали `kotlin.srcDir("build/generated/sqldelight/code/ForwardAppDatabase/commonMain")` до `sourceSets.commonTest`.
+    *   **Результат:** Ті ж самі помилки `Unresolved reference`.
 
-Ми виходили з гіпотези, що SQLDelight 2.x має автоматично виводити правильні Kotlin-типи з `ColumnAdapter`, які ми передаємо під час ініціалізації бази даних.
+2.  **Зміна шляху в `kotlin.srcDir`:**
+    *   **Що робили:** Змінили шлях на `src/commonMain/sqldelight/databases`.
+    *   **Результат:** Ті ж самі помилки.
 
-1.  **Виправлення `.sq` файлу**: Ми привели `.sq` файли до формату, який очікує SQLDelight 2.x, використовуючи `AS <KotlinType>` для кастомних типів та `import` для їх імпорту.
-    ```sql
-    -- Приклад з Goal.sq
-    import kotlin.Boolean;
-    import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink;
+3.  **Додавання згенерованого коду як залежності:**
+    *   **Що робили:** Додавали `implementation(project.files("build/generated/sqldelight/code/ForwardAppDatabase/commonMain"))` до `dependencies` в `commonTest`.
+    *   **Результат:** `sed` команда для зміни build-файлу пошкодила його. Після відновлення проблема залишилась.
 
-    CREATE TABLE Goals (
-        completed INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
-        relatedLinks TEXT AS List<RelatedLink>
-        -- ...
-    );
-    ```
+4.  **Використання `dependsOn(commonMain)`:**
+    *   **Що робили:** Додали `dependsOn(commonMain)` до `commonTest`.
+    *   **Результат:** Помилка збірки `e: commonTest can't declare dependsOn on other source sets`.
 
-2.  **Виправлення `ColumnAdapter`**: Ми переконалися, що у файлі `DatabaseDriverFactory.kt` створені правильні адаптери (`ColumnAdapter<Boolean, Long>` та `ColumnAdapter<List<RelatedLink>, String>`) і передаються в конструктор `Goals.Adapter`.
+5.  **Вимкнення ієрархічного шаблону:**
+    *   **Що робили:** Додали `kotlin.mpp.applyDefaultHierarchyTemplate=false` в `gradle.properties` і `dependsOn(commonMain)` в `commonTest`.
+    *   **Результат:** Та ж сама помилка `e: commonTest can't declare dependsOn on other source sets`.
 
-    ```kotlin
-    // DatabaseDriverFactory.kt
-    val booleanAdapter = object : ColumnAdapter<Boolean, Long> { ... }
-    val relatedLinksListAdapter = object : ColumnAdapter<List<RelatedLink>, String> { ... }
-
-    fun createForwardAppDatabase(driverFactory: DatabaseDriverFactory): ForwardAppDatabase {
-        return ForwardAppDatabase(
-            driver = driverFactory.createDriver(),
-            GoalsAdapter = Goals.Adapter(
-                completedAdapter = booleanAdapter,
-                relatedLinksAdapter = relatedLinksListAdapter
-            )
-            // ...
-        )
-    }
-    ```
-
-**Очікування vs. Реальність (Протиріччя):**
-*   **Очікування**: Ми думали, що плагін SQLDelight "побачить" `relatedLinksAdapter: ColumnAdapter<List<RelatedLink>, String>` і під час генерації коду замінить псевдотип `RelatedLinkList` на реальний тип `List<RelatedLink>`.
-*   **Реальність**: Плагін ігнорує тип з адаптера і генерує код, який буквально використовує `RelatedLinkList` як неіснуючий Kotlin-тип, що призводить до помилок.
-
-Спроби вирішити це через конфігурацію Gradle (`type()` або `columnAdapter()`) також провалилися через неправильний синтаксис DSL, що вказує на те, що такий спосіб конфігурації може бути відсутнім у SQLDelight 2.x.
+6.  **Вирівнювання версій Kotlin:**
+    *   **Що робили:** Оновили `gradle/libs.versions.toml` до `kotlin = "2.0.21"` та `agp = "8.5.2"` відповідно до `settings.gradle.kts`.
+    *   **Результат:** Виникли нові помилки, пов'язані з `libs["kotlinx-coroutines-test"]` та `srcDirs = listOf(...)`.
 
 ## 🧐 Аналіз для іншої мовної моделі
 
-Ми в глухому куті. Існує фундаментальне нерозуміння того, як SQLDelight 2.x має зіставляти типи під час генерації коду.
+Ми в глухому куті. Схоже, що ми неправильно налаштовуємо `sourceSets` для `commonTest` в `shared/build.gradle.kts`, а також маємо проблеми з синтаксисом Gradle Kotlin DSL.
 
-*   **Гіпотеза А (Найбільш імовірна)**: Існує специфічний, неочевидний синтаксис у `build.gradle.kts` для SQLDelight 2.x, який дозволяє "зареєструвати" кастомні типи для кодогенератора. Ми його просто не знайшли.
-*   **Гіпотеза Б**: Це баг у версії плагіна `2.0.2`, який не дозволяє коректно виводити типи з адаптерів.
-*   **Гіпотеза В**: Структура нашого проєкту або спосіб, у який ми надаємо адаптери, є неправильним, і через це плагін не може їх "побачити" на етапі генерації.
+**План дій:**
+1.  **Виправити синтаксичні помилки** в `shared/build.gradle.kts`, зокрема `libs["..."]` та `srcDirs = listOf(...)`.
+2.  **Знайти правильний спосіб** налаштування `sourceSets` в `build.gradle.kts` для KMP проєкту, щоб `commonTest` мав доступ до `commonMain` та згенерованого коду.
+3.  **Запустити тести** і переконатись, що вони компілюються.
 
-## 📝 Прогрес та поточний план дій
+**Я можу додати код. Будь ласка, допоможи мені знайти правильну конфігурацію для `shared/build.gradle.kts`.**
 
-Ми виявили, що проблема `Unresolved reference 'activityRecordsQueries'` була спричинена не Room-дублікатами, а **помилками в інших `.sq` файлах**, які "отруювали" процес кодогенерації SQLDelight.
-
-**Виконані кроки:**
-1.  **Видалено дублікати Room-сутностей:** Перейменовано файли `ActivityRecord.kt`, `ActivityRecordDao.kt`, `ActivityRepository.kt` на `.bak`. Видалено посилання на них з `AppDatabase.kt` та `RepositoryModule.kt`.
-2.  **Ізоляція `.sq` файлів:** Переміщено всі `.sq` файли, крім `Goal.sq` та `ActivityRecord.sq`, до тимчасової папки `sqldelight_backup`. Це дозволило підтвердити, що `activityRecordsQueries` генерується коректно, коли інші файли відсутні.
-3.  **Послідовне виправлення `.sq` файлів:**
-    *   **`InboxRecord.sq`:** Виявлено, що він був причиною повернення помилки `activityRecordsQueries`. Виправлено:
-        *   Додано `import kotlin.Long;`.
-        *   Змінено `createdAt INTEGER` на `createdAt INTEGER AS kotlin.Long NOT NULL`.
-        *   Змінено `item_order INTEGER` на `` `order` INTEGER AS kotlin.Long NOT NULL `` (змінено назву колонки та додано `AS`).
-        *   Переведено `INSERT` на іменовані параметри.
-    *   **`ListItem.sq`:** Виправлено:
-        *   Додано `import kotlin.Long;`.
-        *   Змінено `item_order INTEGER` на `item_order INTEGER AS kotlin.Long NOT NULL`.
-        *   Переведено `INSERT` на іменовані параметри.
-    *   **`DayPlan.sq`:** Виправлено:
-        *   Додано `import kotlin.Long;`, `import kotlin.Float;`, `import kotlin.Int;`.
-        *   Виправлено типи для `date`, `energyLevel`, `totalPlannedMinutes`, `totalCompletedMinutes`, `completionPercentage`, `createdAt`, `updatedAt`.
-        *   Переведено `INSERT` на іменовані параметри.
-    *   **`DayTask.sq`:** Виправлено:
-        *   Додано `import kotlin.Long;`, `import kotlin.Boolean;`, `import kotlin.Float;`, `import kotlin.Int;`, `import java.util.List;`.
-        *   Виправлено типи для `order`, `completed`, `scheduledTime`, `estimatedDurationMinutes`, `actualDurationMinutes`, `dueTime`, `valueImportance`, `valueImpact`, `effort`, `cost`, `risk`, `createdAt`, `updatedAt`, `completedAt`, `nextOccurrenceTime`, `points`.
-        *   Додано `tags TEXT AS List<String>`.
-        *   Переведено `INSERT` на іменовані параметри.
-4.  **Оновлено `DatabaseDriverFactory.kt`:** Додано `stringListAdapter` для `List<String>` та оновлено `DayPlansAdapter` та `DayTasksAdapter` з новими адаптерами (`stringListAdapter`, `booleanAdapter`).
-5.  **Видалено дублікати мапперів/репозиторіїв:** Видалено зайві файли `InboxRecordMapper.kt`, `InboxRecordRepositoryImpl.kt`, `ListItemRepository.kt`.
-6.  **Виправлено маппери та репозиторії:** Оновлено `InboxRecordMapper.kt`, `ListItemMapper.kt`, `ListItemRepositoryImpl.kt`, `DayPlanMapper.kt`, `DayPlanRepositoryImpl.kt`, `DayTaskMapper.kt` для відповідності новим схемам та типам.
-
-**Поточний стан:**
-Наразі ми знаходимося на етапі виправлення `DayTaskRepositoryImpl.kt`.
-
-**Поточний план:**
-1.  **Виправити `DayTaskRepositoryImpl.kt`:**
-    *   Прочитати `shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/shared/features/daymanagement/data/DayTaskRepositoryImpl.kt`.
-    *   Виправити всі невідповідності типів та параметрів запитів, які виникли після оновлення `DayTask.sq` та `DayTaskMapper.kt`.
-2.  **Перевірити збірку:** Запустити `./gradlew clean assembleDebug`.
-3.  **Продовжити міграцію:** Повторювати процес для решти `.sq` файлів з папки `sqldelight_backup`, доки весь проєкт не скомпілюється.
-
-**Я готовий надати будь-який код або виконати команди. Будь ласка, допоможи нам знайти правильний спосіб налаштування типів для SQLDelight 2.x.**
-
-## 🗂️ Ключові файли (оновлено)
+## 🗂️ Ключові файли
 
 **1. `shared/build.gradle.kts`**
 ```kotlin
 plugins {
-    id("org.jetbrains.kotlin.multiplatform")
-    id("org.jetbrains.kotlin.plugin.serialization")
-    id("app.cash.sqldelight")
-    id("com.android.library") // щоб мати androidTarget (androidMain)
-    id("com.google.devtools.ksp") // ✅ додати!
-
-//    alias(libs.plugins.ksp)
-
+    alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.sqldelight)
+    alias(libs.plugins.ksp)
 }
 
-
 kotlin {
-    // ✅ Лишаємо тільки Android + JS
     androidTarget()
-
-    // js(IR) {
-    //     nodejs()
-    //     binaries.executable()
-    //     generateTypeScriptDefinitions()
-    // }
 
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
-                implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
-                implementation("com.benasher44:uuid:0.8.4")
+                implementation(libs.kotlinx.serialization.json)
+                implementation(libs.kotlinx.coroutines.core)
+                implementation(libs.kotlinx.datetime)
+                implementation(libs.benasher.uuid)
                 implementation(libs.sqldelight.runtime)
                 implementation(libs.sqldelight.coroutines)
             }
+        }
+
+        val commonTest by getting {
+            dependsOn(commonMain)
+            dependencies {
+                implementation(kotlin("test"))
+                implementation(libs.junit)
+                implementation(libs["kotlinx-coroutines-test"])
+                implementation(libs.sqldelight.sqlite.driver)
+            }
+            // ✅ Додаємо шлях до згенерованого SQLDelight-коду
             kotlin.srcDir("build/generated/sqldelight/code/ForwardAppDatabase/commonMain")
         }
 
@@ -171,30 +109,31 @@ kotlin {
             }
         }
 
-        // val jsMain by getting {
-        //     dependencies {
-        //         // implementation("app.cash.sqldelight:sqljs-driver:2.1.0-SNAPSHOT")
-        //     }
-        // }
-
-        // ❌ Більше немає jvmMain — прибрано
+        val androidUnitTest by getting {
+            dependencies {
+                implementation(libs.junit)
+                implementation(libs["kotlinx-coroutines-test"])
+                implementation(libs.sqldelight.sqlite.driver)
+            }
+        }
     }
 }
 
 android {
     namespace = "com.romankozak.forwardappmobile.shared"
-    compileSdk = 36  // ✅ Має збігатися з :app
+    compileSdk = 36
     defaultConfig {
-        minSdk = 29  // ✅ Має збігатися з :app
+        minSdk = 29
     }
     compileOptions {
-        // ✅ КРИТИЧНО: Має збігатися з :app
-        sourceCompatibility = JavaVersion.VERSION_17 
-        targetCompatibility = JavaVersion.VERSION_17 
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     kotlin {
-        jvmToolchain(17)  // ✅ Додати це
+        jvmToolchain(17)
     }
+
+    // ✅ Підключаємо KSP-згенерований код
     sourceSets {
         getByName("main") {
             kotlin.srcDir("build/generated/ksp/androidMain/kotlin")
@@ -203,495 +142,498 @@ android {
 }
 
 sqldelight {
-
     databases {
-
         create("ForwardAppDatabase") {
-
             packageName = "com.romankozak.forwardappmobile.shared.database"
-
-            srcDirs = files("src/commonMain/sqldelight")
-
-            // deriveSchemaFromMigrations.set(true)
-
+            srcDirs = listOf("src/commonMain/sqldelight")
             schemaOutputDirectory.set(file("src/commonMain/sqldelight/databases"))
-
-
-
         }
-
     }
-
-}
-
-dependencies {
-    implementation(libs.sqldelight.coroutines)
-    add("kspAndroid", libs.hilt.compiler)
 }
 ```
 
-**2. `shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/shared/database/DatabaseDriverFactory.kt`**
+**2. `shared/src/commonTest/kotlin/com/romankozak/forwardappmobile/shared/features/projects/data/repository/ProjectRepositoryTest.kt`**
 ```kotlin
-package com.romankozak.forwardappmobile.shared.database
+package com.romankozak.forwardappmobile.shared.features.projects.data.repository
 
-import app.cash.sqldelight.ColumnAdapter
-import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.DayStatus
-import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.TaskPriority
-import com.romankozak.forwardappmobile.shared.features.daymanagement.data.model.TaskStatus
-import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
-import app.cash.sqldelight.ColumnAdapter
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.builtins.ListSerializer
-
-/**
- * Platform-specific configuration needed to create a SQLDelight driver.
- */
-expect abstract class PlatformContext
-
-/**
- * Factory that creates a platform-specific SQLDelight driver.
- *
- * A `PlatformContext` can provide additional information (for example, the Android `Context`).
- */
-expect class DatabaseDriverFactory(platformContext: PlatformContext? = null) {
-    fun createDriver(): SqlDriver
-}
-
-val dayStatusAdapter = object : ColumnAdapter<DayStatus, String> {
-    override fun decode(databaseValue: String): DayStatus = DayStatus.valueOf(databaseValue)
-    override fun encode(value: DayStatus): String = value.name
-}
-val taskPriorityAdapter = object : ColumnAdapter<TaskPriority, String> {
-    override fun decode(databaseValue: String): TaskPriority = TaskPriority.valueOf(databaseValue)
-    override fun encode(value: TaskPriority): String = value.name
-}
-val taskStatusAdapter = object : ColumnAdapter<TaskStatus, String> {
-    override fun decode(databaseValue: String): TaskStatus = TaskStatus.valueOf(databaseValue)
-    override fun encode(value: TaskStatus): String = value.name
-}
-
-val booleanAdapter = object : ColumnAdapter<Boolean, Long> {
-    override fun decode(databaseValue: Long): Boolean {
-        return databaseValue != 0L
-    }
-
-    override fun encode(value: Boolean): Long {
-        return if (value) 1L else 0L
-    }
-}
-
-val relatedLinksListAdapter = object : ColumnAdapter<List<RelatedLink>, String> {
-    override fun decode(databaseValue: String): List<RelatedLink> {
-        return Json.decodeFromString(ListSerializer(RelatedLink.serializer()), databaseValue)
-    }
-
-    override fun encode(value: List<RelatedLink>): String {
-        return Json.encodeToString(ListSerializer(RelatedLink.serializer()), value)
-    }
-}
-
-val stringListAdapter = object : ColumnAdapter<List<String>, String> {
-    override fun decode(databaseValue: String): List<String> {
-        if (databaseValue.isEmpty()) return emptyList()
-        return Json.decodeFromString(ListSerializer(String.serializer()), databaseValue)
-    }
-
-    override fun encode(value: List<String>): String {
-        return Json.encodeToString(ListSerializer(String.serializer()), value)
-    }
-}
-
-fun createForwardAppDatabase(
-    driverFactory: DatabaseDriverFactory,
-): ForwardAppDatabase {
-    return ForwardAppDatabase(
-        driver = driverFactory.createDriver(),
-        ActivityRecordsAdapter = ActivityRecords.Adapter(
-            relatedLinksAdapter = relatedLinksListAdapter
-        ),
-        InboxRecordsAdapter = InboxRecords.Adapter(),
-        ListItemsAdapter = ListItems.Adapter(),
-        DayPlansAdapter = DayPlans.Adapter(statusAdapter = dayStatusAdapter),
-        DayTasksAdapter = DayTasks.Adapter(
-            priorityAdapter = taskPriorityAdapter,
-            statusAdapter = taskStatusAdapter,
-            tagsAdapter = stringListAdapter,
-            completedAdapter = booleanAdapter
-        ),
-        GoalsAdapter = Goals.Adapter(
-            completedAdapter = booleanAdapter,
-            relatedLinksAdapter = relatedLinksListAdapter
-        )
-    )
-}
-```
-
-**3. `shared/src/commonMain/sqldelight/com/romankozak/forwardappmobile/shared/database/Goal.sq`**
-```sql
-import kotlin.Boolean;
-import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink;
-import kotlin.Long;
-import kotlin.Float;
-import kotlin.Int;
-
--- ============================================
--- 📌 TABLE: Goals
--- ============================================
-CREATE TABLE Goals (
-    id TEXT NOT NULL PRIMARY KEY,
-    text TEXT NOT NULL,                     -- Назва/текст цілі
-    description TEXT,                       -- Опис (може бути NULL)
-    completed INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,  -- true/false як 1/0
-    createdAt INTEGER AS kotlin.Long NOT NULL,             -- timestamp (Long)
-    updatedAt INTEGER AS kotlin.Long,                      -- timestamp або NULL
-    tags TEXT,                              -- raw string або JSON (якщо треба)
-    relatedLinks TEXT AS List<RelatedLink>,   -- ✅ просто TEXT
-    valueImportance REAL AS kotlin.Float NOT NULL DEFAULT 0.0,
-    valueImpact REAL AS kotlin.Float NOT NULL DEFAULT 0.0,
-    effort REAL AS kotlin.Float NOT NULL DEFAULT 0.0,
-    cost REAL AS kotlin.Float NOT NULL DEFAULT 0.0,
-    risk REAL AS kotlin.Float NOT NULL DEFAULT 0.0,
-    weightEffort REAL AS kotlin.Float NOT NULL DEFAULT 1.0,
-    weightCost REAL AS kotlin.Float NOT NULL DEFAULT 1.0,
-    weightRisk REAL AS kotlin.Float NOT NULL DEFAULT 1.0,
-    rawScore REAL AS kotlin.Float NOT NULL DEFAULT 0.0,
-    displayScore INTEGER AS kotlin.Int NOT NULL DEFAULT 0,
-    scoringStatus TEXT NOT NULL,
-    parentValueImportance REAL AS kotlin.Float,
-    impactOnParentGoal REAL AS kotlin.Float,
-    timeCost REAL AS kotlin.Float,
-    financialCost REAL AS kotlin.Float,
-    markdown TEXT
-);
-
--- ============================================
--- ✅ INSERT
--- ============================================
-insertGoal:
-INSERT INTO Goals (
-    id, text, description, completed,
-    createdAt, updatedAt,
-    tags, relatedLinks,
-    valueImportance, valueImpact, effort, cost, risk,
-    weightEffort, weightCost, weightRisk,
-    rawScore, displayScore,
-    scoringStatus,
-    parentValueImportance, impactOnParentGoal,
-    timeCost, financialCost
-)
-VALUES (
-    :id, :text, :description, :completed,
-    :createdAt, :updatedAt,
-    :tags, :relatedLinks,
-    :valueImportance, :valueImpact, :effort, :cost, :risk,
-    :weightEffort, :weightCost, :weightRisk,
-    :rawScore, :displayScore,
-    :scoringStatus,
-    :parentValueImportance, :impactOnParentGoal,
-    :timeCost, :financialCost
-);
-
--- ============================================
--- ✅ UPDATE
--- ============================================
-updateGoal:
-UPDATE Goals SET
-    text = :text,
-    description = :description,
-    completed = :completed,
-    updatedAt = :updatedAt,
-    tags = :tags,
-    relatedLinks = :relatedLinks,
-    valueImportance = :valueImportance,
-    valueImpact = :valueImpact,
-    effort = :effort,
-    cost = :cost,
-    risk = :risk,
-    weightEffort = :weightEffort,
-    weightCost = :weightCost,
-    weightRisk = :weightRisk,
-    rawScore = :rawScore,
-    displayScore = :displayScore,
-    scoringStatus = :scoringStatus,
-    parentValueImportance = :parentValueImportance,
-    impactOnParentGoal = :impactOnParentGoal,
-    timeCost = :timeCost,
-    financialCost = :financialCost
-WHERE id = :id;
-
--- ============================================
--- ✅ DELETE
--- ============================================
-deleteGoal:
-DELETE FROM Goals WHERE id = :id;
-
-deleteAll:
-DELETE FROM Goals;
-
--- ============================================
--- ✅ SELECT: BY ID
--- ============================================
-getGoalById:
-SELECT * FROM Goals WHERE id = :id;
-
--- ============================================
--- ✅ SELECT: ALL
--- ============================================
-getAllGoals:
-SELECT * FROM Goals ORDER BY createdAt DESC;
-
--- ============================================
--- ✅ SELECT: BY IDs
--- ============================================
-getGoalsByIds:
-SELECT * FROM Goals WHERE id IN :ids;
-
--- ============================================
--- ✅ SEARCH
--- ============================================
-searchGoalsByText:
-SELECT * FROM Goals WHERE text LIKE '%' || :query || '%' OR description LIKE '%' || :query || '%';
-
--- ============================================
--- ✅ COUNT
--- ============================================
-getAllGoalsCount:
-SELECT count(*) FROM Goals;
-
--- ============================================
--- ✅ UPDATE MARKDOWN
--- ============================================
-updateMarkdown:
-UPDATE Goals SET markdown = :markdown WHERE id = :goalId;
-```
-
-**4. `shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/shared/features/goals/data/GoalRepositoryImpl.kt`**
-```kotlin
-package com.romankozak.forwardappmobile.shared.features.goals.data
-
-import app.cash.sqldelight.coroutines.asFlow
-import app.cash.sqldelight.coroutines.mapToList
-import app.cash.sqldelight.coroutines.mapToOne
-import app.cash.sqldelight.coroutines.mapToOneOrNull
-import com.romankozak.forwardappmobile.shared.data.database.models.Goal
-import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
+import app.cash.sqldelight.db.SqlDriver
+import app.cash.sqldelight.driver.sqlite.JdbcSqliteDriver
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.withContext
-import kotlinx.serialization.builtins.ListSerializer
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
+import com.romankozak.forwardappmobile.shared.database.createForwardAppDatabase
+import com.romankozak.forwardappmobile.shared.database.longAdapter
+import com.romankozak.forwardappmobile.shared.database.doubleAdapter
+import com.romankozak.forwardappmobile.shared.database.intAdapter
+import com.romankozak.forwardappmobile.shared.database.stringListAdapter
+import com.romankozak.forwardappmobile.shared.database.relatedLinksListAdapter
+import com.romankozak.forwardappmobile.shared.database.projectTypeAdapter
+import com.romankozak.forwardappmobile.shared.database.reservedGroupAdapter
+import com.romankozak.forwardappmobile.shared.features.projects.data.models.Project
+import com.romankozak.forwardappmobile.shared.features.projects.data.models.ProjectType
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
-class GoalRepositoryImpl(
-    private val db: ForwardAppDatabase,
-    private val ioDispatcher: CoroutineDispatcher
-) : GoalRepository {
+@OptIn(ExperimentalCoroutinesApi::class)
+class ProjectRepositoryTest {
 
-    override suspend fun insertGoal(goal: Goal) {
-        val queries = db.goalQueries
-        withContext(ioDispatcher) {
-            queries.insertGoal(
-                id = goal.id,
-                text = goal.text,
-                description = goal.description,
-                completed = goal.completed,
-                createdAt = goal.createdAt,
-                updatedAt = goal.updatedAt,
-                tags = goal.tags,
-                relatedLinks = goal.relatedLinks,
-                valueImportance = goal.valueImportance,
-                valueImpact = goal.valueImpact,
-                effort = goal.effort,
-                cost = goal.cost,
-                risk = goal.risk,
-                weightEffort = goal.weightEffort,
-                weightCost = goal.weightCost,
-                weightRisk = goal.weightRisk,
-                rawScore = goal.rawScore,
-                displayScore = goal.displayScore,
-                scoringStatus = goal.scoringStatus,
-                parentValueImportance = goal.parentValueImportance,
-                impactOnParentGoal = goal.impactOnParentGoal,
-                timeCost = goal.timeCost,
-                financialCost = goal.financialCost
+    private lateinit var driver: SqlDriver
+    private lateinit var database: ForwardAppDatabase
+    private lateinit var repository: ProjectRepositoryImpl
+
+    @BeforeTest
+    fun setup() {
+        driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
+        ForwardAppDatabase.Schema.create(driver)
+        database = ForwardAppDatabase(
+            driver = driver,
+            ProjectsAdapter = ForwardAppDatabase.Projects.Adapter(
+                createdAtAdapter = longAdapter,
+                tagsAdapter = stringListAdapter,
+                relatedLinksAdapter = relatedLinksListAdapter,
+                orderAdapter = longAdapter,
+                valueImportanceAdapter = doubleAdapter,
+                valueImpactAdapter = doubleAdapter,
+                effortAdapter = doubleAdapter,
+                costAdapter = doubleAdapter,
+                riskAdapter = doubleAdapter,
+                weightEffortAdapter = doubleAdapter,
+                weightCostAdapter = doubleAdapter,
+                weightRiskAdapter = doubleAdapter,
+                rawScoreAdapter = doubleAdapter,
+                displayScoreAdapter = intAdapter,
+                projectTypeAdapter = projectTypeAdapter,
+                reservedGroupAdapter = reservedGroupAdapter
+            ),
+            GoalsAdapter = ForwardAppDatabase.Goals.Adapter(
+                createdAtAdapter = longAdapter,
+                tagsAdapter = stringListAdapter,
+                relatedLinksAdapter = relatedLinksListAdapter,
+                valueImportanceAdapter = doubleAdapter,
+                valueImpactAdapter = doubleAdapter,
+                effortAdapter = doubleAdapter,
+                costAdapter = doubleAdapter,
+                riskAdapter = doubleAdapter,
+                weightEffortAdapter = doubleAdapter,
+                weightCostAdapter = doubleAdapter,
+                weightRiskAdapter = doubleAdapter,
+                rawScoreAdapter = doubleAdapter,
+                displayScoreAdapter = intAdapter
+            ),
+            ListItemsAdapter = ForwardAppDatabase.ListItems.Adapter(
+                orderAdapter = longAdapter
             )
-        }
+        )
+        repository = ProjectRepositoryImpl(database, Dispatchers.Unconfined)
     }
 
-    override suspend fun insertGoals(goals: List<Goal>) {
-        val queries = db.goalQueries
-        withContext(ioDispatcher) {
-            goals.forEach { goal ->
-                queries.insertGoal(
-                    id = goal.id,
-                    text = goal.text,
-                    description = goal.description,
-                    completed = goal.completed,
-                    createdAt = goal.createdAt,
-                    updatedAt = goal.updatedAt,
-                    tags = goal.tags,
-                    relatedLinks = goal.relatedLinks,
-                    valueImportance = goal.valueImportance,
-                    valueImpact = goal.valueImpact,
-                    effort = goal.effort,
-                    cost = goal.cost,
-                    risk = goal.risk,
-                    weightEffort = goal.weightEffort,
-                    weightCost = goal.weightCost,
-                    weightRisk = goal.weightRisk,
-                    rawScore = goal.rawScore,
-                    displayScore = goal.displayScore,
-                    scoringStatus = goal.scoringStatus,
-                    parentValueImportance = goal.parentValueImportance,
-                    impactOnParentGoal = goal.impactOnParentGoal,
-                    timeCost = goal.timeCost,
-                    financialCost = goal.financialCost
-                )
-            }
-        }
+    @AfterTest
+    fun tearDown() {
+        driver.close()
     }
 
-    override suspend fun updateGoal(goal: Goal) {
-        val queries = db.goalQueries
-        withContext(ioDispatcher) {
-            queries.updateGoal(
-                id = goal.id,
-                text = goal.text,
-                description = goal.description,
-                completed = goal.completed,
-                updatedAt = goal.updatedAt,
-                tags = goal.tags,
-                relatedLinks = goal.relatedLinks,
-                valueImportance = goal.valueImportance,
-                valueImpact = goal.valueImpact,
-                effort = goal.effort,
-                cost = goal.cost,
-                risk = goal.risk,
-                weightEffort = goal.weightEffort,
-                weightCost = goal.weightCost,
-                weightRisk = goal.weightRisk,
-                rawScore = goal.rawScore,
-                displayScore = goal.displayScore,
-                scoringStatus = goal.scoringStatus,
-                parentValueImportance = goal.parentValueImportance,
-                impactOnParentGoal = goal.impactOnParentGoal,
-                timeCost = goal.timeCost,
-                financialCost = goal.financialCost
-            )
-        }
+    @Test
+    fun `getAllProjects returns empty list initially`() = runTest {
+        val projects = repository.getAllProjects().first()
+        assertEquals(0, projects.size)
     }
 
-    override suspend fun updateGoals(goals: List<Goal>) {
-        val queries = db.goalQueries
-        withContext(ioDispatcher) {
-            goals.forEach { goal ->
-                queries.updateGoal(
-                    id = goal.id,
-                    text = goal.text,
-                    description = goal.description,
-                    completed = goal.completed,
-                    updatedAt = goal.updatedAt,
-                    tags = goal.tags,
-                    relatedLinks = goal.relatedLinks,
-                    valueImportance = goal.valueImportance,
-                    valueImpact = goal.valueImpact,
-                    effort = goal.effort,
-                    cost = goal.cost,
-                    risk = goal.risk,
-                    weightEffort = goal.weightEffort,
-                    weightCost = goal.weightCost,
-                    weightRisk = goal.weightRisk,
-                    rawScore = goal.rawScore,
-                    displayScore = goal.displayScore,
-                    scoringStatus = goal.scoringStatus,
-                    parentValueImportance = goal.parentValueImportance,
-                    impactOnParentGoal = goal.impactOnParentGoal,
-                    timeCost = goal.timeCost,
-                    financialCost = goal.financialCost
-                )
-            }
-        }
+    @Test
+    fun `getProjectById returns null for non-existent project`() = runTest {
+        val project = repository.getProjectById("non_existent_id").first()
+        assertNull(project)
     }
 
-    override suspend fun deleteGoalById(id: String) {
-        val queries = db.goalQueries
-        withContext(ioDispatcher) {
-            queries.deleteGoal(id)
-        }
+    @Test
+    fun `insert and retrieve project`() = runTest {
+        val project = Project(
+            id = "project_1",
+            name = "Test Project",
+            description = "Description",
+            parentId = null,
+            createdAt = 1L,
+            updatedAt = null,
+            tags = listOf("tag1", "tag2"),
+            relatedLinks = emptyList(),
+            isExpanded = true,
+            order = 0L,
+            isAttachmentsExpanded = false,
+            defaultViewModeName = null,
+            isCompleted = false,
+            isProjectManagementEnabled = false,
+            projectStatus = "NO_PLAN",
+            projectStatusText = null,
+            projectLogLevel = "NORMAL",
+            totalTimeSpentMinutes = 0L,
+            valueImportance = 0f,
+            valueImpact = 0f,
+            effort = 0f,
+            cost = 0f,
+            risk = 0f,
+            weightEffort = 1f,
+            weightCost = 1f,
+            weightRisk = 1f,
+            rawScore = 0f,
+            displayScore = 0,
+            scoringStatus = "NOT_ASSESSED",
+            showCheckboxes = false,
+            projectType = ProjectType.DEFAULT,
+            reservedGroup = null
+        )
+        database.projectsQueries.insertProject(
+            id = project.id,
+            name = project.name,
+            description = project.description,
+            parentId = project.parentId,
+            createdAt = project.createdAt,
+            updatedAt = project.updatedAt,
+            tags = project.tags,
+            relatedLinks = project.relatedLinks,
+            isExpanded = project.isExpanded,
+            order = project.order,
+            isAttachmentsExpanded = project.isAttachmentsExpanded,
+            defaultViewModeName = project.defaultViewModeName,
+            isCompleted = project.isCompleted,
+            isProjectManagementEnabled = project.isProjectManagementEnabled,
+            projectStatus = project.projectStatus,
+            projectStatusText = project.projectStatusText,
+            projectLogLevel = project.projectLogLevel,
+            totalTimeSpentMinutes = project.totalTimeSpentMinutes,
+            valueImportance = project.valueImportance.toDouble(),
+            valueImpact = project.valueImpact.toDouble(),
+            effort = project.effort.toDouble(),
+            cost = project.cost.toDouble(),
+            risk = project.risk.toDouble(),
+            weightEffort = project.weightEffort.toDouble(),
+            weightCost = project.weightCost.toDouble(),
+            weightRisk = project.weightRisk.toDouble(),
+            rawScore = project.rawScore.toDouble(),
+            displayScore = project.displayScore,
+            scoringStatus = project.scoringStatus,
+            showCheckboxes = project.showCheckboxes,
+            projectType = project.projectType,
+            reservedGroup = project.reservedGroup
+        )
+
+        val retrievedProject = repository.getProjectById(project.id).first()
+        assertNotNull(retrievedProject)
+        assertEquals(project, retrievedProject)
     }
 
-    override suspend fun getGoalById(id: String): Goal? {
-        val queries = db.goalQueries
-        return withContext(ioDispatcher) {
-            queries.getGoalById(id).executeAsOneOrNull()?.toDomain()
-        }
-    }
+    @Test
+    fun `getAllProjects returns all inserted projects`() = runTest {
+        val project1 = Project(
+            id = "project_1",
+            name = "Test Project 1",
+            description = null,
+            parentId = null,
+            createdAt = 1L,
+            updatedAt = null,
+            tags = null,
+            relatedLinks = null,
+            isExpanded = true,
+            order = 0L,
+            isAttachmentsExpanded = false,
+            defaultViewModeName = null,
+            isCompleted = false,
+            isProjectManagementEnabled = false,
+            projectStatus = "NO_PLAN",
+            projectStatusText = null,
+            projectLogLevel = "NORMAL",
+            totalTimeSpentMinutes = 0L,
+            valueImportance = 0f,
+            valueImpact = 0f,
+            effort = 0f,
+            cost = 0f,
+            risk = 0f,
+            weightEffort = 1f,
+            weightCost = 1f,
+            weightRisk = 1f,
+            rawScore = 0f,
+            displayScore = 0,
+            scoringStatus = "NOT_ASSESSED",
+            showCheckboxes = false,
+            projectType = ProjectType.DEFAULT,
+            reservedGroup = null
+        )
+        val project2 = Project(
+            id = "project_2",
+            name = "Test Project 2",
+            description = null,
+            parentId = null,
+            createdAt = 2L,
+            updatedAt = null,
+            tags = null,
+            relatedLinks = null,
+            isExpanded = true,
+            order = 1L,
+            isAttachmentsExpanded = false,
+            defaultViewModeName = null,
+            isCompleted = false,
+            isProjectManagementEnabled = false,
+            projectStatus = "NO_PLAN",
+            projectStatusText = null,
+            projectLogLevel = "NORMAL",
+            totalTimeSpentMinutes = 0L,
+            valueImportance = 0f,
+            valueImpact = 0f,
+            effort = 0f,
+            cost = 0f,
+            risk = 0f,
+            weightEffort = 1f,
+            weightCost = 1f,
+            weightRisk = 1f,
+            rawScore = 0f,
+            displayScore = 0,
+            scoringStatus = "NOT_ASSESSED",
+            showCheckboxes = false,
+            projectType = ProjectType.DEFAULT,
+            reservedGroup = null
+        )
+        database.projectsQueries.insertProject(
+            id = project1.id,
+            name = project1.name,
+            description = project1.description,
+            parentId = project1.parentId,
+            createdAt = project1.createdAt,
+            updatedAt = project1.updatedAt,
+            tags = project1.tags,
+            relatedLinks = project1.relatedLinks,
+            isExpanded = project1.isExpanded,
+            order = project1.order,
+            isAttachmentsExpanded = project1.isAttachmentsExpanded,
+            defaultViewModeName = project1.defaultViewModeName,
+            isCompleted = project1.isCompleted,
+            isProjectManagementEnabled = project1.isProjectManagementEnabled,
+            projectStatus = project1.projectStatus,
+            projectStatusText = project1.projectStatusText,
+            projectLogLevel = project1.projectLogLevel,
+            totalTimeSpentMinutes = project1.totalTimeSpentMinutes,
+            valueImportance = project1.valueImportance.toDouble(),
+            valueImpact = project1.valueImpact.toDouble(),
+            effort = project1.effort.toDouble(),
+            cost = project1.cost.toDouble(),
+            risk = project1.risk.toDouble(),
+            weightEffort = project1.weightEffort.toDouble(),
+            weightCost = project1.weightCost.toDouble(),
+            weightRisk = project1.weightRisk.toDouble(),
+            rawScore = project1.rawScore.toDouble(),
+            displayScore = project1.displayScore,
+            scoringStatus = project1.scoringStatus,
+            showCheckboxes = project1.showCheckboxes,
+            projectType = project1.projectType,
+            reservedGroup = project1.reservedGroup
+        )
+        database.projectsQueries.insertProject(
+            id = project2.id,
+            name = project2.name,
+            description = project2.description,
+            parentId = project2.parentId,
+            createdAt = project2.createdAt,
+            updatedAt = project2.updatedAt,
+            tags = project2.tags,
+            relatedLinks = project2.relatedLinks,
+            isExpanded = project2.isExpanded,
+            order = project2.order,
+            isAttachmentsExpanded = project2.isAttachmentsExpanded,
+            defaultViewModeName = project2.defaultViewModeName,
+            isCompleted = project2.isCompleted,
+            isProjectManagementEnabled = project2.isProjectManagementEnabled,
+            projectStatus = project2.projectStatus,
+            projectStatusText = project2.projectStatusText,
+            projectLogLevel = project2.projectLogLevel,
+            totalTimeSpentMinutes = project2.totalTimeSpentMinutes,
+            valueImportance = project2.valueImportance.toDouble(),
+            valueImpact = project2.valueImpact.toDouble(),
+            effort = project2.effort.toDouble(),
+            cost = project2.cost.toDouble(),
+            risk = project2.risk.toDouble(),
+            weightEffort = project2.weightEffort.toDouble(),
+            weightCost = project2.weightCost.toDouble(),
+            weightRisk = project2.weightRisk.toDouble(),
+            rawScore = project2.rawScore.toDouble(),
+            displayScore = project2.displayScore,
+            scoringStatus = project2.scoringStatus,
+            showCheckboxes = project2.showCheckboxes,
+            projectType = project2.projectType,
+            reservedGroup = project2.reservedGroup
+        )
 
-    override fun getGoalsByIds(ids: List<String>): Flow<List<Goal>> {
-        val queries = db.goalQueries
-        return queries.getGoalsByIds(ids)
-            .asFlow()
-            .mapToList(ioDispatcher)
-            .map { goals -> goals.map { it.toDomain() } }
-    }
-
-    override suspend fun getGoalsByIdsSuspend(ids: List<String>): List<Goal> {
-        val queries = db.goalQueries
-        return withContext(ioDispatcher) {
-            queries.getGoalsByIds(ids).executeAsList().map { it.toDomain() }
-        }
-    }
-
-    override suspend fun getAll(): List<Goal> {
-        val queries = db.goalQueries
-        return withContext(ioDispatcher) {
-            queries.getAllGoals().executeAsList().map { it.toDomain() }
-        }
-    }
-
-    override fun getAllGoalsFlow(): Flow<List<Goal>> {
-        val queries = db.goalQueries
-        return queries.getAllGoals()
-            .asFlow()
-            .mapToList(ioDispatcher)
-            .map { goals -> goals.map { it.toDomain() } }
-    }
-
-    override fun searchGoalsByText(query: String): Flow<List<Goal>> {
-        val queries = db.goalQueries
-        return queries.searchGoalsByText(query)
-            .asFlow()
-            .mapToList(ioDispatcher)
-            .map { goals -> goals.map { it.toDomain() } }
-    }
-
-    override fun getAllGoalsCountFlow(): Flow<Int> {
-        val queries = db.goalQueries
-        return queries.getAllGoalsCount()
-            .asFlow()
-            .mapToOne(ioDispatcher)
-            .map { it.toInt() }
-    }
-
-    override suspend fun updateMarkdown(
-        goalId: String,
-        markdown: String,
-    ) {
-        val queries = db.goalQueries
-        withContext(ioDispatcher) {
-            queries.updateMarkdown(goalId, markdown)
-        }
-    }
-
-    override suspend fun deleteAll() {
-        val queries = db.goalQueries
-        withContext(ioDispatcher) {
-            queries.deleteAll()
-        }
+        val projects = repository.getAllProjects().first()
+        assertEquals(2, projects.size)
+        assertEquals(project1, projects[0])
+        assertEquals(project2, projects[1])
     }
 }
 ```
+
+**3. `gradle/libs.versions.toml`**
+```toml
+[versions]
+# Core Plugins & Tools -> Встановлюємо стабільну, сумісну пару
+accompanistSharedElement = "0.36.0"
+agp = "8.5.2"
+javapoet = "1.13.0"
+kotlin = "2.0.21"
+ksp = "2.0.21-1.0.25"
+
+kotlinxSerialization = "1.6.3"
+kotlinxDatetime = "0.6.1"
+benasherUuid = "0.8.4"
+sqlDelight = "2.0.2"
+
+# Compose -> Використовуємо актуальну стабільну версію BOM
+androidx-compose-bom = "2024.02.01"
+
+# AndroidX Libraries
+coreKtx = "1.13.1"
+lifecycleRuntimeKtx = "2.8.2"
+activityCompose = "1.9.0"
+navigationCompose = "2.7.7"
+room = "2.8.1"
+datastore = "1.1.1"
+
+# Testing
+junit = "4.13.2"
+androidx-junit = "1.2.1"
+androidx-espresso-core = "3.6.1"
+
+# Other Libraries
+gson = "2.11.0"
+ktor = "2.3.12"
+kotlin-logging = "3.0.5"
+slf4j-android = "1.7.36"
+hilt = "2.51.1"
+hilt-navigation-compose = "1.2.0"
+compose-dnd = "0.4.0"
+reorderable = "3.0.0"
+kotlinx-coroutines = "1.9.0"
+kotlinInject = "0.7.1"
+
+google-services-plugin-version = "4.4.1"
+firebase-crashlytics-plugin-version = "2.9.9"
+firebase-bom = "33.1.0"
+
+accompanist = "0.34.0"
+jetbrainsKotlinJvm = "2.0.21"
+#foundationDesktop = "1.7.0"
+
+[libraries]
+
+
+# ДОДАНІ БІБЛІОТЕКИ ДЛЯ АНІМАЦІЇ
+accompanist-navigation-animation = { module = "com.google.accompanist:accompanist-navigation-animation", version.ref = "accompanistSharedElement" }
+accompanist-shared-element = { module = "com.google.accompanist:accompanist-shared-element", version.ref = "accompanistSharedElement" }
+compose-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout" }
+compose-animation-core = { group = "androidx.compose.animation", name = "animation-core" }
+compose-animation = { group = "androidx.compose.animation", name = "animation" }
+
+# ВАША ЛОКАЛЬНА БІБЛІОТЕКА REORDERABLE - ВИПРАВЛЕНО
+javapoet = { module = "com.squareup:javapoet", version.ref = "javapoet" }
+reorderable = { group = "sh.calvin.reorderable", name = "reorderable-android", version.ref = "reorderable" }
+
+compose-dnd = { group = "com.mohamedrejeb.dnd", name = "compose-dnd", version.ref = "compose-dnd" }
+
+# AndroidX Core & Lifecycle
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
+androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+
+# Compose (версії керуються через BOM)
+androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "androidx-compose-bom" }
+androidx-ui = { group = "androidx.compose.ui", name = "ui" }
+androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
+androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
+
+androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
+androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycleRuntimeKtx" }
+androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeKtx" }
+compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
+
+# Navigation
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
+
+# Room
+androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version = "room" }
+androidx-room-testing = { group = "androidx.room", name = "room-testing", version.ref = "room" }
+
+# Ktor Server & Client
+ktor-server-core = { group = "io.ktor", name = "ktor-server-core-jvm", version.ref = "ktor" }
+ktor-server-netty = { group = "io.ktor", name = "ktor-server-netty-jvm", version.ref = "ktor" }
+ktor-server-content-negotiation = { group = "io.ktor", name = "ktor-server-content-negotiation-jvm", version.ref = "ktor" }
+ktor-serialization-gson = { group = "io.ktor", name = "ktor-serialization-gson-jvm", version.ref = "ktor" }
+ktor-client-core = { group = "io.ktor", name = "ktor-client-core-jvm", version.ref = "ktor" }
+ktor-client-cio = { group = "io.ktor", name = "ktor-client-cio-jvm", version.ref = "ktor" }
+ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-content-negotiation-jvm", version.ref = "ktor" }
+
+# Logging
+kotlin-logging-jvm = { group = "io.github.microutils", name = "kotlin-logging-jvm", version.ref = "kotlin-logging" }
+slf4j-android = { group = "org.slf4j", name = "slf4j-android", version.ref = "slf4j-android"}
+
+# Other Libraries
+google-gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+
+# Testing
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+"kotlinx-coroutines-test" = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
+androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidx-junit" }
+androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "androidx-espresso-core" }
+androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
+androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
+
+# Hilt
+hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
+hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
+hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hilt-navigation-compose" }
+
+# Firebase
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebase-bom" }
+firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics-ktx" }
+firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics-ktx" }
+firebase-remote-config = { group = "com.google.firebase", name = "firebase-config-ktx" }
+firebase-installations = { group = "com.google.firebase", name = "firebase-installations-ktx" }
+play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version = "21.0.0" }
+
+# Rest
+accompanist-flowlayout = { group = "com.google.accompanist", name = "accompanist-flowlayout", version.ref = "accompanist" }
+#androidx-foundation-desktop = { group = "androidx.compose.foundation", name = "foundation-desktop", version.ref = "foundationDesktop" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
+benasher-uuid = { module = "com.benasher44:uuid", version.ref = "benasherUuid" }
+sqldelight-runtime = { module = "app.cash.sqldelight:runtime", version.ref = "sqlDelight" }
+sqldelight-coroutines = { module = "app.cash.sqldelight:coroutines-extensions", version.ref = "sqlDelight" }
+sqldelight-android-driver = { module = "app.cash.sqldelight:android-driver", version.ref = "sqlDelight" }
+sqldelight-jvm-driver = { module = "app.cash.sqldelight:sqlite-driver", version.ref = "sqlDelight" }
+sqldelight-sqlite-driver = { module = "app.cash.sqldelight:sqlite-driver", version.ref = "sqlDelight" }
+sqldelight-sqljs-driver = { module = "app.cash.sqldelight:sqljs-driver", version.ref = "sqlDelight" }
+
+kotlin-inject-compiler-ksp = { module = "me.tatarka.inject:kotlin-inject-compiler-ksp", version.ref = "kotlinInject" }
+kotlin-inject-runtime = { module = "me.tatarka.inject:kotlin-inject-runtime-kmp", version.ref = "kotlinInject" }
+
+
+[plugins]
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+android-library = { id = "com.android.library", version.ref = "agp" }
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "jetbrainsKotlinJvm" }
+google-services-plugin = { id = "com.google.gms.google-services", version.ref = "google-services-plugin-version" }
+firebase-crashlytics-plugin = { id = "com.google.firebase.crashlytics", version.ref = "firebase-crashlytics-plugin-version" }
+sqldelight = { id = "app.cash.sqldelight", version.ref = "sqlDelight" }
