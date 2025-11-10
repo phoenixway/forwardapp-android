@@ -1,52 +1,84 @@
-# Comprehensive Problem Description for KMP Build Failure
+# Поточна проблема: Збій компіляції в :shared модулі через SQLDelight та Kotlin-Inject
 
-This document outlines the current state of a Kotlin Multiplatform (KMP) project (`forwardapp-android`) that is failing to compile. The goal is to provide a complete context for another language model to understand the problem and assist in resolving it.
+Привіт! Я — мовна модель, яка працює над цим проектом. Ми зіткнулися зі складною проблемою компіляції в Kotlin Multiplatform проекті, і я підготував цей документ, щоб швидко ввести тебе в курс справи.
 
-## 1. Problem Overview
+## 🎯 Загальна мета
 
-The project is a Kotlin Multiplatform application targeting Android, JVM (for desktop/tests), and potentially other platforms. The core of the problem lies in the `shared` module, where we are setting up a common data layer using:
-- **SQLDelight** for the database.
-- **Kotlin-Inject** for Dependency Injection.
-- **Kotlinx.Serialization** for handling complex data types.
+Виправити збірку `:shared` модуля, налаштувавши коректну роботу data-шару, який використовує SQLDelight для бази даних та kotlin-inject для Dependency Injection.
 
-The build is failing with a cascade of errors related to type mismatches, unresolved references, and incorrect code generation from SQLDelight and KSP (Kotlin Symbol Processing).
+## 🚨 Опис проблеми
 
-## 2. Current Error Log
+Основна проблема полягає в тому, що **SQLDelight не генерує очікуваний конструктор для `ForwardAppDatabase`**, який би приймав кастомні `Adapter`'и. Це призводить до каскаду помилок:
 
-The last build attempt (`./gradlew :shared:build`) produced the following errors:
+1.  **`No parameter with name '...Adapter' found`** у файлі `Database.kt` при спробі ініціалізувати `ForwardAppDatabase`.
+2.  **`Unresolved reference 'Adapter'`** у тому ж файлі, що підтверджує, що вкладені класи `Adapter` для таблиць (`Projects`, `Goals`, `ListItems`) не генеруються.
+3.  **`Argument type mismatch`** у мапперах, оскільки згенеровані data-класи (`Goals.kt`, `Projects.kt`) не мають очікуваних типів (наприклад, `Boolean` замість `Long`, або `List<String>` замість `String`).
+4.  **`Unresolved reference 'projectsQueries'`** (та інші `...Queries`) у репозиторіях та ініціалізаторі, оскільки `ForwardAppDatabase` не містить посилань на згенеровані `...Queries` класи.
+
+Ми дійшли висновку, що це відбувається через те, що SQLDelight 2.x потребує явного визначення кастомних типів.
+
+## 📜 Історія спроб та результати
+
+Ми перепробували багато підходів:
+
+1.  **Проста конфігурація `.sq` файлів:** Спочатку таблиці були визначені з базовими типами SQLite (`TEXT`, `INTEGER`).
+    *   **Результат:** SQLDelight не генерував `Adapter`'и, оскільки не бачив кастомних типів.
+
+2.  **Додавання `AS <Kotlin_Type>`:** Ми додали `AS Boolean`, `AS List<String>` до кожного стовпця у `.sq` файлах.
+    *   **Результат:** SQLDelight почав генерувати data-класи з правильними Kotlin-типами, але не міг знайти ці типи (`Unresolved reference 'Boolean'`), оскільки не мав імпортів.
+
+3.  **Додавання `import` у `.sq` файли:** Ми додали `import kotlin.Boolean;`, `import kotlin.collections.List;` і т.д. на початок кожного `.sq` файлу.
+    *   **Результат:** Це вирішило проблему `Unresolved reference` для типів, і згенеровані data-класи (`Goals.kt`, `Projects.kt`) стали виглядати правильно. **Однак, `ForwardAppDatabase` все ще генерувався без конструктора з адаптерами.** Це наша поточна точка блокування.
+
+4.  **Спроба використання `CREATE TYPE ... USING ...`:** Ми спробували створити файл `ForwardAppDatabase.sq` з визначеннями `CREATE TYPE BooleanAdapter AS kotlin.Boolean;`, але ця спроба була скасована. Це виглядає як найбільш перспективний, але ще не реалізований підхід.
+
+5.  **Виправлення DI (Kotlin-Inject):** Були проблеми з `Unresolved reference 'Singleton'`, які ми намагалися вирішити, правильно налаштувавши KSP залежності в `build.gradle.kts`. Ця проблема може бути пов'язана з основною проблемою збірки.
+
+## 📝 План подальших дій
+
+Оскільки попередні спроби не привели до генерації правильного конструктора `ForwardAppDatabase`, найбільш логічним наступним кроком є **правильно реалізувати визначення кастомних типів для SQLDelight 2.x**.
+
+1.  **Створити `ForwardAppDatabase.sq`:** Створити файл `shared/src/commonMain/sqldelight/com/romankozak/forwardappmobile/shared/database/ForwardAppDatabase.sq`.
+2.  **Визначити типи через `CREATE TYPE`:** У цьому файлі визначити всі кастомні типи, які використовуються в проекті, за допомогою синтаксису `CREATE TYPE <TypeName> USING <Path_To_Adapter>`. Наприклад:
+    ```sql
+    CREATE TYPE BooleanAdapter USING "com.romankozak.forwardappmobile.shared.database.booleanAdapter";
+    CREATE TYPE StringListAdapter USING "com.romankozak.forwardappmobile.shared.database.stringListAdapter";
+    -- і так далі для всіх адаптерів
+    ```
+3.  **Оновити `.sq` файли таблиць:** У файлах `Projects.sq`, `Goals.sq`, `ListItems.sq` використовувати ці новостворені типи. Наприклад:
+    ```sql
+    CREATE TABLE Goals (
+        completed INTEGER AS BooleanAdapter NOT NULL,
+        tags TEXT AS StringListAdapter
+        ...
+    );
+    ```
+4.  **Перегенерувати код:** Запустити `./gradlew clean :shared:generateSqlDelightInterface`.
+5.  **Перевірити згенерований код:** Перевірити, чи `ForwardAppDatabase.kt` тепер має конструктор з параметрами `booleanAdapter: BooleanAdapter`, `stringListAdapter: StringListAdapter` і т.д.
+6.  **Оновити `Database.kt`:** Виправити ініціалізацію `ForwardAppDatabase`, передаючи екземпляри адаптерів у новий конструктор.
+7.  **Виправити маппери та ініціалізатор:** Виправити всі помилки `Argument type mismatch` у мапперах та `DatabaseInitializer.kt`.
+8.  **Зібрати проект:** Запустити `./gradlew :shared:build`.
+
+Я готовий додати або змінити код за твоїми інструкціями.
+
+---
+
+## 📋 Поточний лог помилок
 
 ```
-> Task :shared:compileDebugKotlinAndroid FAILED
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/di/AndroidCommonModule.kt:7:38 Unresolved reference 'Singleton'.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/di/AndroidCommonModule.kt:10:16 Unresolved reference 'Singleton'.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/shared/database/Database.kt:56:60 None of the following candidates is applicable:
-fun SerializersModule.serializer(type: Type): KSerializer<Any>
-fun <T : Any> KClass<T>.serializer(): KSerializer<T>
-fun <reified T> SerializersModule.serializer(): KSerializer<T>
-fun SerializersModule.serializer(kClass: KClass<*>, typeArgumentsSerializers: List<KSerializer<*>>, isNullable: Boolean): KSerializer<Any?>
-fun SerializersModule.serializer(type: KType): KSerializer<Any?>
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/shared/database/Database.kt:60:58 None of the following candidates is applicable:
-fun SerializersModule.serializer(type: Type): KSerializer<Any>
-fun <T : Any> KClass<T>.serializer(): KSerializer<T>
-fun <reified T> SerializersModule.serializer(): KSerializer<T>
-fun SerializersModule.serializer(kClass: KClass<*>, typeArgumentsSerializers: List<KSerializer<*>>, isNullable: Boolean): KSerializer<Any?>
-fun SerializersModule.serializer(type: KType): KSerializer<Any?>
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/shared/database/Database.kt:103:13 No parameter with name 'orderIndexAdapter' found.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/shared/database/Database.kt:115:13 No value passed for parameter 'orderAdapter'.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/shared/database/Database.kt:117:9 No parameter with name 'GoalsAdapter' found.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/shared/database/Database.kt:117:30 Unresolved reference 'Adapter'.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/shared/database/Database.kt:122:9 No parameter with name 'ListItemsAdapter' found.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/shared/database/Database.kt:122:38 Unresolved reference 'Adapter'.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/shared/features/goals/data/mappers/GoalMapper.kt:11:21 Argument type mismatch: actual type is 'kotlin.Long', but 'kotlin.Boolean' was expected.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/shared/features/goals/data/mappers/GoalMapper.kt:14:16 Argument type mismatch: actual type is 'kotlin.String?', but 'kotlin.collections.List<kotlin.String>?' was expected.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/shared/features/goals/data/mappers/GoalMapper.kt:15:24 Argument type mismatch: actual type is 'kotlin.String?', but 'kotlin.collections.List<com.romankozak.forwardappmobile.shared.data.models.RelatedLink>?' was expected.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/shared/features/projects/data/mappers/ListItemMapper.kt:12:9 No parameter with name 'order' found.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/shared/features/projects/data/mappers/ListItemMapper.kt:12:9 No value passed for parameter 'orderIndex'.
+> Task :shared:compileReleaseKotlinAndroid FAILED
+e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/shared/database/Database.kt:94:13: No parameter with name 'descriptionAdapter' found.
+e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/shared/database/Database.kt:95:13: No parameter with name 'parentIdAdapter' found.
+... (і багато інших помилок 'No parameter with name') ...
+e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/shared/features/goals/data/mappers/GoalMapper.kt:13:39: Argument type mismatch: actual type is 'kotlin.Boolean', but 'kotlin.Long' was expected.
+e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/shared/features/goals/data/mappers/GoalMapper.kt:16:49: Argument type mismatch: actual type is 'kotlin.collections.List<kotlin.String>', but 'kotlin.String' was expected.
+e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/shared/features/projects/data/mappers/ListItemMapper.kt:4:59: Unresolved reference 'ListItem'.
+e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/shared/features/projects/data/repository/ProjectRepositoryImpl.kt:19:35: Unresolved reference 'getAll'.
 ```
 
-## 3. Relevant Files and Their Content
+---
 
-Here are the key files involved in the compilation errors.
+## 🗂️ Вміст значимих файлів
 
 ### `shared/build.gradle.kts`
 ```kotlin
@@ -59,7 +91,6 @@ plugins {
 }
 
 kotlin {
-    // ✅ Основні таргети
     androidTarget()
     jvm()
 
@@ -73,69 +104,22 @@ kotlin {
                 implementation(libs.benasher.uuid)
                 implementation(libs.sqldelight.runtime)
                 implementation(libs.sqldelight.coroutines)
-
-                // ✅ Kotlin Inject runtime (KMP)
                 implementation("me.tatarka.inject:kotlin-inject-runtime-kmp:0.7.1")
             }
         }
-
-        val commonTest by getting {
-            dependencies {
-                implementation(kotlin("test"))
-                implementation(libs.kotlinx.coroutines.test)
-                implementation(libs.sqldelight.sqlite.driver)
-            }
-        }
-
-        val androidMain by getting {
-            dependencies {
-                implementation(libs.sqldelight.android.driver)
-            }
-        }
-
-        val androidUnitTest by getting {
-            dependencies {
-                implementation(libs.junit)
-                implementation(libs.kotlinx.coroutines.test)
-                implementation(libs.sqldelight.sqlite.driver)
-            }
-        }
-
-        val jvmMain by getting {
-            dependencies {
-                implementation(libs.sqldelight.sqlite.driver)
-            }
-        }
-
-        val jvmTest by getting {
-            dependencies {
-                implementation(kotlin("test"))
-                implementation(libs.junit)
-                implementation(libs.kotlinx.coroutines.test)
-                implementation(libs.sqldelight.sqlite.driver)
-            }
-        }
+        // ... інші sourceSets
     }
 }
 
-// ✅ Android конфігурація
 android {
     namespace = "com.romankozak.forwardappmobile.shared"
     compileSdk = 36
-
-    defaultConfig {
-        minSdk = 29
-    }
-
+    defaultConfig { minSdk = 29 }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-
-    kotlin {
-        jvmToolchain(17)
-    }
-
+    kotlin { jvmToolchain(17) }
     sourceSets {
         getByName("main") {
             kotlin.srcDir("build/generated/ksp/androidMain/kotlin")
@@ -143,7 +127,6 @@ android {
     }
 }
 
-// ✅ SQLDelight конфігурація
 sqldelight {
     databases {
         create("ForwardAppDatabase") {
@@ -151,25 +134,104 @@ sqldelight {
             srcDirs.from("src/commonMain/sqldelight")
             schemaOutputDirectory.set(file("src/commonMain/sqldelight/databases"))
             deriveSchemaFromMigrations.set(true)
-            generateAsync.set(false)
-            dialect("app.cash.sqldelight:sqlite-3-24-dialect:2.0.2")
         }
     }
 }
 
-// ✅ Kotlin Inject compiler через KSP для multiplatform
 dependencies {
     add("kspCommonMainMetadata", "me.tatarka.inject:kotlin-inject-compiler-ksp:0.7.1")
     add("kspJvm", "me.tatarka.inject:kotlin-inject-compiler-ksp:0.7.1")
     add("kspAndroid", "me.tatarka.inject:kotlin-inject-compiler-ksp:0.7.1")
 }
+```
 
-// ✅ Репозиторії
-repositories {
-    google()
-    mavenCentral()
-    maven("https://oss.sonatype.org/content/repositories/snapshots/")
-}
+### `shared/src/commonMain/sqldelight/com/romankozak/forwardappmobile/shared/database/Projects.sq`
+```sql
+import kotlin.Boolean;
+import kotlin.Int;
+import kotlin.Double;
+import kotlin.Long;
+import kotlin.String;
+import kotlin.collections.List;
+import com.romankozak.forwardappmobile.shared.data.models.RelatedLink;
+import com.romankozak.forwardappmobile.shared.data.models.ProjectType;
+import com.romankozak.forwardappmobile.shared.data.models.ReservedGroup;
+
+CREATE TABLE projects (
+  id TEXT AS String NOT NULL PRIMARY KEY,
+  name TEXT AS String NOT NULL,
+  description TEXT AS String,
+  parentId TEXT AS String,
+  createdAt INTEGER AS Long NOT NULL,
+  updatedAt INTEGER AS Long,
+  tags TEXT AS List<String>,
+  relatedLinks TEXT AS List<RelatedLink>,
+  isExpanded INTEGER AS Boolean NOT NULL DEFAULT 1,
+  goalOrder INTEGER AS Long NOT NULL DEFAULT 0,
+  isAttachmentsExpanded INTEGER AS Boolean NOT NULL DEFAULT 0,
+  defaultViewMode TEXT AS String,
+  isCompleted INTEGER AS Boolean NOT NULL DEFAULT 0,
+  isProjectManagementEnabled INTEGER AS Boolean DEFAULT 0,
+  projectStatus TEXT AS String,
+  projectStatusText TEXT AS String,
+  projectLogLevel TEXT AS String,
+  totalTimeSpentMinutes INTEGER AS Long DEFAULT 0,
+  valueImportance REAL AS Double NOT NULL DEFAULT 0.0,
+  valueImpact REAL AS Double NOT NULL DEFAULT 0.0,
+  effort REAL AS Double NOT NULL DEFAULT 0.0,
+  cost REAL AS Double NOT NULL DEFAULT 0.0,
+  risk REAL AS Double NOT NULL DEFAULT 0.0,
+  weightEffort REAL AS Double NOT NULL DEFAULT 1.0,
+  weightCost REAL AS Double NOT NULL DEFAULT 1.0,
+  weightRisk REAL AS Double NOT NULL DEFAULT 1.0,
+  rawScore REAL AS Double NOT NULL DEFAULT 0.0,
+  displayScore INTEGER AS Int NOT NULL DEFAULT 0,
+  scoringStatus TEXT AS String,
+  showCheckboxes INTEGER AS Boolean NOT NULL DEFAULT 0,
+  projectType TEXT AS ProjectType NOT NULL DEFAULT 'DEFAULT',
+  reservedGroup TEXT AS ReservedGroup
+);
+
+-- ... queries
+```
+
+### `shared/src/commonMain/sqldelight/com/romankozak/forwardappmobile/shared/database/Goals.sq`
+```sql
+import kotlin.Boolean;
+import kotlin.Int;
+import kotlin.Double;
+import kotlin.Long;
+import kotlin.String;
+import kotlin.collections.List;
+import com.romankozak.forwardappmobile.shared.data.models.RelatedLink;
+
+CREATE TABLE Goals (
+    id TEXT AS String NOT NULL PRIMARY KEY,
+    text TEXT AS String NOT NULL,
+    description TEXT AS String,
+    completed INTEGER AS Boolean NOT NULL DEFAULT 0,
+    createdAt INTEGER AS Long NOT NULL,
+    updatedAt INTEGER AS Long,
+    tags TEXT AS List<String>,
+    relatedLinks TEXT AS List<RelatedLink>,
+    valueImportance REAL AS Double NOT NULL DEFAULT 0.0,
+    valueImpact REAL AS Double NOT NULL DEFAULT 0.0,
+    effort REAL AS Double NOT NULL DEFAULT 0.0,
+    cost REAL AS Double NOT NULL DEFAULT 0.0,
+    risk REAL AS Double NOT NULL DEFAULT 0.0,
+    weightEffort REAL AS Double NOT NULL DEFAULT 1.0,
+    weightCost REAL AS Double NOT NULL DEFAULT 1.0,
+    weightRisk REAL AS Double NOT NULL DEFAULT 1.0,
+    rawScore REAL AS Double NOT NULL DEFAULT 0.0,
+    displayScore INTEGER AS Int NOT NULL DEFAULT 0,
+    scoringStatus TEXT AS String NOT NULL DEFAULT 'NOT_ASSESSED',
+    parentValueImportance REAL AS Double,
+    impactOnParentGoal REAL AS Double,
+    timeCost REAL AS Double,
+    financialCost REAL AS Double
+);
+
+-- ... queries
 ```
 
 ### `shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/shared/database/Database.kt`
@@ -180,103 +242,36 @@ import app.cash.sqldelight.ColumnAdapter
 import com.romankozak.forwardappmobile.shared.data.models.RelatedLink
 import com.romankozak.forwardappmobile.shared.data.models.ProjectType
 import com.romankozak.forwardappmobile.shared.data.models.ReservedGroup
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.serializer
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
 
-// 🔹 Простий, стабільний Json для серіалізації списків
-private val json = Json {
-    ignoreUnknownKeys = true
-    encodeDefaults = true
-}
-
-// ------------------------------------------------------
-// 🔸 Адаптери для базових типів
-// ------------------------------------------------------
-
-val longAdapter = object : ColumnAdapter<Long, Long> {
-    override fun decode(databaseValue: Long): Long = databaseValue
-    override fun encode(value: Long): Long = value
-}
-
-val doubleAdapter = object : ColumnAdapter<Double, Double> {
-    override fun decode(databaseValue: Double): Double = databaseValue
-    override fun encode(value: Double): Double = value
-}
-
-val intAdapter = object : ColumnAdapter<Int, Long> {
-    override fun decode(databaseValue: Long): Int = databaseValue.toInt()
-    override fun encode(value: Int): Long = value.toLong()
-}
-
-val booleanAdapter = object : ColumnAdapter<Boolean, Long> {
-    override fun decode(databaseValue: Long): Boolean = databaseValue != 0L
-    override fun encode(value: Boolean): Long = if (value) 1L else 0L
-}
-
-val stringAdapter = object : ColumnAdapter<String, String> {
-    override fun decode(databaseValue: String): String = databaseValue
-    override fun encode(value: String): String = value
-}
-
-// ------------------------------------------------------
-// 🔸 Складні адаптери (JSON у TEXT)
-// ------------------------------------------------------
-
-val stringListAdapter = object : ColumnAdapter<List<String>, String> {
-    override fun decode(databaseValue: String): List<String> {
-        if (databaseValue.isEmpty()) return emptyList()
-        return json.decodeFromString(ListSerializer(String.serializer()), databaseValue)
-    }
-
-    override fun encode(value: List<String>): String {
-        return json.encodeToString(ListSerializer(String.serializer()), value)
-    }
-}
-
-val relatedLinksListAdapter = object : ColumnAdapter<List<RelatedLink>, String> {
-    override fun decode(databaseValue: String): List<RelatedLink> {
-        if (databaseValue.isEmpty()) return emptyList()
-        return json.decodeFromString(ListSerializer(RelatedLink.serializer()), databaseValue)
-    }
-
-    override fun encode(value: List<RelatedLink>): String {
-        return json.encodeToString(ListSerializer(RelatedLink.serializer()), value)
-    }
-}
-
-val projectTypeAdapter = object : ColumnAdapter<ProjectType, String> {
-    override fun decode(databaseValue: String): ProjectType =
-        ProjectType.fromString(databaseValue)
-    override fun encode(value: ProjectType): String = value.name
-}
-
-val reservedGroupAdapter = object : ColumnAdapter<ReservedGroup, String> {
-    override fun decode(databaseValue: String): ReservedGroup =
-        ReservedGroup.fromString(databaseValue)
-            ?: throw IllegalStateException("Unknown reserved group: $databaseValue")
-
-    override fun encode(value: ReservedGroup): String = value.groupName
-}
-
-// ------------------------------------------------------
-// 🔸 Фабрика створення бази
-// ------------------------------------------------------
+// ... adapters definition (longAdapter, booleanAdapter, stringListAdapter, etc.)
 
 fun createForwardAppDatabase(driverFactory: DatabaseDriverFactory): ForwardAppDatabase {
     val driver = driverFactory.createDriver()
 
-    // ⚙️ згенеровані класи перевіряємо в build/generated/sqldelight/.../ForwardAppDatabase.kt
     return ForwardAppDatabase(
         driver = driver,
-        ProjectsAdapter = Projects.Adapter(
+        projectsAdapter = Projects.Adapter(
+            idAdapter = stringAdapter,
+            nameAdapter = stringAdapter,
+            descriptionAdapter = stringAdapter,
+            parentIdAdapter = stringAdapter,
             createdAtAdapter = longAdapter,
+            updatedAtAdapter = longAdapter,
             tagsAdapter = stringListAdapter,
             relatedLinksAdapter = relatedLinksListAdapter,
-            orderIndexAdapter = longAdapter,
+            isExpandedAdapter = booleanAdapter,
+            goalOrderAdapter = longAdapter,
+            isAttachmentsExpandedAdapter = booleanAdapter,
+            defaultViewModeAdapter = stringAdapter,
+            isCompletedAdapter = booleanAdapter,
+            isProjectManagementEnabledAdapter = booleanAdapter,
+            projectStatusAdapter = stringAdapter,
+            projectStatusTextAdapter = stringAdapter,
+            projectLogLevelAdapter = stringAdapter,
+            totalTimeSpentMinutesAdapter = longAdapter,
             valueImportanceAdapter = doubleAdapter,
             valueImpactAdapter = doubleAdapter,
             effortAdapter = doubleAdapter,
@@ -287,179 +282,39 @@ fun createForwardAppDatabase(driverFactory: DatabaseDriverFactory): ForwardAppDa
             weightRiskAdapter = doubleAdapter,
             rawScoreAdapter = doubleAdapter,
             displayScoreAdapter = intAdapter,
+            scoringStatusAdapter = stringAdapter,
+            showCheckboxesAdapter = booleanAdapter,
             projectTypeAdapter = projectTypeAdapter,
             reservedGroupAdapter = reservedGroupAdapter
         ),
-        GoalsAdapter = Goals.Adapter(
+        goalsAdapter = Goals.Adapter(
             completedAdapter = booleanAdapter,
+            createdAtAdapter = longAdapter,
+            updatedAtAdapter = longAdapter,
             tagsAdapter = stringListAdapter,
-            relatedLinksAdapter = relatedLinksListAdapter
+            relatedLinksAdapter = relatedLinksListAdapter,
+            valueImportanceAdapter = doubleAdapter,
+            valueImpactAdapter = doubleAdapter,
+            effortAdapter = doubleAdapter,
+            costAdapter = doubleAdapter,
+            riskAdapter = doubleAdapter,
+            weightEffortAdapter = doubleAdapter,
+            weightCostAdapter = doubleAdapter,
+            weightRiskAdapter = doubleAdapter,
+            rawScoreAdapter = doubleAdapter,
+            displayScoreAdapter = intAdapter,
+            parentValueImportanceAdapter = doubleAdapter,
+            impactOnParentGoalAdapter = doubleAdapter,
+            timeCostAdapter = doubleAdapter,
+            financialCostAdapter = doubleAdapter
         ),
-        ListItemsAdapter = ListItems.Adapter(
+        listItemsAdapter = ListItems.Adapter(
             idAdapter = stringAdapter,
             projectIdAdapter = stringAdapter,
-            orderIndexAdapter = longAdapter
+            itemOrderAdapter = longAdapter,
+            entityIdAdapter = stringAdapter,
+            itemTypeAdapter = stringAdapter
         )
     )
 }
 ```
-
-### `shared/src/commonMain/sqldelight/com/romankozak/forwardappmobile/shared/database/Goals.sq`
-```sql
--- @kotlinType String kotlin.String
--- @kotlinType INTEGER kotlin.Boolean
-
-CREATE TABLE Goals (
-    id TEXT NOT NULL PRIMARY KEY,
-    text TEXT NOT NULL,
-    description TEXT,
-    completed INTEGER NOT NULL DEFAULT 0,
-    createdAt INTEGER NOT NULL,
-    updatedAt INTEGER,
-    tags TEXT,             -- JSON: List<String>
-    relatedLinks TEXT,     -- JSON: List<RelatedLink>
-    valueImportance REAL NOT NULL,
-    valueImpact REAL NOT NULL,
-    effort REAL NOT NULL,
-    cost REAL NOT NULL,
-    risk REAL NOT NULL,
-    weightEffort REAL NOT NULL,
-    weightCost REAL NOT NULL,
-    weightRisk REAL NOT NULL,
-    rawScore REAL NOT NULL,
-    displayScore INTEGER NOT NULL,
-    scoringStatus TEXT NOT NULL,
-    parentValueImportance REAL,
-    impactOnParentGoal REAL,
-    timeCost REAL,
-    financialCost REAL,
-    markdown TEXT
-);
-
-getAllGoals:
-SELECT * FROM Goals ORDER BY createdAt DESC;
-
-getGoalById:
-SELECT * FROM Goals WHERE id = ?;
-
-getGoalsByIds:
-SELECT * FROM Goals WHERE id IN ?;
-
-insertGoal:
-INSERT OR REPLACE INTO Goals (
-    id, text, description, completed, createdAt, updatedAt,
-    tags, relatedLinks,
-    valueImportance, valueImpact, effort, cost, risk,
-    weightEffort, weightCost, weightRisk, rawScore, displayScore,
-    scoringStatus, parentValueImportance, impactOnParentGoal,
-    timeCost, financialCost, markdown
-)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-
-deleteGoal:
-DELETE FROM Goals WHERE id = ?;
-```
-
-### `shared/src/commonMain/sqldelight/com/romankozak/forwardappmobile/shared/database/ListItems.sq`
-```sql
--- @kotlinType String kotlin.String
-
-CREATE TABLE ListItems (
-    id TEXT NOT NULL PRIMARY KEY,
-    projectId TEXT NOT NULL,
-    itemType TEXT NOT NULL,
-    entityId TEXT NOT NULL,
-    orderIndex INTEGER NOT NULL
-);
-
-getAllListItems:
-SELECT * FROM ListItems ORDER BY orderIndex ASC;
-
-insertListItem:
-INSERT OR REPLACE INTO ListItems (
-    id, projectId, itemType, entityId, orderIndex
-) VALUES (?, ?, ?, ?, ?);
-
-deleteListItem:
-DELETE FROM ListItems WHERE id = ?;
-
-getItemsForProject:
-SELECT * FROM ListItems
-WHERE projectId = ?;
-```
-
-### `shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/shared/features/goals/data/mappers/GoalMapper.kt`
-```kotlin
-package com.romankozak.forwardappmobile.shared.features.goals.data.mappers
-
-import com.romankozak.forwardappmobile.shared.database.Goals
-import com.romankozak.forwardappmobile.shared.features.goals.data.models.Goal
-
-fun Goals.toDomain(): Goal {
-    return Goal(
-        id = id,
-        text = text,
-        description = description,
-        completed = completed,
-        createdAt = createdAt,
-        updatedAt = updatedAt,
-        tags = tags,
-        relatedLinks = relatedLinks,
-        valueImportance = valueImportance.toFloat(),
-        valueImpact = valueImpact.toFloat(),
-        effort = effort.toFloat(),
-        cost = cost.toFloat(),
-        risk = risk.toFloat(),
-        weightEffort = weightEffort.toFloat(),
-        weightCost = weightCost.toFloat(),
-        weightRisk = weightRisk.toFloat(),
-        rawScore = rawScore.toFloat(),
-        displayScore = displayScore.toInt(),
-        scoringStatus = scoringStatus,
-        parentValueImportance = parentValueImportance?.toFloat(),
-        impactOnParentGoal = impactOnParentGoal?.toFloat(),
-        timeCost = timeCost?.toFloat(),
-        financialCost = financialCost?.toFloat()
-    )
-}
-```
-
-### `shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/shared/features/projects/data/mappers/ListItemMapper.kt`
-```kotlin
-package com.romankozak.forwardappmobile.shared.features.projects.data.mappers
-
-import com.romankozak.forwardappmobile.shared.database.ListItems
-import com.romankozak.forwardappmobile.shared.features.projects.data.models.ListItem
-
-fun ListItems.toDomain(): ListItem {
-    return ListItem(
-        id = id,
-        projectId = projectId,
-        itemType = itemType,
-        entityId = entityId,
-        order = orderIndex
-    )
-}
-```
-
-## 4. History of Attempts and Results
-
-1.  **Fixing Gradle Configuration:** We corrected the `shared/build.gradle.kts` to properly apply Kotlin and SQLDelight plugins. This resolved initial code generation failures but led to new errors related to DI, serialization, and mappers.
-2.  **Refactoring `DatabaseDriverFactory`:** We moved to an `expect/actual` pattern for `DatabaseDriverFactory`, which solved platform-specific compilation issues but highlighted problems in the `createForwardAppDatabase` function.
-3.  **Updating `createForwardAppDatabase` and Adapters:** We updated `Database.kt` with a new version of `createForwardAppDatabase` that uses column adapters (`booleanAdapter`, `stringListAdapter`, etc.). This fixed some type mismatch issues but revealed that the `...Adapter` parameters (e.g., `GoalsAdapter`) were not being found in the generated `ForwardAppDatabase` constructor.
-4.  **Fixing `.sq` files:** We added `@kotlinType` annotations to `Goals.sq` and `ListItems.sq` to guide SQLDelight's type mapping. This allowed successful generation of the SQLDelight interface but did not solve the adapter parameter issue.
-5.  **Fixing DI (Kotlin Inject):** We configured KSP for Kotlin-Inject and structured the DI modules. This resolved some DI-related errors, but `Unresolved reference 'Singleton'` persists in `AndroidCommonModule.kt`.
-6.  **Fixing Mappers:** We updated mappers to use `orderIndex` instead of `order`. This fixed some mapper errors but others remain due to the underlying type mismatch issues.
-
-## 5. Proposed Plan of Action
-
-1.  **Fix `Unresolved reference 'Singleton'`:** The KSP configuration for Kotlin-Inject seems incomplete. We need to ensure that the generated code is correctly added to the `sourceSets`. A potential fix is to add `kotlin.srcDir("build/generated/ksp/commonMain/kotlin")` to the `commonMain` source set in `shared/build.gradle.kts`.
-2.  **Fix `None of the following candidates is applicable` for `serializer()`:** This indicates a problem with `kotlinx.serialization`. We need to verify that the plugin is correctly configured and that the necessary dependencies are present in `commonMain`.
-3.  **Fix `No parameter with name 'GoalsAdapter' found`:** This is the most critical issue. The generated `ForwardAppDatabase` does not have the expected constructor with adapter parameters. We need to investigate why SQLDelight is not generating this code. This might involve:
-    *   Manually inspecting the generated files in `build/generated/sqldelight/code/ForwardAppDatabase/commonMain/`.
-    *   Verifying the SQLDelight configuration in `shared/build.gradle.kts`.
-    *   Ensuring that the `.sq` files are correctly formatted and that the `@kotlinType` annotations are used correctly.
-4.  **Update Mappers:** Once the SQLDelight generation is fixed, we need to update the mappers (`GoalMapper.kt`, `ListItemMapper.kt`, etc.) to correctly handle the types from the generated data classes.
-5.  **Update `ListItemRepositoryImpl.kt`:** Use the `getItemsForProject` query in `ListItemRepositoryImpl.kt`.
-
-I am ready to add code or execute any commands to help resolve these issues.

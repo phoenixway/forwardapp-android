@@ -88,25 +88,36 @@ fun createForwardAppDatabase(driverFactory: DatabaseDriverFactory): ForwardAppDa
 
     return ForwardAppDatabase(
         driver = driver,
+        GoalsAdapter = Goals.Adapter(
+            idAdapter = stringAdapter,
+            textAdapter = stringAdapter,
+            createdAtAdapter = longAdapter,
+            tagsAdapter = stringListAdapter,
+            relatedLinksAdapter = relatedLinksListAdapter,
+            valueImportanceAdapter = doubleAdapter,
+            valueImpactAdapter = doubleAdapter,
+            effortAdapter = doubleAdapter,
+            costAdapter = doubleAdapter,
+            riskAdapter = doubleAdapter,
+            weightEffortAdapter = doubleAdapter,
+            weightCostAdapter = doubleAdapter,
+            weightRiskAdapter = doubleAdapter,
+            rawScoreAdapter = doubleAdapter,
+            displayScoreAdapter = intAdapter,
+            scoringStatusAdapter = stringAdapter
+        ),
+        ListItemsAdapter = ListItems.Adapter(
+            idAdapter = stringAdapter,
+            projectIdAdapter = stringAdapter,
+            itemOrderAdapter = longAdapter
+        ),
         projectsAdapter = Projects.Adapter(
             idAdapter = stringAdapter,
             nameAdapter = stringAdapter,
-            descriptionAdapter = stringAdapter,
-            parentIdAdapter = stringAdapter,
             createdAtAdapter = longAdapter,
-            updatedAtAdapter = longAdapter,
             tagsAdapter = stringListAdapter,
             relatedLinksAdapter = relatedLinksListAdapter,
-            isExpandedAdapter = booleanAdapter,
             goalOrderAdapter = longAdapter,
-            isAttachmentsExpandedAdapter = booleanAdapter,
-            defaultViewModeAdapter = stringAdapter,
-            isCompletedAdapter = booleanAdapter,
-            isProjectManagementEnabledAdapter = booleanAdapter,
-            projectStatusAdapter = stringAdapter,
-            projectStatusTextAdapter = stringAdapter,
-            projectLogLevelAdapter = stringAdapter,
-            totalTimeSpentMinutesAdapter = longAdapter,
             valueImportanceAdapter = doubleAdapter,
             valueImpactAdapter = doubleAdapter,
             effortAdapter = doubleAdapter,
@@ -117,38 +128,8 @@ fun createForwardAppDatabase(driverFactory: DatabaseDriverFactory): ForwardAppDa
             weightRiskAdapter = doubleAdapter,
             rawScoreAdapter = doubleAdapter,
             displayScoreAdapter = intAdapter,
-            scoringStatusAdapter = stringAdapter,
-            showCheckboxesAdapter = booleanAdapter,
             projectTypeAdapter = projectTypeAdapter,
             reservedGroupAdapter = reservedGroupAdapter
-        ),
-        goalsAdapter = Goals.Adapter(
-            completedAdapter = booleanAdapter,
-            createdAtAdapter = longAdapter,
-            updatedAtAdapter = longAdapter,
-            tagsAdapter = stringListAdapter,
-            relatedLinksAdapter = relatedLinksListAdapter,
-            valueImportanceAdapter = doubleAdapter,
-            valueImpactAdapter = doubleAdapter,
-            effortAdapter = doubleAdapter,
-            costAdapter = doubleAdapter,
-            riskAdapter = doubleAdapter,
-            weightEffortAdapter = doubleAdapter,
-            weightCostAdapter = doubleAdapter,
-            weightRiskAdapter = doubleAdapter,
-            rawScoreAdapter = doubleAdapter,
-            displayScoreAdapter = intAdapter,
-            parentValueImportanceAdapter = doubleAdapter,
-            impactOnParentGoalAdapter = doubleAdapter,
-            timeCostAdapter = doubleAdapter,
-            financialCostAdapter = doubleAdapter
-        ),
-        listItemsAdapter = ListItems.Adapter(
-            idAdapter = stringAdapter,
-            projectIdAdapter = stringAdapter,
-            itemOrderAdapter = longAdapter,
-            entityIdAdapter = stringAdapter,
-            itemTypeAdapter = stringAdapter
         )
     )
 }

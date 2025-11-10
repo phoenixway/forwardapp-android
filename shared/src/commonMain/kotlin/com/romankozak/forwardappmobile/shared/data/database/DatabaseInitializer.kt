@@ -28,12 +28,12 @@ class DatabaseInitializer(
                 updatedAt = null,
                 tags = null,
                 relatedLinks = null,
-                isExpanded = if (false) 1L else 0L,
+                isExpanded = false,
                 goalOrder = 0,
-                isAttachmentsExpanded = if (false) 1L else 0L,
+                isAttachmentsExpanded = false,
                 defaultViewMode = null,
-                isCompleted = if (false) 1L else 0L,
-                isProjectManagementEnabled = if (false) 1L else 0L,
+                isCompleted = false,
+                isProjectManagementEnabled = false,
                 projectStatus = null,
                 projectStatusText = null,
                 projectLogLevel = null,
@@ -49,8 +49,8 @@ class DatabaseInitializer(
                 rawScore = 0.0,
                 displayScore = 0,
                 scoringStatus = "NOT_ASSESSED",
-                showCheckboxes = if (false) 1L else 0L,
-                projectType = ProjectType.SYSTEM.name,
+                showCheckboxes = false,
+                projectType = ProjectType.SYSTEM,
                 reservedGroup = null
             )
 
@@ -65,12 +65,12 @@ class DatabaseInitializer(
                 updatedAt = null,
                 tags = null,
                 relatedLinks = null,
-                isExpanded = if (false) 1L else 0L,
+                isExpanded = false,
                 goalOrder = 0,
-                isAttachmentsExpanded = if (false) 1L else 0L,
+                isAttachmentsExpanded = false,
                 defaultViewMode = null,
-                isCompleted = if (false) 1L else 0L,
-                isProjectManagementEnabled = if (false) 1L else 0L,
+                isCompleted = false,
+                isProjectManagementEnabled = false,
                 projectStatus = null,
                 projectStatusText = null,
                 projectLogLevel = null,
@@ -86,9 +86,9 @@ class DatabaseInitializer(
                 rawScore = 0.0,
                 displayScore = 0,
                 scoringStatus = "NOT_ASSESSED",
-                showCheckboxes = if (false) 1L else 0L,
-                projectType = ProjectType.RESERVED.name,
-                reservedGroup = ReservedGroup.Inbox.groupName
+                showCheckboxes = false,
+                projectType = ProjectType.RESERVED,
+                reservedGroup = ReservedGroup.Inbox
             )
 
             createStrategicProjects(specialProjectId)
@@ -107,12 +107,12 @@ class DatabaseInitializer(
             updatedAt = null,
             tags = null,
             relatedLinks = null,
-                            isExpanded = if (false) 1L else 0L,
+                            isExpanded = false,
                             goalOrder = 1,
-                            isAttachmentsExpanded = if (false) 1L else 0L,
+                            isAttachmentsExpanded = false,
                             defaultViewMode = null,
-                            isCompleted = if (false) 1L else 0L,
-                            isProjectManagementEnabled = if (false) 1L else 0L,
+                            isCompleted = false,
+                            isProjectManagementEnabled = false,
                             projectStatus = null,
                             projectStatusText = null,
                             projectLogLevel = null,
@@ -128,9 +128,9 @@ class DatabaseInitializer(
                             rawScore = 0.0,
                             displayScore = 0,
                             scoringStatus = "NOT_ASSESSED",
-                            showCheckboxes = if (false) 1L else 0L,
-                            projectType = ProjectType.RESERVED.name,
-                            reservedGroup = ReservedGroup.StrategicGroup.groupName        )
+                            showCheckboxes = false,
+                            projectType = ProjectType.RESERVED,
+                            reservedGroup = ReservedGroup.StrategicGroup)
 
         // TODO: ініціалізувати тут стратегічні проекти
     }
@@ -146,12 +146,12 @@ class DatabaseInitializer(
             updatedAt = null,
             tags = null,
             relatedLinks = null,
-                            isExpanded = if (false) 1L else 0L,
+                            isExpanded = false,
                             goalOrder = 2,
-                            isAttachmentsExpanded = if (false) 1L else 0L,
+                            isAttachmentsExpanded = false,
                             defaultViewMode = null,
-                            isCompleted = if (false) 1L else 0L,
-                            isProjectManagementEnabled = if (false) 1L else 0L,
+                            isCompleted = false,
+                            isProjectManagementEnabled = false,
                             projectStatus = null,
                             projectStatusText = null,
                             projectLogLevel = null,
@@ -167,9 +167,9 @@ class DatabaseInitializer(
                             rawScore = 0.0,
                             displayScore = 0,
                             scoringStatus = "NOT_ASSESSED",
-                            showCheckboxes = if (false) 1L else 0L,
-                            projectType = ProjectType.RESERVED.name,
-                            reservedGroup = ReservedGroup.MainBeaconsGroup.groupName        )
+                            showCheckboxes = false,
+                            projectType = ProjectType.RESERVED,
+                            reservedGroup = ReservedGroup.MainBeaconsGroup)
 
         val listId = "main-beacon-list-id"
         database.projectsQueries.insertProject(
@@ -181,12 +181,12 @@ class DatabaseInitializer(
             updatedAt = null,
             tags = null,
             relatedLinks = null,
-                            isExpanded = if (false) 1L else 0L,
+                            isExpanded = false,
                             goalOrder = 0,
-                            isAttachmentsExpanded = if (false) 1L else 0L,
+                            isAttachmentsExpanded = false,
                             defaultViewMode = null,
-                            isCompleted = if (false) 1L else 0L,
-                            isProjectManagementEnabled = if (false) 1L else 0L,
+                            isCompleted = false,
+                            isProjectManagementEnabled = false,
                             projectStatus = null,
                             projectStatusText = null,
                             projectLogLevel = null,
@@ -202,9 +202,9 @@ class DatabaseInitializer(
                             rawScore = 0.0,
                             displayScore = 0,
                             scoringStatus = "NOT_ASSESSED",
-                            showCheckboxes = if (false) 1L else 0L,
-                            projectType = ProjectType.RESERVED.name,
-                            reservedGroup = null        )
+                            showCheckboxes = false,
+                            projectType = ProjectType.RESERVED,
+                            reservedGroup = null)
 
         database.projectsQueries.insertProject(
             id = "mission-project-id",
@@ -215,12 +215,12 @@ class DatabaseInitializer(
             updatedAt = null,
             tags = null,
             relatedLinks = null,
-                            isExpanded = if (false) 1L else 0L,
+                            isExpanded = false,
                             goalOrder = 0,
-                            isAttachmentsExpanded = if (false) 1L else 0L,
+                            isAttachmentsExpanded = false,
                             defaultViewMode = null,
-                            isCompleted = if (false) 1L else 0L,
-                            isProjectManagementEnabled = if (false) 1L else 0L,
+                            isCompleted = false,
+                            isProjectManagementEnabled = false,
                             projectStatus = null,
                             projectStatusText = null,
                             projectLogLevel = null,
@@ -236,8 +236,8 @@ class DatabaseInitializer(
                             rawScore = 0.0,
                             displayScore = 0,
                             scoringStatus = "NOT_ASSESSED",
-                            showCheckboxes = if (false) 1L else 0L,
-                            projectType = ProjectType.RESERVED.name,
-                            reservedGroup = ReservedGroup.MainBeacons.groupName        )
+                            showCheckboxes = false,
+                            projectType = ProjectType.RESERVED,
+                            reservedGroup = ReservedGroup.MainBeacons)
     }
 }

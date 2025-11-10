@@ -67,6 +67,7 @@ sqldelight {
             packageName.set("com.romankozak.forwardappmobile.shared.database")
             deriveSchemaFromMigrations.set(true)
             schemaOutputDirectory.set(file("src/commonMain/sqldelight/databases"))
+            dialect("app.cash.sqldelight:sqlite-3-24-dialect:2.0.2")
         }
     }
 }

@@ -16,14 +16,14 @@ fun Projects.toDomain(): Project {
         parentId = parentId,
         createdAt = createdAt,
         updatedAt = updatedAt,
-        tags = tags?.let { stringListAdapter.decode(it) },
-        relatedLinks = relatedLinks?.let { relatedLinksListAdapter.decode(it) },
-        isExpanded = booleanAdapter.decode(isExpanded),
+        tags = tags,
+        relatedLinks = relatedLinks,
+        isExpanded = isExpanded,
         goalOrder = goalOrder,
-        isAttachmentsExpanded = booleanAdapter.decode(isAttachmentsExpanded),
+        isAttachmentsExpanded = isAttachmentsExpanded,
         defaultViewMode = defaultViewMode,
-        isCompleted = booleanAdapter.decode(isCompleted),
-        isProjectManagementEnabled = isProjectManagementEnabled?.let { booleanAdapter.decode(it) },
+        isCompleted = isCompleted,
+        isProjectManagementEnabled = isProjectManagementEnabled,
         projectStatus = projectStatus,
         projectStatusText = projectStatusText,
         projectLogLevel = projectLogLevel,
@@ -39,8 +39,8 @@ fun Projects.toDomain(): Project {
         rawScore = rawScore.toFloat(),
         displayScore = displayScore.toInt(),
         scoringStatus = scoringStatus,
-        showCheckboxes = booleanAdapter.decode(showCheckboxes),
-        projectType = ProjectType.fromString(projectType),
-        reservedGroup = reservedGroup?.let { ReservedGroup.fromString(it) }
+        showCheckboxes = showCheckboxes,
+        projectType = projectType,
+        reservedGroup = reservedGroup
     )
 }
