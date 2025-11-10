@@ -1,154 +1,45 @@
+import kotlin.Boolean;
+import kotlin.Int;
+import kotlin.Double;
+import kotlin.Long;
+import kotlin.String;
+import kotlin.collections.List;
 import com.romankozak.forwardappmobile.shared.data.models.RelatedLink;
 import com.romankozak.forwardappmobile.shared.data.models.ProjectType;
 import com.romankozak.forwardappmobile.shared.data.models.ReservedGroup;
-import kotlin.collections.List;
 
 CREATE TABLE projects (
   id TEXT NOT NULL PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT,
   parentId TEXT,
-  createdAt INTEGER NOT NULL,
-  updatedAt INTEGER,
-  tags TEXT,
-  relatedLinks TEXT,
-  isExpanded INTEGER NOT NULL DEFAULT 1,
-  goalOrder INTEGER NOT NULL DEFAULT 0,
-  isAttachmentsExpanded INTEGER NOT NULL DEFAULT 0,
+  createdAt INTEGER AS Long NOT NULL,
+  updatedAt INTEGER AS Long,
+  tags TEXT AS List<String>,
+  relatedLinks TEXT AS List<RelatedLink>,
+  isExpanded INTEGER AS Boolean NOT NULL DEFAULT 1,
+  goalOrder INTEGER AS Long NOT NULL DEFAULT 0,
+  isAttachmentsExpanded INTEGER AS Boolean NOT NULL DEFAULT 0,
   defaultViewMode TEXT,
-  isCompleted INTEGER NOT NULL DEFAULT 0,
-  isProjectManagementEnabled INTEGER DEFAULT 0,
-  projectStatus TEXT DEFAULT 'NO_PLAN',
+  isCompleted INTEGER AS Boolean NOT NULL DEFAULT 0,
+  isProjectManagementEnabled INTEGER AS Boolean DEFAULT 0,
+  projectStatus TEXT,
   projectStatusText TEXT,
-  projectLogLevel TEXT DEFAULT 'NORMAL',
-  totalTimeSpentMinutes INTEGER DEFAULT 0,
-  valueImportance REAL NOT NULL DEFAULT 0.0,
-  valueImpact REAL NOT NULL DEFAULT 0.0,
-  effort REAL NOT NULL DEFAULT 0.0,
-  cost REAL NOT NULL DEFAULT 0.0,
-  risk REAL NOT NULL DEFAULT 0.0,
-  weightEffort REAL NOT NULL DEFAULT 1.0,
-  weightCost REAL NOT NULL DEFAULT 1.0,
-  weightRisk REAL NOT NULL DEFAULT 1.0,
-  rawScore REAL NOT NULL DEFAULT 0.0,
-  displayScore INTEGER NOT NULL DEFAULT 0,
-  scoringStatus TEXT NOT NULL DEFAULT 'NOT_ASSESSED',
-  showCheckboxes INTEGER NOT NULL DEFAULT 0,
-  projectType TEXT NOT NULL DEFAULT 'DEFAULT',
-  reservedGroup TEXT
+  projectLogLevel TEXT,
+  totalTimeSpentMinutes INTEGER AS Long DEFAULT 0,
+  valueImportance REAL AS Double NOT NULL DEFAULT 0.0,
+  valueImpact REAL AS Double NOT NULL DEFAULT 0.0,
+  effort REAL AS Double NOT NULL DEFAULT 0.0,
+  cost REAL AS Double NOT NULL DEFAULT 0.0,
+  risk REAL AS Double NOT NULL DEFAULT 0.0,
+  weightEffort REAL AS Double NOT NULL DEFAULT 1.0,
+  weightCost REAL AS Double NOT NULL DEFAULT 1.0,
+  weightRisk REAL AS Double NOT NULL DEFAULT 1.0,
+  rawScore REAL AS Double NOT NULL DEFAULT 0.0,
+  displayScore INTEGER AS Int NOT NULL DEFAULT 0,
+  scoringStatus TEXT,
+  showCheckboxes INTEGER AS Boolean NOT NULL DEFAULT 0,
+  projectType TEXT AS ProjectType NOT NULL DEFAULT 'DEFAULT',
+  reservedGroup TEXT AS ReservedGroup
 );
 
-getAllProjects:
-SELECT *
-FROM projects
-ORDER BY goalOrder ASC;
-
-getAllProjectsUnordered:
-SELECT *
-FROM projects;
-
-getProjectById:
-SELECT *
-FROM projects
-WHERE id = ?1;
-
-getProjectsByIds:
-SELECT *
-FROM projects
-WHERE id IN ?1;
-
-getProjectIdsByTag:
-SELECT id
-FROM projects
-WHERE tags LIKE '%' || ?1 || '%';
-
-getProjectsByType:
-SELECT *
-FROM projects
-WHERE projectType = ?1;
-
-getProjectsByNameLike:
-SELECT *
-FROM projects
-WHERE name LIKE '%' || ?1 || '%';
-
-getProjectsByReservedGroup:
-SELECT *
-FROM projects
-WHERE reservedGroup = ?1;
-
-getProjectByParentAndReservedGroup:
-SELECT *
-FROM projects
-WHERE (parentId = ?1 OR (parentId IS NULL AND ?1 IS NULL))
-  AND reservedGroup = ?2
-LIMIT 1;
-
-getProjectsByParentId:
-SELECT *
-FROM projects
-WHERE parentId = ?1
-ORDER BY goalOrder ASC;
-
-getTopLevelProjects:
-SELECT *
-FROM projects
-WHERE parentId IS NULL
-ORDER BY goalOrder ASC;
-
-insertProject:
-INSERT OR REPLACE INTO projects(
-  id,
-  name,
-  description,
-  parentId,
-  createdAt,
-  updatedAt,
-  tags,
-  relatedLinks,
-  isExpanded,
-  goalOrder,
-  isAttachmentsExpanded,
-  defaultViewMode,
-  isCompleted,
-  isProjectManagementEnabled,
-  projectStatus,
-  projectStatusText,
-  projectLogLevel,
-  totalTimeSpentMinutes,
-  valueImportance,
-  valueImpact,
-  effort,
-  cost,
-  risk,
-  weightEffort,
-  weightCost,
-  weightRisk,
-  rawScore,
-  displayScore,
-  scoringStatus,
-  showCheckboxes,
-  projectType,
-  reservedGroup
-) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30, ?31, ?32);
-
-deleteProject:
-DELETE FROM projects
-WHERE id = ?1 AND projectType = 'DEFAULT';
-
-deleteProjectById:
-DELETE FROM projects
-WHERE id = ?1 AND projectType = 'DEFAULT';
-
-deleteProjectsForReset:
-DELETE FROM projects;
-
-updateProjectOrder:
-UPDATE projects
-SET goalOrder = ?2
-WHERE id = ?1;
-
-updateProjectViewMode:
-UPDATE projects
-SET defaultViewMode = ?2
-WHERE id = ?1;

@@ -63,6 +63,7 @@ android {
 sqldelight {
     databases {
         create("ForwardAppDatabase") {
+            srcDirs.from("src/commonMain/sqldelight") // ✅ дуже важливо
             packageName.set("com.romankozak.forwardappmobile.shared.database")
             deriveSchemaFromMigrations.set(true)
             schemaOutputDirectory.set(file("src/commonMain/sqldelight/databases"))
