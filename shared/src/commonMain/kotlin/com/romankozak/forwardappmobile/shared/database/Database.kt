@@ -92,11 +92,11 @@ fun createForwardAppDatabase(driverFactory: DatabaseDriverFactory): ForwardAppDa
 
     return ForwardAppDatabase(
         driver = driver,
-        ProjectsAdapter = Projects.Adapter(
+        projectsAdapter = Projects.Adapter(
             createdAtAdapter = longAdapter,
             tagsAdapter = stringListAdapter,
             relatedLinksAdapter = relatedLinksListAdapter,
-            orderIndexAdapter = longAdapter,
+            goal_orderAdapter = longAdapter,
             valueImportanceAdapter = doubleAdapter,
             valueImpactAdapter = doubleAdapter,
             effortAdapter = doubleAdapter,
@@ -110,15 +110,29 @@ fun createForwardAppDatabase(driverFactory: DatabaseDriverFactory): ForwardAppDa
             projectTypeAdapter = projectTypeAdapter,
             reservedGroupAdapter = reservedGroupAdapter
         ),
-        GoalsAdapter = Goals.Adapter(
+        goalsAdapter = Goals.Adapter(
             completedAdapter = booleanAdapter,
             tagsAdapter = stringListAdapter,
-            relatedLinksAdapter = relatedLinksListAdapter
+            relatedLinksAdapter = relatedLinksListAdapter,
+            valueImportanceAdapter = doubleAdapter,
+            valueImpactAdapter = doubleAdapter,
+            effortAdapter = doubleAdapter,
+            costAdapter = doubleAdapter,
+            riskAdapter = doubleAdapter,
+            weightEffortAdapter = doubleAdapter,
+            weightCostAdapter = doubleAdapter,
+            weightRiskAdapter = doubleAdapter,
+            rawScoreAdapter = doubleAdapter,
+            displayScoreAdapter = intAdapter,
+            parentValueImportanceAdapter = doubleAdapter,
+            impactOnParentGoalAdapter = doubleAdapter,
+            timeCostAdapter = doubleAdapter,
+            financialCostAdapter = doubleAdapter
         ),
-        ListItemsAdapter = ListItems.Adapter(
+        listItemsAdapter = ListItems.Adapter(
             idAdapter = stringAdapter,
             projectIdAdapter = stringAdapter,
-            orderIndexAdapter = longAdapter
+            itemOrderAdapter = longAdapter
         )
     )
 }

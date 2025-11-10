@@ -1,5 +1,5 @@
--- @kotlinType String kotlin.String
--- @kotlinType INTEGER kotlin.Boolean
+import com.romankozak.forwardappmobile.shared.data.models.RelatedLink;
+import kotlin.collections.List;
 
 CREATE TABLE Goals (
     id TEXT NOT NULL PRIMARY KEY,
@@ -8,45 +8,30 @@ CREATE TABLE Goals (
     completed INTEGER NOT NULL DEFAULT 0,
     createdAt INTEGER NOT NULL,
     updatedAt INTEGER,
-    tags TEXT,             -- JSON: List<String>
-    relatedLinks TEXT,     -- JSON: List<RelatedLink>
-    valueImportance REAL NOT NULL,
-    valueImpact REAL NOT NULL,
-    effort REAL NOT NULL,
-    cost REAL NOT NULL,
-    risk REAL NOT NULL,
-    weightEffort REAL NOT NULL,
-    weightCost REAL NOT NULL,
-    weightRisk REAL NOT NULL,
-    rawScore REAL NOT NULL,
-    displayScore INTEGER NOT NULL,
-    scoringStatus TEXT NOT NULL,
+    tags TEXT,
+    relatedLinks TEXT,
+    valueImportance REAL NOT NULL DEFAULT 0.0,
+    valueImpact REAL NOT NULL DEFAULT 0.0,
+    effort REAL NOT NULL DEFAULT 0.0,
+    cost REAL NOT NULL DEFAULT 0.0,
+    risk REAL NOT NULL DEFAULT 0.0,
+    weightEffort REAL NOT NULL DEFAULT 1.0,
+    weightCost REAL NOT NULL DEFAULT 1.0,
+    weightRisk REAL NOT NULL DEFAULT 1.0,
+    rawScore REAL NOT NULL DEFAULT 0.0,
+    displayScore INTEGER NOT NULL DEFAULT 0,
+    scoring_status TEXT NOT NULL DEFAULT 'NOT_ASSESSED',
     parentValueImportance REAL,
     impactOnParentGoal REAL,
     timeCost REAL,
-    financialCost REAL,
-    markdown TEXT
+    financialCost REAL
 );
 
 getAllGoals:
-SELECT * FROM Goals ORDER BY createdAt DESC;
+SELECT * FROM Goals;
 
 getGoalById:
 SELECT * FROM Goals WHERE id = ?;
 
 getGoalsByIds:
 SELECT * FROM Goals WHERE id IN ?;
-
-insertGoal:
-INSERT OR REPLACE INTO Goals (
-    id, text, description, completed, createdAt, updatedAt,
-    tags, relatedLinks,
-    valueImportance, valueImpact, effort, cost, risk,
-    weightEffort, weightCost, weightRisk, rawScore, displayScore,
-    scoringStatus, parentValueImportance, impactOnParentGoal,
-    timeCost, financialCost, markdown
-)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-
-deleteGoal:
-DELETE FROM Goals WHERE id = ?;
