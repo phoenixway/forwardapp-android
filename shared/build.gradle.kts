@@ -70,47 +70,25 @@ sqldelight {
     }
 }
 
-// ✅ Kotlin Inject через KSP
+// ✅ Kotlin Inject через KSP - ВИПРАВЛЕНО
 dependencies {
     add("kspCommonMainMetadata", libs.kotlin.inject.compiler.ksp)
-    add("kspJvm", libs.kotlin.inject.compiler.ksp)
     add("kspAndroid", libs.kotlin.inject.compiler.ksp)
+    add("kspJvm", libs.kotlin.inject.compiler.ksp)
 }
 
 ksp {
     arg("me.tatarka.inject.generateCompanionExtensions", "true")
 }
 
-// ✅ РУЧНЕ створення KSP-тасок (оновлено для Gradle 8.5 +)
-afterEvaluate {
-    // JVM
-    tasks.register<KspTaskJvm>("kspJvmKotlin") {
-        group = "ksp"
-        description = "Runs KSP for JVM target"
-        outputs.upToDateWhen { false }
-    }
-
-    // Android Debug
-    tasks.register<KspTaskJvm>("kspAndroidDebugKotlin") {
-        group = "ksp"
-        description = "Runs KSP for Android debug target"
-        outputs.upToDateWhen { false }
-    }
-
-    // Android Release
-    tasks.register<KspTaskJvm>("kspAndroidReleaseKotlin") {
-        group = "ksp"
-        description = "Runs KSP for Android release target"
-        outputs.upToDateWhen { false }
-    }
-// Пов’язуємо всі KSP-таски з метаданими, окрім самої metadata
-tasks.matching { it.name.startsWith("ksp") && it.name != "kspCommonMainKotlinMetadata" }.configureEach {
-    dependsOn("kspCommonMainKotlinMetadata")
-}
+// ✅ Додаємо згенерований код до source sets
+kotlin.sourceSets.configureEach {
+    kotlin.srcDir("build/generated/ksp/$name/kotlin")
 }
 
-// ✅ Додаємо згенерований код до сорсів
-kotlin.sourceSets.all {
-    kotlin.srcDir("build/generated/ksp/${name}/kotlin")
+// ✅ Налаштування залежностей для KSP tasks
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    if (name != "kspCommonMainKotlinMetadata") {
+        dependsOn("kspCommonMainKotlinMetadata")
+    }
 }
-
