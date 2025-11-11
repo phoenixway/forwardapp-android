@@ -3,7 +3,6 @@ package com.romankozak.forwardappmobile.shared.features.projects.data.repository
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.sqlite.JdbcSqliteDriver
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
-import com.romankozak.forwardappmobile.shared.database.createForwardAppDatabase
 import com.romankozak.forwardappmobile.shared.database.longAdapter
 import com.romankozak.forwardappmobile.shared.database.doubleAdapter
 import com.romankozak.forwardappmobile.shared.database.intAdapter
@@ -11,6 +10,11 @@ import com.romankozak.forwardappmobile.shared.database.stringListAdapter
 import com.romankozak.forwardappmobile.shared.database.relatedLinksListAdapter
 import com.romankozak.forwardappmobile.shared.database.projectTypeAdapter
 import com.romankozak.forwardappmobile.shared.database.reservedGroupAdapter
+import com.romankozak.forwardappmobile.shared.database.scoringStatusValuesAdapter
+import com.romankozak.forwardappmobile.shared.database.stringAdapter
+import com.romankozak.forwardappmobile.shared.database.Projects
+import com.romankozak.forwardappmobile.shared.database.Goals
+import com.romankozak.forwardappmobile.shared.database.ListItems
 import com.romankozak.forwardappmobile.shared.features.projects.data.models.Project
 import com.romankozak.forwardappmobile.shared.features.projects.data.models.ProjectType
 import kotlinx.coroutines.Dispatchers
@@ -37,11 +41,11 @@ class ProjectRepositoryTest {
         ForwardAppDatabase.Schema.create(driver)
         database = ForwardAppDatabase(
             driver = driver,
-            ProjectsAdapter = ForwardAppDatabase.Projects.Adapter(
+            projectsAdapter = Projects.Adapter(
                 createdAtAdapter = longAdapter,
                 tagsAdapter = stringListAdapter,
                 relatedLinksAdapter = relatedLinksListAdapter,
-                orderAdapter = longAdapter,
+                goalOrderAdapter = longAdapter,
                 valueImportanceAdapter = doubleAdapter,
                 valueImpactAdapter = doubleAdapter,
                 effortAdapter = doubleAdapter,
@@ -55,8 +59,9 @@ class ProjectRepositoryTest {
                 projectTypeAdapter = projectTypeAdapter,
                 reservedGroupAdapter = reservedGroupAdapter
             ),
-            GoalsAdapter = ForwardAppDatabase.Goals.Adapter(
+            goalsAdapter = Goals.Adapter(
                 createdAtAdapter = longAdapter,
+                updatedAtAdapter = longAdapter,
                 tagsAdapter = stringListAdapter,
                 relatedLinksAdapter = relatedLinksListAdapter,
                 valueImportanceAdapter = doubleAdapter,
@@ -68,10 +73,17 @@ class ProjectRepositoryTest {
                 weightCostAdapter = doubleAdapter,
                 weightRiskAdapter = doubleAdapter,
                 rawScoreAdapter = doubleAdapter,
-                displayScoreAdapter = intAdapter
+                displayScoreAdapter = intAdapter,
+                scoringStatusAdapter = scoringStatusValuesAdapter,
+                parentValueImportanceAdapter = doubleAdapter,
+                impactOnParentGoalAdapter = doubleAdapter,
+                timeCostAdapter = doubleAdapter,
+                financialCostAdapter = doubleAdapter
             ),
-            ListItemsAdapter = ForwardAppDatabase.ListItems.Adapter(
-                orderAdapter = longAdapter
+            listItemsAdapter = ListItems.Adapter(
+                idAdapter = stringAdapter,
+                projectIdAdapter = stringAdapter,
+                orderIndexAdapter = longAdapter
             )
         )
         repository = ProjectRepositoryImpl(database, Dispatchers.Unconfined)
@@ -106,9 +118,9 @@ class ProjectRepositoryTest {
             tags = listOf("tag1", "tag2"),
             relatedLinks = emptyList(),
             isExpanded = true,
-            order = 0L,
+            goalOrder = 0L,
             isAttachmentsExpanded = false,
-            defaultViewModeName = null,
+            defaultViewMode = null,
             isCompleted = false,
             isProjectManagementEnabled = false,
             projectStatus = "NO_PLAN",
@@ -140,9 +152,9 @@ class ProjectRepositoryTest {
             tags = project.tags,
             relatedLinks = project.relatedLinks,
             isExpanded = project.isExpanded,
-            order = project.order,
+            goalOrder = project.goalOrder,
             isAttachmentsExpanded = project.isAttachmentsExpanded,
-            defaultViewModeName = project.defaultViewModeName,
+            defaultViewMode = project.defaultViewMode,
             isCompleted = project.isCompleted,
             isProjectManagementEnabled = project.isProjectManagementEnabled,
             projectStatus = project.projectStatus,
@@ -182,9 +194,9 @@ class ProjectRepositoryTest {
             tags = null,
             relatedLinks = null,
             isExpanded = true,
-            order = 0L,
+            goalOrder = 0L,
             isAttachmentsExpanded = false,
-            defaultViewModeName = null,
+            defaultViewMode = null,
             isCompleted = false,
             isProjectManagementEnabled = false,
             projectStatus = "NO_PLAN",
@@ -216,9 +228,9 @@ class ProjectRepositoryTest {
             tags = null,
             relatedLinks = null,
             isExpanded = true,
-            order = 1L,
+            goalOrder = 1L,
             isAttachmentsExpanded = false,
-            defaultViewModeName = null,
+            defaultViewMode = null,
             isCompleted = false,
             isProjectManagementEnabled = false,
             projectStatus = "NO_PLAN",
@@ -250,9 +262,9 @@ class ProjectRepositoryTest {
             tags = project1.tags,
             relatedLinks = project1.relatedLinks,
             isExpanded = project1.isExpanded,
-            order = project1.order,
+            goalOrder = project1.goalOrder,
             isAttachmentsExpanded = project1.isAttachmentsExpanded,
-            defaultViewModeName = project1.defaultViewModeName,
+            defaultViewMode = project1.defaultViewMode,
             isCompleted = project1.isCompleted,
             isProjectManagementEnabled = project1.isProjectManagementEnabled,
             projectStatus = project1.projectStatus,
@@ -284,9 +296,9 @@ class ProjectRepositoryTest {
             tags = project2.tags,
             relatedLinks = project2.relatedLinks,
             isExpanded = project2.isExpanded,
-            order = project2.order,
+            goalOrder = project2.goalOrder,
             isAttachmentsExpanded = project2.isAttachmentsExpanded,
-            defaultViewModeName = project2.defaultViewModeName,
+            defaultViewMode = project2.defaultViewMode,
             isCompleted = project2.isCompleted,
             isProjectManagementEnabled = project2.isProjectManagementEnabled,
             projectStatus = project2.projectStatus,

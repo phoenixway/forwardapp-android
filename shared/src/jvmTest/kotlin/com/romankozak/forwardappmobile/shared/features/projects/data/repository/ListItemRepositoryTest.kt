@@ -107,7 +107,7 @@ class ListItemRepositoryTest {
             projectId = projectId,
             itemType = ListItemTypeValues.TASK,
             entityId = "task_1",
-            order = 0L
+            orderIndex = 0L
         )
 
         database.listItemsQueries.insertListItem(
@@ -115,7 +115,7 @@ class ListItemRepositoryTest {
             projectId = listItem.projectId,
             itemType = listItem.itemType,
             entityId = listItem.entityId,
-            order = listItem.order
+            orderIndex = listItem.orderIndex
         )
 
         val retrievedListItems = repository.getListItems(projectId).first()
@@ -131,14 +131,14 @@ class ListItemRepositoryTest {
             projectId = projectId,
             itemType = ListItemTypeValues.TASK,
             entityId = "task_1",
-            order = 0L
+            orderIndex = 0L
         )
         val listItem2 = ListItem(
             id = "item_2",
             projectId = projectId,
             itemType = ListItemTypeValues.GOAL,
             entityId = "goal_1",
-            order = 1L
+            orderIndex = 1L
         )
         val listItem3 = ListItem(
             id = "item_3",
@@ -153,21 +153,21 @@ class ListItemRepositoryTest {
             projectId = listItem1.projectId,
             itemType = listItem1.itemType,
             entityId = listItem1.entityId,
-            order = listItem1.order
+            orderIndex = listItem1.orderIndex
         )
         database.listItemsQueries.insertListItem(
             id = listItem2.id,
             projectId = listItem2.projectId,
             itemType = listItem2.itemType,
             entityId = listItem2.entityId,
-            order = listItem2.order
+            orderIndex = listItem2.orderIndex
         )
         database.listItemsQueries.insertListItem(
             id = listItem3.id,
             projectId = listItem3.projectId,
             itemType = listItem3.itemType,
             entityId = listItem3.entityId,
-            order = listItem3.order
+            orderIndex = listItem3.orderIndex
         )
 
         val retrievedListItems = repository.getListItems(projectId).first()
