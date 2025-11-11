@@ -37,3 +37,9 @@ SELECT * FROM Goals;
 getGoalsByIds:
 SELECT * FROM Goals WHERE id IN :ids;
 
+insertGoal:
+INSERT OR REPLACE INTO Goals(
+  id, text, description, completed, createdAt, updatedAt, tags, relatedLinks, valueImportance, valueImpact, effort, cost, risk, weightEffort, weightCost, weightRisk, rawScore, displayScore, scoringStatus, parentValueImportance, impactOnParentGoal, timeCost, financialCost
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+

@@ -8,6 +8,12 @@ import com.romankozak.forwardappmobile.shared.database.doubleAdapter
 import com.romankozak.forwardappmobile.shared.database.intAdapter
 import com.romankozak.forwardappmobile.shared.database.stringListAdapter
 import com.romankozak.forwardappmobile.shared.database.relatedLinksListAdapter
+import com.romankozak.forwardappmobile.shared.database.projectTypeAdapter
+import com.romankozak.forwardappmobile.shared.database.reservedGroupAdapter
+import com.romankozak.forwardappmobile.shared.database.scoringStatusValuesAdapter
+import com.romankozak.forwardappmobile.shared.database.Projects
+import com.romankozak.forwardappmobile.shared.database.Goals
+import com.romankozak.forwardappmobile.shared.database.ListItems
 import com.romankozak.forwardappmobile.shared.features.goals.data.models.Goal
 import com.romankozak.forwardappmobile.shared.data.models.RelatedLink
 import com.romankozak.forwardappmobile.shared.data.models.ScoringStatusValues
@@ -35,11 +41,11 @@ class GoalRepositoryTest {
         ForwardAppDatabase.Schema.create(driver)
         database = ForwardAppDatabase(
             driver = driver,
-            ProjectsAdapter = ForwardAppDatabase.Projects.Adapter(
+            projectsAdapter = Projects.Adapter(
                 createdAtAdapter = longAdapter,
                 tagsAdapter = stringListAdapter,
                 relatedLinksAdapter = relatedLinksListAdapter,
-                orderAdapter = longAdapter,
+                goalOrderAdapter = longAdapter,
                 valueImportanceAdapter = doubleAdapter,
                 valueImpactAdapter = doubleAdapter,
                 effortAdapter = doubleAdapter,
@@ -50,10 +56,10 @@ class GoalRepositoryTest {
                 weightRiskAdapter = doubleAdapter,
                 rawScoreAdapter = doubleAdapter,
                 displayScoreAdapter = intAdapter,
-                projectTypeAdapter = com.romankozak.forwardappmobile.shared.database.projectTypeAdapter,
-                reservedGroupAdapter = com.romankozak.forwardappmobile.shared.database.reservedGroupAdapter
+                projectTypeAdapter = projectTypeAdapter,
+                reservedGroupAdapter = reservedGroupAdapter
             ),
-            GoalsAdapter = ForwardAppDatabase.Goals.Adapter(
+            goalsAdapter = Goals.Adapter(
                 createdAtAdapter = longAdapter,
                 updatedAtAdapter = longAdapter,
                 tagsAdapter = stringListAdapter,
@@ -68,14 +74,16 @@ class GoalRepositoryTest {
                 weightRiskAdapter = doubleAdapter,
                 rawScoreAdapter = doubleAdapter,
                 displayScoreAdapter = intAdapter,
-                scoringStatusAdapter = com.romankozak.forwardappmobile.shared.database.scoringStatusValuesAdapter,
+                scoringStatusAdapter = scoringStatusValuesAdapter,
                 parentValueImportanceAdapter = doubleAdapter,
                 impactOnParentGoalAdapter = doubleAdapter,
                 timeCostAdapter = doubleAdapter,
                 financialCostAdapter = doubleAdapter
             ),
-            ListItemsAdapter = ForwardAppDatabase.ListItems.Adapter(
-                orderAdapter = longAdapter
+            listItemsAdapter = ListItems.Adapter(
+                idAdapter = stringAdapter,
+                projectIdAdapter = stringAdapter,
+                orderIndexAdapter = longAdapter
             )
         )
         repository = GoalRepositoryImpl(database, Dispatchers.Unconfined)
@@ -102,7 +110,7 @@ class GoalRepositoryTest {
             createdAt = 1L,
             updatedAt = null,
             tags = listOf("tag1", "tag2"),
-            relatedLinks = listOf(RelatedLink("link1", "url1")),
+            relatedLinks = listOf(RelatedLink(LinkType.URL, "url1")),
             valueImportance = 1.0f,
             valueImpact = 2.0f,
             effort = 3.0f,

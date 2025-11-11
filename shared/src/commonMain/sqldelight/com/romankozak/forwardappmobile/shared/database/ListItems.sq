@@ -9,7 +9,7 @@ CREATE TABLE ListItems (
 getItemsForProject:
 SELECT * FROM ListItems WHERE projectId = :projectId ORDER BY itemOrder ASC, id ASC;
 
-insertItem:
+insertListItem:
 INSERT OR REPLACE INTO ListItems(id, projectId, itemOrder, entityId, itemType)
 VALUES (:id, :projectId, :itemOrder, :entityId, :itemType);
 

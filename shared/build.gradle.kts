@@ -66,12 +66,12 @@ kotlin {
             kotlin.srcDir("src/androidUnitTest/kotlin")
             dependencies {
                 implementation(libs.sqldelightAndroidDriver)
+                implementation("androidx.test:core:1.5.0")
             }
         }
         val jvmTest by getting {
             dependencies {
             implementation("app.cash.sqldelight:sqlite-driver:2.0.2")
-            implementation(libs.sqldelightSqliteDriver) // app.cash.sqldelight:slite-driver
             }
         }
 

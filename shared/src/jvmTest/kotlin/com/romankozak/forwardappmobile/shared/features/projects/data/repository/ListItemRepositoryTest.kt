@@ -8,6 +8,13 @@ import com.romankozak.forwardappmobile.shared.database.doubleAdapter
 import com.romankozak.forwardappmobile.shared.database.intAdapter
 import com.romankozak.forwardappmobile.shared.database.stringListAdapter
 import com.romankozak.forwardappmobile.shared.database.relatedLinksListAdapter
+import com.romankozak.forwardappmobile.shared.database.projectTypeAdapter
+import com.romankozak.forwardappmobile.shared.database.reservedGroupAdapter
+import com.romankozak.forwardappmobile.shared.database.scoringStatusValuesAdapter
+import com.romankozak.forwardappmobile.shared.database.stringAdapter
+import com.romankozak.forwardappmobile.shared.database.Projects
+import com.romankozak.forwardappmobile.shared.database.Goals
+import com.romankozak.forwardappmobile.shared.database.ListItems
 import com.romankozak.forwardappmobile.shared.features.projects.data.models.ListItem
 import com.romankozak.forwardappmobile.shared.data.models.ListItemTypeValues
 import kotlinx.coroutines.Dispatchers
@@ -33,11 +40,11 @@ class ListItemRepositoryTest {
         ForwardAppDatabase.Schema.create(driver)
         database = ForwardAppDatabase(
             driver = driver,
-            ProjectsAdapter = ForwardAppDatabase.Projects.Adapter(
+            projectsAdapter = Projects.Adapter(
                 createdAtAdapter = longAdapter,
                 tagsAdapter = stringListAdapter,
                 relatedLinksAdapter = relatedLinksListAdapter,
-                orderAdapter = longAdapter,
+                goalOrderAdapter = longAdapter,
                 valueImportanceAdapter = doubleAdapter,
                 valueImpactAdapter = doubleAdapter,
                 effortAdapter = doubleAdapter,
@@ -48,10 +55,10 @@ class ListItemRepositoryTest {
                 weightRiskAdapter = doubleAdapter,
                 rawScoreAdapter = doubleAdapter,
                 displayScoreAdapter = intAdapter,
-                projectTypeAdapter = com.romankozak.forwardappmobile.shared.database.projectTypeAdapter,
-                reservedGroupAdapter = com.romankozak.forwardappmobile.shared.database.reservedGroupAdapter
+                projectTypeAdapter = projectTypeAdapter,
+                reservedGroupAdapter = reservedGroupAdapter
             ),
-            GoalsAdapter = ForwardAppDatabase.Goals.Adapter(
+            goalsAdapter = Goals.Adapter(
                 createdAtAdapter = longAdapter,
                 updatedAtAdapter = longAdapter,
                 tagsAdapter = stringListAdapter,
@@ -66,14 +73,16 @@ class ListItemRepositoryTest {
                 weightRiskAdapter = doubleAdapter,
                 rawScoreAdapter = doubleAdapter,
                 displayScoreAdapter = intAdapter,
-                scoringStatusAdapter = com.romankozak.forwardappmobile.shared.database.scoringStatusValuesAdapter,
+                scoringStatusAdapter = scoringStatusValuesAdapter,
                 parentValueImportanceAdapter = doubleAdapter,
                 impactOnParentGoalAdapter = doubleAdapter,
                 timeCostAdapter = doubleAdapter,
                 financialCostAdapter = doubleAdapter
             ),
-            ListItemsAdapter = ForwardAppDatabase.ListItems.Adapter(
-                orderAdapter = longAdapter
+            listItemsAdapter = ListItems.Adapter(
+                idAdapter = stringAdapter,
+                projectIdAdapter = stringAdapter,
+                orderIndexAdapter = longAdapter
             )
         )
         repository = ListItemRepositoryImpl(database, Dispatchers.Unconfined)
@@ -136,7 +145,7 @@ class ListItemRepositoryTest {
             projectId = "project_2", // Different project
             itemType = ListItemTypeValues.TASK,
             entityId = "task_2",
-            order = 0L
+            orderIndex = 0L
         )
 
         database.listItemsQueries.insertListItem(
