@@ -86,8 +86,6 @@ fun createForwardAppDatabase(driverFactory: DatabaseDriverFactory): ForwardAppDa
     val driver = driverFactory.createDriver()
 
     val goalsAdapter = Goals.Adapter(
-        idAdapter = stringAdapter,
-        textAdapter = stringAdapter,
         createdAtAdapter = longAdapter,
         tagsAdapter = stringListAdapter,
         relatedLinksAdapter = relatedLinksListAdapter,
@@ -100,21 +98,14 @@ fun createForwardAppDatabase(driverFactory: DatabaseDriverFactory): ForwardAppDa
         weightCostAdapter = doubleAdapter,
         weightRiskAdapter = doubleAdapter,
         rawScoreAdapter = doubleAdapter,
-        displayScoreAdapter = intAdapter,
-        scoringStatusAdapter = stringAdapter,
+        displayScoreAdapter = longAdapter,
     )
 
     val projectsAdapter = Projects.Adapter(
-        idAdapter = stringAdapter,
-        nameAdapter = stringAdapter,
         createdAtAdapter = longAdapter,
         goalOrderAdapter = longAdapter,
         tagsAdapter = stringListAdapter,
         relatedLinksAdapter = relatedLinksListAdapter,
-        isExpandedAdapter = booleanAdapter,
-        isAttachmentsExpandedAdapter = booleanAdapter,
-        isCompletedAdapter = booleanAdapter,
-        isProjectManagementEnabledAdapter = booleanAdapter,
         projectTypeAdapter = projectTypeAdapter,
         reservedGroupAdapter = reservedGroupAdapter,
         valueImportanceAdapter = doubleAdapter,

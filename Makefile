@@ -116,6 +116,15 @@ clean:
 	@./gradlew clean
 	@echo "✅  Проєкт очищено."
 
+## Очистити кеші бази даних, Gradle та згенеровані файли
+db-clean:
+	@echo "🧹  Очищую кеші бази даних та Gradle..."
+	@./gradlew clean
+	@rm -rf shared/build/generated/sqldelight
+	@rm -rf shared/.sqldelight
+	@rm -rf .gradle
+	@echo "✅  Кеші очищено."
+
 
 # ==============================================================================
 # Git Workflow Targets
