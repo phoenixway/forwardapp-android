@@ -113,7 +113,7 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
 }
 
 afterEvaluate {
-    tasks.findByName("compileKotlinJvm")?.enabled = false
-    tasks.findByName("jvmTest")?.enabled = false
+    // tasks.findByName("compileKotlinJvm")?.enabled = false
+    // tasks.findByName("jvmTest")?.enabled = false
 }
 
