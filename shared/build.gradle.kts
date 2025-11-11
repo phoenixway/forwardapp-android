@@ -1,74 +1,89 @@
-import com.google.devtools.ksp.gradle.KspTaskJvm
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-    alias(libs.plugins.kotlin.multiplatform)
-    alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlinMultiplatform)
+    alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.androidLibrary)
     alias(libs.plugins.sqldelight)
     alias(libs.plugins.ksp)
 }
 
+// 🧩 Workaround для Compose Native initialization bug
+System.setProperty("org.jetbrains.kotlin.native.ignoreDisabledTargets", "true")
+
 kotlin {
+	@OptIn(org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi::class)
+
+    // ✅ Android target (обов’язково для multiplatform)
     androidTarget {
         compilerOptions {
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+            jvmTarget.set(JvmTarget.JVM_17)
+            freeCompilerArgs.add("-Xexpect-actual-classes")
         }
     }
 
+    // ✅ JVM target (для unit-тестів або desktop-логіки)
     jvm {
         compilerOptions {
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+            jvmTarget.set(JvmTarget.JVM_17)
+            freeCompilerArgs.add("-Xexpect-actual-classes")
         }
     }
 
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation(libs.kotlinx.serialization.json)
-                implementation(libs.kotlinx.coroutines.core)
-                implementation(libs.kotlinx.datetime)
-                implementation(libs.benasher.uuid)
-                implementation(libs.sqldelight.runtime)
-                implementation(libs.sqldelight.coroutines)
-                implementation(libs.kotlin.inject.runtime)
+                implementation(libs.kotlinxSerializationJson)
+                implementation(libs.kotlinxCoroutinesCore)
+                implementation(libs.kotlinxDatetime)
+                implementation(libs.benasherUuid)
+                implementation(libs.sqldelightRuntime)
+                implementation(libs.sqldelightCoroutines)
+                implementation(libs.kotlinInjectRuntime)
             }
         }
 
         val androidMain by getting {
             dependencies {
-                implementation(libs.sqldelight.android.driver)
+                implementation(libs.sqldelightAndroidDriver)
             }
         }
 
         val jvmMain by getting {
             dependencies {
-                implementation(libs.sqldelight.sqlite.driver)
+                implementation(libs.sqldelightSqliteDriver)
             }
         }
-        
+
         val commonTest by getting {
             dependencies {
                 implementation(kotlin("test"))
-                implementation(libs.kotlinx.coroutines.test)
-    
+                implementation(libs.kotlinxCoroutinesTest)
             }
-        }    
-
-    val androidUnitTest by getting {
-        dependencies {
-            implementation(libs.sqldelight.sqlite.driver)
         }
-    }
 
+        val androidUnitTest by getting {
+            kotlin.srcDir("src/androidUnitTest/kotlin")
+            dependencies {
+                implementation(libs.sqldelightSqliteDriver)
+            }
+        }
+        val jvmTest by getting {
+            dependencies {
+                implementation(libs.sqldelightSqliteDriver) // app.cash.sqldelight:sqlite-driver
+            }
+        }
 
-
+        
     }
 }
 
 android {
     namespace = "com.romankozak.forwardappmobile.shared"
     compileSdk = 34
-    defaultConfig { minSdk = 29 }
+    defaultConfig {
+        minSdk = 29
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -76,44 +91,43 @@ android {
     }
 }
 
-// ✅ SQLDelight
+// ✅ SQLDelight configuration
 sqldelight {
     databases {
         create("ForwardAppDatabase") {
-            srcDirs.from("src/commonMain/sqldelight") // ✅ дуже важливо
             packageName.set("com.romankozak.forwardappmobile.shared.database")
+            srcDirs("src/commonMain/sqldelight")
             deriveSchemaFromMigrations.set(true)
             schemaOutputDirectory.set(file("src/commonMain/sqldelight/databases"))
             dialect("app.cash.sqldelight:sqlite-3-24-dialect:2.0.2")
+            // ✅ linkSqlite видалено — більше не існує у 2.x
         }
     }
 }
 
-// ✅ Kotlin Inject через KSP - ВИПРАВЛЕНО
+
+
+
+// ✅ Kotlin Inject via KSP 2.1.x
 dependencies {
-    add("kspCommonMainMetadata", libs.kotlin.inject.compiler.ksp)
-    add("kspAndroid", libs.kotlin.inject.compiler.ksp)
-    add("kspJvm", libs.kotlin.inject.compiler.ksp)
+    add("kspCommonMainMetadata", libs.kotlinInjectCompilerKsp)
+    add("kspAndroid", libs.kotlinInjectCompilerKsp)
+    add("kspJvm", libs.kotlinInjectCompilerKsp)
 }
 
 ksp {
     arg("me.tatarka.inject.generateCompanionExtensions", "true")
 }
 
-// ✅ Додаємо згенерований код до source sets
+// ✅ Include generated KSP sources automatically
 kotlin.sourceSets.configureEach {
     kotlin.srcDir("build/generated/ksp/$name/kotlin")
 }
 
-// ✅ Налаштування залежностей для KSP tasks
+// ✅ Ensure KSP tasks run before compilation
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
     if (name != "kspCommonMainKotlinMetadata") {
         dependsOn("kspCommonMainKotlinMetadata")
     }
-}
-
-afterEvaluate {
-    // tasks.findByName("compileKotlinJvm")?.enabled = false
-    // tasks.findByName("jvmTest")?.enabled = false
 }
 

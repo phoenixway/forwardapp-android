@@ -4,6 +4,7 @@ import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import com.romankozak.forwardappmobile.shared.database.Goals
 import com.romankozak.forwardappmobile.shared.database.Projects
+//import com.romankozak.forwardappmobile.shared.data.database
 
 actual fun createTestDriver(): Any {
     val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
@@ -32,8 +33,6 @@ actual fun createTestDatabase(driver: Any): ForwardAppDatabase {
             displayScoreAdapter = TestAdapters.longAdapter
         ),
         projectsAdapter = Projects.Adapter(
-            idAdapter = TestAdapters.stringAdapter,
-            nameAdapter = TestAdapters.stringAdapter,
             createdAtAdapter = TestAdapters.longAdapter,
             goalOrderAdapter = TestAdapters.longAdapter,
             tagsAdapter = TestAdapters.stringListAdapter,

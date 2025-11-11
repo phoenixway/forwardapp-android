@@ -1,3 +1,4 @@
+
 package com.romankozak.forwardappmobile.shared.data.database
 
 import app.cash.sqldelight.ColumnAdapter
