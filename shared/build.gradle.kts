@@ -45,6 +45,23 @@ kotlin {
                 implementation(libs.sqldelight.sqlite.driver)
             }
         }
+        
+        val commonTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
+                implementation(libs.kotlinx.coroutines.test)
+    
+            }
+        }    
+
+    val androidUnitTest by getting {
+        dependencies {
+            implementation(libs.sqldelight.sqlite.driver)
+        }
+    }
+
+
+
     }
 }
 
@@ -94,3 +111,9 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
         dependsOn("kspCommonMainKotlinMetadata")
     }
 }
+
+afterEvaluate {
+    tasks.findByName("compileKotlinJvm")?.enabled = false
+    tasks.findByName("jvmTest")?.enabled = false
+}
+
