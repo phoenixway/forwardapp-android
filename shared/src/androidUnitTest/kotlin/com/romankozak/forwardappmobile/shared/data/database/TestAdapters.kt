@@ -49,8 +49,10 @@ object TestAdapters {
         override fun encode(value: ProjectType) = value.name
     }
 
-    val reservedGroupAdapter = object : ColumnAdapter<ReservedGroup?, String?> {
-        override fun decode(databaseValue: String?) = databaseValue?.let { ReservedGroup.valueOf(it) }
-        override fun encode(value: ReservedGroup?) = value?.name
+    val reservedGroupAdapter = object : ColumnAdapter<ReservedGroup, String> {
+        override fun decode(databaseValue: String): ReservedGroup =
+            ReservedGroup.fromString(databaseValue)
+                ?: throw IllegalStateException("Unknown reserved group: $databaseValue")
+        override fun encode(value: ReservedGroup): String = value.groupName
     }
 }
