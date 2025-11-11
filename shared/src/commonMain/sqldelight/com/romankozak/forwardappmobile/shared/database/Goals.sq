@@ -34,3 +34,6 @@ CREATE TABLE Goals (
 getAllGoals:
 SELECT * FROM Goals;
 
+getGoalsByIds:
+SELECT * FROM Goals WHERE id IN :ids;
+

@@ -7,6 +7,7 @@ import com.romankozak.forwardappmobile.shared.database.stringListAdapter
 import com.romankozak.forwardappmobile.shared.database.relatedLinksListAdapter
 import com.romankozak.forwardappmobile.shared.data.models.ProjectType
 import com.romankozak.forwardappmobile.shared.data.models.ReservedGroup
+import com.romankozak.forwardappmobile.shared.data.models.ScoringStatusValues
 
 fun Projects.toDomain(): Project {
     return Project(

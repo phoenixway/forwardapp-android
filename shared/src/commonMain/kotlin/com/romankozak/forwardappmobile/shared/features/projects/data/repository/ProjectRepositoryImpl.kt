@@ -16,14 +16,14 @@ class ProjectRepositoryImpl(
 ) : ProjectRepository {
 
     override fun getAllProjects(): Flow<List<Project>> {
-        return db.projectsQueries.getAll()
+        return db.projectsQueries.getAllProjects()
             .asFlow()
             .mapToList(dispatcher)
             .map { projects -> projects.map { it.toDomain() } }
     }
 
     override fun getProjectById(id: String): Flow<Project?> {
-        return db.projectsQueries.getById(id)
+        return db.projectsQueries.getProjectById(id)
             .asFlow()
             .mapToOneOrNull(dispatcher)
             .map { it?.toDomain() }
