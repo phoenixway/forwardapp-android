@@ -1,19 +1,20 @@
 package com.romankozak.forwardappmobile.shared.data.database
 
+import app.cash.sqldelight.db.SqlDriver
 import com.romankozak.forwardappmobile.shared.data.models.ProjectType
 import com.romankozak.forwardappmobile.shared.data.models.ReservedGroup
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import kotlinx.coroutines.test.runTest
 import kotlin.test.*
 
-expect fun createTestDriver(): Any
-expect fun createTestDatabase(driver: Any): ForwardAppDatabase
-expect fun closeTestDriver(driver: Any)
+expect fun createTestDriver(): SqlDriver
+expect fun createTestDatabase(driver: SqlDriver): ForwardAppDatabase
+expect fun closeTestDriver(driver: SqlDriver)
 
 class DatabaseInitializerTest {
 
     private lateinit var db: ForwardAppDatabase
-    private lateinit var driver: Any
+    private lateinit var driver: SqlDriver
     private lateinit var initializer: DatabaseInitializer
 
     @BeforeTest

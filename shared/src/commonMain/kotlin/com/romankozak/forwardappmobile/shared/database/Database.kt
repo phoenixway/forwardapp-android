@@ -5,6 +5,7 @@ import com.romankozak.forwardappmobile.shared.data.models.RelatedLink
 import com.romankozak.forwardappmobile.shared.data.models.ProjectType
 import com.romankozak.forwardappmobile.shared.data.models.ReservedGroup
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 
 // ------------------------------------------------------
@@ -50,9 +51,13 @@ val stringAdapter = object : ColumnAdapter<String, String> {
 // ------------------------------------------------------
 
 val stringListAdapter = object : ColumnAdapter<List<String>, String> {
-    override fun decode(databaseValue: String): List<String> =
-        if (databaseValue.isEmpty()) emptyList() else databaseValue.split(",")
-    override fun encode(value: List<String>) = value.joinToString(",")
+    override fun decode(databaseValue: String): List<String> {
+        if (databaseValue.isEmpty()) return emptyList()
+        return json.decodeFromString(ListSerializer(String.serializer()), databaseValue)
+    }
+
+    override fun encode(value: List<String>): String =
+        json.encodeToString(ListSerializer(String.serializer()), value)
 }
 
 val relatedLinksListAdapter = object : ColumnAdapter<List<RelatedLink>, String> {
@@ -67,7 +72,7 @@ val relatedLinksListAdapter = object : ColumnAdapter<List<RelatedLink>, String> 
 
 val projectTypeAdapter = object : ColumnAdapter<ProjectType, String> {
     override fun decode(databaseValue: String): ProjectType =
-        ProjectType.fromString(databaseValue)
+        ProjectType.valueOf(databaseValue)
     override fun encode(value: ProjectType): String = value.name
 }
 
@@ -98,7 +103,7 @@ fun createForwardAppDatabase(driverFactory: DatabaseDriverFactory): ForwardAppDa
         weightCostAdapter = doubleAdapter,
         weightRiskAdapter = doubleAdapter,
         rawScoreAdapter = doubleAdapter,
-        displayScoreAdapter = longAdapter,
+        displayScoreAdapter = longAdapter
     )
 
     val projectsAdapter = Projects.Adapter(
@@ -117,13 +122,13 @@ fun createForwardAppDatabase(driverFactory: DatabaseDriverFactory): ForwardAppDa
         weightCostAdapter = doubleAdapter,
         weightRiskAdapter = doubleAdapter,
         rawScoreAdapter = doubleAdapter,
-        displayScoreAdapter = longAdapter,
+        displayScoreAdapter = longAdapter
     )
 
     return ForwardAppDatabase(
         driver = driver,
         GoalsAdapter = goalsAdapter,
-        projectsAdapter = projectsAdapter,
+        projectsAdapter = projectsAdapter
     )
 }
 

@@ -31,12 +31,3 @@ object ProjectLogLevelValues {
     const val DETAILED = "DETAILED"
     const val NORMAL = "NORMAL"
 }
-
-object ListItemTypeValues {
-    const val GOAL = "GOAL"
-    const val SUBLIST = "SUBLIST"
-    const val LINK_ITEM = "LINK_ITEM"
-    const val NOTE = "NOTE"
-    const val NOTE_DOCUMENT = "NOTE_DOCUMENT"
-    const val CHECKLIST = "CHECKLIST"
-}

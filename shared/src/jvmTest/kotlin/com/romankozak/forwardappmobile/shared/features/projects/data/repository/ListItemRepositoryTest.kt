@@ -1,22 +1,11 @@
 package com.romankozak.forwardappmobile.shared.features.projects.data.repository
 
 import app.cash.sqldelight.db.SqlDriver
-import app.cash.sqldelight.driver.sqlite.JdbcSqliteDriver
-import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
-import com.romankozak.forwardappmobile.shared.database.longAdapter
-import com.romankozak.forwardappmobile.shared.database.doubleAdapter
-import com.romankozak.forwardappmobile.shared.database.intAdapter
-import com.romankozak.forwardappmobile.shared.database.stringListAdapter
-import com.romankozak.forwardappmobile.shared.database.relatedLinksListAdapter
-import com.romankozak.forwardappmobile.shared.database.projectTypeAdapter
-import com.romankozak.forwardappmobile.shared.database.reservedGroupAdapter
-import com.romankozak.forwardappmobile.shared.database.scoringStatusValuesAdapter
-import com.romankozak.forwardappmobile.shared.database.stringAdapter
-import com.romankozak.forwardappmobile.shared.database.Projects
-import com.romankozak.forwardappmobile.shared.database.Goals
-import com.romankozak.forwardappmobile.shared.database.ListItems
+import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
+import com.romankozak.forwardappmobile.shared.data.models.ProjectType
+import com.romankozak.forwardappmobile.shared.data.models.ReservedGroup
+import com.romankozak.forwardappmobile.shared.database.*
 import com.romankozak.forwardappmobile.shared.features.projects.data.models.ListItem
-import com.romankozak.forwardappmobile.shared.data.models.ListItemTypeValues
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -54,13 +43,12 @@ class ListItemRepositoryTest {
                 weightCostAdapter = doubleAdapter,
                 weightRiskAdapter = doubleAdapter,
                 rawScoreAdapter = doubleAdapter,
-                displayScoreAdapter = intAdapter,
+                displayScoreAdapter = longAdapter,
                 projectTypeAdapter = projectTypeAdapter,
                 reservedGroupAdapter = reservedGroupAdapter
             ),
-            goalsAdapter = Goals.Adapter(
+            GoalsAdapter = Goals.Adapter(
                 createdAtAdapter = longAdapter,
-                updatedAtAdapter = longAdapter,
                 tagsAdapter = stringListAdapter,
                 relatedLinksAdapter = relatedLinksListAdapter,
                 valueImportanceAdapter = doubleAdapter,
@@ -72,17 +60,7 @@ class ListItemRepositoryTest {
                 weightCostAdapter = doubleAdapter,
                 weightRiskAdapter = doubleAdapter,
                 rawScoreAdapter = doubleAdapter,
-                displayScoreAdapter = intAdapter,
-                scoringStatusAdapter = scoringStatusValuesAdapter,
-                parentValueImportanceAdapter = doubleAdapter,
-                impactOnParentGoalAdapter = doubleAdapter,
-                timeCostAdapter = doubleAdapter,
-                financialCostAdapter = doubleAdapter
-            ),
-            listItemsAdapter = ListItems.Adapter(
-                idAdapter = stringAdapter,
-                projectIdAdapter = stringAdapter,
-                orderIndexAdapter = longAdapter
+                displayScoreAdapter = longAdapter
             )
         )
         repository = ListItemRepositoryImpl(database, Dispatchers.Unconfined)
@@ -105,9 +83,9 @@ class ListItemRepositoryTest {
         val listItem = ListItem(
             id = "item_1",
             projectId = projectId,
-            itemType = ListItemTypeValues.TASK,
+            itemType = "TASK",
             entityId = "task_1",
-            orderIndex = 0L
+            itemOrder = 0L
         )
 
         database.listItemsQueries.insertListItem(
@@ -115,7 +93,7 @@ class ListItemRepositoryTest {
             projectId = listItem.projectId,
             itemType = listItem.itemType,
             entityId = listItem.entityId,
-            orderIndex = listItem.orderIndex
+            itemOrder = listItem.itemOrder
         )
 
         val retrievedListItems = repository.getListItems(projectId).first()
@@ -129,23 +107,23 @@ class ListItemRepositoryTest {
         val listItem1 = ListItem(
             id = "item_1",
             projectId = projectId,
-            itemType = ListItemTypeValues.TASK,
+            itemType = "TASK",
             entityId = "task_1",
-            orderIndex = 0L
+            itemOrder = 0L
         )
         val listItem2 = ListItem(
             id = "item_2",
             projectId = projectId,
-            itemType = ListItemTypeValues.GOAL,
+            itemType = "GOAL",
             entityId = "goal_1",
-            orderIndex = 1L
+            itemOrder = 1L
         )
         val listItem3 = ListItem(
             id = "item_3",
             projectId = "project_2", // Different project
-            itemType = ListItemTypeValues.TASK,
+            itemType = "TASK",
             entityId = "task_2",
-            orderIndex = 0L
+            itemOrder = 0L
         )
 
         database.listItemsQueries.insertListItem(
@@ -153,21 +131,21 @@ class ListItemRepositoryTest {
             projectId = listItem1.projectId,
             itemType = listItem1.itemType,
             entityId = listItem1.entityId,
-            orderIndex = listItem1.orderIndex
+            itemOrder = listItem1.itemOrder
         )
         database.listItemsQueries.insertListItem(
             id = listItem2.id,
             projectId = listItem2.projectId,
             itemType = listItem2.itemType,
             entityId = listItem2.entityId,
-            orderIndex = listItem2.orderIndex
+            itemOrder = listItem2.itemOrder
         )
         database.listItemsQueries.insertListItem(
             id = listItem3.id,
             projectId = listItem3.projectId,
             itemType = listItem3.itemType,
             entityId = listItem3.entityId,
-            orderIndex = listItem3.orderIndex
+            itemOrder = listItem3.itemOrder
         )
 
         val retrievedListItems = repository.getListItems(projectId).first()

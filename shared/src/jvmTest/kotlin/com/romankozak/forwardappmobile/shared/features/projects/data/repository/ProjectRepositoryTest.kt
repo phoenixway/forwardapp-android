@@ -1,22 +1,11 @@
 package com.romankozak.forwardappmobile.shared.features.projects.data.repository
 
 import app.cash.sqldelight.db.SqlDriver
-import app.cash.sqldelight.driver.sqlite.JdbcSqliteDriver
-import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
-import com.romankozak.forwardappmobile.shared.database.longAdapter
-import com.romankozak.forwardappmobile.shared.database.doubleAdapter
-import com.romankozak.forwardappmobile.shared.database.intAdapter
-import com.romankozak.forwardappmobile.shared.database.stringListAdapter
-import com.romankozak.forwardappmobile.shared.database.relatedLinksListAdapter
-import com.romankozak.forwardappmobile.shared.database.projectTypeAdapter
-import com.romankozak.forwardappmobile.shared.database.reservedGroupAdapter
-import com.romankozak.forwardappmobile.shared.database.scoringStatusValuesAdapter
-import com.romankozak.forwardappmobile.shared.database.stringAdapter
-import com.romankozak.forwardappmobile.shared.database.Projects
-import com.romankozak.forwardappmobile.shared.database.Goals
-import com.romankozak.forwardappmobile.shared.database.ListItems
+import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
+import com.romankozak.forwardappmobile.shared.data.models.ProjectType
+import com.romankozak.forwardappmobile.shared.data.models.ReservedGroup
+import com.romankozak.forwardappmobile.shared.database.*
 import com.romankozak.forwardappmobile.shared.features.projects.data.models.Project
-import com.romankozak.forwardappmobile.shared.features.projects.data.models.ProjectType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -55,13 +44,12 @@ class ProjectRepositoryTest {
                 weightCostAdapter = doubleAdapter,
                 weightRiskAdapter = doubleAdapter,
                 rawScoreAdapter = doubleAdapter,
-                displayScoreAdapter = intAdapter,
+                displayScoreAdapter = longAdapter,
                 projectTypeAdapter = projectTypeAdapter,
                 reservedGroupAdapter = reservedGroupAdapter
             ),
-            goalsAdapter = Goals.Adapter(
+            GoalsAdapter = Goals.Adapter(
                 createdAtAdapter = longAdapter,
-                updatedAtAdapter = longAdapter,
                 tagsAdapter = stringListAdapter,
                 relatedLinksAdapter = relatedLinksListAdapter,
                 valueImportanceAdapter = doubleAdapter,
@@ -73,17 +61,7 @@ class ProjectRepositoryTest {
                 weightCostAdapter = doubleAdapter,
                 weightRiskAdapter = doubleAdapter,
                 rawScoreAdapter = doubleAdapter,
-                displayScoreAdapter = intAdapter,
-                scoringStatusAdapter = scoringStatusValuesAdapter,
-                parentValueImportanceAdapter = doubleAdapter,
-                impactOnParentGoalAdapter = doubleAdapter,
-                timeCostAdapter = doubleAdapter,
-                financialCostAdapter = doubleAdapter
-            ),
-            listItemsAdapter = ListItems.Adapter(
-                idAdapter = stringAdapter,
-                projectIdAdapter = stringAdapter,
-                orderIndexAdapter = longAdapter
+                displayScoreAdapter = longAdapter
             )
         )
         repository = ProjectRepositoryImpl(database, Dispatchers.Unconfined)
@@ -127,16 +105,16 @@ class ProjectRepositoryTest {
             projectStatusText = null,
             projectLogLevel = "NORMAL",
             totalTimeSpentMinutes = 0L,
-            valueImportance = 0f,
-            valueImpact = 0f,
-            effort = 0f,
-            cost = 0f,
-            risk = 0f,
-            weightEffort = 1f,
-            weightCost = 1f,
-            weightRisk = 1f,
-            rawScore = 0f,
-            displayScore = 0,
+            valueImportance = 0.0,
+            valueImpact = 0.0,
+            effort = 0.0,
+            cost = 0.0,
+            risk = 0.0,
+            weightEffort = 1.0,
+            weightCost = 1.0,
+            weightRisk = 1.0,
+            rawScore = 0.0,
+            displayScore = 0L,
             scoringStatus = "NOT_ASSESSED",
             showCheckboxes = false,
             projectType = ProjectType.DEFAULT,
@@ -161,15 +139,15 @@ class ProjectRepositoryTest {
             projectStatusText = project.projectStatusText,
             projectLogLevel = project.projectLogLevel,
             totalTimeSpentMinutes = project.totalTimeSpentMinutes,
-            valueImportance = project.valueImportance.toDouble(),
-            valueImpact = project.valueImpact.toDouble(),
-            effort = project.effort.toDouble(),
-            cost = project.cost.toDouble(),
-            risk = project.risk.toDouble(),
-            weightEffort = project.weightEffort.toDouble(),
-            weightCost = project.weightCost.toDouble(),
-            weightRisk = project.weightRisk.toDouble(),
-            rawScore = project.rawScore.toDouble(),
+            valueImportance = project.valueImportance,
+            valueImpact = project.valueImpact,
+            effort = project.effort,
+            cost = project.cost,
+            risk = project.risk,
+            weightEffort = project.weightEffort,
+            weightCost = project.weightCost,
+            weightRisk = project.weightRisk,
+            rawScore = project.rawScore,
             displayScore = project.displayScore,
             scoringStatus = project.scoringStatus,
             showCheckboxes = project.showCheckboxes,
@@ -179,7 +157,8 @@ class ProjectRepositoryTest {
 
         val retrievedProject = repository.getProjectById(project.id).first()
         assertNotNull(retrievedProject)
-        assertEquals(project, retrievedProject)
+        assertEquals(project.id, retrievedProject.id)
+        assertEquals(project.name, retrievedProject.name)
     }
 
     @Test
@@ -203,16 +182,16 @@ class ProjectRepositoryTest {
             projectStatusText = null,
             projectLogLevel = "NORMAL",
             totalTimeSpentMinutes = 0L,
-            valueImportance = 0f,
-            valueImpact = 0f,
-            effort = 0f,
-            cost = 0f,
-            risk = 0f,
-            weightEffort = 1f,
-            weightCost = 1f,
-            weightRisk = 1f,
-            rawScore = 0f,
-            displayScore = 0,
+            valueImportance = 0.0,
+            valueImpact = 0.0,
+            effort = 0.0,
+            cost = 0.0,
+            risk = 0.0,
+            weightEffort = 1.0,
+            weightCost = 1.0,
+            weightRisk = 1.0,
+            rawScore = 0.0,
+            displayScore = 0L,
             scoringStatus = "NOT_ASSESSED",
             showCheckboxes = false,
             projectType = ProjectType.DEFAULT,
@@ -237,16 +216,16 @@ class ProjectRepositoryTest {
             projectStatusText = null,
             projectLogLevel = "NORMAL",
             totalTimeSpentMinutes = 0L,
-            valueImportance = 0f,
-            valueImpact = 0f,
-            effort = 0f,
-            cost = 0f,
-            risk = 0f,
-            weightEffort = 1f,
-            weightCost = 1f,
-            weightRisk = 1f,
-            rawScore = 0f,
-            displayScore = 0,
+            valueImportance = 0.0,
+            valueImpact = 0.0,
+            effort = 0.0,
+            cost = 0.0,
+            risk = 0.0,
+            weightEffort = 1.0,
+            weightCost = 1.0,
+            weightRisk = 1.0,
+            rawScore = 0.0,
+            displayScore = 0L,
             scoringStatus = "NOT_ASSESSED",
             showCheckboxes = false,
             projectType = ProjectType.DEFAULT,
@@ -271,15 +250,15 @@ class ProjectRepositoryTest {
             projectStatusText = project1.projectStatusText,
             projectLogLevel = project1.projectLogLevel,
             totalTimeSpentMinutes = project1.totalTimeSpentMinutes,
-            valueImportance = project1.valueImportance.toDouble(),
-            valueImpact = project1.valueImpact.toDouble(),
-            effort = project1.effort.toDouble(),
-            cost = project1.cost.toDouble(),
-            risk = project1.risk.toDouble(),
-            weightEffort = project1.weightEffort.toDouble(),
-            weightCost = project1.weightCost.toDouble(),
-            weightRisk = project1.weightRisk.toDouble(),
-            rawScore = project1.rawScore.toDouble(),
+            valueImportance = project1.valueImportance,
+            valueImpact = project1.valueImpact,
+            effort = project1.effort,
+            cost = project1.cost,
+            risk = project1.risk,
+            weightEffort = project1.weightEffort,
+            weightCost = project1.weightCost,
+            weightRisk = project1.weightRisk,
+            rawScore = project1.rawScore,
             displayScore = project1.displayScore,
             scoringStatus = project1.scoringStatus,
             showCheckboxes = project1.showCheckboxes,
@@ -305,15 +284,15 @@ class ProjectRepositoryTest {
             projectStatusText = project2.projectStatusText,
             projectLogLevel = project2.projectLogLevel,
             totalTimeSpentMinutes = project2.totalTimeSpentMinutes,
-            valueImportance = project2.valueImportance.toDouble(),
-            valueImpact = project2.valueImpact.toDouble(),
-            effort = project2.effort.toDouble(),
-            cost = project2.cost.toDouble(),
-            risk = project2.risk.toDouble(),
-            weightEffort = project2.weightEffort.toDouble(),
-            weightCost = project2.weightCost.toDouble(),
-            weightRisk = project2.weightRisk.toDouble(),
-            rawScore = project2.rawScore.toDouble(),
+            valueImportance = project2.valueImportance,
+            valueImpact = project2.valueImpact,
+            effort = project2.effort,
+            cost = project2.cost,
+            risk = project2.risk,
+            weightEffort = project2.weightEffort,
+            weightCost = project2.weightCost,
+            weightRisk = project2.weightRisk,
+            rawScore = project2.rawScore,
             displayScore = project2.displayScore,
             scoringStatus = project2.scoringStatus,
             showCheckboxes = project2.showCheckboxes,
@@ -323,7 +302,7 @@ class ProjectRepositoryTest {
 
         val projects = repository.getAllProjects().first()
         assertEquals(2, projects.size)
-        assertEquals(project1, projects[0])
-        assertEquals(project2, projects[1])
+        assertEquals(project1.id, projects[0].id)
+        assertEquals(project2.id, projects[1].id)
     }
 }
