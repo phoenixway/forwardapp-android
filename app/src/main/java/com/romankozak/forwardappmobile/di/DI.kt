@@ -28,8 +28,8 @@ abstract class AppComponent(
     val mainScreenViewModel: MainScreenViewModel
         @Provides get() = MainScreenViewModel()
 
-    @Provides
-    fun databaseDriverFactory(): DatabaseDriverFactory = DatabaseDriverFactory(application)
+    // @Provides
+    // fun databaseDriverFactory(): DatabaseDriverFactory = DatabaseDriverFactory(application)
 
     @Provides
     @IoDispatcher
