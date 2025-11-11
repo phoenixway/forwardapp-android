@@ -70,7 +70,8 @@ kotlin {
         }
         val jvmTest by getting {
             dependencies {
-                implementation(libs.sqldelightSqliteDriver) // app.cash.sqldelight:sqlite-driver
+            implementation("app.cash.sqldelight:sqlite-driver:2.0.2")
+            implementation(libs.sqldelightSqliteDriver) // app.cash.sqldelight:slite-driver
             }
         }
 
