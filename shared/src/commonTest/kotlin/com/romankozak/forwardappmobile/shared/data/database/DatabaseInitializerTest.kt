@@ -30,7 +30,13 @@ class DatabaseInitializerTest {
 
     @Test
     fun `initialize creates special projects when database is empty`() = runTest {
-        initializer.initialize()
+        try {
+            initializer.initialize()
+        } catch (e: Exception) {
+            val logFile = java.io.File("/home/romankozak/.gemini/tmp/f0d5f14bc037e204b853dd06d685bc18bd58df1bfcb9976e722e3e26d7d98360/test_error.log")
+            logFile.writeText("SQLiteException: ${e.message}\nStackTrace: ${e.stackTraceToString()}")
+            throw e
+        }
 
         val specialProject = db.projectsQueries.getProjectsByType(ProjectType.SYSTEM).executeAsOneOrNull()
         assertNotNull(specialProject)

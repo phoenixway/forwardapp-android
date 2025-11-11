@@ -7,7 +7,7 @@ import com.romankozak.forwardappmobile.shared.database.Projects
 //import com.romankozak.forwardappmobile.shared.data.database
 
 actual fun createTestDriver(): Any {
-    val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
+    val driver = JdbcSqliteDriver("jdbc:sqlite:test.db")
     ForwardAppDatabase.Schema.create(driver)
     return driver
 }
