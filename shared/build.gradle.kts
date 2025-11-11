@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-    id("org.jetbrains.kotlin.multiplatform")
+    alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.sqldelight)
@@ -65,7 +65,7 @@ kotlin {
         val androidUnitTest by getting {
             kotlin.srcDir("src/androidUnitTest/kotlin")
             dependencies {
-                implementation(libs.sqldelightSqliteDriver)
+                implementation(libs.sqldelightAndroidDriver)
             }
         }
         val jvmTest by getting {

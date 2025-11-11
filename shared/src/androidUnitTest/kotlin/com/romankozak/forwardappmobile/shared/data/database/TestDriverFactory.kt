@@ -1,20 +1,19 @@
 package com.romankozak.forwardappmobile.shared.data.database
 
-import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
-import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
-import com.romankozak.forwardappmobile.shared.database.Goals
-import com.romankozak.forwardappmobile.shared.database.Projects
-//import com.romankozak.forwardappmobile.shared.data.database
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
+import app.cash.sqldelight.driver.android.AndroidSqliteDriver
+import com.romankozak.forwardappmobile.shared.database.*
 
 actual fun createTestDriver(): Any {
-    val driver = JdbcSqliteDriver("jdbc:sqlite:test.db")
-    ForwardAppDatabase.Schema.create(driver)
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val driver = AndroidSqliteDriver(ForwardAppDatabase.Schema, context, "test.db")
     return driver
 }
 
 actual fun createTestDatabase(driver: Any): ForwardAppDatabase {
-    require(driver is JdbcSqliteDriver)
-    
+    require(driver is AndroidSqliteDriver)
+
     return ForwardAppDatabase(
         driver = driver,
         GoalsAdapter = Goals.Adapter(
@@ -54,6 +53,6 @@ actual fun createTestDatabase(driver: Any): ForwardAppDatabase {
 }
 
 actual fun closeTestDriver(driver: Any) {
-    require(driver is JdbcSqliteDriver)
+    require(driver is AndroidSqliteDriver)
     driver.close()
 }
