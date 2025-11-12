@@ -203,4 +203,126 @@ class DatabaseInitializerTest {
         val correctedInbox = db.projectsQueries.getProjectById(inbox.id).executeAsOne()
         assertEquals(specialProject.id, correctedInbox.parentId, "Inbox should be moved back to be a child of the special project.")
     }
+
+    @Test
+    fun `initialize is robust against system project ID changes`() = runTest {
+        // Initial setup
+        initializer.initialize()
+        val originalSpecialProject = db.projectsQueries.getProjectsByType(ProjectType.SYSTEM).executeAsOne()
+        val originalInbox = db.projectsQueries.getProjectsByReservedGroup(ReservedGroup.Inbox).executeAsOne()
+        assertEquals(originalSpecialProject.id, originalInbox.parentId)
+
+        // Action: Manually change the ID of the special project
+        val newSpecialProjectId = "new-special-id"
+        db.projectsQueries.transaction {
+            db.projectsQueries.deleteProject(originalSpecialProject.id)
+            db.projectsQueries.insertProject(
+                id = newSpecialProjectId,
+                name = originalSpecialProject.name,
+                description = originalSpecialProject.description,
+                parentId = originalSpecialProject.parentId,
+                createdAt = originalSpecialProject.createdAt,
+                updatedAt = originalSpecialProject.updatedAt,
+                tags = originalSpecialProject.tags,
+                relatedLinks = originalSpecialProject.relatedLinks,
+                isExpanded = originalSpecialProject.isExpanded,
+                goalOrder = originalSpecialProject.goalOrder,
+                isAttachmentsExpanded = originalSpecialProject.isAttachmentsExpanded,
+                defaultViewMode = originalSpecialProject.defaultViewMode,
+                isCompleted = originalSpecialProject.isCompleted,
+                isProjectManagementEnabled = originalSpecialProject.isProjectManagementEnabled,
+                projectStatus = originalSpecialProject.projectStatus,
+                projectStatusText = originalSpecialProject.projectStatusText,
+                projectLogLevel = originalSpecialProject.projectLogLevel,
+                totalTimeSpentMinutes = originalSpecialProject.totalTimeSpentMinutes,
+                valueImportance = originalSpecialProject.valueImportance,
+                valueImpact = originalSpecialProject.valueImpact,
+                effort = originalSpecialProject.effort,
+                cost = originalSpecialProject.cost,
+                risk = originalSpecialProject.risk,
+                weightEffort = originalSpecialProject.weightEffort,
+                weightCost = originalSpecialProject.weightCost,
+                weightRisk = originalSpecialProject.weightRisk,
+                rawScore = originalSpecialProject.rawScore,
+                displayScore = originalSpecialProject.displayScore,
+                scoringStatus = originalSpecialProject.scoringStatus,
+                showCheckboxes = originalSpecialProject.showCheckboxes,
+                projectType = originalSpecialProject.projectType,
+                reservedGroup = originalSpecialProject.reservedGroup
+            )
+            db.projectsQueries.updateParent(newSpecialProjectId, originalInbox.id)
+        }
+
+        // Pre-condition check: Ensure the special project has a new ID
+        val changedSpecialProject = db.projectsQueries.getProjectsByType(ProjectType.SYSTEM).executeAsOne()
+        assertEquals(newSpecialProjectId, changedSpecialProject.id)
+        assertEquals(newSpecialProjectId, db.projectsQueries.getProjectsByReservedGroup(ReservedGroup.Inbox).executeAsOne().parentId)
+
+        // Trigger: Re-run initialization
+        initializer.initialize()
+
+        // Verification
+        val finalSpecialProject = db.projectsQueries.getProjectsByType(ProjectType.SYSTEM).executeAsOne()
+        val finalInbox = db.projectsQueries.getProjectsByReservedGroup(ReservedGroup.Inbox).executeAsOne()
+
+        // The ID should remain the user-changed one
+        assertEquals(newSpecialProjectId, finalSpecialProject.id)
+        // The hierarchy should be correct
+        assertEquals(finalSpecialProject.id, finalInbox.parentId)
+        // No duplicate SYSTEM project should be created
+        assertEquals(1, db.projectsQueries.getProjectsByType(ProjectType.SYSTEM).executeAsList().size)
+    }
+
+    @Test
+    fun `initialize is robust against system project name changes`() = runTest {
+        // Initial setup
+        initializer.initialize()
+        val originalInbox = db.projectsQueries.getProjectsByReservedGroup(ReservedGroup.Inbox).executeAsOne()
+        val newName = "My Custom Inbox"
+
+        // Action: Manually change the name of the Inbox project
+        db.projectsQueries.updateName(newName, originalInbox.id)
+
+        // Pre-condition check: Ensure the name is changed
+        val renamedInbox = db.projectsQueries.getProjectById(originalInbox.id).executeAsOne()
+        assertEquals(newName, renamedInbox.name)
+
+        // Trigger: Re-run initialization
+        initializer.initialize()
+
+        // Verification: The name should remain the user-changed one
+        val finalInbox = db.projectsQueries.getProjectById(originalInbox.id).executeAsOne()
+        assertEquals(newName, finalInbox.name)
+    }
+
+    @Test
+    fun `initialize recreates missing parent and corrects child placement`() = runTest {
+        // Initial setup
+        initializer.initialize()
+
+        // Get original projects
+        val originalSpecialProject = db.projectsQueries.getProjectsByType(ProjectType.SYSTEM).executeAsOne()
+        val originalInbox = db.projectsQueries.getProjectsByReservedGroup(ReservedGroup.Inbox).executeAsOne()
+
+        // Action: Delete the special project (parent)
+        db.projectsQueries.deleteProject(originalSpecialProject.id)
+
+        // Action: Misplace the Inbox project (child) by setting its parent to null
+        db.projectsQueries.updateParent(null, originalInbox.id)
+
+        // Pre-condition check: Ensure special project is deleted and Inbox is misplaced
+        assertNull(db.projectsQueries.getProjectsByType(ProjectType.SYSTEM).executeAsOneOrNull())
+        val misplacedInbox = db.projectsQueries.getProjectById(originalInbox.id).executeAsOne()
+        assertNull(misplacedInbox.parentId)
+
+        // Trigger: Re-run initialization
+        initializer.initialize()
+
+        // Verification: Check if special project is recreated and Inbox is correctly placed
+        val recreatedSpecialProject = db.projectsQueries.getProjectsByType(ProjectType.SYSTEM).executeAsOne()
+        val correctedInbox = db.projectsQueries.getProjectsByReservedGroup(ReservedGroup.Inbox).executeAsOne()
+
+        assertNotNull(recreatedSpecialProject, "Special project should be recreated.")
+        assertEquals(recreatedSpecialProject.id, correctedInbox.parentId, "Inbox should be correctly placed under the recreated special project.")
+    }
 }
