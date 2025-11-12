@@ -27,7 +27,7 @@ fun Projects.toDomain(): Project {
         isProjectManagementEnabled = isProjectManagementEnabled,
         projectStatus = projectStatus,
         projectStatusText = projectStatusText,
-        projectLogLevel = projectLogLevel?.toString(),
+        projectLogLevel = projectLogLevel,
         totalTimeSpentMinutes = totalTimeSpentMinutes ?: 0L,
         valueImportance = valueImportance ?: 0.0,
         valueImpact = valueImpact ?: 0.0,

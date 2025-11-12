@@ -5,7 +5,6 @@ import com.romankozak.forwardappmobile.shared.data.models.RelatedLink
 import com.romankozak.forwardappmobile.shared.features.projects.domain.model.ProjectType
 import com.romankozak.forwardappmobile.shared.data.models.ReservedGroup
 import com.romankozak.forwardappmobile.shared.data.models.ProjectStatusValues
-import com.romankozak.forwardappmobile.shared.data.models.ProjectLogLevelValues
 import com.romankozak.forwardappmobile.shared.data.models.ScoringStatusValues
 
 @Serializable
@@ -26,7 +25,7 @@ data class Project(
     val isProjectManagementEnabled: Boolean? = false,
     val projectStatus: String? = ProjectStatusValues.NO_PLAN,
     val projectStatusText: String? = null,
-    val projectLogLevel: String? = ProjectLogLevelValues.NORMAL,
+    val projectLogLevel: Long? = 0L,
     val totalTimeSpentMinutes: Long? = 0,
     val valueImportance: Double = 0.0,
     val valueImpact: Double = 0.0,
