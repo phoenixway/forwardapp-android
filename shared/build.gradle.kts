@@ -136,3 +136,10 @@ tasks.configureEach {
         dependsOn("kspCommonMainKotlinMetadata")
     }
 }
+
+tasks.withType<Test> {
+    testLogging {
+        events("passed", "skipped", "failed")
+        showStandardStreams = true
+    }
+}

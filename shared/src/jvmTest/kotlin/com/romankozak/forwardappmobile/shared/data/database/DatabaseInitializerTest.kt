@@ -1,6 +1,6 @@
-package com.romankozak.forwardappmobile.shared.data.database
-
 import app.cash.sqldelight.db.SqlDriver
+import app.cash.sqldelight.db.SqlCursor
+import app.cash.sqldelight.Query
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import com.romankozak.forwardappmobile.shared.data.models.ProjectType
 import com.romankozak.forwardappmobile.shared.data.models.ReservedGroup
@@ -17,8 +17,19 @@ import com.romankozak.forwardappmobile.shared.database.stringListAdapter
 import com.romankozak.forwardappmobile.shared.database.createForwardAppDatabase
 
 actual fun createTestDriver(): SqlDriver {
-    val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
-    ForwardAppDatabase.Schema.create(driver)
+    val driver = JdbcSqliteDriver("jdbc:sqlite:test.db")
+    println("Creating DB schema...")
+    try {
+        ForwardAppDatabase.Schema.create(driver)
+        println("Schema created successfully")
+        val tables = driver.executeQuery(null, "SELECT name FROM sqlite_master WHERE type='table';", { cursor: SqlCursor ->
+            cursor.getString(0)!!
+        }).executeAsList()
+        println("Tables in database: $tables")
+    } catch (e: Exception) {
+        println("Error creating schema or executing PRAGMA: ${e.message}")
+        e.printStackTrace()
+    }
     return driver
 }
 
@@ -28,4 +39,9 @@ actual fun createTestDatabase(driver: SqlDriver): ForwardAppDatabase {
 
 actual fun closeTestDriver(driver: SqlDriver) {
     driver.close()
+    // Delete the test database file
+    val file = java.io.File("test.db")
+    if (file.exists()) {
+        file.delete()
+    }
 }
