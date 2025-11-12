@@ -1,45 +1,19 @@
-Reusing configuration cache.
-> Task :shared:checkKotlinGradlePluginConfigurationErrors SKIPPED
-> Task :app:clean UP-TO-DATE
-> Task :shared:cleanJvmTest
-> Task :shared:cleanAllTests
-> Task :shared:clean
-> Task :shared:transformCommonMainDependenciesMetadata
-> Task :shared:generateCommonMainForwardAppDatabaseInterface
-> Task :shared:kspCommonMainKotlinMetadata UP-TO-DATE
-> Task :shared:kspKotlinJvm UP-TO-DATE
-> Task :shared:jvmProcessResources NO-SOURCE
-> Task :shared:processJvmMainResources SKIPPED
-> Task :shared:compileKotlinJvm
-> Task :shared:compileJvmMainJava NO-SOURCE
-> Task :shared:jvmMainClasses
-> Task :shared:jvmJar
-> Task :shared:kspTestKotlinJvm
-> Task :shared:jvmTestProcessResources NO-SOURCE
-> Task :shared:processJvmTestResources SKIPPED
+Calculating task graph as configuration cache cannot be reused because file 'shared/build.gradle.kts' has changed.
 
-> Task :shared:compileTestKotlinJvm FAILED
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/jvmTest/kotlin/com/romankozak/forwardappmobile/shared/data/database/DatabaseInitializerTest.kt:19:12 'actual fun createTestDriver(): SqlDriver' has no corresponding expected declaration
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/jvmTest/kotlin/com/romankozak/forwardappmobile/shared/data/database/DatabaseInitializerTest.kt:25:29 Cannot infer type for this parameter. Specify it explicitly.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/jvmTest/kotlin/com/romankozak/forwardappmobile/shared/data/database/DatabaseInitializerTest.kt:25:102 No value passed for parameter 'parameters'.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/jvmTest/kotlin/com/romankozak/forwardappmobile/shared/data/database/DatabaseInitializerTest.kt:26:13 Argument type mismatch: actual type is 'String', but 'QueryResult<R (of fun <R> executeQuery)>' was expected.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/jvmTest/kotlin/com/romankozak/forwardappmobile/shared/data/database/DatabaseInitializerTest.kt:27:12 Unresolved reference 'executeAsList'.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/jvmTest/kotlin/com/romankozak/forwardappmobile/shared/data/database/DatabaseInitializerTest.kt:36:12 'actual fun createTestDatabase(driver: SqlDriver): ForwardAppDatabase' has no corresponding expected declaration
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/jvmTest/kotlin/com/romankozak/forwardappmobile/shared/data/database/DatabaseInitializerTest.kt:40:12 'actual fun closeTestDriver(driver: SqlDriver): Unit' has no corresponding expected declaration
+> Configure project :app
+WARNING: The option setting 'android.enableProfileJson=true' is experimental.
+The current default is 'false'.
+WARNING: The option setting 'android.defaults.buildfeatures.buildconfig=true' is deprecated.
+The current default is 'false'.
+It will be removed in version 9.0 of the Android Gradle plugin.
+You can resolve this warning in Android Studio via `Refactor` > `Migrate BuildConfig to Gradle Build Files`
+w: ⚠️ Deprecated Gradle Property 'kotlin.experimental.tryK2' Used
+The `kotlin.experimental.tryK2` deprecated property is used in your build.
+Please, stop using it as it is unsupported and may apply no effect to your build.
 
-FAILURE: Build failed with an exception.
 
-* What went wrong:
-Execution failed for task ':shared:compileTestKotlinJvm'.
-> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
-   > Compilation error. See log for more details
+w: ⚠️ Deprecated Gradle Property 'kotlin.mpp.androidGradlePluginCompatibility.nowarn' Used
+The `kotlin.mpp.androidGradlePluginCompatibility.nowarn` deprecated property is used in your build.
+Please, stop using it as it is unsupported and may apply no effect to your build.
 
-* Try:
-> Run with --stacktrace option to get the stack trace.
-> Run with --info or --debug option to get more log output.
-> Run with --scan to get full insights.
-> Get more help at https://help.gradle.org.
 
-BUILD FAILED in 17s
-11 actionable tasks: 8 executed, 3 up-to-date
-Configuration cache entry reused.

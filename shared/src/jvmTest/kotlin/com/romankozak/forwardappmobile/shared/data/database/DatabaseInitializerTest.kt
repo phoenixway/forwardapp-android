@@ -22,12 +22,9 @@ actual fun createTestDriver(): SqlDriver {
     try {
         ForwardAppDatabase.Schema.create(driver)
         println("Schema created successfully")
-        val tables = driver.executeQuery(null, "SELECT name FROM sqlite_master WHERE type='table';", { cursor: SqlCursor ->
-            cursor.getString(0)!!
-        }).executeAsList()
-        println("Tables in database: $tables")
+        println("Diagnostic query skipped for now.")
     } catch (e: Exception) {
-        println("Error creating schema or executing PRAGMA: ${e.message}")
+        println("Error creating schema: ${e.message}")
         e.printStackTrace()
     }
     return driver
