@@ -131,8 +131,7 @@ fun createForwardAppDatabase(driver: SqlDriver): ForwardAppDatabase {
         weightEffortAdapter = doubleAdapter,
         weightCostAdapter = doubleAdapter,
         weightRiskAdapter = doubleAdapter,
-        rawScoreAdapter = doubleAdapter,
-        displayScoreAdapter = longAdapter
+        rawScoreAdapter = doubleAdapter
     )
 
     val listItemsAdapter = ListItems.Adapter(
