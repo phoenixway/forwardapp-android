@@ -85,3 +85,6 @@ WHERE reservedGroup = :reservedGroup;
 getAllProjectsUnordered:
 SELECT * FROM Projects;
 
+updateParent:
+UPDATE Projects SET parentId = :parentId WHERE id = :id;
+
