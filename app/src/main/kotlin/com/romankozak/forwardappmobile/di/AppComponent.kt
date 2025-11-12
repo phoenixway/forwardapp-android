@@ -4,17 +4,22 @@ import android.app.Application
 import android.content.Context
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Provides
-import com.romankozak.forwardappmobile.di.AndroidSingleton
+import me.tatarka.inject.annotations.Scope
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.MainScreenViewModel
 
-@AndroidSingleton
-@Component(AndroidCommonModule::class)
-abstract class AppComponent {
+@Scope
+annotation class AndroidSingleton
 
-    abstract val application: Application
-
+@Component
+abstract class AppComponent(
+    // Передаємо Application як параметр компонента
+    @get:Provides val application: Application,
+) {
     @Provides
-    @ApplicationContext
     fun provideApplicationContext(): Context = application.applicationContext
+
+    // Entry points / factories
+    abstract val mainScreenViewModel: MainScreenViewModel
 
     companion object
 }

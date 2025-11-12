@@ -9,9 +9,7 @@ import com.romankozak.forwardappmobile.di.create
 class ForwardAppMobileApplication : Application() {
 
     val appComponent: AppComponent by lazy {
-        AppComponent::class.create().apply {
-            application = this@ForwardAppMobileApplication
-        }
+        AppComponent::class.create(this)
     }
 
     override fun onCreate() {
