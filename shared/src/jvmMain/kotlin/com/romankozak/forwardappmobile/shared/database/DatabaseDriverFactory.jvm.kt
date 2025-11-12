@@ -4,7 +4,7 @@ import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.cash.sqldelight.db.SqlDriver
 
 actual class DatabaseDriverFactory actual constructor(
-    platformContext: Any? = null
+    platformContext: Any?
 ) {
     actual fun createDriver(): SqlDriver {
         val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
@@ -12,4 +12,3 @@ actual class DatabaseDriverFactory actual constructor(
         return driver
     }
 }
-
