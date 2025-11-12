@@ -2,7 +2,10 @@ package com.romankozak.forwardappmobile.shared.database
 
 import app.cash.sqldelight.db.SqlDriver
 
-expect class DatabaseDriverFactory(platformContext: Any? = null) {
+// 🔹 оголошення "порожнього" типу, який кожна платформа реалізує по-своєму
+expect class PlatformContext
+
+// 🔹 дефолтний аргумент вказується тільки тут
+expect class DatabaseDriverFactory(platformContext: PlatformContext? = null) {
     fun createDriver(): SqlDriver
 }
-

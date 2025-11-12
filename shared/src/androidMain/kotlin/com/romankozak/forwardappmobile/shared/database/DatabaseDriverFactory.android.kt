@@ -4,11 +4,14 @@ import android.content.Context
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 
+// 🔹 Android реалізація: просто alias на Context
+actual typealias PlatformContext = Context
+
 actual class DatabaseDriverFactory actual constructor(
-    private val platformContext: Any?
+    private val platformContext: PlatformContext?
 ) {
-    actual fun createDriver(): SqlDriver =
-        AndroidSqliteDriver(ForwardAppDatabase.Schema, platformContext as Context, "ForwardAppDatabase.db")
+    actual fun createDriver(): SqlDriver {
+        val ctx = platformContext ?: error("Android Context required")
+        return AndroidSqliteDriver(ForwardAppDatabase.Schema, ctx, "ForwardAppDatabase.db")
+    }
 }
-
-

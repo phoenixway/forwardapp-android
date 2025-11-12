@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.shared.features.goals.data.repository
 
 import app.cash.sqldelight.db.SqlDriver
+import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import com.romankozak.forwardappmobile.shared.data.models.LinkType
 import com.romankozak.forwardappmobile.shared.data.models.ProjectType
 import com.romankozak.forwardappmobile.shared.data.models.RelatedLink
