@@ -1,18 +1,18 @@
--- database: ForwardAppDatabase
--- package: com.romankozak.forwardappmobile.shared.database
+import kotlin.Long;
+import kotlin.String;
 
 CREATE TABLE ListItems (
-    id TEXT NOT NULL PRIMARY KEY,
-    projectId TEXT NOT NULL,
-    itemOrder INTEGER NOT NULL DEFAULT 0,
-    entityId TEXT,
-    itemType TEXT
+    id TEXT AS kotlin.String NOT NULL PRIMARY KEY,
+    projectId TEXT AS kotlin.String NOT NULL,
+    itemOrder INTEGER AS kotlin.Long NOT NULL DEFAULT 0,
+    entityId TEXT AS kotlin.String,
+    itemType TEXT AS kotlin.String
 );
 
 getItemsForProject:
 SELECT * FROM ListItems WHERE projectId = :projectId ORDER BY itemOrder ASC, id ASC;
 
-insertListItem:
+insertItem:
 INSERT OR REPLACE INTO ListItems(id, projectId, itemOrder, entityId, itemType)
 VALUES (:id, :projectId, :itemOrder, :entityId, :itemType);
 

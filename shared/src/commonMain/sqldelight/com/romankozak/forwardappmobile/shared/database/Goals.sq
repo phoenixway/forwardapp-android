@@ -1,12 +1,10 @@
--- database: ForwardAppDatabase
--- package: com.romankozak.forwardappmobile.shared.database
-
 import kotlin.Boolean;
-import kotlin.String;
-import kotlin.Double;
+import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLinkList;
+import com.romankozak.forwardappmobile.shared.data.database.models.StringList;
 import kotlin.Long;
-import kotlin.collections.List;
-import com.romankozak.forwardappmobile.shared.data.models.RelatedLink;
+import kotlin.Double;
+import kotlin.Int;
+import kotlin.String;
 
 CREATE TABLE Goals (
     id TEXT NOT NULL PRIMARY KEY,
@@ -15,8 +13,8 @@ CREATE TABLE Goals (
     completed INTEGER AS Boolean NOT NULL DEFAULT 0,
     createdAt INTEGER AS Long NOT NULL,
     updatedAt INTEGER AS Long,
-    tags TEXT AS List<String>,
-    relatedLinks TEXT AS List<RelatedLink>,
+    tags TEXT AS StringList,
+    relatedLinks TEXT AS RelatedLinkList,
     valueImportance REAL AS Double NOT NULL DEFAULT 0.0,
     valueImpact REAL AS Double NOT NULL DEFAULT 0.0,
     effort REAL AS Double NOT NULL DEFAULT 0.0,
@@ -26,23 +24,74 @@ CREATE TABLE Goals (
     weightCost REAL AS Double NOT NULL DEFAULT 1.0,
     weightRisk REAL AS Double NOT NULL DEFAULT 1.0,
     rawScore REAL AS Double NOT NULL DEFAULT 0.0,
-    displayScore INTEGER AS Long NOT NULL DEFAULT 0,
-    scoringStatus TEXT NOT NULL DEFAULT 'NOT_ASSESSED',
+    displayScore INTEGER AS Int NOT NULL DEFAULT 0,
+    scoringStatus TEXT NOT NULL,
     parentValueImportance REAL AS Double,
     impactOnParentGoal REAL AS Double,
     timeCost REAL AS Double,
-    financialCost REAL AS Double
+    financialCost REAL AS Double,
+    markdown TEXT
 );
 
+insertGoal:
+INSERT OR REPLACE INTO Goals (
+    id, text, description, completed, createdAt, updatedAt, tags, relatedLinks,
+    valueImportance, valueImpact, effort, cost, risk, weightEffort, weightCost,
+    weightRisk, rawScore, displayScore, scoringStatus, parentValueImportance,
+    impactOnParentGoal, timeCost, financialCost, markdown
+) VALUES (
+    :id, :text, :description, :completed, :createdAt, :updatedAt, :tags, :relatedLinks,
+    :valueImportance, :valueImpact, :effort, :cost, :risk, :weightEffort, :weightCost,
+    :weightRisk, :rawScore, :displayScore, :scoringStatus, :parentValueImportance,
+    :impactOnParentGoal, :timeCost, :financialCost, :markdown
+);
+
+updateGoal:
+UPDATE Goals SET
+    text = :text,
+    description = :description,
+    completed = :completed,
+    updatedAt = :updatedAt,
+    tags = :tags,
+    relatedLinks = :relatedLinks,
+    valueImportance = :valueImportance,
+    valueImpact = :valueImpact,
+    effort = :effort,
+    cost = :cost,
+    risk = :risk,
+    weightEffort = :weightEffort,
+    weightCost = :weightCost,
+    weightRisk = :weightRisk,
+    rawScore = :rawScore,
+    displayScore = :displayScore,
+    scoringStatus = :scoringStatus,
+    parentValueImportance = :parentValueImportance,
+    impactOnParentGoal = :impactOnParentGoal,
+    timeCost = :timeCost,
+    financialCost = :financialCost,
+    markdown = :markdown
+WHERE id = :id;
+
+deleteGoal:
+DELETE FROM Goals WHERE id = :id;
+
+deleteAll:
+DELETE FROM Goals;
+
+getGoalById:
+SELECT * FROM Goals WHERE id = :id;
+
 getAllGoals:
-SELECT * FROM Goals;
+SELECT * FROM Goals ORDER BY createdAt DESC;
 
 getGoalsByIds:
 SELECT * FROM Goals WHERE id IN :ids;
 
-insertGoal:
-INSERT OR REPLACE INTO Goals(
-  id, text, description, completed, createdAt, updatedAt, tags, relatedLinks, valueImportance, valueImpact, effort, cost, risk, weightEffort, weightCost, weightRisk, rawScore, displayScore, scoringStatus, parentValueImportance, impactOnParentGoal, timeCost, financialCost
-)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+searchGoalsByText:
+SELECT * FROM Goals WHERE text LIKE '%' || :query || '%' OR description LIKE '%' || :query || '%';
 
+getAllGoalsCount:
+SELECT count(*) FROM Goals;
+
+updateMarkdown:
+UPDATE Goals SET markdown = :markdown WHERE id = :goalId;

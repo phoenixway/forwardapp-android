@@ -19,7 +19,7 @@ private val json = Json {
 }
 
 // ------------------------------------------------------
-// 🔹 Базові адаптери
+// 🔹 Базові адаптери типів
 // ------------------------------------------------------
 
 val longAdapter = object : ColumnAdapter<Long, Long> {
@@ -71,26 +71,33 @@ val relatedLinksListAdapter = object : ColumnAdapter<List<RelatedLink>, String> 
         json.encodeToString(ListSerializer(RelatedLink.serializer()), value)
 }
 
+// ------------------------------------------------------
+// 🔹 Енум-адаптери
+// ------------------------------------------------------
+
 val projectTypeAdapter = object : ColumnAdapter<ProjectType, String> {
     override fun decode(databaseValue: String): ProjectType =
         ProjectType.valueOf(databaseValue)
+
     override fun encode(value: ProjectType): String = value.name
 }
 
 val reservedGroupAdapter = object : ColumnAdapter<ReservedGroup, String> {
     override fun decode(databaseValue: String): ReservedGroup =
         ReservedGroup.fromString(databaseValue)
-            ?: throw IllegalStateException("Unknown reserved group: $databaseValue")
+            ?: throw IllegalStateException("Unknown ReservedGroup: $databaseValue")
+
     override fun encode(value: ReservedGroup): String = value.groupName
 }
 
 // ------------------------------------------------------
-// 🔹 Фабрика створення бази
+// 🔹 Фабрика створення бази даних
 // ------------------------------------------------------
 
 fun createForwardAppDatabase(driver: SqlDriver): ForwardAppDatabase {
     val goalsAdapter = Goals.Adapter(
         createdAtAdapter = longAdapter,
+        updatedAtAdapter = longAdapter,
         tagsAdapter = stringListAdapter,
         relatedLinksAdapter = relatedLinksListAdapter,
         valueImportanceAdapter = doubleAdapter,
@@ -107,6 +114,7 @@ fun createForwardAppDatabase(driver: SqlDriver): ForwardAppDatabase {
 
     val projectsAdapter = Projects.Adapter(
         createdAtAdapter = longAdapter,
+        updatedAtAdapter = longAdapter,
         goalOrderAdapter = longAdapter,
         tagsAdapter = stringListAdapter,
         relatedLinksAdapter = relatedLinksListAdapter,
@@ -126,8 +134,7 @@ fun createForwardAppDatabase(driver: SqlDriver): ForwardAppDatabase {
 
     return ForwardAppDatabase(
         driver = driver,
-        GoalsAdapter = goalsAdapter,
+        goalsAdapter = goalsAdapter,
         projectsAdapter = projectsAdapter
     )
 }
-
