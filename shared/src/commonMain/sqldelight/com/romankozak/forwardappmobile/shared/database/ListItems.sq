@@ -1,3 +1,6 @@
+-- database: ForwardAppDatabase
+-- package: com.romankozak.forwardappmobile.shared.database
+
 CREATE TABLE ListItems (
     id TEXT NOT NULL PRIMARY KEY,
     projectId TEXT NOT NULL,

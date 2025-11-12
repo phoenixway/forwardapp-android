@@ -6,20 +6,16 @@ import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import com.romankozak.forwardappmobile.shared.database.createForwardAppDatabase
 
 actual fun createTestDriver(): SqlDriver {
-    val driver = JdbcSqliteDriver("jdbc:sqlite:test.db")
-    println("Creating test database schema...")
+    val driver = TestDriver.driver
     try {
-        ForwardAppDatabase.Schema.create(driver)
-        println("Schema created successfully.")
-        val result = driver.executeQuery(
-            identifier = null,
-            sql = "SELECT name FROM sqlite_master WHERE type='table';",
-            parameters = 0,
-            binders = null
-        )
-        println("Result: $result")
+        driver.execute(null, "DELETE FROM projects;", 0)
+        println("DELETE FROM projects executed successfully.")
+        driver.execute(null, "DELETE FROM Goals;", 0)
+        println("DELETE FROM Goals executed successfully.")
+        driver.execute(null, "DELETE FROM ListItems;", 0)
+        println("DELETE FROM ListItems executed successfully.")
     } catch (e: Exception) {
-        println("Error creating schema or executing query: ${e.message}")
+        println("Error executing DELETE: ${e.message}")
         e.printStackTrace()
     }
     return driver
@@ -30,6 +26,27 @@ actual fun createTestDatabase(driver: SqlDriver): ForwardAppDatabase {
 }
 
 actual fun closeTestDriver(driver: SqlDriver) {
-    driver.close()
-    java.io.File("test.db").delete()
+    // Do nothing, the driver is closed by the shutdown hook
+}
+
+object TestDriver {
+    val driver: SqlDriver by lazy {
+        val driver = JdbcSqliteDriver("jdbc:sqlite:test.db")
+        println("Creating test database schema...")
+        try {
+            ForwardAppDatabase.Schema.create(driver)
+            println("Schema created successfully.")
+        } catch (e: Exception) {
+            println("Error creating schema: ${e.message}")
+            e.printStackTrace()
+        }
+        driver
+    }
+
+    init {
+        Runtime.getRuntime().addShutdownHook(Thread {
+            driver.close()
+            java.io.File("test.db").delete()
+        })
+    }
 }

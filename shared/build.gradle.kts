@@ -4,7 +4,8 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.androidLibrary)
-    alias(libs.plugins.sqldelight)
+    // alias(libs.plugins.sqldelight) // Commented out
+    id("app.cash.sqldelight") // ✅ явне підключення, гарантує роботу плагіна
     alias(libs.plugins.ksp)
 }
 
@@ -94,13 +95,15 @@ android {
     }
 }
 
+
+
 // ✅ SQLDelight configuration
 sqldelight {
     databases {
         create("ForwardAppDatabase") {
             packageName.set("com.romankozak.forwardappmobile.shared.database")
             srcDirs("src/commonMain/sqldelight")
-            deriveSchemaFromMigrations.set(true)
+            deriveSchemaFromMigrations.set(false)
             schemaOutputDirectory.set(file("src/commonMain/sqldelight/databases"))
             dialect("app.cash.sqldelight:sqlite-3-24-dialect:2.0.2")
         }

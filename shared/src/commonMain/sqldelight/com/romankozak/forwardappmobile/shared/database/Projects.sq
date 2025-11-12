@@ -1,3 +1,6 @@
+-- database: ForwardAppDatabase
+-- package: com.romankozak.forwardappmobile.shared.database
+
 import kotlin.Boolean;
 import kotlin.String;
 import kotlin.Double;

@@ -1,40 +1,78 @@
+Initialized native services in: /home/romankozak/.gradle/native
+Initialized jansi services in: /home/romankozak/.gradle/native
+The client will now receive all logging from the daemon (pid: 9205). The daemon log file: /home/romankozak/.gradle/daemon/8.13/daemon-9205.out.log
+Starting 52nd build in daemon [uptime: 2 hrs 12 mins 37.239 secs, performance: 96%, GC rate: 0.00/s, heap usage: 10% of 4 GiB]
+Using 12 worker leases.
+Now considering [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android] as hierarchies to watch
 Reusing configuration cache.
-> Task :shared:checkKotlinGradlePluginConfigurationErrors SKIPPED
+Now considering [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android] as hierarchies to watch
+Watching the file system is configured to be enabled
+File system watching is active
+Tasks to be executed: [task ':app:clean', task ':shared:cleanJvmTest', task ':shared:cleanAllTests', task ':shared:clean', task ':shared:generateCommonMainForwardAppDatabaseInterface', task ':shared:generateSqlDelightInterface']
+Tasks that were excluded: []
+Resolve mutations for :app:clean (Thread[Execution worker,5,main]) started.
+Resolve mutations for :shared:cleanJvmTest (Thread[Execution worker Thread 2,5,main]) started.
+:app:clean (Thread[Execution worker Thread 5,5,main]) started.
+:shared:cleanJvmTest (Thread[Execution worker Thread 2,5,main]) started.
+
 > Task :app:clean UP-TO-DATE
-> Task :shared:cleanJvmTest
-> Task :shared:cleanAllTests
+Caching disabled for task ':app:clean' because:
+  Build cache is disabled
+Task ':app:clean' is not up-to-date because:
+  Task has not declared any outputs despite executing actions.
+
+> Task :shared:cleanJvmTest UP-TO-DATE
+Caching disabled for task ':shared:cleanJvmTest' because:
+  Build cache is disabled
+Task ':shared:cleanJvmTest' is not up-to-date because:
+  Task has not declared any outputs despite executing actions.
+Resolve mutations for :shared:cleanAllTests (Thread[Execution worker Thread 5,5,main]) started.
+Build d0f06d8b-3d55-4ff4-8cf4-cba0523a81dc is started
+:shared:cleanAllTests (Thread[Execution worker Thread 5,5,main]) started.
+
+> Task :shared:cleanAllTests UP-TO-DATE
+Skipping task ':shared:cleanAllTests' as it has no actions.
+Resolve mutations for :shared:clean (Thread[Execution worker Thread 5,5,main]) started.
+:shared:clean (Thread[Execution worker Thread 8,5,main]) started.
+destroyer locations for task group 0 (Thread[Execution worker Thread 5,5,main]) started.
+Resolve mutations for :shared:generateCommonMainForwardAppDatabaseInterface (Thread[Execution worker Thread 5,5,main]) started.
+
 > Task :shared:clean
-> Task :shared:transformCommonMainDependenciesMetadata
+Caching disabled for task ':shared:clean' because:
+  Build cache is disabled
+Task ':shared:clean' is not up-to-date because:
+  Task has not declared any outputs despite executing actions.
+:shared:generateCommonMainForwardAppDatabaseInterface (Thread[Execution worker Thread 8,5,main]) started.
+This JVM does not support getting OS memory, so no OS memory status updates will be broadcast
+
 > Task :shared:generateCommonMainForwardAppDatabaseInterface
-> Task :shared:kspCommonMainKotlinMetadata UP-TO-DATE
-> Task :shared:kspKotlinJvm UP-TO-DATE
-> Task :shared:jvmProcessResources NO-SOURCE
-> Task :shared:processJvmMainResources SKIPPED
-> Task :shared:compileKotlinJvm
-> Task :shared:compileJvmMainJava NO-SOURCE
-> Task :shared:jvmMainClasses
-> Task :shared:jvmJar
-> Task :shared:kspTestKotlinJvm
-> Task :shared:jvmTestProcessResources NO-SOURCE
-> Task :shared:processJvmTestResources SKIPPED
+Caching disabled for task ':shared:generateCommonMainForwardAppDatabaseInterface' because:
+  Build cache is disabled
+Task ':shared:generateCommonMainForwardAppDatabaseInterface' is not up-to-date because:
+  Executed with '--rerun-tasks'.
+Starting process 'Gradle Worker Daemon 58'. Working directory: /home/romankozak/.gradle/workers Command: /home/romankozak/.sdkman/candidates/java/17.0.11-tem/bin/java @/home/romankozak/.gradle/.tmp/gradle-worker-classpath17181803468566790414txt -Xmx512m -Dfile.encoding=UTF-8 -Duser.country=US -Duser.language=en -Duser.variant worker.org.gradle.process.internal.worker.GradleWorkerMain 'Gradle Worker Daemon 58'
+Successfully started process 'Gradle Worker Daemon 58'
+Started Gradle worker daemon (0.239 secs) with fork options DaemonForkOptions{executable=/home/romankozak/.sdkman/candidates/java/17.0.11-tem/bin/java, minHeapSize=null, maxHeapSize=null, jvmArgs=[], keepAliveMode=SESSION}.
+----- START Dummy.sq ms -------
+----- END Dummy.sq in 32 ms ------
+----- START Goals.sq ms -------
+----- END Goals.sq in 159 ms ------
+----- START ListItems.sq ms -------
+----- END ListItems.sq in 73 ms ------
+----- START Projects.sq ms -------
+----- END Projects.sq in 140 ms ------
+----- START Test.sq ms -------
+----- END Test.sq in 1 ms ------
+----- START SimpleCheck.sq ms -------
+----- END SimpleCheck.sq in 1 ms ------
+Resolve mutations for :shared:generateSqlDelightInterface (Thread[Execution worker Thread 8,5,main]) started.
+:shared:generateSqlDelightInterface (Thread[Execution worker Thread 8,5,main]) started.
 
-> Task :shared:compileTestKotlinJvm FAILED
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/jvmTest/kotlin/com/romankozak/forwardappmobile/shared/data/database/TestDriverFactory.kt:14:29 Cannot infer type for this parameter. Specify it explicitly.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/jvmTest/kotlin/com/romankozak/forwardappmobile/shared/data/database/TestDriverFactory.kt:19:34 Argument type mismatch: actual type is 'String', but 'QueryResult<R (of fun <R> executeQuery)>' was expected.
+> Task :shared:generateSqlDelightInterface
+Skipping task ':shared:generateSqlDelightInterface' as it has no actions.
+Build d0f06d8b-3d55-4ff4-8cf4-cba0523a81dc is closed
 
-FAILURE: Build failed with an exception.
-
-* What went wrong:
-Execution failed for task ':shared:compileTestKotlinJvm'.
-> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
-   > Compilation error. See log for more details
-
-* Try:
-> Run with --stacktrace option to get the stack trace.
-> Run with --info or --debug option to get more log output.
-> Run with --scan to get full insights.
-> Get more help at https://help.gradle.org.
-
-BUILD FAILED in 16s
-11 actionable tasks: 8 executed, 3 up-to-date
+BUILD SUCCESSFUL in 1s
+4 actionable tasks: 2 executed, 2 up-to-date
 Configuration cache entry reused.
+Stopped 1 worker daemon(s).
