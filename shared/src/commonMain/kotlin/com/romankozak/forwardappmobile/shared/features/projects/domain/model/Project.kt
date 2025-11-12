@@ -1,8 +1,8 @@
-package com.romankozak.forwardappmobile.shared.features.projects.data.models
+package com.romankozak.forwardappmobile.shared.features.projects.domain.model
 
 import kotlinx.serialization.Serializable
 import com.romankozak.forwardappmobile.shared.data.models.RelatedLink
-import com.romankozak.forwardappmobile.shared.data.models.ProjectType
+import com.romankozak.forwardappmobile.shared.features.projects.domain.model.ProjectType
 import com.romankozak.forwardappmobile.shared.data.models.ReservedGroup
 import com.romankozak.forwardappmobile.shared.data.models.ProjectStatusValues
 import com.romankozak.forwardappmobile.shared.data.models.ProjectLogLevelValues

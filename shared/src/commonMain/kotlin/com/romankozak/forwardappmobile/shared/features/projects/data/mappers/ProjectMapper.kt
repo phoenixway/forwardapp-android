@@ -1,11 +1,11 @@
 package com.romankozak.forwardappmobile.shared.features.projects.data.mappers
 
 import com.romankozak.forwardappmobile.shared.database.Projects
-import com.romankozak.forwardappmobile.shared.features.projects.data.models.Project
+import com.romankozak.forwardappmobile.shared.features.projects.domain.model.Project
 import com.romankozak.forwardappmobile.shared.database.booleanAdapter
 import com.romankozak.forwardappmobile.shared.database.stringListAdapter
 import com.romankozak.forwardappmobile.shared.database.relatedLinksListAdapter
-import com.romankozak.forwardappmobile.shared.data.models.ProjectType
+import com.romankozak.forwardappmobile.shared.features.projects.domain.model.ProjectType
 import com.romankozak.forwardappmobile.shared.data.models.ReservedGroup
 import com.romankozak.forwardappmobile.shared.data.models.ScoringStatusValues
 

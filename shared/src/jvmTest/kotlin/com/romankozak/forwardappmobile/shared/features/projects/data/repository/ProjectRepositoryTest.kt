@@ -2,10 +2,10 @@ package com.romankozak.forwardappmobile.shared.features.projects.data.repository
 
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
-import com.romankozak.forwardappmobile.shared.data.models.ProjectType
+import com.romankozak.forwardappmobile.shared.features.projects.domain.model.ProjectType
 import com.romankozak.forwardappmobile.shared.data.models.ReservedGroup
 import com.romankozak.forwardappmobile.shared.database.*
-import com.romankozak.forwardappmobile.shared.features.projects.data.models.Project
+import com.romankozak.forwardappmobile.shared.features.projects.domain.model.Project
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first

@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.shared.features.projects.data.model
+package com.romankozak.forwardappmobile.shared.features.projects.domain.model
 
 data class ProjectArtifact(
     val id: String,
