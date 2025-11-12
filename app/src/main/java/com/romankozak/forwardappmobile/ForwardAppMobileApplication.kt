@@ -6,8 +6,6 @@ import com.romankozak.forwardappmobile.di.AppComponent
 
 import com.romankozak.forwardappmobile.di.create
 
-
-
 class ForwardAppMobileApplication : Application() {
 
     val appComponent: AppComponent by lazy {

@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.shared.data.database
 
-import com.romankozak.forwardappmobile.shared.data.models.ProjectType
+import com.romankozak.forwardappmobile.shared.features.projects.domain.model.ProjectType
 import com.romankozak.forwardappmobile.shared.data.models.ReservedGroup
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import com.romankozak.forwardappmobile.shared.database.Projects

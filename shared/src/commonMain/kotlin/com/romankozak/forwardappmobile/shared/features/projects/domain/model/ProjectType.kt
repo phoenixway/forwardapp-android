@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.shared.data.models
+package com.romankozak.forwardappmobile.shared.features.projects.domain.model
 
 import kotlinx.serialization.Serializable
 

@@ -2,10 +2,10 @@ package com.romankozak.forwardappmobile.shared.features.projects.data.repository
 
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
-import com.romankozak.forwardappmobile.shared.data.models.ProjectType
+import com.romankozak.forwardappmobile.shared.features.projects.domain.model.ProjectType
 import com.romankozak.forwardappmobile.shared.data.models.ReservedGroup
 import com.romankozak.forwardappmobile.shared.database.*
-import com.romankozak.forwardappmobile.shared.features.projects.data.models.Project
+import com.romankozak.forwardappmobile.shared.features.projects.domain.model.Project
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -70,7 +70,7 @@ class ProjectRepositoryTest {
             isProjectManagementEnabled = false,
             projectStatus = "NO_PLAN",
             projectStatusText = null,
-            projectLogLevel = "NORMAL",
+            projectLogLevel = 0L,
             totalTimeSpentMinutes = 0L,
             valueImportance = 0.0,
             valueImpact = 0.0,
@@ -101,7 +101,7 @@ class ProjectRepositoryTest {
             isAttachmentsExpanded = project.isAttachmentsExpanded,
             defaultViewMode = project.defaultViewMode,
             isCompleted = project.isCompleted,
-            isProjectManagementEnabled = project.isProjectManagementEnabled,
+            isProjectManagementEnabled = project.isProjectManagementEnabled ?: false,
             projectStatus = project.projectStatus,
             projectStatusText = project.projectStatusText,
             projectLogLevel = project.projectLogLevel,
@@ -147,7 +147,7 @@ class ProjectRepositoryTest {
             isProjectManagementEnabled = false,
             projectStatus = "NO_PLAN",
             projectStatusText = null,
-            projectLogLevel = "NORMAL",
+            projectLogLevel = 0L,
             totalTimeSpentMinutes = 0L,
             valueImportance = 0.0,
             valueImpact = 0.0,
@@ -181,7 +181,7 @@ class ProjectRepositoryTest {
             isProjectManagementEnabled = false,
             projectStatus = "NO_PLAN",
             projectStatusText = null,
-            projectLogLevel = "NORMAL",
+            projectLogLevel = 0L,
             totalTimeSpentMinutes = 0L,
             valueImportance = 0.0,
             valueImpact = 0.0,
@@ -212,7 +212,7 @@ class ProjectRepositoryTest {
             isAttachmentsExpanded = project1.isAttachmentsExpanded,
             defaultViewMode = project1.defaultViewMode,
             isCompleted = project1.isCompleted,
-            isProjectManagementEnabled = project1.isProjectManagementEnabled,
+            isProjectManagementEnabled = project1.isProjectManagementEnabled ?: false,
             projectStatus = project1.projectStatus,
             projectStatusText = project1.projectStatusText,
             projectLogLevel = project1.projectLogLevel,
@@ -246,7 +246,7 @@ class ProjectRepositoryTest {
             isAttachmentsExpanded = project2.isAttachmentsExpanded,
             defaultViewMode = project2.defaultViewMode,
             isCompleted = project2.isCompleted,
-            isProjectManagementEnabled = project2.isProjectManagementEnabled,
+            isProjectManagementEnabled = project2.isProjectManagementEnabled ?: false,
             projectStatus = project2.projectStatus,
             projectStatusText = project2.projectStatusText,
             projectLogLevel = project2.projectLogLevel,

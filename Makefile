@@ -74,11 +74,12 @@ logcat:
 # Зібрати debug APK
 debug:
 	@echo "🚀  Збираю debug APK..."
-	@./gradlew :app:assembleDebug
+	@echo "(локальний GRADLE_USER_HOME для sandbox)"
+	@GRADLE_USER_HOME=$(PWD)/.gradle-project ./gradlew -Djava.net.preferIPv4Stack=true :app:assembleDebug
 
 check-compile:
 	@echo "🚀  Перевіряю через compileDebugKotlin..."
-	@./gradlew :app:compileDebugKotlin
+	@GRADLE_USER_HOME=$(PWD)/.gradle-project ./gradlew -Djava.net.preferIPv4Stack=true :app:compileDebugKotlin
 
 # Встановити debug APK
 install-debug: debug
