@@ -4,7 +4,7 @@ import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 
 // 🔹 JVM реалізація: контекст не потрібен
-actual class PlatformContext
+actual abstract class PlatformContext
 
 actual class DatabaseDriverFactory actual constructor(
     platformContext: PlatformContext?

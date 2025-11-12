@@ -7,9 +7,12 @@ This document consolidates the content of all `DatabaseDriverFactory` files and 
 package com.romankozak.forwardappmobile.shared.database
 
 import app.cash.sqldelight.db.SqlDriver
-import android.content.Context // Import Context for expect declaration
 
-expect class DatabaseDriverFactory(platformContext: Context? = null) {
+// 🔹 оголошення "порожнього" типу, який кожна платформа реалізує по-своєму
+expect class PlatformContext
+
+// 🔹 дефолтний аргумент вказується тільки тут
+expect class DatabaseDriverFactory(platformContext: PlatformContext? = null) {
     fun createDriver(): SqlDriver
 }
 ```
@@ -18,12 +21,14 @@ expect class DatabaseDriverFactory(platformContext: Context? = null) {
 ```kotlin
 package com.romankozak.forwardappmobile.shared.database
 
-import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.cash.sqldelight.db.SqlDriver
-import android.content.Context // Import Context for casting
+import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
+
+// 🔹 JVM реалізація: контекст не потрібен
+actual class PlatformContext
 
 actual class DatabaseDriverFactory actual constructor(
-    platformContext: Context?
+    platformContext: PlatformContext?
 ) {
     actual fun createDriver(): SqlDriver {
         val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
@@ -41,11 +46,16 @@ import android.content.Context
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 
+// 🔹 Android реалізація: просто alias на Context
+actual typealias PlatformContext = Context
+
 actual class DatabaseDriverFactory actual constructor(
-    private val platformContext: Any? = null
+    private val platformContext: PlatformContext?
 ) {
-    actual fun createDriver(): SqlDriver =
-        AndroidSqliteDriver(ForwardAppDatabase.Schema, platformContext as Context, "ForwardAppDatabase.db")
+    actual fun createDriver(): SqlDriver {
+        val ctx = platformContext ?: error("Android Context required")
+        return AndroidSqliteDriver(ForwardAppDatabase.Schema, ctx, "ForwardAppDatabase.db")
+    }
 }
 ```
 
@@ -89,7 +99,7 @@ actual class DatabaseDriverFactory actual constructor(
 
 --- LATEST COMPILATION ERRORS ---
 ```
-> Task :shared:compileTestKotlinJvm                                                                                                 
+> Task :shared:compileKotlinJvm                                                                                                     
 w: ⚠️ Deprecated Legacy Compilation Outputs Backup                                                                                   
 Backups of compilation outputs using the non-precise method are deprecated and will be phased out soon in favor of a more precise an
 d efficient approach (https://kotl.in/3v7v7).                                                                                       
@@ -98,35 +108,17 @@ ry=false' from your 'gradle.properties' file.
                                                                                                                                     
                                                                                                                                     
 e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/commonMain/kotlin/com/romankozak/forwardappmo
-bile/shared/database/DatabaseDriverFactory.common.kt:4:8 Unresolved reference 'android'.                                            
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/commonMain/kotlin/com/romankozak/forwardappmo
-bile/shared/database/DatabaseDriverFactory.common.kt:6:53 Unresolved reference 'Context'.                                           
+bile/shared/database/DatabaseDriverFactory.common.kt:5:1 Modifier 'expect' is not applicable to 'typealias'.                        
 e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/jvmMain/kotlin/com/romankozak/forwardappmobil
-e/shared/database/DatabaseDriverFactory.jvm.kt:5:8 Unresolved reference 'android'.                                                  
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/jvmMain/kotlin/com/romankozak/forwardappmobil
-e/shared/database/DatabaseDriverFactory.jvm.kt:7:14 'actual class DatabaseDriverFactory : Any' has no corresponding members for expe
-cted class members:                                                                                                                 
+e/shared/database/DatabaseDriverFactory.jvm.kt:7:18 'actual typealias PlatformContext = Any' has no corresponding expected declarati
+on                                                                                                                                  
                                                                                                                                     
-    expect constructor(platformContext: <ERROR TYPE REF: Symbol not found for Context?> = ...): DatabaseDriverFactory               
-                                                                                                                                    
-    The following declaration is incompatible because parameter types are different:                                                
-        actual constructor(platformContext: <ERROR TYPE REF: Symbol not found for Context?>): DatabaseDriverFactory                 
-                                                                                                                                    
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/jvmMain/kotlin/com/romankozak/forwardappmobil
-e/shared/database/DatabaseDriverFactory.jvm.kt:7:36 'actual constructor(platformContext: <ERROR TYPE REF: Symbol not found for Conte
-xt?>): DatabaseDriverFactory' has no corresponding expected declaration                                                             
-The following declaration is incompatible because parameter types are different:                                                    
-    expect constructor(platformContext: <ERROR TYPE REF: Symbol not found for Context?> = ...): DatabaseDriverFactory               
-                                                                                                                                    
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/jvmMain/kotlin/com/romankozak/forwardappmobil
-e/shared/database/DatabaseDriverFactory.jvm.kt:8:22 Unresolved reference 'Context'.                                                 
-                                                                                                                                    
-> Task :shared:compileTestKotlinJvm FAILED                                                                                          
+> Task :shared:compileKotlinJvm FAILED                                                                                              
                                                                                                                                     
 FAILURE: Build failed with an exception.                                                                                            
                                                                                                                                     
 * What went wrong:                                                                                                                  
-Execution failed for task ':shared:compileTestKotlinJvm'.                                                                           
+Execution failed for task ':shared:compileKotlinJvm'.                                                                               
 > A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAct
 ion                                                                                                                                 
    > Compilation error. See log for more details                                                                                    
@@ -134,9 +126,8 @@ ion
 * Try:                                                                                                                              
 > Run with --stacktrace option to get the stack trace.                                                                              
 > Run with --info or --debug option to get more log output.                                                                         
-> Run with --scan to get full insights.                                                                                             
 > Get more help at https://help.gradle.org.                                                                                         
                                                                                                                                     
-BUILD FAILED in 16s                                                                                                                 
+BUILD FAILED in 15s                                                                                                                 
 55 actionable tasks: 22 executed, 24 from cache, 9 up-to-date
 ```
