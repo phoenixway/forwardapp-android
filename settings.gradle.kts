@@ -4,6 +4,7 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
     maven("https://maven.pkg.jetbrains.space/kotlin/p/ksp/dev")
+    maven("https://jitpack.io")
 
     }
     plugins {
@@ -29,6 +30,7 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         gradlePluginPortal()
+    maven("https://jitpack.io")
     }
 }
 

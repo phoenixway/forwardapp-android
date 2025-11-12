@@ -23,7 +23,7 @@ room = "2.8.1"
 datastore = "1.1.1"
 
 # --- Dependency Injection / Logging
-kotlinInject = "0.7.1"
+kotlinInject = "0.8.0"
 hilt = "2.51.1"
 hiltNavigationCompose = "1.2.0"
 kotlinLogging = "3.0.5"

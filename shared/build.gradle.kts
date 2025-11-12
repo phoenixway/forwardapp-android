@@ -12,9 +12,9 @@ plugins {
 System.setProperty("org.jetbrains.kotlin.native.ignoreDisabledTargets", "true")
 
 kotlin {
-	@OptIn(org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi::class)
+    @OptIn(org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi::class)
 
-    // ✅ Android target (обов’язково для multiplatform)
+    // ✅ Android target
     androidTarget {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_17)
@@ -22,7 +22,7 @@ kotlin {
         }
     }
 
-    // ✅ JVM target (для unit-тестів або desktop-логіки)
+    // ✅ JVM target
     jvm {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_17)
@@ -39,7 +39,8 @@ kotlin {
                 implementation(libs.benasherUuid)
                 implementation(libs.sqldelightRuntime)
                 implementation(libs.sqldelightCoroutines)
-                implementation(libs.kotlinInjectRuntime)
+                // ⚠️ КРИТИЧНО: додаємо runtime-kmp
+                implementation("me.tatarka.inject:kotlin-inject-runtime-kmp:0.8.0")
             }
         }
 
@@ -69,13 +70,12 @@ kotlin {
                 implementation("androidx.test:core:1.5.0")
             }
         }
+        
         val jvmTest by getting {
             dependencies {
-            implementation("app.cash.sqldelight:sqlite-driver:2.0.2")
+                implementation("app.cash.sqldelight:sqlite-driver:2.0.2")
             }
         }
-
-        
     }
 }
 
@@ -101,34 +101,37 @@ sqldelight {
             deriveSchemaFromMigrations.set(true)
             schemaOutputDirectory.set(file("src/commonMain/sqldelight/databases"))
             dialect("app.cash.sqldelight:sqlite-3-24-dialect:2.0.2")
-            // ✅ linkSqlite видалено — більше не існує у 2.x
         }
     }
 }
 
-
-
-
-// ✅ Kotlin Inject via KSP 2.1.x
+// ✅ Kotlin Inject via KSP для multiplatform
 dependencies {
-    add("kspCommonMainMetadata", libs.kotlinInjectCompilerKsp)
-    add("kspAndroid", libs.kotlinInjectCompilerKsp)
-    add("kspJvm", libs.kotlinInjectCompilerKsp)
+    // Для metadata compilation (commonMain)
+    add("kspCommonMainMetadata", "me.tatarka.inject:kotlin-inject-compiler-ksp:0.8.0")
+    // Для Android
+    add("kspAndroid", "me.tatarka.inject:kotlin-inject-compiler-ksp:0.8.0")
+    add("kspAndroidTest", "me.tatarka.inject:kotlin-inject-compiler-ksp:0.8.0")
+    // Для JVM
+    add("kspJvm", "me.tatarka.inject:kotlin-inject-compiler-ksp:0.8.0")
+    add("kspJvmTest", "me.tatarka.inject:kotlin-inject-compiler-ksp:0.8.0")
 }
 
+// ✅ KSP налаштування
 ksp {
     arg("me.tatarka.inject.generateCompanionExtensions", "true")
 }
 
-// ✅ Include generated KSP sources automatically
-kotlin.sourceSets.configureEach {
-    kotlin.srcDir("build/generated/ksp/$name/kotlin")
-}
-
-// ✅ Ensure KSP tasks run before compilation
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-    if (name != "kspCommonMainKotlinMetadata") {
+// ✅ ВИПРАВЛЕНО: Правильні залежності без конфліктів між Debug/Release
+tasks.configureEach {
+    // KSP tasks для різних targets залежать від metadata
+    if (name == "kspKotlinJvm") {
+        dependsOn("kspCommonMainKotlinMetadata")
+    }
+    if (name == "kspDebugKotlinAndroid") {
+        dependsOn("kspCommonMainKotlinMetadata")
+    }
+    if (name == "kspReleaseKotlinAndroid") {
         dependsOn("kspCommonMainKotlinMetadata")
     }
 }
-

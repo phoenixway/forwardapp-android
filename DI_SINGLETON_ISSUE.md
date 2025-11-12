@@ -9,16 +9,24 @@ When compiling the `:shared` module, the build fails with "Unresolved reference"
 **Error Log:**
 ```
 > Task :shared:compileKotlinJvm FAILED
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/CommonModule.kt:5:38 Unresolved reference 'Singleton'.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/CommonModule.kt:9:16 Unresolved reference 'Singleton'.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/CommonModule.kt:13:16 Unresolved reference 'Singleton'.
+e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/commonMain/kotlin/com/romankozak/forwardappmo
+bile/di/CommonModule.kt:5:38 Unresolved reference 'Singleton'.
+e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/commonMain/kotlin/com/romankozak/forwardappmo
+bile/di/CommonModule.kt:9:16 Unresolved reference 'Singleton'.
+e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/commonMain/kotlin/com/romankozak/forwardappmo
+bile/di/CommonModule.kt:13:16 Unresolved reference 'Singleton'.
 
 > Task :shared:compileDebugKotlinAndroid FAILED
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/di/AndroidCommonModule.kt:6:38 Unresolved reference 'Singleton'.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/di/AndroidCommonModule.kt:7:38 Unresolved reference 'Tag'.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/di/AndroidCommonModule.kt:9:2 Unresolved reference 'Tag'.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/di/AndroidCommonModule.kt:14:16 Unresolved reference 'Singleton'.
-e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappmobile/di/AndroidCommonModule.kt:18:16 Unresolved reference 'Singleton'.
+e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappm
+obile/di/AndroidCommonModule.kt:6:38 Unresolved reference 'Singleton'.
+e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappm
+obile/di/AndroidCommonModule.kt:7:38 Unresolved reference 'Tag'.
+e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappm
+obile/di/AndroidCommonModule.kt:9:2 Unresolved reference 'Tag'.
+e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappm
+obile/di/AndroidCommonModule.kt:14:16 Unresolved reference 'Singleton'.
+e: file:///home/romankozak/studio/public/forwardapp-suit/forwardapp-android/shared/src/androidMain/kotlin/com/romankozak/forwardappm
+obile/di/AndroidCommonModule.kt:18:16 Unresolved reference 'Singleton'.
 ```
 
 ## 2. Analysis
@@ -77,7 +85,7 @@ kotlin {
                 implementation(libs.benasherUuid)
                 implementation(libs.sqldelightRuntime)
                 implementation(libs.sqldelightCoroutines)
-                implementation(libs.kotlinInjectRuntime)
+                implementation("me.tatarka.inject:kotlin-inject-runtime-kmp:0.8.0")
             }
         }
 
@@ -149,9 +157,9 @@ sqldelight {
 
 // ✅ Kotlin Inject via KSP 2.1.x
 dependencies {
-    add("kspCommonMainMetadata", libs.kotlinInjectCompilerKsp)
-    add("kspAndroid", libs.kotlinInjectCompilerKsp)
-    add("kspJvm", libs.kotlinInjectCompilerKsp)
+    add("kspCommonMainMetadata", "me.tatarka.inject:kotlin-inject-compiler-ksp:0.8.0")
+    add("kspAndroid", "me.tatarka.inject:kotlin-inject-compiler-ksp:0.8.0")
+    add("kspJvm", "me.tatarka.inject:kotlin-inject-compiler-ksp:0.8.0")
 }
 
 ksp {
@@ -176,7 +184,11 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
 package com.romankozak.forwardappmobile.di
 
 import com.romankozak.forwardappmobile.shared.database.*
-import me.tatarka.inject.annotations.*
+import me.tatarka.inject.annotations.Provides
+import me.tatarka.inject.annotations.Singleton
+import me.tatarka.inject.annotations.Component
+import me.tatarka.inject.annotations.Scope
+import me.tatarka.inject.annotations.Tag
 
 interface CommonModule {
 
@@ -196,7 +208,14 @@ package com.romankozak.forwardappmobile.di
 
 import android.content.Context
 import com.romankozak.forwardappmobile.shared.database.*
-import me.tatarka.inject.annotations.*
+import me.tatarka.inject.annotations.Provides
+import me.tatarka.inject.annotations.Singleton
+import me.tatarka.inject.annotations.Component
+import me.tatarka.inject.annotations.Scope
+import me.tatarka.inject.annotations.Tag
+
+@Tag
+annotation class ApplicationContext
 
 interface AndroidCommonModule : CommonModule {
 
