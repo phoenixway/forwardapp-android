@@ -59,3 +59,18 @@ SELECT * FROM ListItems WHERE entityId = :entityId LIMIT 1;
 
 findProjectIdForGoal:
 SELECT projectId FROM ListItems WHERE entityId = :goalId LIMIT 1;
+
+insertListItem:
+INSERT OR REPLACE INTO ListItems (
+    id,
+    projectId,
+    itemOrder,
+    entityId,
+    itemType
+) VALUES (
+    :id,
+    :projectId,
+    :itemOrder,
+    :entityId,
+    :itemType
+);

@@ -29,4 +29,5 @@ data class Goal(
     val impactOnParentGoal: Double? = null,
     val timeCost: Double? = null,
     val financialCost: Double? = null,
+    val markdown: String? = null,
 )

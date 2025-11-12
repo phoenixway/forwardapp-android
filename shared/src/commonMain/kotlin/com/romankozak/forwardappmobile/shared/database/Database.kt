@@ -2,12 +2,14 @@ package com.romankozak.forwardappmobile.shared.database
 
 import app.cash.sqldelight.ColumnAdapter
 import app.cash.sqldelight.db.SqlDriver
-import com.romankozak.forwardappmobile.shared.data.models.RelatedLink
 import com.romankozak.forwardappmobile.shared.data.models.ProjectType
 import com.romankozak.forwardappmobile.shared.data.models.ReservedGroup
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
+import com.romankozak.forwardappmobile.shared.data.models.RelatedLink 
+import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLinkList
+import com.romankozak.forwardappmobile.shared.data.database.models.StringList
 
 // ------------------------------------------------------
 // 🔹 Конфігурація JSON
@@ -51,25 +53,27 @@ val stringAdapter = object : ColumnAdapter<String, String> {
 // 🔹 JSON-адаптери
 // ------------------------------------------------------
 
-val stringListAdapter = object : ColumnAdapter<List<String>, String> {
-    override fun decode(databaseValue: String): List<String> {
+
+val stringListAdapter = object : ColumnAdapter<StringList, String> {
+    override fun decode(databaseValue: String): StringList {
         if (databaseValue.isEmpty()) return emptyList()
         return json.decodeFromString(ListSerializer(String.serializer()), databaseValue)
     }
 
-    override fun encode(value: List<String>): String =
+    override fun encode(value: StringList): String =
         json.encodeToString(ListSerializer(String.serializer()), value)
 }
 
-val relatedLinksListAdapter = object : ColumnAdapter<List<RelatedLink>, String> {
-    override fun decode(databaseValue: String): List<RelatedLink> {
+val relatedLinksListAdapter = object : ColumnAdapter<RelatedLinkList, String> {
+    override fun decode(databaseValue: String): RelatedLinkList {
         if (databaseValue.isEmpty()) return emptyList()
         return json.decodeFromString(ListSerializer(RelatedLink.serializer()), databaseValue)
     }
 
-    override fun encode(value: List<RelatedLink>): String =
+    override fun encode(value: RelatedLinkList): String =
         json.encodeToString(ListSerializer(RelatedLink.serializer()), value)
 }
+
 
 // ------------------------------------------------------
 // 🔹 Енум-адаптери
@@ -97,7 +101,6 @@ val reservedGroupAdapter = object : ColumnAdapter<ReservedGroup, String> {
 fun createForwardAppDatabase(driver: SqlDriver): ForwardAppDatabase {
     val goalsAdapter = Goals.Adapter(
         createdAtAdapter = longAdapter,
-        updatedAtAdapter = longAdapter,
         tagsAdapter = stringListAdapter,
         relatedLinksAdapter = relatedLinksListAdapter,
         valueImportanceAdapter = doubleAdapter,
@@ -109,13 +112,12 @@ fun createForwardAppDatabase(driver: SqlDriver): ForwardAppDatabase {
         weightCostAdapter = doubleAdapter,
         weightRiskAdapter = doubleAdapter,
         rawScoreAdapter = doubleAdapter,
-        displayScoreAdapter = longAdapter
+        displayScoreAdapter = longAdapter,
     )
 
 
     val projectsAdapter = Projects.Adapter(
         createdAtAdapter = longAdapter,
-        updatedAtAdapter = longAdapter,
         goalOrderAdapter = longAdapter,
         tagsAdapter = stringListAdapter,
         relatedLinksAdapter = relatedLinksListAdapter,
@@ -133,9 +135,16 @@ fun createForwardAppDatabase(driver: SqlDriver): ForwardAppDatabase {
         displayScoreAdapter = longAdapter
     )
 
+    val listItemsAdapter = ListItems.Adapter(
+        idAdapter = stringAdapter,
+        projectIdAdapter = stringAdapter,
+        itemOrderAdapter = longAdapter,
+    )
+
     return ForwardAppDatabase(
         driver = driver,
-        goalsAdapter = goalsAdapter,
-        projectsAdapter = projectsAdapter
+        GoalsAdapter = goalsAdapter,
+        ListItemsAdapter = listItemsAdapter,
+        ProjectsAdapter = projectsAdapter
     )
 }

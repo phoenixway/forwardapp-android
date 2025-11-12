@@ -29,5 +29,7 @@ fun Goals.toDomain(): Goal = Goal(
     parentValueImportance = parentValueImportance,
     impactOnParentGoal = impactOnParentGoal,
     timeCost = timeCost,
-    financialCost = financialCost
+    financialCost = financialCost,
+    markdown = markdown
+
 )

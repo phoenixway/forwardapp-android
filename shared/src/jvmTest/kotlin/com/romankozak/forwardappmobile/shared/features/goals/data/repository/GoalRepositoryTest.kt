@@ -97,7 +97,8 @@ class GoalRepositoryTest {
             parentValueImportance = goal.parentValueImportance,
             impactOnParentGoal = goal.impactOnParentGoal,
             timeCost = goal.timeCost,
-            financialCost = goal.financialCost
+            financialCost = goal.financialCost,
+            markdown = goal.markdown
         )
 
         val retrievedGoals = repository.getGoalsByIds(listOf(goal.id)).first()
@@ -185,7 +186,8 @@ class GoalRepositoryTest {
             parentValueImportance = goal1.parentValueImportance,
             impactOnParentGoal = goal1.impactOnParentGoal,
             timeCost = goal1.timeCost,
-            financialCost = goal1.financialCost
+            financialCost = goal1.financialCost,
+            markdown = goal1.markdown
         )
         database.goalsQueries.insertGoal(
             id = goal2.id,
@@ -210,7 +212,9 @@ class GoalRepositoryTest {
             parentValueImportance = goal2.parentValueImportance,
             impactOnParentGoal = goal2.impactOnParentGoal,
             timeCost = goal2.timeCost,
-            financialCost = goal2.financialCost
+            financialCost = goal2.financialCost,
+            markdown = goal2.markdown
+
         )
 
         val retrievedGoals = repository.getGoalsByIds(listOf(goal1.id, goal2.id)).first()

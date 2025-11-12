@@ -29,7 +29,7 @@ CREATE TABLE Projects (
     projectStatus TEXT,
     projectStatusText TEXT,
     projectLogLevel TEXT DEFAULT 'NORMAL',
-    totalTimeSpentMinutes INTEGER AS Int DEFAULT 0,
+    totalTimeSpentMinutes INTEGER AS Long DEFAULT 0,
     valueImportance REAL AS Double NOT NULL DEFAULT 0.0,
     valueImpact REAL AS Double NOT NULL DEFAULT 0.0,
     effort REAL AS Double NOT NULL DEFAULT 0.0,
@@ -74,3 +74,14 @@ DELETE FROM Projects WHERE id = :id;
 
 getProjectsByType:
 SELECT * FROM Projects WHERE projectType = :projectType;
+
+deleteProjectsForReset:
+DELETE FROM Projects;
+
+getProjectsByReservedGroup:
+SELECT * FROM Projects
+WHERE reservedGroup = :reservedGroup;
+
+getAllProjectsUnordered:
+SELECT * FROM Projects;
+

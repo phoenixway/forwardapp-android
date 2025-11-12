@@ -24,7 +24,7 @@ CREATE TABLE Goals (
     weightCost REAL AS Double NOT NULL DEFAULT 1.0,
     weightRisk REAL AS Double NOT NULL DEFAULT 1.0,
     rawScore REAL AS Double NOT NULL DEFAULT 0.0,
-    displayScore INTEGER AS Int NOT NULL DEFAULT 0,
+    displayScore INTEGER AS Long NOT NULL DEFAULT 0,
     scoringStatus TEXT NOT NULL,
     parentValueImportance REAL AS Double,
     impactOnParentGoal REAL AS Double,
