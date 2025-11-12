@@ -112,6 +112,7 @@ fun createForwardAppDatabase(driver: SqlDriver): ForwardAppDatabase {
         displayScoreAdapter = longAdapter
     )
 
+
     val projectsAdapter = Projects.Adapter(
         createdAtAdapter = longAdapter,
         updatedAtAdapter = longAdapter,

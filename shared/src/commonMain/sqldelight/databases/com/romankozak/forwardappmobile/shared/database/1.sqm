@@ -1,7 +1,0 @@
--- database: ForwardAppDatabase
--- package: com.romankozak.forwardappmobile.shared.database
-
-CREATE TABLE SimpleCheck (
-    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL
-);
