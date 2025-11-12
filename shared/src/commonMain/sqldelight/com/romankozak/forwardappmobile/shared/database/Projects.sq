@@ -71,3 +71,6 @@ INSERT OR REPLACE INTO Projects (
 
 deleteProject:
 DELETE FROM Projects WHERE id = :id;
+
+getProjectsByType:
+SELECT * FROM Projects WHERE projectType = :projectType;
