@@ -10,7 +10,5 @@ actual class DatabaseDriverFactory actual constructor(
     private val platformContext: PlatformContext
 ) {
     actual fun createDriver(): SqlDriver =
-        AndroidSqliteDriver(ForwardAppDatabase.Schema, platformContext, "ForwardAppDatabase.db")
+        AndroidSqliteDriver(ForwardAppDatabase.Schema, platformContext, "test.db")
 }
-
-

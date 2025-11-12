@@ -1,9 +1,8 @@
 package com.romankozak.forwardappmobile.shared.database
 
-import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.cash.sqldelight.db.SqlDriver
+import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 
-// ✅ Порожній клас-заглушка
 actual interface PlatformContext
 
 actual class DatabaseDriverFactory actual constructor(
@@ -15,4 +14,3 @@ actual class DatabaseDriverFactory actual constructor(
         return driver
     }
 }
-

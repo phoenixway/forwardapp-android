@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.shared.database
 
 import app.cash.sqldelight.ColumnAdapter
+import app.cash.sqldelight.db.SqlDriver
 import com.romankozak.forwardappmobile.shared.data.models.RelatedLink
 import com.romankozak.forwardappmobile.shared.data.models.ProjectType
 import com.romankozak.forwardappmobile.shared.data.models.ReservedGroup
@@ -87,8 +88,16 @@ val reservedGroupAdapter = object : ColumnAdapter<ReservedGroup, String> {
 // 🔹 Фабрика створення бази
 // ------------------------------------------------------
 
-fun createForwardAppDatabase(driverFactory: DatabaseDriverFactory): ForwardAppDatabase {
-    val driver = driverFactory.createDriver()
+fun createForwardAppDatabase(driver: SqlDriver): ForwardAppDatabase {
+    println("Creating database schema...")
+    try {
+        ForwardAppDatabase.Schema.create(driver)
+        println("Database schema created successfully.")
+    } catch (e: Exception) {
+        println("Error creating database schema: ${e.message}")
+        e.printStackTrace()
+        throw e
+    }
 
     val goalsAdapter = Goals.Adapter(
         createdAtAdapter = longAdapter,

@@ -1,7 +1,6 @@
 package com.romankozak.forwardappmobile.shared.features.goals.data.repository
 
 import app.cash.sqldelight.db.SqlDriver
-import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import com.romankozak.forwardappmobile.shared.data.models.LinkType
 import com.romankozak.forwardappmobile.shared.data.models.ProjectType
 import com.romankozak.forwardappmobile.shared.data.models.RelatedLink
@@ -28,43 +27,7 @@ class GoalRepositoryTest {
     @BeforeTest
     fun setup() {
         driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
-        ForwardAppDatabase.Schema.create(driver)
-        database = ForwardAppDatabase(
-            driver = driver,
-            projectsAdapter = Projects.Adapter(
-                createdAtAdapter = longAdapter,
-                tagsAdapter = stringListAdapter,
-                relatedLinksAdapter = relatedLinksListAdapter,
-                goalOrderAdapter = longAdapter,
-                valueImportanceAdapter = doubleAdapter,
-                valueImpactAdapter = doubleAdapter,
-                effortAdapter = doubleAdapter,
-                costAdapter = doubleAdapter,
-                riskAdapter = doubleAdapter,
-                weightEffortAdapter = doubleAdapter,
-                weightCostAdapter = doubleAdapter,
-                weightRiskAdapter = doubleAdapter,
-                rawScoreAdapter = doubleAdapter,
-                displayScoreAdapter = longAdapter,
-                projectTypeAdapter = projectTypeAdapter,
-                reservedGroupAdapter = reservedGroupAdapter
-            ),
-            GoalsAdapter = Goals.Adapter(
-                createdAtAdapter = longAdapter,
-                tagsAdapter = stringListAdapter,
-                relatedLinksAdapter = relatedLinksListAdapter,
-                valueImportanceAdapter = doubleAdapter,
-                valueImpactAdapter = doubleAdapter,
-                effortAdapter = doubleAdapter,
-                costAdapter = doubleAdapter,
-                riskAdapter = doubleAdapter,
-                weightEffortAdapter = doubleAdapter,
-                weightCostAdapter = doubleAdapter,
-                weightRiskAdapter = doubleAdapter,
-                rawScoreAdapter = doubleAdapter,
-                displayScoreAdapter = longAdapter
-            )
-        )
+        database = createForwardAppDatabase(driver)
         repository = GoalRepositoryImpl(database, Dispatchers.Unconfined)
     }
 

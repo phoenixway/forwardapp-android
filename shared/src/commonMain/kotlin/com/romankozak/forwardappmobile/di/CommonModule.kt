@@ -2,9 +2,7 @@ package com.romankozak.forwardappmobile.di
 
 import com.romankozak.forwardappmobile.shared.database.*
 import me.tatarka.inject.annotations.*
-
-@Scope
-annotation class Singleton
+import me.tatarka.inject.annotations.Singleton
 
 interface CommonModule {
 
@@ -14,5 +12,5 @@ interface CommonModule {
 
     @Provides @Singleton
     fun provideDatabase(factory: DatabaseDriverFactory): ForwardAppDatabase =
-        createForwardAppDatabase(factory)
+        createForwardAppDatabase(factory.createDriver())
 }
