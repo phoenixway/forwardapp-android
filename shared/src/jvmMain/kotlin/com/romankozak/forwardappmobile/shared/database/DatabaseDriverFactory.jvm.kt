@@ -3,11 +3,8 @@ package com.romankozak.forwardappmobile.shared.database
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.cash.sqldelight.db.SqlDriver
 
-// ✅ Порожній клас-заглушка
-actual interface PlatformContext
-
 actual class DatabaseDriverFactory actual constructor(
-    platformContext: PlatformContext?
+    platformContext: Any? = null
 ) {
     actual fun createDriver(): SqlDriver {
         val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
