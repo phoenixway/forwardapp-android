@@ -6,12 +6,12 @@ import com.romankozak.forwardappmobile.di.AppComponent
 
 import com.romankozak.forwardappmobile.di.create
 
-
-
 class ForwardAppMobileApplication : Application() {
 
     val appComponent: AppComponent by lazy {
-        AppComponent::class.create(this)
+        AppComponent::class.create().apply {
+            application = this@ForwardAppMobileApplication
+        }
     }
 
     override fun onCreate() {

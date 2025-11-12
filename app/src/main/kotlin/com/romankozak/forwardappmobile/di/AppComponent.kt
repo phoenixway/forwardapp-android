@@ -7,14 +7,14 @@ import me.tatarka.inject.annotations.Provides
 import com.romankozak.forwardappmobile.di.AndroidSingleton
 
 @AndroidSingleton
-@Component(
-    modules = [
-        AndroidCommonModule::class
-    ]
-)
-abstract class AppComponent(@Provides val application: Application) {
+@Component(AndroidCommonModule::class)
+abstract class AppComponent {
+
+    abstract val application: Application
 
     @Provides
     @ApplicationContext
     fun provideApplicationContext(): Context = application.applicationContext
+
+    companion object
 }
