@@ -89,16 +89,6 @@ val reservedGroupAdapter = object : ColumnAdapter<ReservedGroup, String> {
 // ------------------------------------------------------
 
 fun createForwardAppDatabase(driver: SqlDriver): ForwardAppDatabase {
-    println("Creating database schema...")
-    try {
-        ForwardAppDatabase.Schema.create(driver)
-        println("Database schema created successfully.")
-    } catch (e: Exception) {
-        println("Error creating database schema: ${e.message}")
-        e.printStackTrace()
-        throw e
-    }
-
     val goalsAdapter = Goals.Adapter(
         createdAtAdapter = longAdapter,
         tagsAdapter = stringListAdapter,

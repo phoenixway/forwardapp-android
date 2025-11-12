@@ -68,6 +68,7 @@ kotlin {
             dependencies {
                 implementation(libs.sqldelightAndroidDriver)
                 implementation("androidx.test:core:1.5.0")
+                implementation("app.cash.sqldelight:sqlite-driver:2.0.2")
             }
         }
         

@@ -18,6 +18,9 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+import com.romankozak.forwardappmobile.shared.data.database.createTestDatabase
+import com.romankozak.forwardappmobile.shared.data.database.createTestDriver
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class GoalRepositoryTest {
 
@@ -27,8 +30,8 @@ class GoalRepositoryTest {
 
     @BeforeTest
     fun setup() {
-        driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
-        database = createForwardAppDatabase(driver)
+        driver = createTestDriver()
+        database = createTestDatabase(driver)
         repository = GoalRepositoryImpl(database, Dispatchers.Unconfined)
     }
 

@@ -14,6 +14,8 @@ import com.romankozak.forwardappmobile.shared.database.relatedLinksListAdapter
 import com.romankozak.forwardappmobile.shared.database.reservedGroupAdapter
 import com.romankozak.forwardappmobile.shared.database.stringListAdapter
 
+import com.romankozak.forwardappmobile.shared.database.createForwardAppDatabase
+
 actual fun createTestDriver(): SqlDriver {
     val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
     ForwardAppDatabase.Schema.create(driver)
@@ -21,42 +23,7 @@ actual fun createTestDriver(): SqlDriver {
 }
 
 actual fun createTestDatabase(driver: SqlDriver): ForwardAppDatabase {
-    return ForwardAppDatabase(
-        driver = driver,
-        projectsAdapter = Projects.Adapter(
-            createdAtAdapter = longAdapter,
-            tagsAdapter = stringListAdapter,
-            relatedLinksAdapter = relatedLinksListAdapter,
-            goalOrderAdapter = longAdapter,
-            valueImportanceAdapter = doubleAdapter,
-            valueImpactAdapter = doubleAdapter,
-            effortAdapter = doubleAdapter,
-            costAdapter = doubleAdapter,
-            riskAdapter = doubleAdapter,
-            weightEffortAdapter = doubleAdapter,
-            weightCostAdapter = doubleAdapter,
-            weightRiskAdapter = doubleAdapter,
-            rawScoreAdapter = doubleAdapter,
-            displayScoreAdapter = longAdapter,
-            projectTypeAdapter = projectTypeAdapter,
-            reservedGroupAdapter = reservedGroupAdapter
-        ),
-        GoalsAdapter = Goals.Adapter(
-            createdAtAdapter = longAdapter,
-            tagsAdapter = stringListAdapter,
-            relatedLinksAdapter = relatedLinksListAdapter,
-            valueImportanceAdapter = doubleAdapter,
-            valueImpactAdapter = doubleAdapter,
-            effortAdapter = doubleAdapter,
-            costAdapter = doubleAdapter,
-            riskAdapter = doubleAdapter,
-            weightEffortAdapter = doubleAdapter,
-            weightCostAdapter = doubleAdapter,
-            weightRiskAdapter = doubleAdapter,
-            rawScoreAdapter = doubleAdapter,
-            displayScoreAdapter = longAdapter
-        )
-    )
+    return createForwardAppDatabase(driver)
 }
 
 actual fun closeTestDriver(driver: SqlDriver) {

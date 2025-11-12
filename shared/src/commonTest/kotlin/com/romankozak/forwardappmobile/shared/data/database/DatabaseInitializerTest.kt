@@ -21,6 +21,7 @@ class DatabaseInitializerTest {
     fun setup() {
         driver = createTestDriver()
         db = createTestDatabase(driver)
+        db.projectsQueries.deleteProjectsForReset()
         initializer = DatabaseInitializer(db)
     }
 

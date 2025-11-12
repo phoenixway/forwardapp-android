@@ -16,6 +16,9 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+import com.romankozak.forwardappmobile.shared.data.database.createTestDatabase
+import com.romankozak.forwardappmobile.shared.data.database.createTestDriver
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class ListItemRepositoryTest {
 
@@ -25,44 +28,8 @@ class ListItemRepositoryTest {
 
     @BeforeTest
     fun setup() {
-        driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
-        ForwardAppDatabase.Schema.create(driver)
-        database = ForwardAppDatabase(
-            driver = driver,
-            projectsAdapter = Projects.Adapter(
-                createdAtAdapter = longAdapter,
-                tagsAdapter = stringListAdapter,
-                relatedLinksAdapter = relatedLinksListAdapter,
-                goalOrderAdapter = longAdapter,
-                valueImportanceAdapter = doubleAdapter,
-                valueImpactAdapter = doubleAdapter,
-                effortAdapter = doubleAdapter,
-                costAdapter = doubleAdapter,
-                riskAdapter = doubleAdapter,
-                weightEffortAdapter = doubleAdapter,
-                weightCostAdapter = doubleAdapter,
-                weightRiskAdapter = doubleAdapter,
-                rawScoreAdapter = doubleAdapter,
-                displayScoreAdapter = longAdapter,
-                projectTypeAdapter = projectTypeAdapter,
-                reservedGroupAdapter = reservedGroupAdapter
-            ),
-            GoalsAdapter = Goals.Adapter(
-                createdAtAdapter = longAdapter,
-                tagsAdapter = stringListAdapter,
-                relatedLinksAdapter = relatedLinksListAdapter,
-                valueImportanceAdapter = doubleAdapter,
-                valueImpactAdapter = doubleAdapter,
-                effortAdapter = doubleAdapter,
-                costAdapter = doubleAdapter,
-                riskAdapter = doubleAdapter,
-                weightEffortAdapter = doubleAdapter,
-                weightCostAdapter = doubleAdapter,
-                weightRiskAdapter = doubleAdapter,
-                rawScoreAdapter = doubleAdapter,
-                displayScoreAdapter = longAdapter
-            )
-        )
+        driver = createTestDriver()
+        database = createTestDatabase(driver)
         repository = ListItemRepositoryImpl(database, Dispatchers.Unconfined)
     }
 
