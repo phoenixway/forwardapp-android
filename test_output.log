@@ -1,4 +1,4 @@
-Calculating task graph as configuration cache cannot be reused because file 'shared/build.gradle.kts' has changed.
+Calculating task graph as no cached configuration is available for tasks: clean build
 
 > Configure project :app
 WARNING: The option setting 'android.enableProfileJson=true' is experimental.
@@ -17,3 +17,158 @@ The `kotlin.mpp.androidGradlePluginCompatibility.nowarn` deprecated property is 
 Please, stop using it as it is unsupported and may apply no effect to your build.
 
 
+w: ⚠️ Deprecated Legacy Compilation Outputs Backup
+Backups of compilation outputs using the non-precise method are deprecated and will be phased out soon in favor of a more precise and efficient approach (https://kotl.in/3v7v7).
+Please remove 'kotlin.compiler.preciseCompilationResultsBackup=false' and/or 'kotlin.compiler.keepIncrementalCompilationCachesInMemory=false' from your 'gradle.properties' file.
+
+
+
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:preBuild UP-TO-DATE
+> Task :shared:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :shared:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:preReleaseBuild UP-TO-DATE
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:preReleaseUnitTestBuild UP-TO-DATE
+> Task :shared:preDebugBuild UP-TO-DATE
+> Task :shared:preReleaseBuild UP-TO-DATE
+> Task :shared:preDebugAndroidTestBuild UP-TO-DATE
+> Task :shared:preDebugUnitTestBuild UP-TO-DATE
+> Task :shared:preReleaseUnitTestBuild UP-TO-DATE
+> Task :app:clean UP-TO-DATE
+> Task :shared:cleanJvmTest UP-TO-DATE
+> Task :shared:cleanAllTests UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:generateDebugResValues
+> Task :app:mergeDebugStartupProfile
+> Task :app:createDebugCompatibleScreenManifests
+> Task :app:writeDebugAppMetadata
+> Task :app:validateSigningDebug
+> Task :app:desugarDebugFileDependencies
+> Task :app:generateDebugBuildConfig
+> Task :app:buildKotlinToolingMetadata
+> Task :app:generateReleaseResValues
+> Task :app:generateReleaseBuildConfig
+> Task :app:writeDebugSigningConfigVersions
+> Task :app:extractDeepLinksDebug
+> Task :app:generateDebugResources
+> Task :app:generateReleaseResources
+> Task :app:extractDeepLinksRelease
+> Task :app:createReleaseCompatibleScreenManifests
+> Task :app:extractProguardFiles
+> Task :app:mergeReleaseStartupProfile
+> Task :app:desugarReleaseFileDependencies
+> Task :app:extractReleaseVersionControlInfo
+> Task :shared:clean
+> Task :app:mergeDebugJniLibFolders
+> Task :app:mergeDebugShaders
+> Task :app:mergeReleaseShaders
+> Task :app:packageDebugResources
+> Task :shared:generateDebugResValues
+> Task :shared:writeDebugAarMetadata
+> Task :app:mergeReleaseJniLibFolders
+> Task :shared:generateDebugResources
+> Task :shared:extractDeepLinksDebug
+> Task :app:packageReleaseResources
+> Task :shared:packageDebugResources
+> Task :shared:generateDebugBuildConfig
+> Task :shared:processDebugManifest
+> Task :app:mapDebugSourceSetPaths
+> Task :app:checkDebugAarMetadata
+> Task :shared:compileDebugLibraryResources
+> Task :shared:javaPreCompileDebug
+> Task :shared:parseDebugLocalResources
+> Task :app:compileDebugShaders NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :shared:mergeDebugShaders
+> Task :shared:compileDebugShaders NO-SOURCE
+> Task :shared:debugAssetsCopyForAGP NO-SOURCE
+> Task :shared:generateDebugAssets UP-TO-DATE
+> Task :shared:generateDebugRFile
+> Task :shared:packageDebugAssets
+> Task :shared:mergeDebugJniLibFolders
+> Task :shared:mergeDebugNativeLibs NO-SOURCE
+> Task :shared:copyDebugJniLibsProjectOnly
+> Task :app:javaPreCompileRelease
+> Task :app:javaPreCompileDebug
+> Task :app:mergeDebugAssets
+> Task :shared:generateReleaseResValues
+> Task :shared:generateReleaseResources
+> Task :shared:packageReleaseResources
+> Task :shared:writeReleaseAarMetadata
+> Task :app:mapReleaseSourceSetPaths
+> Task :app:compressDebugAssets
+> Task :app:checkReleaseAarMetadata
+> Task :shared:extractDeepLinksRelease
+> Task :app:processDebugMainManifest
+> Task :app:processDebugManifest
+> Task :app:processDebugManifestForPackage
+> Task :shared:compileReleaseLibraryResources
+> Task :app:checkDebugDuplicateClasses
+> Task :shared:parseReleaseLocalResources
+> Task :shared:generateReleaseRFile
+> Task :shared:generateReleaseBuildConfig
+> Task :shared:javaPreCompileRelease
+> Task :app:checkReleaseDuplicateClasses
+> Task :shared:prepareLintJarForPublish UP-TO-DATE
+> Task :shared:extractProguardFiles
+> Task :shared:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :shared:mergeReleaseJniLibFolders
+> Task :shared:mergeReleaseNativeLibs NO-SOURCE
+> Task :shared:stripReleaseDebugSymbols NO-SOURCE
+> Task :shared:copyReleaseJniLibsProjectAndLocalJars
+> Task :shared:mergeReleaseShaders
+> Task :shared:releaseAssetsCopyForAGP NO-SOURCE
+> Task :shared:compileReleaseShaders NO-SOURCE
+> Task :shared:generateReleaseAssets UP-TO-DATE
+> Task :shared:prepareReleaseArtProfile UP-TO-DATE
+> Task :shared:packageReleaseAssets
+> Task :shared:copyReleaseJniLibsProjectOnly
+> Task :shared:writeReleaseLintModelMetadata
+> Task :shared:transformCommonMainDependenciesMetadata
+> Task :app:mergeReleaseArtProfile
+> Task :app:compileReleaseShaders NO-SOURCE
+> Task :app:generateReleaseAssets UP-TO-DATE
+> Task :app:mergeReleaseAssets
+> Task :app:compressReleaseAssets
+> Task :app:validateSigningRelease
+> Task :app:writeReleaseAppMetadata
+> Task :app:writeReleaseSigningConfigVersions
+> Task :shared:stripDebugDebugSymbols NO-SOURCE
+> Task :shared:copyDebugJniLibsProjectAndLocalJars
+> Task :shared:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :shared:prepareDebugArtProfile UP-TO-DATE
+> Task :app:preDebugAndroidTestBuild SKIPPED
+> Task :app:generateDebugAndroidTestResValues
+> Task :shared:writeDebugLintModelMetadata
+> Task :shared:generateDebugAndroidTestResValues
+> Task :app:javaPreCompileDebugUnitTest
+> Task :app:javaPreCompileReleaseUnitTest
+> Task :shared:generateProjectStructureMetadata
+> Task :shared:metadataCommonMainProcessResources NO-SOURCE
+> Task :shared:mapReleaseSourceSetPaths
+> Task :shared:mergeReleaseResources
+> Task :shared:generateDebugUnitTestStubRFile
+> Task :shared:javaPreCompileDebugUnitTest
+> Task :shared:processReleaseManifest
+> Task :app:parseDebugLocalResources
+> Task :shared:generateReleaseUnitTestStubRFile
+> Task :shared:javaPreCompileReleaseUnitTest
+> Task :app:parseReleaseLocalResources
+> Task :app:processReleaseMainManifest
+> Task :app:processReleaseManifest
+> Task :app:processReleaseManifestForPackage
+> Task :shared:verifyReleaseResources
+> Task :app:collectReleaseDependencies
+> Task :app:sdkReleaseDependencyData
+> Task :shared:generateCommonMainForwardAppDatabaseInterface
+> Task :shared:kspCommonMainKotlinMetadata UP-TO-DATE
+> Task :shared:compileCommonMainKotlinMetadata SKIPPED
+> Task :shared:metadataCommonMainClasses UP-TO-DATE
+> Task :shared:allMetadataJar
+> Task :shared:kspKotlinJvm UP-TO-DATE
+> Task :shared:jvmProcessResources NO-SOURCE
+> Task :shared:processJvmMainResources SKIPPED
+> Task :shared:kspReleaseKotlinAndroid UP-TO-DATE
+> Task :shared:kspDebugKotlinAndroid UP-TO-DATE
