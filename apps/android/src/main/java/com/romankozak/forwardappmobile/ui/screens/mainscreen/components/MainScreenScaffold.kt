@@ -60,7 +60,6 @@ fun MainScreenScaffold(
             MainScreenTopAppBar(
                 projectCount = state.projects.size,
                 isLoading = state.isLoading,
-                onAddNewProject = { onEvent(MainScreenEvent.ShowCreateDialog()) },
                 onPlaceholderAction = showPlaceholderToast,
             )
         },

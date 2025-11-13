@@ -41,7 +41,6 @@ import com.romankozak.forwardappmobile.BuildConfig
 fun MainScreenTopAppBar(
     projectCount: Int,
     isLoading: Boolean,
-    onAddNewProject: () -> Unit,
     onPlaceholderAction: () -> Unit,
 ) {
     var isMenuExpanded by remember { mutableStateOf(false) }
@@ -64,18 +63,9 @@ fun MainScreenTopAppBar(
                         }
                     }
                 }
-                Text(
-                    text =
-                        if (isLoading) "Завантаження..." else "Активних проєктів: $projectCount",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
         },
         actions = {
-            IconButton(onClick = onAddNewProject, enabled = !isLoading) {
-                Icon(Icons.Default.Add, contentDescription = "Додати проєкт")
-            }
             IconButton(onClick = { isMenuExpanded = true }) {
                 Icon(Icons.Default.MoreVert, contentDescription = "Додаткові дії")
             }
