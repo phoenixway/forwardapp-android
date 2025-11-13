@@ -1,12 +1,12 @@
-package com.romankozak.forwardappmobile.shared.features.projects.data.repository
+package com.romankozak.forwardappmobile.shared.features.projects.core.data.repository
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import app.cash.sqldelight.coroutines.mapToOneOrNull
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
-import com.romankozak.forwardappmobile.shared.features.projects.data.mappers.toDomain
-import com.romankozak.forwardappmobile.shared.features.projects.domain.model.Project
-import com.romankozak.forwardappmobile.shared.features.projects.domain.repository.ProjectRepository
+import com.romankozak.forwardappmobile.shared.features.projects.core.data.mappers.toDomain
+import com.romankozak.forwardappmobile.shared.features.projects.core.domain.model.Project
+import com.romankozak.forwardappmobile.shared.features.projects.core.domain.repository.ProjectRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map

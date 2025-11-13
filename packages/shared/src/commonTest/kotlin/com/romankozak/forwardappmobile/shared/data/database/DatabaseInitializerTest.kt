@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.shared.data.database
 
 import app.cash.sqldelight.db.SqlDriver
-import com.romankozak.forwardappmobile.shared.features.projects.domain.model.ProjectType
+import com.romankozak.forwardappmobile.shared.features.projects.core.domain.model.ProjectType
 import com.romankozak.forwardappmobile.shared.data.models.ReservedGroup
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import com.romankozak.forwardappmobile.shared.database.Projects
@@ -149,7 +149,7 @@ class DatabaseInitializerTest {
             displayScore = 0L,
             scoringStatus = "NOT_ASSESSED",
             showCheckboxes = false,
-            projectType = com.romankozak.forwardappmobile.shared.features.projects.domain.model.ProjectType.DEFAULT,
+            projectType = com.romankozak.forwardappmobile.shared.features.projects.core.domain.model.ProjectType.DEFAULT,
             reservedGroup = null
         )
         db.projectsQueries.insertProject(

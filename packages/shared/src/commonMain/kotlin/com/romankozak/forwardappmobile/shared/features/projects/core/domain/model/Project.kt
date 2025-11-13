@@ -1,8 +1,7 @@
-package com.romankozak.forwardappmobile.shared.features.projects.domain.model
+package com.romankozak.forwardappmobile.shared.features.projects.core.domain.model
 
 import kotlinx.serialization.Serializable
 import com.romankozak.forwardappmobile.shared.data.models.RelatedLink
-import com.romankozak.forwardappmobile.shared.features.projects.domain.model.ProjectType
 import com.romankozak.forwardappmobile.shared.data.models.ReservedGroup
 import com.romankozak.forwardappmobile.shared.data.models.ProjectStatusValues
 import com.romankozak.forwardappmobile.shared.data.models.ScoringStatusValues

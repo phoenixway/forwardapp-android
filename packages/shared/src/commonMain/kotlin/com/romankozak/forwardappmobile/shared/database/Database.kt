@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.shared.database
 
 import app.cash.sqldelight.ColumnAdapter
 import app.cash.sqldelight.db.SqlDriver
-import com.romankozak.forwardappmobile.shared.features.projects.domain.model.ProjectType
+import com.romankozak.forwardappmobile.shared.features.projects.core.domain.model.ProjectType
 import com.romankozak.forwardappmobile.shared.data.models.ReservedGroup
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer

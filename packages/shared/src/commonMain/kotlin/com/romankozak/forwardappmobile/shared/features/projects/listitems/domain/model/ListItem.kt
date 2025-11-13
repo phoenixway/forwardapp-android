@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.shared.features.projects.data.models
+package com.romankozak.forwardappmobile.shared.features.projects.listitems.domain.model
 
 import kotlinx.serialization.Serializable
 import com.romankozak.forwardappmobile.shared.data.models.ListItemTypeValues
