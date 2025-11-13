@@ -1,0 +1,48 @@
+0 verbose cli /usr/bin/node-22 /usr/bin/npm
+1 info using npm@10.9.3
+2 info using node@v22.20.0
+3 silly config load:file:/usr/lib/node_modules_22/npm/npmrc
+4 silly config load:file:/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/desktop-smoke/.npmrc
+5 silly config load:file:/home/romankozak/.npmrc
+6 silly config load:file:/etc/npmrc
+7 verbose title npm install ../../packages/shared-kmp/forwardapp-shared-kmp-0.1.0.tgz
+8 verbose argv "install" "../../packages/shared-kmp/forwardapp-shared-kmp-0.1.0.tgz" "--force"
+9 verbose logfile logs-max:10 dir:/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/desktop-smoke/.npm-cache/_logs/2025-11-13T08_34_38_243Z-
+10 verbose logfile /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/desktop-smoke/.npm-cache/_logs/2025-11-13T08_34_38_243Z-debug-0.log
+11 warn using --force Recommended protections disabled.
+12 silly logfile done cleaning log files
+13 silly packumentCache heap:2197815296 maxSize:549453824 maxEntrySize:274726912
+14 silly idealTree buildDeps
+15 silly fetch manifest @forwardapp/shared-kmp@file:../../packages/shared-kmp/forwardapp-shared-kmp-0.1.0.tgz
+16 silly placeDep ROOT @forwardapp/shared-kmp@0.1.0 REPLACE for:  want: file:../../packages/shared-kmp/forwardapp-shared-kmp-0.1.0.tgz
+17 silly reify mark retired [
+17 silly reify   '/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/desktop-smoke/node_modules/@forwardapp/shared-kmp'
+17 silly reify ]
+18 silly reify moves {
+18 silly reify   '/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/desktop-smoke/node_modules/@forwardapp/shared-kmp': '/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/desktop-smoke/node_modules/@forwardapp/.shared-kmp-ZcPZD0cB'
+18 silly reify }
+19 silly audit bulk request { '@forwardapp/shared-kmp': [ '0.1.0' ] }
+20 silly audit bulk request failed undefined
+21 verbose audit error FetchError: request to https://registry.npmjs.org/-/npm/v1/security/audits/quick failed, reason: getaddrinfo EAI_AGAIN registry.npmjs.org
+21 verbose audit error     at ClientRequest.<anonymous> (/usr/lib/node_modules_22/npm/node_modules/minipass-fetch/lib/index.js:130:14)
+21 verbose audit error     at ClientRequest.emit (node:events:519:28)
+21 verbose audit error     at emitErrorEvent (node:_http_client:105:11)
+21 verbose audit error     at _destroy (node:_http_client:898:9)
+21 verbose audit error     at onSocketNT (node:_http_client:918:5)
+21 verbose audit error     at process.processTicksAndRejections (node:internal/process/task_queues:91:21) {
+21 verbose audit error   code: 'EAI_AGAIN',
+21 verbose audit error   errno: 'EAI_AGAIN',
+21 verbose audit error   syscall: 'getaddrinfo',
+21 verbose audit error   hostname: 'registry.npmjs.org',
+21 verbose audit error   type: 'system'
+21 verbose audit error }
+22 silly audit error undefined
+23 silly audit report null
+24 http cache @forwardapp/shared-kmp@file:/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/forwardapp-shared-kmp-0.1.0.tgz 0ms (cache hit)
+25 silly CHANGE node_modules/@forwardapp/shared-kmp
+26 verbose cwd /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/desktop-smoke
+27 verbose os Linux 6.17.7-200.fc42.x86_64
+28 verbose node v22.20.0
+29 verbose npm  v10.9.3
+30 verbose exit 0
+31 info ok

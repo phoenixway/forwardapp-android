@@ -25,6 +25,27 @@
   - `./gradlew :app:connectedAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.romankozak.forwardappmobile.data.database.Migration60To61Test`
   - `./gradlew :app:connectedAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.romankozak.forwardappmobile.data.database.Migration61to62Test`
 
+## Shared KMP → npm (Electron smoke)
+
+### Збірка tgz пакета
+1. Запусти `make shared-npm` — скрипт згенерує JS артефакти та локально запакує `packages/shared-kmp/forwardapp-shared-kmp-0.1.0.tgz`.
+2. Наприкінці команда автоматично виведе `ls -1 packages/shared-kmp/*.tgz` — переконайся, що архів є.
+3. За потреби швидко перевірити вручну: `ls -1 packages/shared-kmp/*.tgz 2>/dev/null || echo "no tgz"`.
+
+> **Примітка.** Під час виконання `make shared-npm` використовується локальний Node у `tools/.node` і окремий Gradle cache `.gradle-project`, тож система не чіпає глобальні кеші.
+
+### Інсталяція та smoke-тест у каталозі десктоп-додатку
+1. Перейди до каталогу з десктопом. Для локального smoke використовується `apps/desktop-smoke/` (мінімальний Electron-плейсхолдер з `smoke.mjs`).
+2. Встанови зібраний пакет (щоб оминути глобальний кеш, передай власний `npm_config_cache`):
+   ```bash
+   cd apps/desktop-smoke
+   npm_config_cache=$PWD/.npm-cache npm install ../../packages/shared-kmp/forwardapp-shared-kmp-0.1.0.tgz --force
+   ```
+3. Запусти простий smoke: `npm_config_cache=$PWD/.npm-cache npm run smoke`. Скрипт імпортує `@forwardapp/shared-kmp` та перевіряє, що модуль піднімається без помилок.
+4. Якщо тест упав — перевір наявність `packages/shared-kmp/dist/index.js` та повтори `make shared-npm`.
+
+> **Як адаптувати під реальний Electron.** Заміни `apps/desktop-smoke` на каталог свого Electron-застосунку, встанови tgz через `npm i ../packages/shared-kmp/*.tgz`, після чого виконай `npm run dev` (або власний стартовий скрипт).
+
 ### Перевірка міграції 63→64 (ручна)
 1. Встанови попередню збірку (версія < 64), наповни даними (додатки: нотатки, чеклісти, посилання).
 2. Онови застосунок на поточну збірку.

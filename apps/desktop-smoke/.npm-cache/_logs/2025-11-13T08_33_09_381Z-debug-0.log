@@ -1,0 +1,18 @@
+0 verbose cli /usr/bin/node-22 /usr/bin/npm
+1 info using npm@10.9.3
+2 info using node@v22.20.0
+3 silly config load:file:/usr/lib/node_modules_22/npm/npmrc
+4 silly config load:file:/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/desktop-smoke/.npmrc
+5 silly config load:file:/home/romankozak/.npmrc
+6 silly config load:file:/etc/npmrc
+7 verbose title npm run smoke
+8 verbose argv "run" "smoke"
+9 verbose logfile logs-max:10 dir:/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/desktop-smoke/.npm-cache/_logs/2025-11-13T08_33_09_381Z-
+10 verbose logfile /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/desktop-smoke/.npm-cache/_logs/2025-11-13T08_33_09_381Z-debug-0.log
+11 silly logfile done cleaning log files
+12 verbose cwd /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/desktop-smoke
+13 verbose os Linux 6.17.7-200.fc42.x86_64
+14 verbose node v22.20.0
+15 verbose npm  v10.9.3
+16 verbose exit 1
+17 verbose code 1

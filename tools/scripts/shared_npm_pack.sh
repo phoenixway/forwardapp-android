@@ -91,6 +91,29 @@ export { ForwardShared };
 EOF
 fi
 
+# Ensure entrypoints exist so Electron/Node can import the package
+if [ ! -f "$DIST_DIR/index.js" ]; then
+  MAIN_JS=$(find "$DIST_DIR" -maxdepth 1 -name "*.js" | grep -m1 "ForwardAppMobile" || true)
+  if [ -n "$MAIN_JS" ]; then
+    MAIN_JS_BASENAME=$(basename "$MAIN_JS")
+    cat > "$DIST_DIR/index.js" <<EOF
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const pkg = require('./$MAIN_JS_BASENAME');
+export default pkg;
+export const forwardSharedModule = pkg;
+EOF
+  fi
+fi
+
+if [ ! -f "$DIST_DIR/index.d.ts" ]; then
+  cat > "$DIST_DIR/index.d.ts" <<'EOF'
+declare const forwardSharedModule: Record<string, unknown>;
+export default forwardSharedModule;
+export { forwardSharedModule };
+EOF
+fi
+
 echo "[shared-npm] Ensuring local Node.js (no system cache)"
 
 # Bootstrap a local, hermetic Node.js under tools/.node

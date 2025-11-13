@@ -13,3 +13,6 @@ app/schemas/
 # NPM package artifacts for shared-kmp
 packages/shared-kmp/*.tgz
 packages/shared-kmp/dist/
+
+# Local Node.js bootstrap (downloaded by shared-npm script)
+tools/.node/

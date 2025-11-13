@@ -1,0 +1,11 @@
+{
+  "name": "forwardapp-desktop-smoke",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "smoke": "node smoke.mjs"
+  },
+  "dependencies": {
+    "@forwardapp/shared-kmp": "file:../../packages/shared-kmp/forwardapp-shared-kmp-0.1.0.tgz"
+  }
+}
