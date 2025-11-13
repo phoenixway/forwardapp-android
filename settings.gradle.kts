@@ -25,14 +25,15 @@ pluginManagement {
 }
 
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    // Allow project repositories so Kotlin/JS can add its distributions repo
+    repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)
     repositories {
         google()
         mavenCentral()
         gradlePluginPortal()
-    maven("https://jitpack.io")
+        maven("https://jitpack.io")
     }
 }
 
 rootProject.name = "ForwardAppMobile"
-include(":app", ":shared")
+include(":apps:android", ":packages:shared")

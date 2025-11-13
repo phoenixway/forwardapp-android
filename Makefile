@@ -23,7 +23,7 @@ DEVICE_FLAG=-s $(DEVICE_ID)
 
 # --- Цілі (Targets) ---
 
-.PHONY: all debug-cycle release install start stop logcat debug install-debug start-debug stop-debug logcat-debug clean help test
+.PHONY: all debug-cycle release install start stop logcat debug install-debug start-debug stop-debug logcat-debug clean help test android-release shared-npm android-debug electron-dev
 
 # ============== ОСНОВНІ КОМАНДИ ==============
 
@@ -39,17 +39,17 @@ debug-cycle: install-debug start-debug
 # Зібрати release APK
 build-release:
 	@echo "🚀  Збираю release APK..."
-	@./gradlew :app:assembleRelease
+	@GRADLE_USER_HOME=$(PWD)/.gradle-project ./gradlew :apps:android:assembleRelease
 
 # Встановити release APK
 install: build-release
 	@echo "📦  Встановлюю release APK (пріоритет ARM64)..."
-	@if [ -f app/build/outputs/apk/release/app-arm64-v8a-release.apk ]; then \
+	@if [ -f apps/android/build/outputs/apk/release/app-arm64-v8a-release.apk ]; then \
 		echo "Знайдено ARM64 APK. Встановлюю..."; \
-		adb $(DEVICE_FLAG) install -r app/build/outputs/apk/release/app-arm64-v8a-release.apk; \
+		adb $(DEVICE_FLAG) install -r apps/android/build/outputs/apk/release/app-arm64-v8a-release.apk; \
 	else \
 		echo "ARM64 APK не знайдено. Шукаю інший варіант..."; \
-		find app/build/outputs/apk/release -type f -name "*-release.apk" -print0 | xargs -0 -I {} adb $(DEVICE_FLAG) install -r {}; \
+		find apps/android/build/outputs/apk/release -type f -name "*-release.apk" -print0 | xargs -0 -I {} adb $(DEVICE_FLAG) install -r {}; \
 	fi
 	@echo "✅  Release APK встановлено."
 
@@ -75,21 +75,21 @@ logcat:
 debug:
 	@echo "🚀  Збираю debug APK..."
 	@echo "(локальний GRADLE_USER_HOME для sandbox)"
-	@GRADLE_USER_HOME=$(PWD)/.gradle-project ./gradlew -Djava.net.preferIPv4Stack=true :app:assembleDebug
+	@GRADLE_USER_HOME=$(PWD)/.gradle-project ./gradlew -Djava.net.preferIPv4Stack=true :apps:android:assembleDebug
 
 check-compile:
 	@echo "🚀  Перевіряю через compileDebugKotlin..."
-	@GRADLE_USER_HOME=$(PWD)/.gradle-project ./gradlew -Djava.net.preferIPv4Stack=true :app:compileDebugKotlin
+	@GRADLE_USER_HOME=$(PWD)/.gradle-project ./gradlew -Djava.net.preferIPv4Stack=true :apps:android:compileDebugKotlin
 
 # Встановити debug APK
 install-debug: debug
 	@echo "🐞  Встановлюю debug APK (пріоритет ARM64)..."
-	@if [ -f app/build/outputs/apk/debug/app-arm64-v8a-debug.apk ]; then \
+	@if [ -f apps/android/build/outputs/apk/debug/app-arm64-v8a-debug.apk ]; then \
 		echo "Знайдено ARM64 APK. Встановлюю..."; \
-		adb $(DEVICE_FLAG) install -r app/build/outputs/apk/debug/app-arm64-v8a-debug.apk; \
+		adb $(DEVICE_FLAG) install -r apps/android/build/outputs/apk/debug/app-arm64-v8a-debug.apk; \
 	else \
 		echo "ARM64 APK не знайдено. Шукаю інший варіант..."; \
-		find app/build/outputs/apk/debug -type f -name "*-debug.apk" -print0 | xargs -0 -I {} adb $(DEVICE_FLAG) install -r {}; \
+		find apps/android/build/outputs/apk/debug -type f -name "*-debug.apk" -print0 | xargs -0 -I {} adb $(DEVICE_FLAG) install -r {}; \
 	fi
 	@echo "✅  Debug APK встановлено."
 
@@ -114,15 +114,15 @@ logcat-debug:
 ## Очистити проєкт (видалити папку build)
 clean:
 	@echo "🧹  Очищую проєкт..."
-	@./gradlew clean
+	@GRADLE_USER_HOME=$(PWD)/.gradle-project ./gradlew clean
 	@echo "✅  Проєкт очищено."
 
 ## Очистити кеші бази даних, Gradle та згенеровані файли
 db-clean:
 	@echo "🧹  Очищую кеші бази даних та Gradle..."
-	@./gradlew clean
-	@rm -rf shared/build/generated/sqldelight
-	@rm -rf shared/.sqldelight
+	@GRADLE_USER_HOME=$(PWD)/.gradle-project ./gradlew clean
+	@rm -rf packages/shared/build/generated/sqldelight
+	@rm -rf packages/shared/.sqldelight
 	@rm -rf .gradle
 	@echo "✅  Кеші очищено."
 
@@ -197,11 +197,26 @@ help:
 run-server:
 	@echo "🐍  Запускаю Python сервер..."
 	@python main.py
+ 
+# Shortcuts
+android-debug:
+	GRADLE_USER_HOME=$(PWD)/.gradle-project ./gradlew :apps:android:assembleDebug
+
+android-release:
+	GRADLE_USER_HOME=$(PWD)/.gradle-project ./gradlew :apps:android:assembleRelease
+
+shared-npm:
+	tools/scripts/shared_npm_pack.sh
+
+electron-dev:
+	@echo "Install in your Electron repo: npm i ../packages/shared-kmp/*.tgz && npm run dev"
+ 
+.PHONY: shared-npm android-debug electron-dev
 
 # Запустити повний набір тестів (unit + instrumentation)
 test:
 	@echo "🧪  Запускаю unit-тести..."
-	@if ./gradlew :app:testDebugUnitTest ; then \
+	@if GRADLE_USER_HOME=$(PWD)/.gradle-project ./gradlew :app:testDebugUnitTest ; then \
 		echo "✅  Unit-тести пройдено успішно."; \
 	else \
 		echo "❌  Unit-тести впали. Перевір лог вище."; \
@@ -215,7 +230,7 @@ test:
 		exit 1; \
 	fi
 	@echo "🤖  Запускаю instrumentation-тести на $(DEVICE_ID)..."
-	@if ANDROID_SERIAL=$(DEVICE_ID) ./gradlew :app:connectedDebugAndroidTest ; then \
+	@if ANDROID_SERIAL=$(DEVICE_ID) GRADLE_USER_HOME=$(PWD)/.gradle-project ./gradlew :app:connectedDebugAndroidTest ; then \
 		echo "✅  Instrumentation-тести пройдено успішно."; \
 	else \
 		echo "❌  Instrumentation-тести впали. Перевір лог вище."; \
