@@ -5,6 +5,8 @@ import com.romankozak.forwardappmobile.shared.features.projects.core.data.reposi
 import com.romankozak.forwardappmobile.shared.features.projects.core.domain.repository.ProjectRepository
 import com.romankozak.forwardappmobile.shared.features.recent.data.repository.RecentItemRepositoryImpl
 import com.romankozak.forwardappmobile.shared.features.recent.domain.repository.RecentItemRepository
+import com.romankozak.forwardappmobile.shared.features.aichat.data.repository.ConversationFolderRepositoryImpl
+import com.romankozak.forwardappmobile.shared.features.aichat.domain.repository.ConversationFolderRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import me.tatarka.inject.annotations.Provides
 
@@ -23,4 +25,11 @@ interface RepositoryModule {
         database: ForwardAppDatabase,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
     ): RecentItemRepository = RecentItemRepositoryImpl(database, ioDispatcher)
+
+    @Provides
+    @AndroidSingleton
+    fun provideConversationFolderRepository(
+        database: ForwardAppDatabase,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+    ): ConversationFolderRepository = ConversationFolderRepositoryImpl(database, ioDispatcher)
 }
