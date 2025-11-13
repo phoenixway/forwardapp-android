@@ -1,0 +1,26 @@
+CREATE TABLE RecentItems (
+    id TEXT NOT NULL PRIMARY KEY,
+    type TEXT NOT NULL,
+    lastAccessed INTEGER NOT NULL,
+    displayName TEXT NOT NULL,
+    target TEXT NOT NULL,
+    isPinned INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0
+);
+
+getRecentItems:
+SELECT * FROM RecentItems
+ORDER BY isPinned DESC, lastAccessed DESC
+LIMIT :limit;
+
+getRecentItemById:
+SELECT * FROM RecentItems WHERE id = :id;
+
+insertRecentItem:
+INSERT OR REPLACE INTO RecentItems (
+    id, type, lastAccessed, displayName, target, isPinned
+) VALUES (
+    :id, :type, :lastAccessed, :displayName, :target, :isPinned
+);
+
+deleteAllRecentItems:
+DELETE FROM RecentItems;
