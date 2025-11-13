@@ -67,16 +67,19 @@ class MainScreenViewModel(
 
     fun onEvent(event: MainScreenEvent) {
         when (event) {
-            MainScreenEvent.ShowCreateDialog -> {
-                _uiState.update { it.copy(activeDialog = ProjectEditorState.Create()) }
-            }
+            is MainScreenEvent.ShowCreateDialog -> showCreateDialog(event.parentId)
             is MainScreenEvent.ShowEditDialog -> showEditDialog(event.projectId)
             is MainScreenEvent.RequestDelete -> setProjectForDeletion(event.projectId)
             MainScreenEvent.HideDialog -> _uiState.update { it.copy(activeDialog = ProjectEditorState.Hidden) }
             MainScreenEvent.CancelDeletion -> _uiState.update { it.copy(pendingDeletion = null) }
             is MainScreenEvent.SubmitProject -> submitProject(event.name, event.description)
             MainScreenEvent.ConfirmDeletion -> deletePendingProject()
+            is MainScreenEvent.ToggleProjectExpanded -> toggleProjectExpansion(event.projectId)
         }
+    }
+
+    private fun showCreateDialog(parentId: String?) {
+        _uiState.update { it.copy(activeDialog = ProjectEditorState.Create(parentId)) }
     }
 
     private fun showEditDialog(projectId: String) {
@@ -183,6 +186,18 @@ class MainScreenViewModel(
                     )
                 }
             }
+        }
+    }
+
+    private fun toggleProjectExpansion(projectId: String) {
+        val project = _uiState.value.projects.firstOrNull { it.id == projectId } ?: return
+        viewModelScope.launch(ioDispatcher) {
+            projectRepository.upsertProject(
+                project.copy(
+                    isExpanded = !project.isExpanded,
+                    updatedAt = System.currentTimeMillis(),
+                )
+            )
         }
     }
 }

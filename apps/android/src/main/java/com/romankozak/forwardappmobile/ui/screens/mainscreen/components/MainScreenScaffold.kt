@@ -14,6 +14,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -28,13 +29,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.shared.features.projects.core.domain.model.Project
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.MainScreenContent
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenEvent
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenUiState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectEditorState
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenEvent
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,21 +52,33 @@ fun MainScreenScaffold(
         }
     }
 
+    var isBottomNavExpanded by rememberSaveable { mutableStateOf(false) }
+    var planningMode by rememberSaveable { mutableStateOf(PlanningMode.All) }
+
     Scaffold(
         topBar = {
             MainScreenTopAppBar(
                 projectCount = state.projects.size,
                 isLoading = state.isLoading,
-                onAddNewProject = { onEvent(MainScreenEvent.ShowCreateDialog) },
+                onAddNewProject = { onEvent(MainScreenEvent.ShowCreateDialog()) },
                 onPlaceholderAction = showPlaceholderToast,
             )
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { onEvent(MainScreenEvent.ShowCreateDialog) },
+                onClick = { onEvent(MainScreenEvent.ShowCreateDialog()) },
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Додати проєкт")
             }
+        },
+        bottomBar = {
+            MainScreenBottomBar(
+                isExpanded = isBottomNavExpanded,
+                onExpandedChange = { isBottomNavExpanded = it },
+                planningMode = planningMode,
+                onPlanningModeChange = { planningMode = it },
+                onPlaceholderAction = showPlaceholderToast,
+            )
         },
     ) { paddingValues ->
         Box(
@@ -90,8 +103,14 @@ fun MainScreenScaffold(
         }
     }
 
+    val parentProjectName =
+        (state.activeDialog as? ProjectEditorState.Create)
+            ?.parentId
+            ?.let { parentId -> state.projects.firstOrNull { it.id == parentId }?.name }
+
     ProjectEditorDialog(
         dialogState = state.activeDialog,
+        parentProjectName = parentProjectName,
         onDismiss = { onEvent(MainScreenEvent.HideDialog) },
         onConfirm = { name, description ->
             onEvent(MainScreenEvent.SubmitProject(name, description))
@@ -108,6 +127,7 @@ fun MainScreenScaffold(
 @Composable
 private fun ProjectEditorDialog(
     dialogState: ProjectEditorState,
+    parentProjectName: String?,
     onDismiss: () -> Unit,
     onConfirm: (String, String) -> Unit,
 ) {
@@ -135,6 +155,13 @@ private fun ProjectEditorDialog(
         title = { Text(title) },
         text = {
             androidx.compose.foundation.layout.Column {
+                if (dialogState is ProjectEditorState.Create && parentProjectName != null) {
+                    Text(
+                        text = "Батьківський проєкт: $parentProjectName",
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
