@@ -10,12 +10,17 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.MainScreenViewModel
 @Scope
 annotation class AndroidSingleton
 
+@AndroidSingleton
 @Component
 abstract class AppComponent(
     // Передаємо Application як параметр компонента
     @get:Provides val application: Application,
-) {
+) : DatabaseModule,
+    RepositoryModule,
+    DispatcherModule {
+
     @Provides
+    @ApplicationContext
     fun provideApplicationContext(): Context = application.applicationContext
 
     // Entry points / factories

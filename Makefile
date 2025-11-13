@@ -23,7 +23,7 @@ DEVICE_FLAG=-s $(DEVICE_ID)
 
 # --- Цілі (Targets) ---
 
-.PHONY: all debug-cycle release install start stop logcat debug install-debug start-debug stop-debug logcat-debug clean help test android-release shared-npm android-debug electron-dev
+.PHONY: all debug-cycle debug-config release install start stop logcat debug install-debug start-debug stop-debug logcat-debug clean help test android-release shared-npm android-debug electron-dev
 
 # ============== ОСНОВНІ КОМАНДИ ==============
 
@@ -32,6 +32,15 @@ all: install start
 
 ## Зібрати, встановити та запустити DEBUG версію
 debug-cycle: install-debug start-debug
+
+## Швидка перевірка поточного головного екрану з ініціалізацією БД
+debug-config:
+	@echo "⚙️  Перевірка, що модуль збирається..."
+	@$(MAKE) check-compile
+	@echo "📦  Перевстановлюю debug-збірку з SQDelight..."
+	@$(MAKE) install-debug
+	@echo "▶️  Стартую застосунок"
+	@$(MAKE) start-debug
 
 
 # ============== RELEASE ЦИКЛ ==============
