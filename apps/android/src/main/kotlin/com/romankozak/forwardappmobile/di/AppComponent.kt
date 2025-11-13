@@ -5,7 +5,7 @@ import android.content.Context
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Provides
 import me.tatarka.inject.annotations.Scope
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.MainScreenViewModel
+import com.romankozak.forwardappmobile.features.mainscreen.MainScreenViewModel
 
 @Scope
 annotation class AndroidSingleton
@@ -17,7 +17,8 @@ abstract class AppComponent(
     @get:Provides val application: Application,
 ) : DatabaseModule,
     RepositoryModule,
-    DispatcherModule {
+    DispatcherModule,
+    com.romankozak.forwardappmobile.features.mainscreen.di.MainScreenModule {
 
     @Provides
     @ApplicationContext

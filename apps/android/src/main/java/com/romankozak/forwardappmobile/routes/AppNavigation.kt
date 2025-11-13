@@ -6,7 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.MainScreen
+import com.romankozak.forwardappmobile.features.mainscreen.MainScreen
 
 const val MAIN_SCREEN_ROUTE = "main_screen"
 
