@@ -17,3 +17,6 @@ DELETE FROM ConversationFolders WHERE id = :id;
 
 deleteAllConversationFolders:
 DELETE FROM ConversationFolders;
+
+lastConversationFolderRowId:
+SELECT last_insert_rowid() AS id;

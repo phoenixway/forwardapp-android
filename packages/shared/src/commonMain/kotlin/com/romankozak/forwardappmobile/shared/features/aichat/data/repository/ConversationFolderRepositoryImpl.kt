@@ -24,7 +24,7 @@ class ConversationFolderRepositoryImpl(
 
     override suspend fun insertFolder(name: String): Long = withContext(dispatcher) {
         database.conversationFoldersQueries.insertConversationFolder(name)
-        database.conversationFoldersQueries.lastInsertRowId().executeAsOne()
+        database.conversationFoldersQueries.lastConversationFolderRowId().executeAsOne()
     }
 
     override suspend fun renameFolder(id: Long, name: String) = withContext(dispatcher) {

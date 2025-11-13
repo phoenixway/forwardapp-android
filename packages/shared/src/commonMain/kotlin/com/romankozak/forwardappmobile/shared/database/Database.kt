@@ -2,14 +2,15 @@ package com.romankozak.forwardappmobile.shared.database
 
 import app.cash.sqldelight.ColumnAdapter
 import app.cash.sqldelight.db.SqlDriver
-import com.romankozak.forwardappmobile.shared.features.projects.core.domain.model.ProjectType
+import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLinkList
+import com.romankozak.forwardappmobile.shared.data.database.models.StringList
+import com.romankozak.forwardappmobile.shared.data.models.RelatedLink
 import com.romankozak.forwardappmobile.shared.data.models.ReservedGroup
+import com.romankozak.forwardappmobile.shared.features.aichat.ConversationFolders
+import com.romankozak.forwardappmobile.shared.features.projects.core.domain.model.ProjectType
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
-import com.romankozak.forwardappmobile.shared.data.models.RelatedLink 
-import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLinkList
-import com.romankozak.forwardappmobile.shared.data.database.models.StringList
 
 // ------------------------------------------------------
 // 🔹 Конфігурація JSON
@@ -140,10 +141,15 @@ fun createForwardAppDatabase(driver: SqlDriver): ForwardAppDatabase {
         itemOrderAdapter = longAdapter,
     )
 
+    val conversationFoldersAdapter = ConversationFolders.Adapter(
+        idAdapter = longAdapter,
+    )
+
     return ForwardAppDatabase(
         driver = driver,
         GoalsAdapter = goalsAdapter,
         ListItemsAdapter = listItemsAdapter,
-        ProjectsAdapter = projectsAdapter
+        ProjectsAdapter = projectsAdapter,
+        ConversationFoldersAdapter = conversationFoldersAdapter,
     )
 }
