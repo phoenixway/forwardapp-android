@@ -1,0 +1,122 @@
+import com.romankozak.forwardappmobile.shared.data.database.models.StringList;
+import com.romankozak.forwardappmobile.shared.features.daymanagement.dayplan.domain.model.TaskPriority;
+import com.romankozak.forwardappmobile.shared.features.daymanagement.dayplan.domain.model.TaskStatus;
+import kotlin.Boolean;
+import kotlin.Double;
+import kotlin.Int;
+import kotlin.Long;
+import kotlin.String;
+
+CREATE TABLE DayTasks (
+    id TEXT NOT NULL PRIMARY KEY,
+    dayPlanId TEXT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT,
+    goalId TEXT,
+    projectId TEXT,
+    activityRecordId TEXT,
+    recurringTaskId TEXT,
+    taskType TEXT,
+    entityId TEXT,
+    "order" INTEGER AS Long NOT NULL DEFAULT 0,
+    priority TEXT AS TaskPriority NOT NULL DEFAULT 'MEDIUM',
+    status TEXT AS TaskStatus NOT NULL DEFAULT 'NOT_STARTED',
+    completed INTEGER AS Boolean NOT NULL DEFAULT 0,
+    scheduledTime INTEGER AS Long,
+    estimatedDurationMinutes INTEGER AS Long,
+    actualDurationMinutes INTEGER AS Long,
+    dueTime INTEGER AS Long,
+    valueImportance REAL AS Double NOT NULL DEFAULT 0.0,
+    valueImpact REAL AS Double NOT NULL DEFAULT 0.0,
+    effort REAL AS Double NOT NULL DEFAULT 0.0,
+    cost REAL AS Double NOT NULL DEFAULT 0.0,
+    risk REAL AS Double NOT NULL DEFAULT 0.0,
+    location TEXT,
+    tags TEXT AS StringList,
+    notes TEXT,
+    createdAt INTEGER AS Long NOT NULL,
+    updatedAt INTEGER AS Long,
+    completedAt INTEGER AS Long,
+    nextOccurrenceTime INTEGER AS Long,
+    points INTEGER AS Int NOT NULL DEFAULT 0,
+    FOREIGN KEY(dayPlanId) REFERENCES DayPlans(id) ON DELETE CASCADE
+);
+
+getTasksForDayPlan:
+SELECT * FROM DayTasks WHERE dayPlanId = :dayPlanId ORDER BY "order" ASC;
+
+getTaskById:
+SELECT * FROM DayTasks WHERE id = :taskId;
+
+insertDayTask:
+INSERT OR REPLACE INTO DayTasks(
+    id,
+    dayPlanId,
+    title,
+    description,
+    goalId,
+    projectId,
+    activityRecordId,
+    recurringTaskId,
+    taskType,
+    entityId,
+    "order",
+    priority,
+    status,
+    completed,
+    scheduledTime,
+    estimatedDurationMinutes,
+    actualDurationMinutes,
+    dueTime,
+    valueImportance,
+    valueImpact,
+    effort,
+    cost,
+    risk,
+    location,
+    tags,
+    notes,
+    createdAt,
+    updatedAt,
+    completedAt,
+    nextOccurrenceTime,
+    points
+) VALUES (
+    :id,
+    :dayPlanId,
+    :title,
+    :description,
+    :goalId,
+    :projectId,
+    :activityRecordId,
+    :recurringTaskId,
+    :taskType,
+    :entityId,
+    :order,
+    :priority,
+    :status,
+    :completed,
+    :scheduledTime,
+    :estimatedDurationMinutes,
+    :actualDurationMinutes,
+    :dueTime,
+    :valueImportance,
+    :valueImpact,
+    :effort,
+    :cost,
+    :risk,
+    :location,
+    :tags,
+    :notes,
+    :createdAt,
+    :updatedAt,
+    :completedAt,
+    :nextOccurrenceTime,
+    :points
+);
+
+deleteDayTask:
+DELETE FROM DayTasks WHERE id = :taskId;
+
+deleteTasksForPlan:
+DELETE FROM DayTasks WHERE dayPlanId = :dayPlanId;

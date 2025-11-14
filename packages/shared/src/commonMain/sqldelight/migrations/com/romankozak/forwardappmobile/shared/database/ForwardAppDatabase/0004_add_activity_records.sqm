@@ -1,0 +1,35 @@
+CREATE TABLE ActivityRecords (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    createdAt INTEGER NOT NULL,
+    startTime INTEGER,
+    endTime INTEGER,
+    totalTimeSpentMinutes INTEGER,
+    tags TEXT,
+    relatedLinks TEXT,
+    isCompleted INTEGER NOT NULL,
+    activityType TEXT NOT NULL,
+    parentProjectId TEXT
+);
+
+CREATE VIRTUAL TABLE ActivityRecordsFts USING fts5(
+    id UNINDEXED,
+    name,
+    description
+);
+
+CREATE TRIGGER activityrecords_ai AFTER INSERT ON ActivityRecords BEGIN
+    INSERT INTO ActivityRecordsFts(id, name, description)
+    VALUES (new.id, new.name, new.description);
+END;
+
+CREATE TRIGGER activityrecords_au AFTER UPDATE ON ActivityRecords BEGIN
+    DELETE FROM ActivityRecordsFts WHERE id = old.id;
+    INSERT INTO ActivityRecordsFts(id, name, description)
+    VALUES (new.id, new.name, new.description);
+END;
+
+CREATE TRIGGER activityrecords_ad AFTER DELETE ON ActivityRecords BEGIN
+    DELETE FROM ActivityRecordsFts WHERE id = old.id;
+END;

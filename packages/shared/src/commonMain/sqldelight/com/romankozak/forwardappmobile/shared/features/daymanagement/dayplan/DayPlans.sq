@@ -1,0 +1,72 @@
+import com.romankozak.forwardappmobile.shared.features.daymanagement.dayplan.domain.model.DayStatus;
+import kotlin.Double;
+import kotlin.Int;
+import kotlin.Long;
+import kotlin.String;
+
+CREATE TABLE DayPlans (
+    id TEXT NOT NULL PRIMARY KEY,
+    date INTEGER AS Long NOT NULL,
+    name TEXT,
+    status TEXT AS DayStatus NOT NULL DEFAULT 'PLANNED',
+    reflection TEXT,
+    energyLevel INTEGER AS Int,
+    mood TEXT,
+    weatherConditions TEXT,
+    totalPlannedMinutes INTEGER AS Long NOT NULL DEFAULT 0,
+    totalCompletedMinutes INTEGER AS Long NOT NULL DEFAULT 0,
+    completionPercentage REAL AS Double NOT NULL DEFAULT 0.0,
+    createdAt INTEGER AS Long NOT NULL,
+    updatedAt INTEGER AS Long
+);
+
+getAllDayPlans:
+SELECT * FROM DayPlans ORDER BY date DESC;
+
+getDayPlanById:
+SELECT * FROM DayPlans WHERE id = :planId;
+
+getDayPlanByDate:
+SELECT * FROM DayPlans WHERE date = :planDate LIMIT 1;
+
+getDayPlansInRange:
+SELECT * FROM DayPlans
+WHERE date BETWEEN :startDate AND :endDate
+ORDER BY date ASC;
+
+insertDayPlan:
+INSERT OR REPLACE INTO DayPlans(
+    id,
+    date,
+    name,
+    status,
+    reflection,
+    energyLevel,
+    mood,
+    weatherConditions,
+    totalPlannedMinutes,
+    totalCompletedMinutes,
+    completionPercentage,
+    createdAt,
+    updatedAt
+) VALUES (
+    :id,
+    :date,
+    :name,
+    :status,
+    :reflection,
+    :energyLevel,
+    :mood,
+    :weatherConditions,
+    :totalPlannedMinutes,
+    :totalCompletedMinutes,
+    :completionPercentage,
+    :createdAt,
+    :updatedAt
+);
+
+deleteDayPlan:
+DELETE FROM DayPlans WHERE id = :planId;
+
+deleteAllDayPlans:
+DELETE FROM DayPlans;

@@ -1,0 +1,9 @@
+CREATE TABLE Reminders (
+    id TEXT NOT NULL PRIMARY KEY,
+    entityId TEXT NOT NULL,
+    entityType TEXT NOT NULL,
+    reminderTime INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    creationTime INTEGER NOT NULL,
+    snoozeUntil INTEGER
+);

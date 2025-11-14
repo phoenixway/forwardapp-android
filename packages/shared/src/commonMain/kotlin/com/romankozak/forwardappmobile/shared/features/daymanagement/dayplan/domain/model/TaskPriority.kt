@@ -1,0 +1,7 @@
+package com.romankozak.forwardappmobile.shared.features.daymanagement.dayplan.domain.model
+
+enum class TaskPriority {
+    LOW,
+    MEDIUM,
+    HIGH,
+}

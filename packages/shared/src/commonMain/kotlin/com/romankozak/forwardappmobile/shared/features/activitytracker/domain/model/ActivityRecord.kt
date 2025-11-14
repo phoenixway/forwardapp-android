@@ -1,4 +1,6 @@
-package com.romankozak.forwardappmobile.shared.data.database.models
+package com.romankozak.forwardappmobile.shared.features.activitytracker.domain.model
+
+import com.romankozak.forwardappmobile.shared.data.models.RelatedLink
 
 data class ActivityRecord(
     val id: String,

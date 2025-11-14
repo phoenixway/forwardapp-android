@@ -1,0 +1,75 @@
+import com.romankozak.forwardappmobile.shared.data.database.models.StringDoubleMap;
+import kotlin.Double;
+import kotlin.Long;
+import kotlin.String;
+
+CREATE TABLE DailyMetrics (
+    id TEXT NOT NULL PRIMARY KEY,
+    dayPlanId TEXT NOT NULL,
+    date INTEGER AS Long NOT NULL,
+    tasksPlanned INTEGER AS Long NOT NULL DEFAULT 0,
+    tasksCompleted INTEGER AS Long NOT NULL DEFAULT 0,
+    completionRate REAL AS Double NOT NULL DEFAULT 0.0,
+    totalPlannedTime INTEGER AS Long NOT NULL DEFAULT 0,
+    totalActiveTime INTEGER AS Long NOT NULL DEFAULT 0,
+    completedPoints INTEGER AS Long NOT NULL DEFAULT 0,
+    totalBreakTime INTEGER AS Long NOT NULL DEFAULT 0,
+    morningEnergyLevel INTEGER AS Long,
+    eveningEnergyLevel INTEGER AS Long,
+    overallMood TEXT,
+    stressLevel INTEGER AS Long,
+    customMetrics TEXT AS StringDoubleMap,
+    createdAt INTEGER AS Long NOT NULL,
+    updatedAt INTEGER AS Long
+);
+
+getDailyMetrics:
+SELECT * FROM DailyMetrics ORDER BY date DESC;
+
+getMetricsForDayPlan:
+SELECT * FROM DailyMetrics WHERE dayPlanId = :dayPlanId ORDER BY date DESC;
+
+getMetricById:
+SELECT * FROM DailyMetrics WHERE id = :metricId;
+
+insertDailyMetric:
+INSERT OR REPLACE INTO DailyMetrics(
+    id,
+    dayPlanId,
+    date,
+    tasksPlanned,
+    tasksCompleted,
+    completionRate,
+    totalPlannedTime,
+    totalActiveTime,
+    completedPoints,
+    totalBreakTime,
+    morningEnergyLevel,
+    eveningEnergyLevel,
+    overallMood,
+    stressLevel,
+    customMetrics,
+    createdAt,
+    updatedAt
+) VALUES (
+    :id,
+    :dayPlanId,
+    :date,
+    :tasksPlanned,
+    :tasksCompleted,
+    :completionRate,
+    :totalPlannedTime,
+    :totalActiveTime,
+    :completedPoints,
+    :totalBreakTime,
+    :morningEnergyLevel,
+    :eveningEnergyLevel,
+    :overallMood,
+    :stressLevel,
+    :customMetrics,
+    :createdAt,
+    :updatedAt
+);
+
+deleteDailyMetric:
+DELETE FROM DailyMetrics WHERE id = :metricId;

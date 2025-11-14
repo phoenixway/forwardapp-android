@@ -1,0 +1,59 @@
+import kotlin.Long;
+import kotlin.String;
+
+CREATE TABLE Reminders (
+    id TEXT NOT NULL PRIMARY KEY,
+    entityId TEXT NOT NULL,
+    entityType TEXT NOT NULL,
+    reminderTime INTEGER AS Long NOT NULL,
+    status TEXT NOT NULL,
+    creationTime INTEGER AS Long NOT NULL,
+    snoozeUntil INTEGER AS Long
+);
+
+getAllReminders:
+SELECT * FROM Reminders ORDER BY reminderTime DESC;
+
+getReminderById:
+SELECT * FROM Reminders WHERE id = :reminderId;
+
+getRemindersForEntity:
+SELECT * FROM Reminders WHERE entityId = :entityId ORDER BY reminderTime DESC;
+
+insertReminder:
+INSERT OR REPLACE INTO Reminders(
+    id,
+    entityId,
+    entityType,
+    reminderTime,
+    status,
+    creationTime,
+    snoozeUntil
+) VALUES (
+    :id,
+    :entityId,
+    :entityType,
+    :reminderTime,
+    :status,
+    :creationTime,
+    :snoozeUntil
+);
+
+updateReminder:
+UPDATE Reminders SET
+    entityId = :entityId,
+    entityType = :entityType,
+    reminderTime = :reminderTime,
+    status = :status,
+    creationTime = :creationTime,
+    snoozeUntil = :snoozeUntil
+WHERE id = :id;
+
+deleteReminder:
+DELETE FROM Reminders WHERE id = :reminderId;
+
+deleteRemindersByEntity:
+DELETE FROM Reminders WHERE entityId = :entityId;
+
+clearReminders:
+DELETE FROM Reminders;

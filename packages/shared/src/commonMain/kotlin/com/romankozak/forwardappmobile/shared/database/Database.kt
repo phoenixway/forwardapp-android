@@ -4,14 +4,24 @@ import app.cash.sqldelight.ColumnAdapter
 import app.cash.sqldelight.db.SqlDriver
 import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLinkList
 import com.romankozak.forwardappmobile.shared.data.database.models.StringList
+import com.romankozak.forwardappmobile.shared.data.database.models.StringDoubleMap
 import com.romankozak.forwardappmobile.shared.data.models.RelatedLink
 import com.romankozak.forwardappmobile.shared.data.models.ReservedGroup
+import com.romankozak.forwardappmobile.shared.features.activitytracker.ActivityRecords
 import com.romankozak.forwardappmobile.shared.features.aichat.ConversationFolders
 import com.romankozak.forwardappmobile.shared.features.attachments.types.legacynotes.LegacyNotes
 import com.romankozak.forwardappmobile.shared.features.attachments.types.checklists.ChecklistItems
 import com.romankozak.forwardappmobile.shared.features.projects.core.domain.model.ProjectType
 import com.romankozak.forwardappmobile.shared.features.projects.views.advancedview.ProjectArtifacts
+import com.romankozak.forwardappmobile.shared.features.daymanagement.dayplan.DayPlans
+import com.romankozak.forwardappmobile.shared.features.daymanagement.dayplan.DayTasks
+import com.romankozak.forwardappmobile.shared.features.daymanagement.dailymetrics.DailyMetrics
+import com.romankozak.forwardappmobile.shared.features.daymanagement.dayplan.domain.model.DayStatus
+import com.romankozak.forwardappmobile.shared.features.daymanagement.dayplan.domain.model.TaskPriority
+import com.romankozak.forwardappmobile.shared.features.daymanagement.dayplan.domain.model.TaskStatus
+import com.romankozak.forwardappmobile.shared.features.reminders.Reminders
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 
@@ -98,6 +108,21 @@ val reservedGroupAdapter = object : ColumnAdapter<ReservedGroup, String> {
     override fun encode(value: ReservedGroup): String = value.groupName
 }
 
+val dayStatusAdapter = object : ColumnAdapter<DayStatus, String> {
+    override fun decode(databaseValue: String): DayStatus = DayStatus.valueOf(databaseValue)
+    override fun encode(value: DayStatus): String = value.name
+}
+
+val taskPriorityAdapter = object : ColumnAdapter<TaskPriority, String> {
+    override fun decode(databaseValue: String): TaskPriority = TaskPriority.valueOf(databaseValue)
+    override fun encode(value: TaskPriority): String = value.name
+}
+
+val taskStatusAdapter = object : ColumnAdapter<TaskStatus, String> {
+    override fun decode(databaseValue: String): TaskStatus = TaskStatus.valueOf(databaseValue)
+    override fun encode(value: TaskStatus): String = value.name
+}
+
 // ------------------------------------------------------
 // 🔹 Фабрика створення бази даних
 // ------------------------------------------------------
@@ -164,6 +189,54 @@ fun createForwardAppDatabase(driver: SqlDriver): ForwardAppDatabase {
         updatedAtAdapter = longAdapter,
     )
 
+    val activityRecordsAdapter = ActivityRecords.Adapter(
+        createdAtAdapter = longAdapter,
+        tagsAdapter = stringListAdapter,
+        relatedLinksAdapter = relatedLinksListAdapter,
+    )
+
+    val remindersAdapter = Reminders.Adapter(
+        reminderTimeAdapter = longAdapter,
+        creationTimeAdapter = longAdapter,
+    )
+
+    val dayPlansAdapter = DayPlans.Adapter(
+        dateAdapter = longAdapter,
+        statusAdapter = dayStatusAdapter,
+        energyLevelAdapter = intAdapter,
+        totalPlannedMinutesAdapter = longAdapter,
+        totalCompletedMinutesAdapter = longAdapter,
+        completionPercentageAdapter = doubleAdapter,
+        createdAtAdapter = longAdapter,
+    )
+
+    val dayTasksAdapter = DayTasks.Adapter(
+        orderAdapter = longAdapter,
+        priorityAdapter = taskPriorityAdapter,
+        statusAdapter = taskStatusAdapter,
+        valueImportanceAdapter = doubleAdapter,
+        valueImpactAdapter = doubleAdapter,
+        effortAdapter = doubleAdapter,
+        costAdapter = doubleAdapter,
+        riskAdapter = doubleAdapter,
+        tagsAdapter = stringListAdapter,
+        createdAtAdapter = longAdapter,
+        pointsAdapter = intAdapter,
+    )
+
+    val dailyMetricsAdapter = DailyMetrics.Adapter(
+        dateAdapter = longAdapter,
+        tasksPlannedAdapter = longAdapter,
+        tasksCompletedAdapter = longAdapter,
+        completionRateAdapter = doubleAdapter,
+        totalPlannedTimeAdapter = longAdapter,
+        totalActiveTimeAdapter = longAdapter,
+        completedPointsAdapter = longAdapter,
+        totalBreakTimeAdapter = longAdapter,
+        customMetricsAdapter = stringDoubleMapAdapter,
+        createdAtAdapter = longAdapter,
+    )
+
     return ForwardAppDatabase(
         driver = driver,
         GoalsAdapter = goalsAdapter,
@@ -173,5 +246,19 @@ fun createForwardAppDatabase(driver: SqlDriver): ForwardAppDatabase {
         LegacyNotesAdapter = legacyNotesAdapter,
         ChecklistItemsAdapter = checklistItemsAdapter,
         ProjectArtifactsAdapter = projectArtifactsAdapter,
+        ActivityRecordsAdapter = activityRecordsAdapter,
+        RemindersAdapter = remindersAdapter,
+        DayPlansAdapter = dayPlansAdapter,
+        DayTasksAdapter = dayTasksAdapter,
+        DailyMetricsAdapter = dailyMetricsAdapter,
     )
+}
+val stringDoubleMapAdapter = object : ColumnAdapter<StringDoubleMap, String> {
+    override fun decode(databaseValue: String): StringDoubleMap {
+        if (databaseValue.isEmpty()) return emptyMap()
+        return json.decodeFromString(MapSerializer(String.serializer(), Double.serializer()), databaseValue)
+    }
+
+    override fun encode(value: StringDoubleMap): String =
+        json.encodeToString(MapSerializer(String.serializer(), Double.serializer()), value)
 }

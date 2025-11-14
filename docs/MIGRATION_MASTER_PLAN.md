@@ -128,9 +128,12 @@
 ### Модуль 5: Щоденне планування (Daily Planning)
 
 - [ ] **Відновити схему:**
-    - [ ] Перемістити `DayPlan.sq`, `DailyMetrics.sq`.
+    - [x] Перемістити `DayPlan.sq`, `DailyMetrics.sq` (+ `DayTasks.sq`) у shared (міграція 0006).
 - [ ] **Оновити адаптери та код.**
+    - [x] Додані ColumnAdapter для `DayStatus`, `TaskPriority`, `TaskStatus`, `StringDoubleMap`.
+    - [x] Репозиторії `DayPlanRepository`, `DayTaskRepository`, `DailyMetricsRepository` + DI.
 - [ ] **Інтеграція та перевірка.**
+    - [x] jvmTests (`DayPlanRepositoryTest`, `DayTaskRepositoryTest`, `DailyMetricsRepositoryTest`) покривають основні сценарії.
 
 ### Модуль 6: Інбокс (Inbox)
 
@@ -142,8 +145,14 @@
 ### Модуль 7: Інші сутності
 
 - [ ] **Відновити схему:**
-    - [ ] Перемістити `ActivityRecord.sq`, `Attachments.sq`, `Reminders.sq`, `ConversationFolders.sq`.
+    - [x] `Attachments.sq` + `ProjectAttachmentCrossRef.sq` (0002) у shared.
+    - [x] `ConversationFolders.sq` (інбокс/чат) у shared.
+    - [x] `ProjectArtifacts.sq` та `ProjectExecutionLogs.sq` (advanced view).
+    - [x] `ActivityRecord.sq` перенесено до `features/activitytracker` з FTS + тригерами (міграція 0004).
+    - [x] `Reminders.sq` перенесено у shared (міграція 0005).
 - [ ] **Оновити адаптери та код.**
+    - [x] ActivityRecords + репозиторій/тести/DI.
+    - [x] Reminders (репозиторій/DI/тести готові).
 - [ ] **Інтеграція та перевірка.**
 
 ---
