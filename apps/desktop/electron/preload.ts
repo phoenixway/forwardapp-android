@@ -1,16 +1,22 @@
 import { contextBridge } from 'electron';
-import { createDesktopProjectApi } from '@forwardapp/shared-kmp';
+import type { DesktopProjectApi } from '../src/types/forward-shared';
 
-const apiPromise = createDesktopProjectApi();
+const sharedApiPromise = import('@forwardapp/shared-kmp').then(async (mod) => {
+  const apiFactory = (mod as any).createDesktopProjectApi;
+  if (!apiFactory) {
+    throw new Error('createDesktopProjectApi is missing from @forwardapp/shared-kmp');
+  }
+  return apiFactory();
+});
 
-const projectsBridge = {
-  list: () => apiPromise.then((api) => api.listProjects()),
-  create: (name: string, description: string | null, parentId: string | null) =>
-    apiPromise.then((api) => api.createProject(name, description, parentId)),
-  update: (id: string, name: string, description: string | null) =>
-    apiPromise.then((api) => api.updateProject(id, name, description)),
-  remove: (id: string) => apiPromise.then((api) => api.deleteProject(id)),
-  toggle: (id: string) => apiPromise.then((api) => api.toggleProjectExpanded(id))
+const projectsBridge: DesktopProjectApi = {
+  list: () => sharedApiPromise.then((api: any) => api.listProjects()),
+  create: (name, description, parentId) =>
+    sharedApiPromise.then((api: any) => api.createProject(name, description, parentId)),
+  update: (id, name, description) =>
+    sharedApiPromise.then((api: any) => api.updateProject(id, name, description)),
+  remove: (id) => sharedApiPromise.then((api: any) => api.deleteProject(id)),
+  toggle: (id) => sharedApiPromise.then((api: any) => api.toggleProjectExpanded(id))
 };
 
 contextBridge.exposeInMainWorld('__forwardapp', {
