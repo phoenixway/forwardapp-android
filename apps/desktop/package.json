@@ -5,10 +5,12 @@
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
-    "dev": "concurrently -k \"npm:dev:renderer\" \"npm:dev:electron\"",
+    "dev": "concurrently -k \"pnpm dev:renderer\" \"pnpm dev:electron\"",
     "dev:renderer": "vite",
-    "dev:electron": "cross-env VITE_DEV_SERVER_URL=http://localhost:5173 tsx electron/main.ts",
-    "build": "npm run build:renderer && npm run build:electron",
+    "dev:electron": "concurrently -k \"pnpm dev:electron:tsc\" \"pnpm dev:electron:run\"",
+    "dev:electron:tsc": "tsc -p tsconfig.electron.json --watch",
+    "dev:electron:run": "wait-on dist-electron/main.js && nodemon --watch dist-electron --ext js --exec \"cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron dist-electron/main.js\"",
+    "build": "pnpm build:renderer && pnpm build:electron",
     "build:renderer": "vite build",
     "build:electron": "tsc -p tsconfig.electron.json",
     "preview": "vite preview"
@@ -26,10 +28,12 @@
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
     "electron": "^32.1.2",
+    "nodemon": "^3.1.7",
     "ts-node": "^10.9.2",
     "tslib": "^2.6.2",
-    "tsx": "^4.12.0",
+    "wait-on": "^7.2.0",
     "typescript": "^5.5.4",
     "vite": "^5.4.1"
-  }
+  },
+  "packageManager": "pnpm@9.12.0"
 }

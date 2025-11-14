@@ -3,28 +3,24 @@
 ## Підготовка
 
 1. Згенеруй npm-пакет зі спільним KMP-шаром: `make shared-npm`.
-2. Перейди в `apps/desktop` і виконай `npm install`.
+2. Увімкни pnpm (разово): `corepack enable`.
+3. Перейди в `apps/desktop` і виконай `pnpm install`.
 
 ## Режим розробки
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 - `vite` стартує React/TypeScript renderer.
-- `tsx` виконує Electron (TS) entrypoints (`electron/main.ts`, `electron/preload.ts`) без окремого кроку білду.
+- Для Electron запускається `tsc --watch`, який компілює `electron/*.ts` у `dist-electron`, та `nodemon`, що перезапускає `electron dist-electron/main.js` при зміні коду. Скрипт `wait-on` гарантує, що перша збірка завершилася перед стартом Electron.
 
 ## Білд
 
 ```bash
-npm run build
+pnpm build
 ```
 
-Команда послідовно виконує:
-
-1. `vite build` → збирає renderer у `apps/desktop/dist`.
-2. `tsc -p tsconfig.electron.json` → компілює `electron/*.ts` у `apps/desktop/dist-electron`.
-
-Для подальшого пакування (app installer) усе ще потрібен інструмент на кшталт `electron-builder`, але на цьому етапі ми фокусуємося на UI та інтеграції з KMP data-layer.
+Команда послідовно виконує `vite build` (renderer) і `tsc -p tsconfig.electron.json` (Electron, вихід у `dist-electron/`). Потім можна запустити `electron dist-electron/main.js` або інтегруватися з інструментом пакування на кшталт `electron-builder`.
 
 > ℹ️ Проєкти зберігаються лише в пам’яті під час цієї фази. Після перезапуску застосунку вони будуть втрачені. Персистентність з SQLDelight/sql.js можна додати як окрему задачу.
