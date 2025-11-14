@@ -9,8 +9,11 @@ importers:
   apps/desktop:
     dependencies:
       '@forwardapp/shared-kmp':
-        specifier: file:../../packages/shared-kmp/forwardapp-shared-kmp-0.1.0.tgz
-        version: file:packages/shared-kmp/forwardapp-shared-kmp-0.1.0.tgz
+        specifier: file:../../packages/shared-kmp/forwardapp-shared-kmp-0.1.2.tgz
+        version: file:packages/shared-kmp/forwardapp-shared-kmp-0.1.2.tgz
+      '@js-joda/core':
+        specifier: ^5.6.1
+        version: 5.6.5
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -61,8 +64,8 @@ importers:
   apps/desktop-smoke:
     dependencies:
       '@forwardapp/shared-kmp':
-        specifier: file:../../packages/shared-kmp/forwardapp-shared-kmp-0.1.0.tgz
-        version: file:packages/shared-kmp/forwardapp-shared-kmp-0.1.0.tgz
+        specifier: file:../../packages/shared-kmp/forwardapp-shared-kmp-0.1.1.tgz
+        version: file:packages/shared-kmp/forwardapp-shared-kmp-0.1.1.tgz
 
   packages/shared-kmp: {}
 
@@ -301,9 +304,13 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@forwardapp/shared-kmp@file:packages/shared-kmp/forwardapp-shared-kmp-0.1.0.tgz':
-    resolution: {integrity: sha512-FqMauZGZQ7R9Bf1EY+LR9DmU+M/xSeQvmvlP/TGKtnqsdI/wBMdCyqROKxe19HTude+1NmNr9k/GauljdZGM+Q==, tarball: file:packages/shared-kmp/forwardapp-shared-kmp-0.1.0.tgz}
-    version: 0.1.0
+  '@forwardapp/shared-kmp@file:packages/shared-kmp/forwardapp-shared-kmp-0.1.1.tgz':
+    resolution: {integrity: sha512-5zOMRAgxODPRSiV7dxt3brSjmwJjOrXrxLV2Z08J8Csr3VtfSHwi3v8et9Ed9o7nEU2o7T0dYKTVoUZoLZ6E4A==, tarball: file:packages/shared-kmp/forwardapp-shared-kmp-0.1.1.tgz}
+    version: 0.1.1
+
+  '@forwardapp/shared-kmp@file:packages/shared-kmp/forwardapp-shared-kmp-0.1.2.tgz':
+    resolution: {integrity: sha512-GfXevs5iZlHLeiImug7C/ga68w1M10p/DMzq/WK3G5SXPrOHB2q1Xlig5elQvJS96O8/kUxo/AAFH/0bB8b4AA==, tarball: file:packages/shared-kmp/forwardapp-shared-kmp-0.1.2.tgz}
+    version: 0.1.2
 
   '@hapi/hoek@9.3.0':
     resolution: {integrity: sha512-/c6rf4UJlmHlC9b5BaNvzAcFv7HZ2QHaV0D4/HNlBdvFnvQq8RI4kYdhyPCl7Xj+oWvTWQ8ujhqS53LIgAe6KQ==}
@@ -329,6 +336,9 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.9':
     resolution: {integrity: sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==}
+
+  '@js-joda/core@5.6.5':
+    resolution: {integrity: sha512-3zwefSMwHpu8iVUW8YYz227sIv6UFqO31p1Bf1ZH/Vom7CmNyUsXjDBlnNzcuhmOL1XfxZ3nvND42kR23XlbcQ==}
 
   '@rolldown/pluginutils@1.0.0-beta.27':
     resolution: {integrity: sha512-+d0F4MKMCbeVUJwG96uQ4SgAznZNSq93I3V+9NHA4OpvqG8mRCpGdKmK8l/dl02h2CCDHwW2FqilnTyDcAnqjA==}
@@ -1462,7 +1472,9 @@ snapshots:
   '@esbuild/win32-x64@0.21.5':
     optional: true
 
-  '@forwardapp/shared-kmp@file:packages/shared-kmp/forwardapp-shared-kmp-0.1.0.tgz': {}
+  '@forwardapp/shared-kmp@file:packages/shared-kmp/forwardapp-shared-kmp-0.1.1.tgz': {}
+
+  '@forwardapp/shared-kmp@file:packages/shared-kmp/forwardapp-shared-kmp-0.1.2.tgz': {}
 
   '@hapi/hoek@9.3.0': {}
 
@@ -1493,6 +1505,8 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@js-joda/core@5.6.5': {}
 
   '@rolldown/pluginutils@1.0.0-beta.27': {}
 

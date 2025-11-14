@@ -76,7 +76,7 @@ fi
 # If no JS artifacts were discovered, scaffold a minimal ESM facade for quick integration
 if ! ls "$DIST_DIR"/*.js >/dev/null 2>&1 && ! ls "$DIST_DIR"/*.mjs >/dev/null 2>&1; then
   echo "[shared-npm] No JS artifacts found; creating minimal ESM facade (ForwardShared)."
-  cat > "$DIST_DIR/index.js" <<'EOF'
+  cat > "$DIST_DIR/index.mjs" <<'EOF'
 export const ForwardShared = {
   version: () => "0.1.0",
   sum: (a, b) => (a|0) + (b|0),
@@ -91,19 +91,28 @@ export { ForwardShared };
 EOF
 fi
 
+FORWARDAPP_ENTRY=$(find "$DIST_DIR" -maxdepth 1 -name "ForwardAppMobile*.js" | head -n 1)
+
 # Ensure entrypoints exist so Electron/Node can import the package
-if [ ! -f "$DIST_DIR/index.js" ]; then
-  MAIN_JS=$(find "$DIST_DIR" -maxdepth 1 -name "*.js" | grep -m1 "ForwardAppMobile" || true)
-  if [ -n "$MAIN_JS" ]; then
-    MAIN_JS_BASENAME=$(basename "$MAIN_JS")
-    cat > "$DIST_DIR/index.js" <<EOF
+if [ ! -f "$DIST_DIR/index.mjs" ] && [ -n "$FORWARDAPP_ENTRY" ]; then
+  MAIN_JS_BASENAME=$(basename "$FORWARDAPP_ENTRY")
+  cat > "$DIST_DIR/index.mjs" <<EOF
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const pkg = require('./$MAIN_JS_BASENAME');
 export default pkg;
 export const forwardSharedModule = pkg;
 EOF
-  fi
+fi
+
+if [ ! -f "$DIST_DIR/index.cjs" ] && [ -n "$FORWARDAPP_ENTRY" ]; then
+  MAIN_JS_BASENAME=$(basename "$FORWARDAPP_ENTRY")
+  cat > "$DIST_DIR/index.cjs" <<EOF
+const pkg = require('./$MAIN_JS_BASENAME');
+module.exports = pkg;
+module.exports.default = pkg;
+module.exports.forwardSharedModule = pkg;
+EOF
 fi
 
 if [ ! -f "$DIST_DIR/index.d.ts" ]; then

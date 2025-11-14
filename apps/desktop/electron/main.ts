@@ -16,7 +16,8 @@ const createMainWindow = () => {
     backgroundColor: '#05010a',
     webPreferences: {
       contextIsolation: true,
-      preload: path.join(resolvedDirname, 'preload.js')
+      preload: path.join(resolvedDirname, 'preload.js'),
+      sandbox: false
     }
   });
 

@@ -6,6 +6,6 @@
     "smoke": "node smoke.mjs"
   },
   "dependencies": {
-    "@forwardapp/shared-kmp": "file:../../packages/shared-kmp/forwardapp-shared-kmp-0.1.0.tgz"
+    "@forwardapp/shared-kmp": "file:../../packages/shared-kmp/forwardapp-shared-kmp-0.1.1.tgz"
   }
 }

@@ -56,10 +56,16 @@ const App = () => {
 
   useEffect(() => {
     if (!api) {
-      setError('Не вдалося знайти API проєктів (перевір preload.ts)');
+      const diagnostics = window.__forwardappDiagnostics?.getSharedLoadError?.();
+      const message = diagnostics?.message
+        ? `Не вдалося знайти API проєктів: ${diagnostics.message}`
+        : 'Не вдалося знайти API проєктів (перевір preload.ts)';
+      console.error('[renderer] shared API not ready', diagnostics);
+      setError(message);
       setLoading(false);
       return;
     }
+    console.info('[renderer] shared API detected, start fetching projects');
     let cancelled = false;
 
     setLoading(true);

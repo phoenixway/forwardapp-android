@@ -1,0 +1,67 @@
+0 verbose cli /usr/bin/node-22 /usr/bin/npm
+1 info using npm@10.9.3
+2 info using node@v22.20.0
+3 silly config load:file:/usr/lib/node_modules_22/npm/npmrc
+4 silly config load:file:/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/.npmrc
+5 silly config load:file:/home/romankozak/.npmrc
+6 silly config load:file:/etc/npmrc
+7 verbose title npm pack
+8 verbose argv "pack"
+9 verbose logfile logs-max:10 dir:/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/.npm-cache/_logs/2025-11-14T07_34_26_571Z-
+10 verbose logfile /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/.npm-cache/_logs/2025-11-14T07_34_26_571Z-debug-0.log
+11 silly logfile done cleaning log files
+12 silly packumentCache heap:2197815296 maxSize:549453824 maxEntrySize:274726912
+13 notice
+14 notice 📦  @forwardapp/shared-kmp@0.1.1
+15 notice Tarball Contents
+16 notice 1.9kB dist/ForwardAppMobile-packages-shared.d.ts
+16 notice 58.9kB dist/ForwardAppMobile-packages-shared.js
+16 notice 13.5kB dist/ForwardAppMobile-packages-shared.js.map
+16 notice 156B dist/index.cjs
+16 notice 128B dist/index.d.ts
+16 notice 210B dist/index.js
+16 notice 566B dist/kotlin_org_jetbrains_kotlin_kotlin_dom_api_compat.js
+16 notice 125B dist/kotlin_org_jetbrains_kotlin_kotlin_dom_api_compat.js.map
+16 notice 4.5kB dist/Kotlin-DateTime-library-kotlinx-datetime.js
+16 notice 1.6kB dist/Kotlin-DateTime-library-kotlinx-datetime.js.map
+16 notice 557B dist/kotlin-inject-kotlin-inject-runtime-kmp.js
+16 notice 125B dist/kotlin-inject-kotlin-inject-runtime-kmp.js.map
+16 notice 541B dist/kotlin-inject-kotlin-inject-runtime.js
+16 notice 125B dist/kotlin-inject-kotlin-inject-runtime.js.map
+16 notice 222.9kB dist/kotlin-kotlin-stdlib.js
+16 notice 118.2kB dist/kotlin-kotlin-stdlib.js.map
+16 notice 525B dist/kotlin-kotlinx-atomicfu-runtime.js
+16 notice 125B dist/kotlin-kotlinx-atomicfu-runtime.js.map
+16 notice 9.5kB dist/kotlinx-atomicfu.js
+16 notice 4.6kB dist/kotlinx-atomicfu.js.map
+16 notice 160.4kB dist/kotlinx-coroutines-core.js
+16 notice 79.4kB dist/kotlinx-coroutines-core.js.map
+16 notice 45.6kB dist/kotlinx-serialization-kotlinx-serialization-core.js
+16 notice 22.1kB dist/kotlinx-serialization-kotlinx-serialization-core.js.map
+16 notice 593B dist/kotlinx-serialization-kotlinx-serialization-json.js
+16 notice 125B dist/kotlinx-serialization-kotlinx-serialization-json.js.map
+16 notice 553B dist/sqldelight-extensions-async-extensions.js
+16 notice 125B dist/sqldelight-extensions-async-extensions.js.map
+16 notice 573B dist/sqldelight-extensions-coroutines-extensions.js
+16 notice 125B dist/sqldelight-extensions-coroutines-extensions.js.map
+16 notice 473B dist/sqldelight-runtime.js
+16 notice 125B dist/sqldelight-runtime.js.map
+16 notice 5.6kB dist/uuid.js
+16 notice 2.7kB dist/uuid.js.map
+16 notice 303B package.json
+17 notice Tarball Details
+18 notice name: @forwardapp/shared-kmp
+19 notice version: 0.1.1
+20 notice filename: forwardapp-shared-kmp-0.1.1.tgz
+21 notice package size: 167.0 kB
+22 notice unpacked size: 757.4 kB
+23 notice shasum: b30f6bc0a106044c8b62fea25f7d47ca70a65198
+24 notice integrity: sha512-TPWrrdd2E5Ity[...]1ngCeJmCgzMYQ==
+25 notice total files: 35
+26 notice
+27 verbose cwd /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp
+28 verbose os Linux 6.17.7-200.fc42.x86_64
+29 verbose node v22.20.0
+30 verbose npm  v10.9.3
+31 verbose exit 0
+32 info ok

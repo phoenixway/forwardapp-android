@@ -22,6 +22,9 @@ declare global {
     __forwardapp?: {
       projects: DesktopProjectApi;
     };
+    __forwardappDiagnostics?: {
+      getSharedLoadError?: () => { message: string; stack?: string } | null;
+    };
   }
 }
 
