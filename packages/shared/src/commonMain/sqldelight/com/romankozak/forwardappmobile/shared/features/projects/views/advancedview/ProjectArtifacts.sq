@@ -1,0 +1,23 @@
+import kotlin.Long;
+import kotlin.String;
+
+CREATE TABLE ProjectArtifacts (
+    id TEXT AS String NOT NULL PRIMARY KEY,
+    projectId TEXT AS String NOT NULL,
+    content TEXT AS String NOT NULL,
+    createdAt INTEGER AS Long NOT NULL,
+    updatedAt INTEGER AS Long NOT NULL
+);
+
+getArtifactForProject:
+SELECT * FROM ProjectArtifacts WHERE projectId = :projectId LIMIT 1;
+
+insertProjectArtifact:
+INSERT OR REPLACE INTO ProjectArtifacts (
+    id, projectId, content, createdAt, updatedAt
+) VALUES (
+    :id, :projectId, :content, :createdAt, :updatedAt
+);
+
+deleteProjectArtifact:
+DELETE FROM ProjectArtifacts WHERE id = :id;

@@ -93,6 +93,8 @@ check-compile:
 test:
 	@echo "🧪  Запускаю JVM unit-тести (./gradlew test)..."
 	@GRADLE_USER_HOME=$(PWD)/.gradle-project ./gradlew -Djava.net.preferIPv4Stack=true test
+	@echo "🧪  Запускаю shared JVM тести (:packages:shared:jvmTest)..."
+	@GRADLE_USER_HOME=$(PWD)/.gradle-project ./gradlew -Djava.net.preferIPv4Stack=true :packages:shared:jvmTest
 
 instrumentation-test:
 	@echo "📱  Перевіряю наявність пристрою $(DEVICE_ID)..."

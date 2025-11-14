@@ -84,17 +84,21 @@
 ### Модуль 2: Проєкти (Projects)
 
 - [ ] **Відновити схему:**
-    - [ ] Перемістити `Projects.sq`, `ProjectArtifacts.sq`, `ProjectExecutionLogs.sq`, `ProjectAttachmentCrossRef.sq`.
-    - [ ] Виправити синтаксис та типи.
+    - [x] `Projects.sq` уже в shared і підтримує базові CRUD.
+    - [x] `ProjectAttachmentCrossRef.sq` перенесено та використовується в Attachments (міграція 0002).
+    - [x] `ProjectArtifacts.sq` перенесено (advanced view) + додана міграція 0003.
+    - [ ] `ProjectExecutionLogs.sq` ще очікує перенесення.
+    - [ ] Виправити синтаксис та типи для решти таблиць.
 - [ ] **Оновити адаптери:**
-    - [ ] Додати необхідні `ColumnAdapter` в `DatabaseDriverFactory.kt`.
+    - [x] `ProjectArtifactsAdapter` додано в `packages/shared/.../Database.kt`.
+    - [ ] Завершити решту адаптерів після перенесення журналів.
 - [ ] **Відновити код:**
-    - [ ] Відновити доменні моделі (`Project`, `ProjectArtifact` і т.д.).
-    - [ ] Створити маппери.
-    - [ ] Відновити `ProjectRepository` та його реалізацію.
+    - [ ] Відновити доменні моделі (`Project`, `ProjectArtifact` і т.д.). ✅ `ProjectArtifact` вже інтегрований у shared.
+    - [ ] Створити маппери. ✅ Маппер `ProjectArtifacts.toDomain()` використовується репозиторієм advanced view.
+    - [ ] Відновити `ProjectRepository` та його реалізацію (зараз доступний лише `ProjectArtifactRepository` з потоками + CRUD).
 - [ ] **Інтеграція та перевірка:**
-    - [ ] Додати репозиторій в DI.
-    - [ ] Відновити ViewModel та UI.
+    - [ ] Додати репозиторій в DI. ✅ `ProjectArtifactRepository` вже оголошений у `RepositoryModule`.
+    - [ ] Відновити ViewModel та UI (advanced view TODO).
     - [ ] Перевірити компіляцію.
 
 ### Модуль 3: Завдання та Списки (Tasks & Lists)

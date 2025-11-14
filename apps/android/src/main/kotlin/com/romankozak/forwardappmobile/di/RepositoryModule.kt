@@ -5,6 +5,10 @@ import com.romankozak.forwardappmobile.shared.features.attachments.data.reposito
 import com.romankozak.forwardappmobile.shared.features.attachments.domain.repository.AttachmentsRepository
 import com.romankozak.forwardappmobile.shared.features.attachments.types.legacynotes.data.repository.LegacyNotesRepositoryImpl
 import com.romankozak.forwardappmobile.shared.features.attachments.types.legacynotes.domain.repository.LegacyNotesRepository
+import com.romankozak.forwardappmobile.shared.features.projects.logs.data.repository.ProjectExecutionLogsRepositoryImpl
+import com.romankozak.forwardappmobile.shared.features.projects.logs.domain.repository.ProjectExecutionLogsRepository
+import com.romankozak.forwardappmobile.shared.features.projects.views.advancedview.projectartifacts.data.repository.ProjectArtifactRepositoryImpl
+import com.romankozak.forwardappmobile.shared.features.projects.views.advancedview.projectartifacts.domain.repository.ProjectArtifactRepository
 import com.romankozak.forwardappmobile.shared.features.projects.views.inbox.data.repository.InboxRepositoryImpl
 import com.romankozak.forwardappmobile.shared.features.projects.views.inbox.domain.repository.InboxRepository
 import com.romankozak.forwardappmobile.shared.features.attachments.types.checklists.data.repository.ChecklistRepositoryImpl
@@ -54,6 +58,20 @@ interface RepositoryModule {
         database: ForwardAppDatabase,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
     ): LegacyNotesRepository = LegacyNotesRepositoryImpl(database, ioDispatcher)
+
+    @Provides
+    @AndroidSingleton
+    fun provideProjectArtifactRepository(
+        database: ForwardAppDatabase,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+    ): ProjectArtifactRepository = ProjectArtifactRepositoryImpl(database, ioDispatcher)
+
+    @Provides
+    @AndroidSingleton
+    fun provideProjectExecutionLogsRepository(
+        database: ForwardAppDatabase,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+    ): ProjectExecutionLogsRepository = ProjectExecutionLogsRepositoryImpl(database, ioDispatcher)
 
     @Provides
     @AndroidSingleton
