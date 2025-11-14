@@ -1,0 +1,30 @@
+{
+  "name": "@forwardapp/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "electron/main.mjs",
+  "scripts": {
+    "dev": "concurrently -k \"npm:dev:renderer\" \"npm:dev:electron\"",
+    "dev:renderer": "vite",
+    "dev:electron": "cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron ./electron/main.mjs",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@forwardapp/shared-kmp": "file:../../packages/shared-kmp/forwardapp-shared-kmp-0.1.0.tgz",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.12",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.2",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron": "^32.1.2",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.1"
+  }
+}

@@ -120,6 +120,7 @@ sqldelightRuntime = { group = "app.cash.sqldelight", name = "runtime", version.r
 sqldelightCoroutines = { group = "app.cash.sqldelight", name = "coroutines-extensions", version.ref = "sqlDelight" }
 sqldelightAndroidDriver = { group = "app.cash.sqldelight", name = "android-driver", version.ref = "sqlDelight" }
 sqldelightSqliteDriver = { group = "app.cash.sqldelight", name = "sqlite-driver", version.ref = "sqlDelight" }
+sqldelightSqljsDriver = { group = "app.cash.sqldelight", name = "sqljs-driver", version.ref = "sqlDelight" }
 
 # --- Kotlin Inject
 kotlinInjectCompilerKsp = { group = "me.tatarka.inject", name = "kotlin-inject-compiler-ksp", version.ref = "kotlinInject" }
@@ -163,4 +164,3 @@ hiltAndroidPlugin = { id = "com.google.dagger.hilt.android", version.ref = "hilt
 jetbrainsKotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "jetbrainsKotlinJvm" }
 googleServicesPlugin = { id = "com.google.gms.google-services", version.ref = "googleServicesPlugin" }
 firebaseCrashlyticsPlugin = { id = "com.google.firebase.crashlytics", version.ref = "firebaseCrashlyticsPlugin" }
-

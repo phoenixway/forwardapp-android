@@ -31,6 +31,15 @@ kotlin {
         }
     }
 
+    // ✅ JS target for Electron/Desktop consumers
+    js(IR) {
+        nodejs {
+            // useCommonJs() // keep ESM output by default
+        }
+        binaries.library()
+        generateTypeScriptDefinitions()
+    }
+
     sourceSets {
         val commonMain by getting {
             dependencies {
@@ -54,6 +63,12 @@ kotlin {
         val jvmMain by getting {
             dependencies {
                 implementation(libs.sqldelightSqliteDriver)
+            }
+        }
+
+        val jsMain by getting {
+            dependencies {
+                implementation(libs.sqldelightSqljsDriver)
             }
         }
 
@@ -147,17 +162,5 @@ tasks.withType<Test> {
     testLogging {
         events("passed", "skipped", "failed")
         showStandardStreams = true
-    }
-}
-// JS target for Electron consumption; prefer system Node (no downloads)
-kotlin {
-    // Ensure Android target remains configured for SQLDelight + Android consumers
-    androidTarget()
-    js(IR) {
-        nodejs {
-            // useCommonJs() // keep ESM as per requirement
-        }
-        binaries.library()
-        generateTypeScriptDefinitions()
     }
 }
