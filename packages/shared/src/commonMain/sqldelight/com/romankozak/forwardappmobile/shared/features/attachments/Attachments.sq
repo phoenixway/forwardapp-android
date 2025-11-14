@@ -1,0 +1,43 @@
+CREATE TABLE Attachments (
+    id TEXT NOT NULL PRIMARY KEY,
+    attachmentType TEXT NOT NULL,
+    entityId TEXT NOT NULL,
+    ownerProjectId TEXT,
+    createdAt INTEGER NOT NULL,
+    updatedAt INTEGER NOT NULL
+);
+
+getAttachmentsForProject:
+SELECT
+    A.*,
+    PAC.projectId,
+    PAC.attachmentOrder
+FROM Attachments AS A
+JOIN ProjectAttachmentCrossRef AS PAC ON A.id = PAC.attachmentId
+WHERE PAC.projectId = :projectId
+ORDER BY PAC.attachmentOrder ASC, A.createdAt DESC;
+
+findAttachmentByEntity:
+SELECT * FROM Attachments WHERE attachmentType = :attachmentType AND entityId = :entityId LIMIT 1;
+
+getAttachmentById:
+SELECT * FROM Attachments WHERE id = :attachmentId LIMIT 1;
+
+insertAttachment:
+INSERT OR REPLACE INTO Attachments(
+    id, attachmentType, entityId, ownerProjectId, createdAt, updatedAt
+) VALUES (
+    :id, :attachmentType, :entityId, :ownerProjectId, :createdAt, :updatedAt
+);
+
+deleteAttachment:
+DELETE FROM Attachments WHERE id = :attachmentId;
+
+getAllAttachments:
+SELECT * FROM Attachments;
+
+countLinksForAttachment:
+SELECT COUNT(*) FROM ProjectAttachmentCrossRef WHERE attachmentId = :attachmentId;
+
+deleteAllLinksForAttachment:
+DELETE FROM ProjectAttachmentCrossRef WHERE attachmentId = :attachmentId;

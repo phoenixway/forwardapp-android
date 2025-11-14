@@ -1,0 +1,15 @@
+CREATE TABLE Attachments (
+    id TEXT NOT NULL PRIMARY KEY,
+    attachmentType TEXT NOT NULL,
+    entityId TEXT NOT NULL,
+    ownerProjectId TEXT,
+    createdAt INTEGER NOT NULL,
+    updatedAt INTEGER NOT NULL
+);
+
+CREATE TABLE ProjectAttachmentCrossRef (
+    projectId TEXT NOT NULL,
+    attachmentId TEXT NOT NULL,
+    attachmentOrder INTEGER NOT NULL,
+    PRIMARY KEY(projectId, attachmentId)
+);

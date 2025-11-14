@@ -1,6 +1,8 @@
 package com.romankozak.forwardappmobile.di
 
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
+import com.romankozak.forwardappmobile.shared.features.attachments.data.repository.AttachmentsRepositoryImpl
+import com.romankozak.forwardappmobile.shared.features.attachments.domain.repository.AttachmentsRepository
 import com.romankozak.forwardappmobile.shared.features.attachments.types.legacynotes.data.repository.LegacyNotesRepositoryImpl
 import com.romankozak.forwardappmobile.shared.features.attachments.types.legacynotes.domain.repository.LegacyNotesRepository
 import com.romankozak.forwardappmobile.shared.features.projects.views.inbox.data.repository.InboxRepositoryImpl
@@ -52,6 +54,13 @@ interface RepositoryModule {
         database: ForwardAppDatabase,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
     ): LegacyNotesRepository = LegacyNotesRepositoryImpl(database, ioDispatcher)
+
+    @Provides
+    @AndroidSingleton
+    fun provideAttachmentsRepository(
+        database: ForwardAppDatabase,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+    ): AttachmentsRepository = AttachmentsRepositoryImpl(database, ioDispatcher)
 
     @Provides
     @AndroidSingleton
