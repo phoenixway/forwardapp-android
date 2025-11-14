@@ -2,10 +2,8 @@
 
 ## Підготовка
 
-1. Згенеруй npm-пакет зі спільним KMP-шаром:  
-   `make shared-npm`
-2. Перейди в цю директорію і встанови залежності:  
-   `cd apps/desktop && npm install`
+1. Згенеруй npm-пакет зі спільним KMP-шаром: `make shared-npm`.
+2. Перейди в `apps/desktop` і виконай `npm install`.
 
 ## Режим розробки
 
@@ -13,8 +11,8 @@
 npm run dev
 ```
 
-- `vite` стартує renderer (React).
-- Electron автоматично відкриє вікно та під’єднається до dev-сервера.
+- `vite` стартує React/TypeScript renderer.
+- `tsx` виконує Electron (TS) entrypoints (`electron/main.ts`, `electron/preload.ts`) без окремого кроку білду.
 
 ## Білд
 
@@ -22,4 +20,11 @@ npm run dev
 npm run build
 ```
 
-Клієнтський бандл з’явиться у `apps/desktop/dist`. Для продакшену потрібно буде прописати власний процес пакування Electron (наприклад, через electron-builder) — на цій віхі фокус був на UI та інтеграції зі спільним KMP data-layer.
+Команда послідовно виконує:
+
+1. `vite build` → збирає renderer у `apps/desktop/dist`.
+2. `tsc -p tsconfig.electron.json` → компілює `electron/*.ts` у `apps/desktop/dist-electron`.
+
+Для подальшого пакування (app installer) усе ще потрібен інструмент на кшталт `electron-builder`, але на цьому етапі ми фокусуємося на UI та інтеграції з KMP data-layer.
+
+> ℹ️ Проєкти зберігаються лише в пам’яті під час цієї фази. Після перезапуску застосунку вони будуть втрачені. Персистентність з SQLDelight/sql.js можна додати як окрему задачу.

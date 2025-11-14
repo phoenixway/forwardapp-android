@@ -66,11 +66,7 @@ kotlin {
             }
         }
 
-        val jsMain by getting {
-            dependencies {
-                implementation(libs.sqldelightSqljsDriver)
-            }
-        }
+        val jsMain by getting
 
         val commonTest by getting {
             dependencies {

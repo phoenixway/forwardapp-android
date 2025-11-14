@@ -120,7 +120,6 @@ sqldelightRuntime = { group = "app.cash.sqldelight", name = "runtime", version.r
 sqldelightCoroutines = { group = "app.cash.sqldelight", name = "coroutines-extensions", version.ref = "sqlDelight" }
 sqldelightAndroidDriver = { group = "app.cash.sqldelight", name = "android-driver", version.ref = "sqlDelight" }
 sqldelightSqliteDriver = { group = "app.cash.sqldelight", name = "sqlite-driver", version.ref = "sqlDelight" }
-sqldelightSqljsDriver = { group = "app.cash.sqldelight", name = "sqljs-driver", version.ref = "sqlDelight" }
 
 # --- Kotlin Inject
 kotlinInjectCompilerKsp = { group = "me.tatarka.inject", name = "kotlin-inject-compiler-ksp", version.ref = "kotlinInject" }

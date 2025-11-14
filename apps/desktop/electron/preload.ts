@@ -1,4 +1,9 @@
 import { contextBridge } from 'electron';
 
-// Reserved for future IPC bridging. Keeps the preload script explicit.
+declare global {
+  interface Window {
+    __forwardapp?: Record<string, never>;
+  }
+}
+
 contextBridge.exposeInMainWorld('__forwardapp', {});
