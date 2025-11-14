@@ -302,7 +302,7 @@ packages:
     os: [win32]
 
   '@forwardapp/shared-kmp@file:packages/shared-kmp/forwardapp-shared-kmp-0.1.0.tgz':
-    resolution: {integrity: sha512-GN7BjQU1/FlrSE2OaQdRwu0CZX8PEzFpOp5zitZDbz4LP9OvpNTcm+aqFx8Hnqz7bXtfw37MyejAMk3gTiLhpw==, tarball: file:packages/shared-kmp/forwardapp-shared-kmp-0.1.0.tgz}
+    resolution: {integrity: sha512-FqMauZGZQ7R9Bf1EY+LR9DmU+M/xSeQvmvlP/TGKtnqsdI/wBMdCyqROKxe19HTude+1NmNr9k/GauljdZGM+Q==, tarball: file:packages/shared-kmp/forwardapp-shared-kmp-0.1.0.tgz}
     version: 0.1.0
 
   '@hapi/hoek@9.3.0':
