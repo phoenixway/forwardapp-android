@@ -13,6 +13,7 @@ app/schemas/
 # Node / pnpm artifacts
 node_modules/
 .pnpm-store/
+**/.npm-cache/
 
 # NPM package artifacts for shared-kmp
 packages/shared-kmp/*.tgz
@@ -26,3 +27,6 @@ apps/desktop/node_modules/
 apps/desktop/dist/
 apps/desktop/dist-electron/
 apps/desktop-smoke/node_modules/
+
+# Generated JS d.ts copies in TypeScript sources
+apps/desktop/src/types/*.js
