@@ -26,7 +26,7 @@ const initialEditorValues: EditorValues = {
 };
 
 const App = () => {
-  const [api] = useState<DesktopProjectApi | null>(window.__forwardapp?.projects ?? null);
+  const [api, setApi] = useState<DesktopProjectApi | null>(window.__forwardapp?.projects ?? null);
   const [projects, setProjects] = useState<DesktopProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +34,25 @@ const App = () => {
   const [dialog, setDialog] = useState<DialogState>({ type: 'hidden' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
+
+  useEffect(() => {
+    if (api) return;
+    let cancelled = false;
+    const probe = () => {
+      if (cancelled) return;
+      const bridge = window.__forwardapp?.projects ?? null;
+      if (bridge) {
+        setApi(bridge);
+        setError(null);
+      }
+    };
+    const interval = setInterval(probe, 300);
+    probe();
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [api]);
 
   useEffect(() => {
     if (!api) {
