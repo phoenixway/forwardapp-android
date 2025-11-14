@@ -14,15 +14,20 @@ const requireFromHere = createRequire(__dirname);
 
 const loadSharedApi = async (): Promise<SharedProjectApi> => {
   try {
-    const sharedModule = requireFromHere('@forwardapp/shared-kmp/dist/index.js') as {
-      createDesktopProjectApi?: () => Promise<SharedProjectApi>;
-      default?: () => Promise<SharedProjectApi>;
+    const legacyIndex = requireFromHere('@forwardapp/shared-kmp/dist/index.js') as {
+      default?: SharedProjectApi;
     };
-    const factory = sharedModule.createDesktopProjectApi ?? sharedModule.default;
-    if (!factory) {
-      throw new Error('createDesktopProjectApi is missing from @forwardapp/shared-kmp');
+    const sharedModule = requireFromHere('@forwardapp/shared-kmp/dist/ForwardAppMobile-packages-shared.js') as {
+      createDesktopProjectApi?: () => Promise<SharedProjectApi>;
+    };
+    const factory = sharedModule.createDesktopProjectApi;
+    if (factory) {
+      return await factory();
     }
-    return await factory();
+    if (legacyIndex.default) {
+      return legacyIndex.default;
+    }
+    throw new Error('createDesktopProjectApi is missing from @forwardapp/shared-kmp');
   } catch (error) {
     console.error('[preload] Failed to load @forwardapp/shared-kmp', error);
     throw error;
