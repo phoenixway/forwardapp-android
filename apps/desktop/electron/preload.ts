@@ -1,4 +1,5 @@
 import { contextBridge } from 'electron';
+import { createRequire } from 'module';
 import type { DesktopProject, DesktopProjectApi } from '../src/types/forward-shared';
 
 type SharedProjectApi = {
@@ -9,18 +10,23 @@ type SharedProjectApi = {
   toggleProjectExpanded(id: string): Promise<DesktopProject | null>;
 };
 
-const loadSharedApi = (): Promise<SharedProjectApi> => {
-  const sharedModule = require('@forwardapp/shared-kmp') as {
-    createDesktopProjectApi?: () => Promise<SharedProjectApi>;
-    default?: () => Promise<SharedProjectApi>;
-  };
-  const factory = sharedModule.createDesktopProjectApi ?? sharedModule.default;
-  if (!factory) {
-    return Promise.reject(
-      new Error('createDesktopProjectApi is missing from @forwardapp/shared-kmp'),
-    );
+const requireFromHere = createRequire(__dirname);
+
+const loadSharedApi = async (): Promise<SharedProjectApi> => {
+  try {
+    const sharedModule = requireFromHere('@forwardapp/shared-kmp') as {
+      createDesktopProjectApi?: () => Promise<SharedProjectApi>;
+      default?: () => Promise<SharedProjectApi>;
+    };
+    const factory = sharedModule.createDesktopProjectApi ?? sharedModule.default;
+    if (!factory) {
+      throw new Error('createDesktopProjectApi is missing from @forwardapp/shared-kmp');
+    }
+    return await factory();
+  } catch (error) {
+    console.error('[preload] Failed to load @forwardapp/shared-kmp', error);
+    throw error;
   }
-  return factory();
 };
 
 const sharedApiPromise = loadSharedApi();
