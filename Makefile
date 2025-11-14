@@ -23,7 +23,7 @@ DEVICE_FLAG=-s $(DEVICE_ID)
 
 # --- Цілі (Targets) ---
 
-.PHONY: all debug-cycle debug-config release install start stop logcat debug install-debug start-debug stop-debug logcat-debug clean help test android-release shared-npm android-debug electron-dev
+.PHONY: all debug-cycle debug-config release install start stop logcat debug install-debug start-debug stop-debug logcat-debug clean help test instrumentation-test android-release shared-npm android-debug electron-dev
 
 # ============== ОСНОВНІ КОМАНДИ ==============
 
@@ -89,6 +89,26 @@ debug:
 check-compile:
 	@echo "🚀  Перевіряю через compileDebugKotlin..."
 	@GRADLE_USER_HOME=$(PWD)/.gradle-project ./gradlew -Djava.net.preferIPv4Stack=true :apps:android:compileDebugKotlin
+
+test:
+	@echo "🧪  Запускаю JVM unit-тести (./gradlew test)..."
+	@GRADLE_USER_HOME=$(PWD)/.gradle-project ./gradlew -Djava.net.preferIPv4Stack=true test
+
+instrumentation-test:
+	@echo "📱  Перевіряю наявність пристрою $(DEVICE_ID)..."
+	@if adb devices | grep -w "$(DEVICE_ID)" >/dev/null 2>&1 ; then \
+		echo "✅  Пристрій під'єднаний."; \
+	else \
+		echo "❌  Пристрій $(DEVICE_ID) не знайдено. Підключіть його або оновіть DEVICE_ID."; \
+		exit 1; \
+	fi
+	@echo "🤖  Запускаю instrumentation-тести (connectedDebugAndroidTest)..."
+	@if ANDROID_SERIAL=$(DEVICE_ID) GRADLE_USER_HOME=$(PWD)/.gradle-project ./gradlew -Djava.net.preferIPv4Stack=true :apps:android:connectedDebugAndroidTest ; then \
+		echo "🎉  Instrumentation-тести пройшли успішно."; \
+	else \
+		echo "❌  Instrumentation-тести впали. Перевір лог вище."; \
+		exit 1; \
+	fi
 
 # Встановити debug APK
 install-debug: debug
@@ -191,7 +211,8 @@ help:
 	@echo "---"
 	@echo "  make debug-cycle    - (Найчастіша команда) Зібрати, встановити та запустити DEBUG версію."
 	@echo "  make all            - Зібрати, встановити та запустити RELEASE версію."
-	@echo "  make test           - Виконати unit й instrumentation тести."
+	@echo "  make test           - Запустити JVM unit-тести (./gradlew test)."
+	@echo "  make instrumentation-test - Прогнати connectedDebugAndroidTest на підключеному пристрої."
 	@echo ""
 	@echo "  make clean          - Очистити проєкт."
 	@echo ""
@@ -221,28 +242,3 @@ electron-dev:
 	@echo "Install in your Electron repo: npm i ../packages/shared-kmp/*.tgz && npm run dev"
  
 .PHONY: shared-npm android-debug electron-dev
-
-# Запустити повний набір тестів (unit + instrumentation)
-test:
-	@echo "🧪  Запускаю unit-тести..."
-	@if GRADLE_USER_HOME=$(PWD)/.gradle-project ./gradlew :app:testDebugUnitTest ; then \
-		echo "✅  Unit-тести пройдено успішно."; \
-	else \
-		echo "❌  Unit-тести впали. Перевір лог вище."; \
-		exit 1; \
-	fi
-	@echo "📱  Перевіряю наявність пристрою $(DEVICE_ID)..."
-	@if adb devices | grep -w "$(DEVICE_ID)" >/dev/null 2>&1 ; then \
-		echo "✅  Пристрій знайдено."; \
-	else \
-		echo "❌  Пристрій $(DEVICE_ID) не під’єднаний. Підключіть його або змініть DEVICE_ID."; \
-		exit 1; \
-	fi
-	@echo "🤖  Запускаю instrumentation-тести на $(DEVICE_ID)..."
-	@if ANDROID_SERIAL=$(DEVICE_ID) GRADLE_USER_HOME=$(PWD)/.gradle-project ./gradlew :app:connectedDebugAndroidTest ; then \
-		echo "✅  Instrumentation-тести пройдено успішно."; \
-	else \
-		echo "❌  Instrumentation-тести впали. Перевір лог вище."; \
-		exit 1; \
-	fi
-	@echo "🎉  Усі тести пройдено!"

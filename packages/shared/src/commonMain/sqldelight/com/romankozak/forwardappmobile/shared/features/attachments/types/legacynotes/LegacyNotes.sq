@@ -1,0 +1,43 @@
+CREATE TABLE LegacyNotes (
+    id TEXT NOT NULL PRIMARY KEY,
+    projectId TEXT NOT NULL,
+    title TEXT NOT NULL,
+    content TEXT,
+    createdAt INTEGER AS kotlin.Long NOT NULL,
+    updatedAt INTEGER AS kotlin.Long
+);
+
+getLegacyNotesByProject:
+SELECT * FROM LegacyNotes
+WHERE projectId = :projectId
+ORDER BY createdAt DESC;
+
+getAllLegacyNotes:
+SELECT * FROM LegacyNotes
+ORDER BY createdAt DESC;
+
+getLegacyNoteById:
+SELECT * FROM LegacyNotes WHERE id = :id;
+
+insertLegacyNote:
+INSERT OR REPLACE INTO LegacyNotes(
+    id, projectId, title, content, createdAt, updatedAt
+) VALUES (
+    :id, :projectId, :title, :content, :createdAt, :updatedAt
+);
+
+updateLegacyNote:
+UPDATE LegacyNotes SET
+    title = :title,
+    content = :content,
+    updatedAt = :updatedAt
+WHERE id = :id;
+
+deleteLegacyNoteById:
+DELETE FROM LegacyNotes WHERE id = :id;
+
+deleteLegacyNotesByProject:
+DELETE FROM LegacyNotes WHERE projectId = :projectId;
+
+deleteAllLegacyNotes:
+DELETE FROM LegacyNotes;

@@ -1,10 +1,14 @@
 package com.romankozak.forwardappmobile.di
 
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
-import com.romankozak.forwardappmobile.shared.features.projects.core.data.repository.ProjectRepositoryImpl
-import com.romankozak.forwardappmobile.shared.features.projects.core.domain.repository.ProjectRepository
+import com.romankozak.forwardappmobile.shared.features.attachments.types.legacynotes.data.repository.LegacyNotesRepositoryImpl
+import com.romankozak.forwardappmobile.shared.features.attachments.types.legacynotes.domain.repository.LegacyNotesRepository
 import com.romankozak.forwardappmobile.shared.features.projects.views.inbox.data.repository.InboxRepositoryImpl
 import com.romankozak.forwardappmobile.shared.features.projects.views.inbox.domain.repository.InboxRepository
+import com.romankozak.forwardappmobile.shared.features.attachments.types.checklists.data.repository.ChecklistRepositoryImpl
+import com.romankozak.forwardappmobile.shared.features.attachments.types.checklists.domain.repository.ChecklistRepository
+import com.romankozak.forwardappmobile.shared.features.projects.core.data.repository.ProjectRepositoryImpl
+import com.romankozak.forwardappmobile.shared.features.projects.core.domain.repository.ProjectRepository
 import com.romankozak.forwardappmobile.shared.features.recent.data.repository.RecentItemRepositoryImpl
 import com.romankozak.forwardappmobile.shared.features.recent.domain.repository.RecentItemRepository
 import com.romankozak.forwardappmobile.shared.features.aichat.data.repository.ConversationFolderRepositoryImpl
@@ -41,4 +45,18 @@ interface RepositoryModule {
         database: ForwardAppDatabase,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
     ): InboxRepository = InboxRepositoryImpl(database, ioDispatcher)
+
+    @Provides
+    @AndroidSingleton
+    fun provideLegacyNotesRepository(
+        database: ForwardAppDatabase,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+    ): LegacyNotesRepository = LegacyNotesRepositoryImpl(database, ioDispatcher)
+
+    @Provides
+    @AndroidSingleton
+    fun provideChecklistRepository(
+        database: ForwardAppDatabase,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+    ): ChecklistRepository = ChecklistRepositoryImpl(database, ioDispatcher)
 }

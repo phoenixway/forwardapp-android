@@ -1,0 +1,29 @@
+CREATE TABLE Checklists (
+    id TEXT NOT NULL PRIMARY KEY,
+    projectId TEXT NOT NULL,
+    name TEXT NOT NULL
+);
+
+getChecklistsForProject:
+SELECT * FROM Checklists WHERE projectId = :projectId ORDER BY name COLLATE NOCASE ASC;
+
+getAllChecklists:
+SELECT * FROM Checklists;
+
+getChecklistById:
+SELECT * FROM Checklists WHERE id = :id LIMIT 1;
+
+insertChecklist:
+INSERT OR REPLACE INTO Checklists(id, projectId, name) VALUES (:id, :projectId, :name);
+
+updateChecklist:
+UPDATE Checklists SET projectId = :projectId, name = :name WHERE id = :id;
+
+deleteChecklistById:
+DELETE FROM Checklists WHERE id = :id;
+
+deleteChecklistsByProjectId:
+DELETE FROM Checklists WHERE projectId = :projectId;
+
+deleteAllChecklists:
+DELETE FROM Checklists;

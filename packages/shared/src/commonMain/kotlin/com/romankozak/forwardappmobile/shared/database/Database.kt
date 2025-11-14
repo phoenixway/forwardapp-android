@@ -7,7 +7,9 @@ import com.romankozak.forwardappmobile.shared.data.database.models.StringList
 import com.romankozak.forwardappmobile.shared.data.models.RelatedLink
 import com.romankozak.forwardappmobile.shared.data.models.ReservedGroup
 import com.romankozak.forwardappmobile.shared.features.aichat.ConversationFolders
+import com.romankozak.forwardappmobile.shared.features.attachments.types.legacynotes.LegacyNotes
 import com.romankozak.forwardappmobile.shared.features.projects.core.domain.model.ProjectType
+import com.romankozak.forwardappmobile.shared.features.attachments.types.checklists.ChecklistItems
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
@@ -145,11 +147,21 @@ fun createForwardAppDatabase(driver: SqlDriver): ForwardAppDatabase {
         idAdapter = longAdapter,
     )
 
+    val legacyNotesAdapter = LegacyNotes.Adapter(
+        createdAtAdapter = longAdapter,
+    )
+
+    val checklistItemsAdapter = ChecklistItems.Adapter(
+        itemOrderAdapter = longAdapter,
+    )
+
     return ForwardAppDatabase(
         driver = driver,
         GoalsAdapter = goalsAdapter,
         ListItemsAdapter = listItemsAdapter,
         ProjectsAdapter = projectsAdapter,
         ConversationFoldersAdapter = conversationFoldersAdapter,
+        LegacyNotesAdapter = legacyNotesAdapter,
+        ChecklistItemsAdapter = checklistItemsAdapter,
     )
 }
