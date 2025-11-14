@@ -14,7 +14,7 @@ const requireFromHere = createRequire(__dirname);
 
 const loadSharedApi = async (): Promise<SharedProjectApi> => {
   try {
-    const sharedModule = requireFromHere('@forwardapp/shared-kmp') as {
+    const sharedModule = requireFromHere('@forwardapp/shared-kmp/dist/index.js') as {
       createDesktopProjectApi?: () => Promise<SharedProjectApi>;
       default?: () => Promise<SharedProjectApi>;
     };
