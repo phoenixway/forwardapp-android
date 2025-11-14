@@ -1,8 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  createDesktopProjectApi
-} from '@forwardapp/shared-kmp';
-import type { DesktopProject, DesktopProjectApi } from '@forwardapp/shared-kmp';
+import type { DesktopProject, DesktopProjectApi } from './types/forward-shared';
 
 type DialogState =
   | { type: 'hidden' }
@@ -29,7 +26,7 @@ const initialEditorValues: EditorValues = {
 };
 
 const App = () => {
-  const [api, setApi] = useState<DesktopProjectApi | null>(null);
+  const [api] = useState<DesktopProjectApi | null>(window.__forwardapp?.projects ?? null);
   const [projects, setProjects] = useState<DesktopProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,15 +36,9 @@ const App = () => {
   const [refreshToken, setRefreshToken] = useState(0);
 
   useEffect(() => {
-    createDesktopProjectApi()
-      .then(setApi)
-      .catch((err: unknown) => {
-        setError(`Не вдалося ініціалізувати шар даних: ${(err as Error).message}`);
-      });
-  }, []);
-
-  useEffect(() => {
     if (!api) {
+      setError('Не вдалося знайти API проєктів (перевір preload.ts)');
+      setLoading(false);
       return;
     }
     let cancelled = false;
@@ -55,7 +46,7 @@ const App = () => {
     setLoading(true);
     setError(null);
     api
-      .listProjects()
+      .list()
       .then((items) => {
         if (cancelled) return;
         setProjects(items);
@@ -87,7 +78,7 @@ const App = () => {
     if (!api) return;
     setIsSubmitting(true);
     try {
-      await api.createProject(
+      await api.create(
         values.name.trim(),
         values.description.trim() || null,
         values.parentId
@@ -106,7 +97,7 @@ const App = () => {
     if (!api) return;
     setIsSubmitting(true);
     try {
-      await api.updateProject(project.id, values.name.trim(), values.description.trim() || null);
+      await api.update(project.id, values.name.trim(), values.description.trim() || null);
       setDialog({ type: 'hidden' });
       setToast('Проєкт оновлено');
       triggerRefresh();
@@ -121,7 +112,7 @@ const App = () => {
     if (!api) return;
     setIsSubmitting(true);
     try {
-      await api.deleteProject(project.id);
+      await api.remove(project.id);
       setDialog({ type: 'hidden' });
       setToast('Проєкт видалено');
       triggerRefresh();
@@ -135,7 +126,7 @@ const App = () => {
   const handleToggleExpanded = async (project: DesktopProject) => {
     if (!api) return;
     try {
-      await api.toggleProjectExpanded(project.id);
+      await api.toggle(project.id);
       triggerRefresh();
     } catch (err) {
       setError(`Не вдалося оновити стан: ${(err as Error).message}`);

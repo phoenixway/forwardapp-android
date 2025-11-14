@@ -10,9 +10,19 @@ app/schemas/
 # Local Gradle home used by Makefile
 /.gradle-project/
 
+# Node / pnpm artifacts
+node_modules/
+.pnpm-store/
+
 # NPM package artifacts for shared-kmp
 packages/shared-kmp/*.tgz
 packages/shared-kmp/dist/
 
 # Local Node.js bootstrap (downloaded by shared-npm script)
 tools/.node/
+
+# Desktop Electron artifacts (pnpm managed)
+apps/desktop/node_modules/
+apps/desktop/dist/
+apps/desktop/dist-electron/
+apps/desktop-smoke/node_modules/
