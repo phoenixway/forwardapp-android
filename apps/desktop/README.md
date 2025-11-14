@@ -13,7 +13,7 @@ pnpm dev
 ```
 
 - `vite` стартує React/TypeScript renderer.
-- Для Electron запускається `tsc --watch`, який компілює `electron/*.ts` у `dist-electron/electron`, та `nodemon`, що перезапускає `electron dist-electron/electron/main.js` при зміні коду. Скрипт `wait-on` гарантує, що перша збірка завершилася перед стартом Electron.
+- Для Electron запускається `tsc --watch`, який компілює `electron/*.ts` у `dist-electron`, та `nodemon`, що перезапускає `electron dist-electron/main.js` при зміні коду. Скрипт `wait-on` гарантує, що перша збірка завершилася перед стартом Electron.
 
 ## Білд
 
@@ -21,6 +21,6 @@ pnpm dev
 pnpm build
 ```
 
-Команда послідовно виконує `vite build` (renderer) і `tsc -p tsconfig.electron.json` (Electron, вихід у `dist-electron/electron/`). Потім можна запустити `electron dist-electron/electron/main.js` або інтегруватися з інструментом пакування на кшталт `electron-builder`.
+Команда послідовно виконує `vite build` (renderer) і `tsc -p tsconfig.electron.json` (Electron, вихід у `dist-electron/`). Потім можна запустити `electron dist-electron/main.js` або інтегруватися з інструментом пакування на кшталт `electron-builder`.
 
 > ℹ️ Проєкти зберігаються лише в пам’яті під час цієї фази. Після перезапуску застосунку вони будуть втрачені. Персистентність з SQLDelight/sql.js можна додати як окрему задачу.

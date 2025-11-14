@@ -1,9 +1,7 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const resolvedDirname = __dirname;
 
 const isDev = Boolean(process.env.VITE_DEV_SERVER_URL);
 
@@ -18,14 +16,14 @@ const createMainWindow = () => {
     backgroundColor: '#05010a',
     webPreferences: {
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(resolvedDirname, 'preload.js')
     }
   });
 
   if (isDev && process.env.VITE_DEV_SERVER_URL) {
     window.loadURL(process.env.VITE_DEV_SERVER_URL);
   } else {
-    const htmlPath = path.join(__dirname, '..', '..', 'dist', 'index.html');
+    const htmlPath = path.join(resolvedDirname, '..', '..', 'dist', 'index.html');
     window.loadFile(htmlPath);
   }
 
