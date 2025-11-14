@@ -25,7 +25,7 @@ const createMainWindow = () => {
   if (isDev && process.env.VITE_DEV_SERVER_URL) {
     window.loadURL(process.env.VITE_DEV_SERVER_URL);
   } else {
-    const htmlPath = path.join(__dirname, '../dist/index.html');
+    const htmlPath = path.join(__dirname, '..', '..', 'dist', 'index.html');
     window.loadFile(htmlPath);
   }
 
