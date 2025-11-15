@@ -36,39 +36,32 @@
 - Залиш коментарі/README тільки там, де потрібно (наприклад, `package-info` в новому пакеті).
 
 ## Порядок відновлення
-Відновлюємо спочатку шар даних. Далі варто рухатись від найменш зв’язаних сутностей до найбільш “плетених”. Ось
-  рекомендований порядок для data-шару (посилання на відповідні .sq з бекапу):
+Відновлюємо спочатку шар даних, далі рухаємось до залежних сценаріїв. Станом на зараз у `packages/shared` уже готові
+Projects, Goals, ListItems, RecentItems, ConversationFolders, InboxRecords, LegacyNotes, Checklists + ChecklistItems,
+Attachments + ProjectAttachmentCrossRef, ProjectArtifacts, ProjectExecutionLogs, ActivityRecords (разом із FTS),
+Reminders та увесь блок DayManagement (DayPlans, DayTasks, DailyMetrics).
 
-  1. ConversationFolders (sqldelight_backup/ConversationFolders.sq)
-      - Абсолютно автономна таблиця (id, name). Жодних FK чи залежностей. Легко вставити в KMP і одразу перевірити.
-  2. InboxRecords (InboxRecords.sq)
-      - Проста структура “дошки входящих” → прив’язується лише до projectId. Можна швидко відновити CRUD і перевірити через існуючий
-        ProjectRepository.
-  3. Legacy Notes (Notes.sq) та NoteDocuments + NoteDocumentItems
-      - Також мають тільки projectId (та listId у items). Немає зовнішніх типів чи крос-таблиць, тому логіка додається без масової синхронізації з
-        іншими сутностями.
-  4. Checklists + ChecklistItems (Checklists.sq, ChecklistItems.sq)
-      - Залежність лише від projectId/checklistId. Після нотаток можна відновити чеклісти (використовуючи такий самий патерн репозиторіїв).
-  5. Attachments + ProjectAttachmentCrossRef (Attachments.sq, ProjectAttachmentCrossRef.sq)
-      - Тут з’являється перший крос-реф: таблиця прикріплюється до проекту через join. Краще братися, коли в коді вже є базова інфраструктура
-        списків/деталей.
-  6. ProjectArtifacts (ProjectArtifacts.sq)
-      - Теж залежить лише від projectId. Можна відновити після attachments, коли є приклади крос-табольної логіки.
-  7. Reminders (Reminders.sq)
-      - Прив’язуються до будь-якої entityId/entityType, але таблиця сама по собі проста (id, status, snoozeUntil). Потрібно лише визначитися, для
-        яких сутностей активуємо нагадування на першому етапі.
-  8. RecurringTasks (RecurringTasks.sq)
-      - Використовує кастомні типи (TaskPriority, RecurrenceFrequency), посилається на goalId. Повертаємо, коли Goal-функціонал уже стабільний (у
-        нас він є) і готові додати кастомні adapters.
-  9. ActivityRecords (ActivityRecord.sq + FTS), ProjectExecutionLogs, DailyMetrics, DayPlan/DayTasks
-      - Це великий блок (треки активностей, планування дня, метрики). Тут JSON-поля, FTS-тригери, залежності на Goals/Projects. Повертаємо в останню
-        чергу, коли решта шарів стабільні.
-  10. Attachments/Conversation/Notes розширення (наприклад, ConversationFolders → майбутні ConversationRecords, ProjectAttachmentCrossRef)
-      - Після базового повернення можна нарощувати складні сценарії (пошук, FTS, глобальні журнали).
+У `sqldelight_backup/` та `sqldelight_backup_2/` залишились лише три сутності, які ще не перенесені в KMP-шар. Їх
+і тримаємо у пріоритеті (у порядку зростання складності):
 
-  Таким чином ти спочатку повертаєш маленькі автономні сутності (Folders, Inbox, Notes), потім поступово переходиш до тих, що мають крос-рефи
-  або кастомні типи, і лише в кінці — великі “журнали” (ActivityRecords, DayPlan). Це мінімізує кількість взаємозалежних міграцій та дозволяє
-  інкрементально тестувати відновлений функціонал.
+  1. NoteDocuments (sqldelight_backup/NoteDocuments.sq, sqldelight_backup_2/NoteDocuments.sq)
+      - Це редактор документів, який лінкується до проекту через `projectId`, а в Room-версії також був типом вкладення
+        (`attachments`, `project_attachment_cross_ref`). Потрібно повернути таблицю, DAO/репозиторій та інтегрувати її в
+        `features/attachments/types/notedocuments` під тією самою DI-парасолькою, що й LegacyNotes.
+      - Не забудь про поля `content`, `lastCursorPosition` та сортування за `updatedAt DESC`, як зафіксовано в бекапах.
+  2. NoteDocumentItems (sqldelight_backup/NoteDocumentItems.sq, sqldelight_backup_2/NoteDocumentItems.sq, а також
+      комбіновані запити в sqldelight_backup/NoteDocument.sq)
+      - Це ієрархічні пункти документу (listId = documentId, parentId, isCompleted, itemOrder). Потрібно повернути CRUD,
+        масові видалення та сортування, передбачені у старих `.sq`. Репозиторій має жити поруч із NoteDocuments і
+        використовувати транзакції для одночасних апдейтів документу та його items.
+  3. RecurringTasks (sqldelight_backup/RecurringTasks.sq, sqldelight_backup_2/RecurringTasks.sq)
+      - Включає кастомні типи `TaskPriority`, `RecurrenceFrequency`, поле `daysOfWeek` (List<String>) та зв’язок із
+        `goalId`. Також DayTasks містили запити `selectByRecurringIdAndDayPlanId`, тож при відновленні потрібно додати
+        column adapters і тести на генерацію шаблонів для day-plan.
+
+Після того, як ці три сутності переїдуть у shared з міграціями і тестами, продовжуй звірятись з `sqldelight_backup*/`.
+Якщо вона повністю “порожня” (усе перенесено), переходь на `dev` гілку з Room-реалізацією та виписуй сутності, яких ще
+немає у KMP.
 
 
 деякі пункти можуть бути вже виконані. перевіряти це

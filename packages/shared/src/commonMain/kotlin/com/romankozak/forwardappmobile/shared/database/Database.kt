@@ -10,6 +10,8 @@ import com.romankozak.forwardappmobile.shared.data.models.ReservedGroup
 import com.romankozak.forwardappmobile.shared.features.activitytracker.ActivityRecords
 import com.romankozak.forwardappmobile.shared.features.aichat.ConversationFolders
 import com.romankozak.forwardappmobile.shared.features.attachments.types.legacynotes.LegacyNotes
+import com.romankozak.forwardappmobile.shared.features.attachments.types.notedocuments.NoteDocumentItems
+import com.romankozak.forwardappmobile.shared.features.attachments.types.notedocuments.NoteDocuments
 import com.romankozak.forwardappmobile.shared.features.attachments.types.checklists.ChecklistItems
 import com.romankozak.forwardappmobile.shared.features.projects.core.domain.model.ProjectType
 import com.romankozak.forwardappmobile.shared.features.projects.views.advancedview.ProjectArtifacts
@@ -19,6 +21,8 @@ import com.romankozak.forwardappmobile.shared.features.daymanagement.dailymetric
 import com.romankozak.forwardappmobile.shared.features.daymanagement.dayplan.domain.model.DayStatus
 import com.romankozak.forwardappmobile.shared.features.daymanagement.dayplan.domain.model.TaskPriority
 import com.romankozak.forwardappmobile.shared.features.daymanagement.dayplan.domain.model.TaskStatus
+import com.romankozak.forwardappmobile.shared.features.daymanagement.recurringtasks.RecurringTasks
+import com.romankozak.forwardappmobile.shared.features.daymanagement.recurringtasks.domain.model.RecurrenceFrequency
 import com.romankozak.forwardappmobile.shared.features.reminders.Reminders
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
@@ -123,6 +127,11 @@ val taskStatusAdapter = object : ColumnAdapter<TaskStatus, String> {
     override fun encode(value: TaskStatus): String = value.name
 }
 
+val recurrenceFrequencyAdapter = object : ColumnAdapter<RecurrenceFrequency, String> {
+    override fun decode(databaseValue: String): RecurrenceFrequency = RecurrenceFrequency.valueOf(databaseValue)
+    override fun encode(value: RecurrenceFrequency): String = value.name
+}
+
 // ------------------------------------------------------
 // 🔹 Фабрика створення бази даних
 // ------------------------------------------------------
@@ -181,6 +190,18 @@ fun createForwardAppDatabase(driver: SqlDriver): ForwardAppDatabase {
         itemOrderAdapter = longAdapter,
     )
 
+    val noteDocumentsAdapter = NoteDocuments.Adapter(
+        createdAtAdapter = longAdapter,
+        updatedAtAdapter = longAdapter,
+        lastCursorPositionAdapter = longAdapter,
+    )
+
+    val noteDocumentItemsAdapter = NoteDocumentItems.Adapter(
+        itemOrderAdapter = longAdapter,
+        createdAtAdapter = longAdapter,
+        updatedAtAdapter = longAdapter,
+    )
+
     val projectArtifactsAdapter = ProjectArtifacts.Adapter(
         idAdapter = stringAdapter,
         projectIdAdapter = stringAdapter,
@@ -237,6 +258,16 @@ fun createForwardAppDatabase(driver: SqlDriver): ForwardAppDatabase {
         createdAtAdapter = longAdapter,
     )
 
+    val recurringTasksAdapter = RecurringTasks.Adapter(
+        durationAdapter = intAdapter,
+        priorityAdapter = taskPriorityAdapter,
+        pointsAdapter = intAdapter,
+        frequencyAdapter = recurrenceFrequencyAdapter,
+        intervalAdapter = intAdapter,
+        daysOfWeekAdapter = stringListAdapter,
+        startDateAdapter = longAdapter,
+    )
+
     return ForwardAppDatabase(
         driver = driver,
         GoalsAdapter = goalsAdapter,
@@ -245,12 +276,15 @@ fun createForwardAppDatabase(driver: SqlDriver): ForwardAppDatabase {
         ConversationFoldersAdapter = conversationFoldersAdapter,
         LegacyNotesAdapter = legacyNotesAdapter,
         ChecklistItemsAdapter = checklistItemsAdapter,
+        NoteDocumentsAdapter = noteDocumentsAdapter,
+        NoteDocumentItemsAdapter = noteDocumentItemsAdapter,
         ProjectArtifactsAdapter = projectArtifactsAdapter,
         ActivityRecordsAdapter = activityRecordsAdapter,
         RemindersAdapter = remindersAdapter,
         DayPlansAdapter = dayPlansAdapter,
         DayTasksAdapter = dayTasksAdapter,
         DailyMetricsAdapter = dailyMetricsAdapter,
+        RecurringTasksAdapter = recurringTasksAdapter,
     )
 }
 val stringDoubleMapAdapter = object : ColumnAdapter<StringDoubleMap, String> {

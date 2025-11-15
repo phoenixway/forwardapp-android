@@ -1,0 +1,63 @@
+import kotlin.Long;
+import kotlin.String;
+
+CREATE TABLE NoteDocuments (
+    id TEXT NOT NULL PRIMARY KEY,
+    projectId TEXT NOT NULL,
+    name TEXT NOT NULL,
+    content TEXT,
+    createdAt INTEGER AS Long NOT NULL,
+    updatedAt INTEGER AS Long NOT NULL,
+    lastCursorPosition INTEGER AS Long NOT NULL DEFAULT 0
+);
+
+getNoteDocumentsForProject:
+SELECT * FROM NoteDocuments
+WHERE projectId = :projectId
+ORDER BY updatedAt DESC;
+
+getAllNoteDocuments:
+SELECT * FROM NoteDocuments
+ORDER BY updatedAt DESC;
+
+getNoteDocumentById:
+SELECT * FROM NoteDocuments
+WHERE id = :id;
+
+insertNoteDocument:
+INSERT OR REPLACE INTO NoteDocuments(
+    id,
+    projectId,
+    name,
+    content,
+    createdAt,
+    updatedAt,
+    lastCursorPosition
+) VALUES (
+    :id,
+    :projectId,
+    :name,
+    :content,
+    :createdAt,
+    :updatedAt,
+    :lastCursorPosition
+);
+
+updateNoteDocument:
+UPDATE NoteDocuments SET
+    name = :name,
+    content = :content,
+    updatedAt = :updatedAt,
+    lastCursorPosition = :lastCursorPosition
+WHERE id = :id;
+
+deleteNoteDocumentById:
+DELETE FROM NoteDocuments
+WHERE id = :id;
+
+deleteNoteDocumentsByProject:
+DELETE FROM NoteDocuments
+WHERE projectId = :projectId;
+
+deleteAllNoteDocuments:
+DELETE FROM NoteDocuments;

@@ -120,3 +120,18 @@ DELETE FROM DayTasks WHERE id = :taskId;
 
 deleteTasksForPlan:
 DELETE FROM DayTasks WHERE dayPlanId = :dayPlanId;
+
+deleteTasksForDayPlanIds:
+DELETE FROM DayTasks WHERE recurringTaskId = :recurringTaskId AND dayPlanId IN :dayPlanIds;
+
+selectByRecurringIdAndDayPlanId:
+SELECT * FROM DayTasks WHERE recurringTaskId = :recurringTaskId AND dayPlanId = :dayPlanId;
+
+selectTemplateForRecurringTask:
+SELECT * FROM DayTasks WHERE recurringTaskId = :recurringTaskId AND dayPlanId IS NULL;
+
+detachFromRecurrence:
+UPDATE DayTasks SET recurringTaskId = NULL, updatedAt = :updatedAt WHERE id = :taskId;
+
+updateNextOccurrenceTime:
+UPDATE DayTasks SET nextOccurrenceTime = :nextOccurrenceTime, updatedAt = :updatedAt WHERE id = :taskId;

@@ -1,0 +1,77 @@
+import kotlin.Boolean;
+import kotlin.Long;
+import kotlin.String;
+
+CREATE TABLE NoteDocumentItems (
+    id TEXT NOT NULL PRIMARY KEY,
+    listId TEXT NOT NULL,
+    parentId TEXT,
+    content TEXT NOT NULL,
+    isCompleted INTEGER AS Boolean NOT NULL,
+    itemOrder INTEGER AS Long NOT NULL,
+    createdAt INTEGER AS Long NOT NULL,
+    updatedAt INTEGER AS Long NOT NULL
+);
+
+getNoteDocumentItems:
+SELECT * FROM NoteDocumentItems
+WHERE listId = :documentId
+ORDER BY itemOrder ASC;
+
+getAllNoteDocumentItems:
+SELECT * FROM NoteDocumentItems
+ORDER BY itemOrder ASC;
+
+getNoteDocumentItemById:
+SELECT * FROM NoteDocumentItems
+WHERE id = :id;
+
+insertNoteDocumentItem:
+INSERT OR REPLACE INTO NoteDocumentItems(
+    id,
+    listId,
+    parentId,
+    content,
+    isCompleted,
+    itemOrder,
+    createdAt,
+    updatedAt
+) VALUES (
+    :id,
+    :documentId,
+    :parentId,
+    :content,
+    :isCompleted,
+    :itemOrder,
+    :createdAt,
+    :updatedAt
+);
+
+updateNoteDocumentItem:
+UPDATE NoteDocumentItems SET
+    listId = :documentId,
+    parentId = :parentId,
+    content = :content,
+    isCompleted = :isCompleted,
+    itemOrder = :itemOrder,
+    createdAt = :createdAt,
+    updatedAt = :updatedAt
+WHERE id = :id;
+
+deleteNoteDocumentItemById:
+DELETE FROM NoteDocumentItems WHERE id = :id;
+
+deleteNoteDocumentItemsByDocument:
+DELETE FROM NoteDocumentItems WHERE listId = :documentId;
+
+deleteNoteDocumentItemsByIds:
+DELETE FROM NoteDocumentItems WHERE id IN :ids;
+
+deleteNoteDocumentItemsByProject:
+DELETE FROM NoteDocumentItems
+WHERE listId IN (
+    SELECT id FROM NoteDocuments WHERE projectId = :projectId
+);
+
+deleteAllNoteDocumentItems:
+DELETE FROM NoteDocumentItems;

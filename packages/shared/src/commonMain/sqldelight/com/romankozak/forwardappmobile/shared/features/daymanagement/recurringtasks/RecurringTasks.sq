@@ -1,0 +1,70 @@
+import com.romankozak.forwardappmobile.shared.data.database.models.StringList;
+import com.romankozak.forwardappmobile.shared.features.daymanagement.dayplan.domain.model.TaskPriority;
+import com.romankozak.forwardappmobile.shared.features.daymanagement.recurringtasks.domain.model.RecurrenceFrequency;
+import kotlin.Int;
+import kotlin.Long;
+import kotlin.String;
+
+CREATE TABLE RecurringTasks (
+    id TEXT NOT NULL PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT,
+    goalId TEXT,
+    duration INTEGER AS Int,
+    priority TEXT AS TaskPriority NOT NULL DEFAULT 'MEDIUM',
+    points INTEGER AS Int NOT NULL DEFAULT 0,
+    frequency TEXT AS RecurrenceFrequency NOT NULL,
+    "interval" INTEGER AS Int NOT NULL DEFAULT 1,
+    daysOfWeek TEXT AS StringList,
+    startDate INTEGER AS Long NOT NULL,
+    endDate INTEGER AS Long
+);
+
+getAllRecurringTasks:
+SELECT * FROM RecurringTasks ORDER BY startDate DESC;
+
+getRecurringTasksByGoal:
+SELECT * FROM RecurringTasks
+WHERE goalId = :goalId
+ORDER BY startDate DESC;
+
+getRecurringTaskById:
+SELECT * FROM RecurringTasks WHERE id = :id;
+
+insertRecurringTask:
+INSERT OR REPLACE INTO RecurringTasks(
+    id,
+    title,
+    description,
+    goalId,
+    duration,
+    priority,
+    points,
+    frequency,
+    "interval",
+    daysOfWeek,
+    startDate,
+    endDate
+) VALUES (
+    :id,
+    :title,
+    :description,
+    :goalId,
+    :duration,
+    :priority,
+    :points,
+    :frequency,
+    :interval,
+    :daysOfWeek,
+    :startDate,
+    :endDate
+);
+
+deleteRecurringTaskById:
+DELETE FROM RecurringTasks WHERE id = :id;
+
+deleteRecurringTasksByGoal:
+DELETE FROM RecurringTasks WHERE goalId = :goalId;
+
+deleteAllRecurringTasks:
+DELETE FROM RecurringTasks;

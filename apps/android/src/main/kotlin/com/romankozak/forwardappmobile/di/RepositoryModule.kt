@@ -13,6 +13,10 @@ import com.romankozak.forwardappmobile.shared.features.daymanagement.dayplan.dom
 import com.romankozak.forwardappmobile.shared.features.daymanagement.dayplan.domain.repository.DayTaskRepository
 import com.romankozak.forwardappmobile.shared.features.daymanagement.dailymetrics.data.repository.DailyMetricsRepositoryImpl
 import com.romankozak.forwardappmobile.shared.features.daymanagement.dailymetrics.domain.repository.DailyMetricsRepository
+import com.romankozak.forwardappmobile.shared.features.daymanagement.recurringtasks.data.repository.RecurringTaskRepositoryImpl
+import com.romankozak.forwardappmobile.shared.features.daymanagement.recurringtasks.domain.repository.RecurringTaskRepository
+import com.romankozak.forwardappmobile.shared.features.attachments.types.notedocuments.data.repository.NoteDocumentsRepositoryImpl
+import com.romankozak.forwardappmobile.shared.features.attachments.types.notedocuments.domain.repository.NoteDocumentsRepository
 import com.romankozak.forwardappmobile.shared.features.projects.logs.data.repository.ProjectExecutionLogsRepositoryImpl
 import com.romankozak.forwardappmobile.shared.features.projects.logs.domain.repository.ProjectExecutionLogsRepository
 import com.romankozak.forwardappmobile.shared.features.projects.views.advancedview.projectartifacts.data.repository.ProjectArtifactRepositoryImpl
@@ -71,6 +75,13 @@ interface RepositoryModule {
 
     @Provides
     @AndroidSingleton
+    fun provideNoteDocumentsRepository(
+        database: ForwardAppDatabase,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+    ): NoteDocumentsRepository = NoteDocumentsRepositoryImpl(database, ioDispatcher)
+
+    @Provides
+    @AndroidSingleton
     fun provideProjectArtifactRepository(
         database: ForwardAppDatabase,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
@@ -124,6 +135,13 @@ interface RepositoryModule {
         database: ForwardAppDatabase,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
     ): DayTaskRepository = DayTaskRepositoryImpl(database, ioDispatcher)
+
+    @Provides
+    @AndroidSingleton
+    fun provideRecurringTaskRepository(
+        database: ForwardAppDatabase,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+    ): RecurringTaskRepository = RecurringTaskRepositoryImpl(database, ioDispatcher)
 
     @Provides
     @AndroidSingleton
