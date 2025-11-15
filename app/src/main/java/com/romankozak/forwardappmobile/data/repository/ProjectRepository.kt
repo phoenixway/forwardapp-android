@@ -345,8 +345,9 @@ constructor(
     suspend fun moveProject(
         projectToMove: Project,
         newParentId: String?,
+        allowSystemProjectMoves: Boolean = false,
     ) {
-        if (projectToMove.projectType != ProjectType.DEFAULT) {
+        if (!allowSystemProjectMoves && projectToMove.projectType != ProjectType.DEFAULT) {
             return
         }
         val projectFromDb = projectDao.getProjectById(projectToMove.id) ?: return
@@ -399,6 +400,11 @@ constructor(
         val attachment = attachmentRepository.createLinkAttachment(projectId, link)
         return attachment.id
     }
+
+    suspend fun linkAttachmentToProject(
+        attachmentId: String,
+        targetProjectId: String,
+    ) = attachmentRepository.linkAttachmentToProject(attachmentId, targetProjectId)
 
     suspend fun findProjectIdsByTag(tag: String): List<String> = projectDao.getProjectIdsByTag(tag)
 

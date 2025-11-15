@@ -308,6 +308,8 @@ constructor(
 
   private lateinit var lazyListState: LazyListState
 
+  private var pendingAttachmentShare: ListItemContent? = null
+
 
 
 
@@ -759,6 +761,11 @@ constructor(
     }
   }
 
+  override fun requestAttachmentShare(item: ListItemContent) {
+    pendingAttachmentShare = item
+    navigateToListChooser("Виберіть проект для вкладення")
+  }
+
   override fun setPendingAction(
     actionType: GoalActionType,
     itemIds: Set<String>,
@@ -847,6 +854,12 @@ constructor(
   }
 
   fun onListChooserResult(targetProjectId: String) {
+    pendingAttachmentShare?.let { attachment ->
+      pendingAttachmentShare = null
+      shareAttachmentToProject(attachment, targetProjectId)
+      return
+    }
+
     if (inboxHandler.recordForPromotion.value != null) {
       inboxHandler.onListSelectedForInboxPromotion(targetProjectId)
       return
@@ -924,6 +937,33 @@ constructor(
 
   fun onScrolledToNewItem() {
     _uiState.update { it.copy(newlyAddedItemId = null) }
+  }
+
+  private fun shareAttachmentToProject(
+    attachment: ListItemContent,
+    targetProjectId: String,
+  ) {
+    viewModelScope.launch(Dispatchers.IO) {
+      val isAttachmentSupported =
+        attachment is ListItemContent.LinkItem ||
+          attachment is ListItemContent.NoteDocumentItem ||
+          attachment is ListItemContent.ChecklistItem
+      if (!isAttachmentSupported) {
+        withContext(Dispatchers.Main) {
+          showSnackbar("Цей тип вкладення не підтримує копіювання", null)
+        }
+        return@launch
+      }
+
+      projectRepository.linkAttachmentToProject(attachment.listItem.id, targetProjectId)
+      withContext(Dispatchers.Main) {
+        if (targetProjectId == projectIdFlow.value) {
+          _uiState.update { it.copy(newlyAddedItemId = attachment.listItem.id) }
+          forceRefresh()
+        }
+        showSnackbar("Вкладення додано до вибраного проєкту", null)
+      }
+    }
   }
 
   fun onMove(fromIndex: Int, toIndex: Int) {

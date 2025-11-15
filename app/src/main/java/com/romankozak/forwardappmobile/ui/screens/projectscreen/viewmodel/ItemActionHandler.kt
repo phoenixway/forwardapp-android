@@ -32,6 +32,8 @@ class ItemActionHandler
             fun isSelectionModeActive(): Boolean
 
             fun toggleSelection(itemId: String)
+
+            fun requestAttachmentShare(item: ListItemContent)
         }
 
         private var recentlyDeletedItems: List<ListItemContent>? = null
@@ -97,6 +99,10 @@ class ItemActionHandler
                 projectRepository.deleteListItems(projectIdFlow.value, listOf(item.listItem.id))
                 resultListener.showSnackbar("Елемент видалено", "Скасувати")
             }
+        }
+
+        fun shareAttachmentToProject(item: ListItemContent) {
+            resultListener.requestAttachmentShare(item)
         }
 
         fun onGoalActionInitiated(item: ListItemContent) {

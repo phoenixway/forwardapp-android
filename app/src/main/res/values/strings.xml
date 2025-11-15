@@ -21,6 +21,7 @@
     <string name="attachments_header">Вкладення</string>
     <string name="no_attachments_message">Немає вкладень</string>
     <string name="delete_attachment_description">Видалити вкладення</string>
+    <string name="copy_attachment_to_project">Додати у проект</string>
     <string name="add_attachment_description">Додати вкладення</string>
     <string name="add_attachment_button">Додати вкладення</string>
     <string name="attachment_type_notes">Нотатки</string>
@@ -79,4 +80,5 @@
     <string name="add">Додати</string>
     <string name="menu_add_obsidian_link">Додати посилання Obsidian</string>
     <string name="note_name">Назва нотатки</string>
+    <string name="settings_allow_system_project_moves">Дозволити переміщувати системні проекти</string>
 </resources>

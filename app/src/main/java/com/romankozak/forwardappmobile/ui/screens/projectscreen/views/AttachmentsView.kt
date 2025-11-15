@@ -1,15 +1,25 @@
 package com.romankozak.forwardappmobile.ui.screens.projectscreen.views
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -20,10 +30,9 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
-import com.romankozak.forwardappmobile.features.attachments.ui.project.AttachmentType
-import com.romankozak.forwardappmobile.features.attachments.ui.project.components.NoteDocumentItemRow
 import com.romankozak.forwardappmobile.features.attachments.ui.project.components.ChecklistItemRow
 import com.romankozak.forwardappmobile.features.attachments.ui.project.components.LinkItemRow
+import com.romankozak.forwardappmobile.features.attachments.ui.project.components.NoteDocumentItemRow
 
 @Composable
 fun AttachmentsView(
@@ -35,161 +44,149 @@ fun AttachmentsView(
         it is ListItemContent.LinkItem || it is ListItemContent.NoteDocumentItem || it is ListItemContent.ChecklistItem
     }
 
-    LazyColumn(
-        modifier = modifier.padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+    Column(
+        modifier =
+            modifier
+                .fillMaxSize()
+                .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        items(attachments, key = { it.hashCode() }) {
-            AttachmentItemCard(
-                item = it,
-                onItemClick = { viewModel.itemActionHandler.onItemClick(it) },
-                onDeleteItem = { viewModel.itemActionHandler.deleteItem(it) },
-                onCopyContentRequest = { viewModel.itemActionHandler.copyContentRequest(it) }
-            )
+        if (attachments.isEmpty()) {
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .weight(1f, fill = true)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                        .padding(horizontal = 16.dp, vertical = 24.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(R.string.no_attachments_message),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .weight(1f, fill = false),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                items(attachments, key = { it.hashCode() }) {
+                    AttachmentItemCard(
+                        item = it,
+                        onItemClick = { viewModel.itemActionHandler.onItemClick(it) },
+                        onDeleteItem = { viewModel.itemActionHandler.deleteItem(it) },
+                        onCopyContentRequest = { viewModel.itemActionHandler.copyContentRequest(it) },
+                        onShareAttachment = { attachment ->
+                            viewModel.itemActionHandler.shareAttachmentToProject(attachment)
+                        },
+                    )
+                }
+            }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AttachmentItemCard(
     item: ListItemContent,
     onItemClick: (ListItemContent) -> Unit,
     onDeleteItem: (ListItemContent) -> Unit,
     onCopyContentRequest: (ListItemContent) -> Unit,
+    onShareAttachment: (ListItemContent) -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        tonalElevation = 1.dp,
+        shadowElevation = 1.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
+        color = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(modifier = Modifier.padding(vertical = 8.dp)) {
+            when (item) {
+                is ListItemContent.LinkItem -> {
+                    LinkItemRow(
+                        linkItem = item,
+                        isSelected = false,
+                        isHighlighted = false,
+                        onClick = { onItemClick(item) },
+                        onLongClick = { },
+                        endAction = {},
+                        onDelete = { onDeleteItem(item) },
+                        onCopyContentRequest = onCopyContentRequest,
+                    )
+                }
+                is ListItemContent.NoteDocumentItem -> {
+                    NoteDocumentItemRow(
+                        noteDocumentItem = item,
+                        onClick = { onItemClick(item) },
+                        onDelete = { onDeleteItem(item) },
+                        trailingContent = {},
+                    )
+                }
+                is ListItemContent.ChecklistItem -> {
+                    ChecklistItemRow(
+                        checklistItem = item,
+                        onClick = { onItemClick(item) },
+                        onDelete = { onDeleteItem(item) },
+                        trailingContent = {},
+                    )
+                }
+                else -> {}
+            }
+
+            AttachmentActionsRow(
+                modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, top = 4.dp),
+                onShareAttachment = { onShareAttachment(item) },
+                onDeleteItem = { onDeleteItem(item) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun AttachmentActionsRow(
+    modifier: Modifier = Modifier,
+    onShareAttachment: () -> Unit,
+    onDeleteItem: () -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-            ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        onClick = { onItemClick(item) }
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        val endAction = @Composable {
-            IconButton(
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onDeleteItem(item)
-                },
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = stringResource(R.string.delete_attachment_description),
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(18.dp),
-                )
-            }
-        }
-
-        when (item) {
-            is ListItemContent.LinkItem -> {
-                LinkItemRow(
-                    linkItem = item,
-                    isSelected = false,
-                    isHighlighted = false,
-                    onClick = { onItemClick(item) },
-                    onLongClick = { },
-                    endAction = endAction,
-                    onDelete = { onDeleteItem(item) },
-                    onCopyContentRequest = onCopyContentRequest,
-                )
-            }
-            is ListItemContent.NoteDocumentItem -> {
-                NoteDocumentItemRow(
-                    noteDocumentItem = item,
-                    onClick = { onItemClick(item) },
-                    onDelete = { onDeleteItem(item) },
-                )
-            }
-            is ListItemContent.ChecklistItem -> {
-                ChecklistItemRow(
-                    checklistItem = item,
-                    onClick = { onItemClick(item) },
-                    onDelete = { onDeleteItem(item) },
-                )
-            }
-            else -> {}
-        }
-    }
-}
-
-@Composable
-private fun AddAttachmentButton(onAddAttachment: (AttachmentType) -> Unit) {
-    var showAddMenu by remember { mutableStateOf(false) }
-
-    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        FilledTonalButton(
-            onClick = { showAddMenu = true },
-            modifier = Modifier.fillMaxWidth(),
-            colors =
-                ButtonDefaults.filledTonalButtonColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                ),
+        Spacer(modifier = Modifier.weight(1f))
+        IconButton(
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onShareAttachment()
+            },
         ) {
             Icon(
-                Icons.Default.Add,
-                contentDescription = stringResource(R.string.add_attachment_description),
-                modifier = Modifier.size(18.dp),
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = stringResource(R.string.add_attachment_button),
-                style = MaterialTheme.typography.labelLarge,
+                imageVector = Icons.Default.Share,
+                contentDescription = stringResource(R.string.copy_attachment_to_project),
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp),
             )
         }
-
-        DropdownMenu(
-            expanded = showAddMenu,
-            onDismissRequest = { showAddMenu = false },
-            modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface),
+        IconButton(
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onDeleteItem()
+            },
         ) {
-            AttachmentTypeMenuItem(R.string.attachment_type_notes, AttachmentType.NOTES) { type ->
-                onAddAttachment(type)
-                showAddMenu = false
-            }
-            AttachmentTypeMenuItem(R.string.attachment_type_checklist, AttachmentType.CHECKLIST) { type ->
-                onAddAttachment(type)
-                showAddMenu = false
-            }
-            AttachmentTypeMenuItem(R.string.attachment_type_web_link, AttachmentType.WEB_LINK) { type ->
-                onAddAttachment(type)
-                showAddMenu = false
-            }
-            AttachmentTypeMenuItem(R.string.attachment_type_obsidian, AttachmentType.OBSIDIAN_LINK) { type ->
-                onAddAttachment(type)
-                showAddMenu = false
-            }
-            AttachmentTypeMenuItem(R.string.attachment_type_project_link, AttachmentType.PROJECT_LINK) { type ->
-                onAddAttachment(type)
-                showAddMenu = false
-            }
-            HorizontalDivider()
-            AttachmentTypeMenuItem(R.string.menu_add_project_shortcut, AttachmentType.PROJECT_SHORTCUT) { type ->
-                onAddAttachment(type)
-                showAddMenu = false
-            }
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = stringResource(R.string.delete_attachment_description),
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(20.dp),
+            )
         }
     }
-}
-
-@Composable
-private fun AttachmentTypeMenuItem(
-    textRes: Int,
-    type: AttachmentType,
-    onSelect: (AttachmentType) -> Unit,
-) {
-    DropdownMenuItem(
-        text = {
-            Text(
-                text = stringResource(textRes),
-                style = MaterialTheme.typography.bodyMedium,
-            )
-        },
-        onClick = { onSelect(type) },
-        modifier = Modifier.padding(horizontal = 4.dp),
-    )
 }

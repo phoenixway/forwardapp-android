@@ -42,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningSettingsState
@@ -58,6 +59,7 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.only
 import com.romankozak.forwardappmobile.ui.screens.settings.components.AnimatedTextField
 import com.romankozak.forwardappmobile.ui.screens.settings.components.SettingsCard
+import com.romankozak.forwardappmobile.R
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -174,18 +176,33 @@ fun SettingsScreen(
                 title = "Experimental Features",
                 icon = Icons.Default.Build,
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "Attachments library",
-                        modifier = Modifier.weight(1f),
-                    )
-                    Switch(
-                        checked = uiState.attachmentsLibraryEnabled,
-                        onCheckedChange = viewModel::onAttachmentsLibraryToggle
-                    )
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Attachments library",
+                            modifier = Modifier.weight(1f),
+                        )
+                        Switch(
+                            checked = uiState.attachmentsLibraryEnabled,
+                            onCheckedChange = viewModel::onAttachmentsLibraryToggle
+                        )
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = stringResource(R.string.settings_allow_system_project_moves),
+                            modifier = Modifier.weight(1f),
+                        )
+                        Switch(
+                            checked = uiState.allowSystemProjectMoves,
+                            onCheckedChange = viewModel::onAllowSystemProjectMovesToggle,
+                        )
+                    }
                 }
             }
 

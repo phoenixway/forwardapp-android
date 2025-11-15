@@ -83,15 +83,48 @@ class DatabaseInitializer @Inject constructor(
             tags = null,
         )
 
+        val todayProjectId = UUID.randomUUID().toString()
+        val todayProject =
+            Project(
+                id = todayProjectId,
+                name = "today",
+                parentId = personalManagementProjectId,
+                systemKey = ReservedProjectKeys.TODAY,
+                isExpanded = false,
+                projectType = ProjectType.RESERVED,
+                reservedGroup = ReservedGroup.Inbox,
+                description = null,
+                createdAt = System.currentTimeMillis(),
+                updatedAt = null,
+                tags = null,
+            )
+
+        val mainBeaconsProjectId = UUID.randomUUID().toString()
+        val mainBeaconsProject =
+            Project(
+                id = mainBeaconsProjectId,
+                name = "main-beacons",
+                parentId = personalManagementProjectId,
+                systemKey = ReservedProjectKeys.MAIN_BEACONS,
+                isExpanded = false,
+                projectType = ProjectType.RESERVED,
+                reservedGroup = ReservedGroup.MainBeacons,
+                description = null,
+                createdAt = System.currentTimeMillis(),
+                updatedAt = null,
+                tags = null,
+            )
+
         val projects = mutableListOf(
             personalManagementProject,
             strategicGroupProject,
             strategicBeaconsGroupProject,
             weekProject,
+            todayProject,
+            mainBeaconsProject,
             Project(id = UUID.randomUUID().toString(), name = "mission", parentId = strategicBeaconsGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = ReservedGroup.MainBeacons, description = null, systemKey = ReservedProjectKeys.MISSION, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
             Project(id = UUID.randomUUID().toString(), name = "long-term-strategy", parentId = strategicBeaconsGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = ReservedGroup.Strategic, description = null, systemKey = ReservedProjectKeys.LONG_TERM_STRATEGY, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
             Project(id = UUID.randomUUID().toString(), name = "strategic-programs", parentId = strategicBeaconsGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = ReservedGroup.Strategic, description = null, systemKey = ReservedProjectKeys.STRATEGIC_PROGRAMS, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
-            Project(id = UUID.randomUUID().toString(), name = "main-beacons-realization", parentId = strategicBeaconsGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = ReservedGroup.Strategic, description = null, systemKey = ReservedProjectKeys.MAIN_BEACONS_REALIZATION, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
             Project(id = UUID.randomUUID().toString(), name = "medium-term-strategy", parentId = personalManagementProjectId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = ReservedGroup.Strategic, description = null, systemKey = ReservedProjectKeys.MEDIUM_TERM_STRATEGY, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
             Project(id = UUID.randomUUID().toString(), name = "active-quests", parentId = weekProjectId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = ReservedGroup.Strategic, description = null, systemKey = ReservedProjectKeys.ACTIVE_QUESTS, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
             Project(id = UUID.randomUUID().toString(), name = "strategic-inbox", parentId = strategicGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = ReservedGroup.Strategic, description = null, systemKey = ReservedProjectKeys.STRATEGIC_INBOX, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
@@ -99,19 +132,20 @@ class DatabaseInitializer @Inject constructor(
         )
 
         val inboxProjectId = UUID.randomUUID().toString()
-        val inboxProject = Project(
-            id = inboxProjectId,
-            name = "inbox",
-            parentId = personalManagementProjectId,
-            systemKey = ReservedProjectKeys.INBOX,
-            isExpanded = false,
-            projectType = ProjectType.RESERVED,
-            reservedGroup = ReservedGroup.Inbox,
-            description = null,
-            createdAt = System.currentTimeMillis(),
-            updatedAt = null,
-            tags = null
-        )
+        val inboxProject =
+            Project(
+                id = inboxProjectId,
+                name = "inbox",
+                parentId = todayProjectId,
+                systemKey = ReservedProjectKeys.INBOX,
+                isExpanded = false,
+                projectType = ProjectType.RESERVED,
+                reservedGroup = ReservedGroup.Inbox,
+                description = null,
+                createdAt = System.currentTimeMillis(),
+                updatedAt = null,
+                tags = null,
+            )
         projects.add(inboxProject)
 
         projectDao.insertProjects(projects)

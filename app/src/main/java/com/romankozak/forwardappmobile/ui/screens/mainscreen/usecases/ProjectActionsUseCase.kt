@@ -13,6 +13,7 @@ import java.net.URLEncoder
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.first
 
 class ProjectActionsUseCase @Inject constructor(
     private val projectRepository: ProjectRepository,
@@ -69,7 +70,8 @@ class ProjectActionsUseCase @Inject constructor(
 
         if (projectToMove.parentId == finalNewParentId) return@withContext
 
-        projectRepository.moveProject(projectToMove, finalNewParentId)
+        val allowSystemMoves = settingsRepository.allowSystemProjectMovesFlow.first()
+        projectRepository.moveProject(projectToMove, finalNewParentId, allowSystemMoves)
 
         if (finalNewParentId != null) {
             val parentProject = allProjects.find { it.id == finalNewParentId }

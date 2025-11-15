@@ -36,6 +36,7 @@ data class SettingsUiState(
     val serverDiscoveryState: ServerDiscoveryState = ServerDiscoveryState.Loading,
     val themeSettings: com.romankozak.forwardappmobile.ui.theme.ThemeSettings = com.romankozak.forwardappmobile.ui.theme.ThemeSettings(),
     val attachmentsLibraryEnabled: Boolean = FeatureToggles.attachmentsLibraryEnabled,
+    val allowSystemProjectMoves: Boolean = false,
 )
 
 @HiltViewModel
@@ -69,6 +70,7 @@ class SettingsViewModel @Inject constructor(
                 settingsRepo.ollamaPortFlow,
                 settingsRepo.fastApiPortFlow,
                 settingsRepo.attachmentsLibraryEnabledFlow,
+                settingsRepo.allowSystemProjectMovesFlow,
             )
             combine(settingsFlows) { values ->
                 _uiState.update {
@@ -86,6 +88,7 @@ class SettingsViewModel @Inject constructor(
                         ollamaPort = values[10] as Int,
                         fastApiPort = values[11] as Int,
                         attachmentsLibraryEnabled = values[12] as Boolean,
+                        allowSystemProjectMoves = values[13] as Boolean,
                     )
                 }
             }.collect { 
@@ -186,6 +189,11 @@ class SettingsViewModel @Inject constructor(
         FeatureToggles.attachmentsLibraryEnabled = enabled
     }
 
+    fun onAllowSystemProjectMovesToggle(enabled: Boolean) {
+        _uiState.update { it.copy(allowSystemProjectMoves = enabled) }
+        viewModelScope.launch { settingsRepo.saveAllowSystemProjectMoves(enabled) }
+    }
+
     fun saveSettings() {
         viewModelScope.launch {
             val currentState = _uiState.value
@@ -206,6 +214,7 @@ class SettingsViewModel @Inject constructor(
             )
             settingsRepo.saveThemeSettings(currentState.themeSettings)
             settingsRepo.saveAttachmentsLibraryEnabled(currentState.attachmentsLibraryEnabled)
+            settingsRepo.saveAllowSystemProjectMoves(currentState.allowSystemProjectMoves)
         }
     }
 }

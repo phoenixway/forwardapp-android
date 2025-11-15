@@ -30,6 +30,7 @@ fun NoteDocumentItemRow(
     noteDocumentItem: ListItemContent.NoteDocumentItem,
     onClick: () -> Unit,
     onDelete: () -> Unit,
+    trailingContent: (@Composable () -> Unit)? = null,
 ) {
     Row(
         modifier =
@@ -50,24 +51,20 @@ fun NoteDocumentItemRow(
             Text(
                 text = noteDocumentItem.document.name,
                 style = MaterialTheme.typography.bodyLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = stringResource(R.string.attachment_label_note),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        IconButton(onClick = onDelete) {
-            Icon(
-                imageVector = Icons.Default.Close,
-                contentDescription = stringResource(R.string.attachment_note_delete_description),
-                tint = MaterialTheme.colorScheme.error,
-            )
+        if (trailingContent != null) {
+            trailingContent()
+        } else {
+            IconButton(onClick = onDelete) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = stringResource(R.string.attachment_note_delete_description),
+                    tint = MaterialTheme.colorScheme.error,
+                )
+            }
         }
     }
 }

@@ -75,9 +75,12 @@ class SettingsRepository @Inject constructor(
     }
 
     private val attachmentsLibraryKey = booleanPreferencesKey("attachments_library_enabled")
+    private val allowSystemProjectMovesKey = booleanPreferencesKey("allow_system_project_moves")
     val attachmentsLibraryEnabledFlow: Flow<Boolean> = context.dataStore.data.map {
         it[attachmentsLibraryKey] ?: BuildConfig.DEBUG
     }
+    val allowSystemProjectMovesFlow: Flow<Boolean> =
+        context.dataStore.data.map { preferences -> preferences[allowSystemProjectMovesKey] ?: false }
 
     suspend fun saveServerAddressSettings(
         mode: String,
@@ -97,6 +100,10 @@ class SettingsRepository @Inject constructor(
 
     suspend fun saveAttachmentsLibraryEnabled(enabled: Boolean) {
         context.dataStore.edit { it[attachmentsLibraryKey] = enabled }
+    }
+
+    suspend fun saveAllowSystemProjectMoves(enabled: Boolean) {
+        context.dataStore.edit { it[allowSystemProjectMovesKey] = enabled }
     }
 
     fun discoverServer(): Flow<ServerDiscoveryState> = callbackFlow {

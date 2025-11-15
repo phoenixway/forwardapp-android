@@ -13,5 +13,6 @@ object ReservedProjectKeys {
     const val INBOX = "inbox"
     const val STRATEGIC_INBOX = "strategic-inbox"
     const val STRATEGIC_REVIEW = "strategic-review"
-    const val MAIN_BEACONS_REALIZATION = "main-beacons-realization"
+    const val MAIN_BEACONS = "main-beacons"
+    const val TODAY = "today"
 }

@@ -43,19 +43,17 @@ private fun normalizeSpecialProjectNames(db: SupportSQLiteDatabase) {
     db.execSQL("UPDATE projects SET name = 'active-quests' WHERE name = 'Активні квести'")
     db.execSQL("UPDATE projects SET name = 'strategic-inbox' WHERE name IN ('Стратегічні цілі', 'strategic-goals')")
     db.execSQL("UPDATE projects SET name = 'strategic-review' WHERE name = 'Стратегічний огляд'")
-    db.execSQL("UPDATE projects SET name = 'strategic-beacons' WHERE name IN ('Головні маяки', 'main-beacons')")
-    db.execSQL("UPDATE projects SET name = 'strategic-programs' WHERE name IN ('strategic-program', 'strategic-programs')")
+    db.execSQL("UPDATE projects SET name = 'main-beacons' WHERE name IN ('Головні маяки')")
     db.execSQL(
         """
         UPDATE projects
-           SET name = 'main-beacons-realization'
-         WHERE name != 'main-beacons-realization'
-           AND (
-                name LIKE 'main-beacons-realization%'
-             OR (name = 'main-beacons' AND (reserved_group IS NULL OR reserved_group != 'main_beacons_group'))
-           )
+           SET name = 'strategic-beacons'
+         WHERE name = 'main-beacons'
+           AND reserved_group IN ('main_beacons_group', 'MainBeaconsGroup')
         """.trimIndent()
     )
+    db.execSQL("UPDATE projects SET name = 'strategic-programs' WHERE name IN ('strategic-program', 'strategic-programs')")
+    db.execSQL("DELETE FROM projects WHERE name LIKE 'main-beacons-realization%' OR system_key = 'main-beacons-realization'")
 
     db.execSQL("UPDATE projects SET reserved_group = 'main_beacons' WHERE reserved_group IN ('MainBeacons')")
     db.execSQL("UPDATE projects SET reserved_group = 'main_beacons_group' WHERE reserved_group IN ('MainBeaconsGroup')")
@@ -64,7 +62,7 @@ private fun normalizeSpecialProjectNames(db: SupportSQLiteDatabase) {
 
     Log.d(
         MIGRATION_LOG_TAG,
-        "normalizeSpecialProjectNames: personal-management, strategic, main-beacons-realization, medium-term-strategy and reserved_group aliases normalized"
+        "normalizeSpecialProjectNames: personal-management, strategic, medium-term-strategy and reserved_group aliases normalized (main-beacons-realization removed)"
     )
 }
 
@@ -225,7 +223,8 @@ private fun migrateSpecialProjectsWithSystemKeys(db: SupportSQLiteDatabase) {
         reservedGroup = ReservedGroup.MainBeaconsGroup.groupName,
         parentId = strategicId,
         legacyParentIds = listOf(personalManagementId),
-        legacyNames = listOf("strategic-beacons", "main-beacons", "Головні маяки"),
+        legacyNames = listOf("strategic-beacons"),
+        legacyNamePatterns = listOf("strategic-beacons%"),
         legacyReservedGroups = listOf("main_beacons_group", "MainBeaconsGroup")
     ) ?: return
 
@@ -239,6 +238,30 @@ private fun migrateSpecialProjectsWithSystemKeys(db: SupportSQLiteDatabase) {
         legacyNames = listOf("week"),
         legacyNamePatterns = listOf("week%", "Week%")
     ) ?: return
+
+    val todayId =
+        ensureProjectWithKey(
+            db = db,
+            key = ReservedProjectKeys.TODAY,
+            defaultName = "today",
+            projectType = "RESERVED",
+            reservedGroup = ReservedGroup.Inbox.groupName,
+            parentId = personalManagementId,
+            legacyNames = listOf("today"),
+        )
+
+    val mainBeaconsId =
+        ensureProjectWithKey(
+            db = db,
+            key = ReservedProjectKeys.MAIN_BEACONS,
+            defaultName = "main-beacons",
+            projectType = "RESERVED",
+            reservedGroup = ReservedGroup.MainBeacons.groupName,
+            parentId = personalManagementId,
+            legacyNames = listOf("main-beacons"),
+            legacyNamePatterns = listOf("main-beacons%"),
+            legacyReservedGroups = listOf(ReservedGroup.MainBeacons.groupName),
+        )
 
     val mediumTermId = ensureProjectWithKey(
         db = db,
@@ -258,11 +281,23 @@ private fun migrateSpecialProjectsWithSystemKeys(db: SupportSQLiteDatabase) {
         defaultName = "inbox",
         projectType = "RESERVED",
         reservedGroup = ReservedGroup.Inbox.groupName,
-        parentId = personalManagementId,
+        parentId = todayId ?: personalManagementId,
         legacyNames = listOf("inbox", "Вхідні"),
         legacyNamePatterns = listOf("inbox%", "Inbox%"),
         fuzzyNameCandidates = listOf("inbox")
     )
+
+    if (todayId != null) {
+        db.execSQL(
+            """
+            UPDATE projects
+               SET parentId = ?
+             WHERE system_key = ?
+               AND (parentId IS NULL OR parentId = ?)
+            """.trimIndent(),
+            arrayOf(todayId, ReservedProjectKeys.INBOX, personalManagementId),
+        )
+    }
 
     ensureProjectWithKey(
         db = db,
@@ -330,26 +365,13 @@ private fun migrateSpecialProjectsWithSystemKeys(db: SupportSQLiteDatabase) {
         legacyNamePatterns = listOf("active-quests%")
     )
 
-    val mainBeaconsRealizationId = ensureProjectWithKey(
-        db = db,
-        key = ReservedProjectKeys.MAIN_BEACONS_REALIZATION,
-        defaultName = "main-beacons-realization",
-        projectType = "RESERVED",
-        reservedGroup = ReservedGroup.Strategic.groupName,
-        parentId = strategicBeaconsId,
-        legacyParentIds = listOf(personalManagementId, strategicId),
-        legacyNames = listOf("main-beacons-realization"),
-        legacyNamePatterns = listOf("main-beacons-realization%"),
-        fuzzyNameCandidates = listOf("main-beacons"),
-        createIfMissing = true
-    )
-
     cleanUpDuplicateReservedProjects(db, "week", weekId)
     cleanUpDuplicateReservedProjects(db, "strategic-beacons", strategicBeaconsId)
+    cleanUpDuplicateReservedProjects(db, "main-beacons", mainBeaconsId)
+    cleanUpDuplicateReservedProjects(db, "today", todayId)
     cleanUpDuplicateReservedProjects(db, "medium-term-strategy", mediumTermId)
     cleanUpDuplicateReservedProjects(db, "strategic-programs", strategicProgramsId)
     cleanUpDuplicateReservedProjects(db, "active-quests", activeQuestsId)
-    cleanUpDuplicateReservedProjects(db, "main-beacons-realization", mainBeaconsRealizationId)
 }
 
 private fun ensureProjectWithKey(
@@ -482,17 +504,36 @@ private fun ensureProjectWithKey(
     targetId ?: return null
 
     db.execSQL("UPDATE projects SET system_key = ? WHERE id = ?", arrayOf(key, targetId))
-    db.execSQL("UPDATE projects SET project_type = ? WHERE id = ?", arrayOf(projectType, targetId))
+
+    var currentParentId: String? = null
+    var currentReservedGroup: String? = null
+    var currentProjectType: String? = null
+    db.query("SELECT parentId, reserved_group, project_type FROM projects WHERE id = ?", arrayOf(targetId)).use { cursor ->
+        if (cursor.moveToFirst()) {
+            currentParentId = cursor.getString(cursor.getColumnIndexOrThrow("parentId"))
+            currentReservedGroup = cursor.getString(cursor.getColumnIndexOrThrow("reserved_group"))
+            currentProjectType = cursor.getString(cursor.getColumnIndexOrThrow("project_type"))
+        }
+    }
+
+    if (currentProjectType != projectType) {
+        db.execSQL("UPDATE projects SET project_type = ? WHERE id = ?", arrayOf(projectType, targetId))
+    }
 
     if (reservedGroup != null) {
-        db.execSQL("UPDATE projects SET reserved_group = ? WHERE id = ?", arrayOf(reservedGroup, targetId))
-    } else {
+        if (currentReservedGroup != reservedGroup) {
+            db.execSQL("UPDATE projects SET reserved_group = ? WHERE id = ?", arrayOf(reservedGroup, targetId))
+        }
+    } else if (currentReservedGroup != null) {
         db.execSQL("UPDATE projects SET reserved_group = NULL WHERE id = ?", arrayOf(targetId))
     }
 
+    val normalizedCurrentParent = currentParentId?.takeIf { it.isNotBlank() && !it.equals("null", true) }
     if (parentId != null) {
-        db.execSQL("UPDATE projects SET parentId = ? WHERE id = ?", arrayOf(parentId, targetId))
-    } else {
+        if (normalizedCurrentParent == null) {
+            db.execSQL("UPDATE projects SET parentId = ? WHERE id = ?", arrayOf(parentId, targetId))
+        }
+    } else if (normalizedCurrentParent != null) {
         db.execSQL("UPDATE projects SET parentId = NULL WHERE id = ?", arrayOf(targetId))
     }
 
