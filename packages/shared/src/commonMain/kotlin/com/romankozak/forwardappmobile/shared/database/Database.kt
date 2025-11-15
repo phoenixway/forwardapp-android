@@ -10,6 +10,7 @@ import com.romankozak.forwardappmobile.shared.data.models.ReservedGroup
 import com.romankozak.forwardappmobile.shared.features.activitytracker.ActivityRecords
 import com.romankozak.forwardappmobile.shared.features.aichat.ConversationFolders
 import com.romankozak.forwardappmobile.shared.features.attachments.types.legacynotes.LegacyNotes
+import com.romankozak.forwardappmobile.shared.features.attachments.linkitems.LinkItems
 import com.romankozak.forwardappmobile.shared.features.attachments.types.notedocuments.NoteDocumentItems
 import com.romankozak.forwardappmobile.shared.features.attachments.types.notedocuments.NoteDocuments
 import com.romankozak.forwardappmobile.shared.features.attachments.types.checklists.ChecklistItems
@@ -132,6 +133,14 @@ val recurrenceFrequencyAdapter = object : ColumnAdapter<RecurrenceFrequency, Str
     override fun encode(value: RecurrenceFrequency): String = value.name
 }
 
+val relatedLinkAdapter = object : ColumnAdapter<RelatedLink, String> {
+    override fun decode(databaseValue: String): RelatedLink =
+        json.decodeFromString(RelatedLink.serializer(), databaseValue)
+
+    override fun encode(value: RelatedLink): String =
+        json.encodeToString(RelatedLink.serializer(), value)
+}
+
 // ------------------------------------------------------
 // 🔹 Фабрика створення бази даних
 // ------------------------------------------------------
@@ -188,6 +197,11 @@ fun createForwardAppDatabase(driver: SqlDriver): ForwardAppDatabase {
 
     val checklistItemsAdapter = ChecklistItems.Adapter(
         itemOrderAdapter = longAdapter,
+    )
+
+    val linkItemsAdapter = LinkItems.Adapter(
+        linkDataAdapter = relatedLinkAdapter,
+        createdAtAdapter = longAdapter,
     )
 
     val noteDocumentsAdapter = NoteDocuments.Adapter(
@@ -276,6 +290,7 @@ fun createForwardAppDatabase(driver: SqlDriver): ForwardAppDatabase {
         ConversationFoldersAdapter = conversationFoldersAdapter,
         LegacyNotesAdapter = legacyNotesAdapter,
         ChecklistItemsAdapter = checklistItemsAdapter,
+        LinkItemsAdapter = linkItemsAdapter,
         NoteDocumentsAdapter = noteDocumentsAdapter,
         NoteDocumentItemsAdapter = noteDocumentItemsAdapter,
         ProjectArtifactsAdapter = projectArtifactsAdapter,

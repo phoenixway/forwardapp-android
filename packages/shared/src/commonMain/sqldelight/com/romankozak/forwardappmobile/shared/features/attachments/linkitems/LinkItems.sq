@@ -1,0 +1,61 @@
+import com.romankozak.forwardappmobile.shared.data.models.RelatedLink;
+import kotlin.Long;
+import kotlin.String;
+
+CREATE TABLE LinkItems (
+    id TEXT NOT NULL PRIMARY KEY,
+    linkData TEXT AS RelatedLink NOT NULL,
+    createdAt INTEGER AS Long NOT NULL
+);
+
+getAllLinkItems:
+SELECT * FROM LinkItems
+ORDER BY createdAt DESC;
+
+getLinkItemById:
+SELECT * FROM LinkItems
+WHERE id = :id;
+
+insertLinkItem:
+INSERT OR REPLACE INTO LinkItems(
+    id,
+    linkData,
+    createdAt
+) VALUES (
+    :id,
+    :linkData,
+    :createdAt
+);
+
+deleteLinkItemById:
+DELETE FROM LinkItems
+WHERE id = :id;
+
+deleteAllLinkItems:
+DELETE FROM LinkItems;
+
+searchLinkItems:
+WITH RECURSIVE path_cte(id, name, path) AS (
+    SELECT id, name, name AS path
+    FROM Projects
+    WHERE parentId IS NULL
+    UNION ALL
+    SELECT p.id, p.name, path_cte.path || ' / ' || p.name
+    FROM Projects AS p
+    JOIN path_cte ON p.parentId = path_cte.id
+)
+SELECT
+    LI.id,
+    LI.linkData,
+    LI.createdAt,
+    ListItems.projectId,
+    Projects.name AS projectName,
+    ListItems.id AS listItemId,
+    path_cte.path AS projectPath
+FROM LinkItems AS LI
+JOIN ListItems ON ListItems.entityId = LI.id
+JOIN Projects ON Projects.id = ListItems.projectId
+LEFT JOIN path_cte ON path_cte.id = Projects.id
+WHERE ListItems.itemType = 'LINK_ITEM'
+  AND LI.linkData LIKE :query
+ORDER BY LI.createdAt DESC;

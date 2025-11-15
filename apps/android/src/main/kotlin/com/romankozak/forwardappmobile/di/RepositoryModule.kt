@@ -3,6 +3,8 @@ package com.romankozak.forwardappmobile.di
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import com.romankozak.forwardappmobile.shared.features.attachments.data.repository.AttachmentsRepositoryImpl
 import com.romankozak.forwardappmobile.shared.features.attachments.domain.repository.AttachmentsRepository
+import com.romankozak.forwardappmobile.shared.features.attachments.linkitems.data.repository.LinkItemsRepositoryImpl
+import com.romankozak.forwardappmobile.shared.features.attachments.linkitems.domain.repository.LinkItemsRepository
 import com.romankozak.forwardappmobile.shared.features.activitytracker.data.repository.ActivityRecordsRepositoryImpl
 import com.romankozak.forwardappmobile.shared.features.activitytracker.domain.repository.ActivityRecordsRepository
 import com.romankozak.forwardappmobile.shared.features.attachments.types.legacynotes.data.repository.LegacyNotesRepositoryImpl
@@ -100,6 +102,13 @@ interface RepositoryModule {
         database: ForwardAppDatabase,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
     ): AttachmentsRepository = AttachmentsRepositoryImpl(database, ioDispatcher)
+
+    @Provides
+    @AndroidSingleton
+    fun provideLinkItemsRepository(
+        database: ForwardAppDatabase,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+    ): LinkItemsRepository = LinkItemsRepositoryImpl(database, ioDispatcher)
 
     @Provides
     @AndroidSingleton
