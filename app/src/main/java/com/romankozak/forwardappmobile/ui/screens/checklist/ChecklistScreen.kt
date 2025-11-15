@@ -24,22 +24,24 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckBox
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.CheckBoxOutlineBlank
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DeleteSweep
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.NavigationRailItem
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.CircleShape
@@ -61,6 +63,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -73,8 +76,6 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -89,6 +90,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Checkbox
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -96,8 +98,11 @@ import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import com.romankozak.forwardappmobile.R
 
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalHapticFeedback
+import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableCollectionItemScope
 
 
@@ -112,7 +117,9 @@ fun ChecklistScreen(
     val reorderState = rememberReorderableLazyListState(listState) { from, to ->
         viewModel.onMoveItem(from.index, to.index)
     }
-        val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val clipboardManager = LocalClipboardManager.current
+    val coroutineScope = rememberCoroutineScope()
     
         LaunchedEffect(uiState.showUndoSnackbar) {
             if (uiState.showUndoSnackbar) {
@@ -173,6 +180,33 @@ fun ChecklistScreen(
                 showCheckboxes = uiState.showCheckboxes,
                 onToggleCheckboxes = viewModel::onToggleCheckboxVisibility,
                 onClearCompleted = viewModel::onClearCompleted,
+                onExportMarkdown = {
+                    val markdown = viewModel.buildMarkdownExport()
+                    clipboardManager.setText(AnnotatedString(markdown))
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("Checklist copied to clipboard")
+                    }
+                },
+                onImportFromClipboard = {
+                    val clipboardText = clipboardManager.getText()?.text?.toString().orEmpty()
+                    if (clipboardText.isBlank()) {
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar("Clipboard is empty")
+                        }
+                    } else {
+                        viewModel.importMarkdown(clipboardText) { success ->
+                            coroutineScope.launch {
+                                val message =
+                                    if (success) {
+                                        "Checklist imported from clipboard"
+                                    } else {
+                                        "No checklist items detected in clipboard"
+                                    }
+                                snackbarHostState.showSnackbar(message)
+                            }
+                        }
+                    }
+                }
             )
         },
         floatingActionButton = {
@@ -388,7 +422,10 @@ private fun ChecklistTopBar(
     showCheckboxes: Boolean,
     onToggleCheckboxes: () -> Unit,
     onClearCompleted: () -> Unit,
+    onExportMarkdown: () -> Unit,
+    onImportFromClipboard: () -> Unit,
 ) {
+    var menuExpanded by remember { mutableStateOf(false) }
     TopAppBar(
         title = {
             OutlinedTextField(
@@ -413,18 +450,65 @@ colors = OutlinedTextFieldDefaults.colors(
             }
         },
         actions = {
-            IconButton(onClick = onToggleCheckboxes) {
-                val icon =
-                    if (showCheckboxes) Icons.Filled.CheckBox else Icons.Outlined.CheckBoxOutlineBlank
+            IconButton(onClick = { menuExpanded = true }) {
                 Icon(
-                    imageVector = icon,
-                    contentDescription = stringResource(R.string.checklist_toggle_checkboxes),
+                    imageVector = Icons.Filled.MoreVert,
+                    contentDescription = "More options"
                 )
             }
-            IconButton(onClick = onClearCompleted) {
-                Icon(
-                    imageVector = Icons.Outlined.DeleteSweep,
-                    contentDescription = stringResource(R.string.checklist_clear_completed),
+            DropdownMenu(
+                expanded = menuExpanded,
+                onDismissRequest = { menuExpanded = false }
+            ) {
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = if (showCheckboxes) {
+                                "Hide checkboxes"
+                            } else {
+                                "Show checkboxes"
+                            }
+                        )
+                    },
+                    leadingIcon = {
+                        val icon =
+                            if (showCheckboxes) Icons.Filled.CheckBox else Icons.Outlined.CheckBoxOutlineBlank
+                        Icon(imageVector = icon, contentDescription = null)
+                    },
+                    onClick = {
+                        menuExpanded = false
+                        onToggleCheckboxes()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Clear completed") },
+                    leadingIcon = {
+                        Icon(imageVector = Icons.Outlined.DeleteSweep, contentDescription = null)
+                    },
+                    onClick = {
+                        menuExpanded = false
+                        onClearCompleted()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Copy as Markdown") },
+                    leadingIcon = {
+                        Icon(imageVector = Icons.Filled.ContentCopy, contentDescription = null)
+                    },
+                    onClick = {
+                        menuExpanded = false
+                        onExportMarkdown()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Import from clipboard") },
+                    leadingIcon = {
+                        Icon(imageVector = Icons.Filled.ContentCopy, contentDescription = null)
+                    },
+                    onClick = {
+                        menuExpanded = false
+                        onImportFromClipboard()
+                    }
                 )
             }
         },
