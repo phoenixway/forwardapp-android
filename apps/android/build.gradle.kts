@@ -1,6 +1,4 @@
-import org.gradle.kotlin.dsl.implementation
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.gradle.api.tasks.testing.Test
 
 plugins {
     id("com.android.application")
@@ -8,7 +6,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.kotlin.plugin.serialization")
     id("kotlin-parcelize")
-    id("com.google.devtools.ksp") // ✅ без version!
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -34,6 +32,7 @@ android {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_17)
         }
+        // ❌ ВИДАЛИТИ ВСІ implementation() звідси!
     }
 
     buildFeatures {
@@ -45,7 +44,6 @@ android {
         arg("room.schemaLocation", "$projectDir/schemas")
     }
 
-    // ✅ Підключаємо згенеровані KSP-джерела
     applicationVariants.all {
         val variantName = name
         kotlin.sourceSets {
@@ -120,6 +118,18 @@ dependencies {
     implementation(project(":packages:shared"))
     ksp(libs.androidxRoomCompiler)
 
+    // ✅ SQLDelight + FTS5 через Requery
+    // implementation("app.cash.sqldelight:android-driver:2.0.2")
+    implementation("androidx.sqlite:sqlite:2.4.0")
+    implementation("androidx.sqlite:sqlite-framework:2.4.0")
+    //implementation("androidx.sqlite:sqlite-ktx:2.4.0")
+    //implementation("io.requery:sqlite-android:3.43.0")
+    
+    implementation("app.cash.sqldelight:android-driver:2.0.2")
+    // implementation("net.zetetic:sqlcipher-android:4.5.6")
+    implementation("androidx.sqlite:sqlite-ktx:2.4.0")
+
+    implementation("net.zetetic:android-database-sqlcipher:4.5.4")
     // AndroidX Core & Lifecycle
     implementation(libs.androidxCoreKtx)
     implementation(libs.androidxLifecycleRuntimeKtx)
@@ -164,11 +174,6 @@ dependencies {
     implementation(libs.androidxRoomKtx)
     ksp(libs.androidxRoomCompiler)
 
-    // AndroidX SQLite for FTS5 support
-    implementation(libs.androidx.sqlite)
-    implementation(libs.androidx.sqlite.framework)
-    implementation(libs.androidx.sqlite.ktx)
-
     // Ktor
     implementation(libs.ktorServerCore)
     implementation(libs.ktorServerNetty)
@@ -186,7 +191,6 @@ dependencies {
     implementation(libs.googleGson)
     implementation(libs.composeDnd)
     implementation(libs.sqldelightCoroutines)
-    implementation(libs.sqldelightAndroidXDriver)
     implementation(libs.kotlinxCoroutinesCore)
 
     // Testing

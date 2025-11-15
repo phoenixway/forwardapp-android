@@ -36,8 +36,9 @@ class DatabaseInitializerTest {
         try {
             initializer.initialize()
         } catch (e: Exception) {
-            val logFile = java.io.File("/home/romankozak/.gemini/tmp/f0d5f14bc037e204b853dd06d685bc18bd58df1bfcb9976e722e3e26d7d98360/test_error.log")
-            logFile.writeText("SQLiteException: ${e.message}\nStackTrace: ${e.stackTraceToString()}")
+            // ✅ Логування без java.io.File
+            println("SQLiteException: ${e.message}")
+            println("StackTrace: ${e.stackTraceToString()}")
             throw e
         }
 

@@ -1,16 +1,13 @@
 package com.romankozak.forwardappmobile.shared.core.data.database
 
 import app.cash.sqldelight.db.SqlDriver
+import app.cash.sqldelight.driver.worker.WebWorkerDriver
+import org.w3c.dom.Worker
 
-actual abstract class PlatformContext
-
-/**
- * TODO: Provide a real SQLDelight driver for JS (e.g. sql.js or web worker driver).
- */
-actual class DatabaseDriverFactory actual constructor(
-    platformContext: PlatformContext?,
-) {
+actual class DatabaseDriverFactory {
     actual fun createDriver(): SqlDriver {
-        error("SQLDelight driver for JS is not implemented yet.")
+        return WebWorkerDriver(
+            Worker(js("""new URL("@cashapp/sqldelight-sqljs-worker/sqljs.worker.js", import.meta.url)"""))
+        )
     }
 }

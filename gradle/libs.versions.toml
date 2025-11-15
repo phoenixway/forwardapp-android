@@ -11,6 +11,10 @@ kotlinxSerialization = "1.7.3"
 kotlinxDatetime = "0.6.1"
 kotlinxCoroutines = "1.9.0"
 benasherUuid = "0.8.4"
+# requery-sqlite = "3.43.0"
+sqldelight-androidx-driver = "2.0.2"
+sqlite-bindings = "2.5.0"
+
 
 # --- Compose / AndroidX
 compose = "1.7.3"
@@ -101,6 +105,9 @@ androidx-sqlite = { group = "androidx.sqlite", name = "sqlite", version.ref = "a
 androidx-sqlite-framework = { group = "androidx.sqlite", name = "sqlite-framework", version.ref = "androidxSqlite" }
 androidx-sqlite-ktx = { group = "androidx.sqlite", name = "sqlite-ktx", version.ref = "androidxSqlite" }
 
+sqldelightAndroidXDriver = { group = "app.cash.sqldelight", name = "androidx-driver", version.ref = "sqldelight-androidx-driver" }
+sqliteBindings = { group = "org.sqlite", name = "sqlite-android", version.ref = "sqlite-bindings" }
+
 # --- DataStore
 androidxDatastorePreferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 
@@ -124,7 +131,7 @@ googleGson = { group = "com.google.code.gson", name = "gson", version.ref = "gso
 # --- SQLDelight
 sqldelightRuntime = { group = "app.cash.sqldelight", name = "runtime", version.ref = "sqlDelight" }
 sqldelightCoroutines = { group = "app.cash.sqldelight", name = "coroutines-extensions", version.ref = "sqlDelight" }
-sqldelightAndroidXDriver = { group = "app.cash.sqldelight", name = "androidx-driver", version.ref = "sqlDelight" }
+sqldelightAndroidDriver = { group = "app.cash.sqldelight", name = "android-driver", version.ref = "sqlDelight" }
 sqldelightSqliteDriver = { group = "app.cash.sqldelight", name = "sqlite-driver", version.ref = "sqlDelight" }
 
 # --- Kotlin Inject
