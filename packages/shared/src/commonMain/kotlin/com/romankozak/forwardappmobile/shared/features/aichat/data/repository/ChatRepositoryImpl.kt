@@ -22,7 +22,7 @@ class ChatRepositoryImpl(
 ) : ChatRepository {
 
     // Conversation methods
-    override fun getAllConversations(): Flow<List<Conversation>> {
+    override fun observeConversations(): Flow<List<Conversation>> {
         return db.conversationsQueries.getAllConversations()
             .asFlow()
             .mapToList(dispatcher)
@@ -57,7 +57,7 @@ class ChatRepositoryImpl(
             .map { conversations -> conversations.map { it.toDomain() } }
     }
 
-    override suspend fun insertConversation(title: String, folderId: Long?): Long {
+    override suspend fun createConversation(title: String, folderId: Long?): Long {
         return withContext(dispatcher) {
             db.transactionWithResult {
                 db.conversationsQueries.insertConversation(
@@ -93,7 +93,7 @@ class ChatRepositoryImpl(
     }
 
     // ChatMessage methods
-    override fun getMessagesForConversation(conversationId: Long): Flow<List<ChatMessage>> {
+    override fun observeMessages(conversationId: Long): Flow<List<ChatMessage>> {
         return db.chatMessagesQueries.getMessagesForConversation(conversationId)
             .asFlow()
             .mapToList(dispatcher)
@@ -114,11 +114,12 @@ class ChatRepositoryImpl(
             .map { it?.toDomain() }
     }
 
-    override suspend fun insertChatMessage(
+    override suspend fun insertMessage(
         conversationId: Long,
         text: String,
         isFromUser: Boolean,
         isError: Boolean,
+        timestamp: Long,
         isStreaming: Boolean
     ): Long {
         return withContext(dispatcher) {
@@ -128,7 +129,7 @@ class ChatRepositoryImpl(
                     text = text,
                     isFromUser = isFromUser,
                     isError = isError,
-                    timestamp = Clock.System.now().toEpochMilliseconds(),
+                    timestamp = timestamp,
                     isStreaming = isStreaming
                 )
                 db.chatMessagesQueries.getLastInsertedChatMessageId().executeAsOne()
@@ -154,7 +155,7 @@ class ChatRepositoryImpl(
         }
     }
 
-    override fun countMessagesForConversation(conversationId: Long): Flow<Long> {
+    override fun observeMessageCount(conversationId: Long): Flow<Long> {
         return db.chatMessagesQueries.countMessagesForConversation(conversationId)
             .asFlow()
             .mapToOne(dispatcher)
