@@ -20,7 +20,8 @@ abstract class AppComponent(
     DispatcherModule,
     com.romankozak.forwardappmobile.features.mainscreen.di.MainScreenModule,
     com.romankozak.forwardappmobile.shared.features.aichat.di.AiChatModule,
-    com.romankozak.forwardappmobile.shared.features.search.di.SearchModule {
+    com.romankozak.forwardappmobile.shared.features.search.di.SearchModule,
+    com.romankozak.forwardappmobile.features.projectscreen.di.ProjectScreenModule {
 
     @Provides
     @ApplicationContext
@@ -28,6 +29,7 @@ abstract class AppComponent(
 
     // Entry points / factories
     abstract val mainScreenViewModel: MainScreenViewModel
+    abstract val backlogViewModelFactory: com.romankozak.forwardappmobile.features.projectscreen.di.ProjectScreenModule.BacklogViewModelFactory
 
     companion object
 }

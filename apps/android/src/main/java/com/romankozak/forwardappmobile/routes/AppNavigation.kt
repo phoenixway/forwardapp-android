@@ -7,6 +7,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.romankozak.forwardappmobile.features.mainscreen.MainScreen
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+import com.romankozak.forwardappmobile.features.projectscreen.ProjectsScreen
 
 const val MAIN_SCREEN_ROUTE = "main_screen"
 
@@ -25,6 +28,39 @@ fun AppNavigation() {
                     navController = navController,
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedVisibilityScope = this
+                )
+            }
+
+            composable(
+                route = "goal_detail_screen/{listId}?goalId={goalId}&itemIdToHighlight={itemIdToHighlight}&inboxRecordIdToHighlight={inboxRecordIdToHighlight}&initialViewMode={initialViewMode}",
+                arguments =
+                    listOf(
+                        navArgument("listId") { type = NavType.StringType },
+                        navArgument("goalId") {
+                            type = NavType.StringType
+                            nullable = true
+                        },
+                        navArgument("itemIdToHighlight") {
+                            type = NavType.StringType
+                            nullable = true
+                        },
+                        navArgument("inboxRecordIdToHighlight") {
+                            type = NavType.StringType
+                            nullable = true
+                        },
+                        navArgument("initialViewMode") {
+                            type = NavType.StringType
+                            nullable = true
+                        },
+                    ),
+            ) { backStackEntry -> // Add backStackEntry here
+                val projectId = backStackEntry.arguments?.getString("listId")
+
+                ProjectsScreen(
+                    navController = navController,
+                    sharedTransitionScope = this@SharedTransitionLayout,
+                    animatedVisibilityScope = this,
+                    projectId = projectId,
                 )
             }
         }

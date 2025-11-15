@@ -63,12 +63,7 @@ interface RepositoryModule {
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
     ): ConversationFolderRepository = ConversationFolderRepositoryImpl(database, ioDispatcher)
 
-    @Provides
-    @AndroidSingleton
-    fun provideChatRepository(
-        database: ForwardAppDatabase,
-        @IoDispatcher ioDispatcher: CoroutineDispatcher,
-    ): ChatRepository = ChatRepositoryImpl(database, ioDispatcher)
+
 
     @Provides
     @AndroidSingleton
