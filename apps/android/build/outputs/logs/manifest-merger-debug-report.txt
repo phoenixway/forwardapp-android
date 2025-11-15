@@ -1,0 +1,1217 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:2:1-85:12
+INJECTED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:2:1-85:12
+INJECTED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:2:1-85:12
+INJECTED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:2:1-85:12
+MERGED from [com.google.firebase:firebase-crashlytics-ktx:19.1.0] /home/romankozak/.gradle/caches/8.13/transforms/e5f3645be1903f5e6d310ca4f10f139f/transformed/firebase-crashlytics-ktx-19.1.0/AndroidManifest.xml:15:1-30:12
+MERGED from [com.google.firebase:firebase-crashlytics:19.1.0] /home/romankozak/.gradle/caches/8.13/transforms/68f8be404e9bd1b326f03ada3acb6866/transformed/firebase-crashlytics-19.1.0/AndroidManifest.xml:2:1-24:12
+MERGED from [com.google.firebase:firebase-sessions:2.0.4] /home/romankozak/.gradle/caches/8.13/transforms/309fea57eee9d1eb6c016b44411c4ad2/transformed/firebase-sessions-2.0.4/AndroidManifest.xml:15:1-35:12
+MERGED from [androidx.datastore:datastore-preferences:1.1.1] /home/romankozak/.gradle/caches/8.13/transforms/5da742a106cb6b917df53d0682c5d9b1/transformed/datastore-preferences-1.1.1/AndroidManifest.xml:2:1-5:12
+MERGED from [androidx.datastore:datastore-preferences-android:1.1.1] /home/romankozak/.gradle/caches/8.13/transforms/876cb9bae185e48d59144f331169b458/transformed/datastore-preferences-release/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.datastore:datastore-android:1.1.1] /home/romankozak/.gradle/caches/8.13/transforms/31d19295788ad8796c757c423ff7ed45/transformed/datastore-release/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.datastore:datastore-core-android:1.1.1] /home/romankozak/.gradle/caches/8.13/transforms/e083adfc14426bcb41d03379e4c7827c/transformed/datastore-core-release/AndroidManifest.xml:2:1-7:12
+MERGED from [:packages:shared] /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.android.material:material:1.12.0] /home/romankozak/.gradle/caches/8.13/transforms/32ff402e1403a3bde6a8b80773e7299b/transformed/material-1.12.0/AndroidManifest.xml:17:1-24:12
+MERGED from [com.google.mlkit:translate:17.0.2] /home/romankozak/.gradle/caches/8.13/transforms/4eb9fd61a01f2ba60096a10d403abbfd/transformed/translate-17.0.2/AndroidManifest.xml:2:1-20:12
+MERGED from [androidx.biometric:biometric:1.1.0] /home/romankozak/.gradle/caches/8.13/transforms/4f7609ccb46b87833eca8ff11298820b/transformed/biometric-1.1.0/AndroidManifest.xml:17:1-29:12
+MERGED from [androidx.credentials:credentials:1.2.2] /home/romankozak/.gradle/caches/8.13/transforms/68a749064b34136ca5b9348d5c21f5b6/transformed/credentials-1.2.2/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.credentials:credentials-play-services-auth:1.2.2] /home/romankozak/.gradle/caches/8.13/transforms/a62de19c16d9755232b1a66d975e6cc9/transformed/credentials-play-services-auth-1.2.2/AndroidManifest.xml:17:1-44:12
+MERGED from [com.google.android.gms:play-services-auth:21.1.0] /home/romankozak/.gradle/caches/8.13/transforms/0a9428444efaa80862c7ba782e5aae22/transformed/play-services-auth-21.1.0/AndroidManifest.xml:17:1-40:12
+MERGED from [com.google.android.gms:play-services-fido:20.1.0] /home/romankozak/.gradle/caches/8.13/transforms/9b2bc950d36d959ad3c44202465289d1/transformed/play-services-fido-20.1.0/AndroidManifest.xml:2:1-10:12
+MERGED from [com.google.android.gms:play-services-auth-api-phone:18.0.2] /home/romankozak/.gradle/caches/8.13/transforms/f0dca104734194a69d68a5a9f4661ae9/transformed/play-services-auth-api-phone-18.0.2/AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.android.gms:play-services-auth-base:18.0.10] /home/romankozak/.gradle/caches/8.13/transforms/4ff67fc9b51a1e66366b831c6cc69cf2/transformed/play-services-auth-base-18.0.10/AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.mlkit:common:18.10.0] /home/romankozak/.gradle/caches/8.13/transforms/1807d6d845963e73fed8a4f5c777e542/transformed/common-18.10.0/AndroidManifest.xml:2:1-26:12
+MERGED from [com.google.android.gms:play-services-base:18.3.0] /home/romankozak/.gradle/caches/8.13/transforms/e52edc70eec45a55b3f278161990a831/transformed/play-services-base-18.3.0/AndroidManifest.xml:16:1-24:12
+MERGED from [androidx.constraintlayout:constraintlayout:2.0.1] /home/romankozak/.gradle/caches/8.13/transforms/52d2b313569ad2da04fb576e4db97886/transformed/constraintlayout-2.0.1/AndroidManifest.xml:2:1-11:12
+MERGED from [androidx.appcompat:appcompat-resources:1.6.1] /home/romankozak/.gradle/caches/8.13/transforms/700d4a2861d5ddf212c44db82f2138bf/transformed/appcompat-resources-1.6.1/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.appcompat:appcompat:1.6.1] /home/romankozak/.gradle/caches/8.13/transforms/8a0bc9c125b47b1dcd44d2d9dcbe307e/transformed/appcompat-1.6.1/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.viewpager2:viewpager2:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/62f4167c552d76604be00ff4f93e35eb/transformed/viewpager2-1.0.0/AndroidManifest.xml:17:1-24:12
+MERGED from [com.google.firebase:firebase-config-ktx:22.0.0] /home/romankozak/.gradle/caches/8.13/transforms/35557bcb39c45f49fde4f2a686b4b65b/transformed/firebase-config-ktx-22.0.0/AndroidManifest.xml:2:1-18:12
+MERGED from [com.google.firebase:firebase-config:22.0.0] /home/romankozak/.gradle/caches/8.13/transforms/92e0aa24fe5a6725d2170443d063cf5c/transformed/firebase-config-22.0.0/AndroidManifest.xml:17:1-38:12
+MERGED from [com.google.firebase:firebase-abt:21.1.1] /home/romankozak/.gradle/caches/8.13/transforms/70498f45325dac81b1c5307024b28ac7/transformed/firebase-abt-21.1.1/AndroidManifest.xml:2:1-18:12
+MERGED from [com.google.firebase:firebase-installations-ktx:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/ab58fc44921b3864e49d87bc21f9a284/transformed/firebase-installations-ktx-18.0.0/AndroidManifest.xml:2:1-17:12
+MERGED from [com.google.firebase:firebase-analytics-ktx:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/16e46e4bd6cd433c820b8805aa43e321/transformed/firebase-analytics-ktx-22.1.0/AndroidManifest.xml:2:1-17:12
+MERGED from [com.google.firebase:firebase-analytics:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/3438c91d9c99eb7c330d2f95f005097f/transformed/firebase-analytics-22.1.0/AndroidManifest.xml:2:1-9:12
+MERGED from [com.google.android.gms:play-services-measurement-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/ac34494752977c1d2621d488e035be22/transformed/play-services-measurement-api-22.1.0/AndroidManifest.xml:17:1-43:12
+MERGED from [com.google.firebase:firebase-installations:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/f2bffc12df06557f79d21ba074772ec3/transformed/firebase-installations-18.0.0/AndroidManifest.xml:2:1-24:12
+MERGED from [com.google.firebase:firebase-common-ktx:21.0.0] /home/romankozak/.gradle/caches/8.13/transforms/fe98f2c8e9e7d7bb59b7448abda55583/transformed/firebase-common-ktx-21.0.0/AndroidManifest.xml:2:1-18:12
+MERGED from [com.google.firebase:firebase-common:21.0.0] /home/romankozak/.gradle/caches/8.13/transforms/7e6eef7d63ea748aceb7edab55d5ca06/transformed/firebase-common-21.0.0/AndroidManifest.xml:15:1-41:12
+MERGED from [com.google.firebase:firebase-measurement-connector:20.0.1] /home/romankozak/.gradle/caches/8.13/transforms/ff66e43f9490eee5172965c58d70fa9e/transformed/firebase-measurement-connector-20.0.1/AndroidManifest.xml:17:1-25:12
+MERGED from [com.google.android.gms:play-services-measurement:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/d37b3c3b30d36c13546200efa1a7efc8/transformed/play-services-measurement-22.1.0/AndroidManifest.xml:17:1-46:12
+MERGED from [com.google.android.gms:play-services-measurement-sdk:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/5a71475ad381600ca38e1a7475ac81f9/transformed/play-services-measurement-sdk-22.1.0/AndroidManifest.xml:17:1-25:12
+MERGED from [com.google.android.gms:play-services-measurement-impl:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/bdf96e26b1e7b0442fd4512462bea3e2/transformed/play-services-measurement-impl-22.1.0/AndroidManifest.xml:17:1-32:12
+MERGED from [com.google.android.gms:play-services-ads-identifier:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/62e20f899e74c99d05f7c57c61c093ce/transformed/play-services-ads-identifier-18.0.0/AndroidManifest.xml:17:1-27:12
+MERGED from [com.google.android.gms:play-services-measurement-sdk-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/cdf69a08201600b1432b3c51f8ec62fd/transformed/play-services-measurement-sdk-api-22.1.0/AndroidManifest.xml:17:1-30:12
+MERGED from [com.google.android.gms:play-services-measurement-base:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/ccc28d9ffeedbd4323ca341d6e82b34f/transformed/play-services-measurement-base-22.1.0/AndroidManifest.xml:2:1-9:12
+MERGED from [com.google.android.gms:play-services-stats:17.0.2] /home/romankozak/.gradle/caches/8.13/transforms/e85e40160d14be1f7070ff365f58b963/transformed/play-services-stats-17.0.2/AndroidManifest.xml:2:1-9:12
+MERGED from [com.google.firebase:firebase-installations-interop:17.2.0] /home/romankozak/.gradle/caches/8.13/transforms/8c801f70937e6a29a659364ce9fbc1c3/transformed/firebase-installations-interop-17.2.0/AndroidManifest.xml:15:1-19:12
+MERGED from [androidx.room:room-runtime-android:2.8.1] /home/romankozak/.gradle/caches/8.13/transforms/09de7cc9fe807eb32844709ce84dedd5/transformed/room-runtime/AndroidManifest.xml:17:1-31:12
+MERGED from [androidx.room:room-ktx:2.8.1] /home/romankozak/.gradle/caches/8.13/transforms/c2521456d51555fcd56ac7a61d3ca427/transformed/room-ktx-2.8.1/AndroidManifest.xml:17:1-22:12
+MERGED from [com.google.accompanist:accompanist-flowlayout:0.34.0] /home/romankozak/.gradle/caches/8.13/transforms/a3a761911d8fd19b77e60486add71e44/transformed/accompanist-flowlayout-0.34.0/AndroidManifest.xml:17:1-23:12
+MERGED from [androidx.compose.material3:material3-android:1.3.0] /home/romankozak/.gradle/caches/8.13/transforms/62f115da40c8b9873729feb6740b67c0/transformed/material3-release/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.compose.material3:material3-window-size-class-android:1.3.0] /home/romankozak/.gradle/caches/8.13/transforms/bf16353fc9225acf9fe19959c7f91923/transformed/material3-window-size-class-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.window:window:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/1eb1efa2c127ba27dba9afead2b576b1/transformed/window-1.0.0/AndroidManifest.xml:17:1-33:12
+MERGED from [androidx.navigation:navigation-common:2.8.3] /home/romankozak/.gradle/caches/8.13/transforms/c6609e054398aa6827a5dbb01d14223e/transformed/navigation-common-2.8.3/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.navigation:navigation-runtime:2.8.3] /home/romankozak/.gradle/caches/8.13/transforms/13c6cb669aeb72b9407ff139513267e3/transformed/navigation-runtime-2.8.3/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.navigation:navigation-common-ktx:2.8.3] /home/romankozak/.gradle/caches/8.13/transforms/64efa81d8f8932eb08dd18f4f32d9ac8/transformed/navigation-common-ktx-2.8.3/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.navigation:navigation-runtime-ktx:2.8.3] /home/romankozak/.gradle/caches/8.13/transforms/0cc6a7eddd6e0ef8d4adfda28835fb52/transformed/navigation-runtime-ktx-2.8.3/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.navigation:navigation-compose:2.8.3] /home/romankozak/.gradle/caches/8.13/transforms/497d5795039407547cd3f2fee7f2bcc3/transformed/navigation-compose-2.8.3/AndroidManifest.xml:2:1-7:12
+MERGED from [sh.calvin.reorderable:reorderable-android:3.0.0] /home/romankozak/.gradle/caches/8.13/transforms/3c8306fa3567b534c379efa708fb2d63/transformed/reorderable-release/AndroidManifest.xml:2:1-7:12
+MERGED from [com.mohamedrejeb.dnd:compose-dnd-android:0.4.0] /home/romankozak/.gradle/caches/8.13/transforms/81858adb3c960746481a94d0041b6fbb/transformed/compose-dnd-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.material:material-icons-extended-android:1.7.4] /home/romankozak/.gradle/caches/8.13/transforms/de1f9a9f59f05bb8833ee64d633b24bc/transformed/material-icons-extended-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.material:material-icons-core-android:1.7.4] /home/romankozak/.gradle/caches/8.13/transforms/a756956571aa2b546e3af03afb023efe/transformed/material-icons-core-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/99859c628ca6a5542aa02a0a3e12c6da/transformed/foundation-layout-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.animation:animation-core-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/4453dfd4d5b6236d876fb4b0caa36ffa/transformed/animation-core-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.material:material-ripple-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/ed7c33fb4cad6e4fde9ecc746b31c245/transformed/material-ripple/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.animation:animation-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/6cd4a6eb7bbafb92b108fac0f745f5ad/transformed/animation/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-tooling-data-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/867146e5241f2558dcc55fd2a706cbe7/transformed/ui-tooling-data/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/f7de09f297daed08a6644e6b1ddbf5f8/transformed/ui-tooling-preview/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.compose.ui:ui-unit-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/9fde16c09830242f5ce2c732dad84545/transformed/ui-unit-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-graphics-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/43dfd97c9ca7ad8690c3d8724fa13186/transformed/ui-graphics-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-geometry-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/ceb9a72c1528169f6f23f9140674cdb0/transformed/ui-geometry/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-util-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/303964eed9b5eba68ac1f1e6d4c21d27/transformed/ui-util-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-text-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/7120ac7468015f1fb363e0aee3731239/transformed/ui-text-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-tooling-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/d49e6ae16b32702616aa0ee79dd8f910/transformed/ui-tooling-release/AndroidManifest.xml:17:1-28:12
+MERGED from [androidx.compose.material:material-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/60afe561d8ae67b3606e47ef5e133f9e/transformed/material-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.foundation:foundation-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/9cca9eb82ece9de5c5a68244ece51df8/transformed/foundation-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/b116d89c803f96bc8a75adb726252254/transformed/runtime-saveable-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.runtime:runtime-livedata:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/f3066462c50cf6f3478fe3409f04668f/transformed/runtime-livedata-1.8.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.emoji2:emoji2-views-helper:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/e941db12b668cb425c3e4f7a537e90f8/transformed/emoji2-views-helper-1.4.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.emoji2:emoji2:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/86f3feca163d1b97f2aeb8cb13741350/transformed/emoji2-1.4.0/AndroidManifest.xml:17:1-35:12
+MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] /home/romankozak/.gradle/caches/8.13/transforms/622adfb32696951248a431a6b8873195/transformed/savedstate-ktx-1.2.1/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.savedstate:savedstate:1.2.1] /home/romankozak/.gradle/caches/8.13/transforms/13ada6e07f1851e78ed4fc8e61c99ab0/transformed/savedstate-1.2.1/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx-android:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/37e81166e6436dbb28418b19b7c44f34/transformed/lifecycle-runtime-ktx-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-runtime-android:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/b240e78089e62c7038d595162ada28ed/transformed/lifecycle-runtime-release/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/c0900e253c75e67b7d9141dcebea9ca2/transformed/lifecycle-livedata-core-ktx-2.8.7/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-process:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/006810b136f7c2806b1d800b1b5cbb5c/transformed/lifecycle-process-2.8.7/AndroidManifest.xml:17:1-35:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/a38159c4b2efe8c663d6fe4e1461a25c/transformed/lifecycle-viewmodel-savedstate-2.8.7/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/f51cb4061c8466e46a38ef0bdc382290/transformed/lifecycle-livedata-core-2.8.7/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/b01218bee142402def931598b871517f/transformed/lifecycle-livedata-2.8.7/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/33f51ba31d8d7266a541f9b056b5fe73/transformed/lifecycle-viewmodel-2.8.7/AndroidManifest.xml:2:1-5:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-android:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/97e74f19f42903d7a201d10e783a521a/transformed/lifecycle-viewmodel-release/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-runtime-compose-android:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/b031b943d9568c18c0f61baa74e22dbe/transformed/lifecycle-runtime-compose-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/46fe6729c677162e734d139085937d4b/transformed/lifecycle-viewmodel-ktx-2.8.7/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose-android:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/9c44728aa978bbc0bcfa293a820a2e47/transformed/lifecycle-viewmodel-compose-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/e938bce3217ff313fd0106f1c166f41e/transformed/ui-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-test-manifest:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/fb679b01ee8e171e90d6ae812abcaec7/transformed/ui-test-manifest-1.8.0/AndroidManifest.xml:17:1-29:12
+MERGED from [androidx.activity:activity:1.9.3] /home/romankozak/.gradle/caches/8.13/transforms/fed19bfb6b3f39a866d83126d364fc08/transformed/activity-1.9.3/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.activity:activity-ktx:1.9.3] /home/romankozak/.gradle/caches/8.13/transforms/1fa24931cab9453789ede5544cffa25e/transformed/activity-ktx-1.9.3/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.activity:activity-compose:1.9.3] /home/romankozak/.gradle/caches/8.13/transforms/ec394381137a78b5f622fbb0ee221f50/transformed/activity-compose-1.9.3/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.runtime:runtime-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/632e6f1914711a8096f245d382707aaa/transformed/runtime-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.privacysandbox.ads:ads-adservices-java:1.0.0-beta05] /home/romankozak/.gradle/caches/8.13/transforms/7ba4d12b32b0175b1038f5fafc0a5848/transformed/ads-adservices-java-1.0.0-beta05/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.privacysandbox.ads:ads-adservices:1.0.0-beta05] /home/romankozak/.gradle/caches/8.13/transforms/135b04ca0b90b03974822f5e4ef8dc56/transformed/ads-adservices-1.0.0-beta05/AndroidManifest.xml:17:1-28:12
+MERGED from [com.google.android.gms:play-services-tasks:18.2.0] /home/romankozak/.gradle/caches/8.13/transforms/9052d6f97cc6e59bc3c4e61283bd10c9/transformed/play-services-tasks-18.2.0/AndroidManifest.xml:2:1-5:12
+MERGED from [com.google.android.gms:play-services-basement:18.4.0] /home/romankozak/.gradle/caches/8.13/transforms/c01c4c75f43c7c839ec9c8df06d95b32/transformed/play-services-basement-18.4.0/AndroidManifest.xml:2:1-9:12
+MERGED from [androidx.fragment:fragment:1.5.7] /home/romankozak/.gradle/caches/8.13/transforms/2032576ca0daf37cd98cd5ab36f631b0/transformed/fragment-1.5.7/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.transition:transition:1.5.0] /home/romankozak/.gradle/caches/8.13/transforms/cc0337e1cc9979f213e57e98343288f3/transformed/transition-1.5.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.dynamicanimation:dynamicanimation:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/722c3143a610806923ba7257f8ecac7d/transformed/dynamicanimation-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.legacy:legacy-support-core-utils:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/1edabd31ede047b6a6a484135ef65dc1/transformed/legacy-support-core-utils-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.loader:loader:1.1.0] /home/romankozak/.gradle/caches/8.13/transforms/53d6145449e380a29fb120755a4113ef/transformed/loader-1.1.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.coordinatorlayout:coordinatorlayout:1.1.0] /home/romankozak/.gradle/caches/8.13/transforms/18b0c9fc2a8f44db98f75520727eab91/transformed/coordinatorlayout-1.1.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.drawerlayout:drawerlayout:1.1.1] /home/romankozak/.gradle/caches/8.13/transforms/8e4bf1eab74d33f22dd7f19de06d2eb1/transformed/drawerlayout-1.1.1/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] /home/romankozak/.gradle/caches/8.13/transforms/f2b15e9b66d436ebfdf01816d9acf7c3/transformed/vectordrawable-animated-1.1.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] /home/romankozak/.gradle/caches/8.13/transforms/a7b817fa8195e749f75e2e8ec7142a0d/transformed/vectordrawable-1.1.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.viewpager:viewpager:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/ec2c398b751d3e859fbb44ad706aecc8/transformed/viewpager-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.recyclerview:recyclerview:1.1.0] /home/romankozak/.gradle/caches/8.13/transforms/f4c978d21a951ab0f05c0f98d60ca439/transformed/recyclerview-1.1.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.customview:customview:1.1.0] /home/romankozak/.gradle/caches/8.13/transforms/fa36c82f8de717c5277ca2612b840f0e/transformed/customview-1.1.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.autofill:autofill:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/4f0f5ddc6a4f65ccb047cb8e30752197/transformed/autofill-1.0.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.graphics:graphics-path:1.0.1] /home/romankozak/.gradle/caches/8.13/transforms/fa241ae68cf51c8988aba3640e6ef9ea/transformed/graphics-path-1.0.1/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.core:core:1.13.1] /home/romankozak/.gradle/caches/8.13/transforms/8422fc4b46b66a55327e4028ede25788/transformed/core-1.13.1/AndroidManifest.xml:17:1-30:12
+MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/2a4f5c92992ffe1f20e02c17e84598c6/transformed/customview-poolingcontainer-1.0.0/AndroidManifest.xml:17:1-23:12
+MERGED from [androidx.core:core-ktx:1.13.1] /home/romankozak/.gradle/caches/8.13/transforms/1648c8746d3558100c845907cb537d77/transformed/core-ktx-1.13.1/AndroidManifest.xml:2:1-7:12
+MERGED from [app.cash.sqldelight:android-driver:2.0.2] /home/romankozak/.gradle/caches/8.13/transforms/09bd97a64550b5c692c324e7404df686/transformed/android-driver-2.0.2-debug/AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.android.libraries.identity.googleid:googleid:1.1.0] /home/romankozak/.gradle/caches/8.13/transforms/62727abf94ff713d26a7b565d69d9351/transformed/googleid-1.1.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.annotation:annotation-experimental:1.5.0] /home/romankozak/.gradle/caches/8.13/transforms/2c29eedeada07d14d493fc602d309ed7/transformed/annotation-experimental-1.5.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.security:security-crypto:1.1.0-alpha06] /home/romankozak/.gradle/caches/8.13/transforms/6bfd7b85200ca780ca2cec61a193854a/transformed/security-crypto-1.1.0-alpha06/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.cardview:cardview:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/f2e09c332e971ab1569fdbd342e9f625/transformed/cardview-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [com.google.firebase:firebase-config-interop:16.0.1] /home/romankozak/.gradle/caches/8.13/transforms/71c31c2bdb8f5b9013865f3dfe85ed47/transformed/firebase-config-interop-16.0.1/AndroidManifest.xml:15:1-20:12
+MERGED from [com.google.firebase:firebase-datatransport:19.0.0] /home/romankozak/.gradle/caches/8.13/transforms/1b385fd115920a273672ed5f29477ae1/transformed/firebase-datatransport-19.0.0/AndroidManifest.xml:15:1-31:12
+MERGED from [com.google.android.datatransport:transport-backend-cct:3.3.0] /home/romankozak/.gradle/caches/8.13/transforms/dad60642a801b94a6815ddad505b274d/transformed/transport-backend-cct-3.3.0/AndroidManifest.xml:15:1-35:12
+MERGED from [com.google.firebase:firebase-encoders-json:18.0.1] /home/romankozak/.gradle/caches/8.13/transforms/d6d99fa8df582445b18352bbd1b7b24e/transformed/firebase-encoders-json-18.0.1/AndroidManifest.xml:15:1-22:12
+MERGED from [com.google.android.datatransport:transport-runtime:3.3.0] /home/romankozak/.gradle/caches/8.13/transforms/cbbff2f6507f46bc613320dc598ee5f0/transformed/transport-runtime-3.3.0/AndroidManifest.xml:15:1-39:12
+MERGED from [androidx.interpolator:interpolator:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/767630834912bb9bdad933c71a521b87/transformed/interpolator-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /home/romankozak/.gradle/caches/8.13/transforms/c74af99881f961021d62ed2f5e497e10/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:17:1-27:12
+MERGED from [com.google.firebase:firebase-components:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/3b77b6a8267c1ee2c80160767aff9454/transformed/firebase-components-18.0.0/AndroidManifest.xml:15:1-20:12
+MERGED from [androidx.arch.core:core-runtime:2.2.0] /home/romankozak/.gradle/caches/8.13/transforms/b5a89ddb333d19c0c7088eedf7a75bf1/transformed/core-runtime-2.2.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/bb8782893cc02a7cde07326c62199a33/transformed/cursoradapter-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/91eb706fe98df89a7e3e37eabc4abce7/transformed/profileinstaller-1.4.0/AndroidManifest.xml:17:1-55:12
+MERGED from [androidx.startup:startup-runtime:1.1.1] /home/romankozak/.gradle/caches/8.13/transforms/bc3214995dbe71b5ed2a0ae3932a86ad/transformed/startup-runtime-1.1.1/AndroidManifest.xml:17:1-33:12
+MERGED from [androidx.tracing:tracing:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/0458c1e19662618e997f94c254a32e57/transformed/tracing-1.0.0/AndroidManifest.xml:17:1-24:12
+MERGED from [com.google.android.datatransport:transport-api:3.2.0] /home/romankozak/.gradle/caches/8.13/transforms/e8f7beec33fd1e6e801c0ed297399ab6/transformed/transport-api-3.2.0/AndroidManifest.xml:15:1-20:12
+MERGED from [androidx.sqlite:sqlite-ktx:2.6.1] /home/romankozak/.gradle/caches/8.13/transforms/2fde38b049e463b7d9d36792bd52f9ea/transformed/sqlite-ktx-2.6.1/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.sqlite:sqlite-framework-android:2.6.1] /home/romankozak/.gradle/caches/8.13/transforms/953bc0ef319acbec7c238f273d7e9245/transformed/sqlite-framework/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.sqlite:sqlite-android:2.6.1] /home/romankozak/.gradle/caches/8.13/transforms/0b3cc94917ac002eca1e0b4e93e389e4/transformed/sqlite/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.documentfile:documentfile:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/cb9627777af38f1ab0b4cf076907c540/transformed/documentfile-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.localbroadcastmanager:localbroadcastmanager:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/1a5155fff36488ae72fb89e3525e5904/transformed/localbroadcastmanager-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.print:print:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/fe1d166d975ae0642713bba92f450707/transformed/print-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [com.microsoft.onnxruntime:onnxruntime-android:1.18.0] /home/romankozak/.gradle/caches/8.13/transforms/745b00b2f91ef3559d7e557f80409bd2/transformed/onnxruntime-android-1.18.0/AndroidManifest.xml:2:1-7:12
+	package
+		INJECTED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml
+	android:versionName
+		INJECTED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml
+	xmlns:tools
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:3:5-51
+	android:versionCode
+		INJECTED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml
+	xmlns:android
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:2:11-69
+uses-permission#android.permission.INTERNET
+ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:5:5-67
+MERGED from [com.google.firebase:firebase-crashlytics:19.1.0] /home/romankozak/.gradle/caches/8.13/transforms/68f8be404e9bd1b326f03ada3acb6866/transformed/firebase-crashlytics-19.1.0/AndroidManifest.xml:7:5-67
+MERGED from [com.google.firebase:firebase-crashlytics:19.1.0] /home/romankozak/.gradle/caches/8.13/transforms/68f8be404e9bd1b326f03ada3acb6866/transformed/firebase-crashlytics-19.1.0/AndroidManifest.xml:7:5-67
+MERGED from [com.google.mlkit:translate:17.0.2] /home/romankozak/.gradle/caches/8.13/transforms/4eb9fd61a01f2ba60096a10d403abbfd/transformed/translate-17.0.2/AndroidManifest.xml:8:5-67
+MERGED from [com.google.mlkit:translate:17.0.2] /home/romankozak/.gradle/caches/8.13/transforms/4eb9fd61a01f2ba60096a10d403abbfd/transformed/translate-17.0.2/AndroidManifest.xml:8:5-67
+MERGED from [com.google.firebase:firebase-config:22.0.0] /home/romankozak/.gradle/caches/8.13/transforms/92e0aa24fe5a6725d2170443d063cf5c/transformed/firebase-config-22.0.0/AndroidManifest.xml:23:5-67
+MERGED from [com.google.firebase:firebase-config:22.0.0] /home/romankozak/.gradle/caches/8.13/transforms/92e0aa24fe5a6725d2170443d063cf5c/transformed/firebase-config-22.0.0/AndroidManifest.xml:23:5-67
+MERGED from [com.google.android.gms:play-services-measurement-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/ac34494752977c1d2621d488e035be22/transformed/play-services-measurement-api-22.1.0/AndroidManifest.xml:22:5-67
+MERGED from [com.google.android.gms:play-services-measurement-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/ac34494752977c1d2621d488e035be22/transformed/play-services-measurement-api-22.1.0/AndroidManifest.xml:22:5-67
+MERGED from [com.google.firebase:firebase-installations:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/f2bffc12df06557f79d21ba074772ec3/transformed/firebase-installations-18.0.0/AndroidManifest.xml:8:5-67
+MERGED from [com.google.firebase:firebase-installations:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/f2bffc12df06557f79d21ba074772ec3/transformed/firebase-installations-18.0.0/AndroidManifest.xml:8:5-67
+MERGED from [com.google.android.gms:play-services-measurement:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/d37b3c3b30d36c13546200efa1a7efc8/transformed/play-services-measurement-22.1.0/AndroidManifest.xml:23:5-67
+MERGED from [com.google.android.gms:play-services-measurement:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/d37b3c3b30d36c13546200efa1a7efc8/transformed/play-services-measurement-22.1.0/AndroidManifest.xml:23:5-67
+MERGED from [com.google.android.gms:play-services-measurement-impl:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/bdf96e26b1e7b0442fd4512462bea3e2/transformed/play-services-measurement-impl-22.1.0/AndroidManifest.xml:23:5-67
+MERGED from [com.google.android.gms:play-services-measurement-impl:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/bdf96e26b1e7b0442fd4512462bea3e2/transformed/play-services-measurement-impl-22.1.0/AndroidManifest.xml:23:5-67
+MERGED from [com.google.android.gms:play-services-measurement-sdk-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/cdf69a08201600b1432b3c51f8ec62fd/transformed/play-services-measurement-sdk-api-22.1.0/AndroidManifest.xml:23:5-67
+MERGED from [com.google.android.gms:play-services-measurement-sdk-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/cdf69a08201600b1432b3c51f8ec62fd/transformed/play-services-measurement-sdk-api-22.1.0/AndroidManifest.xml:23:5-67
+MERGED from [com.google.android.datatransport:transport-backend-cct:3.3.0] /home/romankozak/.gradle/caches/8.13/transforms/dad60642a801b94a6815ddad505b274d/transformed/transport-backend-cct-3.3.0/AndroidManifest.xml:23:5-67
+MERGED from [com.google.android.datatransport:transport-backend-cct:3.3.0] /home/romankozak/.gradle/caches/8.13/transforms/dad60642a801b94a6815ddad505b274d/transformed/transport-backend-cct-3.3.0/AndroidManifest.xml:23:5-67
+	android:name
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:5:22-64
+uses-permission#android.permission.ACCESS_NETWORK_STATE
+ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:6:5-79
+MERGED from [com.google.mlkit:translate:17.0.2] /home/romankozak/.gradle/caches/8.13/transforms/4eb9fd61a01f2ba60096a10d403abbfd/transformed/translate-17.0.2/AndroidManifest.xml:7:5-79
+MERGED from [com.google.mlkit:translate:17.0.2] /home/romankozak/.gradle/caches/8.13/transforms/4eb9fd61a01f2ba60096a10d403abbfd/transformed/translate-17.0.2/AndroidManifest.xml:7:5-79
+MERGED from [com.google.firebase:firebase-config:22.0.0] /home/romankozak/.gradle/caches/8.13/transforms/92e0aa24fe5a6725d2170443d063cf5c/transformed/firebase-config-22.0.0/AndroidManifest.xml:22:5-79
+MERGED from [com.google.firebase:firebase-config:22.0.0] /home/romankozak/.gradle/caches/8.13/transforms/92e0aa24fe5a6725d2170443d063cf5c/transformed/firebase-config-22.0.0/AndroidManifest.xml:22:5-79
+MERGED from [com.google.android.gms:play-services-measurement-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/ac34494752977c1d2621d488e035be22/transformed/play-services-measurement-api-22.1.0/AndroidManifest.xml:23:5-79
+MERGED from [com.google.android.gms:play-services-measurement-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/ac34494752977c1d2621d488e035be22/transformed/play-services-measurement-api-22.1.0/AndroidManifest.xml:23:5-79
+MERGED from [com.google.firebase:firebase-installations:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/f2bffc12df06557f79d21ba074772ec3/transformed/firebase-installations-18.0.0/AndroidManifest.xml:7:5-79
+MERGED from [com.google.firebase:firebase-installations:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/f2bffc12df06557f79d21ba074772ec3/transformed/firebase-installations-18.0.0/AndroidManifest.xml:7:5-79
+MERGED from [com.google.android.gms:play-services-measurement:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/d37b3c3b30d36c13546200efa1a7efc8/transformed/play-services-measurement-22.1.0/AndroidManifest.xml:24:5-79
+MERGED from [com.google.android.gms:play-services-measurement:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/d37b3c3b30d36c13546200efa1a7efc8/transformed/play-services-measurement-22.1.0/AndroidManifest.xml:24:5-79
+MERGED from [com.google.android.gms:play-services-measurement-impl:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/bdf96e26b1e7b0442fd4512462bea3e2/transformed/play-services-measurement-impl-22.1.0/AndroidManifest.xml:24:5-79
+MERGED from [com.google.android.gms:play-services-measurement-impl:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/bdf96e26b1e7b0442fd4512462bea3e2/transformed/play-services-measurement-impl-22.1.0/AndroidManifest.xml:24:5-79
+MERGED from [com.google.android.gms:play-services-measurement-sdk-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/cdf69a08201600b1432b3c51f8ec62fd/transformed/play-services-measurement-sdk-api-22.1.0/AndroidManifest.xml:24:5-79
+MERGED from [com.google.android.gms:play-services-measurement-sdk-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/cdf69a08201600b1432b3c51f8ec62fd/transformed/play-services-measurement-sdk-api-22.1.0/AndroidManifest.xml:24:5-79
+MERGED from [com.google.android.datatransport:transport-backend-cct:3.3.0] /home/romankozak/.gradle/caches/8.13/transforms/dad60642a801b94a6815ddad505b274d/transformed/transport-backend-cct-3.3.0/AndroidManifest.xml:22:5-79
+MERGED from [com.google.android.datatransport:transport-backend-cct:3.3.0] /home/romankozak/.gradle/caches/8.13/transforms/dad60642a801b94a6815ddad505b274d/transformed/transport-backend-cct-3.3.0/AndroidManifest.xml:22:5-79
+MERGED from [com.google.android.datatransport:transport-runtime:3.3.0] /home/romankozak/.gradle/caches/8.13/transforms/cbbff2f6507f46bc613320dc598ee5f0/transformed/transport-runtime-3.3.0/AndroidManifest.xml:20:5-79
+MERGED from [com.google.android.datatransport:transport-runtime:3.3.0] /home/romankozak/.gradle/caches/8.13/transforms/cbbff2f6507f46bc613320dc598ee5f0/transformed/transport-runtime-3.3.0/AndroidManifest.xml:20:5-79
+	android:name
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:6:22-76
+uses-permission#android.permission.ACCESS_WIFI_STATE
+ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:7:5-76
+	android:name
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:7:22-73
+uses-permission#android.permission.CHANGE_WIFI_MULTICAST_STATE
+ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:8:5-86
+	android:name
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:8:22-83
+uses-permission#android.permission.FOREGROUND_SERVICE
+ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:10:5-77
+	android:name
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:10:22-74
+uses-permission#android.permission.FOREGROUND_SERVICE_DATA_SYNC
+ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:11:5-87
+	android:name
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:11:22-84
+uses-permission#android.permission.POST_NOTIFICATIONS
+ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:12:5-77
+	android:name
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:12:22-74
+uses-permission#android.permission.SCHEDULE_EXACT_ALARM
+ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:13:5-79
+	android:name
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:13:22-76
+uses-permission#android.permission.USE_BIOMETRIC
+ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:15:5-72
+MERGED from [androidx.biometric:biometric:1.1.0] /home/romankozak/.gradle/caches/8.13/transforms/4f7609ccb46b87833eca8ff11298820b/transformed/biometric-1.1.0/AndroidManifest.xml:24:5-72
+MERGED from [androidx.biometric:biometric:1.1.0] /home/romankozak/.gradle/caches/8.13/transforms/4f7609ccb46b87833eca8ff11298820b/transformed/biometric-1.1.0/AndroidManifest.xml:24:5-72
+	android:name
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:15:22-69
+uses-permission#android.permission.USE_FINGERPRINT
+ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:16:5-74
+MERGED from [androidx.biometric:biometric:1.1.0] /home/romankozak/.gradle/caches/8.13/transforms/4f7609ccb46b87833eca8ff11298820b/transformed/biometric-1.1.0/AndroidManifest.xml:27:5-74
+MERGED from [androidx.biometric:biometric:1.1.0] /home/romankozak/.gradle/caches/8.13/transforms/4f7609ccb46b87833eca8ff11298820b/transformed/biometric-1.1.0/AndroidManifest.xml:27:5-74
+	android:name
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:16:22-71
+uses-permission#android.permission.VIBRATE
+ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:18:5-66
+	android:name
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:18:22-63
+uses-permission#android.permission.WAKE_LOCK
+ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:19:5-68
+MERGED from [com.google.android.gms:play-services-measurement-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/ac34494752977c1d2621d488e035be22/transformed/play-services-measurement-api-22.1.0/AndroidManifest.xml:24:5-68
+MERGED from [com.google.android.gms:play-services-measurement-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/ac34494752977c1d2621d488e035be22/transformed/play-services-measurement-api-22.1.0/AndroidManifest.xml:24:5-68
+MERGED from [com.google.android.gms:play-services-measurement:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/d37b3c3b30d36c13546200efa1a7efc8/transformed/play-services-measurement-22.1.0/AndroidManifest.xml:25:5-68
+MERGED from [com.google.android.gms:play-services-measurement:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/d37b3c3b30d36c13546200efa1a7efc8/transformed/play-services-measurement-22.1.0/AndroidManifest.xml:25:5-68
+MERGED from [com.google.android.gms:play-services-measurement-impl:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/bdf96e26b1e7b0442fd4512462bea3e2/transformed/play-services-measurement-impl-22.1.0/AndroidManifest.xml:25:5-68
+MERGED from [com.google.android.gms:play-services-measurement-impl:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/bdf96e26b1e7b0442fd4512462bea3e2/transformed/play-services-measurement-impl-22.1.0/AndroidManifest.xml:25:5-68
+MERGED from [com.google.android.gms:play-services-measurement-sdk-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/cdf69a08201600b1432b3c51f8ec62fd/transformed/play-services-measurement-sdk-api-22.1.0/AndroidManifest.xml:25:5-68
+MERGED from [com.google.android.gms:play-services-measurement-sdk-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/cdf69a08201600b1432b3c51f8ec62fd/transformed/play-services-measurement-sdk-api-22.1.0/AndroidManifest.xml:25:5-68
+	android:name
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:19:22-65
+uses-permission#android.permission.SYSTEM_ALERT_WINDOW
+ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:21:5-78
+	android:name
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:21:22-75
+uses-permission#android.permission.USE_FULL_SCREEN_INTENT
+ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:22:5-81
+	android:name
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:22:22-78
+uses-permission#android.permission.DISABLE_KEYGUARD
+ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:24:5-75
+	android:name
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:24:22-72
+application
+ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:27:5-83:19
+INJECTED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:27:5-83:19
+MERGED from [com.google.firebase:firebase-crashlytics-ktx:19.1.0] /home/romankozak/.gradle/caches/8.13/transforms/e5f3645be1903f5e6d310ca4f10f139f/transformed/firebase-crashlytics-ktx-19.1.0/AndroidManifest.xml:20:5-28:19
+MERGED from [com.google.firebase:firebase-crashlytics-ktx:19.1.0] /home/romankozak/.gradle/caches/8.13/transforms/e5f3645be1903f5e6d310ca4f10f139f/transformed/firebase-crashlytics-ktx-19.1.0/AndroidManifest.xml:20:5-28:19
+MERGED from [com.google.firebase:firebase-crashlytics:19.1.0] /home/romankozak/.gradle/caches/8.13/transforms/68f8be404e9bd1b326f03ada3acb6866/transformed/firebase-crashlytics-19.1.0/AndroidManifest.xml:11:5-22:19
+MERGED from [com.google.firebase:firebase-crashlytics:19.1.0] /home/romankozak/.gradle/caches/8.13/transforms/68f8be404e9bd1b326f03ada3acb6866/transformed/firebase-crashlytics-19.1.0/AndroidManifest.xml:11:5-22:19
+MERGED from [com.google.firebase:firebase-sessions:2.0.4] /home/romankozak/.gradle/caches/8.13/transforms/309fea57eee9d1eb6c016b44411c4ad2/transformed/firebase-sessions-2.0.4/AndroidManifest.xml:21:5-33:19
+MERGED from [com.google.firebase:firebase-sessions:2.0.4] /home/romankozak/.gradle/caches/8.13/transforms/309fea57eee9d1eb6c016b44411c4ad2/transformed/firebase-sessions-2.0.4/AndroidManifest.xml:21:5-33:19
+MERGED from [com.google.android.material:material:1.12.0] /home/romankozak/.gradle/caches/8.13/transforms/32ff402e1403a3bde6a8b80773e7299b/transformed/material-1.12.0/AndroidManifest.xml:22:5-20
+MERGED from [com.google.android.material:material:1.12.0] /home/romankozak/.gradle/caches/8.13/transforms/32ff402e1403a3bde6a8b80773e7299b/transformed/material-1.12.0/AndroidManifest.xml:22:5-20
+MERGED from [com.google.mlkit:translate:17.0.2] /home/romankozak/.gradle/caches/8.13/transforms/4eb9fd61a01f2ba60096a10d403abbfd/transformed/translate-17.0.2/AndroidManifest.xml:10:5-18:19
+MERGED from [com.google.mlkit:translate:17.0.2] /home/romankozak/.gradle/caches/8.13/transforms/4eb9fd61a01f2ba60096a10d403abbfd/transformed/translate-17.0.2/AndroidManifest.xml:10:5-18:19
+MERGED from [androidx.credentials:credentials-play-services-auth:1.2.2] /home/romankozak/.gradle/caches/8.13/transforms/a62de19c16d9755232b1a66d975e6cc9/transformed/credentials-play-services-auth-1.2.2/AndroidManifest.xml:23:5-42:19
+MERGED from [androidx.credentials:credentials-play-services-auth:1.2.2] /home/romankozak/.gradle/caches/8.13/transforms/a62de19c16d9755232b1a66d975e6cc9/transformed/credentials-play-services-auth-1.2.2/AndroidManifest.xml:23:5-42:19
+MERGED from [com.google.android.gms:play-services-auth:21.1.0] /home/romankozak/.gradle/caches/8.13/transforms/0a9428444efaa80862c7ba782e5aae22/transformed/play-services-auth-21.1.0/AndroidManifest.xml:22:5-38:19
+MERGED from [com.google.android.gms:play-services-auth:21.1.0] /home/romankozak/.gradle/caches/8.13/transforms/0a9428444efaa80862c7ba782e5aae22/transformed/play-services-auth-21.1.0/AndroidManifest.xml:22:5-38:19
+MERGED from [com.google.android.gms:play-services-fido:20.1.0] /home/romankozak/.gradle/caches/8.13/transforms/9b2bc950d36d959ad3c44202465289d1/transformed/play-services-fido-20.1.0/AndroidManifest.xml:7:5-8:19
+MERGED from [com.google.android.gms:play-services-fido:20.1.0] /home/romankozak/.gradle/caches/8.13/transforms/9b2bc950d36d959ad3c44202465289d1/transformed/play-services-fido-20.1.0/AndroidManifest.xml:7:5-8:19
+MERGED from [com.google.mlkit:common:18.10.0] /home/romankozak/.gradle/caches/8.13/transforms/1807d6d845963e73fed8a4f5c777e542/transformed/common-18.10.0/AndroidManifest.xml:8:5-24:19
+MERGED from [com.google.mlkit:common:18.10.0] /home/romankozak/.gradle/caches/8.13/transforms/1807d6d845963e73fed8a4f5c777e542/transformed/common-18.10.0/AndroidManifest.xml:8:5-24:19
+MERGED from [com.google.android.gms:play-services-base:18.3.0] /home/romankozak/.gradle/caches/8.13/transforms/e52edc70eec45a55b3f278161990a831/transformed/play-services-base-18.3.0/AndroidManifest.xml:19:5-23:19
+MERGED from [com.google.android.gms:play-services-base:18.3.0] /home/romankozak/.gradle/caches/8.13/transforms/e52edc70eec45a55b3f278161990a831/transformed/play-services-base-18.3.0/AndroidManifest.xml:19:5-23:19
+MERGED from [androidx.constraintlayout:constraintlayout:2.0.1] /home/romankozak/.gradle/caches/8.13/transforms/52d2b313569ad2da04fb576e4db97886/transformed/constraintlayout-2.0.1/AndroidManifest.xml:9:5-20
+MERGED from [androidx.constraintlayout:constraintlayout:2.0.1] /home/romankozak/.gradle/caches/8.13/transforms/52d2b313569ad2da04fb576e4db97886/transformed/constraintlayout-2.0.1/AndroidManifest.xml:9:5-20
+MERGED from [com.google.firebase:firebase-config-ktx:22.0.0] /home/romankozak/.gradle/caches/8.13/transforms/35557bcb39c45f49fde4f2a686b4b65b/transformed/firebase-config-ktx-22.0.0/AndroidManifest.xml:8:5-16:19
+MERGED from [com.google.firebase:firebase-config-ktx:22.0.0] /home/romankozak/.gradle/caches/8.13/transforms/35557bcb39c45f49fde4f2a686b4b65b/transformed/firebase-config-ktx-22.0.0/AndroidManifest.xml:8:5-16:19
+MERGED from [com.google.firebase:firebase-config:22.0.0] /home/romankozak/.gradle/caches/8.13/transforms/92e0aa24fe5a6725d2170443d063cf5c/transformed/firebase-config-22.0.0/AndroidManifest.xml:25:5-36:19
+MERGED from [com.google.firebase:firebase-config:22.0.0] /home/romankozak/.gradle/caches/8.13/transforms/92e0aa24fe5a6725d2170443d063cf5c/transformed/firebase-config-22.0.0/AndroidManifest.xml:25:5-36:19
+MERGED from [com.google.firebase:firebase-abt:21.1.1] /home/romankozak/.gradle/caches/8.13/transforms/70498f45325dac81b1c5307024b28ac7/transformed/firebase-abt-21.1.1/AndroidManifest.xml:10:5-16:19
+MERGED from [com.google.firebase:firebase-abt:21.1.1] /home/romankozak/.gradle/caches/8.13/transforms/70498f45325dac81b1c5307024b28ac7/transformed/firebase-abt-21.1.1/AndroidManifest.xml:10:5-16:19
+MERGED from [com.google.firebase:firebase-installations-ktx:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/ab58fc44921b3864e49d87bc21f9a284/transformed/firebase-installations-ktx-18.0.0/AndroidManifest.xml:7:5-15:19
+MERGED from [com.google.firebase:firebase-installations-ktx:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/ab58fc44921b3864e49d87bc21f9a284/transformed/firebase-installations-ktx-18.0.0/AndroidManifest.xml:7:5-15:19
+MERGED from [com.google.firebase:firebase-analytics-ktx:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/16e46e4bd6cd433c820b8805aa43e321/transformed/firebase-analytics-ktx-22.1.0/AndroidManifest.xml:7:5-15:19
+MERGED from [com.google.firebase:firebase-analytics-ktx:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/16e46e4bd6cd433c820b8805aa43e321/transformed/firebase-analytics-ktx-22.1.0/AndroidManifest.xml:7:5-15:19
+MERGED from [com.google.firebase:firebase-analytics:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/3438c91d9c99eb7c330d2f95f005097f/transformed/firebase-analytics-22.1.0/AndroidManifest.xml:7:5-20
+MERGED from [com.google.firebase:firebase-analytics:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/3438c91d9c99eb7c330d2f95f005097f/transformed/firebase-analytics-22.1.0/AndroidManifest.xml:7:5-20
+MERGED from [com.google.android.gms:play-services-measurement-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/ac34494752977c1d2621d488e035be22/transformed/play-services-measurement-api-22.1.0/AndroidManifest.xml:29:5-41:19
+MERGED from [com.google.android.gms:play-services-measurement-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/ac34494752977c1d2621d488e035be22/transformed/play-services-measurement-api-22.1.0/AndroidManifest.xml:29:5-41:19
+MERGED from [com.google.firebase:firebase-installations:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/f2bffc12df06557f79d21ba074772ec3/transformed/firebase-installations-18.0.0/AndroidManifest.xml:11:5-22:19
+MERGED from [com.google.firebase:firebase-installations:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/f2bffc12df06557f79d21ba074772ec3/transformed/firebase-installations-18.0.0/AndroidManifest.xml:11:5-22:19
+MERGED from [com.google.firebase:firebase-common-ktx:21.0.0] /home/romankozak/.gradle/caches/8.13/transforms/fe98f2c8e9e7d7bb59b7448abda55583/transformed/firebase-common-ktx-21.0.0/AndroidManifest.xml:8:5-16:19
+MERGED from [com.google.firebase:firebase-common-ktx:21.0.0] /home/romankozak/.gradle/caches/8.13/transforms/fe98f2c8e9e7d7bb59b7448abda55583/transformed/firebase-common-ktx-21.0.0/AndroidManifest.xml:8:5-16:19
+MERGED from [com.google.firebase:firebase-common:21.0.0] /home/romankozak/.gradle/caches/8.13/transforms/7e6eef7d63ea748aceb7edab55d5ca06/transformed/firebase-common-21.0.0/AndroidManifest.xml:22:5-39:19
+MERGED from [com.google.firebase:firebase-common:21.0.0] /home/romankozak/.gradle/caches/8.13/transforms/7e6eef7d63ea748aceb7edab55d5ca06/transformed/firebase-common-21.0.0/AndroidManifest.xml:22:5-39:19
+MERGED from [com.google.firebase:firebase-measurement-connector:20.0.1] /home/romankozak/.gradle/caches/8.13/transforms/ff66e43f9490eee5172965c58d70fa9e/transformed/firebase-measurement-connector-20.0.1/AndroidManifest.xml:22:5-23:19
+MERGED from [com.google.firebase:firebase-measurement-connector:20.0.1] /home/romankozak/.gradle/caches/8.13/transforms/ff66e43f9490eee5172965c58d70fa9e/transformed/firebase-measurement-connector-20.0.1/AndroidManifest.xml:22:5-23:19
+MERGED from [com.google.android.gms:play-services-measurement:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/d37b3c3b30d36c13546200efa1a7efc8/transformed/play-services-measurement-22.1.0/AndroidManifest.xml:28:5-44:19
+MERGED from [com.google.android.gms:play-services-measurement:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/d37b3c3b30d36c13546200efa1a7efc8/transformed/play-services-measurement-22.1.0/AndroidManifest.xml:28:5-44:19
+MERGED from [com.google.android.gms:play-services-measurement-sdk:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/5a71475ad381600ca38e1a7475ac81f9/transformed/play-services-measurement-sdk-22.1.0/AndroidManifest.xml:22:5-23:19
+MERGED from [com.google.android.gms:play-services-measurement-sdk:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/5a71475ad381600ca38e1a7475ac81f9/transformed/play-services-measurement-sdk-22.1.0/AndroidManifest.xml:22:5-23:19
+MERGED from [com.google.android.gms:play-services-measurement-impl:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/bdf96e26b1e7b0442fd4512462bea3e2/transformed/play-services-measurement-impl-22.1.0/AndroidManifest.xml:29:5-30:19
+MERGED from [com.google.android.gms:play-services-measurement-impl:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/bdf96e26b1e7b0442fd4512462bea3e2/transformed/play-services-measurement-impl-22.1.0/AndroidManifest.xml:29:5-30:19
+MERGED from [com.google.android.gms:play-services-ads-identifier:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/62e20f899e74c99d05f7c57c61c093ce/transformed/play-services-ads-identifier-18.0.0/AndroidManifest.xml:25:5-20
+MERGED from [com.google.android.gms:play-services-ads-identifier:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/62e20f899e74c99d05f7c57c61c093ce/transformed/play-services-ads-identifier-18.0.0/AndroidManifest.xml:25:5-20
+MERGED from [com.google.android.gms:play-services-measurement-base:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/ccc28d9ffeedbd4323ca341d6e82b34f/transformed/play-services-measurement-base-22.1.0/AndroidManifest.xml:7:5-20
+MERGED from [com.google.android.gms:play-services-measurement-base:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/ccc28d9ffeedbd4323ca341d6e82b34f/transformed/play-services-measurement-base-22.1.0/AndroidManifest.xml:7:5-20
+MERGED from [com.google.android.gms:play-services-stats:17.0.2] /home/romankozak/.gradle/caches/8.13/transforms/e85e40160d14be1f7070ff365f58b963/transformed/play-services-stats-17.0.2/AndroidManifest.xml:7:5-20
+MERGED from [com.google.android.gms:play-services-stats:17.0.2] /home/romankozak/.gradle/caches/8.13/transforms/e85e40160d14be1f7070ff365f58b963/transformed/play-services-stats-17.0.2/AndroidManifest.xml:7:5-20
+MERGED from [androidx.room:room-runtime-android:2.8.1] /home/romankozak/.gradle/caches/8.13/transforms/09de7cc9fe807eb32844709ce84dedd5/transformed/room-runtime/AndroidManifest.xml:23:5-29:19
+MERGED from [androidx.room:room-runtime-android:2.8.1] /home/romankozak/.gradle/caches/8.13/transforms/09de7cc9fe807eb32844709ce84dedd5/transformed/room-runtime/AndroidManifest.xml:23:5-29:19
+MERGED from [androidx.window:window:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/1eb1efa2c127ba27dba9afead2b576b1/transformed/window-1.0.0/AndroidManifest.xml:24:5-31:19
+MERGED from [androidx.window:window:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/1eb1efa2c127ba27dba9afead2b576b1/transformed/window-1.0.0/AndroidManifest.xml:24:5-31:19
+MERGED from [androidx.compose.ui:ui-tooling-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/d49e6ae16b32702616aa0ee79dd8f910/transformed/ui-tooling-release/AndroidManifest.xml:22:5-26:19
+MERGED from [androidx.compose.ui:ui-tooling-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/d49e6ae16b32702616aa0ee79dd8f910/transformed/ui-tooling-release/AndroidManifest.xml:22:5-26:19
+MERGED from [androidx.emoji2:emoji2:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/86f3feca163d1b97f2aeb8cb13741350/transformed/emoji2-1.4.0/AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.emoji2:emoji2:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/86f3feca163d1b97f2aeb8cb13741350/transformed/emoji2-1.4.0/AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.lifecycle:lifecycle-process:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/006810b136f7c2806b1d800b1b5cbb5c/transformed/lifecycle-process-2.8.7/AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.lifecycle:lifecycle-process:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/006810b136f7c2806b1d800b1b5cbb5c/transformed/lifecycle-process-2.8.7/AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.compose.ui:ui-test-manifest:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/fb679b01ee8e171e90d6ae812abcaec7/transformed/ui-test-manifest-1.8.0/AndroidManifest.xml:22:5-27:19
+MERGED from [androidx.compose.ui:ui-test-manifest:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/fb679b01ee8e171e90d6ae812abcaec7/transformed/ui-test-manifest-1.8.0/AndroidManifest.xml:22:5-27:19
+MERGED from [androidx.privacysandbox.ads:ads-adservices:1.0.0-beta05] /home/romankozak/.gradle/caches/8.13/transforms/135b04ca0b90b03974822f5e4ef8dc56/transformed/ads-adservices-1.0.0-beta05/AndroidManifest.xml:22:5-26:19
+MERGED from [androidx.privacysandbox.ads:ads-adservices:1.0.0-beta05] /home/romankozak/.gradle/caches/8.13/transforms/135b04ca0b90b03974822f5e4ef8dc56/transformed/ads-adservices-1.0.0-beta05/AndroidManifest.xml:22:5-26:19
+MERGED from [com.google.android.gms:play-services-tasks:18.2.0] /home/romankozak/.gradle/caches/8.13/transforms/9052d6f97cc6e59bc3c4e61283bd10c9/transformed/play-services-tasks-18.2.0/AndroidManifest.xml:4:5-20
+MERGED from [com.google.android.gms:play-services-tasks:18.2.0] /home/romankozak/.gradle/caches/8.13/transforms/9052d6f97cc6e59bc3c4e61283bd10c9/transformed/play-services-tasks-18.2.0/AndroidManifest.xml:4:5-20
+MERGED from [com.google.android.gms:play-services-basement:18.4.0] /home/romankozak/.gradle/caches/8.13/transforms/c01c4c75f43c7c839ec9c8df06d95b32/transformed/play-services-basement-18.4.0/AndroidManifest.xml:5:5-7:19
+MERGED from [com.google.android.gms:play-services-basement:18.4.0] /home/romankozak/.gradle/caches/8.13/transforms/c01c4c75f43c7c839ec9c8df06d95b32/transformed/play-services-basement-18.4.0/AndroidManifest.xml:5:5-7:19
+MERGED from [androidx.core:core:1.13.1] /home/romankozak/.gradle/caches/8.13/transforms/8422fc4b46b66a55327e4028ede25788/transformed/core-1.13.1/AndroidManifest.xml:28:5-89
+MERGED from [androidx.core:core:1.13.1] /home/romankozak/.gradle/caches/8.13/transforms/8422fc4b46b66a55327e4028ede25788/transformed/core-1.13.1/AndroidManifest.xml:28:5-89
+MERGED from [com.google.firebase:firebase-datatransport:19.0.0] /home/romankozak/.gradle/caches/8.13/transforms/1b385fd115920a273672ed5f29477ae1/transformed/firebase-datatransport-19.0.0/AndroidManifest.xml:21:5-29:19
+MERGED from [com.google.firebase:firebase-datatransport:19.0.0] /home/romankozak/.gradle/caches/8.13/transforms/1b385fd115920a273672ed5f29477ae1/transformed/firebase-datatransport-19.0.0/AndroidManifest.xml:21:5-29:19
+MERGED from [com.google.android.datatransport:transport-backend-cct:3.3.0] /home/romankozak/.gradle/caches/8.13/transforms/dad60642a801b94a6815ddad505b274d/transformed/transport-backend-cct-3.3.0/AndroidManifest.xml:25:5-33:19
+MERGED from [com.google.android.datatransport:transport-backend-cct:3.3.0] /home/romankozak/.gradle/caches/8.13/transforms/dad60642a801b94a6815ddad505b274d/transformed/transport-backend-cct-3.3.0/AndroidManifest.xml:25:5-33:19
+MERGED from [com.google.android.datatransport:transport-runtime:3.3.0] /home/romankozak/.gradle/caches/8.13/transforms/cbbff2f6507f46bc613320dc598ee5f0/transformed/transport-runtime-3.3.0/AndroidManifest.xml:23:5-37:19
+MERGED from [com.google.android.datatransport:transport-runtime:3.3.0] /home/romankozak/.gradle/caches/8.13/transforms/cbbff2f6507f46bc613320dc598ee5f0/transformed/transport-runtime-3.3.0/AndroidManifest.xml:23:5-37:19
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /home/romankozak/.gradle/caches/8.13/transforms/c74af99881f961021d62ed2f5e497e10/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:24:5-25:19
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /home/romankozak/.gradle/caches/8.13/transforms/c74af99881f961021d62ed2f5e497e10/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:24:5-25:19
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/91eb706fe98df89a7e3e37eabc4abce7/transformed/profileinstaller-1.4.0/AndroidManifest.xml:23:5-53:19
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/91eb706fe98df89a7e3e37eabc4abce7/transformed/profileinstaller-1.4.0/AndroidManifest.xml:23:5-53:19
+MERGED from [androidx.startup:startup-runtime:1.1.1] /home/romankozak/.gradle/caches/8.13/transforms/bc3214995dbe71b5ed2a0ae3932a86ad/transformed/startup-runtime-1.1.1/AndroidManifest.xml:25:5-31:19
+MERGED from [androidx.startup:startup-runtime:1.1.1] /home/romankozak/.gradle/caches/8.13/transforms/bc3214995dbe71b5ed2a0ae3932a86ad/transformed/startup-runtime-1.1.1/AndroidManifest.xml:25:5-31:19
+	android:extractNativeLibs
+		INJECTED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml
+	android:appComponentFactory
+		ADDED from [androidx.core:core:1.13.1] /home/romankozak/.gradle/caches/8.13/transforms/8422fc4b46b66a55327e4028ede25788/transformed/core-1.13.1/AndroidManifest.xml:28:18-86
+	android:supportsRtl
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:35:9-35
+	android:label
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:33:9-41
+	android:fullBackupContent
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:31:9-54
+	android:roundIcon
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:34:9-54
+	tools:targetApi
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:39:9-29
+	android:icon
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:32:9-43
+	android:allowBackup
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:28:9-35
+	android:theme
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:36:1-43
+	android:dataExtractionRules
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:30:9-65
+	android:usesCleartextTraffic
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:38:9-44
+	android:name
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:29:9-52
+activity#com.romankozak.forwardappmobile.MainActivity
+ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:41:9-51:20
+	android:label
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:44:13-45
+	android:windowSoftInputMode
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:46:13-55
+	android:exported
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:43:13-36
+	android:theme
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:45:1-43
+	android:name
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:42:13-41
+intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
+ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:47:13-50:29
+action#android.intent.action.MAIN
+ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:48:17-69
+	android:name
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:48:25-66
+category#android.intent.category.LAUNCHER
+ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:49:17-77
+	android:name
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:49:27-74
+activity#com.romankozak.forwardappmobile.ShareReceiverActivity
+ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:53:9-63:20
+	android:label
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:56:13-44
+	android:exported
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:55:13-36
+	android:theme
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:57:13-70
+	android:name
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:54:13-50
+intent-filter#action:name:android.intent.action.SEND+category:name:android.intent.category.DEFAULT+data:mimeType:text/plain
+ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:58:13-62:29
+action#android.intent.action.SEND
+ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:59:17-69
+	android:name
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:59:25-66
+category#android.intent.category.DEFAULT
+ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:60:17-76
+	android:name
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:60:27-73
+data
+ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:61:17-55
+	android:mimeType
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:61:23-52
+receiver#com.romankozak.forwardappmobile.domain.reminders.ReminderBroadcastReceiver
+ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:65:9-67:37
+	android:enabled
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:67:13-35
+	android:name
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:66:13-71
+service#com.romankozak.forwardappmobile.domain.aichat.GenerationService
+ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:69:9-71:56
+	android:foregroundServiceType
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:71:13-53
+	android:name
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:70:13-60
+activity#com.romankozak.forwardappmobile.domain.reminders.ReminderLockScreenActivity
+ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:73:9-80:78
+	android:turnScreenOn
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:77:13-40
+	android:excludeFromRecents
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:79:13-46
+	android:showWhenLocked
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:76:13-42
+	android:launchMode
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:78:13-48
+	android:exported
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:75:13-37
+	android:theme
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:80:13-75
+	android:name
+		ADDED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml:74:13-72
+uses-sdk
+INJECTED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml
+INJECTED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml
+MERGED from [com.google.firebase:firebase-crashlytics-ktx:19.1.0] /home/romankozak/.gradle/caches/8.13/transforms/e5f3645be1903f5e6d310ca4f10f139f/transformed/firebase-crashlytics-ktx-19.1.0/AndroidManifest.xml:18:5-44
+MERGED from [com.google.firebase:firebase-crashlytics-ktx:19.1.0] /home/romankozak/.gradle/caches/8.13/transforms/e5f3645be1903f5e6d310ca4f10f139f/transformed/firebase-crashlytics-ktx-19.1.0/AndroidManifest.xml:18:5-44
+MERGED from [com.google.firebase:firebase-crashlytics:19.1.0] /home/romankozak/.gradle/caches/8.13/transforms/68f8be404e9bd1b326f03ada3acb6866/transformed/firebase-crashlytics-19.1.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.firebase:firebase-crashlytics:19.1.0] /home/romankozak/.gradle/caches/8.13/transforms/68f8be404e9bd1b326f03ada3acb6866/transformed/firebase-crashlytics-19.1.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.firebase:firebase-sessions:2.0.4] /home/romankozak/.gradle/caches/8.13/transforms/309fea57eee9d1eb6c016b44411c4ad2/transformed/firebase-sessions-2.0.4/AndroidManifest.xml:18:5-44
+MERGED from [com.google.firebase:firebase-sessions:2.0.4] /home/romankozak/.gradle/caches/8.13/transforms/309fea57eee9d1eb6c016b44411c4ad2/transformed/firebase-sessions-2.0.4/AndroidManifest.xml:18:5-44
+MERGED from [androidx.datastore:datastore-preferences:1.1.1] /home/romankozak/.gradle/caches/8.13/transforms/5da742a106cb6b917df53d0682c5d9b1/transformed/datastore-preferences-1.1.1/AndroidManifest.xml:4:5-43
+MERGED from [androidx.datastore:datastore-preferences:1.1.1] /home/romankozak/.gradle/caches/8.13/transforms/5da742a106cb6b917df53d0682c5d9b1/transformed/datastore-preferences-1.1.1/AndroidManifest.xml:4:5-43
+MERGED from [androidx.datastore:datastore-preferences-android:1.1.1] /home/romankozak/.gradle/caches/8.13/transforms/876cb9bae185e48d59144f331169b458/transformed/datastore-preferences-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.datastore:datastore-preferences-android:1.1.1] /home/romankozak/.gradle/caches/8.13/transforms/876cb9bae185e48d59144f331169b458/transformed/datastore-preferences-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.datastore:datastore-android:1.1.1] /home/romankozak/.gradle/caches/8.13/transforms/31d19295788ad8796c757c423ff7ed45/transformed/datastore-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.datastore:datastore-android:1.1.1] /home/romankozak/.gradle/caches/8.13/transforms/31d19295788ad8796c757c423ff7ed45/transformed/datastore-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.datastore:datastore-core-android:1.1.1] /home/romankozak/.gradle/caches/8.13/transforms/e083adfc14426bcb41d03379e4c7827c/transformed/datastore-core-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.datastore:datastore-core-android:1.1.1] /home/romankozak/.gradle/caches/8.13/transforms/e083adfc14426bcb41d03379e4c7827c/transformed/datastore-core-release/AndroidManifest.xml:5:5-44
+MERGED from [:packages:shared] /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [:packages:shared] /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.material:material:1.12.0] /home/romankozak/.gradle/caches/8.13/transforms/32ff402e1403a3bde6a8b80773e7299b/transformed/material-1.12.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.material:material:1.12.0] /home/romankozak/.gradle/caches/8.13/transforms/32ff402e1403a3bde6a8b80773e7299b/transformed/material-1.12.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.mlkit:translate:17.0.2] /home/romankozak/.gradle/caches/8.13/transforms/4eb9fd61a01f2ba60096a10d403abbfd/transformed/translate-17.0.2/AndroidManifest.xml:5:5-44
+MERGED from [com.google.mlkit:translate:17.0.2] /home/romankozak/.gradle/caches/8.13/transforms/4eb9fd61a01f2ba60096a10d403abbfd/transformed/translate-17.0.2/AndroidManifest.xml:5:5-44
+MERGED from [androidx.biometric:biometric:1.1.0] /home/romankozak/.gradle/caches/8.13/transforms/4f7609ccb46b87833eca8ff11298820b/transformed/biometric-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.biometric:biometric:1.1.0] /home/romankozak/.gradle/caches/8.13/transforms/4f7609ccb46b87833eca8ff11298820b/transformed/biometric-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.credentials:credentials:1.2.2] /home/romankozak/.gradle/caches/8.13/transforms/68a749064b34136ca5b9348d5c21f5b6/transformed/credentials-1.2.2/AndroidManifest.xml:5:5-44
+MERGED from [androidx.credentials:credentials:1.2.2] /home/romankozak/.gradle/caches/8.13/transforms/68a749064b34136ca5b9348d5c21f5b6/transformed/credentials-1.2.2/AndroidManifest.xml:5:5-44
+MERGED from [androidx.credentials:credentials-play-services-auth:1.2.2] /home/romankozak/.gradle/caches/8.13/transforms/a62de19c16d9755232b1a66d975e6cc9/transformed/credentials-play-services-auth-1.2.2/AndroidManifest.xml:21:5-44
+MERGED from [androidx.credentials:credentials-play-services-auth:1.2.2] /home/romankozak/.gradle/caches/8.13/transforms/a62de19c16d9755232b1a66d975e6cc9/transformed/credentials-play-services-auth-1.2.2/AndroidManifest.xml:21:5-44
+MERGED from [com.google.android.gms:play-services-auth:21.1.0] /home/romankozak/.gradle/caches/8.13/transforms/0a9428444efaa80862c7ba782e5aae22/transformed/play-services-auth-21.1.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.gms:play-services-auth:21.1.0] /home/romankozak/.gradle/caches/8.13/transforms/0a9428444efaa80862c7ba782e5aae22/transformed/play-services-auth-21.1.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.gms:play-services-fido:20.1.0] /home/romankozak/.gradle/caches/8.13/transforms/9b2bc950d36d959ad3c44202465289d1/transformed/play-services-fido-20.1.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-fido:20.1.0] /home/romankozak/.gradle/caches/8.13/transforms/9b2bc950d36d959ad3c44202465289d1/transformed/play-services-fido-20.1.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-auth-api-phone:18.0.2] /home/romankozak/.gradle/caches/8.13/transforms/f0dca104734194a69d68a5a9f4661ae9/transformed/play-services-auth-api-phone-18.0.2/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-auth-api-phone:18.0.2] /home/romankozak/.gradle/caches/8.13/transforms/f0dca104734194a69d68a5a9f4661ae9/transformed/play-services-auth-api-phone-18.0.2/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-auth-base:18.0.10] /home/romankozak/.gradle/caches/8.13/transforms/4ff67fc9b51a1e66366b831c6cc69cf2/transformed/play-services-auth-base-18.0.10/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-auth-base:18.0.10] /home/romankozak/.gradle/caches/8.13/transforms/4ff67fc9b51a1e66366b831c6cc69cf2/transformed/play-services-auth-base-18.0.10/AndroidManifest.xml:5:5-44
+MERGED from [com.google.mlkit:common:18.10.0] /home/romankozak/.gradle/caches/8.13/transforms/1807d6d845963e73fed8a4f5c777e542/transformed/common-18.10.0/AndroidManifest.xml:6:5-44
+MERGED from [com.google.mlkit:common:18.10.0] /home/romankozak/.gradle/caches/8.13/transforms/1807d6d845963e73fed8a4f5c777e542/transformed/common-18.10.0/AndroidManifest.xml:6:5-44
+MERGED from [com.google.android.gms:play-services-base:18.3.0] /home/romankozak/.gradle/caches/8.13/transforms/e52edc70eec45a55b3f278161990a831/transformed/play-services-base-18.3.0/AndroidManifest.xml:18:5-43
+MERGED from [com.google.android.gms:play-services-base:18.3.0] /home/romankozak/.gradle/caches/8.13/transforms/e52edc70eec45a55b3f278161990a831/transformed/play-services-base-18.3.0/AndroidManifest.xml:18:5-43
+MERGED from [androidx.constraintlayout:constraintlayout:2.0.1] /home/romankozak/.gradle/caches/8.13/transforms/52d2b313569ad2da04fb576e4db97886/transformed/constraintlayout-2.0.1/AndroidManifest.xml:5:5-7:41
+MERGED from [androidx.constraintlayout:constraintlayout:2.0.1] /home/romankozak/.gradle/caches/8.13/transforms/52d2b313569ad2da04fb576e4db97886/transformed/constraintlayout-2.0.1/AndroidManifest.xml:5:5-7:41
+MERGED from [androidx.appcompat:appcompat-resources:1.6.1] /home/romankozak/.gradle/caches/8.13/transforms/700d4a2861d5ddf212c44db82f2138bf/transformed/appcompat-resources-1.6.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.appcompat:appcompat-resources:1.6.1] /home/romankozak/.gradle/caches/8.13/transforms/700d4a2861d5ddf212c44db82f2138bf/transformed/appcompat-resources-1.6.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.appcompat:appcompat:1.6.1] /home/romankozak/.gradle/caches/8.13/transforms/8a0bc9c125b47b1dcd44d2d9dcbe307e/transformed/appcompat-1.6.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.appcompat:appcompat:1.6.1] /home/romankozak/.gradle/caches/8.13/transforms/8a0bc9c125b47b1dcd44d2d9dcbe307e/transformed/appcompat-1.6.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.viewpager2:viewpager2:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/62f4167c552d76604be00ff4f93e35eb/transformed/viewpager2-1.0.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.viewpager2:viewpager2:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/62f4167c552d76604be00ff4f93e35eb/transformed/viewpager2-1.0.0/AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.firebase:firebase-config-ktx:22.0.0] /home/romankozak/.gradle/caches/8.13/transforms/35557bcb39c45f49fde4f2a686b4b65b/transformed/firebase-config-ktx-22.0.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.firebase:firebase-config-ktx:22.0.0] /home/romankozak/.gradle/caches/8.13/transforms/35557bcb39c45f49fde4f2a686b4b65b/transformed/firebase-config-ktx-22.0.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.firebase:firebase-config:22.0.0] /home/romankozak/.gradle/caches/8.13/transforms/92e0aa24fe5a6725d2170443d063cf5c/transformed/firebase-config-22.0.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.firebase:firebase-config:22.0.0] /home/romankozak/.gradle/caches/8.13/transforms/92e0aa24fe5a6725d2170443d063cf5c/transformed/firebase-config-22.0.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.firebase:firebase-abt:21.1.1] /home/romankozak/.gradle/caches/8.13/transforms/70498f45325dac81b1c5307024b28ac7/transformed/firebase-abt-21.1.1/AndroidManifest.xml:5:5-7:41
+MERGED from [com.google.firebase:firebase-abt:21.1.1] /home/romankozak/.gradle/caches/8.13/transforms/70498f45325dac81b1c5307024b28ac7/transformed/firebase-abt-21.1.1/AndroidManifest.xml:5:5-7:41
+MERGED from [com.google.firebase:firebase-installations-ktx:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/ab58fc44921b3864e49d87bc21f9a284/transformed/firebase-installations-ktx-18.0.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.firebase:firebase-installations-ktx:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/ab58fc44921b3864e49d87bc21f9a284/transformed/firebase-installations-ktx-18.0.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.firebase:firebase-analytics-ktx:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/16e46e4bd6cd433c820b8805aa43e321/transformed/firebase-analytics-ktx-22.1.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.firebase:firebase-analytics-ktx:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/16e46e4bd6cd433c820b8805aa43e321/transformed/firebase-analytics-ktx-22.1.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.firebase:firebase-analytics:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/3438c91d9c99eb7c330d2f95f005097f/transformed/firebase-analytics-22.1.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.firebase:firebase-analytics:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/3438c91d9c99eb7c330d2f95f005097f/transformed/firebase-analytics-22.1.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-measurement-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/ac34494752977c1d2621d488e035be22/transformed/play-services-measurement-api-22.1.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.gms:play-services-measurement-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/ac34494752977c1d2621d488e035be22/transformed/play-services-measurement-api-22.1.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.firebase:firebase-installations:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/f2bffc12df06557f79d21ba074772ec3/transformed/firebase-installations-18.0.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.firebase:firebase-installations:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/f2bffc12df06557f79d21ba074772ec3/transformed/firebase-installations-18.0.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.firebase:firebase-common-ktx:21.0.0] /home/romankozak/.gradle/caches/8.13/transforms/fe98f2c8e9e7d7bb59b7448abda55583/transformed/firebase-common-ktx-21.0.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.firebase:firebase-common-ktx:21.0.0] /home/romankozak/.gradle/caches/8.13/transforms/fe98f2c8e9e7d7bb59b7448abda55583/transformed/firebase-common-ktx-21.0.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.firebase:firebase-common:21.0.0] /home/romankozak/.gradle/caches/8.13/transforms/7e6eef7d63ea748aceb7edab55d5ca06/transformed/firebase-common-21.0.0/AndroidManifest.xml:19:5-44
+MERGED from [com.google.firebase:firebase-common:21.0.0] /home/romankozak/.gradle/caches/8.13/transforms/7e6eef7d63ea748aceb7edab55d5ca06/transformed/firebase-common-21.0.0/AndroidManifest.xml:19:5-44
+MERGED from [com.google.firebase:firebase-measurement-connector:20.0.1] /home/romankozak/.gradle/caches/8.13/transforms/ff66e43f9490eee5172965c58d70fa9e/transformed/firebase-measurement-connector-20.0.1/AndroidManifest.xml:20:5-44
+MERGED from [com.google.firebase:firebase-measurement-connector:20.0.1] /home/romankozak/.gradle/caches/8.13/transforms/ff66e43f9490eee5172965c58d70fa9e/transformed/firebase-measurement-connector-20.0.1/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.gms:play-services-measurement:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/d37b3c3b30d36c13546200efa1a7efc8/transformed/play-services-measurement-22.1.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.gms:play-services-measurement:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/d37b3c3b30d36c13546200efa1a7efc8/transformed/play-services-measurement-22.1.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.gms:play-services-measurement-sdk:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/5a71475ad381600ca38e1a7475ac81f9/transformed/play-services-measurement-sdk-22.1.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.gms:play-services-measurement-sdk:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/5a71475ad381600ca38e1a7475ac81f9/transformed/play-services-measurement-sdk-22.1.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.gms:play-services-measurement-impl:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/bdf96e26b1e7b0442fd4512462bea3e2/transformed/play-services-measurement-impl-22.1.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.gms:play-services-measurement-impl:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/bdf96e26b1e7b0442fd4512462bea3e2/transformed/play-services-measurement-impl-22.1.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.gms:play-services-ads-identifier:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/62e20f899e74c99d05f7c57c61c093ce/transformed/play-services-ads-identifier-18.0.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.gms:play-services-ads-identifier:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/62e20f899e74c99d05f7c57c61c093ce/transformed/play-services-ads-identifier-18.0.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.gms:play-services-measurement-sdk-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/cdf69a08201600b1432b3c51f8ec62fd/transformed/play-services-measurement-sdk-api-22.1.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.gms:play-services-measurement-sdk-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/cdf69a08201600b1432b3c51f8ec62fd/transformed/play-services-measurement-sdk-api-22.1.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.gms:play-services-measurement-base:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/ccc28d9ffeedbd4323ca341d6e82b34f/transformed/play-services-measurement-base-22.1.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-measurement-base:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/ccc28d9ffeedbd4323ca341d6e82b34f/transformed/play-services-measurement-base-22.1.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-stats:17.0.2] /home/romankozak/.gradle/caches/8.13/transforms/e85e40160d14be1f7070ff365f58b963/transformed/play-services-stats-17.0.2/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-stats:17.0.2] /home/romankozak/.gradle/caches/8.13/transforms/e85e40160d14be1f7070ff365f58b963/transformed/play-services-stats-17.0.2/AndroidManifest.xml:5:5-44
+MERGED from [com.google.firebase:firebase-installations-interop:17.2.0] /home/romankozak/.gradle/caches/8.13/transforms/8c801f70937e6a29a659364ce9fbc1c3/transformed/firebase-installations-interop-17.2.0/AndroidManifest.xml:17:5-44
+MERGED from [com.google.firebase:firebase-installations-interop:17.2.0] /home/romankozak/.gradle/caches/8.13/transforms/8c801f70937e6a29a659364ce9fbc1c3/transformed/firebase-installations-interop-17.2.0/AndroidManifest.xml:17:5-44
+MERGED from [androidx.room:room-runtime-android:2.8.1] /home/romankozak/.gradle/caches/8.13/transforms/09de7cc9fe807eb32844709ce84dedd5/transformed/room-runtime/AndroidManifest.xml:21:5-44
+MERGED from [androidx.room:room-runtime-android:2.8.1] /home/romankozak/.gradle/caches/8.13/transforms/09de7cc9fe807eb32844709ce84dedd5/transformed/room-runtime/AndroidManifest.xml:21:5-44
+MERGED from [androidx.room:room-ktx:2.8.1] /home/romankozak/.gradle/caches/8.13/transforms/c2521456d51555fcd56ac7a61d3ca427/transformed/room-ktx-2.8.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.room:room-ktx:2.8.1] /home/romankozak/.gradle/caches/8.13/transforms/c2521456d51555fcd56ac7a61d3ca427/transformed/room-ktx-2.8.1/AndroidManifest.xml:20:5-44
+MERGED from [com.google.accompanist:accompanist-flowlayout:0.34.0] /home/romankozak/.gradle/caches/8.13/transforms/a3a761911d8fd19b77e60486add71e44/transformed/accompanist-flowlayout-0.34.0/AndroidManifest.xml:21:5-44
+MERGED from [com.google.accompanist:accompanist-flowlayout:0.34.0] /home/romankozak/.gradle/caches/8.13/transforms/a3a761911d8fd19b77e60486add71e44/transformed/accompanist-flowlayout-0.34.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.compose.material3:material3-android:1.3.0] /home/romankozak/.gradle/caches/8.13/transforms/62f115da40c8b9873729feb6740b67c0/transformed/material3-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.material3:material3-android:1.3.0] /home/romankozak/.gradle/caches/8.13/transforms/62f115da40c8b9873729feb6740b67c0/transformed/material3-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.material3:material3-window-size-class-android:1.3.0] /home/romankozak/.gradle/caches/8.13/transforms/bf16353fc9225acf9fe19959c7f91923/transformed/material3-window-size-class-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material3:material3-window-size-class-android:1.3.0] /home/romankozak/.gradle/caches/8.13/transforms/bf16353fc9225acf9fe19959c7f91923/transformed/material3-window-size-class-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.window:window:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/1eb1efa2c127ba27dba9afead2b576b1/transformed/window-1.0.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.window:window:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/1eb1efa2c127ba27dba9afead2b576b1/transformed/window-1.0.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.navigation:navigation-common:2.8.3] /home/romankozak/.gradle/caches/8.13/transforms/c6609e054398aa6827a5dbb01d14223e/transformed/navigation-common-2.8.3/AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-common:2.8.3] /home/romankozak/.gradle/caches/8.13/transforms/c6609e054398aa6827a5dbb01d14223e/transformed/navigation-common-2.8.3/AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-runtime:2.8.3] /home/romankozak/.gradle/caches/8.13/transforms/13c6cb669aeb72b9407ff139513267e3/transformed/navigation-runtime-2.8.3/AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-runtime:2.8.3] /home/romankozak/.gradle/caches/8.13/transforms/13c6cb669aeb72b9407ff139513267e3/transformed/navigation-runtime-2.8.3/AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-common-ktx:2.8.3] /home/romankozak/.gradle/caches/8.13/transforms/64efa81d8f8932eb08dd18f4f32d9ac8/transformed/navigation-common-ktx-2.8.3/AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigation:navigation-common-ktx:2.8.3] /home/romankozak/.gradle/caches/8.13/transforms/64efa81d8f8932eb08dd18f4f32d9ac8/transformed/navigation-common-ktx-2.8.3/AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigation:navigation-runtime-ktx:2.8.3] /home/romankozak/.gradle/caches/8.13/transforms/0cc6a7eddd6e0ef8d4adfda28835fb52/transformed/navigation-runtime-ktx-2.8.3/AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigation:navigation-runtime-ktx:2.8.3] /home/romankozak/.gradle/caches/8.13/transforms/0cc6a7eddd6e0ef8d4adfda28835fb52/transformed/navigation-runtime-ktx-2.8.3/AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigation:navigation-compose:2.8.3] /home/romankozak/.gradle/caches/8.13/transforms/497d5795039407547cd3f2fee7f2bcc3/transformed/navigation-compose-2.8.3/AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigation:navigation-compose:2.8.3] /home/romankozak/.gradle/caches/8.13/transforms/497d5795039407547cd3f2fee7f2bcc3/transformed/navigation-compose-2.8.3/AndroidManifest.xml:5:5-44
+MERGED from [sh.calvin.reorderable:reorderable-android:3.0.0] /home/romankozak/.gradle/caches/8.13/transforms/3c8306fa3567b534c379efa708fb2d63/transformed/reorderable-release/AndroidManifest.xml:5:5-44
+MERGED from [sh.calvin.reorderable:reorderable-android:3.0.0] /home/romankozak/.gradle/caches/8.13/transforms/3c8306fa3567b534c379efa708fb2d63/transformed/reorderable-release/AndroidManifest.xml:5:5-44
+MERGED from [com.mohamedrejeb.dnd:compose-dnd-android:0.4.0] /home/romankozak/.gradle/caches/8.13/transforms/81858adb3c960746481a94d0041b6fbb/transformed/compose-dnd-release/AndroidManifest.xml:5:5-44
+MERGED from [com.mohamedrejeb.dnd:compose-dnd-android:0.4.0] /home/romankozak/.gradle/caches/8.13/transforms/81858adb3c960746481a94d0041b6fbb/transformed/compose-dnd-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-icons-extended-android:1.7.4] /home/romankozak/.gradle/caches/8.13/transforms/de1f9a9f59f05bb8833ee64d633b24bc/transformed/material-icons-extended-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-icons-extended-android:1.7.4] /home/romankozak/.gradle/caches/8.13/transforms/de1f9a9f59f05bb8833ee64d633b24bc/transformed/material-icons-extended-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-icons-core-android:1.7.4] /home/romankozak/.gradle/caches/8.13/transforms/a756956571aa2b546e3af03afb023efe/transformed/material-icons-core-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-icons-core-android:1.7.4] /home/romankozak/.gradle/caches/8.13/transforms/a756956571aa2b546e3af03afb023efe/transformed/material-icons-core-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/99859c628ca6a5542aa02a0a3e12c6da/transformed/foundation-layout-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/99859c628ca6a5542aa02a0a3e12c6da/transformed/foundation-layout-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-core-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/4453dfd4d5b6236d876fb4b0caa36ffa/transformed/animation-core-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-core-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/4453dfd4d5b6236d876fb4b0caa36ffa/transformed/animation-core-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-ripple-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/ed7c33fb4cad6e4fde9ecc746b31c245/transformed/material-ripple/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-ripple-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/ed7c33fb4cad6e4fde9ecc746b31c245/transformed/material-ripple/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/6cd4a6eb7bbafb92b108fac0f745f5ad/transformed/animation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/6cd4a6eb7bbafb92b108fac0f745f5ad/transformed/animation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-data-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/867146e5241f2558dcc55fd2a706cbe7/transformed/ui-tooling-data/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-data-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/867146e5241f2558dcc55fd2a706cbe7/transformed/ui-tooling-data/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/f7de09f297daed08a6644e6b1ddbf5f8/transformed/ui-tooling-preview/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/f7de09f297daed08a6644e6b1ddbf5f8/transformed/ui-tooling-preview/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-unit-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/9fde16c09830242f5ce2c732dad84545/transformed/ui-unit-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-unit-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/9fde16c09830242f5ce2c732dad84545/transformed/ui-unit-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-graphics-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/43dfd97c9ca7ad8690c3d8724fa13186/transformed/ui-graphics-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-graphics-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/43dfd97c9ca7ad8690c3d8724fa13186/transformed/ui-graphics-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-geometry-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/ceb9a72c1528169f6f23f9140674cdb0/transformed/ui-geometry/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-geometry-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/ceb9a72c1528169f6f23f9140674cdb0/transformed/ui-geometry/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-util-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/303964eed9b5eba68ac1f1e6d4c21d27/transformed/ui-util-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-util-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/303964eed9b5eba68ac1f1e6d4c21d27/transformed/ui-util-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-text-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/7120ac7468015f1fb363e0aee3731239/transformed/ui-text-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-text-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/7120ac7468015f1fb363e0aee3731239/transformed/ui-text-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/d49e6ae16b32702616aa0ee79dd8f910/transformed/ui-tooling-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-tooling-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/d49e6ae16b32702616aa0ee79dd8f910/transformed/ui-tooling-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.material:material-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/60afe561d8ae67b3606e47ef5e133f9e/transformed/material-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/60afe561d8ae67b3606e47ef5e133f9e/transformed/material-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/9cca9eb82ece9de5c5a68244ece51df8/transformed/foundation-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/9cca9eb82ece9de5c5a68244ece51df8/transformed/foundation-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/b116d89c803f96bc8a75adb726252254/transformed/runtime-saveable-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/b116d89c803f96bc8a75adb726252254/transformed/runtime-saveable-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-livedata:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/f3066462c50cf6f3478fe3409f04668f/transformed/runtime-livedata-1.8.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-livedata:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/f3066462c50cf6f3478fe3409f04668f/transformed/runtime-livedata-1.8.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.emoji2:emoji2-views-helper:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/e941db12b668cb425c3e4f7a537e90f8/transformed/emoji2-views-helper-1.4.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.emoji2:emoji2-views-helper:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/e941db12b668cb425c3e4f7a537e90f8/transformed/emoji2-views-helper-1.4.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.emoji2:emoji2:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/86f3feca163d1b97f2aeb8cb13741350/transformed/emoji2-1.4.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.emoji2:emoji2:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/86f3feca163d1b97f2aeb8cb13741350/transformed/emoji2-1.4.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] /home/romankozak/.gradle/caches/8.13/transforms/622adfb32696951248a431a6b8873195/transformed/savedstate-ktx-1.2.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] /home/romankozak/.gradle/caches/8.13/transforms/622adfb32696951248a431a6b8873195/transformed/savedstate-ktx-1.2.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate:1.2.1] /home/romankozak/.gradle/caches/8.13/transforms/13ada6e07f1851e78ed4fc8e61c99ab0/transformed/savedstate-1.2.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate:1.2.1] /home/romankozak/.gradle/caches/8.13/transforms/13ada6e07f1851e78ed4fc8e61c99ab0/transformed/savedstate-1.2.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx-android:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/37e81166e6436dbb28418b19b7c44f34/transformed/lifecycle-runtime-ktx-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx-android:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/37e81166e6436dbb28418b19b7c44f34/transformed/lifecycle-runtime-ktx-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-android:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/b240e78089e62c7038d595162ada28ed/transformed/lifecycle-runtime-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-android:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/b240e78089e62c7038d595162ada28ed/transformed/lifecycle-runtime-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/c0900e253c75e67b7d9141dcebea9ca2/transformed/lifecycle-livedata-core-ktx-2.8.7/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/c0900e253c75e67b7d9141dcebea9ca2/transformed/lifecycle-livedata-core-ktx-2.8.7/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-process:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/006810b136f7c2806b1d800b1b5cbb5c/transformed/lifecycle-process-2.8.7/AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-process:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/006810b136f7c2806b1d800b1b5cbb5c/transformed/lifecycle-process-2.8.7/AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/a38159c4b2efe8c663d6fe4e1461a25c/transformed/lifecycle-viewmodel-savedstate-2.8.7/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/a38159c4b2efe8c663d6fe4e1461a25c/transformed/lifecycle-viewmodel-savedstate-2.8.7/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/f51cb4061c8466e46a38ef0bdc382290/transformed/lifecycle-livedata-core-2.8.7/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/f51cb4061c8466e46a38ef0bdc382290/transformed/lifecycle-livedata-core-2.8.7/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/b01218bee142402def931598b871517f/transformed/lifecycle-livedata-2.8.7/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/b01218bee142402def931598b871517f/transformed/lifecycle-livedata-2.8.7/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/33f51ba31d8d7266a541f9b056b5fe73/transformed/lifecycle-viewmodel-2.8.7/AndroidManifest.xml:4:5-43
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/33f51ba31d8d7266a541f9b056b5fe73/transformed/lifecycle-viewmodel-2.8.7/AndroidManifest.xml:4:5-43
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-android:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/97e74f19f42903d7a201d10e783a521a/transformed/lifecycle-viewmodel-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-android:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/97e74f19f42903d7a201d10e783a521a/transformed/lifecycle-viewmodel-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-compose-android:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/b031b943d9568c18c0f61baa74e22dbe/transformed/lifecycle-runtime-compose-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-compose-android:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/b031b943d9568c18c0f61baa74e22dbe/transformed/lifecycle-runtime-compose-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/46fe6729c677162e734d139085937d4b/transformed/lifecycle-viewmodel-ktx-2.8.7/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/46fe6729c677162e734d139085937d4b/transformed/lifecycle-viewmodel-ktx-2.8.7/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose-android:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/9c44728aa978bbc0bcfa293a820a2e47/transformed/lifecycle-viewmodel-compose-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose-android:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/9c44728aa978bbc0bcfa293a820a2e47/transformed/lifecycle-viewmodel-compose-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/e938bce3217ff313fd0106f1c166f41e/transformed/ui-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/e938bce3217ff313fd0106f1c166f41e/transformed/ui-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-test-manifest:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/fb679b01ee8e171e90d6ae812abcaec7/transformed/ui-test-manifest-1.8.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-test-manifest:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/fb679b01ee8e171e90d6ae812abcaec7/transformed/ui-test-manifest-1.8.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.activity:activity:1.9.3] /home/romankozak/.gradle/caches/8.13/transforms/fed19bfb6b3f39a866d83126d364fc08/transformed/activity-1.9.3/AndroidManifest.xml:20:5-44
+MERGED from [androidx.activity:activity:1.9.3] /home/romankozak/.gradle/caches/8.13/transforms/fed19bfb6b3f39a866d83126d364fc08/transformed/activity-1.9.3/AndroidManifest.xml:20:5-44
+MERGED from [androidx.activity:activity-ktx:1.9.3] /home/romankozak/.gradle/caches/8.13/transforms/1fa24931cab9453789ede5544cffa25e/transformed/activity-ktx-1.9.3/AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity-ktx:1.9.3] /home/romankozak/.gradle/caches/8.13/transforms/1fa24931cab9453789ede5544cffa25e/transformed/activity-ktx-1.9.3/AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity-compose:1.9.3] /home/romankozak/.gradle/caches/8.13/transforms/ec394381137a78b5f622fbb0ee221f50/transformed/activity-compose-1.9.3/AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity-compose:1.9.3] /home/romankozak/.gradle/caches/8.13/transforms/ec394381137a78b5f622fbb0ee221f50/transformed/activity-compose-1.9.3/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/632e6f1914711a8096f245d382707aaa/transformed/runtime-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/632e6f1914711a8096f245d382707aaa/transformed/runtime-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.privacysandbox.ads:ads-adservices-java:1.0.0-beta05] /home/romankozak/.gradle/caches/8.13/transforms/7ba4d12b32b0175b1038f5fafc0a5848/transformed/ads-adservices-java-1.0.0-beta05/AndroidManifest.xml:5:5-44
+MERGED from [androidx.privacysandbox.ads:ads-adservices-java:1.0.0-beta05] /home/romankozak/.gradle/caches/8.13/transforms/7ba4d12b32b0175b1038f5fafc0a5848/transformed/ads-adservices-java-1.0.0-beta05/AndroidManifest.xml:5:5-44
+MERGED from [androidx.privacysandbox.ads:ads-adservices:1.0.0-beta05] /home/romankozak/.gradle/caches/8.13/transforms/135b04ca0b90b03974822f5e4ef8dc56/transformed/ads-adservices-1.0.0-beta05/AndroidManifest.xml:20:5-44
+MERGED from [androidx.privacysandbox.ads:ads-adservices:1.0.0-beta05] /home/romankozak/.gradle/caches/8.13/transforms/135b04ca0b90b03974822f5e4ef8dc56/transformed/ads-adservices-1.0.0-beta05/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.gms:play-services-tasks:18.2.0] /home/romankozak/.gradle/caches/8.13/transforms/9052d6f97cc6e59bc3c4e61283bd10c9/transformed/play-services-tasks-18.2.0/AndroidManifest.xml:3:5-44
+MERGED from [com.google.android.gms:play-services-tasks:18.2.0] /home/romankozak/.gradle/caches/8.13/transforms/9052d6f97cc6e59bc3c4e61283bd10c9/transformed/play-services-tasks-18.2.0/AndroidManifest.xml:3:5-44
+MERGED from [com.google.android.gms:play-services-basement:18.4.0] /home/romankozak/.gradle/caches/8.13/transforms/c01c4c75f43c7c839ec9c8df06d95b32/transformed/play-services-basement-18.4.0/AndroidManifest.xml:3:5-44
+MERGED from [com.google.android.gms:play-services-basement:18.4.0] /home/romankozak/.gradle/caches/8.13/transforms/c01c4c75f43c7c839ec9c8df06d95b32/transformed/play-services-basement-18.4.0/AndroidManifest.xml:3:5-44
+MERGED from [androidx.fragment:fragment:1.5.7] /home/romankozak/.gradle/caches/8.13/transforms/2032576ca0daf37cd98cd5ab36f631b0/transformed/fragment-1.5.7/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.fragment:fragment:1.5.7] /home/romankozak/.gradle/caches/8.13/transforms/2032576ca0daf37cd98cd5ab36f631b0/transformed/fragment-1.5.7/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.transition:transition:1.5.0] /home/romankozak/.gradle/caches/8.13/transforms/cc0337e1cc9979f213e57e98343288f3/transformed/transition-1.5.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.transition:transition:1.5.0] /home/romankozak/.gradle/caches/8.13/transforms/cc0337e1cc9979f213e57e98343288f3/transformed/transition-1.5.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.dynamicanimation:dynamicanimation:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/722c3143a610806923ba7257f8ecac7d/transformed/dynamicanimation-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.dynamicanimation:dynamicanimation:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/722c3143a610806923ba7257f8ecac7d/transformed/dynamicanimation-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.legacy:legacy-support-core-utils:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/1edabd31ede047b6a6a484135ef65dc1/transformed/legacy-support-core-utils-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.legacy:legacy-support-core-utils:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/1edabd31ede047b6a6a484135ef65dc1/transformed/legacy-support-core-utils-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.loader:loader:1.1.0] /home/romankozak/.gradle/caches/8.13/transforms/53d6145449e380a29fb120755a4113ef/transformed/loader-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.loader:loader:1.1.0] /home/romankozak/.gradle/caches/8.13/transforms/53d6145449e380a29fb120755a4113ef/transformed/loader-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.coordinatorlayout:coordinatorlayout:1.1.0] /home/romankozak/.gradle/caches/8.13/transforms/18b0c9fc2a8f44db98f75520727eab91/transformed/coordinatorlayout-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.coordinatorlayout:coordinatorlayout:1.1.0] /home/romankozak/.gradle/caches/8.13/transforms/18b0c9fc2a8f44db98f75520727eab91/transformed/coordinatorlayout-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.drawerlayout:drawerlayout:1.1.1] /home/romankozak/.gradle/caches/8.13/transforms/8e4bf1eab74d33f22dd7f19de06d2eb1/transformed/drawerlayout-1.1.1/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.drawerlayout:drawerlayout:1.1.1] /home/romankozak/.gradle/caches/8.13/transforms/8e4bf1eab74d33f22dd7f19de06d2eb1/transformed/drawerlayout-1.1.1/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] /home/romankozak/.gradle/caches/8.13/transforms/f2b15e9b66d436ebfdf01816d9acf7c3/transformed/vectordrawable-animated-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] /home/romankozak/.gradle/caches/8.13/transforms/f2b15e9b66d436ebfdf01816d9acf7c3/transformed/vectordrawable-animated-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] /home/romankozak/.gradle/caches/8.13/transforms/a7b817fa8195e749f75e2e8ec7142a0d/transformed/vectordrawable-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] /home/romankozak/.gradle/caches/8.13/transforms/a7b817fa8195e749f75e2e8ec7142a0d/transformed/vectordrawable-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.viewpager:viewpager:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/ec2c398b751d3e859fbb44ad706aecc8/transformed/viewpager-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.viewpager:viewpager:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/ec2c398b751d3e859fbb44ad706aecc8/transformed/viewpager-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.recyclerview:recyclerview:1.1.0] /home/romankozak/.gradle/caches/8.13/transforms/f4c978d21a951ab0f05c0f98d60ca439/transformed/recyclerview-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.recyclerview:recyclerview:1.1.0] /home/romankozak/.gradle/caches/8.13/transforms/f4c978d21a951ab0f05c0f98d60ca439/transformed/recyclerview-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.customview:customview:1.1.0] /home/romankozak/.gradle/caches/8.13/transforms/fa36c82f8de717c5277ca2612b840f0e/transformed/customview-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.customview:customview:1.1.0] /home/romankozak/.gradle/caches/8.13/transforms/fa36c82f8de717c5277ca2612b840f0e/transformed/customview-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.autofill:autofill:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/4f0f5ddc6a4f65ccb047cb8e30752197/transformed/autofill-1.0.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.autofill:autofill:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/4f0f5ddc6a4f65ccb047cb8e30752197/transformed/autofill-1.0.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.graphics:graphics-path:1.0.1] /home/romankozak/.gradle/caches/8.13/transforms/fa241ae68cf51c8988aba3640e6ef9ea/transformed/graphics-path-1.0.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.graphics:graphics-path:1.0.1] /home/romankozak/.gradle/caches/8.13/transforms/fa241ae68cf51c8988aba3640e6ef9ea/transformed/graphics-path-1.0.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.core:core:1.13.1] /home/romankozak/.gradle/caches/8.13/transforms/8422fc4b46b66a55327e4028ede25788/transformed/core-1.13.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.core:core:1.13.1] /home/romankozak/.gradle/caches/8.13/transforms/8422fc4b46b66a55327e4028ede25788/transformed/core-1.13.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/2a4f5c92992ffe1f20e02c17e84598c6/transformed/customview-poolingcontainer-1.0.0/AndroidManifest.xml:20:5-21:38
+MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/2a4f5c92992ffe1f20e02c17e84598c6/transformed/customview-poolingcontainer-1.0.0/AndroidManifest.xml:20:5-21:38
+MERGED from [androidx.core:core-ktx:1.13.1] /home/romankozak/.gradle/caches/8.13/transforms/1648c8746d3558100c845907cb537d77/transformed/core-ktx-1.13.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.core:core-ktx:1.13.1] /home/romankozak/.gradle/caches/8.13/transforms/1648c8746d3558100c845907cb537d77/transformed/core-ktx-1.13.1/AndroidManifest.xml:5:5-44
+MERGED from [app.cash.sqldelight:android-driver:2.0.2] /home/romankozak/.gradle/caches/8.13/transforms/09bd97a64550b5c692c324e7404df686/transformed/android-driver-2.0.2-debug/AndroidManifest.xml:5:5-44
+MERGED from [app.cash.sqldelight:android-driver:2.0.2] /home/romankozak/.gradle/caches/8.13/transforms/09bd97a64550b5c692c324e7404df686/transformed/android-driver-2.0.2-debug/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.libraries.identity.googleid:googleid:1.1.0] /home/romankozak/.gradle/caches/8.13/transforms/62727abf94ff713d26a7b565d69d9351/transformed/googleid-1.1.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.libraries.identity.googleid:googleid:1.1.0] /home/romankozak/.gradle/caches/8.13/transforms/62727abf94ff713d26a7b565d69d9351/transformed/googleid-1.1.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.annotation:annotation-experimental:1.5.0] /home/romankozak/.gradle/caches/8.13/transforms/2c29eedeada07d14d493fc602d309ed7/transformed/annotation-experimental-1.5.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.annotation:annotation-experimental:1.5.0] /home/romankozak/.gradle/caches/8.13/transforms/2c29eedeada07d14d493fc602d309ed7/transformed/annotation-experimental-1.5.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.security:security-crypto:1.1.0-alpha06] /home/romankozak/.gradle/caches/8.13/transforms/6bfd7b85200ca780ca2cec61a193854a/transformed/security-crypto-1.1.0-alpha06/AndroidManifest.xml:20:5-44
+MERGED from [androidx.security:security-crypto:1.1.0-alpha06] /home/romankozak/.gradle/caches/8.13/transforms/6bfd7b85200ca780ca2cec61a193854a/transformed/security-crypto-1.1.0-alpha06/AndroidManifest.xml:20:5-44
+MERGED from [androidx.cardview:cardview:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/f2e09c332e971ab1569fdbd342e9f625/transformed/cardview-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.cardview:cardview:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/f2e09c332e971ab1569fdbd342e9f625/transformed/cardview-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.firebase:firebase-config-interop:16.0.1] /home/romankozak/.gradle/caches/8.13/transforms/71c31c2bdb8f5b9013865f3dfe85ed47/transformed/firebase-config-interop-16.0.1/AndroidManifest.xml:18:5-44
+MERGED from [com.google.firebase:firebase-config-interop:16.0.1] /home/romankozak/.gradle/caches/8.13/transforms/71c31c2bdb8f5b9013865f3dfe85ed47/transformed/firebase-config-interop-16.0.1/AndroidManifest.xml:18:5-44
+MERGED from [com.google.firebase:firebase-datatransport:19.0.0] /home/romankozak/.gradle/caches/8.13/transforms/1b385fd115920a273672ed5f29477ae1/transformed/firebase-datatransport-19.0.0/AndroidManifest.xml:18:5-44
+MERGED from [com.google.firebase:firebase-datatransport:19.0.0] /home/romankozak/.gradle/caches/8.13/transforms/1b385fd115920a273672ed5f29477ae1/transformed/firebase-datatransport-19.0.0/AndroidManifest.xml:18:5-44
+MERGED from [com.google.android.datatransport:transport-backend-cct:3.3.0] /home/romankozak/.gradle/caches/8.13/transforms/dad60642a801b94a6815ddad505b274d/transformed/transport-backend-cct-3.3.0/AndroidManifest.xml:18:5-44
+MERGED from [com.google.android.datatransport:transport-backend-cct:3.3.0] /home/romankozak/.gradle/caches/8.13/transforms/dad60642a801b94a6815ddad505b274d/transformed/transport-backend-cct-3.3.0/AndroidManifest.xml:18:5-44
+MERGED from [com.google.firebase:firebase-encoders-json:18.0.1] /home/romankozak/.gradle/caches/8.13/transforms/d6d99fa8df582445b18352bbd1b7b24e/transformed/firebase-encoders-json-18.0.1/AndroidManifest.xml:18:5-20:41
+MERGED from [com.google.firebase:firebase-encoders-json:18.0.1] /home/romankozak/.gradle/caches/8.13/transforms/d6d99fa8df582445b18352bbd1b7b24e/transformed/firebase-encoders-json-18.0.1/AndroidManifest.xml:18:5-20:41
+MERGED from [com.google.android.datatransport:transport-runtime:3.3.0] /home/romankozak/.gradle/caches/8.13/transforms/cbbff2f6507f46bc613320dc598ee5f0/transformed/transport-runtime-3.3.0/AndroidManifest.xml:18:5-44
+MERGED from [com.google.android.datatransport:transport-runtime:3.3.0] /home/romankozak/.gradle/caches/8.13/transforms/cbbff2f6507f46bc613320dc598ee5f0/transformed/transport-runtime-3.3.0/AndroidManifest.xml:18:5-44
+MERGED from [androidx.interpolator:interpolator:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/767630834912bb9bdad933c71a521b87/transformed/interpolator-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.interpolator:interpolator:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/767630834912bb9bdad933c71a521b87/transformed/interpolator-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /home/romankozak/.gradle/caches/8.13/transforms/c74af99881f961021d62ed2f5e497e10/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /home/romankozak/.gradle/caches/8.13/transforms/c74af99881f961021d62ed2f5e497e10/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.firebase:firebase-components:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/3b77b6a8267c1ee2c80160767aff9454/transformed/firebase-components-18.0.0/AndroidManifest.xml:18:5-44
+MERGED from [com.google.firebase:firebase-components:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/3b77b6a8267c1ee2c80160767aff9454/transformed/firebase-components-18.0.0/AndroidManifest.xml:18:5-44
+MERGED from [androidx.arch.core:core-runtime:2.2.0] /home/romankozak/.gradle/caches/8.13/transforms/b5a89ddb333d19c0c7088eedf7a75bf1/transformed/core-runtime-2.2.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.arch.core:core-runtime:2.2.0] /home/romankozak/.gradle/caches/8.13/transforms/b5a89ddb333d19c0c7088eedf7a75bf1/transformed/core-runtime-2.2.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/bb8782893cc02a7cde07326c62199a33/transformed/cursoradapter-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/bb8782893cc02a7cde07326c62199a33/transformed/cursoradapter-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/91eb706fe98df89a7e3e37eabc4abce7/transformed/profileinstaller-1.4.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/91eb706fe98df89a7e3e37eabc4abce7/transformed/profileinstaller-1.4.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.startup:startup-runtime:1.1.1] /home/romankozak/.gradle/caches/8.13/transforms/bc3214995dbe71b5ed2a0ae3932a86ad/transformed/startup-runtime-1.1.1/AndroidManifest.xml:21:5-23:41
+MERGED from [androidx.startup:startup-runtime:1.1.1] /home/romankozak/.gradle/caches/8.13/transforms/bc3214995dbe71b5ed2a0ae3932a86ad/transformed/startup-runtime-1.1.1/AndroidManifest.xml:21:5-23:41
+MERGED from [androidx.tracing:tracing:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/0458c1e19662618e997f94c254a32e57/transformed/tracing-1.0.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.tracing:tracing:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/0458c1e19662618e997f94c254a32e57/transformed/tracing-1.0.0/AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.android.datatransport:transport-api:3.2.0] /home/romankozak/.gradle/caches/8.13/transforms/e8f7beec33fd1e6e801c0ed297399ab6/transformed/transport-api-3.2.0/AndroidManifest.xml:18:5-44
+MERGED from [com.google.android.datatransport:transport-api:3.2.0] /home/romankozak/.gradle/caches/8.13/transforms/e8f7beec33fd1e6e801c0ed297399ab6/transformed/transport-api-3.2.0/AndroidManifest.xml:18:5-44
+MERGED from [androidx.sqlite:sqlite-ktx:2.6.1] /home/romankozak/.gradle/caches/8.13/transforms/2fde38b049e463b7d9d36792bd52f9ea/transformed/sqlite-ktx-2.6.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.sqlite:sqlite-ktx:2.6.1] /home/romankozak/.gradle/caches/8.13/transforms/2fde38b049e463b7d9d36792bd52f9ea/transformed/sqlite-ktx-2.6.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.sqlite:sqlite-framework-android:2.6.1] /home/romankozak/.gradle/caches/8.13/transforms/953bc0ef319acbec7c238f273d7e9245/transformed/sqlite-framework/AndroidManifest.xml:20:5-44
+MERGED from [androidx.sqlite:sqlite-framework-android:2.6.1] /home/romankozak/.gradle/caches/8.13/transforms/953bc0ef319acbec7c238f273d7e9245/transformed/sqlite-framework/AndroidManifest.xml:20:5-44
+MERGED from [androidx.sqlite:sqlite-android:2.6.1] /home/romankozak/.gradle/caches/8.13/transforms/0b3cc94917ac002eca1e0b4e93e389e4/transformed/sqlite/AndroidManifest.xml:20:5-44
+MERGED from [androidx.sqlite:sqlite-android:2.6.1] /home/romankozak/.gradle/caches/8.13/transforms/0b3cc94917ac002eca1e0b4e93e389e4/transformed/sqlite/AndroidManifest.xml:20:5-44
+MERGED from [androidx.documentfile:documentfile:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/cb9627777af38f1ab0b4cf076907c540/transformed/documentfile-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.documentfile:documentfile:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/cb9627777af38f1ab0b4cf076907c540/transformed/documentfile-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.localbroadcastmanager:localbroadcastmanager:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/1a5155fff36488ae72fb89e3525e5904/transformed/localbroadcastmanager-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.localbroadcastmanager:localbroadcastmanager:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/1a5155fff36488ae72fb89e3525e5904/transformed/localbroadcastmanager-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.print:print:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/fe1d166d975ae0642713bba92f450707/transformed/print-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.print:print:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/fe1d166d975ae0642713bba92f450707/transformed/print-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [com.microsoft.onnxruntime:onnxruntime-android:1.18.0] /home/romankozak/.gradle/caches/8.13/transforms/745b00b2f91ef3559d7e557f80409bd2/transformed/onnxruntime-android-1.18.0/AndroidManifest.xml:5:5-44
+MERGED from [com.microsoft.onnxruntime:onnxruntime-android:1.18.0] /home/romankozak/.gradle/caches/8.13/transforms/745b00b2f91ef3559d7e557f80409bd2/transformed/onnxruntime-android-1.18.0/AndroidManifest.xml:5:5-44
+	android:targetSdkVersion
+		INJECTED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/AndroidManifest.xml
+service#com.google.firebase.components.ComponentDiscoveryService
+ADDED from [com.google.firebase:firebase-crashlytics-ktx:19.1.0] /home/romankozak/.gradle/caches/8.13/transforms/e5f3645be1903f5e6d310ca4f10f139f/transformed/firebase-crashlytics-ktx-19.1.0/AndroidManifest.xml:21:9-27:19
+MERGED from [com.google.firebase:firebase-crashlytics:19.1.0] /home/romankozak/.gradle/caches/8.13/transforms/68f8be404e9bd1b326f03ada3acb6866/transformed/firebase-crashlytics-19.1.0/AndroidManifest.xml:12:9-21:19
+MERGED from [com.google.firebase:firebase-crashlytics:19.1.0] /home/romankozak/.gradle/caches/8.13/transforms/68f8be404e9bd1b326f03ada3acb6866/transformed/firebase-crashlytics-19.1.0/AndroidManifest.xml:12:9-21:19
+MERGED from [com.google.firebase:firebase-sessions:2.0.4] /home/romankozak/.gradle/caches/8.13/transforms/309fea57eee9d1eb6c016b44411c4ad2/transformed/firebase-sessions-2.0.4/AndroidManifest.xml:26:9-32:19
+MERGED from [com.google.firebase:firebase-sessions:2.0.4] /home/romankozak/.gradle/caches/8.13/transforms/309fea57eee9d1eb6c016b44411c4ad2/transformed/firebase-sessions-2.0.4/AndroidManifest.xml:26:9-32:19
+MERGED from [com.google.firebase:firebase-config-ktx:22.0.0] /home/romankozak/.gradle/caches/8.13/transforms/35557bcb39c45f49fde4f2a686b4b65b/transformed/firebase-config-ktx-22.0.0/AndroidManifest.xml:9:9-15:19
+MERGED from [com.google.firebase:firebase-config-ktx:22.0.0] /home/romankozak/.gradle/caches/8.13/transforms/35557bcb39c45f49fde4f2a686b4b65b/transformed/firebase-config-ktx-22.0.0/AndroidManifest.xml:9:9-15:19
+MERGED from [com.google.firebase:firebase-config:22.0.0] /home/romankozak/.gradle/caches/8.13/transforms/92e0aa24fe5a6725d2170443d063cf5c/transformed/firebase-config-22.0.0/AndroidManifest.xml:26:9-35:19
+MERGED from [com.google.firebase:firebase-config:22.0.0] /home/romankozak/.gradle/caches/8.13/transforms/92e0aa24fe5a6725d2170443d063cf5c/transformed/firebase-config-22.0.0/AndroidManifest.xml:26:9-35:19
+MERGED from [com.google.firebase:firebase-abt:21.1.1] /home/romankozak/.gradle/caches/8.13/transforms/70498f45325dac81b1c5307024b28ac7/transformed/firebase-abt-21.1.1/AndroidManifest.xml:11:9-15:19
+MERGED from [com.google.firebase:firebase-abt:21.1.1] /home/romankozak/.gradle/caches/8.13/transforms/70498f45325dac81b1c5307024b28ac7/transformed/firebase-abt-21.1.1/AndroidManifest.xml:11:9-15:19
+MERGED from [com.google.firebase:firebase-installations-ktx:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/ab58fc44921b3864e49d87bc21f9a284/transformed/firebase-installations-ktx-18.0.0/AndroidManifest.xml:8:9-14:19
+MERGED from [com.google.firebase:firebase-installations-ktx:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/ab58fc44921b3864e49d87bc21f9a284/transformed/firebase-installations-ktx-18.0.0/AndroidManifest.xml:8:9-14:19
+MERGED from [com.google.firebase:firebase-analytics-ktx:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/16e46e4bd6cd433c820b8805aa43e321/transformed/firebase-analytics-ktx-22.1.0/AndroidManifest.xml:8:9-14:19
+MERGED from [com.google.firebase:firebase-analytics-ktx:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/16e46e4bd6cd433c820b8805aa43e321/transformed/firebase-analytics-ktx-22.1.0/AndroidManifest.xml:8:9-14:19
+MERGED from [com.google.android.gms:play-services-measurement-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/ac34494752977c1d2621d488e035be22/transformed/play-services-measurement-api-22.1.0/AndroidManifest.xml:34:9-40:19
+MERGED from [com.google.android.gms:play-services-measurement-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/ac34494752977c1d2621d488e035be22/transformed/play-services-measurement-api-22.1.0/AndroidManifest.xml:34:9-40:19
+MERGED from [com.google.firebase:firebase-installations:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/f2bffc12df06557f79d21ba074772ec3/transformed/firebase-installations-18.0.0/AndroidManifest.xml:12:9-21:19
+MERGED from [com.google.firebase:firebase-installations:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/f2bffc12df06557f79d21ba074772ec3/transformed/firebase-installations-18.0.0/AndroidManifest.xml:12:9-21:19
+MERGED from [com.google.firebase:firebase-common-ktx:21.0.0] /home/romankozak/.gradle/caches/8.13/transforms/fe98f2c8e9e7d7bb59b7448abda55583/transformed/firebase-common-ktx-21.0.0/AndroidManifest.xml:9:9-15:19
+MERGED from [com.google.firebase:firebase-common-ktx:21.0.0] /home/romankozak/.gradle/caches/8.13/transforms/fe98f2c8e9e7d7bb59b7448abda55583/transformed/firebase-common-ktx-21.0.0/AndroidManifest.xml:9:9-15:19
+MERGED from [com.google.firebase:firebase-common:21.0.0] /home/romankozak/.gradle/caches/8.13/transforms/7e6eef7d63ea748aceb7edab55d5ca06/transformed/firebase-common-21.0.0/AndroidManifest.xml:30:9-38:19
+MERGED from [com.google.firebase:firebase-common:21.0.0] /home/romankozak/.gradle/caches/8.13/transforms/7e6eef7d63ea748aceb7edab55d5ca06/transformed/firebase-common-21.0.0/AndroidManifest.xml:30:9-38:19
+MERGED from [com.google.firebase:firebase-datatransport:19.0.0] /home/romankozak/.gradle/caches/8.13/transforms/1b385fd115920a273672ed5f29477ae1/transformed/firebase-datatransport-19.0.0/AndroidManifest.xml:22:9-28:19
+MERGED from [com.google.firebase:firebase-datatransport:19.0.0] /home/romankozak/.gradle/caches/8.13/transforms/1b385fd115920a273672ed5f29477ae1/transformed/firebase-datatransport-19.0.0/AndroidManifest.xml:22:9-28:19
+	android:exported
+		ADDED from [com.google.firebase:firebase-crashlytics-ktx:19.1.0] /home/romankozak/.gradle/caches/8.13/transforms/e5f3645be1903f5e6d310ca4f10f139f/transformed/firebase-crashlytics-ktx-19.1.0/AndroidManifest.xml:23:13-37
+	tools:targetApi
+		ADDED from [com.google.firebase:firebase-common:21.0.0] /home/romankozak/.gradle/caches/8.13/transforms/7e6eef7d63ea748aceb7edab55d5ca06/transformed/firebase-common-21.0.0/AndroidManifest.xml:34:13-32
+	android:directBootAware
+		ADDED from [com.google.firebase:firebase-common:21.0.0] /home/romankozak/.gradle/caches/8.13/transforms/7e6eef7d63ea748aceb7edab55d5ca06/transformed/firebase-common-21.0.0/AndroidManifest.xml:32:13-43
+	android:name
+		ADDED from [com.google.firebase:firebase-crashlytics-ktx:19.1.0] /home/romankozak/.gradle/caches/8.13/transforms/e5f3645be1903f5e6d310ca4f10f139f/transformed/firebase-crashlytics-ktx-19.1.0/AndroidManifest.xml:22:13-84
+meta-data#com.google.firebase.components:com.google.firebase.crashlytics.ktx.FirebaseCrashlyticsKtxRegistrar
+ADDED from [com.google.firebase:firebase-crashlytics-ktx:19.1.0] /home/romankozak/.gradle/caches/8.13/transforms/e5f3645be1903f5e6d310ca4f10f139f/transformed/firebase-crashlytics-ktx-19.1.0/AndroidManifest.xml:24:13-26:85
+	android:value
+		ADDED from [com.google.firebase:firebase-crashlytics-ktx:19.1.0] /home/romankozak/.gradle/caches/8.13/transforms/e5f3645be1903f5e6d310ca4f10f139f/transformed/firebase-crashlytics-ktx-19.1.0/AndroidManifest.xml:26:17-82
+	android:name
+		ADDED from [com.google.firebase:firebase-crashlytics-ktx:19.1.0] /home/romankozak/.gradle/caches/8.13/transforms/e5f3645be1903f5e6d310ca4f10f139f/transformed/firebase-crashlytics-ktx-19.1.0/AndroidManifest.xml:25:17-130
+meta-data#com.google.firebase.components:com.google.firebase.crashlytics.FirebaseCrashlyticsKtxRegistrar
+ADDED from [com.google.firebase:firebase-crashlytics:19.1.0] /home/romankozak/.gradle/caches/8.13/transforms/68f8be404e9bd1b326f03ada3acb6866/transformed/firebase-crashlytics-19.1.0/AndroidManifest.xml:15:13-17:85
+	android:value
+		ADDED from [com.google.firebase:firebase-crashlytics:19.1.0] /home/romankozak/.gradle/caches/8.13/transforms/68f8be404e9bd1b326f03ada3acb6866/transformed/firebase-crashlytics-19.1.0/AndroidManifest.xml:17:17-82
+	android:name
+		ADDED from [com.google.firebase:firebase-crashlytics:19.1.0] /home/romankozak/.gradle/caches/8.13/transforms/68f8be404e9bd1b326f03ada3acb6866/transformed/firebase-crashlytics-19.1.0/AndroidManifest.xml:16:17-126
+meta-data#com.google.firebase.components:com.google.firebase.crashlytics.CrashlyticsRegistrar
+ADDED from [com.google.firebase:firebase-crashlytics:19.1.0] /home/romankozak/.gradle/caches/8.13/transforms/68f8be404e9bd1b326f03ada3acb6866/transformed/firebase-crashlytics-19.1.0/AndroidManifest.xml:18:13-20:85
+	android:value
+		ADDED from [com.google.firebase:firebase-crashlytics:19.1.0] /home/romankozak/.gradle/caches/8.13/transforms/68f8be404e9bd1b326f03ada3acb6866/transformed/firebase-crashlytics-19.1.0/AndroidManifest.xml:20:17-82
+	android:name
+		ADDED from [com.google.firebase:firebase-crashlytics:19.1.0] /home/romankozak/.gradle/caches/8.13/transforms/68f8be404e9bd1b326f03ada3acb6866/transformed/firebase-crashlytics-19.1.0/AndroidManifest.xml:19:17-115
+service#com.google.firebase.sessions.SessionLifecycleService
+ADDED from [com.google.firebase:firebase-sessions:2.0.4] /home/romankozak/.gradle/caches/8.13/transforms/309fea57eee9d1eb6c016b44411c4ad2/transformed/firebase-sessions-2.0.4/AndroidManifest.xml:22:9-25:40
+	android:enabled
+		ADDED from [com.google.firebase:firebase-sessions:2.0.4] /home/romankozak/.gradle/caches/8.13/transforms/309fea57eee9d1eb6c016b44411c4ad2/transformed/firebase-sessions-2.0.4/AndroidManifest.xml:24:13-35
+	android:exported
+		ADDED from [com.google.firebase:firebase-sessions:2.0.4] /home/romankozak/.gradle/caches/8.13/transforms/309fea57eee9d1eb6c016b44411c4ad2/transformed/firebase-sessions-2.0.4/AndroidManifest.xml:25:13-37
+	android:name
+		ADDED from [com.google.firebase:firebase-sessions:2.0.4] /home/romankozak/.gradle/caches/8.13/transforms/309fea57eee9d1eb6c016b44411c4ad2/transformed/firebase-sessions-2.0.4/AndroidManifest.xml:23:13-80
+meta-data#com.google.firebase.components:com.google.firebase.sessions.FirebaseSessionsRegistrar
+ADDED from [com.google.firebase:firebase-sessions:2.0.4] /home/romankozak/.gradle/caches/8.13/transforms/309fea57eee9d1eb6c016b44411c4ad2/transformed/firebase-sessions-2.0.4/AndroidManifest.xml:29:13-31:85
+	android:value
+		ADDED from [com.google.firebase:firebase-sessions:2.0.4] /home/romankozak/.gradle/caches/8.13/transforms/309fea57eee9d1eb6c016b44411c4ad2/transformed/firebase-sessions-2.0.4/AndroidManifest.xml:31:17-82
+	android:name
+		ADDED from [com.google.firebase:firebase-sessions:2.0.4] /home/romankozak/.gradle/caches/8.13/transforms/309fea57eee9d1eb6c016b44411c4ad2/transformed/firebase-sessions-2.0.4/AndroidManifest.xml:30:17-117
+service#com.google.mlkit.common.internal.MlKitComponentDiscoveryService
+ADDED from [com.google.mlkit:translate:17.0.2] /home/romankozak/.gradle/caches/8.13/transforms/4eb9fd61a01f2ba60096a10d403abbfd/transformed/translate-17.0.2/AndroidManifest.xml:11:9-17:19
+MERGED from [com.google.mlkit:common:18.10.0] /home/romankozak/.gradle/caches/8.13/transforms/1807d6d845963e73fed8a4f5c777e542/transformed/common-18.10.0/AndroidManifest.xml:15:9-23:19
+MERGED from [com.google.mlkit:common:18.10.0] /home/romankozak/.gradle/caches/8.13/transforms/1807d6d845963e73fed8a4f5c777e542/transformed/common-18.10.0/AndroidManifest.xml:15:9-23:19
+	android:exported
+		ADDED from [com.google.mlkit:translate:17.0.2] /home/romankozak/.gradle/caches/8.13/transforms/4eb9fd61a01f2ba60096a10d403abbfd/transformed/translate-17.0.2/AndroidManifest.xml:13:13-37
+	tools:targetApi
+		ADDED from [com.google.mlkit:common:18.10.0] /home/romankozak/.gradle/caches/8.13/transforms/1807d6d845963e73fed8a4f5c777e542/transformed/common-18.10.0/AndroidManifest.xml:19:13-32
+	android:directBootAware
+		ADDED from [com.google.mlkit:common:18.10.0] /home/romankozak/.gradle/caches/8.13/transforms/1807d6d845963e73fed8a4f5c777e542/transformed/common-18.10.0/AndroidManifest.xml:17:13-43
+	android:name
+		ADDED from [com.google.mlkit:translate:17.0.2] /home/romankozak/.gradle/caches/8.13/transforms/4eb9fd61a01f2ba60096a10d403abbfd/transformed/translate-17.0.2/AndroidManifest.xml:12:13-91
+meta-data#com.google.firebase.components:com.google.mlkit.nl.translate.NaturalLanguageTranslateRegistrar
+ADDED from [com.google.mlkit:translate:17.0.2] /home/romankozak/.gradle/caches/8.13/transforms/4eb9fd61a01f2ba60096a10d403abbfd/transformed/translate-17.0.2/AndroidManifest.xml:14:13-16:85
+	android:value
+		ADDED from [com.google.mlkit:translate:17.0.2] /home/romankozak/.gradle/caches/8.13/transforms/4eb9fd61a01f2ba60096a10d403abbfd/transformed/translate-17.0.2/AndroidManifest.xml:16:17-82
+	android:name
+		ADDED from [com.google.mlkit:translate:17.0.2] /home/romankozak/.gradle/caches/8.13/transforms/4eb9fd61a01f2ba60096a10d403abbfd/transformed/translate-17.0.2/AndroidManifest.xml:15:17-126
+service#androidx.credentials.playservices.CredentialProviderMetadataHolder
+ADDED from [androidx.credentials:credentials-play-services-auth:1.2.2] /home/romankozak/.gradle/caches/8.13/transforms/a62de19c16d9755232b1a66d975e6cc9/transformed/credentials-play-services-auth-1.2.2/AndroidManifest.xml:24:9-32:19
+	android:enabled
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.2.2] /home/romankozak/.gradle/caches/8.13/transforms/a62de19c16d9755232b1a66d975e6cc9/transformed/credentials-play-services-auth-1.2.2/AndroidManifest.xml:26:13-35
+	android:exported
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.2.2] /home/romankozak/.gradle/caches/8.13/transforms/a62de19c16d9755232b1a66d975e6cc9/transformed/credentials-play-services-auth-1.2.2/AndroidManifest.xml:27:13-37
+	tools:ignore
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.2.2] /home/romankozak/.gradle/caches/8.13/transforms/a62de19c16d9755232b1a66d975e6cc9/transformed/credentials-play-services-auth-1.2.2/AndroidManifest.xml:28:13-60
+	android:name
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.2.2] /home/romankozak/.gradle/caches/8.13/transforms/a62de19c16d9755232b1a66d975e6cc9/transformed/credentials-play-services-auth-1.2.2/AndroidManifest.xml:25:13-94
+meta-data#androidx.credentials.CREDENTIAL_PROVIDER_KEY
+ADDED from [androidx.credentials:credentials-play-services-auth:1.2.2] /home/romankozak/.gradle/caches/8.13/transforms/a62de19c16d9755232b1a66d975e6cc9/transformed/credentials-play-services-auth-1.2.2/AndroidManifest.xml:29:13-31:104
+	android:value
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.2.2] /home/romankozak/.gradle/caches/8.13/transforms/a62de19c16d9755232b1a66d975e6cc9/transformed/credentials-play-services-auth-1.2.2/AndroidManifest.xml:31:17-101
+	android:name
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.2.2] /home/romankozak/.gradle/caches/8.13/transforms/a62de19c16d9755232b1a66d975e6cc9/transformed/credentials-play-services-auth-1.2.2/AndroidManifest.xml:30:17-76
+activity#androidx.credentials.playservices.HiddenActivity
+ADDED from [androidx.credentials:credentials-play-services-auth:1.2.2] /home/romankozak/.gradle/caches/8.13/transforms/a62de19c16d9755232b1a66d975e6cc9/transformed/credentials-play-services-auth-1.2.2/AndroidManifest.xml:34:9-41:20
+	android:fitsSystemWindows
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.2.2] /home/romankozak/.gradle/caches/8.13/transforms/a62de19c16d9755232b1a66d975e6cc9/transformed/credentials-play-services-auth-1.2.2/AndroidManifest.xml:39:13-45
+	android:enabled
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.2.2] /home/romankozak/.gradle/caches/8.13/transforms/a62de19c16d9755232b1a66d975e6cc9/transformed/credentials-play-services-auth-1.2.2/AndroidManifest.xml:37:13-35
+	android:exported
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.2.2] /home/romankozak/.gradle/caches/8.13/transforms/a62de19c16d9755232b1a66d975e6cc9/transformed/credentials-play-services-auth-1.2.2/AndroidManifest.xml:38:13-37
+	android:configChanges
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.2.2] /home/romankozak/.gradle/caches/8.13/transforms/a62de19c16d9755232b1a66d975e6cc9/transformed/credentials-play-services-auth-1.2.2/AndroidManifest.xml:36:13-87
+	android:theme
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.2.2] /home/romankozak/.gradle/caches/8.13/transforms/a62de19c16d9755232b1a66d975e6cc9/transformed/credentials-play-services-auth-1.2.2/AndroidManifest.xml:40:13-48
+	android:name
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.2.2] /home/romankozak/.gradle/caches/8.13/transforms/a62de19c16d9755232b1a66d975e6cc9/transformed/credentials-play-services-auth-1.2.2/AndroidManifest.xml:35:13-76
+activity#com.google.android.gms.auth.api.signin.internal.SignInHubActivity
+ADDED from [com.google.android.gms:play-services-auth:21.1.0] /home/romankozak/.gradle/caches/8.13/transforms/0a9428444efaa80862c7ba782e5aae22/transformed/play-services-auth-21.1.0/AndroidManifest.xml:23:9-27:75
+	android:excludeFromRecents
+		ADDED from [com.google.android.gms:play-services-auth:21.1.0] /home/romankozak/.gradle/caches/8.13/transforms/0a9428444efaa80862c7ba782e5aae22/transformed/play-services-auth-21.1.0/AndroidManifest.xml:25:13-46
+	android:exported
+		ADDED from [com.google.android.gms:play-services-auth:21.1.0] /home/romankozak/.gradle/caches/8.13/transforms/0a9428444efaa80862c7ba782e5aae22/transformed/play-services-auth-21.1.0/AndroidManifest.xml:26:13-37
+	android:theme
+		ADDED from [com.google.android.gms:play-services-auth:21.1.0] /home/romankozak/.gradle/caches/8.13/transforms/0a9428444efaa80862c7ba782e5aae22/transformed/play-services-auth-21.1.0/AndroidManifest.xml:27:13-72
+	android:name
+		ADDED from [com.google.android.gms:play-services-auth:21.1.0] /home/romankozak/.gradle/caches/8.13/transforms/0a9428444efaa80862c7ba782e5aae22/transformed/play-services-auth-21.1.0/AndroidManifest.xml:24:13-93
+service#com.google.android.gms.auth.api.signin.RevocationBoundService
+ADDED from [com.google.android.gms:play-services-auth:21.1.0] /home/romankozak/.gradle/caches/8.13/transforms/0a9428444efaa80862c7ba782e5aae22/transformed/play-services-auth-21.1.0/AndroidManifest.xml:33:9-37:51
+	android:exported
+		ADDED from [com.google.android.gms:play-services-auth:21.1.0] /home/romankozak/.gradle/caches/8.13/transforms/0a9428444efaa80862c7ba782e5aae22/transformed/play-services-auth-21.1.0/AndroidManifest.xml:35:13-36
+	android:visibleToInstantApps
+		ADDED from [com.google.android.gms:play-services-auth:21.1.0] /home/romankozak/.gradle/caches/8.13/transforms/0a9428444efaa80862c7ba782e5aae22/transformed/play-services-auth-21.1.0/AndroidManifest.xml:37:13-48
+	android:permission
+		ADDED from [com.google.android.gms:play-services-auth:21.1.0] /home/romankozak/.gradle/caches/8.13/transforms/0a9428444efaa80862c7ba782e5aae22/transformed/play-services-auth-21.1.0/AndroidManifest.xml:36:13-107
+	android:name
+		ADDED from [com.google.android.gms:play-services-auth:21.1.0] /home/romankozak/.gradle/caches/8.13/transforms/0a9428444efaa80862c7ba782e5aae22/transformed/play-services-auth-21.1.0/AndroidManifest.xml:34:13-89
+provider#com.google.mlkit.common.internal.MlKitInitProvider
+ADDED from [com.google.mlkit:common:18.10.0] /home/romankozak/.gradle/caches/8.13/transforms/1807d6d845963e73fed8a4f5c777e542/transformed/common-18.10.0/AndroidManifest.xml:9:9-13:38
+	android:authorities
+		ADDED from [com.google.mlkit:common:18.10.0] /home/romankozak/.gradle/caches/8.13/transforms/1807d6d845963e73fed8a4f5c777e542/transformed/common-18.10.0/AndroidManifest.xml:11:13-69
+	android:exported
+		ADDED from [com.google.mlkit:common:18.10.0] /home/romankozak/.gradle/caches/8.13/transforms/1807d6d845963e73fed8a4f5c777e542/transformed/common-18.10.0/AndroidManifest.xml:12:13-37
+	android:initOrder
+		ADDED from [com.google.mlkit:common:18.10.0] /home/romankozak/.gradle/caches/8.13/transforms/1807d6d845963e73fed8a4f5c777e542/transformed/common-18.10.0/AndroidManifest.xml:13:13-35
+	android:name
+		ADDED from [com.google.mlkit:common:18.10.0] /home/romankozak/.gradle/caches/8.13/transforms/1807d6d845963e73fed8a4f5c777e542/transformed/common-18.10.0/AndroidManifest.xml:10:13-78
+meta-data#com.google.firebase.components:com.google.mlkit.common.internal.CommonComponentRegistrar
+ADDED from [com.google.mlkit:common:18.10.0] /home/romankozak/.gradle/caches/8.13/transforms/1807d6d845963e73fed8a4f5c777e542/transformed/common-18.10.0/AndroidManifest.xml:20:13-22:85
+	android:value
+		ADDED from [com.google.mlkit:common:18.10.0] /home/romankozak/.gradle/caches/8.13/transforms/1807d6d845963e73fed8a4f5c777e542/transformed/common-18.10.0/AndroidManifest.xml:22:17-82
+	android:name
+		ADDED from [com.google.mlkit:common:18.10.0] /home/romankozak/.gradle/caches/8.13/transforms/1807d6d845963e73fed8a4f5c777e542/transformed/common-18.10.0/AndroidManifest.xml:21:17-120
+activity#com.google.android.gms.common.api.GoogleApiActivity
+ADDED from [com.google.android.gms:play-services-base:18.3.0] /home/romankozak/.gradle/caches/8.13/transforms/e52edc70eec45a55b3f278161990a831/transformed/play-services-base-18.3.0/AndroidManifest.xml:20:9-22:45
+	android:exported
+		ADDED from [com.google.android.gms:play-services-base:18.3.0] /home/romankozak/.gradle/caches/8.13/transforms/e52edc70eec45a55b3f278161990a831/transformed/play-services-base-18.3.0/AndroidManifest.xml:22:19-43
+	android:theme
+		ADDED from [com.google.android.gms:play-services-base:18.3.0] /home/romankozak/.gradle/caches/8.13/transforms/e52edc70eec45a55b3f278161990a831/transformed/play-services-base-18.3.0/AndroidManifest.xml:21:19-78
+	android:name
+		ADDED from [com.google.android.gms:play-services-base:18.3.0] /home/romankozak/.gradle/caches/8.13/transforms/e52edc70eec45a55b3f278161990a831/transformed/play-services-base-18.3.0/AndroidManifest.xml:20:19-85
+meta-data#com.google.firebase.components:com.google.firebase.remoteconfig.ktx.FirebaseConfigLegacyRegistrar
+ADDED from [com.google.firebase:firebase-config-ktx:22.0.0] /home/romankozak/.gradle/caches/8.13/transforms/35557bcb39c45f49fde4f2a686b4b65b/transformed/firebase-config-ktx-22.0.0/AndroidManifest.xml:12:13-14:85
+	android:value
+		ADDED from [com.google.firebase:firebase-config-ktx:22.0.0] /home/romankozak/.gradle/caches/8.13/transforms/35557bcb39c45f49fde4f2a686b4b65b/transformed/firebase-config-ktx-22.0.0/AndroidManifest.xml:14:17-82
+	android:name
+		ADDED from [com.google.firebase:firebase-config-ktx:22.0.0] /home/romankozak/.gradle/caches/8.13/transforms/35557bcb39c45f49fde4f2a686b4b65b/transformed/firebase-config-ktx-22.0.0/AndroidManifest.xml:13:17-129
+meta-data#com.google.firebase.components:com.google.firebase.remoteconfig.FirebaseRemoteConfigKtxRegistrar
+ADDED from [com.google.firebase:firebase-config:22.0.0] /home/romankozak/.gradle/caches/8.13/transforms/92e0aa24fe5a6725d2170443d063cf5c/transformed/firebase-config-22.0.0/AndroidManifest.xml:29:13-31:85
+	android:value
+		ADDED from [com.google.firebase:firebase-config:22.0.0] /home/romankozak/.gradle/caches/8.13/transforms/92e0aa24fe5a6725d2170443d063cf5c/transformed/firebase-config-22.0.0/AndroidManifest.xml:31:17-82
+	android:name
+		ADDED from [com.google.firebase:firebase-config:22.0.0] /home/romankozak/.gradle/caches/8.13/transforms/92e0aa24fe5a6725d2170443d063cf5c/transformed/firebase-config-22.0.0/AndroidManifest.xml:30:17-128
+meta-data#com.google.firebase.components:com.google.firebase.remoteconfig.RemoteConfigRegistrar
+ADDED from [com.google.firebase:firebase-config:22.0.0] /home/romankozak/.gradle/caches/8.13/transforms/92e0aa24fe5a6725d2170443d063cf5c/transformed/firebase-config-22.0.0/AndroidManifest.xml:32:13-34:85
+	android:value
+		ADDED from [com.google.firebase:firebase-config:22.0.0] /home/romankozak/.gradle/caches/8.13/transforms/92e0aa24fe5a6725d2170443d063cf5c/transformed/firebase-config-22.0.0/AndroidManifest.xml:34:17-82
+	android:name
+		ADDED from [com.google.firebase:firebase-config:22.0.0] /home/romankozak/.gradle/caches/8.13/transforms/92e0aa24fe5a6725d2170443d063cf5c/transformed/firebase-config-22.0.0/AndroidManifest.xml:33:17-117
+meta-data#com.google.firebase.components:com.google.firebase.abt.component.AbtRegistrar
+ADDED from [com.google.firebase:firebase-abt:21.1.1] /home/romankozak/.gradle/caches/8.13/transforms/70498f45325dac81b1c5307024b28ac7/transformed/firebase-abt-21.1.1/AndroidManifest.xml:12:13-14:85
+	android:value
+		ADDED from [com.google.firebase:firebase-abt:21.1.1] /home/romankozak/.gradle/caches/8.13/transforms/70498f45325dac81b1c5307024b28ac7/transformed/firebase-abt-21.1.1/AndroidManifest.xml:14:17-82
+	android:name
+		ADDED from [com.google.firebase:firebase-abt:21.1.1] /home/romankozak/.gradle/caches/8.13/transforms/70498f45325dac81b1c5307024b28ac7/transformed/firebase-abt-21.1.1/AndroidManifest.xml:13:17-109
+meta-data#com.google.firebase.components:com.google.firebase.installations.ktx.FirebaseInstallationsLegacyRegistrar
+ADDED from [com.google.firebase:firebase-installations-ktx:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/ab58fc44921b3864e49d87bc21f9a284/transformed/firebase-installations-ktx-18.0.0/AndroidManifest.xml:11:13-13:85
+	android:value
+		ADDED from [com.google.firebase:firebase-installations-ktx:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/ab58fc44921b3864e49d87bc21f9a284/transformed/firebase-installations-ktx-18.0.0/AndroidManifest.xml:13:17-82
+	android:name
+		ADDED from [com.google.firebase:firebase-installations-ktx:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/ab58fc44921b3864e49d87bc21f9a284/transformed/firebase-installations-ktx-18.0.0/AndroidManifest.xml:12:17-137
+meta-data#com.google.firebase.components:com.google.firebase.analytics.ktx.FirebaseAnalyticsLegacyRegistrar
+ADDED from [com.google.firebase:firebase-analytics-ktx:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/16e46e4bd6cd433c820b8805aa43e321/transformed/firebase-analytics-ktx-22.1.0/AndroidManifest.xml:11:13-13:85
+	android:value
+		ADDED from [com.google.firebase:firebase-analytics-ktx:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/16e46e4bd6cd433c820b8805aa43e321/transformed/firebase-analytics-ktx-22.1.0/AndroidManifest.xml:13:17-82
+	android:name
+		ADDED from [com.google.firebase:firebase-analytics-ktx:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/16e46e4bd6cd433c820b8805aa43e321/transformed/firebase-analytics-ktx-22.1.0/AndroidManifest.xml:12:17-129
+uses-permission#com.google.android.gms.permission.AD_ID
+ADDED from [com.google.android.gms:play-services-measurement-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/ac34494752977c1d2621d488e035be22/transformed/play-services-measurement-api-22.1.0/AndroidManifest.xml:25:5-79
+MERGED from [com.google.android.gms:play-services-measurement-impl:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/bdf96e26b1e7b0442fd4512462bea3e2/transformed/play-services-measurement-impl-22.1.0/AndroidManifest.xml:27:5-79
+MERGED from [com.google.android.gms:play-services-measurement-impl:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/bdf96e26b1e7b0442fd4512462bea3e2/transformed/play-services-measurement-impl-22.1.0/AndroidManifest.xml:27:5-79
+MERGED from [com.google.android.gms:play-services-ads-identifier:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/62e20f899e74c99d05f7c57c61c093ce/transformed/play-services-ads-identifier-18.0.0/AndroidManifest.xml:23:5-79
+MERGED from [com.google.android.gms:play-services-ads-identifier:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/62e20f899e74c99d05f7c57c61c093ce/transformed/play-services-ads-identifier-18.0.0/AndroidManifest.xml:23:5-79
+MERGED from [com.google.android.gms:play-services-measurement-sdk-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/cdf69a08201600b1432b3c51f8ec62fd/transformed/play-services-measurement-sdk-api-22.1.0/AndroidManifest.xml:26:5-79
+MERGED from [com.google.android.gms:play-services-measurement-sdk-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/cdf69a08201600b1432b3c51f8ec62fd/transformed/play-services-measurement-sdk-api-22.1.0/AndroidManifest.xml:26:5-79
+	android:name
+		ADDED from [com.google.android.gms:play-services-measurement-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/ac34494752977c1d2621d488e035be22/transformed/play-services-measurement-api-22.1.0/AndroidManifest.xml:25:22-76
+uses-permission#android.permission.ACCESS_ADSERVICES_ATTRIBUTION
+ADDED from [com.google.android.gms:play-services-measurement-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/ac34494752977c1d2621d488e035be22/transformed/play-services-measurement-api-22.1.0/AndroidManifest.xml:26:5-88
+MERGED from [com.google.android.gms:play-services-measurement-sdk-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/cdf69a08201600b1432b3c51f8ec62fd/transformed/play-services-measurement-sdk-api-22.1.0/AndroidManifest.xml:27:5-88
+MERGED from [com.google.android.gms:play-services-measurement-sdk-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/cdf69a08201600b1432b3c51f8ec62fd/transformed/play-services-measurement-sdk-api-22.1.0/AndroidManifest.xml:27:5-88
+	android:name
+		ADDED from [com.google.android.gms:play-services-measurement-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/ac34494752977c1d2621d488e035be22/transformed/play-services-measurement-api-22.1.0/AndroidManifest.xml:26:22-85
+uses-permission#android.permission.ACCESS_ADSERVICES_AD_ID
+ADDED from [com.google.android.gms:play-services-measurement-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/ac34494752977c1d2621d488e035be22/transformed/play-services-measurement-api-22.1.0/AndroidManifest.xml:27:5-82
+MERGED from [com.google.android.gms:play-services-measurement-sdk-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/cdf69a08201600b1432b3c51f8ec62fd/transformed/play-services-measurement-sdk-api-22.1.0/AndroidManifest.xml:28:5-82
+MERGED from [com.google.android.gms:play-services-measurement-sdk-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/cdf69a08201600b1432b3c51f8ec62fd/transformed/play-services-measurement-sdk-api-22.1.0/AndroidManifest.xml:28:5-82
+	android:name
+		ADDED from [com.google.android.gms:play-services-measurement-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/ac34494752977c1d2621d488e035be22/transformed/play-services-measurement-api-22.1.0/AndroidManifest.xml:27:22-79
+property#android.adservices.AD_SERVICES_CONFIG
+ADDED from [com.google.android.gms:play-services-measurement-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/ac34494752977c1d2621d488e035be22/transformed/play-services-measurement-api-22.1.0/AndroidManifest.xml:30:9-32:61
+	android:resource
+		ADDED from [com.google.android.gms:play-services-measurement-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/ac34494752977c1d2621d488e035be22/transformed/play-services-measurement-api-22.1.0/AndroidManifest.xml:32:13-58
+	android:name
+		ADDED from [com.google.android.gms:play-services-measurement-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/ac34494752977c1d2621d488e035be22/transformed/play-services-measurement-api-22.1.0/AndroidManifest.xml:31:13-65
+meta-data#com.google.firebase.components:com.google.firebase.analytics.connector.internal.AnalyticsConnectorRegistrar
+ADDED from [com.google.android.gms:play-services-measurement-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/ac34494752977c1d2621d488e035be22/transformed/play-services-measurement-api-22.1.0/AndroidManifest.xml:37:13-39:85
+	android:value
+		ADDED from [com.google.android.gms:play-services-measurement-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/ac34494752977c1d2621d488e035be22/transformed/play-services-measurement-api-22.1.0/AndroidManifest.xml:39:17-82
+	android:name
+		ADDED from [com.google.android.gms:play-services-measurement-api:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/ac34494752977c1d2621d488e035be22/transformed/play-services-measurement-api-22.1.0/AndroidManifest.xml:38:17-139
+meta-data#com.google.firebase.components:com.google.firebase.installations.FirebaseInstallationsKtxRegistrar
+ADDED from [com.google.firebase:firebase-installations:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/f2bffc12df06557f79d21ba074772ec3/transformed/firebase-installations-18.0.0/AndroidManifest.xml:15:13-17:85
+	android:value
+		ADDED from [com.google.firebase:firebase-installations:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/f2bffc12df06557f79d21ba074772ec3/transformed/firebase-installations-18.0.0/AndroidManifest.xml:17:17-82
+	android:name
+		ADDED from [com.google.firebase:firebase-installations:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/f2bffc12df06557f79d21ba074772ec3/transformed/firebase-installations-18.0.0/AndroidManifest.xml:16:17-130
+meta-data#com.google.firebase.components:com.google.firebase.installations.FirebaseInstallationsRegistrar
+ADDED from [com.google.firebase:firebase-installations:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/f2bffc12df06557f79d21ba074772ec3/transformed/firebase-installations-18.0.0/AndroidManifest.xml:18:13-20:85
+	android:value
+		ADDED from [com.google.firebase:firebase-installations:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/f2bffc12df06557f79d21ba074772ec3/transformed/firebase-installations-18.0.0/AndroidManifest.xml:20:17-82
+	android:name
+		ADDED from [com.google.firebase:firebase-installations:18.0.0] /home/romankozak/.gradle/caches/8.13/transforms/f2bffc12df06557f79d21ba074772ec3/transformed/firebase-installations-18.0.0/AndroidManifest.xml:19:17-127
+meta-data#com.google.firebase.components:com.google.firebase.ktx.FirebaseCommonLegacyRegistrar
+ADDED from [com.google.firebase:firebase-common-ktx:21.0.0] /home/romankozak/.gradle/caches/8.13/transforms/fe98f2c8e9e7d7bb59b7448abda55583/transformed/firebase-common-ktx-21.0.0/AndroidManifest.xml:12:13-14:85
+	android:value
+		ADDED from [com.google.firebase:firebase-common-ktx:21.0.0] /home/romankozak/.gradle/caches/8.13/transforms/fe98f2c8e9e7d7bb59b7448abda55583/transformed/firebase-common-ktx-21.0.0/AndroidManifest.xml:14:17-82
+	android:name
+		ADDED from [com.google.firebase:firebase-common-ktx:21.0.0] /home/romankozak/.gradle/caches/8.13/transforms/fe98f2c8e9e7d7bb59b7448abda55583/transformed/firebase-common-ktx-21.0.0/AndroidManifest.xml:13:17-116
+provider#com.google.firebase.provider.FirebaseInitProvider
+ADDED from [com.google.firebase:firebase-common:21.0.0] /home/romankozak/.gradle/caches/8.13/transforms/7e6eef7d63ea748aceb7edab55d5ca06/transformed/firebase-common-21.0.0/AndroidManifest.xml:23:9-28:39
+	android:authorities
+		ADDED from [com.google.firebase:firebase-common:21.0.0] /home/romankozak/.gradle/caches/8.13/transforms/7e6eef7d63ea748aceb7edab55d5ca06/transformed/firebase-common-21.0.0/AndroidManifest.xml:25:13-72
+	android:exported
+		ADDED from [com.google.firebase:firebase-common:21.0.0] /home/romankozak/.gradle/caches/8.13/transforms/7e6eef7d63ea748aceb7edab55d5ca06/transformed/firebase-common-21.0.0/AndroidManifest.xml:27:13-37
+	android:directBootAware
+		ADDED from [com.google.firebase:firebase-common:21.0.0] /home/romankozak/.gradle/caches/8.13/transforms/7e6eef7d63ea748aceb7edab55d5ca06/transformed/firebase-common-21.0.0/AndroidManifest.xml:26:13-43
+	android:initOrder
+		ADDED from [com.google.firebase:firebase-common:21.0.0] /home/romankozak/.gradle/caches/8.13/transforms/7e6eef7d63ea748aceb7edab55d5ca06/transformed/firebase-common-21.0.0/AndroidManifest.xml:28:13-36
+	android:name
+		ADDED from [com.google.firebase:firebase-common:21.0.0] /home/romankozak/.gradle/caches/8.13/transforms/7e6eef7d63ea748aceb7edab55d5ca06/transformed/firebase-common-21.0.0/AndroidManifest.xml:24:13-77
+meta-data#com.google.firebase.components:com.google.firebase.FirebaseCommonKtxRegistrar
+ADDED from [com.google.firebase:firebase-common:21.0.0] /home/romankozak/.gradle/caches/8.13/transforms/7e6eef7d63ea748aceb7edab55d5ca06/transformed/firebase-common-21.0.0/AndroidManifest.xml:35:13-37:85
+	android:value
+		ADDED from [com.google.firebase:firebase-common:21.0.0] /home/romankozak/.gradle/caches/8.13/transforms/7e6eef7d63ea748aceb7edab55d5ca06/transformed/firebase-common-21.0.0/AndroidManifest.xml:37:17-82
+	android:name
+		ADDED from [com.google.firebase:firebase-common:21.0.0] /home/romankozak/.gradle/caches/8.13/transforms/7e6eef7d63ea748aceb7edab55d5ca06/transformed/firebase-common-21.0.0/AndroidManifest.xml:36:17-109
+uses-permission#com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE
+ADDED from [com.google.android.gms:play-services-measurement:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/d37b3c3b30d36c13546200efa1a7efc8/transformed/play-services-measurement-22.1.0/AndroidManifest.xml:26:5-110
+MERGED from [com.google.android.gms:play-services-measurement-impl:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/bdf96e26b1e7b0442fd4512462bea3e2/transformed/play-services-measurement-impl-22.1.0/AndroidManifest.xml:26:5-110
+MERGED from [com.google.android.gms:play-services-measurement-impl:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/bdf96e26b1e7b0442fd4512462bea3e2/transformed/play-services-measurement-impl-22.1.0/AndroidManifest.xml:26:5-110
+	android:name
+		ADDED from [com.google.android.gms:play-services-measurement:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/d37b3c3b30d36c13546200efa1a7efc8/transformed/play-services-measurement-22.1.0/AndroidManifest.xml:26:22-107
+receiver#com.google.android.gms.measurement.AppMeasurementReceiver
+ADDED from [com.google.android.gms:play-services-measurement:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/d37b3c3b30d36c13546200efa1a7efc8/transformed/play-services-measurement-22.1.0/AndroidManifest.xml:29:9-33:20
+	android:enabled
+		ADDED from [com.google.android.gms:play-services-measurement:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/d37b3c3b30d36c13546200efa1a7efc8/transformed/play-services-measurement-22.1.0/AndroidManifest.xml:31:13-35
+	android:exported
+		ADDED from [com.google.android.gms:play-services-measurement:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/d37b3c3b30d36c13546200efa1a7efc8/transformed/play-services-measurement-22.1.0/AndroidManifest.xml:32:13-37
+	android:name
+		ADDED from [com.google.android.gms:play-services-measurement:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/d37b3c3b30d36c13546200efa1a7efc8/transformed/play-services-measurement-22.1.0/AndroidManifest.xml:30:13-85
+service#com.google.android.gms.measurement.AppMeasurementService
+ADDED from [com.google.android.gms:play-services-measurement:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/d37b3c3b30d36c13546200efa1a7efc8/transformed/play-services-measurement-22.1.0/AndroidManifest.xml:35:9-38:40
+	android:enabled
+		ADDED from [com.google.android.gms:play-services-measurement:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/d37b3c3b30d36c13546200efa1a7efc8/transformed/play-services-measurement-22.1.0/AndroidManifest.xml:37:13-35
+	android:exported
+		ADDED from [com.google.android.gms:play-services-measurement:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/d37b3c3b30d36c13546200efa1a7efc8/transformed/play-services-measurement-22.1.0/AndroidManifest.xml:38:13-37
+	android:name
+		ADDED from [com.google.android.gms:play-services-measurement:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/d37b3c3b30d36c13546200efa1a7efc8/transformed/play-services-measurement-22.1.0/AndroidManifest.xml:36:13-84
+service#com.google.android.gms.measurement.AppMeasurementJobService
+ADDED from [com.google.android.gms:play-services-measurement:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/d37b3c3b30d36c13546200efa1a7efc8/transformed/play-services-measurement-22.1.0/AndroidManifest.xml:39:9-43:72
+	android:enabled
+		ADDED from [com.google.android.gms:play-services-measurement:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/d37b3c3b30d36c13546200efa1a7efc8/transformed/play-services-measurement-22.1.0/AndroidManifest.xml:41:13-35
+	android:exported
+		ADDED from [com.google.android.gms:play-services-measurement:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/d37b3c3b30d36c13546200efa1a7efc8/transformed/play-services-measurement-22.1.0/AndroidManifest.xml:42:13-37
+	android:permission
+		ADDED from [com.google.android.gms:play-services-measurement:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/d37b3c3b30d36c13546200efa1a7efc8/transformed/play-services-measurement-22.1.0/AndroidManifest.xml:43:13-69
+	android:name
+		ADDED from [com.google.android.gms:play-services-measurement:22.1.0] /home/romankozak/.gradle/caches/8.13/transforms/d37b3c3b30d36c13546200efa1a7efc8/transformed/play-services-measurement-22.1.0/AndroidManifest.xml:40:13-87
+service#androidx.room.MultiInstanceInvalidationService
+ADDED from [androidx.room:room-runtime-android:2.8.1] /home/romankozak/.gradle/caches/8.13/transforms/09de7cc9fe807eb32844709ce84dedd5/transformed/room-runtime/AndroidManifest.xml:24:9-28:63
+	android:exported
+		ADDED from [androidx.room:room-runtime-android:2.8.1] /home/romankozak/.gradle/caches/8.13/transforms/09de7cc9fe807eb32844709ce84dedd5/transformed/room-runtime/AndroidManifest.xml:27:13-37
+	tools:ignore
+		ADDED from [androidx.room:room-runtime-android:2.8.1] /home/romankozak/.gradle/caches/8.13/transforms/09de7cc9fe807eb32844709ce84dedd5/transformed/room-runtime/AndroidManifest.xml:28:13-60
+	android:directBootAware
+		ADDED from [androidx.room:room-runtime-android:2.8.1] /home/romankozak/.gradle/caches/8.13/transforms/09de7cc9fe807eb32844709ce84dedd5/transformed/room-runtime/AndroidManifest.xml:26:13-43
+	android:name
+		ADDED from [androidx.room:room-runtime-android:2.8.1] /home/romankozak/.gradle/caches/8.13/transforms/09de7cc9fe807eb32844709ce84dedd5/transformed/room-runtime/AndroidManifest.xml:25:13-74
+uses-library#androidx.window.extensions
+ADDED from [androidx.window:window:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/1eb1efa2c127ba27dba9afead2b576b1/transformed/window-1.0.0/AndroidManifest.xml:25:9-27:40
+	android:required
+		ADDED from [androidx.window:window:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/1eb1efa2c127ba27dba9afead2b576b1/transformed/window-1.0.0/AndroidManifest.xml:27:13-37
+	android:name
+		ADDED from [androidx.window:window:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/1eb1efa2c127ba27dba9afead2b576b1/transformed/window-1.0.0/AndroidManifest.xml:26:13-54
+uses-library#androidx.window.sidecar
+ADDED from [androidx.window:window:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/1eb1efa2c127ba27dba9afead2b576b1/transformed/window-1.0.0/AndroidManifest.xml:28:9-30:40
+	android:required
+		ADDED from [androidx.window:window:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/1eb1efa2c127ba27dba9afead2b576b1/transformed/window-1.0.0/AndroidManifest.xml:30:13-37
+	android:name
+		ADDED from [androidx.window:window:1.0.0] /home/romankozak/.gradle/caches/8.13/transforms/1eb1efa2c127ba27dba9afead2b576b1/transformed/window-1.0.0/AndroidManifest.xml:29:13-51
+activity#androidx.compose.ui.tooling.PreviewActivity
+ADDED from [androidx.compose.ui:ui-tooling-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/d49e6ae16b32702616aa0ee79dd8f910/transformed/ui-tooling-release/AndroidManifest.xml:23:9-25:39
+	android:exported
+		ADDED from [androidx.compose.ui:ui-tooling-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/d49e6ae16b32702616aa0ee79dd8f910/transformed/ui-tooling-release/AndroidManifest.xml:25:13-36
+	android:name
+		ADDED from [androidx.compose.ui:ui-tooling-android:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/d49e6ae16b32702616aa0ee79dd8f910/transformed/ui-tooling-release/AndroidManifest.xml:24:13-71
+provider#androidx.startup.InitializationProvider
+ADDED from [androidx.emoji2:emoji2:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/86f3feca163d1b97f2aeb8cb13741350/transformed/emoji2-1.4.0/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.lifecycle:lifecycle-process:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/006810b136f7c2806b1d800b1b5cbb5c/transformed/lifecycle-process-2.8.7/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.lifecycle:lifecycle-process:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/006810b136f7c2806b1d800b1b5cbb5c/transformed/lifecycle-process-2.8.7/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/91eb706fe98df89a7e3e37eabc4abce7/transformed/profileinstaller-1.4.0/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/91eb706fe98df89a7e3e37eabc4abce7/transformed/profileinstaller-1.4.0/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.startup:startup-runtime:1.1.1] /home/romankozak/.gradle/caches/8.13/transforms/bc3214995dbe71b5ed2a0ae3932a86ad/transformed/startup-runtime-1.1.1/AndroidManifest.xml:26:9-30:34
+MERGED from [androidx.startup:startup-runtime:1.1.1] /home/romankozak/.gradle/caches/8.13/transforms/bc3214995dbe71b5ed2a0ae3932a86ad/transformed/startup-runtime-1.1.1/AndroidManifest.xml:26:9-30:34
+	tools:node
+		ADDED from [androidx.emoji2:emoji2:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/86f3feca163d1b97f2aeb8cb13741350/transformed/emoji2-1.4.0/AndroidManifest.xml:28:13-31
+	android:authorities
+		ADDED from [androidx.emoji2:emoji2:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/86f3feca163d1b97f2aeb8cb13741350/transformed/emoji2-1.4.0/AndroidManifest.xml:26:13-68
+	android:exported
+		ADDED from [androidx.emoji2:emoji2:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/86f3feca163d1b97f2aeb8cb13741350/transformed/emoji2-1.4.0/AndroidManifest.xml:27:13-37
+	android:name
+		ADDED from [androidx.emoji2:emoji2:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/86f3feca163d1b97f2aeb8cb13741350/transformed/emoji2-1.4.0/AndroidManifest.xml:25:13-67
+meta-data#androidx.emoji2.text.EmojiCompatInitializer
+ADDED from [androidx.emoji2:emoji2:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/86f3feca163d1b97f2aeb8cb13741350/transformed/emoji2-1.4.0/AndroidManifest.xml:29:13-31:52
+	android:value
+		ADDED from [androidx.emoji2:emoji2:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/86f3feca163d1b97f2aeb8cb13741350/transformed/emoji2-1.4.0/AndroidManifest.xml:31:17-49
+	android:name
+		ADDED from [androidx.emoji2:emoji2:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/86f3feca163d1b97f2aeb8cb13741350/transformed/emoji2-1.4.0/AndroidManifest.xml:30:17-75
+meta-data#androidx.lifecycle.ProcessLifecycleInitializer
+ADDED from [androidx.lifecycle:lifecycle-process:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/006810b136f7c2806b1d800b1b5cbb5c/transformed/lifecycle-process-2.8.7/AndroidManifest.xml:29:13-31:52
+	android:value
+		ADDED from [androidx.lifecycle:lifecycle-process:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/006810b136f7c2806b1d800b1b5cbb5c/transformed/lifecycle-process-2.8.7/AndroidManifest.xml:31:17-49
+	android:name
+		ADDED from [androidx.lifecycle:lifecycle-process:2.8.7] /home/romankozak/.gradle/caches/8.13/transforms/006810b136f7c2806b1d800b1b5cbb5c/transformed/lifecycle-process-2.8.7/AndroidManifest.xml:30:17-78
+activity#androidx.activity.ComponentActivity
+ADDED from [androidx.compose.ui:ui-test-manifest:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/fb679b01ee8e171e90d6ae812abcaec7/transformed/ui-test-manifest-1.8.0/AndroidManifest.xml:23:9-26:79
+	android:exported
+		ADDED from [androidx.compose.ui:ui-test-manifest:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/fb679b01ee8e171e90d6ae812abcaec7/transformed/ui-test-manifest-1.8.0/AndroidManifest.xml:25:13-36
+	android:theme
+		ADDED from [androidx.compose.ui:ui-test-manifest:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/fb679b01ee8e171e90d6ae812abcaec7/transformed/ui-test-manifest-1.8.0/AndroidManifest.xml:26:13-76
+	android:name
+		ADDED from [androidx.compose.ui:ui-test-manifest:1.8.0] /home/romankozak/.gradle/caches/8.13/transforms/fb679b01ee8e171e90d6ae812abcaec7/transformed/ui-test-manifest-1.8.0/AndroidManifest.xml:24:13-63
+uses-library#android.ext.adservices
+ADDED from [androidx.privacysandbox.ads:ads-adservices:1.0.0-beta05] /home/romankozak/.gradle/caches/8.13/transforms/135b04ca0b90b03974822f5e4ef8dc56/transformed/ads-adservices-1.0.0-beta05/AndroidManifest.xml:23:9-25:40
+	android:required
+		ADDED from [androidx.privacysandbox.ads:ads-adservices:1.0.0-beta05] /home/romankozak/.gradle/caches/8.13/transforms/135b04ca0b90b03974822f5e4ef8dc56/transformed/ads-adservices-1.0.0-beta05/AndroidManifest.xml:25:13-37
+	android:name
+		ADDED from [androidx.privacysandbox.ads:ads-adservices:1.0.0-beta05] /home/romankozak/.gradle/caches/8.13/transforms/135b04ca0b90b03974822f5e4ef8dc56/transformed/ads-adservices-1.0.0-beta05/AndroidManifest.xml:24:13-50
+meta-data#com.google.android.gms.version
+ADDED from [com.google.android.gms:play-services-basement:18.4.0] /home/romankozak/.gradle/caches/8.13/transforms/c01c4c75f43c7c839ec9c8df06d95b32/transformed/play-services-basement-18.4.0/AndroidManifest.xml:6:9-122
+	android:value
+		ADDED from [com.google.android.gms:play-services-basement:18.4.0] /home/romankozak/.gradle/caches/8.13/transforms/c01c4c75f43c7c839ec9c8df06d95b32/transformed/play-services-basement-18.4.0/AndroidManifest.xml:6:66-119
+	android:name
+		ADDED from [com.google.android.gms:play-services-basement:18.4.0] /home/romankozak/.gradle/caches/8.13/transforms/c01c4c75f43c7c839ec9c8df06d95b32/transformed/play-services-basement-18.4.0/AndroidManifest.xml:6:20-65
+permission#${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.13.1] /home/romankozak/.gradle/caches/8.13/transforms/8422fc4b46b66a55327e4028ede25788/transformed/core-1.13.1/AndroidManifest.xml:22:5-24:47
+	android:protectionLevel
+		ADDED from [androidx.core:core:1.13.1] /home/romankozak/.gradle/caches/8.13/transforms/8422fc4b46b66a55327e4028ede25788/transformed/core-1.13.1/AndroidManifest.xml:24:9-44
+	android:name
+		ADDED from [androidx.core:core:1.13.1] /home/romankozak/.gradle/caches/8.13/transforms/8422fc4b46b66a55327e4028ede25788/transformed/core-1.13.1/AndroidManifest.xml:23:9-81
+permission#com.romankozak.forwardappmobile.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.13.1] /home/romankozak/.gradle/caches/8.13/transforms/8422fc4b46b66a55327e4028ede25788/transformed/core-1.13.1/AndroidManifest.xml:22:5-24:47
+	android:protectionLevel
+		ADDED from [androidx.core:core:1.13.1] /home/romankozak/.gradle/caches/8.13/transforms/8422fc4b46b66a55327e4028ede25788/transformed/core-1.13.1/AndroidManifest.xml:24:9-44
+	android:name
+		ADDED from [androidx.core:core:1.13.1] /home/romankozak/.gradle/caches/8.13/transforms/8422fc4b46b66a55327e4028ede25788/transformed/core-1.13.1/AndroidManifest.xml:23:9-81
+uses-permission#${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.13.1] /home/romankozak/.gradle/caches/8.13/transforms/8422fc4b46b66a55327e4028ede25788/transformed/core-1.13.1/AndroidManifest.xml:26:5-97
+	android:name
+		ADDED from [androidx.core:core:1.13.1] /home/romankozak/.gradle/caches/8.13/transforms/8422fc4b46b66a55327e4028ede25788/transformed/core-1.13.1/AndroidManifest.xml:26:22-94
+uses-permission#com.romankozak.forwardappmobile.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.13.1] /home/romankozak/.gradle/caches/8.13/transforms/8422fc4b46b66a55327e4028ede25788/transformed/core-1.13.1/AndroidManifest.xml:26:5-97
+	android:name
+		ADDED from [androidx.core:core:1.13.1] /home/romankozak/.gradle/caches/8.13/transforms/8422fc4b46b66a55327e4028ede25788/transformed/core-1.13.1/AndroidManifest.xml:26:22-94
+meta-data#com.google.firebase.components:com.google.firebase.datatransport.TransportRegistrar
+ADDED from [com.google.firebase:firebase-datatransport:19.0.0] /home/romankozak/.gradle/caches/8.13/transforms/1b385fd115920a273672ed5f29477ae1/transformed/firebase-datatransport-19.0.0/AndroidManifest.xml:25:13-27:85
+	android:value
+		ADDED from [com.google.firebase:firebase-datatransport:19.0.0] /home/romankozak/.gradle/caches/8.13/transforms/1b385fd115920a273672ed5f29477ae1/transformed/firebase-datatransport-19.0.0/AndroidManifest.xml:27:17-82
+	android:name
+		ADDED from [com.google.firebase:firebase-datatransport:19.0.0] /home/romankozak/.gradle/caches/8.13/transforms/1b385fd115920a273672ed5f29477ae1/transformed/firebase-datatransport-19.0.0/AndroidManifest.xml:26:17-115
+service#com.google.android.datatransport.runtime.backends.TransportBackendDiscovery
+ADDED from [com.google.android.datatransport:transport-backend-cct:3.3.0] /home/romankozak/.gradle/caches/8.13/transforms/dad60642a801b94a6815ddad505b274d/transformed/transport-backend-cct-3.3.0/AndroidManifest.xml:26:9-32:19
+MERGED from [com.google.android.datatransport:transport-runtime:3.3.0] /home/romankozak/.gradle/caches/8.13/transforms/cbbff2f6507f46bc613320dc598ee5f0/transformed/transport-runtime-3.3.0/AndroidManifest.xml:34:9-36:40
+MERGED from [com.google.android.datatransport:transport-runtime:3.3.0] /home/romankozak/.gradle/caches/8.13/transforms/cbbff2f6507f46bc613320dc598ee5f0/transformed/transport-runtime-3.3.0/AndroidManifest.xml:34:9-36:40
+	android:exported
+		ADDED from [com.google.android.datatransport:transport-backend-cct:3.3.0] /home/romankozak/.gradle/caches/8.13/transforms/dad60642a801b94a6815ddad505b274d/transformed/transport-backend-cct-3.3.0/AndroidManifest.xml:28:13-37
+	android:name
+		ADDED from [com.google.android.datatransport:transport-backend-cct:3.3.0] /home/romankozak/.gradle/caches/8.13/transforms/dad60642a801b94a6815ddad505b274d/transformed/transport-backend-cct-3.3.0/AndroidManifest.xml:27:13-103
+meta-data#backend:com.google.android.datatransport.cct.CctBackendFactory
+ADDED from [com.google.android.datatransport:transport-backend-cct:3.3.0] /home/romankozak/.gradle/caches/8.13/transforms/dad60642a801b94a6815ddad505b274d/transformed/transport-backend-cct-3.3.0/AndroidManifest.xml:29:13-31:39
+	android:value
+		ADDED from [com.google.android.datatransport:transport-backend-cct:3.3.0] /home/romankozak/.gradle/caches/8.13/transforms/dad60642a801b94a6815ddad505b274d/transformed/transport-backend-cct-3.3.0/AndroidManifest.xml:31:17-36
+	android:name
+		ADDED from [com.google.android.datatransport:transport-backend-cct:3.3.0] /home/romankozak/.gradle/caches/8.13/transforms/dad60642a801b94a6815ddad505b274d/transformed/transport-backend-cct-3.3.0/AndroidManifest.xml:30:17-94
+service#com.google.android.datatransport.runtime.scheduling.jobscheduling.JobInfoSchedulerService
+ADDED from [com.google.android.datatransport:transport-runtime:3.3.0] /home/romankozak/.gradle/caches/8.13/transforms/cbbff2f6507f46bc613320dc598ee5f0/transformed/transport-runtime-3.3.0/AndroidManifest.xml:24:9-28:19
+	android:exported
+		ADDED from [com.google.android.datatransport:transport-runtime:3.3.0] /home/romankozak/.gradle/caches/8.13/transforms/cbbff2f6507f46bc613320dc598ee5f0/transformed/transport-runtime-3.3.0/AndroidManifest.xml:26:13-37
+	android:permission
+		ADDED from [com.google.android.datatransport:transport-runtime:3.3.0] /home/romankozak/.gradle/caches/8.13/transforms/cbbff2f6507f46bc613320dc598ee5f0/transformed/transport-runtime-3.3.0/AndroidManifest.xml:27:13-69
+	android:name
+		ADDED from [com.google.android.datatransport:transport-runtime:3.3.0] /home/romankozak/.gradle/caches/8.13/transforms/cbbff2f6507f46bc613320dc598ee5f0/transformed/transport-runtime-3.3.0/AndroidManifest.xml:25:13-117
+receiver#com.google.android.datatransport.runtime.scheduling.jobscheduling.AlarmManagerSchedulerBroadcastReceiver
+ADDED from [com.google.android.datatransport:transport-runtime:3.3.0] /home/romankozak/.gradle/caches/8.13/transforms/cbbff2f6507f46bc613320dc598ee5f0/transformed/transport-runtime-3.3.0/AndroidManifest.xml:30:9-32:40
+	android:exported
+		ADDED from [com.google.android.datatransport:transport-runtime:3.3.0] /home/romankozak/.gradle/caches/8.13/transforms/cbbff2f6507f46bc613320dc598ee5f0/transformed/transport-runtime-3.3.0/AndroidManifest.xml:32:13-37
+	android:name
+		ADDED from [com.google.android.datatransport:transport-runtime:3.3.0] /home/romankozak/.gradle/caches/8.13/transforms/cbbff2f6507f46bc613320dc598ee5f0/transformed/transport-runtime-3.3.0/AndroidManifest.xml:31:13-132
+meta-data#androidx.profileinstaller.ProfileInstallerInitializer
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/91eb706fe98df89a7e3e37eabc4abce7/transformed/profileinstaller-1.4.0/AndroidManifest.xml:29:13-31:52
+	android:value
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/91eb706fe98df89a7e3e37eabc4abce7/transformed/profileinstaller-1.4.0/AndroidManifest.xml:31:17-49
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/91eb706fe98df89a7e3e37eabc4abce7/transformed/profileinstaller-1.4.0/AndroidManifest.xml:30:17-85
+receiver#androidx.profileinstaller.ProfileInstallReceiver
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/91eb706fe98df89a7e3e37eabc4abce7/transformed/profileinstaller-1.4.0/AndroidManifest.xml:34:9-52:20
+	android:enabled
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/91eb706fe98df89a7e3e37eabc4abce7/transformed/profileinstaller-1.4.0/AndroidManifest.xml:37:13-35
+	android:exported
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/91eb706fe98df89a7e3e37eabc4abce7/transformed/profileinstaller-1.4.0/AndroidManifest.xml:38:13-36
+	android:permission
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/91eb706fe98df89a7e3e37eabc4abce7/transformed/profileinstaller-1.4.0/AndroidManifest.xml:39:13-57
+	android:directBootAware
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/91eb706fe98df89a7e3e37eabc4abce7/transformed/profileinstaller-1.4.0/AndroidManifest.xml:36:13-44
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/91eb706fe98df89a7e3e37eabc4abce7/transformed/profileinstaller-1.4.0/AndroidManifest.xml:35:13-76
+intent-filter#action:name:androidx.profileinstaller.action.INSTALL_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/91eb706fe98df89a7e3e37eabc4abce7/transformed/profileinstaller-1.4.0/AndroidManifest.xml:40:13-42:29
+action#androidx.profileinstaller.action.INSTALL_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/91eb706fe98df89a7e3e37eabc4abce7/transformed/profileinstaller-1.4.0/AndroidManifest.xml:41:17-91
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/91eb706fe98df89a7e3e37eabc4abce7/transformed/profileinstaller-1.4.0/AndroidManifest.xml:41:25-88
+intent-filter#action:name:androidx.profileinstaller.action.SKIP_FILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/91eb706fe98df89a7e3e37eabc4abce7/transformed/profileinstaller-1.4.0/AndroidManifest.xml:43:13-45:29
+action#androidx.profileinstaller.action.SKIP_FILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/91eb706fe98df89a7e3e37eabc4abce7/transformed/profileinstaller-1.4.0/AndroidManifest.xml:44:17-85
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/91eb706fe98df89a7e3e37eabc4abce7/transformed/profileinstaller-1.4.0/AndroidManifest.xml:44:25-82
+intent-filter#action:name:androidx.profileinstaller.action.SAVE_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/91eb706fe98df89a7e3e37eabc4abce7/transformed/profileinstaller-1.4.0/AndroidManifest.xml:46:13-48:29
+action#androidx.profileinstaller.action.SAVE_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/91eb706fe98df89a7e3e37eabc4abce7/transformed/profileinstaller-1.4.0/AndroidManifest.xml:47:17-88
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/91eb706fe98df89a7e3e37eabc4abce7/transformed/profileinstaller-1.4.0/AndroidManifest.xml:47:25-85
+intent-filter#action:name:androidx.profileinstaller.action.BENCHMARK_OPERATION
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/91eb706fe98df89a7e3e37eabc4abce7/transformed/profileinstaller-1.4.0/AndroidManifest.xml:49:13-51:29
+action#androidx.profileinstaller.action.BENCHMARK_OPERATION
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/91eb706fe98df89a7e3e37eabc4abce7/transformed/profileinstaller-1.4.0/AndroidManifest.xml:50:17-95
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/romankozak/.gradle/caches/8.13/transforms/91eb706fe98df89a7e3e37eabc4abce7/transformed/profileinstaller-1.4.0/AndroidManifest.xml:50:25-92

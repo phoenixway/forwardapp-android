@@ -1,0 +1,52 @@
+[
+  {
+    "moduleId": "module app.cash.sqldelight:runtime:2.0.2",
+    "file": "/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared/build/kotlinTransformedMetadataLibraries/commonMain/app.cash.sqldelight-runtime-2.0.2-commonMain-asQ-DQ.klib",
+    "sourceSetName": "commonMain"
+  },
+  {
+    "moduleId": "module org.jetbrains.kotlin:kotlin-stdlib:2.1.21",
+    "file": "/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared/build/kotlinTransformedMetadataLibraries/commonMain/org.jetbrains.kotlin-kotlin-stdlib-2.1.21-commonMain-uBNgdg.klib",
+    "sourceSetName": "commonMain"
+  },
+  {
+    "moduleId": "module org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3",
+    "file": "/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared/build/kotlinTransformedMetadataLibraries/commonMain/org.jetbrains.kotlinx-kotlinx-serialization-json-1.7.3-commonMain-O4ZS7Q.klib",
+    "sourceSetName": "commonMain"
+  },
+  {
+    "moduleId": "module org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0",
+    "file": "/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared/build/kotlinTransformedMetadataLibraries/commonMain/org.jetbrains.kotlinx-kotlinx-coroutines-core-1.9.0-commonMain-ENDfhw.klib",
+    "sourceSetName": "commonMain"
+  },
+  {
+    "moduleId": "module org.jetbrains.kotlinx:kotlinx-datetime:0.6.1",
+    "file": "/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared/build/kotlinTransformedMetadataLibraries/commonMain/org.jetbrains.kotlinx-kotlinx-datetime-0.6.1-commonMain-ilTmRA.klib",
+    "sourceSetName": "commonMain"
+  },
+  {
+    "moduleId": "module com.benasher44:uuid:0.8.4",
+    "file": "/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared/build/kotlinTransformedMetadataLibraries/commonMain/com.benasher44-uuid-0.8.4-commonMain-n45qYA.klib",
+    "sourceSetName": "commonMain"
+  },
+  {
+    "moduleId": "module app.cash.sqldelight:coroutines-extensions:2.0.2",
+    "file": "/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared/build/kotlinTransformedMetadataLibraries/commonMain/app.cash.sqldelight-coroutines-extensions-2.0.2-commonMain-OJPMWA.klib",
+    "sourceSetName": "commonMain"
+  },
+  {
+    "moduleId": "module me.tatarka.inject:kotlin-inject-runtime-kmp:0.8.0",
+    "file": "/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared/build/kotlinTransformedMetadataLibraries/commonMain/me.tatarka.inject-kotlin-inject-runtime-kmp-0.8.0-commonMain-waNV-g.klib",
+    "sourceSetName": "commonMain"
+  },
+  {
+    "moduleId": "module org.jetbrains.kotlinx:kotlinx-serialization-core:1.7.3",
+    "file": "/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared/build/kotlinTransformedMetadataLibraries/commonMain/org.jetbrains.kotlinx-kotlinx-serialization-core-1.7.3-commonMain-s2qClw.klib",
+    "sourceSetName": "commonMain"
+  },
+  {
+    "moduleId": "module me.tatarka.inject:kotlin-inject-runtime:0.8.0",
+    "file": "/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared/build/kotlinTransformedMetadataLibraries/commonMain/me.tatarka.inject-kotlin-inject-runtime-0.8.0-commonMain-qAQuLw.klib",
+    "sourceSetName": "commonMain"
+  }
+]

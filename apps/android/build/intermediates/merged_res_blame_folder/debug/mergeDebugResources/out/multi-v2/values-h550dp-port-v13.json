@@ -1,0 +1,19 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.romankozak.forwardappmobile.android-mergeDebugResources-81:/values-h550dp-port-v13/values-h550dp-port-v13.xml",
+            "map": [
+                {
+                    "source": "/home/romankozak/.gradle/caches/8.13/transforms/32ff402e1403a3bde6a8b80773e7299b/transformed/material-1.12.0/res/values-h550dp-port-v13/values-h550dp-port-v13.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "64",
+                        "endOffsets": "115"
+                    }
+                }
+            ]
+        }
+    ]
+}

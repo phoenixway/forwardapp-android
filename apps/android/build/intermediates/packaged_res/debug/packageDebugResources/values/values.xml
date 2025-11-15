@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <attr format="color" name="customBorderColor"/>
+    <attr format="color" name="customHeaderTextColor"/>
+    <attr format="color" name="inputPanelAddGoalBackgroundColor"/>
+    <attr format="color" name="inputPanelAddGoalTextColor"/>
+    <attr format="color" name="inputPanelAddProjectLogBackgroundColor"/>
+    <attr format="color" name="inputPanelAddProjectLogTextColor"/>
+    <attr format="color" name="inputPanelAddQuickRecordBackgroundColor"/>
+    <attr format="color" name="inputPanelAddQuickRecordTextColor"/>
+    <attr format="color" name="inputPanelSearchGlobalBackgroundColor"/>
+    <attr format="color" name="inputPanelSearchGlobalTextColor"/>
+    <attr format="color" name="inputPanelSearchInListBackgroundColor"/>
+    <attr format="color" name="inputPanelSearchInListTextColor"/>
+    <color name="black">#FF000000</color>
+    <color name="colorBackground">#FFFFFF</color>
+    <color name="colorError">#B00020</color>
+    <color name="colorOnBackground">#000000</color>
+    <color name="colorOnError">#FFFFFF</color>
+    <color name="colorOnPrimary">#000000</color>
+    <color name="colorOnSecondary">#FFFFFF</color>
+    <color name="colorOnSurface">#000000</color>
+    <color name="colorPrimary">#00FFF0</color>
+    <color name="colorPrimaryVariant">#00BFAF</color>
+    <color name="colorSecondary">#FF0080</color>
+    <color name="colorSurface">#F5F5F5</color>
+    <color name="cyber_background">#FFFFFF</color>
+    <color name="cyber_border_color">#00FFC3</color>
+    <color name="cyber_button_background">#00FFC3</color>
+    <color name="cyber_button_text">#000000</color>
+    <color name="cyber_header_text_color">#FF40A0</color>
+    <color name="cyber_icon_primary">#00BFAF</color>
+    <color name="cyber_icon_secondary">#FF0080</color>
+    <color name="cyber_primary">#00FFC3</color>
+    <color name="cyber_primary_variant">#00A88F</color>
+    <color name="cyber_secondary">#FF40A0</color>
+    <color name="cyber_surface">#F5F5F5</color>
+    <color name="cyber_text_primary">#000000</color>
+    <color name="cyber_text_secondary">#505050</color>
+    <color name="ic_launcher_background">#020703</color>
+    <color name="input_panel_add_goal_bg">#E0F7FA</color>
+    <color name="input_panel_add_goal_text">#00796B</color>
+    <color name="input_panel_add_project_log_bg">#F3E5F5</color>
+    <color name="input_panel_add_project_log_text">#7B1FA2</color>
+    <color name="input_panel_add_quick_record_bg">#E8EAF6</color>
+    <color name="input_panel_add_quick_record_text">#303F9F</color>
+    <color name="input_panel_search_global_bg">#FFFDE7</color>
+    <color name="input_panel_search_global_text">#FBC02D</color>
+    <color name="input_panel_search_list_bg">#FCE4EC</color>
+    <color name="input_panel_search_list_text">#C2185B</color>
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="white">#FFFFFFFF</color>
+    <string name="add">Додати</string>
+    <string name="add_attachment_button">Додати вкладення</string>
+    <string name="add_attachment_description">Додати вкладення</string>
+    <string name="app_name">ForwardApp</string>
+    <string name="attachment_checklist_delete_description">Видалити чекліст</string>
+    <string name="attachment_checklist_icon_description">Іконка чекліста</string>
+    <string name="attachment_label_checklist">Чекліст</string>
+    <string name="attachment_label_note">Нотатка</string>
+    <string name="attachment_note_delete_description">Видалити нотатку</string>
+    <string name="attachment_note_icon_description">Іконка нотатки</string>
+    <string name="attachment_type_checklist">Чекліст</string>
+    <string name="attachment_type_notes">Нотатки</string>
+    <string name="attachment_type_obsidian">Obsidian</string>
+    <string name="attachment_type_project_link">Посилання на проект</string>
+    <string name="attachment_type_web_link">Веб-посилання</string>
+    <string name="attachments_header">Вкладення</string>
+    <string name="back">Назад</string>
+    <string name="cancel">Скасувати</string>
+    <string name="character_counter">%1$d/%2$d</string>
+    <string name="checklist_add_item">Додати пункт</string>
+    <string name="checklist_clear_completed">Очистити виконані</string>
+    <string name="checklist_delete_item">Видалити пункт</string>
+    <string name="checklist_item_placeholder">Новий пункт</string>
+    <string name="checklist_title_placeholder">Назва чекліста</string>
+    <string name="checklist_toggle_checkboxes">Перемкнути чекбокси</string>
+    <string name="clear_input">Очистити введення</string>
+    <string name="clear_search">Очистити пошук</string>
+    <string name="close_selection_mode">Закрити режим вибору</string>
+    <string name="collapse">Згорнути</string>
+    <string name="collapse_panel">Згорнути панель</string>
+    <string name="copy">Копіювати</string>
+    <string name="create">Створити</string>
+    <string name="create_button">Створити</string>
+    <string name="create_link">Створити посилання</string>
+    <string name="delete_attachment_description">Видалити вкладення</string>
+    <string name="delete_list">Видалити список</string>
+    <string name="delete_selected">Видалити вибране</string>
+    <string name="description_placeholder_with_markdown_hint">Опис (підтримує Markdown)</string>
+    <string name="disabled">Вимкнено</string>
+    <string name="display_name_optional">Назва (необов\'язково)</string>
+    <string name="edit_description">Редагувати опис</string>
+    <string name="edit_list">Редагувати список</string>
+    <string name="enabled">Увімкнено</string>
+    <string name="error_link_open_failed">Не вдалося відкрити посилання</string>
+    <string name="error_obsidian_vault_not_set">Сховище Obsidian не встановлено</string>
+    <string name="expand">Розгорнути</string>
+    <string name="expand_panel">Розгорнути панель</string>
+    <string name="forward">Вперед</string>
+    <string name="go_to_home_list">Перейти до домашнього списку</string>
+    <string name="hint_add_goal">Додати ціль</string>
+    <string name="hint_add_quick_record">Додати швидкий запис</string>
+    <string name="hint_search_global">Глобальний пошук</string>
+    <string name="hint_search_in_list">Пошук у списку</string>
+    <string name="import_action">Імпортувати</string>
+    <string name="import_from_markdown">Імпортувати з Markdown</string>
+    <string name="import_markdown_description">Вставте текст Markdown для імпорту</string>
+    <string name="loading">Завантаження</string>
+    <string name="mark_as_complete">Позначити як завершене</string>
+    <string name="mark_as_incomplete">Позначити як незавершене</string>
+    <string name="markdown_text_label">Текст Markdown</string>
+    <string name="menu_add_obsidian_link">Додати посилання Obsidian</string>
+    <string name="menu_add_project_shortcut">Додати ярлик проекту</string>
+    <string name="menu_add_web_link">Додати веб-посилання</string>
+    <string name="minimum_3_characters">Мінімум 3 символи</string>
+    <string name="more_actions">Більше дій</string>
+    <string name="more_options">Більше опцій</string>
+    <string name="move">Перемістити</string>
+    <string name="no_attachments_message">Немає вкладень</string>
+    <string name="note_editor_edit_title">Редагувати назву нотатки</string>
+    <string name="note_name">Назва нотатки</string>
+    <string name="select_all">Вибрати все</string>
+    <string name="selected">Вибрано</string>
+    <string name="send">Надіслати</string>
+    <string name="set_reminder_title">Встановити нагадування</string>
+    <string name="share_list">Поділитися списком</string>
+    <string name="title_activity_kimera">KimeraActivity</string>
+    <string name="toggle_attachments">Перемкнути вкладення</string>
+    <string name="toggle_to_edit_mode">Перемкнути в режим редагування</string>
+    <string name="toggle_to_preview_mode">Перемкнути в режим попереднього перегляду</string>
+    <style name="Theme.Cyberpunk.Day" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        
+        <item name="colorPrimary">@color/purple_500</item>
+        <item name="colorPrimaryVariant">@color/purple_700</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/teal_200</item>
+        <item name="colorSecondaryVariant">@color/teal_700</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+    </style>
+    <style name="Theme.ForwardAppMobile.Translucent" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
+</resources>

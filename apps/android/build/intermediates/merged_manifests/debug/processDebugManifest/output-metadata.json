@@ -1,0 +1,64 @@
+{
+  "version": 3,
+  "artifactType": {
+    "type": "MERGED_MANIFESTS",
+    "kind": "Directory"
+  },
+  "applicationId": "com.romankozak.forwardappmobile.debug",
+  "variantName": "debug",
+  "elements": [
+    {
+      "type": "ONE_OF_MANY",
+      "filters": [
+        {
+          "filterType": "ABI",
+          "value": "armeabi-v7a"
+        }
+      ],
+      "attributes": [],
+      "versionCode": 53,
+      "versionName": "10.0-alpha1-debug",
+      "outputFile": "armeabi-v7a/AndroidManifest.xml"
+    },
+    {
+      "type": "ONE_OF_MANY",
+      "filters": [
+        {
+          "filterType": "ABI",
+          "value": "x86_64"
+        }
+      ],
+      "attributes": [],
+      "versionCode": 53,
+      "versionName": "10.0-alpha1-debug",
+      "outputFile": "x86_64/AndroidManifest.xml"
+    },
+    {
+      "type": "ONE_OF_MANY",
+      "filters": [
+        {
+          "filterType": "ABI",
+          "value": "x86"
+        }
+      ],
+      "attributes": [],
+      "versionCode": 53,
+      "versionName": "10.0-alpha1-debug",
+      "outputFile": "x86/AndroidManifest.xml"
+    },
+    {
+      "type": "ONE_OF_MANY",
+      "filters": [
+        {
+          "filterType": "ABI",
+          "value": "arm64-v8a"
+        }
+      ],
+      "attributes": [],
+      "versionCode": 53,
+      "versionName": "10.0-alpha1-debug",
+      "outputFile": "arm64-v8a/AndroidManifest.xml"
+    }
+  ],
+  "elementType": "File"
+}

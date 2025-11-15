@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="cyber_background">#0A0A0A</color>
+    <color name="cyber_border_color">#FF40A0</color>
+    <color name="cyber_button_background">#00FFC3</color>
+    <color name="cyber_button_text">#000000</color>
+    <color name="cyber_header_text_color">#00FFC3</color>
+    <color name="cyber_icon_primary">#00FFC3</color>
+    <color name="cyber_icon_secondary">#FF40A0</color>
+    <color name="cyber_primary">#00FFC3</color>
+    <color name="cyber_primary_variant">#00A88F</color>
+    <color name="cyber_secondary">#FF40A0</color>
+    <color name="cyber_surface">#1A1A1A</color>
+    <color name="cyber_text_primary">#E0E0E0</color>
+    <color name="cyber_text_secondary">#A0A0A0</color>
+    <color name="input_panel_add_goal_bg">#004D40</color>
+    <color name="input_panel_add_goal_text">#80CBC4</color>
+    <color name="input_panel_add_project_log_bg">#4A148C</color>
+    <color name="input_panel_add_project_log_text">#E1BEE7</color>
+    <color name="input_panel_add_quick_record_bg">#1A237E</color>
+    <color name="input_panel_add_quick_record_text">#C5CAE9</color>
+    <color name="input_panel_search_global_bg">#FF8F00</color>
+    <color name="input_panel_search_global_text">#FFECB3</color>
+    <color name="input_panel_search_list_bg">#880E4F</color>
+    <color name="input_panel_search_list_text">#F48FB1</color>
+    <style name="Theme.Cyberpunk.Night" parent="Theme.Material3.DayNight.NoActionBar">
+        
+        <item name="colorPrimary">@color/cyber_primary</item>
+        <item name="colorPrimaryVariant">@color/cyber_primary_variant</item>
+        <item name="colorSecondary">@color/cyber_secondary</item>
+        <item name="android:colorBackground">@color/cyber_background</item>
+        <item name="colorSurface">@color/cyber_surface</item>
+        <item name="android:textColorPrimary">@color/cyber_text_primary</item>
+        <item name="android:fontFamily">@font/orbitron</item>
+
+        
+        <item name="customHeaderTextColor">@color/cyber_header_text_color</item>
+        <item name="customBorderColor">@color/cyber_border_color</item>
+
+        
+        <item name="inputPanelAddGoalBackgroundColor">@color/input_panel_add_goal_bg</item>
+        <item name="inputPanelAddGoalTextColor">@color/input_panel_add_goal_text</item>
+        <item name="inputPanelSearchInListBackgroundColor">@color/input_panel_search_list_bg</item>
+        <item name="inputPanelSearchInListTextColor">@color/input_panel_search_list_text</item>
+        <item name="inputPanelSearchGlobalBackgroundColor">@color/input_panel_search_global_bg</item>
+        <item name="inputPanelSearchGlobalTextColor">@color/input_panel_search_global_text</item>
+        <item name="inputPanelAddQuickRecordBackgroundColor">@color/input_panel_add_quick_record_bg</item>
+        <item name="inputPanelAddQuickRecordTextColor">@color/input_panel_add_quick_record_text</item>
+        <item name="inputPanelAddProjectLogBackgroundColor">@color/input_panel_add_project_log_bg</item>
+        <item name="inputPanelAddProjectLogTextColor">@color/input_panel_add_project_log_text</item>
+    </style>
+</resources>
