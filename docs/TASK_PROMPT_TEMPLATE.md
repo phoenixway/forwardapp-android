@@ -36,32 +36,35 @@
 - Залиш коментарі/README тільки там, де потрібно (наприклад, `package-info` в новому пакеті).
 
 ## Порядок відновлення
-Відновлюємо спочатку шар даних, далі рухаємось до залежних сценаріїв. Станом на зараз у `packages/shared` уже готові
-Projects, Goals, ListItems, RecentItems, ConversationFolders, InboxRecords, LegacyNotes, Checklists + ChecklistItems,
-Attachments + ProjectAttachmentCrossRef, ProjectArtifacts, ProjectExecutionLogs, ActivityRecords (разом із FTS),
-Reminders та увесь блок DayManagement (DayPlans, DayTasks, DailyMetrics).
+Відновлюємо спочатку шар даних, далі рухаємось до залежних сценаріїв. Станом на зараз у `packages/shared` уже готові все крім
+  - Конверсації/чат (conversations, chat_messages):
+      - Моделі описані у app/src/main/java/com/romankozak/forwardappmobile/data/database/models/ConversationEntity.kt:9-18 (Long id, title,
+        folderId) і ChatMessageEntity.kt:8-29 (прив’язка до conversationId, прапор isFromUser/isStreaming).
+      - DAO app/src/main/java/com/romankozak/forwardappmobile/data/dao/ChatDao.kt:14-70 забезпечує:
+          - вставку/оновлення/видалення як повідомлень, так і самих конверсій;
+          - флоу для списку розмов з останнім повідомленням, у ЧПК також фільтрація за папкою (folderId) чи без неї;
+          - лічильник повідомлень, пошук останнього асистентського повідомлення, каскадне очищення deleteConversationAndMessages.
+      - У KMP наразі є лише ConversationFolderRepository; потрібно створити .sq для conversations і chat_messages, моделі/маппери/репозиторій
+        (shared/features/aichat) та додати тести/DI.
+  - Link items + глобальний пошук посилань:
+      - Room-entity LinkItemEntity живе у app/src/main/java/com/romankozak/forwardappmobile/data/database/models/DatabaseModel.kt:160-166 (id,
+        JSON колонка link_data, createdAt).
+      - DAO app/src/main/java/com/romankozak/forwardappmobile/data/dao/LinkItemDao.kt:13-61 виконує CRUD і складний WITH RECURSIVE запит, що
+        збирає GlobalLinkSearchResult із шляхом проектів (використовується у AttachmentRepository для бібліотеки лінків).
+      - У packages/shared є лише датакласи LinkItemEntity/GlobalLinkSearchResult, але немає таблиці, запитів, репозиторію чи інтеграції з
+        attachment-логікою; без цього не відтворюється створення link-attachment (AttachmentRepository.kt:82-152 у dev). Потрібно додати .sq
+        (LinkItems.sq), транзакції та маппери й підчепити до KMP AttachmentsModule.
+  - FTS-таблиці для пошуку:
+      - Room версія підтримує повнотекстові таблиці goals_fts, projects_fts, notes_fts, recurring_tasks_fts (див. app/src/main/java/com/
+        romankozak/forwardappmobile/data/database/models/DatabaseModel.kt:337-370 та RecurringTask.kt:23-38). Зараз у shared реалізовано лише
+        ActivityRecordsFts.
+      - Якщо у застосунку потрібен швидкий global search (WARP.md прямо згадує GoalFts, LegacyNoteFts, RecurringTaskFts), то ці FTS-таблиці теж
+        необхідно перенести до SQLDelight: створити CREATE VIRTUAL TABLE … USING fts5, додати тригери/запити й оновити репозиторії пошуку.
 
-У `sqldelight_backup/` та `sqldelight_backup_2/` залишились лише три сутності, які ще не перенесені в KMP-шар. Їх
-і тримаємо у пріоритеті (у порядку зростання складності):
 
-  1. NoteDocuments (sqldelight_backup/NoteDocuments.sq, sqldelight_backup_2/NoteDocuments.sq)
-      - Це редактор документів, який лінкується до проекту через `projectId`, а в Room-версії також був типом вкладення
-        (`attachments`, `project_attachment_cross_ref`). Потрібно повернути таблицю, DAO/репозиторій та інтегрувати її в
-        `features/attachments/types/notedocuments` під тією самою DI-парасолькою, що й LegacyNotes.
-      - Не забудь про поля `content`, `lastCursorPosition` та сортування за `updatedAt DESC`, як зафіксовано в бекапах.
-  2. NoteDocumentItems (sqldelight_backup/NoteDocumentItems.sq, sqldelight_backup_2/NoteDocumentItems.sq, а також
-      комбіновані запити в sqldelight_backup/NoteDocument.sq)
-      - Це ієрархічні пункти документу (listId = documentId, parentId, isCompleted, itemOrder). Потрібно повернути CRUD,
-        масові видалення та сортування, передбачені у старих `.sq`. Репозиторій має жити поруч із NoteDocuments і
-        використовувати транзакції для одночасних апдейтів документу та його items.
-  3. RecurringTasks (sqldelight_backup/RecurringTasks.sq, sqldelight_backup_2/RecurringTasks.sq)
-      - Включає кастомні типи `TaskPriority`, `RecurrenceFrequency`, поле `daysOfWeek` (List<String>) та зв’язок із
-        `goalId`. Також DayTasks містили запити `selectByRecurringIdAndDayPlanId`, тож при відновленні потрібно додати
-        column adapters і тести на генерацію шаблонів для day-plan.
+Після того, як ці сутності переїдуть у shared з міграціями і тестами, продовжуй звірятись з  dev гілкою, з room версією додатку там. і шукай сутності там. room версія - той цільовий еталон функціоналу до якого прагне ця kmp+sqldelight версія
 
-Після того, як ці три сутності переїдуть у shared з міграціями і тестами, продовжуй звірятись з `sqldelight_backup*/`.
-Якщо вона повністю “порожня” (усе перенесено), переходь на `dev` гілку з Room-реалізацією та виписуй сутності, яких ще
-немає у KMP.
+
 
 
 деякі пункти можуть бути вже виконані. перевіряти це
