@@ -60,7 +60,6 @@ fun ExperimentalEnhancedListToolbar(
   onBold: () -> Unit = {},
   onItalic: () -> Unit = {},
   onInsertSeparator: () -> Unit = {},
-  onToggleKeyboard: () -> Unit = {},
 ) {
   var selectedTab by remember { mutableStateOf(CommandGroup.РЕДАГУВАННЯ) }
   val haptics = LocalHapticFeedback.current
@@ -145,11 +144,6 @@ fun ExperimentalEnhancedListToolbar(
         ) {
             // Modern tab row with chips style
             Row(verticalAlignment = Alignment.CenterVertically) {
-                EnhancedToolbarButton(
-                    icon = Icons.Default.Keyboard,
-                    description = "Toggle Keyboard",
-                    onClick = onToggleKeyboard
-                )
                 ScrollableTabRow(
                   selectedTabIndex = selectedTab.ordinal,
                   edgePadding = 0.dp,

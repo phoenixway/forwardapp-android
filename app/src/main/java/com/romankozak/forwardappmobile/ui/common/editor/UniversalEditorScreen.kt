@@ -33,6 +33,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
@@ -94,8 +95,9 @@ fun UniversalEditorScreen(
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
   val snackbarHostState = remember { SnackbarHostState() }
   val keyboardController = LocalSoftwareKeyboardController.current
-  var isKeyboardVisible by remember { mutableStateOf(false) }
-  val readOnly by remember { derivedStateOf { !isKeyboardVisible } }
+  val focusManager = LocalFocusManager.current
+  var isEditing by remember { mutableStateOf(true) }
+  val readOnly by remember { derivedStateOf { !isEditing } }
 
   LaunchedEffect(Unit) {
     viewModel.events.collect {
@@ -153,7 +155,7 @@ fun UniversalEditorScreen(
           ) { isVisible ->
             if (isVisible) {
               ExperimentalEnhancedListToolbar(
-                state = uiState.toolbarState,
+                state = uiState.toolbarState.copy(isEditing = isEditing),
                 onIndentBlock = viewModel::onIndentBlock,
                 onDeIndentBlock = viewModel::onDeIndentBlock,
                 onMoveBlockUp = viewModel::onMoveBlockUp,
@@ -179,19 +181,31 @@ fun UniversalEditorScreen(
                 onBold = viewModel::onBold,
                 onItalic = viewModel::onItalic,
                 onInsertSeparator = viewModel::onInsertSeparator,
-                onToggleKeyboard = {
-                    if (isKeyboardVisible) {
-                        keyboardController?.hide()
-                    } else {
-                        contentFocusRequester.requestFocus()
-                    }
-                    isKeyboardVisible = !isKeyboardVisible
-                }
               )
             } else {
               ShowToolbarButton(onClick = { isToolbarVisible = true })
             }
           }
+        }
+      }
+    },
+    floatingActionButton = {
+      FloatingActionButton(
+        onClick = {
+          isEditing = !isEditing
+          if (isEditing) {
+            contentFocusRequester.requestFocus()
+            keyboardController?.show()
+          } else {
+            focusManager.clearFocus(force = true)
+            keyboardController?.hide()
+          }
+        }
+      ) {
+        if (isEditing) {
+          Icon(Icons.Default.Visibility, contentDescription = "Switch to read mode")
+        } else {
+          Icon(Icons.Default.Edit, contentDescription = "Switch to edit mode")
         }
       }
     },
