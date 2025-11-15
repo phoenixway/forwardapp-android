@@ -4,7 +4,7 @@ import app.cash.sqldelight.db.SqlDriver
 import com.romankozak.forwardappmobile.shared.data.database.createTestDatabase
 import com.romankozak.forwardappmobile.shared.data.database.createTestDriver
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
-import com.romankozak.forwardappmobile.shared.features.aichat.domain.repository.ChatRepository
+import com.romankozak.forwardappmobile.shared.features.aichat.domain.model.ConversationWithLastMessage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -26,7 +26,7 @@ class ChatRepositoryTest {
     @BeforeTest
     fun setup() {
         driver = createTestDriver()
-        database = createTestDatabase(driver)
+        database = createForwardAppDatabase(driver)
         repository = ChatRepositoryImpl(database, Dispatchers.Unconfined)
     }
 

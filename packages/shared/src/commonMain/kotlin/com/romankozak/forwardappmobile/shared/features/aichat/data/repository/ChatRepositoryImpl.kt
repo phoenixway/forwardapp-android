@@ -6,8 +6,9 @@ import app.cash.sqldelight.coroutines.mapToOne
 import app.cash.sqldelight.coroutines.mapToOneOrNull
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import com.romankozak.forwardappmobile.shared.features.aichat.data.mappers.toDomain
-import com.romankozak.forwardappmobile.shared.features.aichat.domain.model.ChatMessage
 import com.romankozak.forwardappmobile.shared.features.aichat.domain.model.Conversation
+import com.romankozak.forwardappmobile.shared.features.aichat.domain.model.ChatMessage
+import com.romankozak.forwardappmobile.shared.features.aichat.domain.model.ConversationWithLastMessage
 import com.romankozak.forwardappmobile.shared.features.aichat.domain.repository.ChatRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow

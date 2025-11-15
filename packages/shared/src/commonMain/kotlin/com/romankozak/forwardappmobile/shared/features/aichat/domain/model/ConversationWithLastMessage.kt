@@ -3,9 +3,7 @@ package com.romankozak.forwardappmobile.shared.features.aichat.domain.model
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class Conversation(
-    val id: Long,
-    val title: String,
-    val creationTimestamp: Long,
-    val folderId: Long?,
+data class ConversationWithLastMessage(
+    val conversation: Conversation,
+    val lastMessage: ChatMessage?,
 )
