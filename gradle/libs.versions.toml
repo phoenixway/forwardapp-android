@@ -3,7 +3,7 @@
 kotlin = "2.1.21"
 jetbrainsKotlinJvm = "2.1.21"
 ksp = "2.1.21-2.0.1"
-agp = "8.5.2"
+agp = "8.13.1"
 
 # --- SQLDelight / Serialization / Coroutines / DateTime / UUID
 sqlDelight = "2.0.2"

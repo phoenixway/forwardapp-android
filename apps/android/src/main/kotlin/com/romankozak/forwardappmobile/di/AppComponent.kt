@@ -19,7 +19,8 @@ abstract class AppComponent(
     RepositoryModule,
     DispatcherModule,
     com.romankozak.forwardappmobile.features.mainscreen.di.MainScreenModule,
-    com.romankozak.forwardappmobile.shared.features.aichat.di.AiChatModule {
+    com.romankozak.forwardappmobile.shared.features.aichat.di.AiChatModule,
+    com.romankozak.forwardappmobile.shared.features.search.di.SearchModule {
 
     @Provides
     @ApplicationContext

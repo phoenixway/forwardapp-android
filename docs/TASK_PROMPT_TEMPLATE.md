@@ -54,7 +54,7 @@
       - У packages/shared є лише датакласи LinkItemEntity/GlobalLinkSearchResult, але немає таблиці, запитів, репозиторію чи інтеграції з
         attachment-логікою; без цього не відтворюється створення link-attachment (AttachmentRepository.kt:82-152 у dev). Потрібно додати .sq
         (LinkItems.sq), транзакції та маппери й підчепити до KMP AttachmentsModule.
-  - FTS-таблиці для пошуку:
+  - [x] FTS-таблиці для пошуку:
       - Room версія підтримує повнотекстові таблиці goals_fts, projects_fts, notes_fts, recurring_tasks_fts (див. app/src/main/java/com/
         romankozak/forwardappmobile/data/database/models/DatabaseModel.kt:337-370 та RecurringTask.kt:23-38). Зараз у shared реалізовано лише
         ActivityRecordsFts.
