@@ -68,7 +68,7 @@ interface ProjectDao {
     @Query("SELECT * FROM projects WHERE reserved_group = :reservedGroup")
     suspend fun getProjectsByReservedGroup(reservedGroup: String): List<Project>
 
-    @Query("SELECT id FROM projects WHERE tags LIKE '%' || :tag || '%'")
+    @Query("SELECT id FROM projects WHERE tags LIKE '%' || :tag || '%' ORDER BY goal_order ASC, createdAt ASC")
     suspend fun getProjectIdsByTag(tag: String): List<String>
 
     @Transaction

@@ -34,8 +34,10 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.SearchBottomBar
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenEvent
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenUiState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainSubState
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.OptimizedExpandingBottomNav
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.HandleDialogs
 import com.romankozak.forwardappmobile.ui.shared.InProgressIndicator
+
 
 private const val UI_TAG = "MainScreenUI_DEBUG"
 
@@ -75,6 +77,8 @@ fun MainScreenScaffold(
         onEvent(MainScreenEvent.BackClick)
     }
 
+    val indicatorState = remember { com.romankozak.forwardappmobile.ui.shared.InProgressIndicatorState(isInitiallyExpanded = false) }
+
     Scaffold(
         modifier = Modifier.imePadding(),
         topBar = {
@@ -97,6 +101,7 @@ fun MainScreenScaffold(
                 onShowSettings = { onEvent(MainScreenEvent.GoToSettings) },
                 onShowAbout = { onEvent(MainScreenEvent.ShowAboutDialog) },
                 onShowReminders = { onEvent(MainScreenEvent.GoToReminders) },
+                onShowAttachmentsLibrary = { onEvent(MainScreenEvent.OpenAttachmentsLibrary) },
             )
         },
         bottomBar = {
@@ -105,7 +110,8 @@ fun MainScreenScaffold(
                     ongoingActivity = lastOngoingActivity,
                     onStopClick = { viewModel.stopOngoingActivity() },
                     onReminderClick = { viewModel.setReminderForOngoingActivity() },
-                    onIndicatorClick = { onEvent(MainScreenEvent.NavigateToActivityTracker) }
+                    onIndicatorClick = { onEvent(MainScreenEvent.NavigateToActivityTracker) },
+                    indicatorState = indicatorState
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 val isSearchActive = uiState.subStateStack.any { it is MainSubState.LocalSearch }
@@ -121,7 +127,7 @@ fun MainScreenScaffold(
                         onShowSearchHistory = { showSearchHistorySheet = true },
                     )
                 } else {
-                    ExpandingBottomNav(
+                    OptimizedExpandingBottomNav(
                         onToggleSearch = {
                             onEvent(MainScreenEvent.SearchQueryChanged(TextFieldValue("")))
                         },
@@ -139,6 +145,7 @@ fun MainScreenScaffold(
                         onActivityTrackerClick = { onEvent(MainScreenEvent.NavigateToActivityTracker) },
                         onInsightsClick = { onEvent(MainScreenEvent.NavigateToAiInsights) },
                         onShowReminders = { onEvent(MainScreenEvent.GoToReminders) },
+                        onEvent = onEvent,
                     )
                 }
             }
@@ -165,6 +172,7 @@ fun MainScreenScaffold(
         showSheet = showContextSheet,
         onDismiss = { showContextSheet = false },
         contexts = uiState.allContexts,
+        contextMarkerToEmojiMap = uiState.contextMarkerToEmojiMap,
         onContextSelected = {
             onEvent(MainScreenEvent.ContextSelected(it))
             showContextSheet = false
@@ -202,4 +210,6 @@ fun MainScreenScaffold(
             currentReminders = listOfNotNull(record.reminderTime).map { com.romankozak.forwardappmobile.data.database.models.Reminder(entityId = record.id, entityType = "TASK", reminderTime = it, status = "SCHEDULED", creationTime = System.currentTimeMillis()) },
         )
     }
+
+
 }

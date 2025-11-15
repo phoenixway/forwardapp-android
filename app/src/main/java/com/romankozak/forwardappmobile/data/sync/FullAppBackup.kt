@@ -7,7 +7,7 @@ data class FullAppBackup(
     val backupSchemaVersion: Int = 1,
     val exportedAt: Long = System.currentTimeMillis(),
     val database: DatabaseContent,
-    val settings: SettingsContent,
+    val settings: SettingsContent? = null,
 )
 
 data class DatabaseContent(

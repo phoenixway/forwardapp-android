@@ -73,6 +73,11 @@ class SettingsRepository @Inject constructor(
         it[fastApiPortKey] ?: 8000
     }
 
+    private val attachmentsLibraryKey = booleanPreferencesKey("attachments_library_enabled")
+    val attachmentsLibraryEnabledFlow: Flow<Boolean> = context.dataStore.data.map {
+        it[attachmentsLibraryKey] ?: BuildConfig.DEBUG
+    }
+
     suspend fun saveServerAddressSettings(
         mode: String,
         manualIp: String,
@@ -87,6 +92,10 @@ class SettingsRepository @Inject constructor(
             it[ollamaPortKey] = ollamaPort
             it[fastApiPortKey] = fastApiPort
         }
+    }
+
+    suspend fun saveAttachmentsLibraryEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[attachmentsLibraryKey] = enabled }
     }
 
     fun discoverServer(): Flow<ServerDiscoveryState> = callbackFlow {

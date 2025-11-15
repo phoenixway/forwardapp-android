@@ -35,6 +35,9 @@ import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanS
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.components.DayManagementBottomNav
 import kotlinx.coroutines.launch
 
+import androidx.compose.material.icons.filled.Inbox
+import com.romankozak.forwardappmobile.ui.screens.inbox.InboxScreen
+
 enum class DayManagementTab(val title: String, val icon: ImageVector, val description: String) {
   TRACK("Трекер", Icons.Outlined.Timeline, "Відстежувати активність"),
   PLAN("План", Icons.AutoMirrored.Filled.ListAlt, "Створити та керувати завданнями"),
@@ -61,6 +64,16 @@ fun DayManagementScreen(
   val coroutineScope = rememberCoroutineScope()
   val snackbarHostState = remember { SnackbarHostState() }
   var addTaskTrigger by remember { mutableStateOf(0) }
+
+  LaunchedEffect(key1 = Unit) {
+    viewModel.uiEvent.collect { event ->
+      when (event) {
+        is DayManagementUiEvent.NavigateToProject -> {
+          mainNavController.navigate("goal_detail_screen/${event.projectId}")
+        }
+      }
+    }
+  }
 
   LaunchedEffect(uiState.error) {
     uiState.error?.let { error ->
@@ -89,6 +102,7 @@ fun DayManagementScreen(
             coroutineScope.launch { pagerState.animateScrollToPage(tab.ordinal) }
           },
           onHomeClick = { mainNavController.popBackStack() },
+          onInboxClick = { viewModel.onInboxClicked() }
         )
       }
     },

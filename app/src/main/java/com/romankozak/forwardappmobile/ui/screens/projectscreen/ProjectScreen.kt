@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
@@ -101,6 +102,7 @@ fun ProjectsScreen(
         }
         uiState.artifactToEdit != null -> {
             val artifact = uiState.artifactToEdit!!
+            val focusRequester = remember { FocusRequester() }
             LaunchedEffect(artifact) {
                 if (editorViewModel.uiState.value.content.text != artifact.content) {
                     val newContent = artifact.content
@@ -114,10 +116,12 @@ fun ProjectsScreen(
                 onSave = { content, _ -> viewModel.onSaveArtifact(content) },
                 onNavigateBack = { viewModel.onDismissArtifactEditor() },
                 navController = navController,
-                viewModel = editorViewModel
+                viewModel = editorViewModel,
+                contentFocusRequester = focusRequester,
             )
         }
         uiState.showNoteDocumentEditor -> {
+            val focusRequester = remember { FocusRequester() }
             LaunchedEffect(Unit) {
                 editorViewModel.onContentChange(TextFieldValue(""))
             }
@@ -126,7 +130,8 @@ fun ProjectsScreen(
                 onSave = { content, _ -> viewModel.onSaveNoteDocument(content) },
                 onNavigateBack = { viewModel.onDismissNoteDocumentEditor() },
                 navController = navController,
-                viewModel = editorViewModel
+                viewModel = editorViewModel,
+                contentFocusRequester = focusRequester,
             )
         }
         else -> {
@@ -310,6 +315,10 @@ private fun ProjectScaffold(
                                 uiState.selectedItemIds
                             )
                         },
+                        onInboxClick = {
+                            val today = System.currentTimeMillis()
+                            navController.navigate("day_plan_screen/$today?startTab=INBOX")
+                        },
                         onMarkAsComplete = { viewModel.selectionHandler.markSelectedAsComplete(uiState.selectedItemIds) },
                         onMarkAsIncomplete = { viewModel.selectionHandler.markSelectedAsIncomplete(uiState.selectedItemIds) },
                         currentViewMode = uiState.currentView,
@@ -379,6 +388,8 @@ private fun ProjectBottomBar(
     project: Project?,
     onShowDisplayPropertiesClick: () -> Unit
 ) {
+    val indicatorState = remember { com.romankozak.forwardappmobile.ui.shared.InProgressIndicatorState(isInitiallyExpanded = false) }
+
     Column {
         InProgressIndicator(
             ongoingActivity = lastOngoingActivity,
@@ -387,7 +398,8 @@ private fun ProjectBottomBar(
             onIndicatorClick = {
                 val today = System.currentTimeMillis()
                 navController.navigate("day_plan_screen/$today?startTab=TRACK")
-            }
+            },
+            indicatorState = indicatorState
         )
         AnimatedVisibility(
             visible = !uiState.isSelectionModeActive,

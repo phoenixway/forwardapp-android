@@ -34,6 +34,7 @@ data class SettingsUiState(
     val fastApiPort: Int = 8000,
     val serverDiscoveryState: ServerDiscoveryState = ServerDiscoveryState.Loading,
     val themeSettings: com.romankozak.forwardappmobile.ui.theme.ThemeSettings = com.romankozak.forwardappmobile.ui.theme.ThemeSettings(),
+    val attachmentsLibraryEnabled: Boolean = FeatureToggles.attachmentsLibraryEnabled,
 )
 
 @HiltViewModel
@@ -66,6 +67,7 @@ class SettingsViewModel @Inject constructor(
                 settingsRepo.wifiSyncPortFlow,
                 settingsRepo.ollamaPortFlow,
                 settingsRepo.fastApiPortFlow,
+                settingsRepo.attachmentsLibraryEnabledFlow,
             )
             combine(settingsFlows) { values ->
                 _uiState.update {
@@ -82,6 +84,7 @@ class SettingsViewModel @Inject constructor(
                         wifiSyncPort = values[9] as Int,
                         ollamaPort = values[10] as Int,
                         fastApiPort = values[11] as Int,
+                        attachmentsLibraryEnabled = values[12] as Boolean,
                     )
                 }
             }.collect { 
@@ -175,6 +178,13 @@ class SettingsViewModel @Inject constructor(
         _uiState.update { it.copy(fastApiPort = port.toIntOrNull() ?: 8000) }
     }
 
+    fun onAttachmentsLibraryToggle(enabled: Boolean) {
+        _uiState.update {
+            it.copy(attachmentsLibraryEnabled = enabled)
+        }
+        FeatureToggles.attachmentsLibraryEnabled = enabled
+    }
+
     fun saveSettings() {
         viewModelScope.launch {
             val currentState = _uiState.value
@@ -194,6 +204,7 @@ class SettingsViewModel @Inject constructor(
                 fastApiPort = currentState.fastApiPort,
             )
             settingsRepo.saveThemeSettings(currentState.themeSettings)
+            settingsRepo.saveAttachmentsLibraryEnabled(currentState.attachmentsLibraryEnabled)
         }
     }
 }

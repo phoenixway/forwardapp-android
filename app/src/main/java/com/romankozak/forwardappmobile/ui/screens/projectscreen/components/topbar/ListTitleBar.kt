@@ -29,6 +29,11 @@ import com.romankozak.forwardappmobile.data.database.models.ProjectStatusValues
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import kotlinx.coroutines.delay
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Inbox
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+
 // Single StatusVisuals data class
 private data class StatusVisuals(
     val emoji: String,
@@ -245,6 +250,7 @@ fun ListTitleBar(
     modifier: Modifier = Modifier,
     project: Project?,
     currentViewMode: ProjectViewMode? = null,
+    onInboxClick: () -> Unit,
 ) {
     var isStatusExpanded by remember { mutableStateOf(false) }
 
@@ -302,6 +308,15 @@ fun ListTitleBar(
                 if (isProjectManagementActive) {
                     Spacer(Modifier.width(8.dp))
                     BriefStatusIndicator(status = project.projectStatus!!)
+                }
+
+                Spacer(Modifier.width(8.dp))
+
+                IconButton(onClick = onInboxClick) {
+                    Icon(
+                        imageVector = Icons.Default.Inbox,
+                        contentDescription = "Inbox"
+                    )
                 }
             }
 

@@ -50,6 +50,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.romankozak.forwardappmobile.data.database.models.DayPlan
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.ParentType
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.ParentInfo
 import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.ListItem
@@ -69,6 +71,7 @@ import java.util.Locale
 import kotlinx.coroutines.delay
 import sh.calvin.reorderable.ReorderableLazyListState
 import kotlin.math.roundToInt
+import kotlin.math.max
 
 val TAG = "NAV_DEBUG" // Тег для логування
 
@@ -111,6 +114,7 @@ fun CompactDayPlanHeader(
   dayPlan: DayPlan?,
   totalPointsEarned: Int,
   totalPointsAvailable: Int,
+  bestCompletedPoints: Int,
   completedTasks: Int,
   totalTasks: Int,
   onNavigateToPreviousDay: () -> Unit,
@@ -137,10 +141,14 @@ fun CompactDayPlanHeader(
       }
     }
   val pointsLabel =
-    if (totalPointsAvailable > 0) {
-      "$totalPointsEarned / $totalPointsAvailable балів"
-    } else {
-      "$totalPointsEarned балів"
+    buildString {
+      val bestDayPoints = max(bestCompletedPoints, totalPointsEarned)
+      append(totalPointsEarned)
+      append(" / ")
+      append(totalPointsAvailable)
+      append(" / ")
+      append(bestDayPoints)
+      append(" балів")
     }
   val tasksLabel =
     if (totalTasks > 0) {
@@ -198,13 +206,6 @@ fun CompactDayPlanHeader(
             textAlign = TextAlign.Center,
             color = colorScheme.onSurface,
           )
-          Text(
-            text =
-              progressLabel?.let { "Прогрес: $it" }
-                ?: tasksLabel,
-            style = MaterialTheme.typography.bodySmall,
-            color = colorScheme.onSurfaceVariant,
-          )
         }
         IconButton(onClick = onNavigateToNextDay, enabled = isNextDayNavigationEnabled) {
           Icon(
@@ -234,23 +235,6 @@ fun CompactDayPlanHeader(
           icon = Icons.Outlined.Checklist,
           text = tasksLabel,
           contentColor = colorScheme.onSurface,
-        )
-        progressLabel?.let { label ->
-          HeaderInfoChip(
-            icon = Icons.Filled.Star,
-            text = label,
-            contentColor = colorScheme.tertiary,
-          )
-        }
-        AssistChip(
-          onClick = onAddTaskClick,
-          label = { Text("Нове завдання") },
-          leadingIcon = { Icon(Icons.Filled.Add, contentDescription = null) },
-        )
-        AssistChip(
-          onClick = onSettingsClick,
-          label = { Text("Налаштування") },
-          leadingIcon = { Icon(Icons.Filled.Settings, contentDescription = null) },
         )
       }
 
@@ -432,6 +416,7 @@ fun DayPlanScreen(
               dayPlan = uiState.dayPlan,
               totalPointsEarned = totalPointsEarned,
               totalPointsAvailable = totalPointsAvailable,
+              bestCompletedPoints = uiState.bestCompletedPoints,
               completedTasks = completedTasksCount,
               totalTasks = totalTasksCount,
               onTaskLongPress = { taskWithReminder -> viewModel.onTaskLongPressed(taskWithReminder) },
@@ -448,6 +433,20 @@ fun DayPlanScreen(
               onSublistClick = onNavigateToProject,
               onSettingsClick = onNavigateToSettings,
               modifier = Modifier.fillMaxSize(),
+              onParentInfoClick = { parentInfo ->
+                  when (parentInfo.type) {
+                      ParentType.PROJECT -> {
+                          navController.navigate("goal_detail_screen/${parentInfo.id}")
+                      }
+                      ParentType.GOAL -> {
+                          parentInfo.projectId?.let { listId ->
+                              navController.navigate("goal_detail_screen/${listId}?goalId=${parentInfo.id}")
+                          } ?: run {
+                              Log.e(TAG, "Goal parentInfo has null projectId for goalId: ${parentInfo.id}")
+                          }
+                      }
+                  }
+              },
             )
           }
         }

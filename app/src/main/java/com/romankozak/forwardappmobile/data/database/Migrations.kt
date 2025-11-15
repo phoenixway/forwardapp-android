@@ -518,3 +518,110 @@ val MIGRATION_61_62 = object : Migration(61, 62) {
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_checklist_items_checklistId` ON `checklist_items` (`checklistId`)")
     }
 }
+
+val MIGRATION_62_63 = object : Migration(62, 63) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            ALTER TABLE `daily_metrics`
+            ADD COLUMN `completedPoints` INTEGER NOT NULL DEFAULT 0
+            """.trimIndent(),
+        )
+    }
+}
+
+val MIGRATION_63_64 = object : Migration(63, 64) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `attachments` (
+                `id` TEXT NOT NULL,
+                `attachment_type` TEXT NOT NULL,
+                `entity_id` TEXT NOT NULL,
+                `owner_project_id` TEXT,
+                `createdAt` INTEGER NOT NULL DEFAULT 0,
+                `updatedAt` INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY(`id`)
+            )
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            CREATE INDEX IF NOT EXISTS `index_attachments_attachment_type`
+            ON `attachments`(`attachment_type`)
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            CREATE INDEX IF NOT EXISTS `index_attachments_entity_id`
+            ON `attachments`(`entity_id`)
+            """.trimIndent(),
+        )
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `project_attachment_cross_ref` (
+                `project_id` TEXT NOT NULL,
+                `attachment_id` TEXT NOT NULL,
+                `attachment_order` INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY(`project_id`, `attachment_id`),
+                FOREIGN KEY(`project_id`) REFERENCES `projects`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
+                FOREIGN KEY(`attachment_id`) REFERENCES `attachments`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            CREATE INDEX IF NOT EXISTS `index_project_attachment_attachment_id`
+            ON `project_attachment_cross_ref`(`attachment_id`)
+            """.trimIndent(),
+        )
+
+        db.execSQL(
+            """
+            INSERT INTO `attachments` (id, attachment_type, entity_id, owner_project_id, createdAt, updatedAt)
+            SELECT
+                id,
+                itemType,
+                entityId,
+                project_id,
+                CASE WHEN item_order < 0 THEN -item_order ELSE item_order END,
+                CASE WHEN item_order < 0 THEN -item_order ELSE item_order END
+            FROM `list_items`
+            WHERE itemType IN ('LINK_ITEM', 'NOTE_DOCUMENT', 'CHECKLIST')
+            """.trimIndent(),
+        )
+
+        db.execSQL(
+            """
+            INSERT INTO `project_attachment_cross_ref` (project_id, attachment_id, attachment_order)
+            SELECT
+                project_id,
+                id,
+                item_order
+            FROM `list_items`
+            WHERE itemType IN ('LINK_ITEM', 'NOTE_DOCUMENT', 'CHECKLIST')
+            """.trimIndent(),
+        )
+
+        db.execSQL(
+            """
+            DELETE FROM `list_items`
+            WHERE itemType IN ('LINK_ITEM', 'NOTE_DOCUMENT', 'CHECKLIST')
+            """.trimIndent(),
+        )
+    }
+}
+
+val MIGRATION_64_65 = object : Migration(64, 65) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        migrateSpecialProjects(db)
+    }
+}
+
+val MIGRATION_65_66 = object : Migration(65, 66) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `projects` ADD COLUMN `system_key` TEXT")
+        migrateSpecialProjects(db)
+    }
+}

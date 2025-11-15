@@ -26,6 +26,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import com.romankozak.forwardappmobile.config.FeatureToggles
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -57,6 +58,7 @@ fun MainScreenTopAppBar(
     onShowSettings: () -> Unit,
     onShowAbout: () -> Unit,
     onShowReminders: () -> Unit,
+    onShowAttachmentsLibrary: () -> Unit,
 ) {
     var swipeState by remember { mutableStateOf(0f) }
     TopAppBar(
@@ -101,6 +103,16 @@ fun MainScreenTopAppBar(
                     Icon(Icons.Default.MoreVert, "Menu")
                 }
                 DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }, modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
+                    if (FeatureToggles.attachmentsLibraryEnabled) {
+                        DropdownMenuItem(
+                            text = { Text("Attachments library") },
+                            onClick = {
+                                onShowAttachmentsLibrary()
+                                menuExpanded = false
+                            },
+                        )
+                        HorizontalDivider()
+                    }
                     DropdownMenuItem(
                         text = { Text("Run Wi-Fi Server") },
                         onClick = {

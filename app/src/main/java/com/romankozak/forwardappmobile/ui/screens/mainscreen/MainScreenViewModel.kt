@@ -27,10 +27,12 @@ import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.channels.Channel
+import com.romankozak.forwardappmobile.config.FeatureToggles
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.withContext
 
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SearchUseCase
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.DialogUseCase
@@ -100,6 +102,8 @@ constructor(
 
   private val navigationSnapshot =
     MutableStateFlow(MainScreenStateUseCase.NavigationSnapshot())
+
+  val contextMarkerToEmojiMap: StateFlow<Map<String, String>> = contextHandler.contextMarkerToEmojiMap
 
   val uiState: StateFlow<MainScreenUiState>
     get() = mainScreenStateUseCase.uiState
@@ -190,9 +194,49 @@ constructor(
   private fun onContextSelected(name: String) {
     viewModelScope.launch {
       val tag = contextHandler.getContextTag(name)
-      val query = tag?.let { if (it.startsWith("#")) it else "#$it" } ?: name
-      searchUseCase.onSearchQueryChanged(TextFieldValue(query))
-      searchUseCase.onToggleSearch(true)
+      val projectId =
+        if (tag != null) {
+          withContext(ioDispatcher) { projectRepository.findProjectIdsByTag(tag).firstOrNull() }
+        } else {
+          null
+        }
+
+      if (projectId != null) {
+        onNavigateToProject(projectId)
+      } else {
+        val query = tag?.let { if (it.startsWith("#")) it else "#$it" } ?: name
+        searchUseCase.onSearchQueryChanged(TextFieldValue(query))
+        searchUseCase.onToggleSearch(true)
+      }
+    }
+  }
+
+  private suspend fun revealProject(projectId: String) {
+    android.util.Log.d("ProjectRevealDebug", "Attempting to reveal projectId: $projectId")
+    planningUseCase.onPlanningModeChange(PlanningMode.All)
+
+    when (val result = searchUseCase.revealProjectInHierarchy(projectId)) {
+      is RevealResult.Success -> {
+        android.util.Log.d("ProjectRevealDebug", "revealProjectInHierarchy result: Success, shouldFocus=${result.shouldFocus}")
+        searchUseCase.pushSubState(MainSubState.ProjectFocused(result.projectId))
+        if (result.shouldFocus) {
+          android.util.Log.d("ProjectRevealDebug", "Calling navigateToProject for ${result.projectId}")
+          searchUseCase.navigateToProject(
+            result.projectId,
+            uiState.value.projectHierarchy,
+          )
+        } else {
+          android.util.Log.d("ProjectRevealDebug", "Setting projectToRevealAndScroll to ${result.projectId}")
+          projectToRevealAndScroll = result.projectId
+          if (searchUseCase.isSearchActive()) {
+            searchUseCase.popToSubState(MainSubState.Hierarchy)
+          }
+        }
+      }
+      is RevealResult.Failure -> {
+        android.util.Log.d("ProjectRevealDebug", "revealProjectInHierarchy result: Failure")
+        _uiEventChannel.send(ProjectUiEvent.ShowToast("Не удалось показать локацию"))
+      }
     }
   }
 
@@ -429,10 +473,9 @@ constructor(
       is MainScreenEvent.NavigateToChat -> {
         viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate(CHAT_ROUTE)) }
       }
-      is MainScreenEvent.NavigateToActivityTracker -> {
+      is MainScreenEvent.NavigateToActivityTrackerScreen -> {
         viewModelScope.launch {
-          val today = System.currentTimeMillis()
-          _uiEventChannel.send(ProjectUiEvent.NavigateToDayPlan(today, "PLAN"))
+          _uiEventChannel.send(ProjectUiEvent.Navigate("activity_tracker_screen"))
         }
       }
       
@@ -479,35 +522,29 @@ constructor(
       is MainScreenEvent.GoToReminders -> {
         viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate("reminders_screen")) }
       }
+      is MainScreenEvent.OpenAttachmentsLibrary -> {
+        if (FeatureToggles.attachmentsLibraryEnabled) {
+          viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate("attachments_library_screen")) }
+        }
+      }
       is MainScreenEvent.RevealProjectInHierarchy -> {
-        android.util.Log.d("ProjectRevealDebug", "MainScreenViewModel received RevealProjectInHierarchy event with projectId: ${event.projectId}")
+        viewModelScope.launch { revealProject(event.projectId) }
+      }
+      is MainScreenEvent.OpenInboxProject -> {
         viewModelScope.launch {
-          // Switch to "All" mode to ensure the project isn't filtered out by a planning mode
-          planningUseCase.onPlanningModeChange(PlanningMode.All)
-
-          when (val result = searchUseCase.revealProjectInHierarchy(event.projectId)) {
-            is RevealResult.Success -> {
-              android.util.Log.d("ProjectRevealDebug", "revealProjectInHierarchy result: Success, shouldFocus=${result.shouldFocus}")
-              searchUseCase.pushSubState(MainSubState.ProjectFocused(result.projectId))
-              if (result.shouldFocus) {
-                android.util.Log.d("ProjectRevealDebug", "Calling navigateToProject for ${result.projectId}")
-                searchUseCase.navigateToProject(
-                  result.projectId,
-                  uiState.value.projectHierarchy,
-                )
-              } else {
-                android.util.Log.d("ProjectRevealDebug", "Setting projectToRevealAndScroll to ${result.projectId}")
-                projectToRevealAndScroll = result.projectId
-                if (searchUseCase.isSearchActive()) {
-                  searchUseCase.popToSubState(MainSubState.Hierarchy)
-                }
-              }
-            }
-            is RevealResult.Failure -> {
-              android.util.Log.d("ProjectRevealDebug", "revealProjectInHierarchy result: Failure")
-              _uiEventChannel.send(ProjectUiEvent.ShowToast("Не удалось показать локацию"))
-            }
+          val specialProject = _allProjectsFlat.value.find { it.projectType == com.romankozak.forwardappmobile.data.database.models.ProjectType.SYSTEM }
+          if (specialProject == null) {
+            _uiEventChannel.send(ProjectUiEvent.ShowToast("System projects not found"))
+            return@launch
           }
+
+          val inboxProject = _allProjectsFlat.value.find { it.reservedGroup == com.romankozak.forwardappmobile.data.database.models.ReservedGroup.Inbox && it.parentId == specialProject.id }
+          if (inboxProject == null) {
+            _uiEventChannel.send(ProjectUiEvent.ShowToast("Inbox project not found"))
+            return@launch
+          }
+
+          _uiEventChannel.send(ProjectUiEvent.NavigateToDetails(inboxProject.id))
         }
       }
       else -> {}

@@ -23,9 +23,21 @@ import javax.inject.Inject
 
 import com.romankozak.forwardappmobile.data.database.models.Reminder
 
+data class ParentInfo(
+    val id: String, // This is the ID of the goal or project
+    val title: String,
+    val type: ParentType,
+    val projectId: String? = null // Add this for goals
+)
+
+enum class ParentType {
+    GOAL, PROJECT
+}
+
 data class DayTaskWithReminder(
     val dayTask: DayTask,
-    val reminder: Reminder?
+    val reminder: Reminder?,
+    val parentInfo: ParentInfo? = null
 )
 
 data class DayPlanUiState(
@@ -37,6 +49,7 @@ data class DayPlanUiState(
     val lastUpdated: Long? = null,
     val isReordering: Boolean = false,
     val isToday: Boolean = true,
+    val bestCompletedPoints: Int = 0,
 )
 
 sealed class DayPlanUiEvent {
@@ -192,7 +205,8 @@ constructor(
                         duration = duration,
                         priority = priority,
                         recurrenceRule = recurrenceRule,
-                        dayPlanId = dayPlanId
+                        dayPlanId = dayPlanId,
+                        points = points,
                     )
                 } else {
                     Firebase.crashlytics.log("Adding single task: ${trimmedTitle}")
@@ -229,6 +243,7 @@ constructor(
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val goal = dayManagementRepository.getGoal(goalId) ?: return@launch
+                val projectId = dayManagementRepository.findProjectIdForGoal(goalId)
                 dayManagementRepository.addRecurringTask(
                     title = goal.text,
                     description = goal.description,
@@ -236,7 +251,8 @@ constructor(
                     priority = TaskPriority.MEDIUM, // Or map from goal importance
                     recurrenceRule = recurrenceRule,
                     dayPlanId = dayPlanId,
-                    goalId = goalId
+                    goalId = goalId,
+                    projectId = projectId,
                 )
             } catch (e: Exception) {
                  _uiState.update {
@@ -421,8 +437,25 @@ constructor(
                                 flowOf(emptyList())
                             } else {
                                 combine(tasks.map { task ->
-                                    reminderRepository.getRemindersForEntityFlow(task.id)
-                                        .map { reminders -> DayTaskWithReminder(task, reminders.firstOrNull()) }
+                                    val reminderFlow = reminderRepository.getRemindersForEntityFlow(task.id)
+
+                                    val parentInfoFlow: Flow<ParentInfo?> = if (task.goalId != null) {
+                                        flow {
+                                            val goal = dayManagementRepository.getGoal(task.goalId!!)
+                                            val projectId = goal?.let { dayManagementRepository.findProjectIdForGoal(it.id) }
+                                            emit(goal?.let { ParentInfo(it.id, it.text, ParentType.GOAL, projectId) })
+                                        }
+                                    } else if (task.projectId != null) {
+                                        flow { emit(dayManagementRepository.getProject(task.projectId!!)) }.map { project ->
+                                            project?.let { ParentInfo(it.id, it.name, ParentType.PROJECT, it.id) } // Project ID is its own ID
+                                        }
+                                    } else {
+                                        flowOf(null)
+                                    }
+
+                                    combine(reminderFlow, parentInfoFlow) { reminders, parentInfo ->
+                                        DayTaskWithReminder(task, reminders.firstOrNull(), parentInfo)
+                                    }
                                 }) { it.toList() }
                             }
                         }
@@ -436,11 +469,13 @@ constructor(
                             }
                         }
                         .collect { tasksWithReminders ->
+                            val highestCompletedPoints = dayManagementRepository.getHighestCompletedPointsAcrossPlans()
                             _uiState.update { currentState ->
                                 currentState.copy(
                                     isLoading = false,
                                     isRefreshing = false,
                                     tasks = sortTasksWithOrder(tasksWithReminders),
+                                    bestCompletedPoints = highestCompletedPoints,
                                     lastUpdated = System.currentTimeMillis(),
                                     error = null,
                                 )

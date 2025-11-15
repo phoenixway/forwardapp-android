@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -169,6 +170,25 @@ fun SettingsScreen(
                 onDarkThemeSelected = viewModel::onDarkThemeSelected,
             )
 
+            SettingsCard(
+                title = "Experimental Features",
+                icon = Icons.Default.Build,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Attachments library",
+                        modifier = Modifier.weight(1f),
+                    )
+                    Switch(
+                        checked = uiState.attachmentsLibraryEnabled,
+                        onCheckedChange = viewModel::onAttachmentsLibraryToggle
+                    )
+                }
+            }
+
             ServerSettingsCard(
                 state = uiState,
                 onIpConfigModeChange = viewModel::onServerIpConfigurationModeChanged,
@@ -259,4 +279,3 @@ fun SettingsScreen(
         }
     }
 }
-

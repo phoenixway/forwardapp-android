@@ -85,7 +85,7 @@ class GoalSettingsViewModel @Inject constructor(
     }
 
     fun onListChooserResult(projectId: String) {
-        if (projectId.isBlank()) return
+        if (projectId.isBlank() || projectId == "root") return
         onAddProjectAssociation(projectId)
     }
 

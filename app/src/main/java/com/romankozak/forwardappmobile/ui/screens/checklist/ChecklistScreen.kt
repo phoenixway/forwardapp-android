@@ -4,6 +4,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +14,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,9 +27,16 @@ import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.outlined.CheckBoxOutlineBlank
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DeleteSweep
-import androidx.compose.material.icons.rounded.DragHandle
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -39,6 +50,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -46,7 +58,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -58,6 +72,9 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -95,13 +112,55 @@ fun ChecklistScreen(
     val reorderState = rememberReorderableLazyListState(listState) { from, to ->
         viewModel.onMoveItem(from.index, to.index)
     }
-    val snackbarHostState = remember { SnackbarHostState() }
+        val snackbarHostState = remember { SnackbarHostState() }
+    
+        LaunchedEffect(uiState.showUndoSnackbar) {
+            if (uiState.showUndoSnackbar) {
+                val result = snackbarHostState.showSnackbar(
+                    message = "Item deleted",
+                    actionLabel = "Undo"
+                )
+                if (result == SnackbarResult.ActionPerformed) {
+                    viewModel.onUndoDelete()
+                } else {
+                    viewModel.onConfirmDelete()
+                }
+            }
+        }
+    
+        val sheetState = rememberModalBottomSheetState()
+    var showBottomSheet by remember { mutableStateOf(false) }
+    var selectedItem by remember { mutableStateOf<ChecklistItemUiModel?>(null) }
 
     LaunchedEffect(uiState.pendingFocusItemId, uiState.items) {
         val targetId = uiState.pendingFocusItemId ?: return@LaunchedEffect
         val targetIndex = uiState.items.indexOfFirst { it.id == targetId }
         if (targetIndex >= 0) {
             listState.animateScrollToItem(targetIndex)
+        }
+    }
+
+    if (showBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showBottomSheet = false },
+            sheetState = sheetState
+        ) {
+            Column {
+                ListItem(
+                    headlineContent = { Text("Delete") },
+                    leadingContent = {
+                        Icon(
+                            Icons.Outlined.Delete,
+                            contentDescription = "Delete",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    },
+                    modifier = Modifier.clickable {
+                        showBottomSheet = false
+                        selectedItem?.let { viewModel.onDeleteItem(it.id) }
+                    }
+                )
+            }
         }
     }
 
@@ -182,6 +241,10 @@ fun ChecklistScreen(
                     onAddBelow = viewModel::onAddItem,
                     onDelete = viewModel::onDeleteItem,
                     onFocusConsumed = viewModel::onPendingFocusConsumed,
+                    onShowItemActions = { item ->
+                        selectedItem = item
+                        showBottomSheet = true
+                    },
                 )
             }
         }
@@ -200,6 +263,7 @@ private fun ChecklistContent(
     onAddBelow: (String?) -> Unit,
     onDelete: (String) -> Unit,
     onFocusConsumed: () -> Unit,
+    onShowItemActions: (ChecklistItemUiModel) -> Unit,
 ) {
     AnimatedVisibility(
         visible = uiState.items.isEmpty(),
@@ -234,25 +298,78 @@ private fun ChecklistContent(
     ) {
         LazyColumn(
             state = listState,
-            modifier = modifier,
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = modifier.imePadding(),
+            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(uiState.items, key = { it.id }) { item ->
                 ReorderableItem(reorderState, key = item.id) { isDragging ->
-                    ChecklistItemRow(
-                        item = item,
-                        reorderableScope = this,
-
-                        showCheckbox = uiState.showCheckboxes,
-                        isDragging = isDragging,
-                        shouldRequestFocus = item.id == uiState.pendingFocusItemId,
-                        onFocusConsumed = onFocusConsumed,
-                        onContentChange = { onContentChange(item.id, it) },
-                        onCheckedChange = { onCheckedChange(item.id, it) },
-                        onAddBelow = { onAddBelow(item.id) },
-                        onDelete = { onDelete(item.id) },
+                    val reorderableScope = this
+                    val clipboardManager = LocalClipboardManager.current
+                    val dismissState = rememberSwipeToDismissBoxState(
+                        confirmValueChange = {
+                            when (it) {
+                                SwipeToDismissBoxValue.EndToStart -> {
+                                    onDelete(item.id)
+                                    true
+                                }
+                                SwipeToDismissBoxValue.StartToEnd -> {
+                                    clipboardManager.setText(AnnotatedString(item.content))
+                                    false
+                                }
+                                else -> false
+                            }
+                        }
                     )
+                    SwipeToDismissBox(
+                        state = dismissState,
+                        backgroundContent = {
+                            val color = when (dismissState.dismissDirection) {
+                                SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
+                                SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primaryContainer
+                                else -> Color.Transparent
+                            }
+                            val icon = when (dismissState.dismissDirection) {
+                                SwipeToDismissBoxValue.EndToStart -> Icons.Outlined.Delete
+                                SwipeToDismissBoxValue.StartToEnd -> Icons.Default.ContentCopy
+                                else -> null
+                            }
+                            val alignment = when (dismissState.dismissDirection) {
+                                SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
+                                SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+                                else -> Alignment.Center
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(color)
+                                    .padding(horizontal = 16.dp),
+                                contentAlignment = alignment
+                            ) {
+                                if (icon != null) {
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = null
+                                    )
+                                }
+                            }
+                        }
+                    ) {
+                        ChecklistItemRow(
+                            item = item,
+                            reorderableScope = reorderableScope,
+
+                            showCheckbox = uiState.showCheckboxes,
+                            isDragging = isDragging,
+                            shouldRequestFocus = item.id == uiState.pendingFocusItemId,
+                            onFocusConsumed = onFocusConsumed,
+                            onContentChange = { onContentChange(item.id, it) },
+                            onCheckedChange = { onCheckedChange(item.id, it) },
+                            onAddBelow = { onAddBelow(item.id) },
+                            onDelete = { onDelete(item.id) },
+                            onShowItemActions = { onShowItemActions(item) },
+                        )
+                    }
                 }
             }
             item {
@@ -327,6 +444,7 @@ private fun ChecklistItemRow(
     onCheckedChange: (Boolean) -> Unit,
     onAddBelow: () -> Unit,
     onDelete: () -> Unit,
+    onShowItemActions: (ChecklistItemUiModel) -> Unit,
 ) {
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
@@ -355,9 +473,9 @@ private fun ChecklistItemRow(
 
             Row(
 
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+                modifier = Modifier.padding(horizontal = 0.dp, vertical = 0.dp),
 
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.Top,
 
             ) {
 
@@ -369,7 +487,7 @@ private fun ChecklistItemRow(
 
                         onCheckedChange = onCheckedChange,
 
-                        modifier = Modifier.size(40.dp)
+                        modifier = Modifier.padding(top = 16.dp).size(32.dp)
 
                     ) {
 
@@ -397,7 +515,7 @@ private fun ChecklistItemRow(
 
                             else null,
 
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(18.dp)
 
                         ) {
 
@@ -419,7 +537,7 @@ private fun ChecklistItemRow(
 
                                         tint = MaterialTheme.colorScheme.onPrimary,
 
-                                        modifier = Modifier.size(14.dp)
+                                        modifier = Modifier.size(12.dp)
 
                                     )
 
@@ -431,7 +549,7 @@ private fun ChecklistItemRow(
 
                     }
 
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(1.dp))
 
                 }
 
@@ -483,7 +601,8 @@ private fun ChecklistItemRow(
 
                     },
 
-                    singleLine = true,
+                    minLines = 1,
+                    maxLines = 10,
 
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
 
@@ -503,51 +622,28 @@ private fun ChecklistItemRow(
 
                     ),
 
-                    textStyle = MaterialTheme.typography.bodyLarge,
+                    textStyle = MaterialTheme.typography.bodyMedium,
 
                 )
 
-                Spacer(modifier = Modifier.width(4.dp))
-
                 IconButton(
 
-                    onClick = onDelete,
-
-                    modifier = Modifier.size(40.dp)
-
-                ) {
-
-                    Icon(
-
-                        imageVector = Icons.Outlined.Delete,
-
-                        contentDescription = stringResource(R.string.checklist_delete_item),
-
-                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.5f),
-
-                    )
-
-                }
-
-                IconButton(
-
-                    onClick = { /* No action on click for drag handle */ },
+                    onClick = { onShowItemActions(item) },
 
                     modifier = with(reorderableScope) {
-
-                        Modifier.draggableHandle()
-
+                        Modifier
+                            .draggableHandle()
+                            .padding(top = 16.dp)
                             .size(40.dp)
-
                     }
 
                 ) {
 
                     Icon(
 
-                        imageVector = Icons.Rounded.DragHandle,
+                        imageVector = Icons.Default.MoreVert,
 
-                        contentDescription = null,
+                        contentDescription = "More options",
 
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
 

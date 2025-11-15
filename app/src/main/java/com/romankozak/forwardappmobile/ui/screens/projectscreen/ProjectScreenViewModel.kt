@@ -35,7 +35,7 @@ import com.romankozak.forwardappmobile.domain.wifirestapi.RetrofitClient
 import com.romankozak.forwardappmobile.ui.navigation.ClearAndNavigateHomeUseCase
 import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.TagUtils
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.attachments.AttachmentType
+import com.romankozak.forwardappmobile.features.attachments.ui.project.AttachmentType
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.inputpanel.InputHandler
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.inputpanel.InputMode
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.InboxHandler
@@ -301,7 +301,7 @@ constructor(
   val listContent: StateFlow<List<ListItemContent>> = _listContent.asStateFlow()
 
   val itemActionHandler = ItemActionHandler(projectRepository, goalRepository, recentItemsRepository, viewModelScope, projectIdFlow, this)
-  val selectionHandler = SelectionHandler(projectRepository, goalRepository, viewModelScope, _listContent, this)
+  val selectionHandler = SelectionHandler(projectRepository, goalRepository, viewModelScope, projectIdFlow, _listContent, this)
   val inboxHandler = InboxHandler(projectRepository, inboxRepository, viewModelScope, projectIdFlow, this)
   val inboxMarkdownHandler = InboxMarkdownHandler(projectRepository, goalRepository, viewModelScope, this)
   val backlogMarkdownHandler = BacklogMarkdownHandler(projectRepository, goalRepository, viewModelScope, this)
@@ -871,7 +871,7 @@ constructor(
               target = targetProjectId,
               displayName = targetProject?.name ?: "Проект без назви",
             )
-          val newItemId = listItemRepository.addLinkItemToProjectFromLink(projectIdFlow.value, link)
+          val newItemId = projectRepository.addLinkItemToProjectFromLink(projectIdFlow.value, link)
           withContext(Dispatchers.Main) {
             _uiState.update { it.copy(newlyAddedItemId = newItemId) }
           }
@@ -949,9 +949,26 @@ constructor(
     withContext(Dispatchers.IO) {
       Log.d(TAG, "[saveListOrder] Starting to save order for ${listToSave.size} items.")
       try {
+        val attachmentOrders = mutableListOf<Pair<String, Long>>()
         val updatedItems =
-          listToSave.mapIndexed { index, content -> content.listItem.copy(order = index.toLong()) }
-        listItemRepository.updateListItemsOrder(updatedItems)
+          listToSave.mapIndexedNotNull { index, content ->
+            val order = index.toLong()
+            when (content.listItem.itemType) {
+              ListItemTypeValues.LINK_ITEM,
+              ListItemTypeValues.NOTE_DOCUMENT,
+              ListItemTypeValues.CHECKLIST -> {
+                attachmentOrders += content.listItem.id to order
+                null
+              }
+              else -> content.listItem.copy(order = order)
+            }
+          }
+        if (updatedItems.isNotEmpty()) {
+          listItemRepository.updateListItemsOrder(updatedItems)
+        }
+        if (attachmentOrders.isNotEmpty()) {
+          projectRepository.updateAttachmentOrders(projectIdFlow.value, attachmentOrders)
+        }
         Log.d(TAG, "[saveListOrder] Successfully saved new order to the database.")
       } catch (e: Exception) {
         Log.e(TAG, "[saveListOrder] Failed to save list order", e)

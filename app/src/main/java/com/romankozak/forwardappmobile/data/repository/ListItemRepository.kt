@@ -3,10 +3,8 @@ package com.romankozak.forwardappmobile.data.repository
 import android.util.Log
 import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
-import com.romankozak.forwardappmobile.data.database.models.LinkItemEntity
 import com.romankozak.forwardappmobile.data.database.models.ListItem
 import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
-import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -80,31 +78,6 @@ class ListItemRepository @Inject constructor(
         entityId: String,
         projectId: String,
     ) = listItemDao.deleteLinkByEntityAndProject(entityId, projectId)
-
-    @androidx.room.Transaction
-    suspend fun addLinkItemToProjectFromLink(
-        projectId: String,
-        link: RelatedLink,
-    ): String {
-        val newLinkEntity =
-            LinkItemEntity(
-                id = UUID.randomUUID().toString(),
-                linkData = link,
-                createdAt = System.currentTimeMillis(),
-            )
-        linkItemDao.insert(newLinkEntity)
-
-        val newListItem =
-            ListItem(
-                id = UUID.randomUUID().toString(),
-                projectId = projectId,
-                itemType = ListItemTypeValues.LINK_ITEM,
-                entityId = newLinkEntity.id,
-                order = -System.currentTimeMillis(),
-            )
-        listItemDao.insertItem(newListItem)
-        return newListItem.id
-    }
 
     suspend fun deleteItemByEntityId(entityId: String) {
         listItemDao.deleteItemByEntityId(entityId)

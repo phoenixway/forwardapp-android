@@ -6,7 +6,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.ui.components.notesEditors.FullScreenMarkdownEditor
 import com.romankozak.forwardappmobile.ui.screens.common.SettingsScreen
@@ -22,6 +21,11 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Link
 import com.romankozak.forwardappmobile.ui.screens.projectsettings.ProjectSettingsEvent
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.platform.LocalLifecycleOwner
 
 @Composable
 fun GoalSettingsScreen(
@@ -30,6 +34,8 @@ fun GoalSettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
 
     LaunchedEffect(Unit) {
         viewModel.events.collect {
@@ -38,6 +44,21 @@ fun GoalSettingsScreen(
                 is ProjectSettingsEvent.Navigate -> navController.navigate(it.route)
             }
         }
+    }
+
+    DisposableEffect(lifecycleOwner, savedStateHandle) {
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    val result = savedStateHandle?.get<String>("list_chooser_result")
+                    if (result != null) {
+                        viewModel.onListChooserResult(result)
+                        savedStateHandle.remove<String>("list_chooser_result")
+                    }
+                }
+            }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     val tabs = listOf("General", "Evaluation", "Reminders", "Links")
