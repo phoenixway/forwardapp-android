@@ -1,0 +1,17 @@
+CREATE TABLE Conversations (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    creationTimestamp INTEGER NOT NULL,
+    folderId INTEGER
+);
+
+CREATE TABLE ChatMessages (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    conversationId INTEGER NOT NULL,
+    text TEXT NOT NULL,
+    isFromUser INTEGER NOT NULL,
+    isError INTEGER NOT NULL DEFAULT 0,
+    timestamp INTEGER NOT NULL,
+    isStreaming INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY(conversationId) REFERENCES Conversations(id) ON DELETE CASCADE
+);

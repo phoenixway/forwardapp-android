@@ -1,0 +1,119 @@
+import kotlin.Long;
+import kotlin.String;
+
+CREATE TABLE Conversations (
+    id INTEGER AS Long NOT NULL PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    creationTimestamp INTEGER AS Long NOT NULL,
+    folderId INTEGER AS Long
+);
+
+getAllConversations:
+SELECT * FROM Conversations
+ORDER BY creationTimestamp DESC;
+
+getConversationsByFolder:
+SELECT * FROM Conversations
+WHERE folderId = :folderId
+ORDER BY creationTimestamp DESC;
+
+getConversationsWithoutFolder:
+SELECT * FROM Conversations
+WHERE folderId IS NULL
+ORDER BY creationTimestamp DESC;
+
+getConversationById:
+SELECT * FROM Conversations
+WHERE id = :id;
+
+insertConversation:
+INSERT INTO Conversations(
+    title,
+    creationTimestamp,
+    folderId
+) VALUES (
+    :title,
+    :creationTimestamp,
+    :folderId
+);
+
+getLastInsertedConversationId:
+SELECT last_insert_rowid();
+
+updateConversation:
+UPDATE Conversations SET
+    title = :title,
+    folderId = :folderId
+WHERE id = :id;
+
+deleteConversationById:
+DELETE FROM Conversations
+WHERE id = :id;
+
+deleteAllConversations:
+DELETE FROM Conversations;
+
+getConversationsWithLastMessage:
+SELECT
+    C.id,
+    C.title,
+    C.creationTimestamp,
+    C.folderId,
+    LM.id AS lastMessageId,
+    LM.text AS lastMessageText,
+    LM.isFromUser AS lastMessageIsFromUser,
+    LM.isError AS lastMessageIsError,
+    LM.timestamp AS lastMessageTimestamp,
+    LM.isStreaming AS lastMessageIsStreaming
+FROM Conversations AS C
+LEFT JOIN ChatMessages AS LM ON LM.id = (
+    SELECT id FROM ChatMessages
+    WHERE conversationId = C.id
+    ORDER BY timestamp DESC
+    LIMIT 1
+)
+ORDER BY C.creationTimestamp DESC;
+
+getConversationsWithLastMessageByFolder:
+SELECT
+    C.id,
+    C.title,
+    C.creationTimestamp,
+    C.folderId,
+    LM.id AS lastMessageId,
+    LM.text AS lastMessageText,
+    LM.isFromUser AS lastMessageIsFromUser,
+    LM.isError AS lastMessageIsError,
+    LM.timestamp AS lastMessageTimestamp,
+    LM.isStreaming AS lastMessageIsStreaming
+FROM Conversations AS C
+LEFT JOIN ChatMessages AS LM ON LM.id = (
+    SELECT id FROM ChatMessages
+    WHERE conversationId = C.id
+    ORDER BY timestamp DESC
+    LIMIT 1
+)
+WHERE C.folderId = :folderId
+ORDER BY C.creationTimestamp DESC;
+
+getConversationsWithLastMessageWithoutFolder:
+SELECT
+    C.id,
+    C.title,
+    C.creationTimestamp,
+    C.folderId,
+    LM.id AS lastMessageId,
+    LM.text AS lastMessageText,
+    LM.isFromUser AS lastMessageIsFromUser,
+    LM.isError AS lastMessageIsError,
+    LM.timestamp AS lastMessageTimestamp,
+    LM.isStreaming AS lastMessageIsStreaming
+FROM Conversations AS C
+LEFT JOIN ChatMessages AS LM ON LM.id = (
+    SELECT id FROM ChatMessages
+    WHERE conversationId = C.id
+    ORDER BY timestamp DESC
+    LIMIT 1
+)
+WHERE C.folderId IS NULL
+ORDER BY C.creationTimestamp DESC;

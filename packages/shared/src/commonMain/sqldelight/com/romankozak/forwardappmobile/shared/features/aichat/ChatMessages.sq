@@ -1,0 +1,65 @@
+import kotlin.Boolean;
+import kotlin.Long;
+import kotlin.String;
+
+CREATE TABLE ChatMessages (
+    id INTEGER AS Long NOT NULL PRIMARY KEY AUTOINCREMENT,
+    conversationId INTEGER AS Long NOT NULL,
+    text TEXT NOT NULL,
+    isFromUser INTEGER AS Boolean NOT NULL,
+    isError INTEGER AS Boolean NOT NULL DEFAULT 0,
+    timestamp INTEGER AS Long NOT NULL,
+    isStreaming INTEGER AS Boolean NOT NULL DEFAULT 0,
+    FOREIGN KEY(conversationId) REFERENCES Conversations(id) ON DELETE CASCADE
+);
+
+getMessagesForConversation:
+SELECT * FROM ChatMessages
+WHERE conversationId = :conversationId
+ORDER BY timestamp ASC;
+
+getLastAssistantMessage:
+SELECT * FROM ChatMessages
+WHERE conversationId = :conversationId
+  AND isFromUser = 0
+ORDER BY timestamp DESC
+LIMIT 1;
+
+getMessageById:
+SELECT * FROM ChatMessages
+WHERE id = :messageId;
+
+insertChatMessage:
+INSERT INTO ChatMessages(
+    conversationId,
+    text,
+    isFromUser,
+    isError,
+    timestamp,
+    isStreaming
+) VALUES (
+    :conversationId,
+    :text,
+    :isFromUser,
+    :isError,
+    :timestamp,
+    :isStreaming
+);
+
+getLastInsertedChatMessageId:
+SELECT last_insert_rowid();
+
+deleteMessageById:
+DELETE FROM ChatMessages
+WHERE id = :messageId;
+
+deleteMessagesForConversation:
+DELETE FROM ChatMessages
+WHERE conversationId = :conversationId;
+
+deleteAllMessages:
+DELETE FROM ChatMessages;
+
+countMessagesForConversation:
+SELECT COUNT(*) FROM ChatMessages
+WHERE conversationId = :conversationId;
