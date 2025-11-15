@@ -21,6 +21,7 @@ activityCompose = "1.9.3"
 navigationCompose = "2.8.3"
 room = "2.8.1"
 datastore = "1.1.1"
+androidxSqlite = "2.4.0"
 
 # --- Dependency Injection / Logging
 kotlinInject = "0.8.0"
@@ -94,6 +95,11 @@ androidxRoomRuntime = { group = "androidx.room", name = "room-runtime", version.
 androidxRoomCompiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 androidxRoomKtx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 androidxRoomTesting = { group = "androidx.room", name = "room-testing", version.ref = "room" }
+
+# --- AndroidX SQLite
+androidx-sqlite = { group = "androidx.sqlite", name = "sqlite", version.ref = "androidxSqlite" }
+androidx-sqlite-framework = { group = "androidx.sqlite", name = "sqlite-framework", version.ref = "androidxSqlite" }
+androidx-sqlite-ktx = { group = "androidx.sqlite", name = "sqlite-ktx", version.ref = "androidxSqlite" }
 
 # --- DataStore
 androidxDatastorePreferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }

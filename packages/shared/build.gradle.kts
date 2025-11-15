@@ -57,6 +57,11 @@ kotlin {
         val androidMain by getting {
             dependencies {
                 implementation(libs.sqldelightAndroidDriver)
+
+                // 🔥 Додаємо підтримку FTS5 через AndroidX SQLite
+                implementation(libs.androidx.sqlite)
+                implementation(libs.androidx.sqlite.framework)
+                implementation(libs.androidx.sqlite.ktx)
             }
         }
 
@@ -81,6 +86,11 @@ kotlin {
                 implementation(libs.sqldelightAndroidDriver)
                 implementation("androidx.test:core:1.5.0")
                 implementation("app.cash.sqldelight:sqlite-driver:2.0.2")
+
+                // якщо тести працюють з FTS5
+                implementation(libs.androidx.sqlite)
+                implementation(libs.androidx.sqlite.framework)
+                implementation(libs.androidx.sqlite.ktx)
             }
         }
         
@@ -118,7 +128,7 @@ sqldelight {
             srcDirs("src/commonMain/sqldelight")
             deriveSchemaFromMigrations.set(false)
             schemaOutputDirectory.set(file("src/commonMain/sqldelight/databases"))
-            dialect("app.cash.sqldelight:sqlite-3-24-dialect:2.0.2")
+            dialect("app.cash.sqldelight:sqlite-3-38-dialect:2.0.2")
         }
     }
 }

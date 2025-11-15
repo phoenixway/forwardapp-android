@@ -164,6 +164,11 @@ dependencies {
     implementation(libs.androidxRoomKtx)
     ksp(libs.androidxRoomCompiler)
 
+    // AndroidX SQLite for FTS5 support
+    implementation(libs.androidx.sqlite)
+    implementation(libs.androidx.sqlite.framework)
+    implementation(libs.androidx.sqlite.ktx)
+
     // Ktor
     implementation(libs.ktorServerCore)
     implementation(libs.ktorServerNetty)
