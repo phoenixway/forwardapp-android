@@ -18,7 +18,8 @@ abstract class AppComponent(
 ) : DatabaseModule,
     RepositoryModule,
     DispatcherModule,
-    com.romankozak.forwardappmobile.features.mainscreen.di.MainScreenModule {
+    com.romankozak.forwardappmobile.features.mainscreen.di.MainScreenModule,
+    com.romankozak.forwardappmobile.shared.features.aichat.di.AiChatModule {
 
     @Provides
     @ApplicationContext

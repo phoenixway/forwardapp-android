@@ -1,5 +1,8 @@
 package com.romankozak.forwardappmobile.shared.features.aichat.domain.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class Conversation(
     val id: Long,
     val title: String,
@@ -7,6 +10,7 @@ data class Conversation(
     val folderId: Long?,
 )
 
+@Serializable
 data class ChatMessage(
     val id: Long,
     val conversationId: Long,
@@ -17,6 +21,7 @@ data class ChatMessage(
     val isStreaming: Boolean,
 )
 
+@Serializable
 data class ConversationWithLastMessage(
     val conversation: Conversation,
     val lastMessage: ChatMessage?,

@@ -36,40 +36,39 @@ class ChatRepositoryTest {
     }
 
     @Test
-    fun `createConversation inserts data`() = runTest {
-        val conversationId = repository.createConversation(title = "New Chat", folderId = null)
+    fun `insertConversation inserts data`() = runTest {
+        val conversationId = repository.insertConversation(title = "New Chat", folderId = null)
 
-        val conversations = repository.observeConversations().first()
+        val conversations = repository.getAllConversations().first()
         assertEquals(1, conversations.size)
         assertEquals("New Chat", conversations.first().title)
         assertEquals(conversationId, conversations.first().id)
     }
 
     @Test
-    fun `insertMessage emits via observeMessages`() = runTest {
-        val conversationId = repository.createConversation("Thread", null)
-        repository.insertMessage(
+    fun `insertMessage emits via getMessagesForConversation`() = runTest {
+        val conversationId = repository.insertConversation("Thread", null)
+        repository.insertChatMessage(
             conversationId = conversationId,
             text = "Hello",
             isFromUser = true,
             isError = false,
-            timestamp = 100,
             isStreaming = false,
         )
 
-        val messages = repository.observeMessages(conversationId).first()
+        val messages = repository.getMessagesForConversation(conversationId).first()
         assertEquals(1, messages.size)
         assertEquals("Hello", messages.first().text)
 
-        val count = repository.observeMessageCount(conversationId).first()
+        val count = repository.countMessagesForConversation(conversationId).first()
         assertEquals(1L, count)
     }
 
     @Test
     fun `observeAllConversationsWithLastMessage returns latest message`() = runTest {
-        val conversationId = repository.createConversation("Thread", null)
-        repository.insertMessage(conversationId, "First", true, false, 10, false)
-        repository.insertMessage(conversationId, "Second", false, false, 20, false)
+        val conversationId = repository.insertConversation("Thread", null)
+        repository.insertChatMessage(conversationId, "First", true, false, false)
+        repository.insertChatMessage(conversationId, "Second", false, false, false)
 
         val conversations = repository.observeAllConversationsWithLastMessage().first()
         assertEquals(1, conversations.size)

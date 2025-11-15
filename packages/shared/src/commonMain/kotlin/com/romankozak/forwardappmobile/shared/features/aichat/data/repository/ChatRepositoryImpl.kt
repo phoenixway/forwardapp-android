@@ -8,132 +8,154 @@ import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import com.romankozak.forwardappmobile.shared.features.aichat.data.mappers.toDomain
 import com.romankozak.forwardappmobile.shared.features.aichat.domain.model.ChatMessage
 import com.romankozak.forwardappmobile.shared.features.aichat.domain.model.Conversation
-import com.romankozak.forwardappmobile.shared.features.aichat.domain.model.ConversationWithLastMessage
 import com.romankozak.forwardappmobile.shared.features.aichat.domain.repository.ChatRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.Clock
 
 class ChatRepositoryImpl(
-    private val database: ForwardAppDatabase,
-    private val dispatcher: CoroutineDispatcher,
+    private val db: ForwardAppDatabase,
+    private val dispatcher: CoroutineDispatcher
 ) : ChatRepository {
 
-    override fun observeConversations(): Flow<List<Conversation>> =
-        database.conversationsQueries.getAllConversations()
+    // Conversation methods
+    override fun getAllConversations(): Flow<List<Conversation>> {
+        return db.conversationsQueries.getAllConversations()
             .asFlow()
             .mapToList(dispatcher)
-            .map { rows -> rows.map { it.toDomain() } }
-
-    override fun observeConversationsByFolder(folderId: Long?): Flow<List<Conversation>> {
-        val query = if (folderId == null) {
-            database.conversationsQueries.getConversationsWithoutFolder()
-        } else {
-            database.conversationsQueries.getConversationsByFolder(folderId)
-        }
-        return query
-            .asFlow()
-            .mapToList(dispatcher)
-            .map { rows -> rows.map { it.toDomain() } }
+            .map { conversations -> conversations.map { it.toDomain() } }
     }
 
-    override fun observeAllConversationsWithLastMessage(): Flow<List<ConversationWithLastMessage>> =
-        database.conversationsQueries.getConversationsWithLastMessage()
+    override fun getConversationsByFolder(folderId: Long): Flow<List<Conversation>> {
+        return db.conversationsQueries.getConversationsByFolder(folderId)
             .asFlow()
             .mapToList(dispatcher)
-            .map { rows -> rows.map { it.toDomain() } }
-
-    override fun observeConversationsWithLastMessageByFolder(folderId: Long): Flow<List<ConversationWithLastMessage>> =
-        database.conversationsQueries.getConversationsWithLastMessageByFolder(folderId)
-            .asFlow()
-            .mapToList(dispatcher)
-            .map { rows -> rows.map { it.toDomain() } }
-
-    override fun observeConversationsWithLastMessageWithoutFolder(): Flow<List<ConversationWithLastMessage>> =
-        database.conversationsQueries.getConversationsWithLastMessageWithoutFolder()
-            .asFlow()
-            .mapToList(dispatcher)
-            .map { rows -> rows.map { it.toDomain() } }
-
-    override fun observeMessages(conversationId: Long): Flow<List<ChatMessage>> =
-        database.chatMessagesQueries.getMessagesForConversation(conversationId)
-            .asFlow()
-            .mapToList(dispatcher)
-            .map { rows -> rows.map { it.toDomain() } }
-
-    override fun observeMessageCount(conversationId: Long): Flow<Long> =
-        database.chatMessagesQueries.countMessagesForConversation(conversationId)
-            .asFlow()
-            .mapToOne(dispatcher)
-
-    override suspend fun getConversationById(id: Long): Conversation? = withContext(dispatcher) {
-        database.conversationsQueries.getConversationById(id).executeAsOneOrNull()?.toDomain()
+            .map { conversations -> conversations.map { it.toDomain() } }
     }
 
-    override suspend fun createConversation(title: String, folderId: Long?): Long = withContext(dispatcher) {
-        database.conversationsQueries.insertConversation(
-            title = title,
-            creationTimestamp = System.currentTimeMillis(),
-            folderId = folderId,
-        )
-        database.conversationsQueries.getLastInsertedConversationId().executeAsOne()
+    override fun getConversationsWithoutFolder(): Flow<List<Conversation>> {
+        return db.conversationsQueries.getConversationsWithoutFolder()
+            .asFlow()
+            .mapToList(dispatcher)
+            .map { conversations -> conversations.map { it.toDomain() } }
     }
 
-    override suspend fun updateConversation(conversationId: Long, title: String, folderId: Long?) = withContext(dispatcher) {
-        database.conversationsQueries.updateConversation(
-            id = conversationId,
-            title = title,
-            folderId = folderId,
-        )
+    override fun getConversationById(id: Long): Flow<Conversation?> {
+        return db.conversationsQueries.getConversationById(id)
+            .asFlow()
+            .mapToOneOrNull(dispatcher)
+            .map { it?.toDomain() }
     }
 
-    override suspend fun deleteConversation(conversationId: Long) = withContext(dispatcher) {
-        database.transaction {
-            database.chatMessagesQueries.deleteMessagesForConversation(conversationId)
-            database.conversationsQueries.deleteConversationById(conversationId)
+    override fun observeAllConversationsWithLastMessage(): Flow<List<ConversationWithLastMessage>> {
+        return db.conversationsQueries.getConversationsWithLastMessage()
+            .asFlow()
+            .mapToList(dispatcher)
+            .map { conversations -> conversations.map { it.toDomain() } }
+    }
+
+    override suspend fun insertConversation(title: String, folderId: Long?): Long {
+        return withContext(dispatcher) {
+            db.transactionWithResult {
+                db.conversationsQueries.insertConversation(
+                    title = title,
+                    creationTimestamp = Clock.System.now().toEpochMilliseconds(),
+                    folderId = folderId
+                )
+                db.conversationsQueries.getLastInsertedConversationId().executeAsOne()
+            }
         }
     }
 
-    override suspend fun insertMessage(
+    override suspend fun updateConversation(id: Long, title: String, folderId: Long?) {
+        withContext(dispatcher) {
+            db.conversationsQueries.updateConversation(
+                id = id,
+                title = title,
+                folderId = folderId
+            )
+        }
+    }
+
+    override suspend fun deleteConversationById(id: Long) {
+        withContext(dispatcher) {
+            db.conversationsQueries.deleteConversationById(id)
+        }
+    }
+
+    override suspend fun deleteAllConversations() {
+        withContext(dispatcher) {
+            db.conversationsQueries.deleteAllConversations()
+        }
+    }
+
+    // ChatMessage methods
+    override fun getMessagesForConversation(conversationId: Long): Flow<List<ChatMessage>> {
+        return db.chatMessagesQueries.getMessagesForConversation(conversationId)
+            .asFlow()
+            .mapToList(dispatcher)
+            .map { messages -> messages.map { it.toDomain() } }
+    }
+
+    override fun getLastAssistantMessage(conversationId: Long): Flow<ChatMessage?> {
+        return db.chatMessagesQueries.getLastAssistantMessage(conversationId)
+            .asFlow()
+            .mapToOneOrNull(dispatcher)
+            .map { it?.toDomain() }
+    }
+
+    override fun getMessageById(messageId: Long): Flow<ChatMessage?> {
+        return db.chatMessagesQueries.getMessageById(messageId)
+            .asFlow()
+            .mapToOneOrNull(dispatcher)
+            .map { it?.toDomain() }
+    }
+
+    override suspend fun insertChatMessage(
         conversationId: Long,
         text: String,
         isFromUser: Boolean,
         isError: Boolean,
-        timestamp: Long,
-        isStreaming: Boolean,
-    ): Long = withContext(dispatcher) {
-        database.chatMessagesQueries.insertChatMessage(
-            conversationId = conversationId,
-            text = text,
-            isFromUser = isFromUser,
-            isError = isError,
-            timestamp = timestamp,
-            isStreaming = isStreaming,
-        )
-        database.chatMessagesQueries.getLastInsertedChatMessageId().executeAsOne()
-    }
-
-    override suspend fun getMessageById(id: Long): ChatMessage? = withContext(dispatcher) {
-        database.chatMessagesQueries.getMessageById(id).executeAsOneOrNull()?.toDomain()
-    }
-
-    override suspend fun getLastAssistantMessage(conversationId: Long): ChatMessage? = withContext(dispatcher) {
-        database.chatMessagesQueries.getLastAssistantMessage(conversationId).executeAsOneOrNull()?.toDomain()
-    }
-
-    override suspend fun deleteMessage(messageId: Long) = withContext(dispatcher) {
-        database.chatMessagesQueries.deleteMessageById(messageId)
-    }
-
-    override suspend fun deleteMessagesForConversation(conversationId: Long) = withContext(dispatcher) {
-        database.chatMessagesQueries.deleteMessagesForConversation(conversationId)
-    }
-
-    override suspend fun deleteAllConversations() = withContext(dispatcher) {
-        database.transaction {
-            database.chatMessagesQueries.deleteAllMessages()
-            database.conversationsQueries.deleteAllConversations()
+        isStreaming: Boolean
+    ): Long {
+        return withContext(dispatcher) {
+            db.transactionWithResult {
+                db.chatMessagesQueries.insertChatMessage(
+                    conversationId = conversationId,
+                    text = text,
+                    isFromUser = isFromUser,
+                    isError = isError,
+                    timestamp = Clock.System.now().toEpochMilliseconds(),
+                    isStreaming = isStreaming
+                )
+                db.chatMessagesQueries.getLastInsertedChatMessageId().executeAsOne()
+            }
         }
+    }
+
+    override suspend fun deleteMessageById(messageId: Long) {
+        withContext(dispatcher) {
+            db.chatMessagesQueries.deleteMessageById(messageId)
+        }
+    }
+
+    override suspend fun deleteMessagesForConversation(conversationId: Long) {
+        withContext(dispatcher) {
+            db.chatMessagesQueries.deleteMessagesForConversation(conversationId)
+        }
+    }
+
+    override suspend fun deleteAllMessages() {
+        withContext(dispatcher) {
+            db.chatMessagesQueries.deleteAllMessages()
+        }
+    }
+
+    override fun countMessagesForConversation(conversationId: Long): Flow<Long> {
+        return db.chatMessagesQueries.countMessagesForConversation(conversationId)
+            .asFlow()
+            .mapToOne(dispatcher)
     }
 }
