@@ -10,8 +10,10 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
-            <option value="$PROJECT_DIR$/app" />
-            <option value="$PROJECT_DIR$/shared" />
+            <option value="$PROJECT_DIR$/apps" />
+            <option value="$PROJECT_DIR$/apps/android" />
+            <option value="$PROJECT_DIR$/packages" />
+            <option value="$PROJECT_DIR$/packages/shared" />
           </set>
         </option>
       </GradleProjectSettings>

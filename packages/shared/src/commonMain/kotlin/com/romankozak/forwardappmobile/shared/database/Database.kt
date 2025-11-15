@@ -8,7 +8,9 @@ import com.romankozak.forwardappmobile.shared.data.database.models.StringDoubleM
 import com.romankozak.forwardappmobile.shared.data.models.RelatedLink
 import com.romankozak.forwardappmobile.shared.data.models.ReservedGroup
 import com.romankozak.forwardappmobile.shared.features.activitytracker.ActivityRecords
+import com.romankozak.forwardappmobile.shared.features.aichat.ChatMessages
 import com.romankozak.forwardappmobile.shared.features.aichat.ConversationFolders
+import com.romankozak.forwardappmobile.shared.features.aichat.Conversations
 import com.romankozak.forwardappmobile.shared.features.attachments.types.legacynotes.LegacyNotes
 import com.romankozak.forwardappmobile.shared.features.attachments.linkitems.LinkItems
 import com.romankozak.forwardappmobile.shared.features.attachments.types.notedocuments.NoteDocumentItems
@@ -282,6 +284,17 @@ fun createForwardAppDatabase(driver: SqlDriver): ForwardAppDatabase {
         startDateAdapter = longAdapter,
     )
 
+    val conversationsAdapter = Conversations.Adapter(
+        idAdapter = longAdapter,
+        creationTimestampAdapter = longAdapter
+    )
+
+    val chatMessagesAdapter = ChatMessages.Adapter(
+        idAdapter = longAdapter,
+        conversationIdAdapter = longAdapter,
+        timestampAdapter = longAdapter
+    )
+
     return ForwardAppDatabase(
         driver = driver,
         GoalsAdapter = goalsAdapter,
@@ -300,6 +313,8 @@ fun createForwardAppDatabase(driver: SqlDriver): ForwardAppDatabase {
         DayTasksAdapter = dayTasksAdapter,
         DailyMetricsAdapter = dailyMetricsAdapter,
         RecurringTasksAdapter = recurringTasksAdapter,
+        ChatMessagesAdapter = chatMessagesAdapter,
+        ConversationsAdapter = conversationsAdapter,
     )
 }
 val stringDoubleMapAdapter = object : ColumnAdapter<StringDoubleMap, String> {
