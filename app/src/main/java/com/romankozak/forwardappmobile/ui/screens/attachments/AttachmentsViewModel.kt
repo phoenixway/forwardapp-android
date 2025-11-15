@@ -61,7 +61,6 @@ class AttachmentsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val alarmScheduler: AlarmScheduler,
     private val recentItemsRepository: com.romankozak.forwardappmobile.data.repository.RecentItemsRepository,
-    private val listItemRepository: com.romankozak.forwardappmobile.data.repository.ListItemRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -136,7 +135,10 @@ class AttachmentsViewModel @Inject constructor(
 
     fun deleteAttachment(attachment: ListItemContent) {
         viewModelScope.launch {
-            projectRepository.deleteListItems(listOf(attachment.listItem.id))
+            val currentProjectId = projectId.value
+            if (currentProjectId.isNotEmpty()) {
+                projectRepository.deleteListItems(currentProjectId, listOf(attachment.listItem.id))
+            }
         }
     }
 
@@ -207,7 +209,9 @@ class AttachmentsViewModel @Inject constructor(
                 target = url,
                 displayName = name
             )
-            listItemRepository.addLinkItemToProjectFromLink(projectId.value, link)
+            if (projectId.value.isNotEmpty()) {
+                projectRepository.addLinkItemToProjectFromLink(projectId.value, link)
+            }
             onDismissAddAttachmentDialog()
         }
     }
@@ -219,7 +223,9 @@ class AttachmentsViewModel @Inject constructor(
                 target = url,
                 displayName = name
             )
-            listItemRepository.addLinkItemToProjectFromLink(projectId.value, link)
+            if (projectId.value.isNotEmpty()) {
+                projectRepository.addLinkItemToProjectFromLink(projectId.value, link)
+            }
             onDismissAddAttachmentDialog()
         }
     }
@@ -235,7 +241,9 @@ class AttachmentsViewModel @Inject constructor(
                     target = projectId,
                     displayName = project.name
                 )
-                listItemRepository.addLinkItemToProjectFromLink(this@AttachmentsViewModel.projectId.value, link)
+                if (this@AttachmentsViewModel.projectId.value.isNotEmpty()) {
+                    projectRepository.addLinkItemToProjectFromLink(this@AttachmentsViewModel.projectId.value, link)
+                }
             }
             _uiState.update { it.copy(pendingAttachmentType = PendingAttachmentType.NONE) }
         }
@@ -243,7 +251,7 @@ class AttachmentsViewModel @Inject constructor(
 
     fun onAddProjectShortcut(projectId: String) {
         viewModelScope.launch {
-            listItemRepository.addProjectLinkToProject(projectId, this@AttachmentsViewModel.projectId.value)
+            projectRepository.addProjectLinkToProject(projectId, this@AttachmentsViewModel.projectId.value)
             _uiState.update { it.copy(pendingAttachmentType = PendingAttachmentType.NONE) }
         }
     }

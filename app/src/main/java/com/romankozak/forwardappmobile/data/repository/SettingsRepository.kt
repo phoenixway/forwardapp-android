@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.romankozak.forwardappmobile.BuildConfig
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.PlanningSettingsProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
