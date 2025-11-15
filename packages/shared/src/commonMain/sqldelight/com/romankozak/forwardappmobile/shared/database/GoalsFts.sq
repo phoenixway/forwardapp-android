@@ -1,0 +1,7 @@
+CREATE VIRTUAL TABLE GoalsFts USING fts5(
+    id,
+    text,
+    description,
+    content='Goals',
+    content_rowid='id'
+);

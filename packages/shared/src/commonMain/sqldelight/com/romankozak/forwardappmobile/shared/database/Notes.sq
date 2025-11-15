@@ -1,0 +1,43 @@
+import kotlin.Long;
+import kotlin.String;
+
+CREATE TABLE Notes (
+    id TEXT AS kotlin.String NOT NULL PRIMARY KEY,
+    projectId TEXT AS kotlin.String NOT NULL,
+    title TEXT AS kotlin.String NOT NULL,
+    content TEXT AS kotlin.String,
+    createdAt INTEGER AS kotlin.Long NOT NULL,
+    updatedAt INTEGER AS kotlin.Long
+);
+
+getNotesForProject:
+SELECT * FROM Notes WHERE projectId = :projectId;
+
+getAllLegacyNotes:
+SELECT * FROM Notes;
+
+getLegacyNoteById:
+SELECT * FROM Notes WHERE id = :noteId;
+
+insertLegacyNote:
+INSERT INTO Notes(id, projectId, title, content, createdAt, updatedAt)
+VALUES (:id, :projectId, :title, :content, :createdAt, :updatedAt);
+
+updateLegacyNote:
+UPDATE Notes SET
+    title = :title,
+    content = :content,
+    updatedAt = :updatedAt
+WHERE id = :id;
+
+deleteLegacyNoteById:
+DELETE FROM Notes WHERE id = :noteId;
+
+deleteAllLegacyNotes:
+DELETE FROM Notes;
+
+searchNotes:
+SELECT * FROM Notes
+WHERE id IN (
+    SELECT id FROM NotesFts WHERE NotesFts MATCH :query
+);

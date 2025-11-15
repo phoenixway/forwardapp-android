@@ -295,6 +295,13 @@ fun createForwardAppDatabase(driver: SqlDriver): ForwardAppDatabase {
         timestampAdapter = longAdapter
     )
 
+    val notesAdapter = Notes.Adapter(
+        idAdapter = stringAdapter,
+        projectIdAdapter = stringAdapter,
+        titleAdapter = stringAdapter,
+        createdAtAdapter = longAdapter
+    )
+
     return ForwardAppDatabase(
         driver = driver,
         GoalsAdapter = goalsAdapter,
@@ -315,6 +322,7 @@ fun createForwardAppDatabase(driver: SqlDriver): ForwardAppDatabase {
         RecurringTasksAdapter = recurringTasksAdapter,
         ChatMessagesAdapter = chatMessagesAdapter,
         ConversationsAdapter = conversationsAdapter,
+        NotesAdapter = notesAdapter,
     )
 }
 val stringDoubleMapAdapter = object : ColumnAdapter<StringDoubleMap, String> {

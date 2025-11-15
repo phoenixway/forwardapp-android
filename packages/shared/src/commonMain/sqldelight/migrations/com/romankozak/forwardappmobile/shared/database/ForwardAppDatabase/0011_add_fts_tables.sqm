@@ -1,0 +1,91 @@
+CREATE VIRTUAL TABLE GoalsFts USING fts5(
+    id,
+    text,
+    description,
+    content='Goals',
+    content_rowid='id'
+);
+
+CREATE TRIGGER goals_after_insert AFTER INSERT ON Goals BEGIN
+    INSERT INTO GoalsFts(id, text, description)
+    VALUES (new.id, new.text, new.description);
+END;
+
+CREATE TRIGGER goals_after_delete AFTER DELETE ON Goals BEGIN
+    DELETE FROM GoalsFts WHERE id = old.id;
+END;
+
+CREATE TRIGGER goals_after_update AFTER UPDATE ON Goals BEGIN
+    DELETE FROM GoalsFts WHERE id = old.id;
+    INSERT INTO GoalsFts(id, text, description)
+    VALUES (new.id, new.text, new.description);
+END;
+
+CREATE VIRTUAL TABLE ProjectsFts USING fts5(
+    id,
+    name,
+    description,
+    content='Projects',
+    content_rowid='id'
+);
+
+CREATE TRIGGER projects_after_insert AFTER INSERT ON Projects BEGIN
+    INSERT INTO ProjectsFts(id, name, description)
+    VALUES (new.id, new.name, new.description);
+END;
+
+CREATE TRIGGER projects_after_delete AFTER DELETE ON Projects BEGIN
+    DELETE FROM ProjectsFts WHERE id = old.id;
+END;
+
+CREATE TRIGGER projects_after_update AFTER UPDATE ON Projects BEGIN
+    DELETE FROM ProjectsFts WHERE id = old.id;
+    INSERT INTO ProjectsFts(id, name, description)
+    VALUES (new.id, new.name, new.description);
+END;
+
+CREATE VIRTUAL TABLE NotesFts USING fts5(
+    id,
+    title,
+    content,
+    content='Notes',
+    content_rowid='id'
+);
+
+CREATE TRIGGER notes_after_insert AFTER INSERT ON Notes BEGIN
+    INSERT INTO NotesFts(id, title, content)
+    VALUES (new.id, new.title, new.content);
+END;
+
+CREATE TRIGGER notes_after_delete AFTER DELETE ON Notes BEGIN
+    DELETE FROM NotesFts WHERE id = old.id;
+END;
+
+CREATE TRIGGER notes_after_update AFTER UPDATE ON Notes BEGIN
+    DELETE FROM NotesFts WHERE id = old.id;
+    INSERT INTO NotesFts(id, title, content)
+    VALUES (new.id, new.title, new.content);
+END;
+
+CREATE VIRTUAL TABLE RecurringTasksFts USING fts5(
+    id,
+    title,
+    description,
+    content='RecurringTasks',
+    content_rowid='id'
+);
+
+CREATE TRIGGER recurring_tasks_after_insert AFTER INSERT ON RecurringTasks BEGIN
+    INSERT INTO RecurringTasksFts(id, title, description)
+    VALUES (new.id, new.title, new.description);
+END;
+
+CREATE TRIGGER recurring_tasks_after_delete AFTER DELETE ON RecurringTasks BEGIN
+    DELETE FROM RecurringTasksFts WHERE id = old.id;
+END;
+
+CREATE TRIGGER recurring_tasks_after_update AFTER UPDATE ON RecurringTasks BEGIN
+    DELETE FROM RecurringTasksFts WHERE id = old.id;
+    INSERT INTO RecurringTasksFts(id, title, description)
+    VALUES (new.id, new.title, new.description);
+END;

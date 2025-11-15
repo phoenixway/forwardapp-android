@@ -95,3 +95,9 @@ SELECT count(*) FROM Goals;
 
 updateMarkdown:
 UPDATE Goals SET markdown = :markdown WHERE id = :goalId;
+
+searchGoals:
+SELECT * FROM Goals
+WHERE id IN (
+    SELECT id FROM GoalsFts WHERE GoalsFts MATCH :query
+);

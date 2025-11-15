@@ -1,0 +1,7 @@
+CREATE VIRTUAL TABLE RecurringTasksFts USING fts5(
+    id,
+    title,
+    description,
+    content='RecurringTasks',
+    content_rowid='id'
+);

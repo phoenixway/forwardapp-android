@@ -68,3 +68,9 @@ DELETE FROM RecurringTasks WHERE goalId = :goalId;
 
 deleteAllRecurringTasks:
 DELETE FROM RecurringTasks;
+
+searchRecurringTasks:
+SELECT * FROM RecurringTasks
+WHERE id IN (
+    SELECT id FROM RecurringTasksFts WHERE RecurringTasksFts MATCH :query
+);

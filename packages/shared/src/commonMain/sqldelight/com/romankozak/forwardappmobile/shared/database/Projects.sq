@@ -90,3 +90,9 @@ UPDATE Projects SET parentId = :parentId WHERE id = :id;
 
 updateName:
 UPDATE Projects SET name = :name WHERE id = :id;
+
+searchProjects:
+SELECT * FROM Projects
+WHERE id IN (
+    SELECT id FROM ProjectsFts WHERE ProjectsFts MATCH :query
+);

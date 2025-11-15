@@ -1,0 +1,7 @@
+CREATE VIRTUAL TABLE ProjectsFts USING fts5(
+    id,
+    name,
+    description,
+    content='Projects',
+    content_rowid='id'
+);

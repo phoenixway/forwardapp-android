@@ -1,0 +1,7 @@
+CREATE VIRTUAL TABLE NotesFts USING fts5(
+    id,
+    title,
+    content,
+    content='Notes',
+    content_rowid='id'
+);
