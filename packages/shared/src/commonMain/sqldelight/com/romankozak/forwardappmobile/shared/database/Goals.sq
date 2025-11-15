@@ -87,7 +87,7 @@ SELECT * FROM Goals ORDER BY createdAt DESC;
 getGoalsByIds:
 SELECT * FROM Goals WHERE id IN :ids;
 
-searchGoalsByText:
+searchGoalsFallback:
 SELECT * FROM Goals WHERE text LIKE '%' || :query || '%' OR description LIKE '%' || :query || '%';
 
 getAllGoalsCount:
@@ -96,8 +96,10 @@ SELECT count(*) FROM Goals;
 updateMarkdown:
 UPDATE Goals SET markdown = :markdown WHERE id = :goalId;
 
-searchGoals:
+--#if android
+searchGoalsFts:
 SELECT * FROM Goals
 WHERE id IN (
     SELECT id FROM GoalsFts WHERE GoalsFts MATCH :query
 );
+--#endif

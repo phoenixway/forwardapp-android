@@ -1,3 +1,4 @@
+--#if android
 CREATE VIRTUAL TABLE GoalsFts USING fts5(
     id,
     text,
@@ -5,3 +6,4 @@ CREATE VIRTUAL TABLE GoalsFts USING fts5(
     content='Goals',
     content_rowid='id'
 );
+--#endif

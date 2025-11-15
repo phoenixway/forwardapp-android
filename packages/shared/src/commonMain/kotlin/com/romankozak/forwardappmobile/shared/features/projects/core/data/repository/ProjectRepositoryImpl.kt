@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.shared.features.projects.core.data.repos
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import app.cash.sqldelight.coroutines.mapToOneOrNull
+import com.romankozak.forwardappmobile.shared.core.platform.Platform
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import com.romankozak.forwardappmobile.shared.features.projects.core.data.mappers.toDomain
 import com.romankozak.forwardappmobile.shared.features.projects.core.domain.model.Project
@@ -29,6 +30,17 @@ class ProjectRepositoryImpl(
             .asFlow()
             .mapToOneOrNull(dispatcher)
             .map { it?.toDomain() }
+    }
+
+    override fun searchProjects(query: String): Flow<List<Project>> {
+        val projects = if (Platform.isAndroid) {
+            db.projectsQueries.searchProjectsFts(query)
+        } else {
+            db.projectsQueries.searchProjectsFallback(query)
+        }
+        return projects.asFlow()
+            .mapToList(dispatcher)
+            .map { projects -> projects.map { it.toDomain() } }
     }
 
     override suspend fun upsertProject(project: Project) = withContext(dispatcher) {

@@ -6,6 +6,8 @@ import kotlinx.coroutines.flow.Flow
 interface RecurringTaskRepository {
     fun observeRecurringTasks(goalId: String? = null): Flow<List<RecurringTask>>
 
+    fun searchRecurringTasks(query: String): Flow<List<RecurringTask>>
+
     suspend fun getRecurringTaskById(id: String): RecurringTask?
 
     suspend fun upsertRecurringTask(task: RecurringTask)

@@ -91,8 +91,15 @@ UPDATE Projects SET parentId = :parentId WHERE id = :id;
 updateName:
 UPDATE Projects SET name = :name WHERE id = :id;
 
-searchProjects:
+--#if android
+searchProjectsFts:
 SELECT * FROM Projects
 WHERE id IN (
     SELECT id FROM ProjectsFts WHERE ProjectsFts MATCH :query
 );
+--#endif
+
+searchProjectsFallback:
+SELECT * FROM Projects
+WHERE name LIKE '%' || :query || '%' OR description LIKE '%' || :query || '%';
+

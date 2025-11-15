@@ -1,3 +1,4 @@
+--#if android
 CREATE VIRTUAL TABLE NotesFts USING fts5(
     id,
     title,
@@ -5,3 +6,4 @@ CREATE VIRTUAL TABLE NotesFts USING fts5(
     content='Notes',
     content_rowid='id'
 );
+--#endif

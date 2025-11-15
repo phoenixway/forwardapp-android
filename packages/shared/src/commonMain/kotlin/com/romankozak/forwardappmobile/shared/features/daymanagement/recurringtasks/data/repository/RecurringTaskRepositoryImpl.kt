@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.shared.features.daymanagement.recurringt
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
+import com.romankozak.forwardappmobile.shared.core.platform.Platform
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import com.romankozak.forwardappmobile.shared.features.daymanagement.recurringtasks.data.mappers.toDomain
 import com.romankozak.forwardappmobile.shared.features.daymanagement.recurringtasks.data.mappers.toEntity
@@ -26,6 +27,17 @@ class RecurringTaskRepositoryImpl(
 
         return query
             .asFlow()
+            .mapToList(dispatcher)
+            .map { rows -> rows.map { it.toDomain() } }
+    }
+
+    override fun searchRecurringTasks(query: String): Flow<List<RecurringTask>> {
+        val tasks = if (Platform.isAndroid) {
+            database.recurringTasksQueries.searchRecurringTasksFts(query)
+        } else {
+            database.recurringTasksQueries.searchRecurringTasksFallback(query)
+        }
+        return tasks.asFlow()
             .mapToList(dispatcher)
             .map { rows -> rows.map { it.toDomain() } }
     }

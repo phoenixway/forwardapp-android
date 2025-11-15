@@ -69,8 +69,15 @@ DELETE FROM RecurringTasks WHERE goalId = :goalId;
 deleteAllRecurringTasks:
 DELETE FROM RecurringTasks;
 
-searchRecurringTasks:
+--#if android
+searchRecurringTasksFts:
 SELECT * FROM RecurringTasks
 WHERE id IN (
     SELECT id FROM RecurringTasksFts WHERE RecurringTasksFts MATCH :query
 );
+--#endif
+
+searchRecurringTasksFallback:
+SELECT * FROM RecurringTasks
+WHERE title LIKE '%' || :query || '%' OR description LIKE '%' || :query || '%';
+

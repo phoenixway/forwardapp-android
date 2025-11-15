@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.shared.features.search.data.repository
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
+import com.romankozak.forwardappmobile.shared.core.platform.Platform
 import com.romankozak.forwardappmobile.shared.data.database.models.GlobalSearchResult
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import com.romankozak.forwardappmobile.shared.features.search.domain.repository.SearchRepository
@@ -19,12 +20,33 @@ class SearchRepositoryImpl(
 ) : SearchRepository {
 
     override fun search(query: String): Flow<List<GlobalSearchResult>> {
-        val goals = db.goalsQueries.searchGoals(query).asFlow().mapToList(dispatcher)
-        val projects = db.projectsQueries.searchProjects(query).asFlow().mapToList(dispatcher)
-        val notes = db.notesQueries.searchNotes(query).asFlow().mapToList(dispatcher)
-        val recurringTasks = db.recurringTasksQueries.searchRecurringTasks(query).asFlow().mapToList(dispatcher)
+        val goals = if (Platform.isAndroid) {
+            db.goalsQueries.searchGoalsFts(query)
+        } else {
+            db.goalsQueries.searchGoalsFallback(query)
+        }
+        val projects = if (Platform.isAndroid) {
+            db.projectsQueries.searchProjectsFts(query)
+        } else {
+            db.projectsQueries.searchProjectsFallback(query)
+        }
+        val notes = if (Platform.isAndroid) {
+            db.notesQueries.searchNotesFts(query)
+        } else {
+            db.notesQueries.searchNotesFallback(query)
+        }
+        val recurringTasks = if (Platform.isAndroid) {
+            db.recurringTasksQueries.searchRecurringTasksFts(query)
+        } else {
+            db.recurringTasksQueries.searchRecurringTasksFallback(query)
+        }
 
-        return combine(goals, projects, notes, recurringTasks) { goalsResult, projectsResult, notesResult, recurringTasksResult ->
+        return combine(
+            goals.asFlow().mapToList(dispatcher),
+            projects.asFlow().mapToList(dispatcher),
+            notes.asFlow().mapToList(dispatcher),
+            recurringTasks.asFlow().mapToList(dispatcher)
+        ) { goalsResult, projectsResult, notesResult, recurringTasksResult ->
             val results = mutableListOf<GlobalSearchResult>()
             results.addAll(goalsResult.map { GlobalSearchResult.GoalResult(it.goalToDomain()) })
             results.addAll(projectsResult.map { GlobalSearchResult.ProjectResult(it.projectToDomain()) })

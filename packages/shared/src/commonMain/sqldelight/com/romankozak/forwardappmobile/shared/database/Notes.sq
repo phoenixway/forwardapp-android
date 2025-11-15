@@ -36,8 +36,15 @@ DELETE FROM Notes WHERE id = :noteId;
 deleteAllLegacyNotes:
 DELETE FROM Notes;
 
-searchNotes:
+--#if android
+searchNotesFts:
 SELECT * FROM Notes
 WHERE id IN (
     SELECT id FROM NotesFts WHERE NotesFts MATCH :query
 );
+--#endif
+
+searchNotesFallback:
+SELECT * FROM Notes
+WHERE title LIKE '%' || :query || '%' OR content LIKE '%' || :query || '%';
+

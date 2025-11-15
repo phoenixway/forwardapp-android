@@ -18,6 +18,7 @@ CREATE TABLE ActivityRecords (
     parentProjectId TEXT
 );
 
+--#if android
 CREATE VIRTUAL TABLE ActivityRecordsFts USING fts5(
     id UNINDEXED,
     name,
@@ -38,6 +39,7 @@ END;
 CREATE TRIGGER activityrecords_ad AFTER DELETE ON ActivityRecords BEGIN
     DELETE FROM ActivityRecordsFts WHERE id = old.id;
 END;
+--#endif
 
 insertActivityRecord:
 INSERT OR REPLACE INTO ActivityRecords(
@@ -104,9 +106,18 @@ WHERE parentProjectId = :projectId AND endTime IS NULL
 ORDER BY startTime DESC
 LIMIT 1;
 
-searchActivityRecords:
+--#if android
+searchActivityRecordsFts:
 SELECT ActivityRecords.*
 FROM ActivityRecords
 JOIN ActivityRecordsFts ON ActivityRecords.id = ActivityRecordsFts.id
 WHERE ActivityRecordsFts MATCH :query
 ORDER BY ActivityRecords.createdAt DESC;
+--#endif
+
+searchActivityRecordsFallback:
+SELECT *
+FROM ActivityRecords
+WHERE name LIKE '%' || :query || '%' OR description LIKE '%' || :query || '%'
+ORDER BY createdAt DESC;
+
