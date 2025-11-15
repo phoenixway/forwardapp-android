@@ -179,6 +179,14 @@ class ChecklistViewModel @Inject constructor(
     fun onAddItem(afterItemId: String?) {
         val checklistId = checklistIdState.value ?: return
         val currentItems = _uiState.value.items
+
+        val existingBlankItem =
+            currentItems.firstOrNull { it.content.isBlank() }
+        if (existingBlankItem != null) {
+            _uiState.update { it.copy(pendingFocusItemId = existingBlankItem.id) }
+            return
+        }
+
         val insertIndex =
             when {
                 afterItemId == null -> currentItems.size
