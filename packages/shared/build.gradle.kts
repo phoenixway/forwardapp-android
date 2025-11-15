@@ -19,7 +19,6 @@ kotlin {
     androidTarget {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_17)
-            freeCompilerArgs.add("-Xexpect-actual-classes")
         }
     }
 
@@ -27,7 +26,6 @@ kotlin {
     jvm {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_17)
-            freeCompilerArgs.add("-Xexpect-actual-classes")
         }
     }
 
@@ -56,7 +54,7 @@ kotlin {
 
         val androidMain by getting {
             dependencies {
-                implementation(libs.sqldelightAndroidDriver)
+                implementation(libs.sqldelightAndroidXDriver)
 
                 // 🔥 Додаємо підтримку FTS5 через AndroidX SQLite
                 implementation(libs.androidx.sqlite)
@@ -83,7 +81,7 @@ kotlin {
         val androidUnitTest by getting {
             kotlin.srcDir("src/androidUnitTest/kotlin")
             dependencies {
-                implementation(libs.sqldelightAndroidDriver)
+                implementation(libs.sqldelightAndroidXDriver)
                 implementation("androidx.test:core:1.5.0")
                 implementation("app.cash.sqldelight:sqlite-driver:2.0.2")
 

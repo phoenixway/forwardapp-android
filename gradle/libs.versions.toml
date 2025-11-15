@@ -124,7 +124,7 @@ googleGson = { group = "com.google.code.gson", name = "gson", version.ref = "gso
 # --- SQLDelight
 sqldelightRuntime = { group = "app.cash.sqldelight", name = "runtime", version.ref = "sqlDelight" }
 sqldelightCoroutines = { group = "app.cash.sqldelight", name = "coroutines-extensions", version.ref = "sqlDelight" }
-sqldelightAndroidDriver = { group = "app.cash.sqldelight", name = "android-driver", version.ref = "sqlDelight" }
+sqldelightAndroidXDriver = { group = "app.cash.sqldelight", name = "androidx-driver", version.ref = "sqlDelight" }
 sqldelightSqliteDriver = { group = "app.cash.sqldelight", name = "sqlite-driver", version.ref = "sqlDelight" }
 
 # --- Kotlin Inject

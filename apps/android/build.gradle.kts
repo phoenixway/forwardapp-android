@@ -186,7 +186,7 @@ dependencies {
     implementation(libs.googleGson)
     implementation(libs.composeDnd)
     implementation(libs.sqldelightCoroutines)
-    implementation(libs.sqldelightAndroidDriver)
+    implementation(libs.sqldelightAndroidXDriver)
     implementation(libs.kotlinxCoroutinesCore)
 
     // Testing
