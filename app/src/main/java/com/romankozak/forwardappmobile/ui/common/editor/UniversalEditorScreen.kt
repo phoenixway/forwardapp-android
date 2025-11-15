@@ -96,8 +96,8 @@ fun UniversalEditorScreen(
   val snackbarHostState = remember { SnackbarHostState() }
   val keyboardController = LocalSoftwareKeyboardController.current
   val focusManager = LocalFocusManager.current
-  var isEditing by remember { mutableStateOf(true) }
-  val readOnly by remember { derivedStateOf { !isEditing } }
+  val isEditing = uiState.isEditing
+  val readOnly = !isEditing
 
   LaunchedEffect(Unit) {
     viewModel.events.collect {
@@ -155,7 +155,7 @@ fun UniversalEditorScreen(
           ) { isVisible ->
             if (isVisible) {
               ExperimentalEnhancedListToolbar(
-                state = uiState.toolbarState.copy(isEditing = isEditing),
+                state = uiState.toolbarState,
                 onIndentBlock = viewModel::onIndentBlock,
                 onDeIndentBlock = viewModel::onDeIndentBlock,
                 onMoveBlockUp = viewModel::onMoveBlockUp,
@@ -192,8 +192,9 @@ fun UniversalEditorScreen(
     floatingActionButton = {
       FloatingActionButton(
         onClick = {
-          isEditing = !isEditing
-          if (isEditing) {
+          val nextMode = !isEditing
+          viewModel.setEditingMode(nextMode)
+          if (nextMode) {
             contentFocusRequester.requestFocus()
             keyboardController?.show()
           } else {

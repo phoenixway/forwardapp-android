@@ -35,7 +35,8 @@ data class UniversalEditorUiState(
   val toolbarState: ListToolbarState = ListToolbarState(),
   val isLoading: Boolean = false,
   val projectId: String? = null,
-  val showShareDialog: Boolean = false
+  val showShareDialog: Boolean = false,
+  val isEditing: Boolean = false,
 )
 
 @HiltViewModel
@@ -65,8 +66,9 @@ class UniversalEditorViewModel @Inject constructor(private val application: Appl
     android.util.Log.d("CursorDebug", "setInitialContent called with cursorPosition: $cursorPosition")
     val selection = TextRange(cursorPosition.coerceIn(0, content.length))
     val textFieldValue = TextFieldValue(content, selection)
+    val editingMode = _uiState.value.isEditing
     _uiState.update {
-      it.copy(content = textFieldValue, toolbarState = computeToolbarState(textFieldValue, true))
+      it.copy(content = textFieldValue, toolbarState = computeToolbarState(textFieldValue, editingMode))
     }
     pushUndo(textFieldValue)
 
@@ -96,8 +98,9 @@ class UniversalEditorViewModel @Inject constructor(private val application: Appl
 
     pushUndo(oldValue)
     clearRedo()
+    val editingMode = _uiState.value.isEditing
     _uiState.update {
-      it.copy(content = newValue, toolbarState = computeToolbarState(newValue, true))
+      it.copy(content = newValue, toolbarState = computeToolbarState(newValue, editingMode))
     }
   }
 
@@ -132,9 +135,10 @@ class UniversalEditorViewModel @Inject constructor(private val application: Appl
         )
       }
     } else {
-      _uiState.update {
-        it.copy(content = newValue, toolbarState = computeToolbarState(newValue, true))
-      }
+    val editingMode = _uiState.value.isEditing
+    _uiState.update {
+      it.copy(content = newValue, toolbarState = computeToolbarState(newValue, editingMode))
+    }
     }
   }
 
@@ -426,14 +430,16 @@ class UniversalEditorViewModel @Inject constructor(private val application: Appl
     if (undoStack.isEmpty()) return
     val prev = undoStack.removeLast()
     redoStack.addLast(_uiState.value.content)
-    _uiState.update { it.copy(content = prev, toolbarState = computeToolbarState(prev, true)) }
+    val editingMode = _uiState.value.isEditing
+    _uiState.update { it.copy(content = prev, toolbarState = computeToolbarState(prev, editingMode)) }
   }
 
   fun onRedo() {
     if (redoStack.isEmpty()) return
     val next = redoStack.removeLast()
     undoStack.addLast(_uiState.value.content)
-    _uiState.update { it.copy(content = next, toolbarState = computeToolbarState(next, true)) }
+    val editingMode = _uiState.value.isEditing
+    _uiState.update { it.copy(content = next, toolbarState = computeToolbarState(next, editingMode)) }
   }
 
   private fun pushUndo(value: TextFieldValue) {
@@ -444,6 +450,15 @@ class UniversalEditorViewModel @Inject constructor(private val application: Appl
 
   private fun clearRedo() {
     redoStack.clear()
+  }
+
+  fun setEditingMode(isEditing: Boolean) {
+    _uiState.update {
+      it.copy(
+        isEditing = isEditing,
+        toolbarState = computeToolbarState(it.content, isEditing)
+      )
+    }
   }
 
   private fun computeToolbarState(content: TextFieldValue, isEditing: Boolean): ListToolbarState {
