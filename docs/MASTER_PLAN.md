@@ -90,9 +90,28 @@
             *   У `ProjectScreen.kt` замінити заглушку для "Inbox" на реальний UI-компонент для відображення списку.
             *   **Прогрес:** Виконано.
         2.  **Реалізувати режим "Backlog"**:
-            *   Повторити процес для беклогу, використовуючи `listItemRepository`.
-            *   Додати `backlogItems` в `UiState`.
-            *   Замінити заглушку для "Backlog" на реальний UI.
+            *   **Поточна ситуація:** Реалізація режиму "Backlog" розпочата. Було створено файл `BacklogList.kt` з базовою структурою `BacklogView` та заглушками для `ListItemView`, `GoalItem`, `LinkItem`. Залежність `reorderable` підтверджена.
+            *   **Детальний план:**
+                *   [ ] **Скопіювати та адаптувати `GoalItem` та `LinkItem` з гілки `dev`:**
+                    *   [ ] Витягти повний компонований `GoalItem` з `dev` гілки `app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectscreen/ProjectScreen.kt`.
+                    *   [ ] Вставити реалізацію `GoalItem` у `apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/components/list/BacklogList.kt`, замінивши заглушку.
+                    *   [ ] Адаптувати імпорти та залежності `GoalItem` до нової архітектури KMP/SQLDelight (наприклад, `ListItemContent.GoalItem` на `ListItem`, `BacklogViewModel` на `ProjectScreenViewModel`).
+                    *   [ ] Витягти повний компонований `LinkItem` з `dev` гілки `app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectscreen/ProjectScreen.kt`.
+                    *   [ ] Вставити реалізацію `LinkItem` у `apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/components/list/BacklogList.kt`, замінивши заглушку.
+                    *   [ ] Адаптувати імпорти та залежності `LinkItem` до нової архітектури KMP/SQLDelight.
+                    *   [ ] Оновити `ListItemView`, щоб правильно відображати `GoalItem` або `LinkItem` на основі `ListItem.type`.
+                *   [ ] **Інтегрувати дані беклогу в `ProjectScreenViewModel.kt`:**
+                    *   [ ] Додати `val backlogItems: List<ListItem> = emptyList(),` до `UiState`.
+                    *   [ ] У блоці `init` додати логіку для збору потоку з `listItemRepository.observeListItems(projectId)` та оновлення `backlogItems` у `_uiState`.
+                *   [ ] **Інтегрувати `BacklogView` у `ProjectScreen.kt`:**
+                    *   [ ] Замінити заглушку `Text` для `ProjectViewMode.Backlog` на компонований `BacklogView` з `apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/components/list/BacklogList.kt`.
+                    *   [ ] Передати `state.backlogItems` до параметра `listContent` `BacklogView`.
+                    *   [ ] Передати `viewModel` та `state` до `BacklogView`.
+                    *   [ ] Реалізувати `onRemindersClick` для `BacklogView` (спочатку із заглушкою).
+                *   [ ] **Перевірити та доопрацювати:**
+                    *   [ ] Запустити `./gradlew :apps:android:assembleDebug`, щоб забезпечити компіляцію.
+                    *   [ ] Протестувати режим "Backlog" у додатку, щоб підтвердити відображення елементів та роботу переупорядкування (навіть якщо дії є заглушками).
+                    *   [ ] Вирішити будь-які залишені `TODO` або логіку заглушок у скопійованих компонентах.
         3.  **Реалізувати режим "Attachments"**:
             *   Реалізувати завантаження даних для нотаток, чеклістів, посилань тощо.
             *   Додати відповідні поля в `UiState`.
