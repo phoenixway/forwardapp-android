@@ -43,8 +43,8 @@ kotlin {
             dependencies {
                 implementation(libs.kotlinxSerializationJson)
                 implementation(libs.kotlinxCoroutinesCore)
-                implementation(libs.kotlinxDatetime)
-                implementation(libs.benasherUuid)
+                api(libs.kotlinxDatetime)
+                api(libs.benasherUuid)
                 implementation(libs.sqldelightRuntime)
                 implementation(libs.sqldelightCoroutines)
                 // ⚠️ КРИТИЧНО: додаємо runtime-kmp

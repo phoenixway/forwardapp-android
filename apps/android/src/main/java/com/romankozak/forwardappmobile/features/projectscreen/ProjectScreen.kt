@@ -5,6 +5,8 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -64,6 +66,7 @@ fun ProjectScreen(
     val listState = rememberLazyListState()
 
     Scaffold(
+        modifier = Modifier.navigationBarsPadding().imePadding(),
         topBar = {
             AdaptiveTopBar(
                 isSelectionModeActive = state.isSelectionModeActive,
@@ -105,7 +108,10 @@ fun ProjectScreen(
                 onInputModeSelected = { viewModel.onEvent(ProjectScreenViewModel.Event.SwitchInputMode(it)) },
                 onSubmit = {
                     if (inputValue.text.isNotBlank()) {
-                        viewModel.onEvent(ProjectScreenViewModel.Event.AddInboxRecord(inputValue.text))
+                        when (state.currentView) {
+                            ProjectViewMode.Backlog -> viewModel.onEvent(ProjectScreenViewModel.Event.AddBacklogGoal(inputValue.text))
+                            else -> viewModel.onEvent(ProjectScreenViewModel.Event.AddInboxRecord(inputValue.text))
+                        }
                         inputValue = TextFieldValue("")
                     }
                 },

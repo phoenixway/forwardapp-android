@@ -14,4 +14,5 @@ interface ListItemRepository {
     suspend fun deleteLinkByEntityIdAndProjectId(entityId: String, projectId: String)
     suspend fun deleteItemByEntityId(entityId: String)
     suspend fun deleteItemsForProjects(projectIds: List<String>)
+    suspend fun insertListItem(item: ListItem)
 }

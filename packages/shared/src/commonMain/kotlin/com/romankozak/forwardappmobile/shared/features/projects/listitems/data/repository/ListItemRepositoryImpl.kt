@@ -123,4 +123,16 @@ class ListItemRepositoryImpl(
             }
         }
     }
+
+    override suspend fun insertListItem(item: ListItem) {
+        withContext(dispatcher) {
+            db.listItemsQueries.insertItem(
+                id = item.id,
+                projectId = item.projectId,
+                itemOrder = item.itemOrder,
+                entityId = item.entityId,
+                itemType = item.itemType
+            )
+        }
+    }
 }
