@@ -35,6 +35,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.launchIn
 import com.romankozak.forwardappmobile.features.projectscreen.models.ProjectViewMode
+import com.romankozak.forwardappmobile.features.projectscreen.components.inputpanel.InputMode
 
 // TODO: [GM-31] This file needs to be refactored with the new KMP architecture.
 
@@ -48,6 +49,7 @@ sealed class UiEvent {
     data class OpenUri(val uri: String) : UiEvent()
     data object ScrollToLatestInboxRecord : UiEvent()
     data class SwitchViewMode(val viewMode: ProjectViewMode) : UiEvent()
+    data class SwitchInputMode(val inputMode: InputMode) : UiEvent()
 }
 
 enum class GoalActionType {
@@ -67,7 +69,7 @@ data class UiState(
     val projectName: String? = null,
     val localSearchQuery: String = "",
     val goalToHighlight: String? = null,
-    val inputMode: Any = Any(),
+    val inputMode: InputMode = InputMode.AddGoal,
     val newlyAddedItemId: String? = null,
     val selectedItemIds: Set<String> = emptySet(),
     val inputValue: TextFieldValue = TextFieldValue(""),
@@ -150,8 +152,13 @@ class ProjectScreenViewModel(
     fun onEvent(event: UiEvent) {
         when (event) {
             is UiEvent.SwitchViewMode -> switchViewMode(event.viewMode)
+            is UiEvent.SwitchInputMode -> switchInputMode(event.inputMode)
             else -> { /* TODO */ }
         }
+    }
+
+    private fun switchInputMode(inputMode: InputMode) {
+        _uiState.update { it.copy(inputMode = inputMode) }
     }
 
     private fun switchViewMode(viewMode: ProjectViewMode) {
