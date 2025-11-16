@@ -114,7 +114,6 @@ class ProjectScreenViewModel(
   // private val reminderParser: ReminderParser,
   private val activityRepository: ActivityRecordsRepository,
   // private val projectMarkdownExporter: ProjectMarkdownExporter,
-  private val savedStateHandle: SavedStateHandle,
   private val dayManagementRepository: DayPlanRepository,
   @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
   private val goalRepository: GoalRepository,
@@ -130,4 +129,6 @@ class ProjectScreenViewModel(
 ): ViewModel() {
     private val _uiState = MutableStateFlow(UiState())
     val uiState = _uiState.asStateFlow()
+
+    lateinit var savedStateHandle: SavedStateHandle
 }

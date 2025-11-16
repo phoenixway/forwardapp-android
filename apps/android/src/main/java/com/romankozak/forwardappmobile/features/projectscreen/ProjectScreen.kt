@@ -19,7 +19,7 @@ fun ProjectScreen(
 ) {
     val appComponent = LocalAppComponent.current
     val viewModel: ProjectScreenViewModel = viewModel(
-        factory = appComponent.viewModelComponentFactory().create().viewModelFactory
+        factory = appComponent.viewModelFactory
     )
 
     // TODO: Implement the screen
