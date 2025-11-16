@@ -1,9 +1,9 @@
 package com.romankozak.forwardappmobile.features.projectscreen.viewmodel
 
 import android.util.Log
-import com.romankozak.forwardappmobile.data.database.models.ListItemContent
-import com.romankozak.forwardappmobile.data.repository.GoalRepository
-import com.romankozak.forwardappmobile.data.repository.ProjectRepository
+import com.romankozak.forwardappmobile.shared.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.shared.data.repository.GoalRepository
+import com.romankozak.forwardappmobile.shared.data.repository.ProjectRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

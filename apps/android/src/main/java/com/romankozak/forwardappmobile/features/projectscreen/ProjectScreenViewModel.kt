@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.features.projectscreen
 
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SearchUseCase
+import com.romankozak.forwardappmobile.features.mainscreen.usecases.SearchUseCase
 
 import android.app.Application
 import android.content.ClipData
@@ -15,35 +15,57 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.lifecycle.viewModelScope
 
 
-import com.romankozak.forwardappmobile.data.database.models.*
-import com.romankozak.forwardappmobile.data.logic.ContextHandler
-import com.romankozak.forwardappmobile.data.repository.ActivityRepository
-import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
-import com.romankozak.forwardappmobile.data.repository.ProjectRepository
-import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
-import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
-import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.shared.data.database.models.ActivityRecord
+import com.romankozak.forwardappmobile.shared.data.database.models.ChecklistEntity
+import com.romankozak.forwardappmobile.shared.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.shared.data.database.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.shared.data.database.models.NoteDocumentEntity
+import com.romankozak.forwardappmobile.shared.data.database.models.Project
+import com.romankozak.forwardappmobile.shared.data.database.models.ProjectArtifact
+import com.romankozak.forwardappmobile.shared.data.database.models.ProjectExecutionLog
+import com.romankozak.forwardappmobile.shared.data.database.models.ProjectLogEntryTypeValues
+import com.romankozak.forwardappmobile.shared.data.database.models.ProjectTimeMetrics
+import com.romankozak.forwardappmobile.shared.data.database.models.ProjectViewMode
+import com.romankozak.forwardappmobile.shared.data.database.models.RecentItem
+import com.romankozak.forwardappmobile.shared.data.database.models.RecentItemType
+import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
+import com.romankozak.forwardappmobile.shared.domain.models.LinkType
+import com.romankozak.forwardappmobile.shared.domain.models.Reminder
+import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
+import com.romankozak.forwardappmobile.shared.data.logic.ContextHandler
+import com.romankozak.forwardappmobile.shared.data.repository.ActivityRepository
+import com.romankozak.forwardappmobile.shared.data.repository.DayManagementRepository
+import com.romankozak.forwardappmobile.shared.data.repository.ProjectRepository
+import com.romankozak.forwardappmobile.shared.data.repository.NoteDocumentRepository
+import com.romankozak.forwardappmobile.shared.data.repository.ChecklistRepository
+import com.romankozak.forwardappmobile.shared.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.shared.data.repository.GoalRepository
+import com.romankozak.forwardappmobile.shared.data.repository.ListItemRepository
+import com.romankozak.forwardappmobile.shared.data.repository.ReminderRepository
+import com.romankozak.forwardappmobile.shared.data.repository.RecentItemsRepository
+import com.romankozak.forwardappmobile.shared.data.repository.ProjectLogRepository
+import com.romankozak.forwardappmobile.shared.data.repository.LegacyNoteRepository
+import com.romankozak.forwardappmobile.shared.data.repository.InboxRepository
 import com.romankozak.forwardappmobile.di.IoDispatcher
-import com.romankozak.forwardappmobile.domain.ner.NerManager
-import com.romankozak.forwardappmobile.domain.ner.NerState
-import com.romankozak.forwardappmobile.domain.ner.ReminderParser
-import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
-import com.romankozak.forwardappmobile.domain.reminders.cancelForActivityRecord
-import com.romankozak.forwardappmobile.domain.reminders.scheduleForActivityRecord
-import com.romankozak.forwardappmobile.domain.wifirestapi.FileDataRequest
-import com.romankozak.forwardappmobile.domain.wifirestapi.RetrofitClient
-import com.romankozak.forwardappmobile.ui.navigation.ClearAndNavigateHomeUseCase
-import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.TagUtils
-import com.romankozak.forwardappmobile.features.attachments.ui.project.AttachmentType
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.inputpanel.InputHandler
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.inputpanel.InputMode
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.InboxHandler
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.InboxHandlerResultListener
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.InboxMarkdownHandler
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.ItemActionHandler
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.ProjectMarkdownExporter
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.SelectionHandler
+import com.romankozak.forwardappmobile.shared.domain.ner.NerManager
+import com.romankozak.forwardappmobile.shared.domain.ner.NerState
+import com.romankozak.forwardappmobile.shared.domain.ner.ReminderParser
+import com.romankozak.forwardappmobile.shared.domain.reminders.AlarmScheduler
+import com.romankozak.forwardappmobile.shared.domain.reminders.cancelForActivityRecord
+import com.romankozak.forwardappmobile.shared.domain.reminders.scheduleForActivityRecord
+import com.romankozak.forwardappmobile.shared.domain.wifirestapi.FileDataRequest
+import com.romankozak.forwardappmobile.shared.domain.wifirestapi.RetrofitClient
+import com.romankozak.forwardappmobile.features.navigation.ClearAndNavigateHomeUseCase
+import com.romankozak.forwardappmobile.features.navigation.EnhancedNavigationManager
+import com.romankozak.forwardappmobile.features.projectscreen.components.TagUtils
+import com.romankozak.forwardappmobile.features.attachments.models.AttachmentType
+import com.romankozak.forwardappmobile.features.projectscreen.components.inputpanel.InputHandler
+import com.romankozak.forwardappmobile.features.projectscreen.viewmodel.InboxHandler
+import com.romankozak.forwardappmobile.features.projectscreen.viewmodel.InboxHandlerResultListener
+import com.romankozak.forwardappmobile.features.projectscreen.viewmodel.InboxMarkdownHandler
+import com.romankozak.forwardappmobile.features.projectscreen.viewmodel.ItemActionHandler
+import com.romankozak.forwardappmobile.features.projectscreen.viewmodel.ProjectMarkdownExporter
+import com.romankozak.forwardappmobile.features.projectscreen.viewmodel.SelectionHandler
 import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -59,7 +81,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.projectrealization.ProjectManagementTab
+import com.romankozak.forwardappmobile.features.projectscreen.components.projectrealization.ProjectManagementTab
 import java.util.UUID
 import kotlinx.coroutines.withContext
 
@@ -161,15 +183,15 @@ class ProjectScreenViewModel(
   private val dayManagementRepository: DayManagementRepository,
   private val clearAndNavigateHomeUseCase: ClearAndNavigateHomeUseCase,
   @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-  private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
-  private val listItemRepository: com.romankozak.forwardappmobile.data.repository.ListItemRepository,
+  private val goalRepository: GoalRepository,
+  private val listItemRepository: ListItemRepository,
   private val noteDocumentRepository: NoteDocumentRepository,
   private val checklistRepository: ChecklistRepository,
-  private val reminderRepository: com.romankozak.forwardappmobile.data.repository.ReminderRepository,
-  private val recentItemsRepository: com.romankozak.forwardappmobile.data.repository.RecentItemsRepository,
-  private val projectLogRepository: com.romankozak.forwardappmobile.data.repository.ProjectLogRepository,
-  private val noteRepository: com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository,
-  private val inboxRepository: com.romankozak.forwardappmobile.data.repository.InboxRepository,
+  private val reminderRepository: ReminderRepository,
+  private val recentItemsRepository: RecentItemsRepository,
+  private val projectLogRepository: ProjectLogRepository,
+  private val noteRepository: LegacyNoteRepository,
+  private val inboxRepository: InboxRepository,
 ) :
   ViewModel(),
   ItemActionHandler.ResultListener,
