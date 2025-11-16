@@ -5,7 +5,6 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import com.romankozak.forwardappmobile.di.IoDispatcher
-import com.romankozak.forwardappmobile.shared.data.models.RelatedLink
 import com.romankozak.forwardappmobile.shared.features.activitytracker.domain.model.ActivityRecord
 import com.romankozak.forwardappmobile.shared.features.activitytracker.domain.repository.ActivityRecordsRepository
 import com.romankozak.forwardappmobile.shared.features.attachments.types.checklists.domain.repository.ChecklistRepository
@@ -36,43 +35,15 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.launchIn
 import com.romankozak.forwardappmobile.features.projectscreen.models.ProjectViewMode
 import com.romankozak.forwardappmobile.features.projectscreen.components.inputpanel.InputMode
-import com.romankozak.forwardappmobile.shared.features.projects.views.inbox.domain.model.InboxRecord
+import com.romankozak.forwardappmobile.shared.data.database.models.LinkType
+import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.shared.features.projects.listitems.domain.model.ListItemContent
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
+import com.romankozak.forwardappmobile.shared.features.projects.views.inbox.domain.model.InboxRecord
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.stateIn
 
 // TODO: [GM-31] This file needs to be refactored with the new KMP architecture.
-
-sealed class UiEvent {
-    data class ShowSnackbar(val message: String, val action: String? = null) : UiEvent()
-    data class Navigate(val route: String) : UiEvent()
-    data class ResetSwipeState(val itemId: String) : UiEvent()
-    data class ScrollTo(val index: Int) : UiEvent()
-    data class NavigateBackAndReveal(val projectId: String) : UiEvent()
-    data class HandleLinkClick(val link: RelatedLink) : UiEvent()
-    data class OpenUri(val uri: String) : UiEvent()
-    data object ScrollToLatestInboxRecord : UiEvent()
-    data class SwitchViewMode(val viewMode: ProjectViewMode) : UiEvent()
-    data class SwitchInputMode(val inputMode: InputMode) : UiEvent()
-    data class AddInboxRecord(val text: String) : UiEvent()
-}
-
-enum class GoalActionType {
-    CreateInstance,
-    MoveInstance,
-    CopyGoal,
-    AddLinkToList,
-    ADD_LIST_SHORTCUT,
-}
-
-sealed class GoalActionDialogState {
-    object Hidden : GoalActionDialogState()
-    data class AwaitingActionChoice(val itemContent: Any) : GoalActionDialogState()
-}
 
 data class UiState(
     val projectName: String? = null,
@@ -112,6 +83,7 @@ data class UiState(
     val showDisplayPropertiesDialog: Boolean = false,
     val showCheckboxes: Boolean = false,
     val inboxItems: List<InboxRecord> = emptyList(),
+    val backlogItems: List<ListItemContent> = emptyList(),
 ) {
     val isSelectionModeActive: Boolean get() = selectedItemIds.isNotEmpty()
 }
@@ -145,43 +117,17 @@ class ProjectScreenViewModel(
 
     lateinit var savedStateHandle: SavedStateHandle
 
-    val listContent: StateFlow<List<ListItemContent>> =
-        savedStateHandle.getStateFlow<String?>("projectId", null)
-            .filterNotNull()
-            .flatMapLatest { projectId ->
-                listItemRepository.getListItems(projectId)
-                    .flatMapLatest { listItems ->
-                        val goalIds = listItems.filter { it.itemType == "goal" }.map { it.entityId }
-                        val projectIds = listItems.filter { it.itemType == "sublist" }.map { it.entityId }
-
-                        val goalsFlow = if (goalIds.isNotEmpty()) goalRepository.getGoalsByIds(goalIds) else flowOf(emptyList())
-                        val projectsFlow = if (projectIds.isNotEmpty()) projectRepository.getProjectsByIds(projectIds) else flowOf(emptyList())
-
-                        combine(goalsFlow, projectsFlow) { goals, projects ->
-                            listItems.mapNotNull { listItem ->
-                                when (listItem.itemType) {
-                                    "goal" -> {
-                                        goals.find { it.id == listItem.entityId }?.let { goal ->
-                                            ListItemContent.GoalItem(goal, listItem)
-                                        }
-                                    }
-                                    "link" -> {
-                                        val link = com.romankozak.forwardappmobile.shared.data.models.RelatedLink(type = com.romankozak.forwardappmobile.shared.data.models.LinkType.URL, target = listItem.entityId)
-                                        ListItemContent.LinkItem(link, listItem)
-                                    }
-                                    "sublist" -> {
-                                        projects.find { it.id == listItem.entityId }?.let { project ->
-                                            ListItemContent.SublistItem(project, listItem)
-                                        }
-                                    }
-                                    else -> null
-                                }
-                            }
-                        }
-                    }
-            }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
+    sealed class Event {
+        data class GoalChecked(val item: ListItemContent.GoalItem, val checked: Boolean) : Event()
+        data class GoalClick(val item: ListItemContent.GoalItem) : Event()
+        data class GoalLongClick(val item: ListItemContent.GoalItem) : Event()
+        data class TagClick(val tag: String) : Event()
+        data class RelatedLinkClick(val link: RelatedLink) : Event()
+        data class LinkClick(val item: ListItemContent.LinkItem) : Event()
+        data class SwitchViewMode(val viewMode: ProjectViewMode) : Event()
+        data class SwitchInputMode(val inputMode: InputMode) : Event()
+        data class AddInboxRecord(val text: String) : Event()
+    }
 
     init {
         viewModelScope.launch(ioDispatcher) {
@@ -199,16 +145,57 @@ class ProjectScreenViewModel(
                         _uiState.update { it.copy(inboxItems = records) }
                     }
                     .launchIn(viewModelScope)
+
+                listItemRepository.getListItems(id).flatMapLatest { listItems ->
+                    val goalIds = listItems.filter { it.itemType == "goal" }.map { it.entityId }
+                    val projectIds = listItems.filter { it.itemType == "sublist" }.map { it.entityId }
+
+                    val goalsFlow = if (goalIds.isNotEmpty()) goalRepository.getGoalsByIds(goalIds) else flowOf(emptyList())
+                    val projectsFlow = if (projectIds.isNotEmpty()) {
+                        combine(projectIds.map { projectId -> projectRepository.getProjectById(projectId).filterNotNull() }) { it.toList() }
+                    } else {
+                        flowOf(emptyList())
+                    }
+
+                    combine(goalsFlow, projectsFlow) { goals, projects ->
+                        listItems.mapNotNull { listItem ->
+                            when (listItem.itemType) {
+                                "goal" -> {
+                                    goals.find { it.id == listItem.entityId }?.let { goal ->
+                                        ListItemContent.GoalItem(goal, listItem)
+                                    }
+                                }
+                                "link" -> {
+                                    val link = RelatedLink(type = LinkType.URL, target = listItem.entityId)
+                                    ListItemContent.LinkItem(link, listItem)
+                                }
+                                "sublist" -> {
+                                    projects.find { it.id == listItem.entityId }?.let { project ->
+                                        ListItemContent.SublistItem(project, listItem)
+                                    }
+                                }
+                                else -> null
+                            }
+                        }
+                    }
+                }.onEach { backlogItems ->
+                    _uiState.update { it.copy(backlogItems = backlogItems) }
+                }.launchIn(viewModelScope)
             }
         }
     }
 
-    fun onEvent(event: UiEvent) {
+    fun onEvent(event: Event) {
         when (event) {
-            is UiEvent.SwitchViewMode -> switchViewMode(event.viewMode)
-            is UiEvent.SwitchInputMode -> switchInputMode(event.inputMode)
-            is UiEvent.AddInboxRecord -> addInboxRecord(event.text)
-            else -> { /* TODO */ }
+            is Event.SwitchViewMode -> switchViewMode(event.viewMode)
+            is Event.SwitchInputMode -> switchInputMode(event.inputMode)
+            is Event.AddInboxRecord -> addInboxRecord(event.text)
+            is Event.GoalChecked -> TODO()
+            is Event.GoalClick -> TODO()
+            is Event.GoalLongClick -> TODO()
+            is Event.TagClick -> TODO()
+            is Event.RelatedLinkClick -> TODO()
+            is Event.LinkClick -> TODO()
         }
     }
 

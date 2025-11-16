@@ -9,7 +9,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.romankozak.forwardappmobile.shared.features.projects.core.domain.model.Project
 import com.romankozak.forwardappmobile.features.projectscreen.models.ProjectViewMode
-import com.romankozak.forwardappmobile.features.projectscreen.GoalActionType
 
 @Composable
 fun AdaptiveTopBar(
@@ -22,7 +21,7 @@ fun AdaptiveTopBar(
     onDelete: () -> Unit,
     onMarkAsComplete: () -> Unit,
     onMarkAsIncomplete: () -> Unit,
-    onMoreActions: (GoalActionType) -> Unit,
+    // onMoreActions: (GoalActionType) -> Unit, // TODO: Re-implement if needed
     onInboxClick: () -> Unit,
     currentViewMode: ProjectViewMode? = null,
     modifier: Modifier = Modifier,
@@ -43,7 +42,7 @@ fun AdaptiveTopBar(
                 onClearSelection = onClearSelection,
                 onSelectAll = onSelectAll,
                 onDelete = onDelete,
-                onMoreActions = onMoreActions,
+                // onMoreActions = onMoreActions, // TODO: Re-implement if needed
                 onMarkAsComplete = onMarkAsComplete,
                 onMarkAsIncomplete = onMarkAsIncomplete,
             )

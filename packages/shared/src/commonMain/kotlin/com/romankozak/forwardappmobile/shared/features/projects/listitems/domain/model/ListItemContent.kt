@@ -5,7 +5,6 @@ import com.romankozak.forwardappmobile.shared.features.projects.core.domain.mode
 import com.romankozak.forwardappmobile.shared.features.attachments.types.legacynotes.domain.model.LegacyNote
 import com.romankozak.forwardappmobile.shared.features.attachments.types.notedocuments.domain.model.NoteDocument
 import com.romankozak.forwardappmobile.shared.features.attachments.types.checklists.domain.model.Checklist
-import com.romankozak.forwardappmobile.shared.data.models.RelatedLink
 
 sealed class ListItemContent {
     abstract val listItem: ListItem
@@ -21,7 +20,7 @@ sealed class ListItemContent {
     ) : ListItemContent()
 
     data class LinkItem(
-        val link: RelatedLink,
+        val link: com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink,
         override val listItem: ListItem
     ) : ListItemContent()
 

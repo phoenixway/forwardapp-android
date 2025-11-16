@@ -16,7 +16,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.features.projectscreen.GoalActionType
 
 @Composable
 fun MultiSelectTopAppBar(
@@ -27,7 +26,7 @@ fun MultiSelectTopAppBar(
     onDelete: () -> Unit,
     onMarkAsComplete: () -> Unit,
     onMarkAsIncomplete: () -> Unit,
-    onMoreActions: (GoalActionType) -> Unit,
+    // onMoreActions: (GoalActionType) -> Unit, // TODO: Re-implement if needed
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
@@ -135,7 +134,7 @@ fun MultiSelectTopAppBar(
                     DropdownMenuItem(
                         text = { Text("Create link") },
                         onClick = {
-                            onMoreActions(GoalActionType.CreateInstance)
+                            // onMoreActions(GoalActionType.CreateInstance) // TODO: Re-implement if needed
                             showMenu = false
                         },
                         leadingIcon = { Icon(Icons.Default.AddLink, contentDescription = null) },
@@ -143,7 +142,7 @@ fun MultiSelectTopAppBar(
                     DropdownMenuItem(
                         text = { Text("Move") },
                         onClick = {
-                            onMoreActions(GoalActionType.MoveInstance)
+                            // onMoreActions(GoalActionType.MoveInstance) // TODO: Re-implement if needed
                             showMenu = false
                         },
                         leadingIcon = { Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null) },
@@ -151,7 +150,7 @@ fun MultiSelectTopAppBar(
                     DropdownMenuItem(
                         text = { Text("Copy") },
                         onClick = {
-                            onMoreActions(GoalActionType.CopyGoal)
+                            // onMoreActions(GoalActionType.CopyGoal) // TODO: Re-implement if needed
                             showMenu = false
                         },
                         leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) },

@@ -6,6 +6,8 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -28,9 +30,9 @@ import com.romankozak.forwardappmobile.features.projectscreen.components.inputpa
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.text.input.TextFieldValue
+import com.romankozak.forwardappmobile.features.projectscreen.components.list.BacklogView
+import com.romankozak.forwardappmobile.shared.features.projects.listitems.domain.model.ListItemContent
 
-import com.romankozak.forwardappmobile.features.projectscreen.components.backlog.BacklogListScreen
-import androidx.compose.foundation.lazy.rememberLazyListState
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -45,11 +47,9 @@ fun ProjectScreen(
         factory = appComponent.viewModelFactory
     )
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val listContent by viewModel.listContent.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var inputValue by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue("")) }
     var showInputPanelMenu by rememberSaveable { mutableStateOf(false) }
-    val listState = rememberLazyListState()
 
     Scaffold(
         topBar = {
@@ -80,7 +80,7 @@ fun ProjectScreen(
                 onDelete = { /* TODO */ },
                 onMarkAsComplete = { /* TODO */ },
                 onMarkAsIncomplete = { /* TODO */ },
-                onMoreActions = { /* TODO */ },
+
                 onInboxClick = { Toast.makeText(context, "Inbox (не реалізовано)", Toast.LENGTH_SHORT).show() },
                 currentViewMode = state.currentView
             )
@@ -90,10 +90,10 @@ fun ProjectScreen(
                 inputValue = inputValue,
                 onValueChange = { inputValue = it },
                 inputMode = state.inputMode,
-                onInputModeSelected = { viewModel.onEvent(UiEvent.SwitchInputMode(it)) },
+                onInputModeSelected = { viewModel.onEvent(ProjectScreenViewModel.Event.SwitchInputMode(it)) },
                 onSubmit = {
                     if (inputValue.text.isNotBlank()) {
-                        viewModel.onEvent(UiEvent.AddInboxRecord(inputValue.text))
+                        viewModel.onEvent(ProjectScreenViewModel.Event.AddInboxRecord(inputValue.text))
                         inputValue = TextFieldValue("")
                     }
                 },
@@ -114,7 +114,7 @@ fun ProjectScreen(
                 menuExpanded = showInputPanelMenu,
                 onMenuExpandedChange = { showInputPanelMenu = it },
                 currentView = state.currentView,
-                onViewChange = { viewModel.onEvent(UiEvent.SwitchViewMode(it)) },
+                onViewChange = { viewModel.onEvent(ProjectScreenViewModel.Event.SwitchViewMode(it)) },
                 onImportFromMarkdown = { /* TODO */ },
                 onExportToMarkdown = { /* TODO */ },
                 onImportBacklogFromMarkdown = { /* TODO */ },
@@ -141,26 +141,11 @@ fun ProjectScreen(
         }
     ) { paddingValues ->
         when (state.currentView) {
-            ProjectViewMode.Backlog -> BacklogListScreen(
-                items = listContent,
-                modifier = Modifier.padding(paddingValues),
-                listState = listState,
-                showCheckboxes = state.showCheckboxes,
-                selectedItemIds = state.selectedItemIds,
-                contextMarkerToEmojiMap = emptyMap(), // TODO
-                onMove = { _, _ -> /* TODO */ },
-                onItemClick = { /* TODO */ },
-                onLongClick = { /* TODO */ },
-                onCheckedChange = { _, _ -> /* TODO */ },
-                onDelete = { /* TODO */ },
-                onDeleteEverywhere = { /* TODO */ },
-                onMoveToTop = { /* TODO */ },
-                onAddToDayPlan = { /* TODO */ },
-                onStartTracking = { /* TODO */ },
-                onShowGoalTransportMenu = { /* TODO */ },
-                onRelatedLinkClick = { /* TODO */ },
+            ProjectViewMode.Backlog -> BacklogView(
+                listContent = state.backlogItems,
+                viewModel = viewModel,
+                state = state,
                 onRemindersClick = { /* TODO */ },
-                onCopyContent = { /* TODO */ }
             )
             ProjectViewMode.Inbox -> {
                 LazyColumn(modifier = Modifier.padding(paddingValues)) {
