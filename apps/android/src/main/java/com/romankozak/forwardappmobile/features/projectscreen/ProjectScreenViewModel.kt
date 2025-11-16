@@ -15,37 +15,42 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.lifecycle.viewModelScope
 
 
-import com.romankozak.forwardappmobile.shared.data.database.models.ActivityRecord
-import com.romankozak.forwardappmobile.shared.data.database.models.ChecklistEntity
-import com.romankozak.forwardappmobile.shared.data.database.models.ListItemContent
-import com.romankozak.forwardappmobile.shared.data.database.models.ListItemTypeValues
-import com.romankozak.forwardappmobile.shared.data.database.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.shared.data.database.models.Project
-import com.romankozak.forwardappmobile.shared.data.database.models.ProjectArtifact
-import com.romankozak.forwardappmobile.shared.data.database.models.ProjectExecutionLog
+import com.romankozak.forwardappmobile.shared.features.activitytracker.domain.model.ActivityRecord
+import com.romankozak.forwardappmobile.shared.features.attachments.types.checklists.domain.model.Checklist
+import com.romankozak.forwardappmobile.shared.features.projects.listitems.domain.model.ListItemContent
+import com.romankozak.forwardappmobile.shared.features.goals.data.models.Goal
+import com.romankozak.forwardappmobile.shared.features.projects.core.domain.model.Project
+import com.romankozak.forwardappmobile.shared.features.attachments.types.legacynotes.domain.model.LegacyNote
+import com.romankozak.forwardappmobile.shared.features.attachments.types.notedocuments.domain.model.NoteDocument
+
+import com.romankozak.forwardappmobile.shared.data.models.RelatedLink
+import com.romankozak.forwardappmobile.shared.data.models.ListItemTypeValues
+
+import com.romankozak.forwardappmobile.shared.features.projects.core.domain.model.ProjectArtifact
+import com.romankozak.forwardappmobile.shared.features.projects.logs.data.model.ProjectExecutionLog
 import com.romankozak.forwardappmobile.shared.data.database.models.ProjectLogEntryTypeValues
-import com.romankozak.forwardappmobile.shared.data.database.models.ProjectTimeMetrics
+// TODO: [GM-28] ProjectTimeMetrics seems to be an old model. Needs to be replaced with a new KMP model or refactored.
+// import com.romankozak.forwardappmobile.shared.data.database.models.ProjectTimeMetrics
 import com.romankozak.forwardappmobile.shared.data.database.models.ProjectViewMode
-import com.romankozak.forwardappmobile.shared.data.database.models.RecentItem
-import com.romankozak.forwardappmobile.shared.data.database.models.RecentItemType
-import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
-import com.romankozak.forwardappmobile.shared.domain.models.LinkType
-import com.romankozak.forwardappmobile.shared.domain.models.Reminder
-import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
+import com.romankozak.forwardappmobile.shared.features.recent.domain.model.RecentItem
+import com.romankozak.forwardappmobile.shared.data.models.LinkType
+import com.romankozak.forwardappmobile.shared.features.reminders.domain.model.Reminder
+
 import com.romankozak.forwardappmobile.shared.data.logic.ContextHandler
-import com.romankozak.forwardappmobile.shared.data.repository.ActivityRepository
-import com.romankozak.forwardappmobile.shared.data.repository.DayManagementRepository
-import com.romankozak.forwardappmobile.shared.data.repository.ProjectRepository
-import com.romankozak.forwardappmobile.shared.data.repository.NoteDocumentRepository
-import com.romankozak.forwardappmobile.shared.data.repository.ChecklistRepository
-import com.romankozak.forwardappmobile.shared.data.repository.SettingsRepository
-import com.romankozak.forwardappmobile.shared.data.repository.GoalRepository
-import com.romankozak.forwardappmobile.shared.data.repository.ListItemRepository
-import com.romankozak.forwardappmobile.shared.data.repository.ReminderRepository
-import com.romankozak.forwardappmobile.shared.data.repository.RecentItemsRepository
-import com.romankozak.forwardappmobile.shared.data.repository.ProjectLogRepository
-import com.romankozak.forwardappmobile.shared.data.repository.LegacyNoteRepository
-import com.romankozak.forwardappmobile.shared.data.repository.InboxRepository
+import com.romankozak.forwardappmobile.shared.features.activitytracker.domain.repository.ActivityRecordsRepository
+import com.romankozak.forwardappmobile.shared.features.daymanagement.dayplan.domain.repository.DayPlanRepository
+import com.romankozak.forwardappmobile.shared.features.projects.core.domain.repository.ProjectRepository
+import com.romankozak.forwardappmobile.shared.features.attachments.types.notedocuments.domain.repository.NoteDocumentsRepository
+import com.romankozak.forwardappmobile.shared.features.attachments.types.checklists.domain.repository.ChecklistRepository
+import com.romankozak.forwardappmobile.shared.features.settings.domain.repository.SettingsRepository
+import com.romankozak.forwardappmobile.shared.features.goals.data.repository.GoalRepository
+import com.romankozak.forwardappmobile.shared.features.projects.listitems.domain.repository.ListItemRepository
+import com.romankozak.forwardappmobile.shared.features.reminders.domain.repository.ReminderRepository
+import com.romankozak.forwardappmobile.shared.features.recentitems.domain.repository.RecentItemsRepository
+import com.romankozak.forwardappmobile.shared.features.projects.logs.domain.repository.ProjectExecutionLogsRepository
+import com.romankozak.forwardappmobile.shared.features.projects.views.advancedview.projectartifacts.domain.repository.ProjectArtifactRepository
+import com.romankozak.forwardappmobile.shared.features.notes.legacy.domain.repository.LegacyNoteRepository
+import com.romankozak.forwardappmobile.shared.features.projects.views.inbox.domain.repository.InboxRepository
 import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.shared.domain.ner.NerManager
 import com.romankozak.forwardappmobile.shared.domain.ner.NerState
@@ -59,7 +64,9 @@ import com.romankozak.forwardappmobile.features.navigation.ClearAndNavigateHomeU
 import com.romankozak.forwardappmobile.features.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.features.projectscreen.components.TagUtils
 import com.romankozak.forwardappmobile.features.attachments.models.AttachmentType
+import com.romankozak.forwardappmobile.features.projectscreen.components.inputpanel.InputMode
 import com.romankozak.forwardappmobile.features.projectscreen.components.inputpanel.InputHandler
+import com.romankozak.forwardappmobile.features.projectscreen.viewmodel.BacklogMarkdownHandler
 import com.romankozak.forwardappmobile.features.projectscreen.viewmodel.InboxHandler
 import com.romankozak.forwardappmobile.features.projectscreen.viewmodel.InboxHandlerResultListener
 import com.romankozak.forwardappmobile.features.projectscreen.viewmodel.InboxMarkdownHandler
@@ -143,7 +150,8 @@ data class UiState(
   val detectedReminderCalendar: Calendar? = null,
   val nerState: NerState = NerState.NotInitialized,
   val recordForReminderDialog: ActivityRecord? = null,
-  val projectTimeMetrics: ProjectTimeMetrics? = null,
+  // TODO: [GM-28] ProjectTimeMetrics seems to be an old model. Needs to be replaced with a new KMP model or refactored.
+  // val projectTimeMetrics: ProjectTimeMetrics? = null,
   val showShareDialog: Boolean = false,
   val showCreateNoteDocumentDialog: Boolean = false,
   val showRemindersDialog: Boolean = false,
@@ -169,7 +177,8 @@ private val ActivityRecord.isOngoing: Boolean
 @OptIn(ExperimentalCoroutinesApi::class)
 @Inject
 class ProjectScreenViewModel(
-  private val searchUseCase: SearchUseCase,
+  // TODO: [GM-27] Old navigation/search use case. Needs to be migrated or replaced with new KMP architecture.
+  // private val searchUseCase: SearchUseCase,
   private val application: Application,
   private val projectRepository: ProjectRepository,
   private val settingsRepository: SettingsRepository,
@@ -177,11 +186,12 @@ class ProjectScreenViewModel(
   private val alarmScheduler: AlarmScheduler,
   private val nerManager: NerManager,
   private val reminderParser: ReminderParser,
-  private val activityRepository: ActivityRepository,
+  private val activityRepository: ActivityRecordsRepository,
   private val projectMarkdownExporter: ProjectMarkdownExporter,
   private val savedStateHandle: SavedStateHandle,
-  private val dayManagementRepository: DayManagementRepository,
-  private val clearAndNavigateHomeUseCase: ClearAndNavigateHomeUseCase,
+  private val dayManagementRepository: DayPlanRepository,
+  // TODO: [GM-27] Old navigation/search use case. Needs to be migrated or replaced with new KMP architecture.
+  // private val clearAndNavigateHomeUseCase: ClearAndNavigateHomeUseCase,
   @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
   private val goalRepository: GoalRepository,
   private val listItemRepository: ListItemRepository,
@@ -189,7 +199,8 @@ class ProjectScreenViewModel(
   private val checklistRepository: ChecklistRepository,
   private val reminderRepository: ReminderRepository,
   private val recentItemsRepository: RecentItemsRepository,
-  private val projectLogRepository: ProjectLogRepository,
+  private val projectLogRepository: ProjectExecutionLogsRepository,
+  private val projectArtifactRepository: ProjectArtifactRepository,
   private val noteRepository: LegacyNoteRepository,
   private val inboxRepository: InboxRepository,
 ) :
@@ -242,6 +253,12 @@ class ProjectScreenViewModel(
   val inboxMarkdownHandler = InboxMarkdownHandler(projectRepository, goalRepository, viewModelScope, this)
   val backlogMarkdownHandler = BacklogMarkdownHandler(projectRepository, goalRepository, viewModelScope, this)
 
+  override fun copyToClipboard(text: String, label: String) {
+    val clipboard = application.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    val clip = ClipData.newPlainText(label, text)
+    clipboard.setPrimaryClip(clip)
+  }
+
   private lateinit var lazyListState: LazyListState
 
   private var pendingAttachmentShare: ListItemContent? = null
@@ -266,7 +283,7 @@ class ProjectScreenViewModel(
     projectIdFlow
       .flatMapLatest { id ->
         if (id.isNotEmpty()) {
-          projectRepository.getProjectLogsStream(id)
+          projectLogRepository.observeLogs(id)
         } else {
           flowOf(emptyList())
         }
@@ -277,7 +294,7 @@ class ProjectScreenViewModel(
     projectIdFlow
       .flatMapLatest { id ->
         if (id.isNotEmpty()) {
-          projectRepository.getProjectArtifactStream(id)
+          projectArtifactRepository.getProjectArtifactStream(id)
         } else {
           flowOf(null)
         }
@@ -325,7 +342,7 @@ class ProjectScreenViewModel(
 
   val lastOngoingActivity: StateFlow<ActivityRecord?> =
     activityRepository
-      .getLogStream()
+      .observeActivityRecords()
       .map { log -> log.firstOrNull { it.isOngoing } }
       .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
@@ -344,7 +361,7 @@ class ProjectScreenViewModel(
       }
       .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-  private val databaseContentStream: Flow<List<ListItemContent>> =
+  private val databaseContentStream: StateFlow<List<ListItemContent>> =
     combine(
         projectIdFlow,
         _uiState.map { it.localSearchQuery }.distinctUntilChanged(),
@@ -356,27 +373,45 @@ class ProjectScreenViewModel(
         if (id.isEmpty()) {
           flowOf(emptyList())
         } else {
-          projectRepository.getProjectContentStream(id).map { content ->
-            if (query.isNotBlank()) {
-              content.filter { itemContent ->
-                val textToSearch =
-                  when (itemContent) {
-                    is ListItemContent.GoalItem -> itemContent.goal.text
-                    is ListItemContent.SublistItem -> itemContent.project.name
-                    is ListItemContent.LinkItem ->
-                      itemContent.link.linkData.displayName ?: itemContent.link.linkData.target
-                    is ListItemContent.NoteItem -> itemContent.note.title
-                    is ListItemContent.NoteDocumentItem -> itemContent.document.name
-                    is ListItemContent.ChecklistItem -> itemContent.checklist.name
+          listItemRepository.getListItems(id).map { listItems ->
+            listItems.mapNotNull { listItem ->
+              when (listItem.itemType) {
+                ListItemTypeValues.GOAL -> {
+                  goalRepository.getGoalById(listItem.entityId).firstOrNull()?.let { goal ->
+                    ListItemContent.GoalItem(goal, listItem)
                   }
-                textToSearch.contains(query, ignoreCase = true)
+                }
+                ListItemTypeValues.PROJECT -> {
+                  projectRepository.getProjectById(listItem.entityId).firstOrNull()?.let { project ->
+                    ListItemContent.SublistItem(project, listItem)
+                  }
+                }
+                ListItemTypeValues.LINK_ITEM -> {
+                  // This is a bit tricky, as we don't have a direct way to get a RelatedLink by its ID.
+                  // For now, I will leave this as a TODO.
+                  null
+                }
+                ListItemTypeValues.NOTE -> {
+                  noteRepository.getNoteById(listItem.entityId).firstOrNull()?.let { note ->
+                    ListItemContent.NoteItem(note, listItem)
+                  }
+                }
+                ListItemTypeValues.NOTE_DOCUMENT -> {
+                  noteDocumentRepository.getDocumentById(listItem.entityId).firstOrNull()?.let { document ->
+                    ListItemContent.NoteDocumentItem(document, listItem)
+                  }
+                }
+                ListItemTypeValues.CHECKLIST -> {
+                  checklistRepository.getChecklistById(listItem.entityId).firstOrNull()?.let { checklist ->
+                    ListItemContent.ChecklistItem(checklist, listItem)
+                  }
+                }
+                else -> null
               }
-            } else {
-              content
             }
           }
         }
-      }
+      }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
   val isSelectionModeActive: StateFlow<Boolean> =
     _uiState
@@ -400,7 +435,8 @@ class ProjectScreenViewModel(
 
     viewModelScope.launch {
         projectIdFlow.filter { it.isNotEmpty() }.collect { projectId ->
-            projectRepository.ensureChildProjectListItemsExist(projectId)
+        // TODO: [GM-30] This method needs to be re-implemented or replaced with a new mechanism for ensuring data consistency.
+        // projectRepository.ensureChildProjectListItemsExist(projectId)
         }
     }
 
@@ -600,20 +636,33 @@ class ProjectScreenViewModel(
 
   fun onToggleProjectManagement(isEnabled: Boolean) {
     viewModelScope.launch {
-      projectRepository.toggleProjectManagement(projectIdFlow.value, isEnabled)
+      project.value?.let { currentProject ->
+        val updatedProject = currentProject.copy(isProjectManagementEnabled = isEnabled)
+        projectRepository.upsertProject(updatedProject)
+      }
     }
   }
 
   fun onProjectStatusUpdate(newStatus: String, statusText: String?) {
     viewModelScope.launch {
-      projectRepository.updateProjectStatus(projectIdFlow.value, newStatus, statusText)
+      project.value?.let { currentProject ->
+        val updatedProject = currentProject.copy(projectStatus = newStatus, projectStatusText = statusText)
+        projectRepository.upsertProject(updatedProject)
+      }
     }
   }
 
   override fun addProjectComment(text: String) {
     if (text.isBlank()) return
     viewModelScope.launch(Dispatchers.IO) {
-      projectRepository.addProjectComment(projectIdFlow.value, text)
+      val log = ProjectExecutionLog(
+        id = UUID.randomUUID().toString(),
+        projectId = projectIdFlow.value,
+        type = ProjectLogEntryTypeValues.COMMENT,
+        description = text,
+        createdAt = System.currentTimeMillis()
+      )
+      projectLogRepository.upsertLog(log)
       withContext(Dispatchers.Main) {
           _uiState.update { it.copy(
               inputValue = TextFieldValue(""),
@@ -627,11 +676,14 @@ class ProjectScreenViewModel(
       override fun addMilestone(text: String) {
       if (text.isBlank()) return
       viewModelScope.launch(Dispatchers.IO) {
-          projectLogRepository.addProjectLogEntry(
+          val log = ProjectExecutionLog(
+              id = UUID.randomUUID().toString(),
               projectId = projectIdFlow.value,
               type = ProjectLogEntryTypeValues.MILESTONE,
               description = text,
+              createdAt = System.currentTimeMillis()
           )
+          projectLogRepository.upsertLog(log)
           withContext(Dispatchers.Main) {
               _uiState.update { it.copy(
                   inputValue = TextFieldValue(""),
@@ -976,21 +1028,21 @@ class ProjectScreenViewModel(
     }
   }
 
-  fun onNoteItemClick(note: LegacyNoteEntity) {
+  fun onNoteItemClick(note: LegacyNote) {
     viewModelScope.launch {
       recentItemsRepository.logNoteAccess(note)
           // legacy notes no longer have dedicated editor; no-op
     }
   }
 
-  fun onNoteDocumentItemClick(noteDocument: NoteDocumentEntity) {
+  fun onNoteDocumentItemClick(noteDocument: NoteDocument) {
     viewModelScope.launch {
       recentItemsRepository.logNoteDocumentAccess(noteDocument)
       _uiEventFlow.send(UiEvent.Navigate("note_document_screen/${noteDocument.id}"))
     }
   }
 
-  fun onChecklistItemClick(checklist: ChecklistEntity) {
+  fun onChecklistItemClick(checklist: Checklist) {
     viewModelScope.launch {
       recentItemsRepository.logChecklistAccess(checklist)
       _uiEventFlow.send(UiEvent.Navigate("checklist_screen?checklistId=${checklist.id}"))
@@ -1078,7 +1130,8 @@ class ProjectScreenViewModel(
     viewModelScope.launch(Dispatchers.IO) {
       val projectId = projectIdFlow.value
       if (projectId.isNotEmpty()) {
-        projectRepository.deleteProjectsAndSubProjects(listOf(project.value!!))
+        // TODO: [GM-29] Implement recursive deletion for subprojects. For now, only deletes the current project.
+        projectRepository.deleteProject(projectId)
         withContext(Dispatchers.Main) { requestNavigation("back") }
       }
     }
@@ -1155,7 +1208,7 @@ class ProjectScreenViewModel(
   fun onSubprojectCompletedChanged(subproject: Project, isCompleted: Boolean) {
     viewModelScope.launch {
       val updatedSubproject = subproject.copy(isCompleted = isCompleted)
-      projectRepository.updateProject(updatedSubproject)
+      projectRepository.upsertProject(updatedSubproject)
       forceRefresh()
     }
   }
@@ -1169,12 +1222,42 @@ class ProjectScreenViewModel(
       val result =
         when (item) {
           is ListItemContent.GoalItem -> {
-            val record = activityRepository.startGoalActivity(item.goal.id)
+            val record = ActivityRecord(
+                id = UUID.randomUUID().toString(),
+                goalId = item.goal.id,
+                startTime = System.currentTimeMillis(),
+                name = item.goal.text,
+                description = null,
+                endTime = null,
+                totalTimeSpentMinutes = 0,
+                tags = emptyList(),
+                relatedLinks = emptyList(),
+                isCompleted = false,
+                activityType = "GOAL",
+                parentProjectId = item.listItem.projectId,
+                createdAt = System.currentTimeMillis()
+            )
+            activityRepository.upsertActivityRecord(record)
             record to "Відстежую ціль"
           }
 
           is ListItemContent.SublistItem -> {
-            val record = activityRepository.startProjectActivity(item.project.id)
+            val record = ActivityRecord(
+                id = UUID.randomUUID().toString(),
+                projectId = item.project.id,
+                startTime = System.currentTimeMillis(),
+                name = item.project.name,
+                description = null,
+                endTime = null,
+                totalTimeSpentMinutes = 0,
+                tags = emptyList(),
+                relatedLinks = emptyList(),
+                isCompleted = false,
+                activityType = "PROJECT",
+                parentProjectId = item.project.parentId,
+                createdAt = System.currentTimeMillis()
+            )
+            activityRepository.upsertActivityRecord(record)
             record to "Відстежую проєкт"
           }
 
@@ -1303,7 +1386,8 @@ class ProjectScreenViewModel(
   fun stopOngoingActivity() {
     viewModelScope.launch {
       lastOngoingActivity.value?.let {
-        activityRepository.endLastActivity(System.currentTimeMillis())
+        val updatedRecord = it.copy(endTime = System.currentTimeMillis())
+        activityRepository.upsertActivityRecord(updatedRecord)
       }
     }
   }
@@ -1321,11 +1405,26 @@ class ProjectScreenViewModel(
     if (currentProjectId.isBlank()) return
 
     viewModelScope.launch {
-      val record = activityRepository.startProjectActivity(currentProjectId)
-      if (record != null) {
-        showSnackbar("Відстежую проєкт", "Обмежити в часі")
-        pendingActivityForReminder = record
-      }
+        project.value?.let {
+            val record = ActivityRecord(
+                id = UUID.randomUUID().toString(),
+                projectId = it.id,
+                startTime = System.currentTimeMillis(),
+                name = it.name,
+                description = null,
+                endTime = null,
+                totalTimeSpentMinutes = 0,
+                tags = emptyList(),
+                relatedLinks = emptyList(),
+                isCompleted = false,
+                activityType = "PROJECT",
+                parentProjectId = it.parentId,
+                createdAt = System.currentTimeMillis()
+            )
+            activityRepository.upsertActivityRecord(record)
+            showSnackbar("Відстежую проєкт", "Обмежити в часі")
+            pendingActivityForReminder = record
+        }
     }
   }
 
@@ -1336,7 +1435,8 @@ class ProjectScreenViewModel(
       val newState = !currentState
       val currentView = uiState.value.currentView
 
-      projectRepository.toggleProjectManagement(proj.id, newState)
+      val updatedProject = proj.copy(isProjectManagementEnabled = newState)
+      projectRepository.upsertProject(updatedProject)
 
       if (newState) {
                     onProjectViewChange(ProjectViewMode.ADVANCED)        } else if (currentView == ProjectViewMode.ADVANCED) {
@@ -1349,8 +1449,9 @@ class ProjectScreenViewModel(
     val currentProjectId = projectIdFlow.value
     if (currentProjectId.isNotBlank()) {
       viewModelScope.launch {
-        val metrics = projectRepository.calculateProjectTimeMetrics(currentProjectId)
-        _uiState.update { it.copy(projectTimeMetrics = metrics) }
+        // TODO: [GM-28] ProjectTimeMetrics seems to be an old model. Needs to be replaced with a new KMP model or refactored.
+        // val metrics = projectRepository.calculateProjectTimeMetrics(currentProjectId)
+        // _uiState.update { it.copy(projectTimeMetrics = metrics) }
 
         projectRepository.recalculateAndLogProjectTime(currentProjectId)
       }
@@ -1504,6 +1605,8 @@ class ProjectScreenViewModel(
     }
   }
 
+  // TODO: [GM-27] This method is dependent on old navigation/search use cases and needs to be refactored.
+  /*
   fun onHomeClick() {
     if (_isProcessingHome.value) {
       Log.w(TAG, "Home click ignored - already processing")
@@ -1532,7 +1635,10 @@ class ProjectScreenViewModel(
       }
     }
   }
+  */
 
+  // TODO: [GM-27] This method is dependent on old navigation/search use cases and needs to be refactored.
+  /*
   private fun createClearExecutionContext():
     com.romankozak.forwardappmobile.ui.navigation.ClearExecutionContext {
     return com.romankozak.forwardappmobile.ui.navigation.createClearExecutionContext(
@@ -1551,6 +1657,7 @@ class ProjectScreenViewModel(
         Channel<com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectUiEvent>(),
     )
   }
+  */
 
   fun onForwardPressed() {
     enhancedNavigationManager.goForward()
@@ -1662,20 +1769,20 @@ class ProjectScreenViewModel(
     _uiState.update { it.copy(showRecentProjectsSheet = false) }
     viewModelScope.launch {
       when (item.type) {
-        RecentItemType.PROJECT -> {
+        "PROJECT" -> {
           projectRepository.getProjectById(item.target)?.let { recentItemsRepository.logProjectAccess(it) }
           enhancedNavigationManager.navigateToProject(item.target, item.displayName)
         }
-        RecentItemType.NOTE -> _uiEventFlow.send(UiEvent.ShowSnackbar("Застарілі нотатки доступні лише для читання"))
-        RecentItemType.NOTE_DOCUMENT -> {
+        "NOTE" -> _uiEventFlow.send(UiEvent.ShowSnackbar("Застарілі нотатки доступні лише для читання"))
+        "NOTE_DOCUMENT" -> {
           noteDocumentRepository.getDocumentById(item.target)?.let { recentItemsRepository.logNoteDocumentAccess(it) }
           _uiEventFlow.send(UiEvent.Navigate("note_document_screen/${item.target}"))
         }
-        RecentItemType.CHECKLIST -> {
+        "CHECKLIST" -> {
           checklistRepository.getChecklistById(item.target)?.let { recentItemsRepository.logChecklistAccess(it) }
           _uiEventFlow.send(UiEvent.Navigate("checklist_screen?checklistId=${item.target}"))
         }
-        RecentItemType.OBSIDIAN_LINK -> {
+        "OBSIDIAN_LINK" -> {
           val link =
             RelatedLink(
               type = LinkType.OBSIDIAN,
@@ -1731,7 +1838,8 @@ class ProjectScreenViewModel(
 
   fun onCleanupDatabase() {
     viewModelScope.launch {
-      projectRepository.cleanupDanglingListItems()
+      // TODO: [GM-30] This method needs to be re-implemented or replaced with a new mechanism for cleaning up dangling list items.
+      // projectRepository.cleanupDanglingListItems()
       forceRefresh()
     }
   }
@@ -1742,7 +1850,7 @@ class ProjectScreenViewModel(
 
     fun onDeleteLogEntry(log: ProjectExecutionLog) {
         viewModelScope.launch {
-            projectLogRepository.deleteProjectExecutionLog(log)
+            projectLogRepository.deleteLog(log.id)
         }
     }
 
@@ -1753,7 +1861,7 @@ class ProjectScreenViewModel(
                 description = description,
                 details = details
             )
-            projectLogRepository.updateProjectExecutionLog(updatedLog)
+            projectLogRepository.updateLogDetails(updatedLog.id, updatedLog.description, updatedLog.details)
             onDismissEditLogEntryDialog()
         }
     }
@@ -1776,11 +1884,14 @@ class ProjectScreenViewModel(
 
     fun onAddMilestone() {
         viewModelScope.launch {
-            projectLogRepository.addProjectLogEntry(
+            val log = ProjectExecutionLog(
+                id = UUID.randomUUID().toString(),
                 projectId = projectIdFlow.value,
                 type = ProjectLogEntryTypeValues.MILESTONE,
                 description = "New Milestone",
+                createdAt = System.currentTimeMillis()
             )
+            projectLogRepository.upsertLog(log)
         }
     }
 
@@ -1788,7 +1899,7 @@ class ProjectScreenViewModel(
         viewModelScope.launch {
             val currentArtifact = projectArtifact.value
             if (currentArtifact == null) {
-                projectRepository.createProjectArtifact(
+                projectArtifactRepository.createProjectArtifact(
                     ProjectArtifact(
                         id = UUID.randomUUID().toString(),
                         projectId = projectIdFlow.value,
@@ -1798,7 +1909,7 @@ class ProjectScreenViewModel(
                     )
                 )
             } else {
-                projectRepository.updateProjectArtifact(currentArtifact.copy(content = content, updatedAt = System.currentTimeMillis()))
+                projectArtifactRepository.updateProjectArtifact(currentArtifact.copy(content = content, updatedAt = System.currentTimeMillis()))
             }
             onDismissArtifactEditor()
         }

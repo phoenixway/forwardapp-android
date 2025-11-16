@@ -6,3 +6,9 @@
 2025-11-14: Відновлено ActivityRecords + FTS: створено `.sq` з тригерами, міграція 0004, доменна модель у `features/activitytracker`, KMP-репозиторій + DI та `ActivityRecordsRepositoryTest` (сорування, пошук, ongoing). `make test` тепер запускає і `:packages:shared:jvmTest`.
 2025-11-14: Відновлено Reminders: додано таблицю `Reminders` + міграцію 0005, доменну модель/репозиторій у `features/reminders`, DI-провайдер та `RemindersRepositoryTest` (потоки, фільтрація, CRUD). Готово до підключення майбутнього reminder UI.
 2025-11-15: Відновлено Day Management (DayPlans + DayTasks + DailyMetrics): перенесено схеми з кастомними типами, додано міграцію 0006, коло доменних моделей (DayStatus/TaskPriority/TaskStatus), репозиторії/DI, ColumnAdapter для map/list значень та jvmTests (`DayPlanRepositoryTest`, `DayTaskRepositoryTest`, `DailyMetricsRepositoryTest`). Day management feature пакетом готова до інтеграції UI.
+2025-11-16: Виправлено імпорт `DayManagementRepository` на `DayPlanRepository` у `ProjectScreenViewModel.kt`.
+2025-11-16: Виправлено імпорт `ActivityRecord` на `com.romankozak.forwardappmobile.shared.features.activitytracker.domain.model.ActivityRecord` у `ProjectScreenViewModel.kt`.
+2025-11-16: Виправлено імпорт `ChecklistEntity` на `com.romankozak.forwardappmobile.shared.features.attachments.types.checklists.domain.model.Checklist` та оновлено використання `ChecklistEntity` на `Checklist` у `ProjectScreenViewModel.kt`.
+2025-11-16: Виправлено імпорт `Goal` на `com.romankozak.forwardappmobile.shared.features.goals.data.models.Goal` у `ProjectScreenViewModel.kt`.
+2025-11-16: Виправлено імпорт `LegacyNote` на `com.romankozak.forwardappmobile.shared.features.attachments.types.legacynotes.domain.model.LegacyNote` у `ProjectScreenViewModel.kt`.
+2025-11-16: Виправлено імпорт `NoteDocument` на `com.romankozak.forwardappmobile.shared.features.attachments.types.notedocuments.domain.model.NoteDocument` у `ProjectScreenViewModel.kt`.

@@ -17,27 +17,36 @@
     *   Адаптувати `package` та базові імпорти.
     *   Замінити залежності від Room-репозиторіїв на інтерфейси нових KMP-репозиторіїв.
     *   Анотувати конструктор ViewModel для `kotlin.inject`.
+    *   **Прогрес:** Виконано. Основний файл створено, імпорти `DayManagementRepository`, `ActivityRecord`, `ChecklistEntity`, `Goal`, `Project`, `LegacyNote`, `NoteDocument` виправлено.
 
-2.  **Створення `ProjectScreen.kt`:**
+2.  **Систематичне виправлення імпортів та посилань у `ProjectScreenViewModel.kt`:**
+    *   **Поточний стан:** Багато "Unresolved reference" та "Type mismatch" помилок.
+    *   **Дії:**
+        *   Визначити нові шляхи для всіх нерозв'язаних посилань (наприклад, `LinkType`, `Reminder`, `ProjectArtifact`, `ProjectExecutionLog`, `RecentItem`, `RecentItemType`, `InputMode`, `ProjectManagementTab`, `RetrofitClient`, `FileDataRequest`, `ContextHandler`, `NerManager`, `ReminderParser`, `AlarmScheduler`, `SearchUseCase`, `ClearAndNavigateHomeUseCase`, `EnhancedNavigationManager`, `ProjectScreenEvents`, `BacklogMarkdownHandlerResultListener`, `InboxHandlerResultListener`, `InboxMarkdownHandler.ResultListener`, `ItemActionHandler.ResultListener`, `SelectionHandler.ResultListener`, `InputHandler.ResultListener`, `ProjectLogEntryTypeValues`, `ProjectViewMode`, `ProjectTimeMetrics`, `NerState`, `TagUtils`, `AnalyticsRepository`, `ObsidianRepository`).
+        *   Оновити імпорти.
+        *   Виправити сигнатури методів та типи даних, якщо вони змінилися.
+        *   Виправити логіку, яка покладається на старі структури даних або API.
+
+3.  **Створення `ProjectScreen.kt`:**
     *   Створити файл `apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/ProjectScreen.kt`.
     *   Скопіювати вміст Composable-функцій з `dev` версії.
     *   Адаптувати імпорти та виправити помилки компіляції, пов'язані з UI.
 
-3.  **Налаштування DI через `kotlin.inject`:**
+4.  **Налаштування DI через `kotlin.inject`:**
     *   Створити `features/projectscreen/di/ProjectScreenModule.kt`.
     *   Додати в нього `provideProjectScreenViewModel`.
     *   Підключити `ProjectScreenModule` до `AppComponent.kt`.
 
-4.  **Адаптація ViewModel до нового Data Layer:**
+5.  **Адаптація ViewModel до нового Data Layer:**
     *   Проаналізувати логіку `ProjectScreenViewModel` та замінити всі виклики до старого репозиторію на нові.
     *   Реалізувати мапінг між SQLDelight-сутністями та UI-моделями, якщо вони відрізняються.
     *   Переконатися, що `Flow` з нового репозиторію коректно обробляється.
 
-5.  **Інтеграція UI та ViewModel:**
+6.  **Інтеграція UI та ViewModel:**
     *   У `ProjectScreen.kt` отримувати ViewModel через `remember { LocalAppComponent.current.projectScreenViewModel }`.
     *   Підключити UI до `StateFlow` та івентів з адаптованої ViewModel.
     *   Виправити всі помилки, пов'язані з несумісністю даних.
 
-6.  **Компіляція та тестування:**
+7.  **Компіляція та тестування:**
     *   Запустити `make check-compile` для перевірки компіляції.
     *   Запустити додаток і перевірити, що `ProjectScreen` відкривається та коректно відображає дані.
