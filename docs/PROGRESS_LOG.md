@@ -14,3 +14,4 @@
 2025-11-16: Виправлено імпорт `NoteDocument` на `com.romankozak.forwardappmobile.shared.features.attachments.types.notedocuments.domain.model.NoteDocument` у `ProjectScreenViewModel.kt`.
 2025-11-16: Налаштовано DI для ViewModel через `kotlin-inject` з використанням `ViewModelProvider.Factory` для коректної роботи з `SavedStateHandle`. Створено `VIEWMODEL_INJECTION_GUIDE.md`. Реалізовано навігацію з головного екрана на `ProjectScreen` по кліку на проєкт.
 2025-11-16: Завершено Етап 1: Відновлення базової структури UI та обробки подій для `ProjectScreen`. Реалізовано `Scaffold` з `TopAppBar` та завантаження назви проєкту у `ProjectScreenViewModel`.
+2025-11-16: Завершено Етап 2: Реалізація перемикання режимів (View Modes) для `ProjectScreen`. Створено `ProjectViewMode` enum, UI-панель для перемикання та логіку в ViewModel для оновлення стану.

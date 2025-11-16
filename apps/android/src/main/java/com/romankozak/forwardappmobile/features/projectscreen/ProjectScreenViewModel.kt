@@ -28,25 +28,26 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import me.tatarka.inject.annotations.Inject
 import java.util.Calendar
+import kotlinx.coroutines.launch
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.launchIn
+import com.romankozak.forwardappmobile.features.projectscreen.models.ProjectViewMode
 
 // TODO: [GM-31] This file needs to be refactored with the new KMP architecture.
 
 sealed class UiEvent {
     data class ShowSnackbar(val message: String, val action: String? = null) : UiEvent()
-
     data class Navigate(val route: String) : UiEvent()
-
     data class ResetSwipeState(val itemId: String) : UiEvent()
-
     data class ScrollTo(val index: Int) : UiEvent()
-
     data class NavigateBackAndReveal(val projectId: String) : UiEvent()
-
     data class HandleLinkClick(val link: RelatedLink) : UiEvent()
-
     data class OpenUri(val uri: String) : UiEvent()
-
     data object ScrollToLatestInboxRecord : UiEvent()
+    data class SwitchViewMode(val viewMode: ProjectViewMode) : UiEvent()
 }
 
 enum class GoalActionType {
@@ -59,11 +60,11 @@ enum class GoalActionType {
 
 sealed class GoalActionDialogState {
     object Hidden : GoalActionDialogState()
-
     data class AwaitingActionChoice(val itemContent: Any) : GoalActionDialogState()
 }
 
 data class UiState(
+    val projectName: String? = null,
     val localSearchQuery: String = "",
     val goalToHighlight: String? = null,
     val inputMode: Any = Any(),
@@ -77,7 +78,7 @@ data class UiState(
     val itemToHighlight: String? = null,
     val inboxRecordToHighlight: String? = null,
     val needsStateRefresh: Boolean = false,
-    val currentView: Any = Any(),
+    val currentView: ProjectViewMode = ProjectViewMode.Backlog,
     val isViewModePanelVisible: Boolean = false,
     val showRecentProjectsSheet: Boolean = false,
     val showImportFromMarkdownDialog: Boolean = false,
@@ -131,4 +132,29 @@ class ProjectScreenViewModel(
     val uiState = _uiState.asStateFlow()
 
     lateinit var savedStateHandle: SavedStateHandle
+
+    init {
+        viewModelScope.launch(ioDispatcher) {
+            val projectId = savedStateHandle.get<String>("projectId")
+            projectId?.let { id ->
+                projectRepository.getProjectById(id)
+                    .filterNotNull()
+                    .onEach { project ->
+                        _uiState.update { it.copy(projectName = project.name) }
+                    }
+                    .launchIn(viewModelScope)
+            }
+        }
+    }
+
+    fun onEvent(event: UiEvent) {
+        when (event) {
+            is UiEvent.SwitchViewMode -> switchViewMode(event.viewMode)
+            else -> { /* TODO */ }
+        }
+    }
+
+    private fun switchViewMode(viewMode: ProjectViewMode) {
+        _uiState.update { it.copy(currentView = viewMode) }
+    }
 }
