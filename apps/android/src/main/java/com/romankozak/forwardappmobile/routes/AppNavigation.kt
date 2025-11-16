@@ -10,6 +10,8 @@ import com.romankozak.forwardappmobile.features.mainscreen.MainScreen
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.romankozak.forwardappmobile.features.projectscreen.ProjectScreen
+import com.romankozak.forwardappmobile.routes.PROJECT_ID_ARG
+import com.romankozak.forwardappmobile.routes.PROJECT_SCREEN_ROUTE
 
 const val MAIN_SCREEN_ROUTE = "main_screen"
 
@@ -28,6 +30,18 @@ fun AppNavigation() {
                     navController = navController,
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedVisibilityScope = this
+                )
+            }
+
+            composable(
+                route = "$PROJECT_SCREEN_ROUTE/{$PROJECT_ID_ARG}",
+                arguments = listOf(navArgument(PROJECT_ID_ARG) { type = NavType.StringType })
+            ) { backStackEntry ->
+                ProjectScreen(
+                    navController = navController,
+                    sharedTransitionScope = this@SharedTransitionLayout,
+                    animatedVisibilityScope = this,
+                    projectId = backStackEntry.arguments?.getString(PROJECT_ID_ARG),
                 )
             }
 

@@ -13,7 +13,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.di.LocalAppComponent
 import com.romankozak.forwardappmobile.features.mainscreen.components.MainScreenScaffold
+import com.romankozak.forwardappmobile.features.mainscreen.models.MainScreenEvent
 import com.romankozak.forwardappmobile.features.mainscreen.models.ProjectUiEvent
+import com.romankozak.forwardappmobile.routes.PROJECT_SCREEN_ROUTE
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -40,5 +42,8 @@ fun MainScreen(
     MainScreenScaffold(
         state = state,
         onEvent = viewModel::onEvent,
+        onProjectClick = { projectId ->
+            navController.navigate("$PROJECT_SCREEN_ROUTE/$projectId")
+        },
     )
 }

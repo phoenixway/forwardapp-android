@@ -48,11 +48,13 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.shared.features.projects.core.domain.model.Project
 import com.romankozak.forwardappmobile.features.mainscreen.models.MainScreenEvent
 import com.romankozak.forwardappmobile.features.mainscreen.models.MainScreenUiState
+import androidx.compose.foundation.clickable
 
 @Composable
 fun MainScreenContent(
     state: MainScreenUiState,
     onEvent: (MainScreenEvent) -> Unit,
+    onProjectClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val hierarchyItems =
@@ -106,6 +108,7 @@ fun MainScreenContent(
                 ProjectHierarchyList(
                     items = hierarchyItems,
                     onEvent = onEvent,
+                    onProjectClick = onProjectClick,
                 )
             }
         }
@@ -117,6 +120,7 @@ fun MainScreenContent(
 private fun ProjectHierarchyList(
     items: List<ProjectListItem>,
     onEvent: (MainScreenEvent) -> Unit,
+    onProjectClick: (String) -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -127,6 +131,7 @@ private fun ProjectHierarchyList(
             ProjectHierarchyCard(
                 item = item,
                 onEvent = onEvent,
+                onProjectClick = onProjectClick,
             )
         }
     }
@@ -136,6 +141,7 @@ private fun ProjectHierarchyList(
 private fun ProjectHierarchyCard(
     item: ProjectListItem,
     onEvent: (MainScreenEvent) -> Unit,
+    onProjectClick: (String) -> Unit,
 ) {
     val indentation = (item.depth * 24).dp
     val rowBackground = MaterialTheme.colorScheme.surface
@@ -155,6 +161,7 @@ private fun ProjectHierarchyCard(
                     .weight(1f)
                     .clip(MaterialTheme.shapes.medium)
                     .background(rowBackground)
+                    .clickable { onProjectClick(item.project.id) }
                     .padding(horizontal = 12.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {

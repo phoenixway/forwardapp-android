@@ -42,6 +42,7 @@ import com.romankozak.forwardappmobile.features.mainscreen.models.PlanningMode
 fun MainScreenScaffold(
     state: MainScreenUiState,
     onEvent: (MainScreenEvent) -> Unit,
+    onProjectClick: (String) -> Unit,
 ) {
     val context = LocalContext.current
     val showPlaceholderToast = remember {
@@ -89,6 +90,7 @@ fun MainScreenScaffold(
             MainScreenContent(
                 state = state,
                 onEvent = onEvent,
+                onProjectClick = onProjectClick,
             )
 
             if (state.isActionInProgress) {
