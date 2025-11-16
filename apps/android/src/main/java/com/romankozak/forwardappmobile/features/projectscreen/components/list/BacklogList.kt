@@ -48,7 +48,6 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 
 @Composable
 fun BacklogView(
-    items: List<ListItemContent>,
     modifier: Modifier = Modifier,
     listState: LazyListState,
     listContent: List<ListItemContent>,
@@ -74,7 +73,7 @@ fun BacklogView(
         state = listState,
         modifier = modifier
     ) {
-        items(items, key = { it.listItem.id }) { item ->
+        items(listContent, key = { it.listItem.id }) { item ->
             ReorderableItem(reorderableState, key = item.listItem.id) { isDragging ->
                 when (item) {
                     is ListItemContent.GoalItem -> GoalItem(

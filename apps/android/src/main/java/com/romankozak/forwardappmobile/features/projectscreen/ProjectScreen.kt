@@ -7,12 +7,16 @@ import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -28,10 +32,15 @@ import com.romankozak.forwardappmobile.shared.features.projects.core.domain.mode
 import com.romankozak.forwardappmobile.features.projectscreen.components.inputpanel.ModernInputPanel
 import com.romankozak.forwardappmobile.features.projectscreen.components.inputpanel.InputMode
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.composed
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.features.projectscreen.components.list.BacklogView
 import com.romankozak.forwardappmobile.shared.features.projects.listitems.domain.model.ListItemContent
+import kotlinx.coroutines.delay
 
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
@@ -46,10 +55,13 @@ fun ProjectScreen(
     val viewModel: ProjectScreenViewModel = viewModel(
         factory = appComponent.viewModelFactory
     )
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var inputValue by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue("")) }
     var showInputPanelMenu by rememberSaveable { mutableStateOf(false) }
+
+    val listState = rememberLazyListState()
 
     Scaffold(
         topBar = {
@@ -146,6 +158,12 @@ fun ProjectScreen(
                 viewModel = viewModel,
                 state = state,
                 onRemindersClick = { /* TODO */ },
+                modifier = Modifier
+                    .padding(paddingValues)
+                    .glitch(trigger = uiState.currentView),
+                listState = listState,
+                onMove = { /* TODO */ } as (Int, Int) -> Unit,
+                onCopyContent = { /* TODO */ },
             )
             ProjectViewMode.Inbox -> {
                 LazyColumn(modifier = Modifier.padding(paddingValues)) {
@@ -166,5 +184,26 @@ fun ProjectScreen(
                 modifier = Modifier.padding(paddingValues).fillMaxWidth().padding(16.dp)
             )
         }
+    }
+}
+
+
+fun Modifier.glitch(trigger: Any): Modifier = composed {
+    var glitchAmount by remember { mutableFloatStateOf(0f) }
+
+    LaunchedEffect(key1 = trigger) {
+        val glitchDuration = 150L
+        val startTime = withFrameNanos { it }
+
+        while (withFrameNanos { it } < startTime + (glitchDuration * 1_000_000)) {
+            glitchAmount = (Math.random() * 10 - 5).toFloat()
+            delay(40)
+        }
+        glitchAmount = 0f
+    }
+
+    this.graphicsLayer {
+        translationX = glitchAmount
+        translationY = (Math.random() * glitchAmount - glitchAmount / 2).toFloat()
     }
 }
