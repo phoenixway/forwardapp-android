@@ -17,12 +17,13 @@ class InjectedViewModelFactory(
         modelClass: Class<T>,
         extras: CreationExtras
     ): T {
+        val saved = extras.createSavedStateHandle()
 
         if (modelClass == ProjectScreenViewModel::class.java) {
-            val savedStateHandle: SavedStateHandle = extras.createSavedStateHandle()
+            val vm = projectScreenViewModel() // DI створив VM
 
-            val vm = projectScreenViewModel()
-            vm.savedStateHandle = savedStateHandle
+            vm.savedStateHandle = saved       // Android передав handle
+            vm.onStart()                      // VM тепер може працювати
 
             return vm as T
         }
@@ -30,3 +31,4 @@ class InjectedViewModelFactory(
         throw IllegalArgumentException("Unknown ViewModel class: $modelClass")
     }
 }
+

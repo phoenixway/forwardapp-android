@@ -32,6 +32,8 @@ abstract class AppComponent(
     abstract val mainScreenViewModel: MainScreenViewModel
     abstract val viewModelFactory: androidx.lifecycle.ViewModelProvider.Factory
     abstract val projectScreenViewModel: () -> ProjectScreenViewModel
+    //abstract val projectScreenViewModel: (SavedStateHandle) -> ProjectScreenViewModel
+
 
     companion object
 }

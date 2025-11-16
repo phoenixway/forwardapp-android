@@ -128,8 +128,67 @@ class ProjectScreenViewModel(
         data class SwitchInputMode(val inputMode: InputMode) : Event()
         data class AddInboxRecord(val text: String) : Event()
     }
+    
+        fun onStart() {
+        val projectId = savedStateHandle.get<String>("projectId") ?: return
 
-    init {
+        viewModelScope.launch(ioDispatcher) {
+
+            projectRepository.getProjectById(projectId)
+                .filterNotNull()
+                .onEach { project ->
+                    _uiState.update { it.copy(projectName = project.name) }
+                }
+                .launchIn(viewModelScope)
+
+            inboxRepository.observeInbox(projectId)
+                .onEach { records ->
+                    _uiState.update { it.copy(inboxItems = records) }
+                }
+                .launchIn(viewModelScope)
+
+            listItemRepository.getListItems(projectId)
+                .flatMapLatest { listItems ->
+                    val goalIds = listItems.filter { it.itemType == "goal" }.map { it.entityId }
+                    val projectIds = listItems.filter { it.itemType == "sublist" }.map { it.entityId }
+
+                    val goalsFlow =
+                        if (goalIds.isNotEmpty()) goalRepository.getGoalsByIds(goalIds)
+                        else flowOf(emptyList())
+
+                    val projectsFlow =
+                        if (projectIds.isNotEmpty()) {
+                            combine(projectIds.map { id ->
+                                projectRepository.getProjectById(id).filterNotNull()
+                            }) { it.toList() }
+                        } else flowOf(emptyList())
+
+                    combine(goalsFlow, projectsFlow) { goals, projects ->
+                        listItems.mapNotNull { listItem ->
+                            when (listItem.itemType) {
+                                "goal" -> goals.find { it.id == listItem.entityId }
+                                    ?.let { ListItemContent.GoalItem(it, listItem) }
+                                "link" -> ListItemContent.LinkItem(
+                                    RelatedLink(type = LinkType.URL, target = listItem.entityId),
+                                    listItem
+                                )
+                                "sublist" -> projects.find { it.id == listItem.entityId }
+                                    ?.let { ListItemContent.SublistItem(it, listItem) }
+                                else -> null
+                            }
+                        }
+                    }
+                }
+                .onEach { backlogItems ->
+                    _uiState.update { it.copy(backlogItems = backlogItems) }
+                }
+                .launchIn(viewModelScope)
+        }
+    }
+
+
+
+/*    init {
         viewModelScope.launch(ioDispatcher) {
             val projectId = savedStateHandle.get<String>("projectId")
             projectId?.let { id ->
@@ -183,7 +242,7 @@ class ProjectScreenViewModel(
                 }.launchIn(viewModelScope)
             }
         }
-    }
+    }*/
 
     fun onEvent(event: Event) {
         when (event) {

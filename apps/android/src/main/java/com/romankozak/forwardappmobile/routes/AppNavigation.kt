@@ -42,8 +42,6 @@ fun AppNavigation() {
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedVisibilityScope = this,
                     projectId = backStackEntry.arguments?.getString(PROJECT_ID_ARG),
-                    modifier = TODO(),
-                    listState = TODO(),
                 )
             }
 
@@ -77,8 +75,6 @@ fun AppNavigation() {
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedVisibilityScope = this,
                     projectId = projectId,
-                    modifier = TODO(),
-                    listState = TODO(),
                 )
             }
         }
