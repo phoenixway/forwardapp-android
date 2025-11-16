@@ -29,6 +29,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.text.input.TextFieldValue
 
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import com.romankozak.forwardappmobile.shared.features.projects.views.inbox.domain.model.InboxRecord
+
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ProjectScreen(
@@ -86,7 +90,12 @@ fun ProjectScreen(
                 onValueChange = { inputValue = it },
                 inputMode = state.inputMode,
                 onInputModeSelected = { viewModel.onEvent(UiEvent.SwitchInputMode(it)) },
-                onSubmit = { /* TODO */ },
+                onSubmit = {
+                    if (inputValue.text.isNotBlank()) {
+                        viewModel.onEvent(UiEvent.AddInboxRecord(inputValue.text))
+                        inputValue = TextFieldValue("")
+                    }
+                },
                 onRecentsClick = { /* TODO */ },
                 onAddListLinkClick = { /* TODO */ },
                 onShowAddWebLinkDialog = { /* TODO */ },
@@ -135,10 +144,16 @@ fun ProjectScreen(
                 text = "Backlog Content for ID: $projectId",
                 modifier = Modifier.padding(paddingValues).fillMaxWidth().padding(16.dp)
             )
-            ProjectViewMode.Inbox -> Text(
-                text = "Inbox Content for ID: $projectId",
-                modifier = Modifier.padding(paddingValues).fillMaxWidth().padding(16.dp)
-            )
+            ProjectViewMode.Inbox -> {
+                LazyColumn(modifier = Modifier.padding(paddingValues)) {
+                    items(state.inboxItems) { item ->
+                        Text(
+                            text = item.text,
+                            modifier = Modifier.fillMaxWidth().padding(16.dp)
+                        )
+                    }
+                }
+            }
             ProjectViewMode.Advanced -> Text(
                 text = "Advanced Content for ID: $projectId",
                 modifier = Modifier.padding(paddingValues).fillMaxWidth().padding(16.dp)

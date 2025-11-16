@@ -88,6 +88,7 @@
             *   У `ViewModel` додати логіку завантаження даних з `inboxRepository`.
             *   Додати поле `inboxItems` в `UiState`.
             *   У `ProjectScreen.kt` замінити заглушку для "Inbox" на реальний UI-компонент для відображення списку.
+            *   **Прогрес:** Виконано.
         2.  **Реалізувати режим "Backlog"**:
             *   Повторити процес для беклогу, використовуючи `listItemRepository`.
             *   Додати `backlogItems` в `UiState`.

@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.launchIn
 import com.romankozak.forwardappmobile.features.projectscreen.models.ProjectViewMode
 import com.romankozak.forwardappmobile.features.projectscreen.components.inputpanel.InputMode
+import com.romankozak.forwardappmobile.shared.features.projects.views.inbox.domain.model.InboxRecord
 
 // TODO: [GM-31] This file needs to be refactored with the new KMP architecture.
 
@@ -50,6 +51,7 @@ sealed class UiEvent {
     data object ScrollToLatestInboxRecord : UiEvent()
     data class SwitchViewMode(val viewMode: ProjectViewMode) : UiEvent()
     data class SwitchInputMode(val inputMode: InputMode) : UiEvent()
+    data class AddInboxRecord(val text: String) : UiEvent()
 }
 
 enum class GoalActionType {
@@ -102,6 +104,7 @@ data class UiState(
     val showNoteDocumentEditor: Boolean = false,
     val showDisplayPropertiesDialog: Boolean = false,
     val showCheckboxes: Boolean = false,
+    val inboxItems: List<InboxRecord> = emptyList(),
 ) {
     val isSelectionModeActive: Boolean get() = selectedItemIds.isNotEmpty()
 }
@@ -145,6 +148,12 @@ class ProjectScreenViewModel(
                         _uiState.update { it.copy(projectName = project.name) }
                     }
                     .launchIn(viewModelScope)
+
+                inboxRepository.observeInbox(id)
+                    .onEach { records ->
+                        _uiState.update { it.copy(inboxItems = records) }
+                    }
+                    .launchIn(viewModelScope)
             }
         }
     }
@@ -153,7 +162,22 @@ class ProjectScreenViewModel(
         when (event) {
             is UiEvent.SwitchViewMode -> switchViewMode(event.viewMode)
             is UiEvent.SwitchInputMode -> switchInputMode(event.inputMode)
+            is UiEvent.AddInboxRecord -> addInboxRecord(event.text)
             else -> { /* TODO */ }
+        }
+    }
+
+    private fun addInboxRecord(text: String) {
+        viewModelScope.launch(ioDispatcher) {
+            val projectId = savedStateHandle.get<String>("projectId") ?: return@launch
+            val newRecord = InboxRecord(
+                id = "inbox_${System.currentTimeMillis()}",
+                projectId = projectId,
+                text = text,
+                createdAt = System.currentTimeMillis(),
+                itemOrder = 0 // TODO: Implement correct ordering
+            )
+            inboxRepository.upsert(newRecord)
         }
     }
 
