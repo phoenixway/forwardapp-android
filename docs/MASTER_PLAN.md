@@ -31,22 +31,53 @@
     *   Створити файл `apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/ProjectScreen.kt`.
     *   Скопіювати вміст Composable-функцій з `dev` версії.
     *   Адаптувати імпорти та виправити помилки компіляції, пов'язані з UI.
+    *   **Прогрес:** Виконано. Файл створено, навігація на екран реалізована.
 
 4.  **Налаштування DI через `kotlin.inject`:**
     *   Створити `features/projectscreen/di/ProjectScreenModule.kt`.
     *   Додати в нього `provideProjectScreenViewModel`.
     *   Підключити `ProjectScreenModule` до `AppComponent.kt`.
+    *   **Прогрес:** Виконано. Реалізовано через більш правильний та сучасний патерн з кастомною `ViewModelProvider.Factory` (`InjectedViewModelFactory`), що дозволяє коректно впроваджувати `SavedStateHandle` і є кращою практикою для `kotlin-inject`.
 
-5.  **Адаптація ViewModel до нового Data Layer:**
-    *   Проаналізувати логіку `ProjectScreenViewModel` та замінити всі виклики до старого репозиторію на нові.
-    *   Реалізувати мапінг між SQLDelight-сутністями та UI-моделями, якщо вони відрізняються.
-    *   Переконатися, що `Flow` з нового репозиторію коректно обробляється.
+5.  **Етап 1: Відновлення базової структури UI та обробки подій**
 
-6.  **Інтеграція UI та ViewModel:**
-    *   У `ProjectScreen.kt` отримувати ViewModel через `remember { LocalAppComponent.current.projectScreenViewModel }`.
-    *   Підключити UI до `StateFlow` та івентів з адаптованої ViewModel.
-    *   Виправити всі помилки, пов'язані з несумісністю даних.
+    *   **Завдання:** Відновити основну оболонку екрана (`Scaffold`, `TopAppBar`, `ModernInputPanel`) та базову логіку обробки подій у ViewModel.
 
-7.  **Компіляція та тестування:**
-    *   Запустити `make check-compile` для перевірки компіляції.
-    *   Запустити додаток і перевірити, що `ProjectScreen` відкривається та коректно відображає дані.
+    *   **Кроки:**
+
+        1.  У `ProjectScreen.kt` відновити `Scaffold` та його основні елементи (TopAppBar, панель вводу).
+
+        2.  У `ProjectScreenViewModel` реалізувати завантаження основного об'єкта проєкту за `projectId` з `savedStateHandle`.
+
+        3.  Оновити `UiState` назвою проєкту для відображення в `TopAppBar`.
+
+        4.  Створити базову функцію `onEvent` у ViewModel для обробки UI-подій, що не залежать від даних.
+
+
+
+6.  **Етап 2: Реалізація перемикання режимів (View Modes)**
+    *   **Завдання:** Реалізувати логіку перемикання між різними поданнями екрана (беклог, інбокс, розширений, додатки), поки що з використанням заглушок замість реального контенту.
+    *   **Кроки:**
+        1.  Створити `enum` або `sealed class` для режимів екрана (`ProjectViewMode.Backlog`, `ProjectViewMode.Inbox`, `ProjectViewMode.Advanced`, `ProjectViewMode.Attachments`).
+        2.  Додати `currentView: ProjectViewMode` до `UiState`.
+        3.  Підключити панель вводу (`ModernInputPanel`) для відправки подій `UiEvent.SwitchViewMode`.
+        4.  У `ViewModel` обробити подію `SwitchViewMode` та оновити `UiState`.
+        5.  У `ProjectScreen.kt` додати `when` блок, який відображає текстову заглушку для кожного режиму на основі `state.currentView`.
+
+7.  **Етап 3: Поетапне підключення даних для кожного режиму**
+    *   **Завдання:** По черзі для кожного режиму реалізувати завантаження даних з репозиторіїв та їх відображення.
+    *   **Кроки:**
+        1.  **Реалізувати режим "Inbox"**:
+            *   У `ViewModel` додати логіку завантаження даних з `inboxRepository`.
+            *   Додати поле `inboxItems` в `UiState`.
+            *   У `ProjectScreen.kt` замінити заглушку для "Inbox" на реальний UI-компонент для відображення списку.
+        2.  **Реалізувати режим "Backlog"**:
+            *   Повторити процес для беклогу, використовуючи `listItemRepository`.
+            *   Додати `backlogItems` в `UiState`.
+            *   Замінити заглушку для "Backlog" на реальний UI.
+        3.  **Реалізувати режим "Attachments"**:
+            *   Реалізувати завантаження даних для нотаток, чеклістів, посилань тощо.
+            *   Додати відповідні поля в `UiState`.
+            *   Замінити заглушку на UI для відображення додатків.
+        4.  **Реалізувати режим "Advanced"**:
+            *   Підключити логіку та UI для розширеного перегляду, використовуючи `projectArtifactRepository`.
