@@ -313,9 +313,11 @@ constructor(
                 Log.d(IMPORT_TAG, "  - goals вставлено: ${backup.goals.size}")
                 projectDao.insertProjects(cleanedProjects)
                 Log.d(IMPORT_TAG, "  - projects вставлено: ${cleanedProjects.size}")
-                listItemDao.insertItems(backlogListItems)
-                Log.d(IMPORT_TAG, "  - list_items вставлено: ${backlogListItems.size}")
 
+                // Отримуємо ID всіх щойно вставлених проектів для перевірки цілісності
+                val validProjectIds = cleanedProjects.map { it.id }.toSet()
+
+                // Спочатку вставляємо всі "контентні" сутності
                 backup.legacyNotes?.let {
                     legacyNoteDao.insertAll(it.orEmpty())
                     Log.d(IMPORT_TAG, "  - legacy_notes вставлено: ${it.size}")
@@ -336,14 +338,24 @@ constructor(
                     checklistDao.insertItems(backupChecklistItems)
                     Log.d(IMPORT_TAG, "  - checklist_items вставлено: ${backupChecklistItems.size}")
                 }
-
-                backup.activityRecords?.let {
-                    activityRecordDao.insertAll(it)
-                    Log.d(IMPORT_TAG, "  - activity_records вставлено: ${it.size}")
-                }
                 backup.linkItemEntities?.let {
                     linkItemDao.insertAll(it)
                     Log.d(IMPORT_TAG, "  - link_items вставлено: ${it.size}")
+                }
+
+                // Тепер вставляємо list_items, але тільки ті, що посилаються на існуючі проекти
+                val (validListItems, orphanedListItems) = backlogListItems.partition { it.projectId in validProjectIds }
+                if (orphanedListItems.isNotEmpty()) {
+                    Log.w(IMPORT_TAG, "Пропускаємо ${orphanedListItems.size} 'сирітських' ListItems, що посилаються на неіснуючі проекти.")
+                    orphanedListItems.forEach { Log.w(IMPORT_TAG, "  - Пропущений ListItem: id=${it.id}, projectId=${it.projectId}") }
+                }
+                listItemDao.insertItems(validListItems)
+                Log.d(IMPORT_TAG, "  - list_items вставлено: ${validListItems.size} (пропущено: ${orphanedListItems.size})")
+
+                // Решта сутностей
+                backup.activityRecords?.let {
+                    activityRecordDao.insertAll(it)
+                    Log.d(IMPORT_TAG, "  - activity_records вставлено: ${it.size}")
                 }
                 backup.inboxRecords?.let {
                     inboxRecordDao.insertAll(it)
