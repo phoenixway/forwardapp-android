@@ -37,6 +37,13 @@ import kotlinx.coroutines.flow.launchIn
 import com.romankozak.forwardappmobile.features.projectscreen.models.ProjectViewMode
 import com.romankozak.forwardappmobile.features.projectscreen.components.inputpanel.InputMode
 import com.romankozak.forwardappmobile.shared.features.projects.views.inbox.domain.model.InboxRecord
+import com.romankozak.forwardappmobile.shared.features.projects.listitems.domain.model.ListItemContent
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.stateIn
 
 // TODO: [GM-31] This file needs to be refactored with the new KMP architecture.
 
@@ -137,6 +144,44 @@ class ProjectScreenViewModel(
     val uiState = _uiState.asStateFlow()
 
     lateinit var savedStateHandle: SavedStateHandle
+
+    val listContent: StateFlow<List<ListItemContent>> =
+        savedStateHandle.getStateFlow<String?>("projectId", null)
+            .filterNotNull()
+            .flatMapLatest { projectId ->
+                listItemRepository.getListItems(projectId)
+                    .flatMapLatest { listItems ->
+                        val goalIds = listItems.filter { it.itemType == "goal" }.map { it.entityId }
+                        val projectIds = listItems.filter { it.itemType == "sublist" }.map { it.entityId }
+
+                        val goalsFlow = if (goalIds.isNotEmpty()) goalRepository.getGoalsByIds(goalIds) else flowOf(emptyList())
+                        val projectsFlow = if (projectIds.isNotEmpty()) projectRepository.getProjectsByIds(projectIds) else flowOf(emptyList())
+
+                        combine(goalsFlow, projectsFlow) { goals, projects ->
+                            listItems.mapNotNull { listItem ->
+                                when (listItem.itemType) {
+                                    "goal" -> {
+                                        goals.find { it.id == listItem.entityId }?.let { goal ->
+                                            ListItemContent.GoalItem(goal, listItem)
+                                        }
+                                    }
+                                    "link" -> {
+                                        val link = com.romankozak.forwardappmobile.shared.data.models.RelatedLink(type = com.romankozak.forwardappmobile.shared.data.models.LinkType.URL, target = listItem.entityId)
+                                        ListItemContent.LinkItem(link, listItem)
+                                    }
+                                    "sublist" -> {
+                                        projects.find { it.id == listItem.entityId }?.let { project ->
+                                            ListItemContent.SublistItem(project, listItem)
+                                        }
+                                    }
+                                    else -> null
+                                }
+                            }
+                        }
+                    }
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
 
     init {
         viewModelScope.launch(ioDispatcher) {

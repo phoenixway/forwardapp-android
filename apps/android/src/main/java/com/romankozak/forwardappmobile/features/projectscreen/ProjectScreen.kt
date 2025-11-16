@@ -29,9 +29,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.text.input.TextFieldValue
 
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import com.romankozak.forwardappmobile.shared.features.projects.views.inbox.domain.model.InboxRecord
+import com.romankozak.forwardappmobile.features.projectscreen.components.backlog.BacklogListScreen
+import androidx.compose.foundation.lazy.rememberLazyListState
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -46,9 +45,11 @@ fun ProjectScreen(
         factory = appComponent.viewModelFactory
     )
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val listContent by viewModel.listContent.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var inputValue by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue("")) }
     var showInputPanelMenu by rememberSaveable { mutableStateOf(false) }
+    val listState = rememberLazyListState()
 
     Scaffold(
         topBar = {
@@ -140,9 +141,26 @@ fun ProjectScreen(
         }
     ) { paddingValues ->
         when (state.currentView) {
-            ProjectViewMode.Backlog -> Text(
-                text = "Backlog Content for ID: $projectId",
-                modifier = Modifier.padding(paddingValues).fillMaxWidth().padding(16.dp)
+            ProjectViewMode.Backlog -> BacklogListScreen(
+                items = listContent,
+                modifier = Modifier.padding(paddingValues),
+                listState = listState,
+                showCheckboxes = state.showCheckboxes,
+                selectedItemIds = state.selectedItemIds,
+                contextMarkerToEmojiMap = emptyMap(), // TODO
+                onMove = { _, _ -> /* TODO */ },
+                onItemClick = { /* TODO */ },
+                onLongClick = { /* TODO */ },
+                onCheckedChange = { _, _ -> /* TODO */ },
+                onDelete = { /* TODO */ },
+                onDeleteEverywhere = { /* TODO */ },
+                onMoveToTop = { /* TODO */ },
+                onAddToDayPlan = { /* TODO */ },
+                onStartTracking = { /* TODO */ },
+                onShowGoalTransportMenu = { /* TODO */ },
+                onRelatedLinkClick = { /* TODO */ },
+                onRemindersClick = { /* TODO */ },
+                onCopyContent = { /* TODO */ }
             )
             ProjectViewMode.Inbox -> {
                 LazyColumn(modifier = Modifier.padding(paddingValues)) {
