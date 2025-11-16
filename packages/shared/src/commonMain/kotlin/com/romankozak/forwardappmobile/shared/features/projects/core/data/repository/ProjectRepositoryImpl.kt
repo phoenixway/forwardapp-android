@@ -32,6 +32,13 @@ class ProjectRepositoryImpl(
             .map { it?.toDomain() }
     }
 
+    override fun getChildProjects(parentId: String): Flow<List<Project>> {
+        return db.projectsQueries.getChildProjects(parentId)
+            .asFlow()
+            .mapToList(dispatcher)
+            .map { projects -> projects.map { it.toDomain() } }
+    }
+
     override fun searchProjects(query: String): Flow<List<Project>> {
         val projects = if (Platform.isAndroid) {
             db.projectsQueries.searchProjectsFts(query)

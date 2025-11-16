@@ -1,10 +1,10 @@
 package com.romankozak.forwardappmobile.shared.features.projects.core.domain.model
 
+import com.romankozak.forwardappmobile.shared.data.database.models.ScoringStatusValues
 import kotlinx.serialization.Serializable
 import com.romankozak.forwardappmobile.shared.data.models.RelatedLink
 import com.romankozak.forwardappmobile.shared.data.models.ReservedGroup
 import com.romankozak.forwardappmobile.shared.data.models.ProjectStatusValues
-import com.romankozak.forwardappmobile.shared.data.models.ScoringStatusValues
 
 @Serializable
 data class Project(

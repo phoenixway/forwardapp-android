@@ -20,3 +20,10 @@
 2025-11-16: Відновлено `ModernInputPanel` з заглушками для нереалізованої логіки.
 2025-11-16: Реалізовано режим "Inbox": додано логіку завантаження даних з `inboxRepository` та їх відображення у `ProjectScreen`.
 2025-11-16: Розпочато реалізацію режиму "Backlog": створено `BacklogList.kt` із базовою структурою та заглушками для `ListItemView`, `GoalItem`, `LinkItem`. Заплановано копіювання реалізації з `dev` гілки.
+2025-11-16: Виправлено `ClassCastException` у `ProjectScreen.kt` шляхом корекції лямбда-функції `onMove`.
+2025-11-16: Реалізовано додавання цілей до беклогу: додано `insertListItem` до `ListItemRepository`, подію `AddBacklogGoal` та функцію `addBacklogGoal` у `ProjectScreenViewModel.kt`, а також модифіковано `ProjectScreen.kt` для відправки `AddBacklogGoal` з панелі вводу.
+2025-11-16: Виправлено проблему з клавіатурою, що приховувала панель вводу, додавши `Modifier.navigationBarsPadding().imePadding()` до `Scaffold` у `ProjectScreen.kt`.
+2025-11-16: Виправлено помилки компіляції, пов'язані з `kotlinx-datetime` та `uuid`, шляхом зміни області видимості залежностей з `implementation` на `api` у `packages/shared/build.gradle.kts`.
+2025-11-16: Скопійовано та інтегровано внутрішні Composable-компоненти для `SubProjectItem` з гілки `dev` до `apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/components/backlogitems/`: `AnimatedContextEmoji.kt`, `EnhancedRelatedLinkChip.kt`, `EnhancedReminderBadge.kt`, `Badges.kt` (з `EnhancedScoreStatusBadge`), `NoteIndicatorBadge.kt`, `ModernTagChip.kt`. Підтверджено існування `TagType` та `getTagColors` у `TagChip.kt`.
+2025-11-16: Інтегровано `SubProjectItem` (перейменований `ProjectItem` з гілки `dev`) у `BacklogList.kt` та замінено `TODO` для `ListItemContent.SublistItem`.
+2025-11-16: Реалізовано навігацію для кліків по `SubProjectItem`: додано подію `SubprojectClick` та `navigationEvents` `SharedFlow` у `ProjectScreenViewModel.kt`, а також збір цих подій у `ProjectScreen.kt` для навігації.

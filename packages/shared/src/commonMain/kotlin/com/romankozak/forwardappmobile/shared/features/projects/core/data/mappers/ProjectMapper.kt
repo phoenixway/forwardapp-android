@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.shared.features.projects.core.data.mappers
 
+import com.romankozak.forwardappmobile.shared.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.shared.database.Projects
 import com.romankozak.forwardappmobile.shared.features.projects.core.domain.model.Project
 import com.romankozak.forwardappmobile.shared.database.booleanAdapter
@@ -7,7 +8,6 @@ import com.romankozak.forwardappmobile.shared.database.stringListAdapter
 import com.romankozak.forwardappmobile.shared.database.relatedLinksListAdapter
 import com.romankozak.forwardappmobile.shared.features.projects.core.domain.model.ProjectType
 import com.romankozak.forwardappmobile.shared.data.models.ReservedGroup
-import com.romankozak.forwardappmobile.shared.data.models.ScoringStatusValues
 
 fun Projects.toDomain(): Project {
     return Project(

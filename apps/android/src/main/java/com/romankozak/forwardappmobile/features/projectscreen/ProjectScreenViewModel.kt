@@ -46,6 +46,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.datetime.Clock
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 
 // TODO: [GM-31] This file needs to be refactored with the new KMP architecture.
 
@@ -88,8 +90,15 @@ data class UiState(
     val showCheckboxes: Boolean = false,
     val inboxItems: List<InboxRecord> = emptyList(),
     val backlogItems: List<ListItemContent> = emptyList(),
+    val contextMarkerToEmojiMap: Map<String, String> = emptyMap(),
+    val currentTimeMillis: Long = 0L,
 ) {
     val isSelectionModeActive: Boolean get() = selectedItemIds.isNotEmpty()
+}
+
+sealed class NavigationEvent {
+    data class NavigateToProject(val projectId: String) : NavigationEvent()
+    // Add other navigation events as needed
 }
 
 @Inject
@@ -119,6 +128,9 @@ class ProjectScreenViewModel(
     private val _uiState = MutableStateFlow(UiState())
     val uiState = _uiState.asStateFlow()
 
+    private val _navigationEvents = MutableSharedFlow<NavigationEvent>()
+    val navigationEvents = _navigationEvents.asSharedFlow()
+
     lateinit var savedStateHandle: SavedStateHandle
 
     sealed class Event {
@@ -128,188 +140,217 @@ class ProjectScreenViewModel(
         data class TagClick(val tag: String) : Event()
         data class RelatedLinkClick(val link: RelatedLink) : Event()
         data class LinkClick(val item: ListItemContent.LinkItem) : Event()
-                data class SwitchViewMode(val viewMode: ProjectViewMode) : Event()
-                data class SwitchInputMode(val inputMode: InputMode) : Event()
-                data class AddInboxRecord(val text: String) : Event()
-                data class AddBacklogGoal(val text: String) : Event()
+        data class SwitchViewMode(val viewMode: ProjectViewMode) : Event()
+        data class SwitchInputMode(val inputMode: InputMode) : Event()
+        data class AddInboxRecord(val text: String) : Event()
+        data class AddBacklogGoal(val text: String) : Event()
+        data class SubprojectClick(val projectId: String) : Event()
+        data class SubprojectLongClick(val item: ListItemContent.SublistItem) : Event()
+    }
+    
+        fun onStart() {
+        val projectId = savedStateHandle.get<String>("projectId") ?: return
+
+        viewModelScope.launch(ioDispatcher) {
+            _uiState.update {
+                it.copy(
+                    currentTimeMillis = Clock.System.now().toEpochMilliseconds(),
+                    // TODO: Fetch contextMarkerToEmojiMap from SettingsRepository
+                    contextMarkerToEmojiMap = emptyMap()
+                )
             }
-            
-                fun onStart() {
-                val projectId = savedStateHandle.get<String>("projectId") ?: return
-        
-                viewModelScope.launch(ioDispatcher) {
-        
-                    projectRepository.getProjectById(projectId)
-                        .filterNotNull()
-                        .onEach { project ->
-                            _uiState.update { it.copy(projectName = project.name) }
-                        }
-                        .launchIn(viewModelScope)
-        
-                    inboxRepository.observeInbox(projectId)
-                        .onEach { records ->
-                            _uiState.update { it.copy(inboxItems = records) }
-                        }
-                        .launchIn(viewModelScope)
-        
-                    listItemRepository.getListItems(projectId)
-                        .flatMapLatest { listItems ->
-                            val goalIds = listItems.filter { it.itemType == "goal" }.map { it.entityId }
-                            val projectIds = listItems.filter { it.itemType == "sublist" }.map { it.entityId }
-        
-                            val goalsFlow =
-                                if (goalIds.isNotEmpty()) goalRepository.getGoalsByIds(goalIds)
-                                else flowOf(emptyList())
-        
-                            val projectsFlow =
-                                if (projectIds.isNotEmpty()) {
-                                    combine(projectIds.map { id ->
-                                        projectRepository.getProjectById(id).filterNotNull()
-                                    }) { it.toList() }
-                                } else flowOf(emptyList())
-        
-                            combine(goalsFlow, projectsFlow) { goals, projects ->
-                                listItems.mapNotNull { listItem ->
-                                    when (listItem.itemType) {
-                                        "goal" -> goals.find { it.id == listItem.entityId }
-                                            ?.let { ListItemContent.GoalItem(it, listItem) }
-                                        "link" -> ListItemContent.LinkItem(
-                                            RelatedLink(type = LinkType.URL, target = listItem.entityId),
-                                            listItem
-                                        )
-                                        "sublist" -> projects.find { it.id == listItem.entityId }
-                                            ?.let { ListItemContent.SublistItem(it, listItem) }
-                                        else -> null
-                                    }
-                                }
-                            }
-                        }
-                        .onEach { backlogItems ->
-                            _uiState.update { it.copy(backlogItems = backlogItems) }
-                        }
-                        .launchIn(viewModelScope)
+
+            projectRepository.getProjectById(projectId)
+                .filterNotNull()
+                .onEach { project ->
+                    _uiState.update { it.copy(projectName = project.name) }
                 }
-            }
-        
-        
-        
-        /*    init {
-                viewModelScope.launch(ioDispatcher) {
-                    val projectId = savedStateHandle.get<String>("projectId")
-                    projectId?.let { id ->
-                        projectRepository.getProjectById(id)
-                            .filterNotNull()
-                            .onEach { project ->
-                                _uiState.update { it.copy(projectName = project.name) }
-                            }
-                            .launchIn(viewModelScope)
-        
-                        inboxRepository.observeInbox(id)
-                            .onEach { records ->
-                                _uiState.update { it.copy(inboxItems = records) }
-                            }
-                            .launchIn(viewModelScope)
-        
-                        listItemRepository.getListItems(id).flatMapLatest { listItems ->
-                            val goalIds = listItems.filter { it.itemType == "goal" }.map { it.entityId }
-                            val projectIds = listItems.filter { it.itemType == "sublist" }.map { it.entityId }
-        
-                            val goalsFlow = if (goalIds.isNotEmpty()) goalRepository.getGoalsByIds(goalIds) else flowOf(emptyList())
-                            val projectsFlow = if (projectIds.isNotEmpty()) {
-                                combine(projectIds.map { projectId -> projectRepository.getProjectById(projectId).filterNotNull() }) { it.toList() }
-                            } else {
-                                flowOf(emptyList())
-                            }
-        
-                            combine(goalsFlow, projectsFlow) { goals, projects ->
-                                listItems.mapNotNull { listItem ->
-                                    when (listItem.itemType) {
-                                        "goal" -> {
-                                            goals.find { it.id == listItem.entityId }?.let { goal ->
-                                                ListItemContent.GoalItem(goal, listItem)
-                                            }
-                                        }
-                                        "link" -> {
-                                            val link = RelatedLink(type = LinkType.URL, target = listItem.entityId)
-                                            ListItemContent.LinkItem(link, listItem)
-                                        }
-                                        "sublist" -> {
-                                            projects.find { it.id == listItem.entityId }?.let { project ->
-                                                ListItemContent.SublistItem(project, listItem)
-                                            }
-                                        }
-                                        else -> null
+                .launchIn(viewModelScope)
+
+            inboxRepository.observeInbox(projectId)
+                .onEach { records ->
+                    _uiState.update { it.copy(inboxItems = records) }
+                }
+                .launchIn(viewModelScope)
+
+            listItemRepository.getListItems(projectId)
+                .flatMapLatest { listItems ->
+                    val goalIds = listItems.filter { it.itemType == "goal" }.map { it.entityId }
+                    val projectIds = listItems.filter { it.itemType == "sublist" }.map { it.entityId }
+
+                    val goalsFlow =
+                        if (goalIds.isNotEmpty()) goalRepository.getGoalsByIds(goalIds)
+                        else flowOf(emptyList())
+
+                    val projectsFlow =
+                        if (projectIds.isNotEmpty()) {
+                            combine(projectIds.map { id ->
+                                projectRepository.getProjectById(id).filterNotNull()
+                            }) { it.toList() }
+                        } else flowOf(emptyList())
+
+                    val childProjectsFlows = projectIds.map { projectRepository.getChildProjects(it) }
+                    val childProjectsFlow = if (childProjectsFlows.isNotEmpty()) {
+                        combine(childProjectsFlows) { it.toList().flatten() }
+                    } else flowOf(emptyList())
+
+                    val remindersFlows = projectIds.map { reminderRepository.observeRemindersForEntity(it) }
+                    val remindersFlow = if (remindersFlows.isNotEmpty()) {
+                        combine(remindersFlows) { it.toList().flatten() }
+                    } else flowOf(emptyList())
+
+                    combine(goalsFlow, projectsFlow, childProjectsFlow, remindersFlow) { goals, projects, allChildProjects, allReminders ->
+                        listItems.mapNotNull { listItem ->
+                            when (listItem.itemType) {
+                                "goal" -> goals.find { it.id == listItem.entityId }
+                                    ?.let { ListItemContent.GoalItem(it, listItem) }
+                                "link" -> ListItemContent.LinkItem(
+                                    RelatedLink(type = LinkType.URL, target = listItem.entityId),
+                                    listItem
+                                )
+                                "sublist" -> projects.find { it.id == listItem.entityId }
+                                    ?.let { project ->
+                                        val children = allChildProjects.filter { it.parentId == project.id }
+                                        val itemReminders = allReminders.filter { it.entityId == project.id }
+                                        ListItemContent.SublistItem(project, listItem, children, itemReminders)
                                     }
-                                }
+                                else -> null
                             }
-                        }.onEach { backlogItems ->
-                            _uiState.update { it.copy(backlogItems = backlogItems) }
-                        }.launchIn(viewModelScope)
+                        }
                     }
                 }
-            }*/
-        
-            fun onEvent(event: Event) {
-                when (event) {
-                    is Event.SwitchViewMode -> switchViewMode(event.viewMode)
-                    is Event.SwitchInputMode -> switchInputMode(event.inputMode)
-                    is Event.AddInboxRecord -> addInboxRecord(event.text)
-                    is Event.AddBacklogGoal -> addBacklogGoal(event.text)
-                    is Event.GoalChecked -> TODO()
-                    is Event.GoalClick -> TODO()
-                    is Event.GoalLongClick -> TODO()
-                    is Event.TagClick -> TODO()
-                    is Event.RelatedLinkClick -> TODO()
-                    is Event.LinkClick -> TODO()
+                .onEach { backlogItems ->
+                    _uiState.update { it.copy(backlogItems = backlogItems) }
+                }
+                .launchIn(viewModelScope)
+        }
+    }
+
+
+
+/*    init {
+        viewModelScope.launch(ioDispatcher) {
+            val projectId = savedStateHandle.get<String>("projectId")
+            projectId?.let { id ->
+                projectRepository.getProjectById(id)
+                    .filterNotNull()
+                    .onEach { project ->
+                        _uiState.update { it.copy(projectName = project.name) }
+                    }
+                    .launchIn(viewModelScope)
+
+                inboxRepository.observeInbox(id)
+                    .onEach { records ->
+                        _uiState.update { it.copy(inboxItems = records) }
+                    }
+                    .launchIn(viewModelScope)
+
+                listItemRepository.getListItems(id).flatMapLatest { listItems ->
+                    val goalIds = listItems.filter { it.itemType == "goal" }.map { it.entityId }
+                    val projectIds = listItems.filter { it.itemType == "sublist" }.map { it.entityId }
+
+                    val goalsFlow = if (goalIds.isNotEmpty()) goalRepository.getGoalsByIds(goalIds) else flowOf(emptyList())
+                    val projectsFlow = if (projectIds.isNotEmpty()) {
+                        combine(projectIds.map { projectId -> projectRepository.getProjectById(projectId).filterNotNull() }) { it.toList() }
+                    } else {
+                        flowOf(emptyList())
+                    }
+
+                    combine(goalsFlow, projectsFlow) { goals, projects ->
+                        listItems.mapNotNull { listItem ->
+                            when (listItem.itemType) {
+                                "goal" -> {
+                                    goals.find { it.id == listItem.entityId }?.let { goal ->
+                                        ListItemContent.GoalItem(goal, listItem)
+                                    }
+                                }
+                                "link" -> {
+                                    val link = RelatedLink(type = LinkType.URL, target = listItem.entityId)
+                                    ListItemContent.LinkItem(link, listItem)
+                                }
+                                "sublist" -> {
+                                    projects.find { it.id == listItem.entityId }?.let { project ->
+                                        ListItemContent.SublistItem(project, listItem)
+                                    }
+                                }
+                                else -> null
+                            }
+                        }
+                    }
+                }.onEach { backlogItems ->
+                    _uiState.update { it.copy(backlogItems = backlogItems) }
+                }.launchIn(viewModelScope)
+            }
+        }
+    }*/
+
+    fun onEvent(event: Event) {
+        when (event) {
+            is Event.SwitchViewMode -> switchViewMode(event.viewMode)
+            is Event.SwitchInputMode -> switchInputMode(event.inputMode)
+            is Event.AddInboxRecord -> addInboxRecord(event.text)
+            is Event.AddBacklogGoal -> addBacklogGoal(event.text)
+            is Event.SubprojectClick -> {
+                viewModelScope.launch {
+                    _navigationEvents.emit(NavigationEvent.NavigateToProject(event.projectId))
                 }
             }
-        
-            private fun addBacklogGoal(text: String) {
-                viewModelScope.launch(ioDispatcher) {
-                    val projectId = savedStateHandle.get<String>("projectId") ?: return@launch
-        
-                    val newGoal = Goal(
-                        id = "goal_${uuid4()}",
-                        text = text,
-                        completed = false,
-                        createdAt = Clock.System.now().toEpochMilliseconds(),
-                        updatedAt = null
-                    )
-                    goalRepository.insertGoal(newGoal)
-        
-                    val currentList = _uiState.value.backlogItems
-                    val maxOrder = currentList.mapNotNull { it.listItem.itemOrder }.maxOfOrNull { it } ?: 0L
-        
-                    val newListItem = ListItem(
-                        id = "listItem_${uuid4()}",
-                        projectId = projectId,
-                        entityId = newGoal.id,
-                        itemType = "goal",
-                        itemOrder = maxOrder + 1
-                    )
-                    listItemRepository.insertListItem(newListItem)
-                }
-            }
-        
-            private fun addInboxRecord(text: String) {
-                viewModelScope.launch(ioDispatcher) {
-                    val projectId = savedStateHandle.get<String>("projectId") ?: return@launch
-                    val newRecord = InboxRecord(
-                        id = "inbox_${System.currentTimeMillis()}",
-                        projectId = projectId,
-                        text = text,
-                        createdAt = System.currentTimeMillis(),
-                        itemOrder = 0 // TODO: Implement correct ordering
-                    )
-                    inboxRepository.upsert(newRecord)
-                }
-            }
-        
-            private fun switchInputMode(inputMode: InputMode) {
-                _uiState.update { it.copy(inputMode = inputMode) }
-            }
-        
-            private fun switchViewMode(viewMode: ProjectViewMode) {
-                _uiState.update { it.copy(currentView = viewMode) }
-            }
+            is Event.SubprojectLongClick -> TODO()
+            is Event.GoalChecked -> TODO()
+            is Event.GoalClick -> TODO()
+            is Event.GoalLongClick -> TODO()
+            is Event.TagClick -> TODO()
+            is Event.RelatedLinkClick -> TODO()
+            is Event.LinkClick -> TODO()
+        }
+    }
+
+    private fun addBacklogGoal(text: String) {
+        viewModelScope.launch(ioDispatcher) {
+            val projectId = savedStateHandle.get<String>("projectId") ?: return@launch
+
+            val newGoal = Goal(
+                id = "goal_${uuid4()}",
+                text = text,
+                completed = false,
+                createdAt = Clock.System.now().toEpochMilliseconds(),
+                updatedAt = null
+            )
+            goalRepository.insertGoal(newGoal)
+
+            val currentList = _uiState.value.backlogItems
+            val maxOrder = currentList.mapNotNull { it.listItem.itemOrder }.maxOfOrNull { it } ?: 0L
+
+            val newListItem = ListItem(
+                id = "listItem_${uuid4()}",
+                projectId = projectId,
+                entityId = newGoal.id,
+                itemType = "goal",
+                itemOrder = maxOrder + 1
+            )
+            listItemRepository.insertListItem(newListItem)
+        }
+    }
+
+    private fun addInboxRecord(text: String) {
+        viewModelScope.launch(ioDispatcher) {
+            val projectId = savedStateHandle.get<String>("projectId") ?: return@launch
+            val newRecord = InboxRecord(
+                id = "inbox_${System.currentTimeMillis()}",
+                projectId = projectId,
+                text = text,
+                createdAt = System.currentTimeMillis(),
+                itemOrder = 0 // TODO: Implement correct ordering
+            )
+            inboxRepository.upsert(newRecord)
+        }
+    }
+
+    private fun switchInputMode(inputMode: InputMode) {
+        _uiState.update { it.copy(inputMode = inputMode) }
+    }
+
+    private fun switchViewMode(viewMode: ProjectViewMode) {
+        _uiState.update { it.copy(currentView = viewMode) }
+    }
 }

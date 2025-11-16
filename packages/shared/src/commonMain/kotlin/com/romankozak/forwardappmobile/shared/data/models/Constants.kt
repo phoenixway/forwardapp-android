@@ -21,11 +21,11 @@ object ProjectStatusValues {
     }
 }
 
-object ScoringStatusValues {
+/*object ScoringStatusValues {
     const val NOT_ASSESSED = "NOT_ASSESSED"
     const val IMPOSSIBLE_TO_ASSESS = "IMPOSSIBLE_TO_ASSESS"
     const val ASSESSED = "ASSESSED"
-}
+}*/
 
 object ProjectLogLevelValues {
     const val DETAILED = "DETAILED"

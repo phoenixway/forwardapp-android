@@ -91,23 +91,28 @@
             *   **Прогрес:** Виконано.
         2.  **Реалізувати режим "Backlog"**:
             *   **Поточна ситуація:** Реалізація режиму "Backlog" розпочата. Було створено файл `BacklogList.kt` з базовою структурою `BacklogView` та заглушками для `ListItemView`, `GoalItem`, `LinkItem`. Залежність `reorderable` підтверджена.
-            *   **Детальний план:**
-                *   [ ] **Скопіювати та адаптувати `GoalItem` та `LinkItem` з гілки `dev`:**
-                    *   [ ] Витягти повний компонований `GoalItem` з `dev` гілки `app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectscreen/ProjectScreen.kt`.
-                    *   [ ] Вставити реалізацію `GoalItem` у `apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/components/list/BacklogList.kt`, замінивши заглушку.
-                    *   [ ] Адаптувати імпорти та залежності `GoalItem` до нової архітектури KMP/SQLDelight (наприклад, `ListItemContent.GoalItem` на `ListItem`, `BacklogViewModel` на `ProjectScreenViewModel`).
-                    *   [ ] Витягти повний компонований `LinkItem` з `dev` гілки `app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectscreen/ProjectScreen.kt`.
-                    *   [ ] Вставити реалізацію `LinkItem` у `apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/components/list/BacklogList.kt`, замінивши заглушку.
-                    *   [ ] Адаптувати імпорти та залежності `LinkItem` до нової архітектури KMP/SQLDelight.
-                    *   [ ] Оновити `ListItemView`, щоб правильно відображати `GoalItem` або `LinkItem` на основі `ListItem.type`.
-                *   [ ] **Інтегрувати дані беклогу в `ProjectScreenViewModel.kt`:**
-                    *   [ ] Додати `val backlogItems: List<ListItem> = emptyList(),` до `UiState`.
-                    *   [ ] У блоці `init` додати логіку для збору потоку з `listItemRepository.observeListItems(projectId)` та оновлення `backlogItems` у `_uiState`.
-                *   [ ] **Інтегрувати `BacklogView` у `ProjectScreen.kt`:**
-                    *   [ ] Замінити заглушку `Text` для `ProjectViewMode.Backlog` на компонований `BacklogView` з `apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/components/list/BacklogList.kt`.
-                    *   [ ] Передати `state.backlogItems` до параметра `listContent` `BacklogView`.
-                    *   [ ] Передати `viewModel` та `state` до `BacklogView`.
-                    *   [ ] Реалізувати `onRemindersClick` для `BacklogView` (спочатку із заглушкою).
+            *   **Прогрес:**
+                *   [x] Виправлено `ClassCastException` у `ProjectScreen.kt` шляхом корекції лямбда-функції `onMove`.
+                *   [x] Реалізовано додавання цілей до беклогу: додано `insertListItem` до `ListItemRepository`, подію `AddBacklogGoal` та функцію `addBacklogGoal` у `ProjectScreenViewModel.kt`, а також модифіковано `ProjectScreen.kt` для відправки `AddBacklogGoal` з панелі вводу.
+                *   [x] Виправлено проблему з клавіатурою, що приховувала панель вводу, додавши `Modifier.navigationBarsPadding().imePadding()` до `Scaffold` у `ProjectScreen.kt`.
+                *   [x] Виправлено помилки компіляції, пов'язані з `kotlinx-datetime` та `uuid`, шляхом зміни області видимості залежностей з `implementation` на `api` у `packages/shared/build.gradle.kts`.
+                *   [x] Скопійовано та інтегровано внутрішні Composable-компоненти для `SubProjectItem` з гілки `dev` до `apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/components/backlogitems/`: `AnimatedContextEmoji.kt`, `EnhancedRelatedLinkChip.kt`, `EnhancedReminderBadge.kt`, `Badges.kt` (з `EnhancedScoreStatusBadge`), `NoteIndicatorBadge.kt`, `ModernTagChip.kt`. Підтверджено існування `TagType` та `getTagColors` у `TagChip.kt`.
+                *   [x] Інтегровано `SubProjectItem` (перейменований `ProjectItem` з гілки `dev`) у `BacklogList.kt` та замінено `TODO` для `ListItemContent.SublistItem`.
+                *   [x] Реалізовано навігацію для кліків по `SubProjectItem`: додано подію `SubprojectClick` та `navigationEvents` `SharedFlow` у `ProjectScreenViewModel.kt`, а також збір цих подій у `ProjectScreen.kt` для навігації.
+            *   **Наступні кроки для `SubProjectItem`:**
+                *   [ ] **Оновити `ProjectScreenViewModel.kt` для надання даних `SubProjectItem`:**
+                    *   [ ] Змінити `backlogItems` Flow, щоб збагатити `ListItemContent.SublistItem` даними про `childProjects` (використовуючи `projectRepository.getChildProjects(projectId)`).
+                    *   [ ] Збагатити `ListItemContent.SublistItem` даними про `reminders` (використовуючи `reminderRepository.getRemindersForEntity(entityId, entityType)`).
+                    *   [ ] Надати `contextMarkerToEmojiMap` до `UiState` та передати його до `BacklogView`.
+                    *   [ ] Надати `currentTimeMillis` до `UiState` або безпосередньо до `SubProjectItem`.
+                *   [ ] **Реалізувати обробку подій `SubProjectItem` у `ProjectScreenViewModel.kt`:**
+                    *   [ ] Додати обробку `onLongClick` для `SubProjectItem`.
+                    *   [ ] Додати обробку `onTagClick` для `SubProjectItem`.
+                    *   [ ] Додати обробку `onRelatedLinkClick` для `SubProjectItem`.
+                *   [ ] **Доопрацювати `SubProjectItem` у `BacklogList.kt`:**
+                    *   [ ] Передати актуальні `childProjects`, `reminders`, `contextMarkerToEmojiMap`, `currentTimeMillis` з `BacklogView` до `SubProjectItem`.
+                    *   [ ] Реалізувати `onCheckedChange` (якщо потрібно, або видалити).
+                    *   [ ] Реалізувати `endAction`.
                 *   [ ] **Перевірити та доопрацювати:**
                     *   [ ] Запустити `./gradlew :apps:android:assembleDebug`, щоб забезпечити компіляцію.
                     *   [ ] Протестувати режим "Backlog" у додатку, щоб підтвердити відображення елементів та роботу переупорядкування (навіть якщо дії є заглушками).

@@ -1,8 +1,8 @@
 package com.romankozak.forwardappmobile.shared.features.goals.data.models
 
+import com.romankozak.forwardappmobile.shared.data.database.models.ScoringStatusValues
 import kotlinx.serialization.Serializable
 import com.romankozak.forwardappmobile.shared.data.models.RelatedLink
-import com.romankozak.forwardappmobile.shared.data.models.ScoringStatusValues
 
 @Serializable
 data class Goal(

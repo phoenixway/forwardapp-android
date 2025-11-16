@@ -52,6 +52,9 @@ SELECT * FROM Projects ORDER BY goalOrder ASC;
 getProjectById:
 SELECT * FROM Projects WHERE id = :id;
 
+getChildProjects:
+SELECT * FROM Projects WHERE parentId = :parentId;
+
 insertProject:
 INSERT OR REPLACE INTO Projects (
     id, name, description, parentId, createdAt, updatedAt, tags, relatedLinks,

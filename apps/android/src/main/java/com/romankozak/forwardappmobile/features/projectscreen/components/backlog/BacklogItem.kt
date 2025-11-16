@@ -41,10 +41,10 @@ import com.romankozak.forwardappmobile.shared.features.projects.listitems.domain
 import com.romankozak.forwardappmobile.shared.features.projects.core.domain.model.Project
 import com.romankozak.forwardappmobile.shared.data.models.RelatedLink
 import com.romankozak.forwardappmobile.shared.features.reminders.domain.model.Reminder
-import com.romankozak.forwardappmobile.shared.data.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.features.common.rememberParsedText
 import com.romankozak.forwardappmobile.features.projectscreen.components.backlogitems.MarkdownText
 import com.romankozak.forwardappmobile.features.projectscreen.components.backlogitems.StatusIconsRow
+import com.romankozak.forwardappmobile.shared.data.database.models.ScoringStatusValues
 import sh.calvin.reorderable.ReorderableCollectionItemScope
 
 @Composable

@@ -116,6 +116,7 @@ tasks.withType<Test> {
 
 dependencies {
     implementation(project(":packages:shared"))
+    implementation(libs.androidx.animation)
     ksp(libs.androidxRoomCompiler)
 
     // ✅ SQLDelight + FTS5 через Requery

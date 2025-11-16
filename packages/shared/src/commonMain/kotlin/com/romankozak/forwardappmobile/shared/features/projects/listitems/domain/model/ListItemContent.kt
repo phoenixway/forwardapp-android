@@ -6,6 +6,8 @@ import com.romankozak.forwardappmobile.shared.features.attachments.types.legacyn
 import com.romankozak.forwardappmobile.shared.features.attachments.types.notedocuments.domain.model.NoteDocument
 import com.romankozak.forwardappmobile.shared.features.attachments.types.checklists.domain.model.Checklist
 
+import com.romankozak.forwardappmobile.shared.features.reminders.domain.model.Reminder
+
 sealed class ListItemContent {
     abstract val listItem: ListItem
 
@@ -16,7 +18,9 @@ sealed class ListItemContent {
 
     data class SublistItem(
         val project: Project,
-        override val listItem: ListItem
+        override val listItem: ListItem,
+        val childProjects: List<Project> = emptyList(),
+        val reminders: List<Reminder> = emptyList()
     ) : ListItemContent()
 
     data class LinkItem(
