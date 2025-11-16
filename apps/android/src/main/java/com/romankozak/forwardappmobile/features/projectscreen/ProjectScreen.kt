@@ -24,6 +24,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import com.romankozak.forwardappmobile.features.projectscreen.components.ProjectViewModePanel
 import com.romankozak.forwardappmobile.features.projectscreen.models.ProjectViewMode
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.MoreVert
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -38,14 +43,31 @@ fun ProjectScreen(
         factory = appComponent.viewModelFactory
     )
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = state.projectName ?: "Project") },
+                title = {
+                    // TODO: Restore original AdaptiveTopBar title styling
+                    Text(
+                        text = state.projectName ?: "Project",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Назад")
+                    }
+                },
+                actions = {
+                    // TODO: Restore search functionality
+                    IconButton(onClick = { Toast.makeText(context, "Пошук (не реалізовано)", Toast.LENGTH_SHORT).show() }) {
+                        Icon(Icons.Filled.Search, contentDescription = "Пошук")
+                    }
+                    // TODO: Restore more options menu
+                    IconButton(onClick = { Toast.makeText(context, "Більше опцій (не реалізовано)", Toast.LENGTH_SHORT).show() }) {
+                        Icon(Icons.Filled.MoreVert, contentDescription = "Більше опцій")
                     }
                 }
             )
