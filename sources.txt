@@ -1,0 +1,331 @@
+TABLE OF CONTENTS
+================================================================================
+
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/di/ActivityComponent.kt](##<<FILE_1>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/di/ViewModelComponent.kt](##<<FILE_2>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/di/injectedViewModel.kt](##<<FILE_3>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/ProjectScreen.kt](##<<FILE_4>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/ProjectScreenViewModel.kt](##<<FILE_5>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/AppComponent.kt](##<<FILE_6>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/AppModule.kt](##<<FILE_7>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/CoroutinesModule.kt](##<<FILE_8>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/DatabaseModule.kt](##<<FILE_9>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/UtilsModule.kt](##<<FILE_10>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/src/desktopMain/kotlin/com/romankozak/forwardappmobile/di/DesktopAppComponent.kt](##<<FILE_11>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/src/desktopMain/kotlin/com/romankozak/forwardappmobile/di/DesktopAppModule.kt](##<<FILE_12>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/src/desktopMain/kotlin/com/romankozak/forwardappmobile/di/DesktopDriverModule.kt](##<<FILE_13>>)
+
+================================================================================
+
+## <<FILE_1>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/di/ActivityComponent.kt (ID: FILE_1)
+================================================================================
+
+[Помилка читання файлу /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/di/ActivityComponent.kt: [Errno 2] No such file or directory: 'apps/android/src/main/java/com/romankozak/forwardappmobile/di/ActivityComponent.kt']
+
+
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/di/ActivityComponent.kt
+================================================================================
+
+## <<FILE_2>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/di/ViewModelComponent.kt (ID: FILE_2)
+================================================================================
+
+[Помилка читання файлу /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/di/ViewModelComponent.kt: [Errno 2] No such file or directory: 'apps/android/src/main/java/com/romankozak/forwardappmobile/di/ViewModelComponent.kt']
+
+
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/di/ViewModelComponent.kt
+================================================================================
+
+## <<FILE_3>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/di/injectedViewModel.kt (ID: FILE_3)
+================================================================================
+
+[Помилка читання файлу /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/di/injectedViewModel.kt: [Errno 2] No such file or directory: 'apps/android/src/main/java/com/romankozak/forwardappmobile/di/injectedViewModel.kt']
+
+
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/di/injectedViewModel.kt
+================================================================================
+
+## <<FILE_4>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/ProjectScreen.kt (ID: FILE_4)
+================================================================================
+
+package com.romankozak.forwardappmobile.features.projectscreen
+
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.runtime.Composable
+import androidx.navigation.NavController
+import androidx.compose.runtime.remember
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.romankozak.forwardappmobile.di.LocalAppComponent
+
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+fun ProjectScreen(
+    navController: NavController,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
+    projectId: String?,
+) {
+    val appComponent = LocalAppComponent.current
+    val viewModel: ProjectScreenViewModel = viewModel(
+        factory = appComponent.viewModelComponentFactory().create().viewModelFactory
+    )
+
+    // TODO: Implement the screen
+}
+
+
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/ProjectScreen.kt
+================================================================================
+
+## <<FILE_5>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/ProjectScreenViewModel.kt (ID: FILE_5)
+================================================================================
+
+package com.romankozak.forwardappmobile.features.projectscreen
+
+import android.app.Application
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
+import com.romankozak.forwardappmobile.di.IoDispatcher
+import com.romankozak.forwardappmobile.shared.data.models.RelatedLink
+import com.romankozak.forwardappmobile.shared.features.activitytracker.domain.model.ActivityRecord
+import com.romankozak.forwardappmobile.shared.features.activitytracker.domain.repository.ActivityRecordsRepository
+import com.romankozak.forwardappmobile.shared.features.attachments.types.checklists.domain.repository.ChecklistRepository
+import com.romankozak.forwardappmobile.shared.features.attachments.types.legacynotes.domain.repository.LegacyNotesRepository
+import com.romankozak.forwardappmobile.shared.features.attachments.types.notedocuments.domain.repository.NoteDocumentsRepository
+import com.romankozak.forwardappmobile.shared.features.daymanagement.dayplan.domain.repository.DayPlanRepository
+import com.romankozak.forwardappmobile.shared.features.goals.data.repository.GoalRepository
+import com.romankozak.forwardappmobile.shared.features.projects.core.domain.model.ProjectArtifact
+import com.romankozak.forwardappmobile.shared.features.projects.core.domain.repository.ProjectRepository
+import com.romankozak.forwardappmobile.shared.features.projects.listitems.domain.repository.ListItemRepository
+import com.romankozak.forwardappmobile.shared.features.projects.logs.data.model.ProjectExecutionLog
+import com.romankozak.forwardappmobile.shared.features.projects.logs.domain.repository.ProjectExecutionLogsRepository
+import com.romankozak.forwardappmobile.shared.features.projects.views.advancedview.projectartifacts.domain.repository.ProjectArtifactRepository
+import com.romankozak.forwardappmobile.shared.features.projects.views.inbox.domain.repository.InboxRepository
+import com.romankozak.forwardappmobile.shared.features.reminders.domain.model.Reminder
+import com.romankozak.forwardappmobile.shared.features.reminders.domain.repository.RemindersRepository
+import com.romankozak.forwardappmobile.shared.features.recent.domain.repository.RecentItemRepository
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import me.tatarka.inject.annotations.Inject
+import java.util.Calendar
+
+// TODO: [GM-31] This file needs to be refactored with the new KMP architecture.
+
+sealed class UiEvent {
+    data class ShowSnackbar(val message: String, val action: String? = null) : UiEvent()
+
+    data class Navigate(val route: String) : UiEvent()
+
+    data class ResetSwipeState(val itemId: String) : UiEvent()
+
+    data class ScrollTo(val index: Int) : UiEvent()
+
+    data class NavigateBackAndReveal(val projectId: String) : UiEvent()
+
+    data class HandleLinkClick(val link: RelatedLink) : UiEvent()
+
+    data class OpenUri(val uri: String) : UiEvent()
+
+    data object ScrollToLatestInboxRecord : UiEvent()
+}
+
+enum class GoalActionType {
+    CreateInstance,
+    MoveInstance,
+    CopyGoal,
+    AddLinkToList,
+    ADD_LIST_SHORTCUT,
+}
+
+sealed class GoalActionDialogState {
+    object Hidden : GoalActionDialogState()
+
+    data class AwaitingActionChoice(val itemContent: Any) : GoalActionDialogState()
+}
+
+data class UiState(
+    val localSearchQuery: String = "",
+    val goalToHighlight: String? = null,
+    val inputMode: Any = Any(),
+    val newlyAddedItemId: String? = null,
+    val selectedItemIds: Set<String> = emptySet(),
+    val inputValue: TextFieldValue = TextFieldValue(""),
+    val resetTriggers: Map<String, Int> = emptyMap(),
+    val swipedItemId: String? = null,
+    val showAddWebLinkDialog: Boolean = false,
+    val showAddObsidianLinkDialog: Boolean = false,
+    val itemToHighlight: String? = null,
+    val inboxRecordToHighlight: String? = null,
+    val needsStateRefresh: Boolean = false,
+    val currentView: Any = Any(),
+    val isViewModePanelVisible: Boolean = false,
+    val showRecentProjectsSheet: Boolean = false,
+    val showImportFromMarkdownDialog: Boolean = false,
+    val showImportBacklogFromMarkdownDialog: Boolean = false,
+    val refreshTrigger: Int = 0,
+    val detectedReminderSuggestion: String? = null,
+    val detectedReminderCalendar: Calendar? = null,
+    val nerState: Any = Any(),
+    val recordForReminderDialog: ActivityRecord? = null,
+    // val projectTimeMetrics: ProjectTimeMetrics? = null,
+    val showShareDialog: Boolean = false,
+    val showCreateNoteDocumentDialog: Boolean = false,
+    val showRemindersDialog: Boolean = false,
+    val itemForRemindersDialog: Any? = null,
+    val remindersForDialog: List<Reminder> = emptyList(),
+    val logEntryToEdit: ProjectExecutionLog? = null,
+    val artifactToEdit: ProjectArtifact? = null,
+    val selectedDashboardTab: Any = Any(),
+    val showNoteDocumentEditor: Boolean = false,
+    val showDisplayPropertiesDialog: Boolean = false,
+    val showCheckboxes: Boolean = false,
+) {
+    val isSelectionModeActive: Boolean get() = selectedItemIds.isNotEmpty()
+}
+
+@Inject
+class ProjectScreenViewModel(
+  private val application: Application,
+  private val projectRepository: ProjectRepository,
+  // private val settingsRepository: SettingsRepository,
+  // private val contextHandler: ContextHandler,
+  // private val alarmScheduler: AlarmScheduler,
+  // private val nerManager: NerManager,
+  // private val reminderParser: ReminderParser,
+  private val activityRepository: ActivityRecordsRepository,
+  // private val projectMarkdownExporter: ProjectMarkdownExporter,
+  private val savedStateHandle: SavedStateHandle,
+  private val dayManagementRepository: DayPlanRepository,
+  @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+  private val goalRepository: GoalRepository,
+  private val listItemRepository: ListItemRepository,
+  private val noteDocumentRepository: NoteDocumentsRepository,
+  private val checklistRepository: ChecklistRepository,
+  private val reminderRepository: RemindersRepository,
+  private val recentItemsRepository: RecentItemRepository,
+  private val projectLogRepository: ProjectExecutionLogsRepository,
+  private val projectArtifactRepository: ProjectArtifactRepository,
+  private val legacyNotesRepository: LegacyNotesRepository,
+  private val inboxRepository: InboxRepository,
+): ViewModel() {
+    private val _uiState = MutableStateFlow(UiState())
+    val uiState = _uiState.asStateFlow()
+}
+
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/ProjectScreenViewModel.kt
+================================================================================
+
+## <<FILE_6>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/AppComponent.kt (ID: FILE_6)
+================================================================================
+
+[Помилка читання файлу /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/AppComponent.kt: [Errno 2] No such file or directory: 'packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/AppComponent.kt']
+
+
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/AppComponent.kt
+================================================================================
+
+## <<FILE_7>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/AppModule.kt (ID: FILE_7)
+================================================================================
+
+[Помилка читання файлу /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/AppModule.kt: [Errno 2] No such file or directory: 'packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/AppModule.kt']
+
+
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/AppModule.kt
+================================================================================
+
+## <<FILE_8>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/CoroutinesModule.kt (ID: FILE_8)
+================================================================================
+
+[Помилка читання файлу /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/CoroutinesModule.kt: [Errno 2] No such file or directory: 'packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/CoroutinesModule.kt']
+
+
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/CoroutinesModule.kt
+================================================================================
+
+## <<FILE_9>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/DatabaseModule.kt (ID: FILE_9)
+================================================================================
+
+[Помилка читання файлу /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/DatabaseModule.kt: [Errno 2] No such file or directory: 'packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/DatabaseModule.kt']
+
+
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/DatabaseModule.kt
+================================================================================
+
+## <<FILE_10>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/UtilsModule.kt (ID: FILE_10)
+================================================================================
+
+[Помилка читання файлу /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/UtilsModule.kt: [Errno 2] No such file or directory: 'packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/UtilsModule.kt']
+
+
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/UtilsModule.kt
+================================================================================
+
+## <<FILE_11>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/src/desktopMain/kotlin/com/romankozak/forwardappmobile/di/DesktopAppComponent.kt (ID: FILE_11)
+================================================================================
+
+[Помилка читання файлу /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/src/desktopMain/kotlin/com/romankozak/forwardappmobile/di/DesktopAppComponent.kt: [Errno 2] No such file or directory: 'packages/shared-kmp/src/desktopMain/kotlin/com/romankozak/forwardappmobile/di/DesktopAppComponent.kt']
+
+
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/src/desktopMain/kotlin/com/romankozak/forwardappmobile/di/DesktopAppComponent.kt
+================================================================================
+
+## <<FILE_12>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/src/desktopMain/kotlin/com/romankozak/forwardappmobile/di/DesktopAppModule.kt (ID: FILE_12)
+================================================================================
+
+[Помилка читання файлу /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/src/desktopMain/kotlin/com/romankozak/forwardappmobile/di/DesktopAppModule.kt: [Errno 2] No such file or directory: 'packages/shared-kmp/src/desktopMain/kotlin/com/romankozak/forwardappmobile/di/DesktopAppModule.kt']
+
+
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/src/desktopMain/kotlin/com/romankozak/forwardappmobile/di/DesktopAppModule.kt
+================================================================================
+
+## <<FILE_13>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/src/desktopMain/kotlin/com/romankozak/forwardappmobile/di/DesktopDriverModule.kt (ID: FILE_13)
+================================================================================
+
+[Помилка читання файлу /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/src/desktopMain/kotlin/com/romankozak/forwardappmobile/di/DesktopDriverModule.kt: [Errno 2] No such file or directory: 'packages/shared-kmp/src/desktopMain/kotlin/com/romankozak/forwardappmobile/di/DesktopDriverModule.kt']
+
+
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/packages/shared-kmp/src/desktopMain/kotlin/com/romankozak/forwardappmobile/di/DesktopDriverModule.kt
+================================================================================
+

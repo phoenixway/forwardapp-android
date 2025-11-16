@@ -6,6 +6,7 @@ import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Provides
 import me.tatarka.inject.annotations.Scope
 import com.romankozak.forwardappmobile.features.mainscreen.MainScreenViewModel
+import com.romankozak.forwardappmobile.features.projectscreen.ProjectScreenViewModel
 
 @Scope
 annotation class AndroidSingleton
@@ -18,10 +19,10 @@ abstract class AppComponent(
 ) : DatabaseModule,
     RepositoryModule,
     DispatcherModule,
+    ViewModelFactoryModule,
     com.romankozak.forwardappmobile.features.mainscreen.di.MainScreenModule,
     com.romankozak.forwardappmobile.shared.features.aichat.di.AiChatModule,
-    com.romankozak.forwardappmobile.shared.features.search.di.SearchModule,
-    com.romankozak.forwardappmobile.features.projectscreen.di.ProjectScreenModule {
+    com.romankozak.forwardappmobile.shared.features.search.di.SearchModule {
 
     @Provides
     @ApplicationContext
@@ -29,7 +30,8 @@ abstract class AppComponent(
 
     // Entry points / factories
     abstract val mainScreenViewModel: MainScreenViewModel
-    abstract val backlogViewModelFactory: com.romankozak.forwardappmobile.features.projectscreen.di.ProjectScreenModule.BacklogViewModelFactory
+    abstract val viewModelFactory: androidx.lifecycle.ViewModelProvider.Factory
+    abstract val projectScreenViewModel: (androidx.lifecycle.SavedStateHandle) -> ProjectScreenViewModel
 
     companion object
 }

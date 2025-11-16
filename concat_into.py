@@ -1,159 +1,119 @@
 #!/usr/bin/env python3
-"""
-concat_into.py
-
-Usage:
-  concat_into.py DEST SOURCE [SOURCE ...]
-  concat_into.py DEST "dir/*.txt"
-Options:
-  --overwrite     Перезаписати DEST (замість додавання).
-  --binary        Працювати в двійковому режимі (не декодувати/не кодувати).
-  --sep SEP       Роздільник, який вставляти між файлами (тільки в текстовому режимі). За замовчуванням - пустий.
-  -v --verbose    Показувати прогрес.
-"""
-
-import argparse
 import sys
-import pathlib
-import glob
-from typing import List
+import re
+from pathlib import Path
 
-CHUNK = 64 * 1024
+SEPARATOR_LINE = "=" * 80
 
-def expand_paths(patterns: List[str]) -> List[pathlib.Path]:
-    paths = []
-    for p in patterns:
-        # Expand glob patterns
-        expanded = glob.glob(p, recursive=True)
-        if expanded:
-            for e in expanded:
-                paths.append(pathlib.Path(e))
+# Артефакти, які з’являються при копіюванні з терміналу
+TRAILING_GARBAGE_RE = re.compile(r"[^\w\./\\-].*$")
+
+
+def clean_path(line: str) -> str:
+    """Повертає чистий шлях без пробілів, шуму та артефактів."""
+    line = line.strip()
+    line = TRAILING_GARBAGE_RE.sub("", line)  # вирізаємо '█', '▄', кольорові коди
+    return line.strip()
+
+
+def parse_args():
+    input_list_file = None
+    output_file = None
+
+    args = sys.argv[1:]
+    i = 0
+
+    while i < len(args):
+        if args[i] == "-i":
+            if i + 1 >= len(args):
+                print("Помилка: після -i потрібно вказати файл.")
+                sys.exit(1)
+            input_list_file = Path(args[i + 1])
+            i += 2
         else:
-            paths.append(pathlib.Path(p))
-    # Keep original order, remove duplicates while preserving order
-    seen = set()
-    uniq = []
-    for p in paths:
-        try:
-            key = p.resolve()
-        except Exception:
-            key = str(p)
-        if key not in seen:
-            seen.add(key)
-            uniq.append(p)
-    return uniq
+            if output_file is None:
+                output_file = Path(args[i])
+                i += 1
+            else:
+                print(f"Невідомий аргумент: {args[i]}")
+                sys.exit(1)
 
-def copy_into(dest: pathlib.Path, sources: List[pathlib.Path], overwrite: bool, binary: bool, sep: str, verbose: bool):
-    mode_write = 'wb' if binary else 'w'
-    mode_append = 'ab' if binary else 'a'
-    mode_read = 'rb' if binary else 'r'
-    encoding = None if binary else 'utf-8'
+    if not input_list_file:
+        print("Помилка: потрібно вказати -i <file> з шляхами.")
+        sys.exit(1)
 
-    # If overwrite and destination appears among sources, read sources first (to avoid truncating before read)
-    dest_resolved = None
-    try:
-        dest_resolved = dest.resolve()
-    except Exception:
-        dest_resolved = dest
+    if not output_file:
+        print("Помилка: потрібно вказати вихідний файл.")
+        sys.exit(1)
 
-    sources_filtered = []
-    for s in sources:
-        try:
-            s_res = s.resolve()
-        except Exception:
-            s_res = s
-        # skip if source equals destination
-        if s_res == dest_resolved:
-            if verbose:
-                print(f"Пропускаю джерело, бо воно дорівнює файлу призначення: {s}", file=sys.stderr)
-            continue
-        sources_filtered.append(s)
+    return output_file, input_list_file
 
-    if overwrite:
-        # Open dest for writing (truncate) and stream sources into it
-        if verbose:
-            print(f"{'Бінарний' if binary else 'Текстовий'} режим — перезаписую {dest}", file=sys.stderr)
-        with dest.parent.mkdir(parents=True, exist_ok=True):
-            pass
-        # If dest directory doesn't exist, create it
-        dest.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(dest, mode_write, encoding=encoding) as fout:
-            first = True
-            for src in sources_filtered:
-                if not src.exists():
-                    print(f"Увага: не знайдено {src}, пропускаю.", file=sys.stderr)
-                    continue
-                if verbose:
-                    print(f"Читаю {src} -> записую в {dest}", file=sys.stderr)
-                if not binary:
-                    # текстовий режим
-                    with open(src, mode_read, encoding=encoding, errors='replace') as fin:
-                        if not first and sep:
-                            fout.write(sep)
-                        for line in fin:
-                            fout.write(line)
-                else:
-                    # бінарний режим (chunked)
-                    if not first and sep:
-                        # in binary mode separator must be bytes
-                        fout.write(sep.encode('utf-8'))
-                    with open(src, mode_read) as fin:
-                        while True:
-                            chunk = fin.read(CHUNK)
-                            if not chunk:
-                                break
-                            fout.write(chunk)
-                first = False
-    else:
-        # Append mode
-        if verbose:
-            print(f"{'Бінарний' if binary else 'Текстовий'} режим — додаю в {dest}", file=sys.stderr)
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        with open(dest, mode_append, encoding=encoding) as fout:
-            first = True
-            for src in sources_filtered:
-                if not src.exists():
-                    print(f"Увага: не знайдено {src}, пропускаю.", file=sys.stderr)
-                    continue
-                if verbose:
-                    print(f"Додаю {src} -> {dest}", file=sys.stderr)
-                if not binary:
-                    if not first and sep:
-                        fout.write(sep)
-                    with open(src, mode_read, encoding=encoding, errors='replace') as fin:
-                        for line in fin:
-                            fout.write(line)
-                else:
-                    if not first and sep:
-                        fout.write(sep.encode('utf-8'))
-                    with open(src, mode_read) as fin:
-                        while True:
-                            chunk = fin.read(CHUNK)
-                            if not chunk:
-                                break
-                            fout.write(chunk)
-                first = False
+def read_input_paths(list_file: Path):
+    if not list_file.exists():
+        print(f"Файл списку не знайдено: {list_file}")
+        sys.exit(1)
+
+    cleaned = set()
+
+    with list_file.open("r", encoding="utf-8", errors="replace") as f:
+        for raw in f:
+            path = clean_path(raw)
+            if not path:
+                continue
+            cleaned.add(path)
+
+    if not cleaned:
+        print(f"Файл {list_file} не містить валідних шляхів.")
+        sys.exit(1)
+
+    return [Path(p) for p in sorted(cleaned)]
+
 
 def main():
-    ap = argparse.ArgumentParser(description="Копіює/об'єднує вміст файлів у файл-призначення (перший аргумент).")
-    ap.add_argument('dest', help='Файл призначення (перший аргумент)')
-    ap.add_argument('sources', nargs='+', help='Файли або glob-шаблони для копіювання')
-    ap.add_argument('--overwrite', action='store_true', help='Перезаписати файл призначення замість додавання')
-    ap.add_argument('--binary', action='store_true', help='Працювати в бінарному режимі')
-    ap.add_argument('--sep', default='', help='Роздільник між файлами (тільки для текстового режиму). Наприклад: "\\n\\n"')
-    ap.add_argument('-v', '--verbose', action='store_true', help='Більш детальний вивід')
-    args = ap.parse_args()
+    output_file, list_file = parse_args()
+    input_files = read_input_paths(list_file)
 
-    dest = pathlib.Path(args.dest)
-    # expand globs in sources
-    sources = expand_paths(args.sources)
-    if not sources:
-        print("Помилка: не вказано жодних джерел.", file=sys.stderr)
-        sys.exit(2)
+    # Готуємо дані TOC
+    toc_entries = []
+    for index, src in enumerate(input_files, start=1):
+        toc_entries.append((f"FILE_{index}", src.resolve()))
 
-    copy_into(dest, sources, args.overwrite, args.binary, args.sep, args.verbose)
+    # Пишемо вихідний файл
+    with output_file.open("w", encoding="utf-8") as out:
+        # TABLE OF CONTENTS
+        out.write("TABLE OF CONTENTS\n")
+        out.write(SEPARATOR_LINE + "\n\n")
 
-if __name__ == '__main__':
+        for anchor, abs_path in toc_entries:
+            out.write(f"- [{abs_path}](##<<{anchor}>>)\n")
+
+        out.write("\n" + SEPARATOR_LINE + "\n\n")
+
+        # FILE SECTIONS
+        for index, src in enumerate(input_files, start=1):
+            abs_path = src.resolve()
+            anchor = f"FILE_{index}"
+
+            out.write(f"## <<{anchor}>>\n")
+            out.write(SEPARATOR_LINE + "\n")
+            out.write(f"BEGIN FILE: {abs_path} (ID: {anchor})\n")
+            out.write(SEPARATOR_LINE + "\n\n")
+
+            try:
+                with abs_path.open("r", encoding="utf-8", errors="replace") as f:
+                    out.write(f.read())
+            except Exception as e:
+                out.write(f"[Помилка читання файлу {abs_path}: {e}]\n")
+
+            out.write("\n\n")
+            out.write(SEPARATOR_LINE + "\n")
+            out.write(f"END FILE: {abs_path}\n")
+            out.write(SEPARATOR_LINE + "\n\n")
+
+    print(f"Готово! Файл створено: {output_file.resolve()}")
+
+
+if __name__ == "__main__":
     main()
 

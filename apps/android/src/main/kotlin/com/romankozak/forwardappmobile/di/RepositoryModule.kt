@@ -162,4 +162,18 @@ interface RepositoryModule {
         database: ForwardAppDatabase,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
     ): DailyMetricsRepository = DailyMetricsRepositoryImpl(database, ioDispatcher)
+
+    @Provides
+    @AndroidSingleton
+    fun provideGoalRepository(
+        database: ForwardAppDatabase,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+    ): com.romankozak.forwardappmobile.shared.features.goals.data.repository.GoalRepository = com.romankozak.forwardappmobile.shared.features.goals.data.repository.GoalRepositoryImpl(database, ioDispatcher)
+
+    @Provides
+    @AndroidSingleton
+    fun provideListItemRepository(
+        database: ForwardAppDatabase,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+    ): com.romankozak.forwardappmobile.shared.features.projects.listitems.domain.repository.ListItemRepository = com.romankozak.forwardappmobile.shared.features.projects.listitems.data.repository.ListItemRepositoryImpl(database, ioDispatcher)
 }

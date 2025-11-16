@@ -9,7 +9,7 @@ import androidx.navigation.compose.rememberNavController
 import com.romankozak.forwardappmobile.features.mainscreen.MainScreen
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
-import com.romankozak.forwardappmobile.features.projectscreen.ProjectsScreen
+import com.romankozak.forwardappmobile.features.projectscreen.ProjectScreen
 
 const val MAIN_SCREEN_ROUTE = "main_screen"
 
@@ -56,7 +56,7 @@ fun AppNavigation() {
             ) { backStackEntry -> // Add backStackEntry here
                 val projectId = backStackEntry.arguments?.getString("listId")
 
-                ProjectsScreen(
+                ProjectScreen(
                     navController = navController,
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedVisibilityScope = this,
