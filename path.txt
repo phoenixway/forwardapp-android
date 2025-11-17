@@ -1,2 +1,6 @@
-apps/android/src/main/java/com/romankozak/forwardappmobile/ui/components/HoldMenuButton.kt
+apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/ProjectScreen.kt
+apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu/HoldMenu.kt
+apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu/HoldMenuButton.kt
+apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu/HoldMenuOverlay.kt
+apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu/HoldMenuState.kt
 apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/components/inputpanel/ModernInputPanel.kt

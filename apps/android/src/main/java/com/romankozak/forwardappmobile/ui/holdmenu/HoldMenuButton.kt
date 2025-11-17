@@ -1,81 +1,94 @@
-/*package com.romankozak.forwardappmobile.ui.holdmenu
+package com.romankozak.forwardappmobile.ui.holdmenu
 
+import android.util.Log
+import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.*
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.unit.*
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 
-class HoldMenuBuilder {
-    internal val items = mutableListOf<HoldMenuItem>()
-
-    fun item(label: String, icon: ImageVector, onSelect: () -> Unit) {
-        items += HoldMenuItem(label, icon, onSelect)
-    }
-}
 @Composable
 fun HoldMenuButton(
-    icon: ImageVector,
-    state: MutableState<HoldMenuState>,
     modifier: Modifier = Modifier,
-    holdDelayMs: Long = 150L,
-    content: HoldMenuBuilder.() -> Unit,
+    onLongPress: (anchor: Offset, pointerId: PointerId) -> Unit,
+    content: @Composable () -> Unit
 ) {
-    val builder = remember { HoldMenuBuilder() }
-    builder.items.clear()
-    builder.content()
+    var center by remember { mutableStateOf(Offset.Zero) }
+    val scope = rememberCoroutineScope()
 
     Box(
         modifier = modifier
-            .size(40.dp)
-            .pointerInput(state.value, builder.items) {
-                awaitPointerEventScope {
+            .onGloballyPositioned { layout ->
+                val pos = layout.positionInWindow()
+                val size = layout.size
+                center = Offset(
+                    pos.x + size.width / 2f,
+                    pos.y + size.height / 2f
+                )
+                Log.e("HOLDMENU", "📍 BUTTON center=$center")
+            }
+            .pointerInput(Unit) {
 
+                awaitEachGesture {
+
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    val pid = down.id
+
+                    var longPressFired = false
+                    var job: Job? = null
+
+                    // Запускаємо long-press у звичайному CoroutineScope
+                    job = scope.launch {
+                        delay(350)
+                        longPressFired = true
+                        Log.e("HOLDMENU", "⏱ Long press → OPEN")
+                        onLongPress(center, pid)
+                    }
+
+                    // обробка pointer рухів
                     while (true) {
+                        val event = awaitPointerEvent()
 
-                        val down = awaitFirstDown()
-                        var isUp = false
+                        val change = event.changes.firstOrNull { it.id == pid }
+                            ?: event.changes.first()
 
-                        val timeoutResult = withTimeoutOrNull(holdDelayMs) {
-                            while (!isUp) {
-                                val e = awaitPointerEvent()
-                                val ch = e.changes.first()
-                                ch.consume()
-
-                                if (ch.changedToUp() || !ch.pressed) {
-                                    isUp = true
-                                }
-                            }
+                        // якщо користувач рухається ДО long-press → скасувати
+                        if (!longPressFired && change.positionChange() != Offset.Zero) {
+                            job?.cancel()
+                            break
                         }
 
-                        // long press triggered
-                        if (timeoutResult == null && !isUp) {
-                            state.value = HoldMenuState(
-                                isOpen = true,
-                                anchor = down.position,
-                                items = builder.items.toList()
-                            )
+                        // якщо відпустив ДО long-press → скасувати
+                        if (!longPressFired && change.changedToUpIgnoreConsumed()) {
+                            job?.cancel()
+                            break
                         }
 
-                        // short tap → ignore (або додамо onClick, якщо хочеш)
+                        // якщо longPress спрацював → виходимо з gesture
+                        if (longPressFired) {
+                            change.consume()
+                            break
+                        }
+
+                        change.consume()
                     }
                 }
-            },
-        contentAlignment = Alignment.Center
+            }
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(24.dp)
-        )
+        content()
     }
 }
-*/

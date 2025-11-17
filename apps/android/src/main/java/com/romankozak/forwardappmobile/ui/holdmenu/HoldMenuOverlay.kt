@@ -1,109 +1,111 @@
-/*package com.romankozak.forwardappmobile.ui.holdmenu
+package com.romankozak.forwardappmobile.ui.holdmenu
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.*
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.*
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
+
+val TAG = "HOLDMENU"
+
 @Composable
 fun HoldMenuOverlay(
     state: HoldMenuState,
+    onStateChange: (HoldMenuState) -> Unit,
     onDismiss: () -> Unit,
+    itemHeight: Dp = 40.dp,
 ) {
-    if (!state.isOpen) return
+    if (!state.isOpen || state.items.isEmpty()) return
 
     val density = LocalDensity.current
-
-    val menuWidth = 220.dp
-    val itemHeight = 48.dp
-    val menuWidthPx = with(density) { menuWidth.toPx() }
     val itemHeightPx = with(density) { itemHeight.toPx() }
 
-    val menuHeightPx = itemHeightPx * state.items.size
-    val margin = with(density) { 8.dp.toPx() }
-
-    val popupX = state.anchor.x - menuWidthPx / 2f
-    val popupY = state.anchor.y - menuHeightPx - margin
-
-    var selectedIndex by remember { mutableStateOf<Int?>(null) }
+    // Позиція меню на екрані (мінімальний варіант без жорсткого clamping до меж)
+    val menuOffset = remember(state.anchor, state.items.size, itemHeightPx) {
+        val x = state.anchor.x - with(density) { 120.dp.toPx() }
+        val y = state.anchor.y - (state.items.size * itemHeightPx) / 2f
+        IntOffset(x.roundToInt(), y.roundToInt())
+    }
 
     Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Transparent) // overlay "шар"
+            .pointerInput(state.isOpen, state.items, state.anchor) {
+                awaitEachGesture {
+                    // Чекаємо перший дотик у межах overlay (тобто вже по меню)
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    var currentIndex: Int? = null
 
-        // === 1. КАПЧЕР ТАПУ ПОЗА МЕНЮ — НЕ БЛокуємо pointerInput на Box ===
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .pointerInput(state) {
-                    awaitPointerEventScope {
-                        val down = awaitFirstDown()
-                        val pos = down.position
-
-                        val inside =
-                            pos.x in popupX..(popupX + menuWidthPx) &&
-                                    pos.y in popupY..(popupY + menuHeightPx)
-
-                        if (!inside) {
-                            onDismiss()
+                    fun updateSelection(pos: Offset) {
+                        val relY = pos.y - menuOffset.y
+                        val index = (relY / itemHeightPx).toInt()
+                        if (index in state.items.indices && index != currentIndex) {
+                            currentIndex = index
+                            Log.e(TAG, "🔄 Highlight index=$index")
+                            onStateChange(state.copy(selectedIndex = index))
                         }
                     }
-                }
-        )
 
-        // === 2. ВЛАСНЕ МЕНЮ ===
-        Column(
-            modifier = Modifier
-                .offset { IntOffset(popupX.toInt(), popupY.toInt()) }
-                .width(menuWidth)
-                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
-                .border(
-                    1.dp,
-                    MaterialTheme.colorScheme.outlineVariant,
-                    RoundedCornerShape(16.dp)
-                )
-                .padding(vertical = 4.dp)
-                // ⬇ PointerInput тільки на меню (drag-selection)
-                .pointerInput(state) {
-                    awaitPointerEventScope {
-                        var active = true
-                        val down = awaitFirstDown()
+                    // Одразу оновлюємо виділення під першим дотиком
+                    updateSelection(down.position)
 
-                        while (active) {
-                            val event = awaitPointerEvent()
-                            val change = event.changes.first()
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        val change = event.changes.firstOrNull() ?: continue
 
-                            val relativeY = change.position.y - popupY
-                            val idx = (relativeY / itemHeightPx).toInt()
-
-                            selectedIndex =
-                                if (idx in state.items.indices) idx else null
-
-                            if (change.changedToUp()) {
-                                selectedIndex?.let { state.items[it].onSelect() }
+                        if (change.changedToUpIgnoreConsumed()) {
+                            // Відпускання пальця → виконуємо вибраний пункт
+                            val idx = currentIndex
+                            if (idx != null && idx in state.items.indices) {
+                                Log.e(TAG, "✔ SELECT: ${state.items[idx].label}")
+                                state.items[idx].onClick()
+                            }
+                            onDismiss()
+                            break
+                        } else {
+                            if (change.pressed) {
+                                updateSelection(change.position)
+                            } else {
+                                // Якийсь інший стан (gesture скасували) → просто закриваємо меню
                                 onDismiss()
-                                active = false
+                                break
                             }
                         }
                     }
                 }
+            },
+        contentAlignment = Alignment.TopStart,
+    ) {
+        Column(
+            modifier = Modifier
+                .offset { menuOffset }
+                .background(
+                    color = MaterialTheme.colorScheme.surface,
+                    shape = MaterialTheme.shapes.medium,
+                )
         ) {
+            state.items.forEachIndexed { index, item ->
+                val selected = state.selectedIndex == index
 
-            state.items.forEachIndexed { idx, itm ->
-                val selected = idx == selectedIndex
-
-                Row(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(itemHeight)
@@ -111,52 +113,21 @@ fun HoldMenuOverlay(
                             if (selected)
                                 MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                             else
-                                Color.Transparent,
-                            RoundedCornerShape(8.dp)
+                                Color.Transparent
                         )
                         .padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    contentAlignment = Alignment.CenterStart,
                 ) {
-                    Text(itm.label)
-                    Icon(itm.icon, contentDescription = null)
+                    Text(
+                        text = item.label,
+                        color = if (selected)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
                 }
             }
         }
     }
 }
-
-
-@Composable
-fun HoldMenuOverlay_MINIMAL(state: HoldMenuState, onDismiss: () -> Unit) {
-    if (!state.isOpen) return
-
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(Color(0x88000000))
-            .pointerInput(Unit) {
-                awaitPointerEventScope {
-                    awaitFirstDown()
-                    onDismiss()
-                }
-            }
-    ) {
-        Column(
-            Modifier
-                .offset { IntOffset(state.anchor.x.toInt(), state.anchor.y.toInt()) }
-                .background(Color.White, RoundedCornerShape(12.dp))
-                .padding(8.dp)
-        ) {
-            state.items.forEach {
-                Text(
-                    it.label,
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp)
-                        .clickable { it.onSelect(); onDismiss() }
-                )
-            }
-        }
-    }
-}*/

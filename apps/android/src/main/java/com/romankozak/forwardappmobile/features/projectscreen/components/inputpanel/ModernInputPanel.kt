@@ -67,6 +67,7 @@ import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.semantics
+import com.romankozak.forwardappmobile.ui.holdmenu.HoldMenuItem
 import com.romankozak.forwardappmobile.ui.holdmenu.HoldMenuOverlay
 
 // TODO: Restore from theme
@@ -226,23 +227,25 @@ private fun ViewModeToggle(
     }*/
 
     HoldMenuButton(
-        icon = Icons.Outlined.Dashboard,  // або що в тебе там
-        state = holdMenuState
+        modifier = Modifier,
+        onLongPress = { anchor, pointerId ->
+            holdMenuState.value = HoldMenuState(
+                isOpen = true,
+                anchor = anchor,
+                pointerId = pointerId,
+                items = listOf(
+                    HoldMenuItem("Inbox") {  },
+                    HoldMenuItem("Advanced") {  },
+                    HoldMenuItem("Attachments") { }
+                )
+                ,
+                selectedIndex = 0
+            )
+        }
     ) {
-        // DSL
-        item("Inbox", Icons.Outlined.Notes) {
-            onViewChange(ProjectViewMode.Inbox)
-            onInputModeSelected(InputMode.AddQuickRecord)
-        }
-        item("Advanced", Icons.Outlined.Dashboard) {
-            onViewChange(ProjectViewMode.Advanced)
-            onInputModeSelected(InputMode.AddQuickRecord)
-        }
-        item("Attachments", Icons.Default.Attachment) {
-            onViewChange(ProjectViewMode.Attachments)
-            onInputModeSelected(InputMode.AddGoal)
-        }
+        Icon(Icons.Default.MoreVert, contentDescription = null)
     }
+
 }
 
 // ------------------- MENU ---------------------
@@ -1381,14 +1384,14 @@ fun MinimalInputPanel(
     ) {
 
         // ЛІВА КНОПКА — HoldMenu
-        HoldMenuButton(
+        /*HoldMenuButton(
             icon = Icons.Default.MoreVert,
             state = holdMenuState
         ) {
             item("Inbox", Icons.Default.Inbox) { /* TODO */ }
             item("Advanced", Icons.Default.Dashboard) { /* TODO */ }
             item("Attachments", Icons.Default.Attachment) { /* TODO */ }
-        }
+        }*/
 
         // ПРАВА КНОПКА — свайпом міняє режим
         MagicModeSwitcher(
@@ -1401,22 +1404,22 @@ fun MinimalInputPanel(
     }
 
     HoldMenuButton(
-        icon = Icons.Outlined.Dashboard,  // або що в тебе там
-        state = holdMenuState
+        modifier = Modifier,
+        onLongPress = { anchor, pointerId ->
+            holdMenuState.value = HoldMenuState(
+                isOpen = true,
+                anchor = anchor,
+                pointerId = pointerId,
+                items = listOf(
+                    HoldMenuItem("Inbox") {  },
+                    HoldMenuItem("Advanced") {  },
+                    HoldMenuItem("Attachments") {  }
+                ),
+                selectedIndex = 0
+            )
+        }
     ) {
-        // DSL
-        item("Inbox", Icons.Outlined.Notes) {
-     //       onViewChange(ProjectViewMode.Inbox)
-            onInputModeSelected(InputMode.AddQuickRecord)
-        }
-        item("Advanced", Icons.Outlined.Dashboard) {
-   //         onViewChange(ProjectViewMode.Advanced)
-            onInputModeSelected(InputMode.AddQuickRecord)
-        }
-        item("Attachments", Icons.Default.Attachment) {
- //           onViewChange(ProjectViewMode.Attachments)
-            onInputModeSelected(InputMode.AddGoal)
-        }
+        Icon(Icons.Default.MoreVert, contentDescription = null)
     }
 
 

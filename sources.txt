@@ -1,18 +1,336 @@
 TABLE OF CONTENTS
 ================================================================================
 
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/components/inputpanel/ModernInputPanel.kt](##<<FILE_1>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/components/HoldMenuButton.kt](##<<FILE_2>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/ProjectScreen.kt](##<<FILE_1>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/components/inputpanel/ModernInputPanel.kt](##<<FILE_2>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu/HoldMenu.kt](##<<FILE_3>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu/HoldMenuButton.kt](##<<FILE_4>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu/HoldMenuOverlay.kt](##<<FILE_5>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu/HoldMenuState.kt](##<<FILE_6>>)
 
 ================================================================================
 
 ## <<FILE_1>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/components/inputpanel/ModernInputPanel.kt (ID: FILE_1)
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/ProjectScreen.kt (ID: FILE_1)
+================================================================================
+
+package com.romankozak.forwardappmobile.features.projectscreen
+
+import android.util.Log
+import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.di.LocalAppComponent
+import com.romankozak.forwardappmobile.features.projectscreen.components.topbar.AdaptiveTopBar
+import com.romankozak.forwardappmobile.features.projectscreen.models.ProjectViewMode
+import com.romankozak.forwardappmobile.shared.features.projects.core.domain.model.Project
+import com.romankozak.forwardappmobile.features.projectscreen.components.inputpanel.ModernInputPanel
+import com.romankozak.forwardappmobile.features.projectscreen.components.inputpanel.InputMode
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.composed
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.zIndex
+import com.romankozak.forwardappmobile.features.projectscreen.components.inputpanel.MinimalInputPanel
+import com.romankozak.forwardappmobile.features.projectscreen.components.list.BacklogView
+import com.romankozak.forwardappmobile.ui.holdmenu.HoldMenuOverlay
+import com.romankozak.forwardappmobile.ui.holdmenu.HoldMenuState
+import kotlinx.coroutines.delay
+
+
+@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
+@Composable
+fun ProjectScreen(
+    navController: NavController,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
+    projectId: String?,
+) {
+    val appComponent = LocalAppComponent.current
+    val viewModel: ProjectScreenViewModel = viewModel(
+        factory = appComponent.viewModelFactory
+    )
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    var inputValue by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue("")) }
+    var showInputPanelMenu by rememberSaveable { mutableStateOf(false) }
+
+    val listState = rememberLazyListState()
+
+    val holdMenuState = remember { mutableStateOf(HoldMenuState()) }
+
+
+    val selectedProject = navController.currentBackStackEntry
+        ?.savedStateHandle
+        ?.getLiveData<Project>("selected_project")
+        ?.observeAsState()
+
+    LaunchedEffect(selectedProject) {
+        selectedProject?.value?.let { project: Project ->
+            viewModel.onEvent(ProjectScreenViewModel.Event.LinkExistingProject(project))
+            navController.currentBackStackEntry?.savedStateHandle?.remove<Project>("selected_project")
+        }
+    }
+    Box(Modifier.fillMaxSize()) {
+
+        Scaffold(
+            modifier = Modifier.navigationBarsPadding().imePadding()
+                .onGloballyPositioned {
+                    Log.e("HOLDMENU", "📏 ROOT coords = ${it.positionInWindow()}, size=${it.size}")
+                },
+            topBar = {
+                AdaptiveTopBar(
+                    isSelectionModeActive = state.isSelectionModeActive,
+                    project = state.projectName?.let {
+                        Project(
+                            id = projectId ?: "",
+                            name = it,
+                            description = null,
+                            parentId = null,
+                            createdAt = 0,
+                            updatedAt = 0,
+                            isCompleted = false,
+                            isExpanded = false,
+                            goalOrder = 0,
+                            projectStatus = null,
+                            projectStatusText = null,
+                            isProjectManagementEnabled = false,
+                            showCheckboxes = false,
+                            tags = null
+                        )
+                    },
+                    selectedCount = state.selectedItemIds.size,
+                    areAllSelected = false, // TODO: Implement
+                    onClearSelection = { /* TODO */ },
+                    onSelectAll = { /* TODO */ },
+                    onDelete = { /* TODO */ },
+                    onMarkAsComplete = { /* TODO */ },
+                    onMarkAsIncomplete = { /* TODO */ },
+
+                    onInboxClick = {
+                        Toast.makeText(
+                            context,
+                            "Inbox (не реалізовано)",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    },
+                    currentViewMode = state.currentView
+                )
+            },
+            bottomBar = {
+                /*  ModernInputPanel(
+                inputValue = inputValue,
+                inputMode = state.inputMode,
+                onValueChange = { inputValue = it },
+                onSubmit = {
+                    if (inputValue.text.isNotBlank()) {
+                        when (state.inputMode) {
+                            InputMode.AddNestedProject -> viewModel.onEvent(ProjectScreenViewModel.Event.AddNestedProject(inputValue.text))
+                            InputMode.AddGoal -> viewModel.onEvent(ProjectScreenViewModel.Event.AddBacklogGoal(inputValue.text))
+                            else -> viewModel.onEvent(ProjectScreenViewModel.Event.AddInboxRecord(inputValue.text))
+                        }
+                        inputValue = TextFieldValue("")
+                    }
+                },
+                onInputModeSelected = { viewModel.onEvent(ProjectScreenViewModel.Event.SwitchInputMode(it)) },
+                onRecentsClick = { /* TODO */ },
+                onLinkExistingProjectClick = { navController.navigate("project_chooser") },
+                onShowAddWebLinkDialog = { /* TODO */ },
+                onShowAddObsidianLinkDialog = { /* TODO */ },
+                onAddListShortcutClick = { viewModel.onEvent(ProjectScreenViewModel.Event.SwitchInputMode(InputMode.AddNestedProject)) },
+                canGoBack = false, // TODO
+                canGoForward = false, // TODO
+                onBackClick = { /* TODO */ },
+                onForwardClick = { /* TODO */ },
+                onHomeClick = { /* TODO */ },
+                onEditList = { /* TODO */ },
+                onShareList = { /* TODO */ },
+                onDeleteList = { /* TODO */ },
+                onSetReminder = { /* TODO */ },
+                menuExpanded = showInputPanelMenu,
+                onMenuExpandedChange = { showInputPanelMenu = it },
+                currentView = state.currentView,
+                onViewChange = { viewModel.onEvent(ProjectScreenViewModel.Event.SwitchViewMode(it)) },
+                onImportFromMarkdown = { /* TODO */ },
+                onExportToMarkdown = { /* TODO */ },
+                onImportBacklogFromMarkdown = { /* TODO */ },
+                onExportBacklogToMarkdown = { /* TODO */ },
+                onExportProjectState = { /* TODO */ },
+                reminderParseResult = null, // TODO
+                onClearReminder = { /* TODO */ },
+                isNerActive = false, // TODO
+                onStartTrackingCurrentProject = { /* TODO */ },
+                isProjectManagementEnabled = false, // TODO
+                onToggleProjectManagement = { /* TODO */ },
+                onAddProjectToDayPlan = { /* TODO */ },
+                isViewModePanelVisible = true, // TODO
+                onToggleNavPanelMode = { /* TODO */ },
+                onRevealInExplorer = { /* TODO */ },
+                onCloseSearch = { /* TODO */ },
+                onAddMilestone = { /* TODO */ },
+                onShowCreateNoteDocumentDialog = { /* TODO */ },
+                onCreateChecklist = { /* TODO */ },
+                onShowDisplayPropertiesClick = { /* TODO */ },
+                suggestions = emptyList(), // TODO
+                onSuggestionClick = { /* TODO */ },
+                holdMenuState = holdMenuState
+            )*/
+
+                MinimalInputPanel(
+                    inputMode = state.inputMode,
+                    onInputModeSelected = {
+                        viewModel.onEvent(
+                            ProjectScreenViewModel.Event.SwitchInputMode(
+                                it
+                            )
+                        )
+                    },
+
+                    holdMenuState = holdMenuState
+                )
+
+            }
+        ) { paddingValues ->
+            when (state.currentView) {
+                ProjectViewMode.Backlog -> BacklogView(
+                    listContent = state.backlogItems,
+                    viewModel = viewModel,
+                    state = state,
+                    onRemindersClick = { /* TODO */ },
+                    modifier = Modifier
+                        .padding(paddingValues)
+                        .glitch(trigger = uiState.currentView),
+                    listState = listState,
+                    onMove = { from, to ->
+                        viewModel.onEvent(
+                            ProjectScreenViewModel.Event.MoveItem(
+                                from,
+                                to
+                            )
+                        )
+                    },
+                    onDragEnd = { from, to ->
+                        viewModel.onEvent(
+                            ProjectScreenViewModel.Event.DragEnd(
+                                from,
+                                to
+                            )
+                        )
+                    },
+                    onCopyContent = { /* TODO */ },
+                )
+
+                ProjectViewMode.Inbox -> {
+                    LazyColumn(modifier = Modifier.padding(paddingValues)) {
+                        items(state.inboxItems) { item ->
+                            Text(
+                                text = item.text,
+                                modifier = Modifier.fillMaxWidth().padding(16.dp)
+                            )
+                        }
+                    }
+                }
+
+                ProjectViewMode.Advanced -> Text(
+                    text = "Advanced Content for ID: $projectId",
+                    modifier = Modifier.padding(paddingValues).fillMaxWidth().padding(16.dp)
+                )
+
+                ProjectViewMode.Attachments -> Text(
+                    text = "Attachments Content for ID: $projectId",
+                    modifier = Modifier.padding(paddingValues).fillMaxWidth().padding(16.dp)
+                )
+            }
+        }
+        if (holdMenuState.value.isOpen) {
+            HoldMenuOverlay(
+                state = holdMenuState.value,
+                onStateChange = { holdMenuState.value = it },
+                onDismiss = {
+                    holdMenuState.value = holdMenuState.value.copy(
+                        isOpen = false,
+                        selectedIndex = null,
+                    )
+                }
+            )
+
+        }
+
+
+
+        /*HoldMenuOverlay(
+        state = holdMenuState.value,
+        onDismiss = { holdMenuState.value = holdMenuState.value.copy(isOpen = false) }
+    )*/
+
+    }
+}
+
+
+fun Modifier.glitch(trigger: Any): Modifier = composed {
+    var glitchAmount by remember { mutableFloatStateOf(0f) }
+
+    LaunchedEffect(key1 = trigger) {
+        val glitchDuration = 150L
+        val startTime = withFrameNanos { it }
+
+        while (withFrameNanos { it } < startTime + (glitchDuration * 1_000_000)) {
+            glitchAmount = (Math.random() * 10 - 5).toFloat()
+            delay(40)
+        }
+        glitchAmount = 0f
+    }
+
+    this.graphicsLayer {
+        translationX = glitchAmount
+        translationY = (Math.random() * glitchAmount - glitchAmount / 2).toFloat()
+    }
+}
+
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/ProjectScreen.kt
+================================================================================
+
+## <<FILE_2>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/components/inputpanel/ModernInputPanel.kt (ID: FILE_2)
 ================================================================================
 
 package com.romankozak.forwardappmobile.features.projectscreen.components.inputpanel
 
+import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
@@ -21,7 +339,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -36,9 +356,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.ArrowLeft
-import androidx.compose.material.icons.automirrored.filled.ArrowRight
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -50,13 +368,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.changedToUp
+import androidx.compose.ui.input.pointer.consumePositionChange
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
@@ -66,8 +388,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.features.projectscreen.models.ProjectViewMode
-import com.romankozak.forwardappmobile.ui.components.HoldMenuButton
+import com.romankozak.forwardappmobile.ui.holdmenu.HoldMenuButton
+import com.romankozak.forwardappmobile.ui.holdmenu.HoldMenuState
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import androidx.compose.ui.input.pointer.PointerInputScope
+import androidx.compose.ui.input.pointer.changedToUp
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.semantics
+import com.romankozak.forwardappmobile.ui.holdmenu.HoldMenuItem
+import com.romankozak.forwardappmobile.ui.holdmenu.HoldMenuOverlay
 
 // TODO: Restore from theme
 object LocalInputPanelColors {
@@ -170,28 +501,38 @@ data class OptionsMenuActions(
 
 // ------------------- VIEW TOGGLE ---------------------
 
+
+
 @Composable
 private fun ViewModeToggle(
-  currentView: ProjectViewMode,
-  isProjectManagementEnabled: Boolean,
-  onViewChange: (ProjectViewMode) -> Unit,
-  onInputModeSelected: (InputMode) -> Unit,
-  contentColor: Color,
-  onToggleNavPanelMode: () -> Unit,
+
+    currentView: ProjectViewMode,
+    isProjectManagementEnabled: Boolean,
+    onViewChange: (ProjectViewMode) -> Unit,
+    onInputModeSelected: (InputMode) -> Unit,
+    contentColor: Color,
+    onToggleNavPanelMode: () -> Unit,
+    holdMenuState: MutableState<HoldMenuState>,
 ) {
     val availableViews =
         ProjectViewMode.values().filter {
             it != ProjectViewMode.Advanced || isProjectManagementEnabled
         }
 
-    HoldMenuButton(
+    /*HoldMenuButtonTest(Icons.Default.MoreVert) {
+        item("Edit", Icons.Default.Edit) {}
+        item("Delete", Icons.Default.Delete) {}
+    }*/
+
+
+    /*HoldMenuButton(
         icon = when (currentView) {
             ProjectViewMode.Backlog -> Icons.Outlined.ListAlt
             ProjectViewMode.Inbox -> Icons.Outlined.Notes
             ProjectViewMode.Advanced -> Icons.Outlined.Dashboard
             ProjectViewMode.Attachments -> Icons.Default.Attachment
         },
-        onClick = { /* Short click can be used to cycle views or open the menu */ }
+        state = holdMenuState
     ) {
         availableViews.forEach { viewMode ->
             item(
@@ -213,7 +554,28 @@ private fun ViewModeToggle(
                 onInputModeSelected(newMode)
             }
         }
+    }*/
+
+    HoldMenuButton(
+        modifier = Modifier,
+        onLongPress = { anchor, pointerId ->
+            holdMenuState.value = HoldMenuState(
+                isOpen = true,
+                anchor = anchor,
+                pointerId = pointerId,
+                items = listOf(
+                    HoldMenuItem("Inbox") {  },
+                    HoldMenuItem("Advanced") {  },
+                    HoldMenuItem("Attachments") { }
+                )
+                ,
+                selectedIndex = 0
+            )
+        }
+    ) {
+        Icon(Icons.Default.MoreVert, contentDescription = null)
     }
+
 }
 
 // ------------------- MENU ---------------------
@@ -522,10 +884,11 @@ private fun BackForwardIcon(state: NavPanelState, showForwardIcon: Boolean, cont
 @OptIn(ExperimentalAnimationApi::class, ExperimentalFoundationApi::class)
 @Composable
 private fun NavigationBar(
-  state: NavPanelState,
-  actions: NavPanelActions,
-  contentColor: Color,
-  modifier: Modifier = Modifier,
+    state: NavPanelState,
+    actions: NavPanelActions,
+    contentColor: Color,
+    modifier: Modifier = Modifier,
+    holdMenuState: MutableState<HoldMenuState>,
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val availableWidth = maxWidth
@@ -591,6 +954,7 @@ private fun NavigationBar(
                         onInputModeSelected = actions.onInputModeSelected,
                         contentColor = contentColor,
                         onToggleNavPanelMode = actions.onToggleNavPanelMode,
+                        holdMenuState = holdMenuState,
                     )
                 } else {
                     IconButton(onClick = actions.onToggleNavPanelMode, modifier = Modifier.size(40.dp)) {
@@ -652,501 +1016,743 @@ private fun NerIndicator(isActive: Boolean, hasText: Boolean, modifier: Modifier
   }
 }
 
+
+
+
 @OptIn(
-  ExperimentalAnimationApi::class,
-  ExperimentalMaterial3Api::class,
-  ExperimentalFoundationApi::class,
+    ExperimentalAnimationApi::class,
+    ExperimentalMaterial3Api::class,
+    ExperimentalFoundationApi::class,
 )
 @Composable
 fun ModernInputPanel(
-  modifier: Modifier = Modifier,
-  inputValue: TextFieldValue,
-  inputMode: InputMode,
-  onValueChange: (TextFieldValue) -> Unit,
-  onSubmit: () -> Unit,
-  onInputModeSelected: (InputMode) -> Unit,
-  onRecentsClick: () -> Unit,
-  onLinkExistingProjectClick: () -> Unit,
-  onShowAddWebLinkDialog: () -> Unit,
-  onShowAddObsidianLinkDialog: () -> Unit,
-  onAddListShortcutClick: () -> Unit,
-  canGoBack: Boolean,
-  canGoForward: Boolean,
-  onBackClick: () -> Unit,
-  onForwardClick: () -> Unit,
-  onHomeClick: () -> Unit,
-  onEditList: () -> Unit,
-  onShareList: () -> Unit,
-  onDeleteList: () -> Unit,
-  onSetReminder: () -> Unit,
-  menuExpanded: Boolean,
-  onMenuExpandedChange: (Boolean) -> Unit,
-  currentView: ProjectViewMode,
-  onViewChange: (ProjectViewMode) -> Unit,
-  onImportFromMarkdown: () -> Unit,
-  onExportToMarkdown: () -> Unit,
-  onImportBacklogFromMarkdown: () -> Unit,
-  onExportBacklogToMarkdown: () -> Unit,
-  onExportProjectState: () -> Unit,
-  reminderParseResult: Any?, // TODO: Restore ReminderParseResult
-  onClearReminder: () -> Unit,
-  isNerActive: Boolean,
-  onStartTrackingCurrentProject: () -> Unit,
-  isProjectManagementEnabled: Boolean,
-  onToggleProjectManagement: () -> Unit,
-  onAddProjectToDayPlan: () -> Unit,
-  isViewModePanelVisible: Boolean,
-  onToggleNavPanelMode: () -> Unit,
-  onRevealInExplorer: () -> Unit,
-  onCloseSearch: () -> Unit,
-  onAddMilestone: () -> Unit,
-  onShowCreateNoteDocumentDialog: () -> Unit,
-  onCreateChecklist: () -> Unit,
-  onShowDisplayPropertiesClick: () -> Unit,
-  suggestions: List<String>,
-  onSuggestionClick: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    inputValue: TextFieldValue,
+    inputMode: InputMode,
+    onValueChange: (TextFieldValue) -> Unit,
+    onSubmit: () -> Unit,
+    onInputModeSelected: (InputMode) -> Unit,
+    onRecentsClick: () -> Unit,
+    onLinkExistingProjectClick: () -> Unit,
+    onShowAddWebLinkDialog: () -> Unit,
+    onShowAddObsidianLinkDialog: () -> Unit,
+    onAddListShortcutClick: () -> Unit,
+    canGoBack: Boolean,
+    canGoForward: Boolean,
+    onBackClick: () -> Unit,
+    onForwardClick: () -> Unit,
+    onHomeClick: () -> Unit,
+    onEditList: () -> Unit,
+    onShareList: () -> Unit,
+    onDeleteList: () -> Unit,
+    onSetReminder: () -> Unit,
+    menuExpanded: Boolean,
+    onMenuExpandedChange: (Boolean) -> Unit,
+    currentView: ProjectViewMode,
+    onViewChange: (ProjectViewMode) -> Unit,
+    onImportFromMarkdown: () -> Unit,
+    onExportToMarkdown: () -> Unit,
+    onImportBacklogFromMarkdown: () -> Unit,
+    onExportBacklogToMarkdown: () -> Unit,
+    onExportProjectState: () -> Unit,
+    reminderParseResult: Any?, // TODO: Restore ReminderParseResult
+    onClearReminder: () -> Unit,
+    isNerActive: Boolean,
+    onStartTrackingCurrentProject: () -> Unit,
+    isProjectManagementEnabled: Boolean,
+    onToggleProjectManagement: () -> Unit,
+    onAddProjectToDayPlan: () -> Unit,
+    isViewModePanelVisible: Boolean,
+    onToggleNavPanelMode: () -> Unit,
+    onRevealInExplorer: () -> Unit,
+    onCloseSearch: () -> Unit,
+    onAddMilestone: () -> Unit,
+    onShowCreateNoteDocumentDialog: () -> Unit,
+    onCreateChecklist: () -> Unit,
+    onShowDisplayPropertiesClick: () -> Unit,
+    suggestions: List<String>,
+    onSuggestionClick: (String) -> Unit,
+    holdMenuState: MutableState<HoldMenuState>,
 ) {
-  val state =
-    NavPanelState(
-      canGoBack = canGoBack,
-      canGoForward = canGoForward,
-      menuExpanded = menuExpanded,
-      currentView = currentView,
-      isProjectManagementEnabled = isProjectManagementEnabled,
-      inputMode = inputMode,
-      isViewModePanelVisible = isViewModePanelVisible,
-    )
-  val actions =
-    NavPanelActions(
-      onBackClick = onBackClick,
-      onForwardClick = onForwardClick,
-      onHomeClick = onHomeClick,
-      onRecentsClick = onRecentsClick,
-      onRevealInExplorer = onRevealInExplorer,
-      onCloseSearch = onCloseSearch,
-      onViewChange = onViewChange,
-      onInputModeSelected = onInputModeSelected,
-      onMenuExpandedChange = onMenuExpandedChange,
-      onAddProjectToDayPlan = onAddProjectToDayPlan,
-      onToggleNavPanelMode = onToggleNavPanelMode,
-      menuActions =
-        OptionsMenuActions(
-          onEditList = onEditList,
-          onToggleProjectManagement = onToggleProjectManagement,
-          onStartTrackingCurrentProject = onStartTrackingCurrentProject,
-          onShareList = onShareList,
-          onImportFromMarkdown = onImportFromMarkdown,
-          onExportToMarkdown = onExportToMarkdown,
-          onImportBacklogFromMarkdown = onImportBacklogFromMarkdown,
-          onExportBacklogToMarkdown = onExportBacklogToMarkdown,
-          onExportProjectState = onExportProjectState,
-          onDeleteList = onDeleteList,
-          onSetReminder = onSetReminder,
-          onShowDisplayPropertiesClick = onShowDisplayPropertiesClick,
-        ),
+    val state =
+        NavPanelState(
+            canGoBack = canGoBack,
+            canGoForward = canGoForward,
+            menuExpanded = menuExpanded,
+            currentView = currentView,
+            isProjectManagementEnabled = isProjectManagementEnabled,
+            inputMode = inputMode,
+            isViewModePanelVisible = isViewModePanelVisible,
+        )
+    val actions =
+        NavPanelActions(
+            onBackClick = onBackClick,
+            onForwardClick = onForwardClick,
+            onHomeClick = onHomeClick,
+            onRecentsClick = onRecentsClick,
+            onRevealInExplorer = onRevealInExplorer,
+            onCloseSearch = onCloseSearch,
+            onViewChange = onViewChange,
+            onInputModeSelected = onInputModeSelected,
+            onMenuExpandedChange = onMenuExpandedChange,
+            onAddProjectToDayPlan = onAddProjectToDayPlan,
+            onToggleNavPanelMode = onToggleNavPanelMode,
+            menuActions =
+                OptionsMenuActions(
+                    onEditList = onEditList,
+                    onToggleProjectManagement = onToggleProjectManagement,
+                    onStartTrackingCurrentProject = onStartTrackingCurrentProject,
+                    onShareList = onShareList,
+                    onImportFromMarkdown = onImportFromMarkdown,
+                    onExportToMarkdown = onExportToMarkdown,
+                    onImportBacklogFromMarkdown = onImportBacklogFromMarkdown,
+                    onExportBacklogToMarkdown = onExportBacklogToMarkdown,
+                    onExportProjectState = onExportProjectState,
+                    onDeleteList = onDeleteList,
+                    onSetReminder = onSetReminder,
+                    onShowDisplayPropertiesClick = onShowDisplayPropertiesClick,
+                ),
+        )
+
+    val focusRequester = remember { FocusRequester() }
+
+    val modes =
+        remember(isProjectManagementEnabled, currentView) {
+            listOfNotNull(
+                InputMode.AddGoal,
+                InputMode.AddQuickRecord,
+                if (isProjectManagementEnabled) InputMode.AddProjectLog else null,
+                if (isProjectManagementEnabled && currentView == ProjectViewMode.Advanced) InputMode.AddMilestone else null,
+                if (isProjectManagementEnabled && currentView == ProjectViewMode.Backlog) InputMode.AddNestedProject else null,
+                InputMode.SearchGlobal,
+                InputMode.SearchInList,
+            )
+        }
+
+    var dragOffset by remember { mutableFloatStateOf(0f) }
+    var isPressed by remember { mutableStateOf(false) }
+    var showModeMenu by remember { mutableStateOf(false) }
+
+    val currentModeIndex = modes.indexOf(inputMode)
+
+    val inputPanelColors = LocalInputPanelColors.current
+    val panelColors =
+        when (inputMode) {
+            InputMode.AddGoal ->
+                PanelColors(
+                    containerColor = inputPanelColors.addGoal.backgroundColor,
+                    contentColor = inputPanelColors.addGoal.textColor,
+                    accentColor = inputPanelColors.addGoal.textColor,
+                    inputFieldColor = inputPanelColors.addGoal.inputFieldColor,
+                )
+            InputMode.AddQuickRecord ->
+                PanelColors(
+                    containerColor = inputPanelColors.addQuickRecord.backgroundColor,
+                    contentColor = inputPanelColors.addQuickRecord.textColor,
+                    accentColor = inputPanelColors.addQuickRecord.textColor,
+                    inputFieldColor = inputPanelColors.addQuickRecord.inputFieldColor,
+                )
+            InputMode.SearchInList ->
+                PanelColors(
+                    containerColor = inputPanelColors.searchInList.backgroundColor,
+                    contentColor = inputPanelColors.searchInList.textColor,
+                    accentColor = inputPanelColors.searchInList.textColor,
+                    inputFieldColor = inputPanelColors.searchInList.inputFieldColor,
+                )
+            InputMode.SearchGlobal ->
+                PanelColors(
+                    containerColor = inputPanelColors.searchGlobal.backgroundColor,
+                    contentColor = inputPanelColors.searchGlobal.textColor,
+                    accentColor = inputPanelColors.searchGlobal.textColor,
+                    inputFieldColor = inputPanelColors.searchGlobal.inputFieldColor,
+                )
+            InputMode.AddProjectLog,
+            InputMode.AddMilestone,
+            InputMode.AddNestedProject ->
+                PanelColors(
+                    containerColor = inputPanelColors.addProjectLog.backgroundColor,
+                    contentColor = inputPanelColors.addProjectLog.textColor,
+                    accentColor = inputPanelColors.addProjectLog.textColor,
+                    inputFieldColor = inputPanelColors.addProjectLog.inputFieldColor,
+                )
+        }
+
+    val animatedContainerColor by
+    animateColorAsState(
+        targetValue = panelColors.containerColor,
+        animationSpec = tween(400),
+        label = "panel_color_animation",
     )
 
-  val focusRequester = remember { FocusRequester() }
-  val modes =
-    remember(isProjectManagementEnabled, currentView) {
-      listOfNotNull(
+    val buttonScale by
+    animateFloatAsState(
+        targetValue = if (isPressed) 0.92f else 1f,
+        animationSpec =
+            spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "button_scale",
+    )
+
+    LaunchedEffect(inputMode) {
+        if (inputMode == InputMode.SearchInList || inputMode == InputMode.SearchGlobal) {
+            delay(60)
+            focusRequester.requestFocus()
+        }
+    }
+
+    Surface(
+        modifier = modifier
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        shadowElevation = 0.dp,
+        tonalElevation = 0.dp,
+        color = animatedContainerColor,
+        border = BorderStroke(1.dp, panelColors.contentColor.copy(alpha = 0.1f)),
+    ){
+        Column {
+            AnimatedVisibility(visible = suggestions.isNotEmpty()) {
+                Column {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        color = panelColors.contentColor.copy(alpha = 0.12f),
+                    )
+                    // TODO: AutocompleteSuggestions(suggestions, onSuggestionClick)
+                }
+            }
+
+            NavigationBar(
+                state = state,
+                actions = actions,
+                contentColor = panelColors.contentColor,
+                holdMenuState = holdMenuState,
+            )
+
+            AnimatedVisibility(
+                visible = reminderParseResult != null,
+                enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
+                exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top),
+            ) {
+                // TODO: ReminderChip
+            }
+
+            Row(
+                modifier =
+                    Modifier.defaultMinSize(minHeight = 64.dp)
+                        .padding(horizontal = 8.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                MagicModeSwitcher(
+                    modes = modes,
+                    currentMode = inputMode,
+                    onTap = { showModeMenu = true },
+                    onModeSelected = { mode ->
+                        onInputModeSelected(mode)
+                    },
+                    modifier = Modifier.scale(buttonScale)
+                )
+
+
+                    AnimatedContent(
+                        targetState = inputMode,
+                        transitionSpec = {
+                            val initialIndex = modes.indexOf(initialState)
+                            val targetIndex = modes.indexOf(targetState)
+                            val forward = targetIndex > initialIndex
+
+                            val direction =
+                                if (forward) {
+                                    AnimatedContentTransitionScope.SlideDirection.Left
+                                } else {
+                                    AnimatedContentTransitionScope.SlideDirection.Right
+                                }
+
+                            slideIntoContainer(
+                                direction,
+                                animationSpec =
+                                    spring(
+                                        dampingRatio = Spring.DampingRatioNoBouncy,
+                                        stiffness = Spring.StiffnessLow,
+                                    ),
+                            ) + fadeIn(animationSpec = tween(300)) togetherWith
+                                    slideOutOfContainer(
+                                        direction,
+                                        animationSpec =
+                                            spring(
+                                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                                stiffness = Spring.StiffnessLow,
+                                            ),
+                                    ) + fadeOut(animationSpec = tween(250))
+                        },
+                        label = "mode_icon_animation",
+                    ) { mode ->
+                        val icon =
+                            when (mode) {
+                                InputMode.AddGoal -> Icons.Outlined.Add
+                                InputMode.AddQuickRecord -> Icons.Outlined.Inbox
+                                InputMode.SearchInList -> Icons.Outlined.Search
+                                InputMode.SearchGlobal -> Icons.Outlined.TravelExplore
+                                InputMode.AddProjectLog -> Icons.Outlined.PostAdd
+                                InputMode.AddMilestone -> Icons.Outlined.Flag
+                                InputMode.AddNestedProject -> Icons.Default.AccountTree
+                            }
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = "Magic Button",
+                            modifier =
+                                Modifier.size(22.dp).graphicsLayer {
+                                    rotationZ =
+                                        if (isPressed) (dragOffset / 20f).coerceIn(-15f, 15f) else 0f
+                                },
+                            tint = panelColors.contentColor,
+                        )
+                    }
+
+                    // маленький індикатор вгорі
+                    Box(
+                        modifier =
+                            Modifier
+                                .align(Alignment.Top)   // вертикально
+                                .padding(3.dp)
+                                .size(8.dp)
+                                .background(color = panelColors.accentColor, shape = CircleShape)
+                    )
+
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // 📝 TEXT FIELD
+                Surface(
+                    modifier =
+                        Modifier.weight(1f)
+                            .heightIn(max = LocalConfiguration.current.screenHeightDp.dp / 3)
+                            .defaultMinSize(minHeight = 44.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    color = panelColors.inputFieldColor,
+                    border = BorderStroke(1.dp, panelColors.accentColor.copy(alpha = 0.3f)),
+                    shadowElevation = 0.dp,
+                ) {
+                    BasicTextField(
+                        value = inputValue,
+                        onValueChange = onValueChange,
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .padding(vertical = 12.dp)
+                                .focusRequester(focusRequester),
+                        textStyle =
+                            MaterialTheme.typography.bodyLarge.copy(
+                                color = panelColors.contentColor,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Normal,
+                            ),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                        keyboardActions =
+                            KeyboardActions(onSend = { if (inputValue.text.isNotBlank()) onSubmit() }),
+                        singleLine = false,
+                        cursorBrush = SolidColor(panelColors.accentColor),
+                        decorationBox = { innerTextField ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Box(
+                                    modifier = Modifier.weight(1f),
+                                    contentAlignment = Alignment.CenterStart
+                                ) {
+                                    if (inputValue.text.isEmpty()) {
+                                        Text(
+                                            text =
+                                                when (inputMode) {
+                                                    InputMode.AddGoal -> "Add goal"
+                                                    InputMode.AddQuickRecord -> "Add quick record"
+                                                    InputMode.SearchInList -> "Search in list"
+                                                    InputMode.SearchGlobal -> "Search global"
+                                                    InputMode.AddProjectLog -> "Додати коментар до проекту..."
+                                                    InputMode.AddMilestone -> "Додати віху до проекту..."
+                                                    InputMode.AddNestedProject -> "Додати вкладений проект..."
+                                                },
+                                            style =
+                                                MaterialTheme.typography.bodyLarge.copy(
+                                                    color = panelColors.contentColor.copy(alpha = 0.7f),
+                                                    fontSize = 16.sp,
+                                                ),
+                                        )
+                                    }
+                                    innerTextField()
+                                }
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    NerIndicator(
+                                        isActive = isNerActive,
+                                        hasText = inputValue.text.isNotBlank()
+                                    )
+
+                                    AnimatedVisibility(
+                                        visible = inputMode == InputMode.AddNestedProject,
+                                        enter = fadeIn(),
+                                        exit = fadeOut(),
+                                    ) {
+                                        IconButton(
+                                            onClick = { onLinkExistingProjectClick() },
+                                            modifier = Modifier.size(24.dp),
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Link,
+                                                contentDescription = "Link existing project",
+                                                tint = panelColors.contentColor.copy(alpha = 0.7f),
+                                                modifier = Modifier.size(18.dp),
+                                            )
+                                        }
+                                    }
+
+                                    AnimatedVisibility(
+                                        visible = inputValue.text.isNotBlank(),
+                                        enter = fadeIn(),
+                                        exit = fadeOut(),
+                                    ) {
+                                        IconButton(
+                                            onClick = { onValueChange(TextFieldValue("")) },
+                                            modifier = Modifier.size(24.dp),
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "Clear input",
+                                                tint = panelColors.contentColor.copy(alpha = 0.7f),
+                                                modifier = Modifier.size(18.dp),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // ✉️ SEND BUTTON
+                AnimatedVisibility(
+                    visible = inputValue.text.isNotBlank(),
+                    enter =
+                        fadeIn() +
+                                scaleIn(
+                                    initialScale = 0.8f,
+                                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                ),
+                    exit = fadeOut() + scaleOut(targetScale = 0.8f),
+                ) {
+                    val sendButtonBackgroundColor = panelColors.accentColor
+                    val sendIconColor =
+                        remember(sendButtonBackgroundColor) {
+                            val luminance = sendButtonBackgroundColor.luminance()
+                            if (luminance > 0.55f) Color(0xFF1C1B1F) else Color.White
+                        }
+
+                    IconButton(
+                        onClick = onSubmit,
+                        modifier =
+                            Modifier.size(44.dp)
+                                .background(color = sendButtonBackgroundColor, shape = CircleShape),
+                        colors =
+                            IconButtonDefaults.iconButtonColors(
+                                contentColor = sendIconColor
+                            ),
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Send,
+                            contentDescription = "Send",
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    // Діалог режимів (по тапу по MagicButton)
+    if (showModeMenu) {
+        InputPanelMagicActionsDialog(
+            currentInputMode = inputMode,
+            isProjectManagementEnabled = isProjectManagementEnabled,
+            onDismiss = { showModeMenu = false },
+            onInputModeSelected = {
+                showModeMenu = false
+                onInputModeSelected(it)
+            },
+            onLinkExistingProjectClick = onLinkExistingProjectClick,
+            onShowAddWebLinkDialog = onShowAddWebLinkDialog,
+            onShowAddObsidianLinkDialog = onShowAddObsidianLinkDialog,
+            onAddListShortcutClick = onAddListShortcutClick,
+            onShowCreateNoteDocumentDialog = onShowCreateNoteDocumentDialog,
+            onCreateChecklist = onCreateChecklist,
+        )
+    }
+}
+
+/**
+ * Детектор: TAP або горизонтальний drag (одним пальцем).
+ *
+ * - короткий рух + up → onTap()
+ * - достатній горизонтальний drift → onDragEnd(totalDx)
+ */
+suspend fun PointerInputScope.detectTapOrHorizontalDrag(
+    dragThresholdPx: Float = 40f,
+    onTap: () -> Unit,
+    onDragEnd: (totalDx: Float) -> Unit,
+) {
+    awaitPointerEventScope {
+        while (true) {
+            val down = awaitFirstDown()
+
+            var totalDx = 0f
+            var finished = false
+
+            while (!finished) {
+                val event = awaitPointerEvent()
+                val change = event.changes.first { it.id == down.id }
+
+                val dx = change.position.x - change.previousPosition.x
+                totalDx += dx
+                change.consume()
+
+                if (change.changedToUp()) {
+                    finished = true
+
+                    if (kotlin.math.abs(totalDx) < dragThresholdPx) {
+                        onTap()
+                    } else {
+                        onDragEnd(totalDx)
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+
+suspend fun PointerInputScope.detectTapAndDrag(
+    onTap: () -> Unit,
+    onHorizontalDrag: (deltaX: Float) -> Unit,
+    onDragEnd: () -> Unit,
+) {
+    awaitPointerEventScope {
+        while (true) {
+
+            // Wait for finger down
+            val down = awaitFirstDown()
+            var dragTotal = 0f
+            var isDrag = false
+
+            // Handle movements
+            while (true) {
+                val event = awaitPointerEvent()
+                val change = event.changes.first()
+
+                val delta = change.positionChange()
+                if (delta != Offset.Zero) {
+                    dragTotal += delta.x
+                    onHorizontalDrag(delta.x)
+                    isDrag = true
+                    change.consume()
+                }
+
+                // Finger up
+                if (change.changedToUp()) {
+                    if (!isDrag) {
+                        onTap()
+                    } else {
+                        onDragEnd()
+                    }
+                    break
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
+fun DebugTouchOverlay() {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val e = awaitPointerEvent()
+                        Log.e("DEBUG_OVERLAY", "root event = $e")
+                    }
+                }
+            }
+    )
+}
+
+
+
+@Composable
+fun MagicModeSwitcher(
+    modes: List<InputMode>,
+    currentMode: InputMode,
+    onTap: () -> Unit,
+    onModeSelected: (InputMode) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val density = LocalDensity.current
+    val dragThreshold = with(density) { 24.dp.toPx() }
+
+    var accumulatedDrag by remember { mutableFloatStateOf(0f) }
+
+    Box(
+        modifier = modifier
+            .size(48.dp)
+            // 1) TAP
+            .pointerInput(modes, currentMode) {
+                detectTapGestures(
+                    onTap = {
+                        onTap()
+                    }
+                )
+            }
+            // 2) HORIZONTAL DRAG
+            .pointerInput(modes, currentMode) {
+                detectHorizontalDragGestures(
+                    onDragStart = {
+                        accumulatedDrag = 0f
+                    },
+                    onHorizontalDrag = { change, dragAmount ->
+                        accumulatedDrag += dragAmount
+                        change.consume()
+                    },
+                    onDragEnd = {
+                        if (kotlin.math.abs(accumulatedDrag) > dragThreshold && modes.isNotEmpty()) {
+                            val currentIndex = modes.indexOf(currentMode).coerceAtLeast(0)
+                            val nextIndex = if (accumulatedDrag < 0f) {
+                                // свайп вліво → наступний режим
+                                (currentIndex + 1) % modes.size
+                            } else {
+                                // свайп вправо → попередній режим
+                                (currentIndex - 1 + modes.size) % modes.size
+                            }
+                            onModeSelected(modes[nextIndex])
+                        }
+                        accumulatedDrag = 0f
+                    },
+                    onDragCancel = {
+                        accumulatedDrag = 0f
+                    }
+                )
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        AnimatedContent(
+            targetState = currentMode,
+            transitionSpec = {
+                val initialIndex = modes.indexOf(initialState)
+                val targetIndex  = modes.indexOf(targetState)
+                val forward = targetIndex > initialIndex
+
+                val dir = if (forward)
+                    AnimatedContentTransitionScope.SlideDirection.Left
+                else
+                    AnimatedContentTransitionScope.SlideDirection.Right
+
+                slideIntoContainer(
+                    dir,
+                    animationSpec = tween(250)
+                ) + fadeIn() togetherWith
+                        slideOutOfContainer(
+                            dir,
+                            animationSpec = tween(250)
+                        ) + fadeOut()
+            },
+            label = "MagicSwitcherIcon"
+        ) { mode ->
+            val icon = when (mode) {
+                InputMode.AddGoal -> Icons.Outlined.Add
+                InputMode.AddQuickRecord -> Icons.Outlined.Inbox
+                InputMode.SearchInList -> Icons.Outlined.Search
+                InputMode.SearchGlobal -> Icons.Outlined.TravelExplore
+                InputMode.AddProjectLog -> Icons.Outlined.PostAdd
+                InputMode.AddMilestone -> Icons.Outlined.Flag
+                InputMode.AddNestedProject -> Icons.Default.AccountTree
+            }
+
+            Icon(
+                icon,
+                contentDescription = "Mode",
+                modifier = Modifier.size(22.dp),
+                tint = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+
+
+@Composable
+fun MinimalInputPanel(
+    inputMode: InputMode,
+    onInputModeSelected: (InputMode) -> Unit,
+    holdMenuState: MutableState<HoldMenuState>
+) {
+    val modes = listOf(
         InputMode.AddGoal,
         InputMode.AddQuickRecord,
-        if (isProjectManagementEnabled) InputMode.AddProjectLog else null,
-        if (isProjectManagementEnabled && currentView == ProjectViewMode.Advanced) InputMode.AddMilestone else null,
-        if (isProjectManagementEnabled && currentView == ProjectViewMode.Backlog) InputMode.AddNestedProject else null,
-        InputMode.SearchGlobal,
         InputMode.SearchInList,
-      )
-    }
-
-  var dragOffset by remember { mutableFloatStateOf(0f) }
-  var isPressed by remember { mutableStateOf(false) }
-  var showModeMenu by remember { mutableStateOf(false) }
-  var animationDirection by remember { mutableIntStateOf(1) }
-
-  val currentModeIndex = modes.indexOf(inputMode)
-
-  val inputPanelColors = LocalInputPanelColors.current
-  val panelColors =
-    when (inputMode) {
-      InputMode.AddGoal ->
-        PanelColors(
-          containerColor = inputPanelColors.addGoal.backgroundColor,
-          contentColor = inputPanelColors.addGoal.textColor,
-          accentColor = inputPanelColors.addGoal.textColor,
-          inputFieldColor = inputPanelColors.addGoal.inputFieldColor,
-        )
-      InputMode.AddQuickRecord ->
-        PanelColors(
-          containerColor = inputPanelColors.addQuickRecord.backgroundColor,
-          contentColor = inputPanelColors.addQuickRecord.textColor,
-          accentColor = inputPanelColors.addQuickRecord.textColor,
-          inputFieldColor = inputPanelColors.addQuickRecord.inputFieldColor,
-        )
-      InputMode.SearchInList ->
-        PanelColors(
-          containerColor = inputPanelColors.searchInList.backgroundColor,
-          contentColor = inputPanelColors.searchInList.textColor,
-          accentColor = inputPanelColors.searchInList.textColor,
-          inputFieldColor = inputPanelColors.searchInList.inputFieldColor,
-        )
-      InputMode.SearchGlobal ->
-        PanelColors(
-          containerColor = inputPanelColors.searchGlobal.backgroundColor,
-          contentColor = inputPanelColors.searchGlobal.textColor,
-          accentColor = inputPanelColors.searchGlobal.textColor,
-          inputFieldColor = inputPanelColors.searchGlobal.inputFieldColor,
-        )
-      InputMode.AddProjectLog ->
-        PanelColors(
-          containerColor = inputPanelColors.addProjectLog.backgroundColor,
-          contentColor = inputPanelColors.addProjectLog.textColor,
-          accentColor = inputPanelColors.addProjectLog.textColor,
-          inputFieldColor = inputPanelColors.addProjectLog.inputFieldColor,
-        )
-      InputMode.AddMilestone ->
-        PanelColors(
-          containerColor = inputPanelColors.addProjectLog.backgroundColor,
-          contentColor = inputPanelColors.addProjectLog.textColor,
-          accentColor = inputPanelColors.addProjectLog.textColor,
-          inputFieldColor = inputPanelColors.addProjectLog.inputFieldColor,
-        )
-      InputMode.AddNestedProject ->
-        PanelColors(
-            containerColor = inputPanelColors.addProjectLog.backgroundColor,
-            contentColor = inputPanelColors.addProjectLog.textColor,
-            accentColor = inputPanelColors.addProjectLog.textColor,
-            inputFieldColor = inputPanelColors.addProjectLog.inputFieldColor,
-        )
-    }
-
-  val animatedContainerColor by
-    animateColorAsState(
-      targetValue = panelColors.containerColor,
-      animationSpec = tween(400),
-      label = "panel_color_animation",
+        InputMode.SearchGlobal
     )
 
-  val buttonScale by
-    animateFloatAsState(
-      targetValue = if (isPressed) 0.92f else 1f,
-      animationSpec =
-        spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-      label = "button_scale",
-    )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
 
-  LaunchedEffect(inputMode) {
-    if (inputMode == InputMode.SearchInList || inputMode == InputMode.SearchGlobal) {
-      delay(60)
-      focusRequester.requestFocus()
-    }
-  }
-
-  Surface(
-    modifier = modifier.padding(horizontal = 12.dp, vertical = 8.dp).fillMaxWidth(),
-    shape = RoundedCornerShape(28.dp),
-    shadowElevation = 0.dp,
-    tonalElevation = 0.dp,
-    color = animatedContainerColor,
-    border = BorderStroke(1.dp, panelColors.contentColor.copy(alpha = 0.1f)),
-  ) {
-    Column {
-      AnimatedVisibility(visible = suggestions.isNotEmpty()) {
-        Column {
-          HorizontalDivider(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            color = panelColors.contentColor.copy(alpha = 0.12f),
-          )
-          // TODO: Restore AutocompleteSuggestions
-          // AutocompleteSuggestions(suggestions = suggestions, onSuggestionClick = onSuggestionClick)
-        }
-      }
-      NavigationBar(state = state, actions = actions, contentColor = panelColors.contentColor)
-
-      AnimatedVisibility(
-        visible = reminderParseResult != null,
-        enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
-        exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top),
-      ) {
-        // TODO: Restore ReminderChip
-        /*
-        reminderParseResult?.let {
-          if (it.success) {
-            ReminderChip(suggestionText = it.suggestionText ?: "", onClear = onClearReminder)
-          } else {
-            Text(
-              text = "Не вдалося розпізнати дату/час: ${it.errorMessage}",
-              color = MaterialTheme.colorScheme.error,
-              style = MaterialTheme.typography.bodySmall,
-              modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-            )
-          }
-        }
-        */
-      }
-
-      Row(
-        modifier =
-          Modifier.defaultMinSize(minHeight = 64.dp).padding(horizontal = 8.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.Bottom,
-      ) {
-        Box {
-          Surface(
-            onClick = { showModeMenu = true },
-            shape = CircleShape,
-            color = panelColors.contentColor.copy(alpha = 0.1f),
-            contentColor = panelColors.contentColor,
-            modifier =
-              Modifier.size(48.dp).scale(buttonScale).pointerInput(inputMode) {
-                detectHorizontalDragGestures(
-                  onDragStart = { isPressed = true },
-                  onDragEnd = {
-                    isPressed = false
-                    val threshold = 50f
-                    when {
-                      dragOffset > threshold -> {
-                        animationDirection = -1
-                        val prevIndex = ((currentModeIndex - 1) + modes.size) % modes.size
-                        onInputModeSelected(modes[prevIndex])
-                      }
-                      dragOffset < -threshold -> {
-                        animationDirection = 1
-                        val nextIndex = (currentModeIndex + 1) % modes.size
-                        onInputModeSelected(modes[nextIndex])
-                      }
-                    }
-                    dragOffset = 0f
-                  },
-                ) { _, dragAmount ->
-                  dragOffset += dragAmount
-                }
-              },
-          ) {
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-              AnimatedContent(
-                targetState = inputMode,
-                transitionSpec = {
-                  val initialIndex = modes.indexOf(initialState)
-                  val targetIndex = modes.indexOf(targetState)
-                  val forward = targetIndex > initialIndex
-
-                  val direction =
-                    if (forward) {
-                      AnimatedContentTransitionScope.SlideDirection.Left
-                    } else {
-                      AnimatedContentTransitionScope.SlideDirection.Right
-                    }
-
-                  slideIntoContainer(
-                    direction,
-                    animationSpec =
-                      spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy,
-                        stiffness = Spring.StiffnessLow,
-                      ),
-                  ) + fadeIn(animationSpec = tween(800)) togetherWith
-                    slideOutOfContainer(
-                      direction,
-                      animationSpec =
-                        spring(
-                          dampingRatio = Spring.DampingRatioNoBouncy,
-                          stiffness = Spring.StiffnessLow,
-                        ),
-                    ) + fadeOut(animationSpec = tween(850))
-                },
-                label = "mode_icon_animation",
-              ) { mode ->
-                val icon =
-                  when (mode) {
-                    InputMode.AddGoal -> Icons.Outlined.Add
-                    InputMode.AddQuickRecord -> Icons.Outlined.Inbox
-                    InputMode.SearchInList -> Icons.Outlined.Search
-                    InputMode.SearchGlobal -> Icons.Outlined.TravelExplore
-                    InputMode.AddProjectLog -> Icons.Outlined.PostAdd
-                    InputMode.AddMilestone -> Icons.Outlined.Flag
-                    InputMode.AddNestedProject -> Icons.Default.AccountTree
-                  }
-                Icon(
-                  imageVector = icon,
-                  contentDescription = "Magic Button",
-                  modifier =
-                    Modifier.size(22.dp).graphicsLayer {
-                      rotationZ = if (isPressed) (dragOffset / 20f).coerceIn(-15f, 15f) else 0f
-                    },
-                )
-              }
-            }
-          }
-
-          Box(
-            modifier =
-              Modifier.align(Alignment.TopEnd)
-                .size(8.dp)
-                .background(color = panelColors.accentColor, shape = CircleShape)
-                .padding(1.dp)
-                .background(
-                  color = panelColors.contentColor.copy(alpha = 0.3f),
-                  shape = CircleShape,
-                )
-          )
-        }
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        Surface(
-          modifier =
-            Modifier.weight(1f)
-              .heightIn(max = LocalConfiguration.current.screenHeightDp.dp / 3)
-              .defaultMinSize(minHeight = 44.dp),
-          shape = RoundedCornerShape(20.dp),
-          color = panelColors.inputFieldColor,
-          border = BorderStroke(1.dp, panelColors.accentColor.copy(alpha = 0.3f)),
-          shadowElevation = 0.dp,
+        // ЛІВА КНОПКА — HoldMenu
+        /*HoldMenuButton(
+            icon = Icons.Default.MoreVert,
+            state = holdMenuState
         ) {
-          BasicTextField(
-            value = inputValue,
-            onValueChange = onValueChange,
-            modifier =
-              Modifier.fillMaxWidth().padding(vertical = 12.dp).focusRequester(focusRequester),
-            textStyle =
-              MaterialTheme.typography.bodyLarge.copy(
-                color = panelColors.contentColor,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Normal,
-              ),
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-            keyboardActions =
-              KeyboardActions(onSend = { if (inputValue.text.isNotBlank()) onSubmit() }),
-            singleLine = false,
-            cursorBrush = SolidColor(panelColors.accentColor),
-            decorationBox = { innerTextField ->
-              Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-              ) {
-                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                  if (inputValue.text.isEmpty()) {
-                    Text(
-                      text =
-                        when (inputMode) {
-                          InputMode.AddGoal -> "Add goal"
-                          InputMode.AddQuickRecord -> "Add quick record"
-                          InputMode.SearchInList -> "Search in list"
-                          InputMode.SearchGlobal -> "Search global"
-                          InputMode.AddProjectLog -> "Додати коментар до проекту..."
-                                                InputMode.AddMilestone -> "Додати віху до проекту..."
-                                                InputMode.AddNestedProject -> "Додати вкладений проект..."
-                                              },                      style =
-                        MaterialTheme.typography.bodyLarge.copy(
-                          color = panelColors.contentColor.copy(alpha = 0.7f),
-                          fontSize = 16.sp,
-                        ),
-                    )
-                  }
-                  innerTextField()
-                }
+            item("Inbox", Icons.Default.Inbox) { /* TODO */ }
+            item("Advanced", Icons.Default.Dashboard) { /* TODO */ }
+            item("Attachments", Icons.Default.Attachment) { /* TODO */ }
+        }*/
 
-                Row(
-                  verticalAlignment = Alignment.CenterVertically,
-                  horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                  NerIndicator(isActive = isNerActive, hasText = inputValue.text.isNotBlank())
-
-                  AnimatedVisibility(
-                    visible = inputMode == InputMode.AddNestedProject,
-                    enter = fadeIn(),
-                    exit = fadeOut(),
-                  ) {
-                    IconButton(
-                      onClick = { onLinkExistingProjectClick() },
-                      modifier = Modifier.size(24.dp),
-                    ) {
-                      Icon(
-                        imageVector = Icons.Default.Link,
-                        contentDescription = "Link existing project",
-                        tint = panelColors.contentColor.copy(alpha = 0.7f),
-                        modifier = Modifier.size(18.dp),
-                      )
-                    }
-                  }
-
-                  AnimatedVisibility(
-                    visible = inputValue.text.isNotBlank(),
-                    enter = fadeIn(),
-                    exit = fadeOut(),
-                  ) {
-                    IconButton(
-                      onClick = { onValueChange(TextFieldValue("")) },
-                      modifier = Modifier.size(24.dp),
-                    ) {
-                      Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Clear input",
-                        tint = panelColors.contentColor.copy(alpha = 0.7f),
-                        modifier = Modifier.size(18.dp),
-                      )
-                    }
-                  }
-                }
-              }
-            },
-          )
-        }
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        AnimatedVisibility(
-          visible = inputValue.text.isNotBlank(),
-          enter =
-            fadeIn() +
-              scaleIn(
-                initialScale = 0.8f,
-                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-              ),
-          exit = fadeOut() + scaleOut(targetScale = 0.8f),
-        ) {
-          val sendButtonBackgroundColor = panelColors.accentColor
-          val sendIconColor =
-            remember(sendButtonBackgroundColor) {
-              val luminance = sendButtonBackgroundColor.luminance()
-              if (luminance > 0.55f) Color(0xFF1C1B1F) else Color.White
-            }
-
-          IconButton(
-            onClick = onSubmit,
-            modifier =
-              Modifier.size(44.dp)
-                .background(color = sendButtonBackgroundColor, shape = CircleShape),
-            colors =
-              IconButtonDefaults.iconButtonColors(
-                contentColor = sendIconColor
-              ),
-          ) {
-            Icon(
-              imageVector = Icons.AutoMirrored.Filled.Send,
-              contentDescription = "Send",
-              modifier = Modifier.size(20.dp),
-            )
-          }
-        }
-      }
+        // ПРАВА КНОПКА — свайпом міняє режим
+        MagicModeSwitcher(
+            modes = modes,
+            currentMode = inputMode,
+            onTap = { /* optional: показати діалог вибору режимів */ },
+            onModeSelected = onInputModeSelected,
+            modifier = Modifier.size(48.dp)
+        )
     }
-  }
-  if (showModeMenu) {
-    InputPanelMagicActionsDialog(
-      currentInputMode = inputMode,
-      isProjectManagementEnabled = isProjectManagementEnabled,
-      onDismiss = { showModeMenu = false },
-      onInputModeSelected = onInputModeSelected,
-      onLinkExistingProjectClick = onLinkExistingProjectClick,
-      onShowAddWebLinkDialog = onShowAddWebLinkDialog,
-      onShowAddObsidianLinkDialog = onShowAddObsidianLinkDialog,
-      onAddListShortcutClick = onAddListShortcutClick,
-      onShowCreateNoteDocumentDialog = onShowCreateNoteDocumentDialog,
-      onCreateChecklist = onCreateChecklist,
-    )
-  }
+
+    HoldMenuButton(
+        modifier = Modifier,
+        onLongPress = { anchor, pointerId ->
+            holdMenuState.value = HoldMenuState(
+                isOpen = true,
+                anchor = anchor,
+                pointerId = pointerId,
+                items = listOf(
+                    HoldMenuItem("Inbox") {  },
+                    HoldMenuItem("Advanced") {  },
+                    HoldMenuItem("Attachments") {  }
+                ),
+                selectedIndex = 0
+            )
+        }
+    ) {
+        Icon(Icons.Default.MoreVert, contentDescription = null)
+    }
+
+
 }
 
 
@@ -1154,273 +1760,325 @@ fun ModernInputPanel(
 END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/components/inputpanel/ModernInputPanel.kt
 ================================================================================
 
-## <<FILE_2>>
+## <<FILE_3>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/components/HoldMenuButton.kt (ID: FILE_2)
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu/HoldMenu.kt (ID: FILE_3)
 ================================================================================
 
-package com.romankozak.forwardappmobile.ui.components
+package com.romankozak.forwardappmobile.ui.holdmenu
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import android.util.Log
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import androidx.compose.ui.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.changedToUp
+import androidx.compose.ui.input.pointer.consumePositionChange
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.*
-import androidx.compose.ui.unit.*
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupProperties
+import androidx.compose.ui.input.pointer.PointerId
+import androidx.compose.ui.unit.Dp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalDensity
+import kotlin.math.roundToInt
+import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.input.pointer.*
 
 
-// --------------------------------------------------------
-// DSL
-// --------------------------------------------------------
 
+
+
+private const val TAG = "HOLDMENU"
+
+// ---------------------- STATE --------------------------
+
+// DSL-builder для кнопки
 class HoldMenuBuilder {
-    internal val items = mutableListOf<MenuItemData>()
+    internal val items = mutableListOf<HoldMenuItem>()
 
-    fun item(label: String, icon: ImageVector, onSelect: () -> Unit) {
-        items += MenuItemData(label, icon, onSelect)
-    }
-}
-
-data class MenuItemData(
-    val label: String,
-    val icon: ImageVector,
-    val onSelect: () -> Unit
-)
-
-
-// --------------------------------------------------------
-// HoldMenuButton (with Drag Selection)
-// --------------------------------------------------------
-
- @Composable
-fun HoldMenuButton(
-    icon: ImageVector,
-    contentDescription: String? = null,
-    holdDelay: Long = 90L, // shorter delay
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit = {},
-    builder: HoldMenuBuilder.() -> Unit
-) {
-    val menuBuilder = remember { HoldMenuBuilder() }
-    menuBuilder.items.clear()
-    menuBuilder.builder()
-    val menuItems = menuBuilder.items
-
-    var menuOpen by remember { mutableStateOf(false) }
-    var pressedY by remember { mutableFloatStateOf(0f) }
-    var selectedIndex by remember { mutableStateOf<Int?>(null) }
-
-    val scope = rememberCoroutineScope()
-
-    // Popup anchor coordinates
-    var anchorPosition by remember { mutableStateOf(Offset.Zero) }
-
-    Box(
-        modifier = modifier,
-        contentAlignment = Alignment.Center
+    fun item(
+        label: String,
+        icon: ImageVector? = null,
+        onClick: () -> Unit
     ) {
-
-        // ICON BUTTON AREA
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .pointerInput(menuItems) {
-                    detectTapGestures(
-                        onTap = {
-                            if (!menuOpen) onClick()
-                        },
-                        onLongPress = {
-                            menuOpen = true
-                        },
-                        onPress = {
-                            anchorPosition = it
-                            awaitRelease()
-                        }
-                    )
-                },
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = contentDescription,
-                modifier = Modifier.size(24.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        if (menuOpen) {
-            DragMenuPopup(
-                anchor = anchorPosition,
-                items = menuItems,
-                selectedIndex = selectedIndex,
-                onSelectedIndexChange = { selectedIndex = it },
-                onDismiss = {
-                    menuOpen = false
-                    selectedIndex?.let { idx -> menuItems[idx].onSelect() }
-                    selectedIndex = null
-                }
-            )
-        }
+        items += HoldMenuItem(label, icon, onClick)
     }
 }
 
 
-// --------------------------------------------------------
-// Popup Menu with Drag Selection
-// --------------------------------------------------------
+
+// ---------------------- OVERLAY --------------------------
+
+
+private fun LayoutCoordinates.findRoot(): LayoutCoordinates {
+    var curr: LayoutCoordinates = this
+    while (curr.parentLayoutCoordinates != null) {
+        curr = curr.parentLayoutCoordinates!!
+    }
+    return curr
+}
+
+
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu/HoldMenu.kt
+================================================================================
+
+## <<FILE_4>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu/HoldMenuButton.kt (ID: FILE_4)
+================================================================================
+
+package com.romankozak.forwardappmobile.ui.holdmenu
+
+import android.util.Log
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.*
+import androidx.compose.ui.*
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.*
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.unit.*
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.job
+import kotlinx.coroutines.launch
 
 @Composable
-private fun AnimatedPopupMenuContainer(
+fun HoldMenuButton(
+    modifier: Modifier = Modifier,
+    onLongPress: (anchor: Offset, pointerId: PointerId) -> Unit,
     content: @Composable () -> Unit
 ) {
-    val scale by animateFloatAsState(
-        targetValue = 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        )
-    )
-
-    val alpha by animateFloatAsState(
-        targetValue = 1f,
-        animationSpec = tween(120)
-    )
-
-    val offsetY by animateDpAsState(
-        targetValue = 0.dp,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessMedium
-        )
-    )
+    var center by remember { mutableStateOf(Offset.Zero) }
+    val scope = rememberCoroutineScope()
 
     Box(
-        modifier = Modifier
-            .graphicsLayer {
-                this.scaleX = scale
-                this.scaleY = scale
-                this.alpha = alpha
-                this.translationY = offsetY.toPx()
+        modifier = modifier
+            .onGloballyPositioned { layout ->
+                val pos = layout.positionInWindow()
+                val size = layout.size
+                center = Offset(
+                    pos.x + size.width / 2f,
+                    pos.y + size.height / 2f
+                )
+                Log.e("HOLDMENU", "📍 BUTTON center=$center")
+            }
+            .pointerInput(Unit) {
+
+                awaitEachGesture {
+
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    val pid = down.id
+
+                    var longPressFired = false
+                    var job: Job? = null
+
+                    // Запускаємо long-press у звичайному CoroutineScope
+                    job = scope.launch {
+                        delay(350)
+                        longPressFired = true
+                        Log.e("HOLDMENU", "⏱ Long press → OPEN")
+                        onLongPress(center, pid)
+                    }
+
+                    // обробка pointer рухів
+                    while (true) {
+                        val event = awaitPointerEvent()
+
+                        val change = event.changes.firstOrNull { it.id == pid }
+                            ?: event.changes.first()
+
+                        // якщо користувач рухається ДО long-press → скасувати
+                        if (!longPressFired && change.positionChange() != Offset.Zero) {
+                            job?.cancel()
+                            break
+                        }
+
+                        // якщо відпустив ДО long-press → скасувати
+                        if (!longPressFired && change.changedToUpIgnoreConsumed()) {
+                            job?.cancel()
+                            break
+                        }
+
+                        // якщо longPress спрацював → виходимо з gesture
+                        if (longPressFired) {
+                            change.consume()
+                            break
+                        }
+
+                        change.consume()
+                    }
+                }
             }
     ) {
         content()
     }
 }
 
- @Composable
-private fun DragMenuPopup(
-    anchor: Offset,
-    items: List<MenuItemData>,
-    selectedIndex: Int?,
-    onSelectedIndexChange: (Int?) -> Unit,
-    onDismiss: () -> Unit
-) {
-    val itemHeight = 50.dp
-    val pxItemHeight = with(LocalDensity.current) { itemHeight.toPx() }
 
-    val menuRadius = when (items.size) {
-        1 -> 24.dp
-        2 -> 20.dp
-        3 -> 16.dp
-        4 -> 14.dp
-        else -> 12.dp
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu/HoldMenuButton.kt
+================================================================================
+
+## <<FILE_5>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu/HoldMenuOverlay.kt (ID: FILE_5)
+================================================================================
+
+package com.romankozak.forwardappmobile.ui.holdmenu
+
+import android.util.Log
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.*
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.*
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.*
+import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
+
+val TAG = "HOLDMENU"
+
+@Composable
+fun HoldMenuOverlay(
+    state: HoldMenuState,
+    onStateChange: (HoldMenuState) -> Unit,
+    onDismiss: () -> Unit,
+    itemHeight: Dp = 40.dp,
+) {
+    if (!state.isOpen || state.items.isEmpty()) return
+
+    val density = LocalDensity.current
+    val itemHeightPx = with(density) { itemHeight.toPx() }
+
+    // Позиція меню на екрані (мінімальний варіант без жорсткого clamping до меж)
+    val menuOffset = remember(state.anchor, state.items.size, itemHeightPx) {
+        val x = state.anchor.x - with(density) { 120.dp.toPx() }
+        val y = state.anchor.y - (state.items.size * itemHeightPx) / 2f
+        IntOffset(x.roundToInt(), y.roundToInt())
     }
 
-    Popup(
-        offset = IntOffset(0, 0),
-        onDismissRequest = { onDismiss() },
-        properties = PopupProperties(focusable = true)
-    ) {
-        Box(
-            modifier = Modifier
-                .pointerInput(items) {
-                    awaitPointerEventScope {
-                        while (true) {
-                            val event = awaitPointerEvent()
-                            val change = event.changes.first()
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Transparent) // overlay "шар"
+            .pointerInput(state.isOpen, state.items, state.anchor) {
+                awaitEachGesture {
+                    // Чекаємо перший дотик у межах overlay (тобто вже по меню)
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    var currentIndex: Int? = null
 
-                            val y = change.position.y - anchor.y
+                    fun updateSelection(pos: Offset) {
+                        val relY = pos.y - menuOffset.y
+                        val index = (relY / itemHeightPx).toInt()
+                        if (index in state.items.indices && index != currentIndex) {
+                            currentIndex = index
+                            Log.e(TAG, "🔄 Highlight index=$index")
+                            onStateChange(state.copy(selectedIndex = index))
+                        }
+                    }
 
-                            if (change.pressed) {
-                                val newIndex = (y / pxItemHeight).toInt()
-                                onSelectedIndexChange(
-                                    if (newIndex in items.indices) newIndex else null
-                                )
+                    // Одразу оновлюємо виділення під першим дотиком
+                    updateSelection(down.position)
+
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        val change = event.changes.firstOrNull() ?: continue
+
+                        if (change.changedToUpIgnoreConsumed()) {
+                            // Відпускання пальця → виконуємо вибраний пункт
+                            val idx = currentIndex
+                            if (idx != null && idx in state.items.indices) {
+                                Log.e(TAG, "✔ SELECT: ${state.items[idx].label}")
+                                state.items[idx].onClick()
                             }
-
-                            if (change.changedToUp() || !change.pressed) {
+                            onDismiss()
+                            break
+                        } else {
+                            if (change.pressed) {
+                                updateSelection(change.position)
+                            } else {
+                                // Якийсь інший стан (gesture скасували) → просто закриваємо меню
                                 onDismiss()
                                 break
                             }
                         }
                     }
                 }
+            },
+        contentAlignment = Alignment.TopStart,
+    ) {
+        Column(
+            modifier = Modifier
+                .offset { menuOffset }
+                .background(
+                    color = MaterialTheme.colorScheme.surface,
+                    shape = MaterialTheme.shapes.medium,
+                )
         ) {
+            state.items.forEachIndexed { index, item ->
+                val selected = state.selectedIndex == index
 
-            // MENU CONTAINER
-            AnimatedPopupMenuContainer {
-                Column(
+                Box(
                     modifier = Modifier
-                        .offset { IntOffset(anchor.x.toInt() - 100, anchor.y.toInt()) }
-                        .width(200.dp)
+                        .fillMaxWidth()
+                        .height(itemHeight)
                         .background(
-                            MaterialTheme.colorScheme.surface,
-                            RoundedCornerShape(menuRadius)
+                            if (selected)
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                            else
+                                Color.Transparent
                         )
-                        .border(
-                            1.dp,
-                            MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
-                            RoundedCornerShape(menuRadius)
-                        )
-                        .padding(vertical = 4.dp)
+                        .padding(horizontal = 16.dp),
+                    contentAlignment = Alignment.CenterStart,
                 ) {
-                    items.forEachIndexed { index, item ->
-                        val selected = (selectedIndex == index)
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(itemHeight)
-                                .background(
-                                    if (selected)
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                                    else
-                                        Color.Transparent,
-                                    RoundedCornerShape(8.dp)
-                                )
-                                .padding(horizontal = 16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            // MORE SPACE BETWEEN TEXT AND ICON
-                            Text(
-                                text = item.label,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Spacer(Modifier.width(16.dp)) // ← enlarged gap
-                            Icon(
-                                imageVector = item.icon,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
+                    Text(
+                        text = item.label,
+                        color = if (selected)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
                 }
             }
         }
@@ -1428,6 +2086,36 @@ private fun DragMenuPopup(
 }
 
 ================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/components/HoldMenuButton.kt
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu/HoldMenuOverlay.kt
+================================================================================
+
+## <<FILE_6>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu/HoldMenuState.kt (ID: FILE_6)
+================================================================================
+
+package com.romankozak.forwardappmobile.ui.holdmenu
+
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.PointerId
+
+data class HoldMenuItem(
+    val label: String,
+    val icon: ImageVector? = null,
+    val onClick: () -> Unit
+)
+
+data class HoldMenuState(
+    val isOpen: Boolean = false,
+    val anchor: Offset = Offset.Zero,
+    val selectedIndex: Int? = null,
+    val items: List<HoldMenuItem> = emptyList(),
+    val pointerId: PointerId? = null
+)
+
+
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu/HoldMenuState.kt
 ================================================================================
 

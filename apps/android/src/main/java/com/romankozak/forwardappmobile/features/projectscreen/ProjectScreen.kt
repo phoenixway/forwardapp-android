@@ -5,6 +5,8 @@ import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -42,6 +44,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.zIndex
 import com.romankozak.forwardappmobile.features.projectscreen.components.inputpanel.MinimalInputPanel
 import com.romankozak.forwardappmobile.features.projectscreen.components.list.BacklogView
 import com.romankozak.forwardappmobile.ui.holdmenu.HoldMenuOverlay
@@ -83,48 +86,54 @@ fun ProjectScreen(
             navController.currentBackStackEntry?.savedStateHandle?.remove<Project>("selected_project")
         }
     }
+    Box(Modifier.fillMaxSize()) {
 
-    Scaffold(
-        modifier = Modifier.navigationBarsPadding().imePadding()
-            .onGloballyPositioned {
-                Log.e("HOLDMENU", "📏 ROOT coords = ${it.positionInWindow()}, size=${it.size}")
-            }
-        ,
-        topBar = {
-            AdaptiveTopBar(
-                isSelectionModeActive = state.isSelectionModeActive,
-                project = state.projectName?.let {
-                    Project(
-                        id = projectId ?: "",
-                        name = it,
-                        description = null,
-                        parentId = null,
-                        createdAt = 0,
-                        updatedAt = 0,
-                        isCompleted = false,
-                        isExpanded = false,
-                        goalOrder = 0,
-                        projectStatus = null,
-                        projectStatusText = null,
-                        isProjectManagementEnabled = false,
-                        showCheckboxes = false,
-                        tags = null
-                    )
+        Scaffold(
+            modifier = Modifier.navigationBarsPadding().imePadding()
+                .onGloballyPositioned {
+                    Log.e("HOLDMENU", "📏 ROOT coords = ${it.positionInWindow()}, size=${it.size}")
                 },
-                selectedCount = state.selectedItemIds.size,
-                areAllSelected = false, // TODO: Implement
-                onClearSelection = { /* TODO */ },
-                onSelectAll = { /* TODO */ },
-                onDelete = { /* TODO */ },
-                onMarkAsComplete = { /* TODO */ },
-                onMarkAsIncomplete = { /* TODO */ },
+            topBar = {
+                AdaptiveTopBar(
+                    isSelectionModeActive = state.isSelectionModeActive,
+                    project = state.projectName?.let {
+                        Project(
+                            id = projectId ?: "",
+                            name = it,
+                            description = null,
+                            parentId = null,
+                            createdAt = 0,
+                            updatedAt = 0,
+                            isCompleted = false,
+                            isExpanded = false,
+                            goalOrder = 0,
+                            projectStatus = null,
+                            projectStatusText = null,
+                            isProjectManagementEnabled = false,
+                            showCheckboxes = false,
+                            tags = null
+                        )
+                    },
+                    selectedCount = state.selectedItemIds.size,
+                    areAllSelected = false, // TODO: Implement
+                    onClearSelection = { /* TODO */ },
+                    onSelectAll = { /* TODO */ },
+                    onDelete = { /* TODO */ },
+                    onMarkAsComplete = { /* TODO */ },
+                    onMarkAsIncomplete = { /* TODO */ },
 
-                onInboxClick = { Toast.makeText(context, "Inbox (не реалізовано)", Toast.LENGTH_SHORT).show() },
-                currentViewMode = state.currentView
-            )
-        },
-        bottomBar = {
-          /*  ModernInputPanel(
+                    onInboxClick = {
+                        Toast.makeText(
+                            context,
+                            "Inbox (не реалізовано)",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    },
+                    currentViewMode = state.currentView
+                )
+            },
+            bottomBar = {
+                /*  ModernInputPanel(
                 inputValue = inputValue,
                 inputMode = state.inputMode,
                 onValueChange = { inputValue = it },
@@ -182,67 +191,94 @@ fun ProjectScreen(
                 holdMenuState = holdMenuState
             )*/
 
-            MinimalInputPanel(
-                inputMode = state.inputMode,
-                onInputModeSelected = { viewModel.onEvent(ProjectScreenViewModel.Event.SwitchInputMode(it)) },
-
-                holdMenuState = holdMenuState
-            )
-
-        }
-    ) { paddingValues ->
-        when (state.currentView) {
-            ProjectViewMode.Backlog -> BacklogView(
-                listContent = state.backlogItems,
-                viewModel = viewModel,
-                state = state,
-                onRemindersClick = { /* TODO */ },
-                modifier = Modifier
-                    .padding(paddingValues)
-                    .glitch(trigger = uiState.currentView),
-                listState = listState,
-                onMove = { from, to -> viewModel.onEvent(ProjectScreenViewModel.Event.MoveItem(from, to)) },
-                onDragEnd = { from, to -> viewModel.onEvent(ProjectScreenViewModel.Event.DragEnd(from, to)) },
-                onCopyContent = { /* TODO */ },
-            )
-            ProjectViewMode.Inbox -> {
-                LazyColumn(modifier = Modifier.padding(paddingValues)) {
-                    items(state.inboxItems) { item ->
-                        Text(
-                            text = item.text,
-                            modifier = Modifier.fillMaxWidth().padding(16.dp)
+                MinimalInputPanel(
+                    inputMode = state.inputMode,
+                    onInputModeSelected = {
+                        viewModel.onEvent(
+                            ProjectScreenViewModel.Event.SwitchInputMode(
+                                it
+                            )
                         )
+                    },
+
+                    holdMenuState = holdMenuState
+                )
+
+            }
+        ) { paddingValues ->
+            when (state.currentView) {
+                ProjectViewMode.Backlog -> BacklogView(
+                    listContent = state.backlogItems,
+                    viewModel = viewModel,
+                    state = state,
+                    onRemindersClick = { /* TODO */ },
+                    modifier = Modifier
+                        .padding(paddingValues)
+                        .glitch(trigger = uiState.currentView),
+                    listState = listState,
+                    onMove = { from, to ->
+                        viewModel.onEvent(
+                            ProjectScreenViewModel.Event.MoveItem(
+                                from,
+                                to
+                            )
+                        )
+                    },
+                    onDragEnd = { from, to ->
+                        viewModel.onEvent(
+                            ProjectScreenViewModel.Event.DragEnd(
+                                from,
+                                to
+                            )
+                        )
+                    },
+                    onCopyContent = { /* TODO */ },
+                )
+
+                ProjectViewMode.Inbox -> {
+                    LazyColumn(modifier = Modifier.padding(paddingValues)) {
+                        items(state.inboxItems) { item ->
+                            Text(
+                                text = item.text,
+                                modifier = Modifier.fillMaxWidth().padding(16.dp)
+                            )
+                        }
                     }
                 }
+
+                ProjectViewMode.Advanced -> Text(
+                    text = "Advanced Content for ID: $projectId",
+                    modifier = Modifier.padding(paddingValues).fillMaxWidth().padding(16.dp)
+                )
+
+                ProjectViewMode.Attachments -> Text(
+                    text = "Attachments Content for ID: $projectId",
+                    modifier = Modifier.padding(paddingValues).fillMaxWidth().padding(16.dp)
+                )
             }
-            ProjectViewMode.Advanced -> Text(
-                text = "Advanced Content for ID: $projectId",
-                modifier = Modifier.padding(paddingValues).fillMaxWidth().padding(16.dp)
-            )
-            ProjectViewMode.Attachments -> Text(
-                text = "Attachments Content for ID: $projectId",
-                modifier = Modifier.padding(paddingValues).fillMaxWidth().padding(16.dp)
-            )
         }
-    }
-    HoldMenuOverlay(
-        state = holdMenuState.value,
-        onChangeState = { holdMenuState.value = it },
-        onDismiss = {
-            holdMenuState.value =
-                holdMenuState.value.copy(isOpen = false, selectedIndex = null)
+        if (holdMenuState.value.isOpen) {
+            HoldMenuOverlay(
+                state = holdMenuState.value,
+                onStateChange = { holdMenuState.value = it },
+                onDismiss = {
+                    holdMenuState.value = holdMenuState.value.copy(
+                        isOpen = false,
+                        selectedIndex = null,
+                    )
+                }
+            )
+
         }
-    )
 
 
 
-
-    /*HoldMenuOverlay(
+        /*HoldMenuOverlay(
         state = holdMenuState.value,
         onDismiss = { holdMenuState.value = holdMenuState.value.copy(isOpen = false) }
     )*/
 
-
+    }
 }
 
 
