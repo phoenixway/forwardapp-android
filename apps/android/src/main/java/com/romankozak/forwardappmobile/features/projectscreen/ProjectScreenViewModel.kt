@@ -155,6 +155,7 @@ class ProjectScreenViewModel(
         data class SubprojectChecked(val item: ListItemContent.SublistItem, val checked: Boolean) : Event()
         data class AddNestedProject(val name: String) : Event()
         data class LinkExistingProject(val project: com.romankozak.forwardappmobile.shared.features.projects.core.domain.model.Project) : Event()
+        data class MoveItem(val from: Int, val to: Int) : Event()
     }
     
         fun onStart() {
@@ -327,6 +328,7 @@ class ProjectScreenViewModel(
             is Event.LinkClick -> TODO()
             is Event.AddNestedProject -> addNestedProject(event.name)
             is Event.LinkExistingProject -> linkExistingProject(event.project)
+            is Event.MoveItem -> TODO()
         }
     }
 

@@ -182,7 +182,7 @@ fun ProjectScreen(
                     .padding(paddingValues)
                     .glitch(trigger = uiState.currentView),
                 listState = listState,
-                onMove = { _, _ -> /* TODO */ },
+                onMove = { from, to -> viewModel.onEvent(ProjectScreenViewModel.Event.MoveItem(from, to)) },
                 onCopyContent = { /* TODO */ },
             )
             ProjectViewMode.Inbox -> {
