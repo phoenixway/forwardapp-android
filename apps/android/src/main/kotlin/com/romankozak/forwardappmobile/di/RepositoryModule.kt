@@ -176,4 +176,19 @@ interface RepositoryModule {
         database: ForwardAppDatabase,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
     ): com.romankozak.forwardappmobile.shared.features.projects.listitems.domain.repository.ListItemRepository = com.romankozak.forwardappmobile.shared.features.projects.listitems.data.repository.ListItemRepositoryImpl(database, ioDispatcher)
+
+    @Provides
+    @AndroidSingleton
+    fun provideSettingsRepository(
+        application: android.app.Application,
+    ): com.romankozak.forwardappmobile.shared.features.settings.domain.repository.SettingsRepository = com.romankozak.forwardappmobile.shared.features.settings.data.repository.SettingsRepositoryImpl(application)
+
+    @Provides
+    fun provideIconProvider(): com.romankozak.forwardappmobile.shared.features.settings.logic.IconProvider = com.romankozak.forwardappmobile.shared.features.settings.logic.IconProvider()
+
+    @Provides
+    fun provideContextHandler(
+        settingsRepository: com.romankozak.forwardappmobile.shared.features.settings.domain.repository.SettingsRepository,
+        iconProvider: com.romankozak.forwardappmobile.shared.features.settings.logic.IconProvider,
+    ): com.romankozak.forwardappmobile.shared.features.settings.logic.ContextHandler = com.romankozak.forwardappmobile.shared.features.settings.logic.ContextHandler(settingsRepository, iconProvider)
 }

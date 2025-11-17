@@ -14,11 +14,12 @@
 0.  **Відновлення `SettingsRepository`:**
     *   **Завдання:** Відновити `SettingsRepository` у KMP-модулі (`packages/shared`), максимально наближено до оригінальної версії з `dev` гілки.
     *   **Кроки:**
-        *   Проаналізувати `SettingsRepository.kt` з `dev` гілки, щоб зрозуміти його залежності та публічний API.
-        *   Створити `expect` інтерфейс для `SettingsRepository` у `commonMain`.
-        *   Створити `actual` реалізацію для Android у `androidMain`, використовуючи `DataStore` або інший відповідний механізм для зберігання налаштувань.
-        *   Перенести логіку, пов'язану з `ContextHandler` та `contextMarkerToEmojiMap`, у новий KMP-сумісний `SettingsRepository`.
-        *   Налаштувати DI для надання `SettingsRepository`.
+        *   [x] Проаналізувати `SettingsRepository.kt` з `dev` гілки, щоб зрозуміти його залежності та публічний API.
+        *   [x] Створити `expect` інтерфейс для `SettingsRepository` у `commonMain`.
+        *   [x] Створити `actual` реалізацію для Android у `androidMain`, використовуючи `DataStore` або інший відповідний механізм для зберігання налаштувань.
+        *   [x] Перенести логіку, пов'язану з `ContextHandler` та `contextMarkerToEmojiMap`, у новий KMP-сумісний `SettingsRepository`.
+        *   [x] Налаштувати DI для надання `SettingsRepository`.
+    *   **Прогрес:** Виконано.
 
 1.  **Створення `ProjectScreenViewModel.kt`:**
     *   Створити файл `apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/ProjectScreenViewModel.kt`.
@@ -108,19 +109,18 @@
                 *   [x] Скопійовано та інтегровано внутрішні Composable-компоненти для `SubProjectItem` з гілки `dev` до `apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/components/backlogitems/`: `AnimatedContextEmoji.kt`, `EnhancedRelatedLinkChip.kt`, `EnhancedReminderBadge.kt`, `Badges.kt` (з `EnhancedScoreStatusBadge`), `NoteIndicatorBadge.kt`, `ModernTagChip.kt`. Підтверджено існування `TagType` та `getTagColors` у `TagChip.kt`.
                 *   [x] Інтегровано `SubProjectItem` (перейменований `ProjectItem` з гілки `dev`) у `BacklogList.kt` та замінено `TODO` для `ListItemContent.SublistItem`.
                 *   [x] Реалізовано навігацію для кліків по `SubProjectItem`: додано подію `SubprojectClick` та `navigationEvents` `SharedFlow` у `ProjectScreenViewModel.kt`, а також збір цих подій у `ProjectScreen.kt` для навігації.
-            *   **Наступні кроки для `SubProjectItem`:**
-                *   [ ] **Оновити `ProjectScreenViewModel.kt` для надання даних `SubProjectItem`:**
-                    *   [ ] Змінити `backlogItems` Flow, щоб збагатити `ListItemContent.SublistItem` даними про `childProjects` (використовуючи `projectRepository.getChildProjects(projectId)`).
-                    *   [ ] Збагатити `ListItemContent.SublistItem` даними про `reminders` (використовуючи `reminderRepository.getRemindersForEntity(entityId, entityType)`).
-                    *   [ ] Надати `contextMarkerToEmojiMap` до `UiState` та передати його до `BacklogView`.
-                    *   [ ] Надати `currentTimeMillis` до `UiState` або безпосередньо до `SubProjectItem`.
-                *   [ ] **Реалізувати обробку подій `SubProjectItem` у `ProjectScreenViewModel.kt`:**
-                    *   [ ] Додати обробку `onLongClick` для `SubProjectItem`.
-                    *   [ ] Додати обробку `onTagClick` для `SubProjectItem`.
-                    *   [ ] Додати обробку `onRelatedLinkClick` для `SubProjectItem`.
-                *   [ ] **Доопрацювати `SubProjectItem` у `BacklogList.kt`:**
-                    *   [ ] Передати актуальні `childProjects`, `reminders`, `contextMarkerToEmojiMap`, `currentTimeMillis` з `BacklogView` до `SubProjectItem`.
-                    *   [ ] Реалізувати `onCheckedChange` (якщо потрібно, або видалити).
+                *   [x] **Оновлено `ProjectScreenViewModel.kt` для надання даних `SubProjectItem`:**
+                    *   [x] Змінено `backlogItems` Flow, щоб збагатити `ListItemContent.SublistItem` даними про `childProjects` (використовуючи `projectRepository.getChildProjects(projectId)`).
+                    *   [x] Збагачено `ListItemContent.SublistItem` даними про `reminders` (використовуючи `reminderRepository.getRemindersForEntity(entityId, entityType)`).
+                    *   [x] Надано `contextMarkerToEmojiMap` до `UiState` та передано його до `BacklogView`.
+                    *   [x] Надано `currentTimeMillis` до `UiState` або безпосередньо до `SubProjectItem`.
+                *   [x] **Реалізовано обробку подій `SubProjectItem` у `ProjectScreenViewModel.kt`:**
+                    *   [x] Додано обробку `onLongClick` для `SubProjectItem`.
+                    *   [x] Додано обробку `onTagClick` для `SubProjectItem`.
+                    *   [x] Додано обробку `onRelatedLinkClick` для `SubProjectItem`.
+                *   [x] **Доопрацьовано `SubProjectItem` у `BacklogList.kt`:**
+                    *   [x] Передано актуальні `childProjects`, `reminders`, `contextMarkerToEmojiMap`, `currentTimeMillis` з `BacklogView` до `SubProjectItem`.
+                    *   [x] Реалізовано `onCheckedChange`.
                     *   [ ] Реалізувати `endAction`.
                 *   [ ] **Перевірити та доопрацювати:**
                     *   [ ] Запустити `./gradlew :apps:android:assembleDebug`, щоб забезпечити компіляцію.

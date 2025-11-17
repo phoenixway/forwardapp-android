@@ -106,3 +106,6 @@ searchProjectsFallback:
 SELECT * FROM Projects
 WHERE name LIKE '%' || :query || '%' OR description LIKE '%' || :query || '%';
 
+updateProjectCompleted:
+UPDATE Projects SET isCompleted = :isCompleted WHERE id = :id;
+

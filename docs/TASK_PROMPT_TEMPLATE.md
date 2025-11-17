@@ -8,7 +8,8 @@
 3. **Data-layer**: таблиці та репозиторії живуть у `packages/shared`. Використовуємо SQLDelight (`.sq` + `.sqm`), маппери, репозиторії (KMP). Пам’ятай про мануал `docs/SQLDELIGHT_MIGRATIONS.md` (ми не вмикаємо `deriveSchemaFromMigrations`).
 4. **DI**: надаємо репозиторії/VM через Tatarka Inject. Для кожної нової фічі додаємо `di/<Feature>Module.kt` і розширюємо `AppComponent` (див. приклад із `features/mainscreen`).
 5. **Тести**: для кожного репозиторію додаємо `jvmTest` на базі `createTestDatabase/createTestDriver` (шаблон див. `ListItemRepositoryTest`, `GoalRepositoryTest`, `RecentItemRepositoryTest`).
-6. **Мета** — поступово повернути весь функціонал Room-версії (Projects, Goals, Notes, Attachments, Reminders тощо). Переходимо від сутностей із мінімальними залежностями до складних (див. `sqldelight_backup/`).
+6. **Компіляція**: Після завершення кожного значного завдання (або групи пов'язаних підзавдань) обов'язково виконуй компіляцію проєкту (`./gradlew :app:assembleDebug` або `make check-compile`), щоб переконатися у відсутності синтаксичних помилок та проблем з інтеграцією.
+7. **Мета** — поступово повернути весь функціонал Room-версії (Projects, Goals, Notes, Attachments, Reminders тощо). Переходимо від сутностей із мінімальними залежностями до складних (див. `sqldelight_backup/`).
 
 ## Що робити для кожної сутності
 0. Ознайомся з відповідним `.sq` у `sqldelight_backup/`. Зрозумій, які поля + зв’язки потрібні.

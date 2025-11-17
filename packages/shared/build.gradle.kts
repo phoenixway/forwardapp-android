@@ -70,6 +70,10 @@ kotlin {
                     implementation("androidx.sqlite:sqlite-ktx:2.4.0")
                     implementation("net.zetetic:android-database-sqlcipher:4.5.4")
                     // Requery SQLite (має FTS5 всередині)
+
+                    // DataStore for SettingsRepository
+                    implementation("androidx.datastore:datastore-preferences:1.0.0")
+                    implementation("androidx.datastore:datastore-preferences-core:1.0.0")
             }
         }
 

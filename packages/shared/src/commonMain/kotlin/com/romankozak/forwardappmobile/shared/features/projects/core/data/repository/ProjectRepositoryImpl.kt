@@ -90,4 +90,8 @@ class ProjectRepositoryImpl(
     override suspend fun deleteProject(id: String) = withContext(dispatcher) {
         db.projectsQueries.deleteProject(id)
     }
+
+    override suspend fun updateProjectCompleted(projectId: String, isCompleted: Boolean) = withContext(dispatcher) {
+        db.projectsQueries.updateProjectCompleted(id = projectId, isCompleted = isCompleted)
+    }
 }

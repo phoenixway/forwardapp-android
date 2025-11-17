@@ -10,4 +10,5 @@ interface ProjectRepository {
     fun searchProjects(query: String): Flow<List<Project>>
     suspend fun upsertProject(project: Project)
     suspend fun deleteProject(id: String)
+    suspend fun updateProjectCompleted(projectId: String, isCompleted: Boolean)
 }

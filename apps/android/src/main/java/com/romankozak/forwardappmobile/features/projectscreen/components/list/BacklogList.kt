@@ -111,7 +111,7 @@ fun BacklogView(
                         SubProjectItem(
                             project = item.project,
                             childProjects = item.childProjects,
-                            // onCheckedChange = { /* Not applicable for sub-project */ },
+                            onCheckedChange = { viewModel.onEvent(SubprojectChecked(item, it)) },
                             onItemClick = { viewModel.onEvent(SubprojectClick(item.project.id)) },
                             onLongClick = { viewModel.onEvent(SubprojectLongClick(item)) },
                             onTagClick = { tag -> viewModel.onEvent(TagClick(tag)) },
@@ -139,8 +139,7 @@ fun BacklogView(
 fun SubProjectItem(
     project: Project,
     childProjects: List<Project>,
-    // TODO: Add isCompleted to Project model and implement onCheckedChange
-    // onCheckedChange: (Boolean) -> Unit,
+    onCheckedChange: (Boolean) -> Unit,
     onItemClick: () -> Unit,
     onLongClick: () -> Unit,
     onTagClick: (String) -> Unit,
@@ -176,6 +175,12 @@ fun SubProjectItem(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            Checkbox(
+                checked = project.isCompleted,
+                onCheckedChange = onCheckedChange,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
             Icon(
                 imageVector = Icons.Default.AccountTree,
                 contentDescription = "Project",
