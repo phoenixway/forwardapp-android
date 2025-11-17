@@ -11,7 +11,15 @@
 
 **Покроковий план:**
 
-0.  **Відновлення `SettingsRepository`:**
+0.  **Реалізувати Drag-and-Drop (D&D) для елементів беклогу:**
+    *   **Завдання:** Максимально точно перенести реалізацію D&D з `dev` гілки.
+    *   **Кроки:**
+        *   [ ] Ретельно вивчити, як D&D влаштовано в `dev` гілці (UI, ViewModel).
+        *   [ ] Створити план міграції D&D.
+        *   [ ] Реалізувати міграцію D&D.
+    *   **Прогрес:** В роботі.
+
+1.  **Відновлення `SettingsRepository`:**
     *   **Завдання:** Відновити `SettingsRepository` у KMP-модулі (`packages/shared`), максимально наближено до оригінальної версії з `dev` гілки.
     *   **Кроки:**
         *   [x] Проаналізувати `SettingsRepository.kt` з `dev` гілки, щоб зрозуміти його залежності та публічний API.
@@ -21,7 +29,7 @@
         *   [x] Налаштувати DI для надання `SettingsRepository`.
     *   **Прогрес:** Виконано.
 
-1.  **Створення `ProjectScreenViewModel.kt`:**
+2.  **Створення `ProjectScreenViewModel.kt`:**
     *   Створити файл `apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/ProjectScreenViewModel.kt`.
     *   Скопіювати вміст з `dev` версії.
     *   Адаптувати `package` та базові імпорти.
@@ -29,7 +37,7 @@
     *   Анотувати конструктор ViewModel для `kotlin.inject`.
     *   **Прогрес:** Виконано. Основний файл створено, імпорти `DayManagementRepository`, `ActivityRecord`, `ChecklistEntity`, `Goal`, `Project`, `LegacyNote`, `NoteDocument` виправлено.
 
-2.  **Систематичне виправлення імпортів та посилань у `ProjectScreenViewModel.kt`:**
+3.  **Систематичне виправлення імпортів та посилань у `ProjectScreenViewModel.kt`:**
     *   **Поточний стан:** Багато "Unresolved reference" та "Type mismatch" помилок.
     *   **Дії:**
         *   Визначити нові шляхи для всіх нерозв'язаних посилань (наприклад, `LinkType`, `Reminder`, `ProjectArtifact`, `ProjectExecutionLog`, `RecentItem`, `RecentItemType`, `InputMode`, `ProjectManagementTab`, `RetrofitClient`, `FileDataRequest`, `ContextHandler`, `NerManager`, `ReminderParser`, `AlarmScheduler`, `SearchUseCase`, `ClearAndNavigateHomeUseCase`, `EnhancedNavigationManager`, `ProjectScreenEvents`, `BacklogMarkdownHandlerResultListener`, `InboxHandlerResultListener`, `InboxMarkdownHandler.ResultListener`, `ItemActionHandler.ResultListener`, `SelectionHandler.ResultListener`, `InputHandler.ResultListener`, `ProjectLogEntryTypeValues`, `ProjectViewMode`, `ProjectTimeMetrics`, `NerState`, `TagUtils`, `AnalyticsRepository`, `ObsidianRepository`).
@@ -37,19 +45,19 @@
         *   Виправити сигнатури методів та типи даних, якщо вони змінилися.
         *   Виправити логіку, яка покладається на старі структури даних або API.
 
-3.  **Створення `ProjectScreen.kt`:**
+4.  **Створення `ProjectScreen.kt`:**
     *   Створити файл `apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/ProjectScreen.kt`.
     *   Скопіювати вміст Composable-функцій з `dev` версії.
     *   Адаптувати імпорти та виправити помилки компіляції, пов'язані з UI.
     *   **Прогрес:** Виконано. Файл створено, навігація на екран реалізована.
 
-4.  **Налаштування DI через `kotlin.inject`:**
+5.  **Налаштування DI через `kotlin.inject`:**
     *   Створити `features/projectscreen/di/ProjectScreenModule.kt`.
     *   Додати в нього `provideProjectScreenViewModel`.
     *   Підключити `ProjectScreenModule` до `AppComponent.kt`.
     *   **Прогрес:** Виконано. Реалізовано через більш правильний та сучасний патерн з кастомною `ViewModelProvider.Factory` (`InjectedViewModelFactory`), що дозволяє коректно впроваджувати `SavedStateHandle` і є кращою практикою для `kotlin-inject`.
 
-5.  **Етап 1: Відновлення базової структури UI та обробки подій**
+6.  **Етап 1: Відновлення базової структури UI та обробки подій**
 
     *   **Завдання:** Відновити основну оболонку екрана (`Scaffold`, `TopAppBar`, `ModernInputPanel`) та базову логіку обробки подій у ViewModel.
 
@@ -81,7 +89,7 @@
 
 
 
-6.  **Етап 2: Реалізація перемикання режимів (View Modes)**
+7.  **Етап 2: Реалізація перемикання режимів (View Modes)**
     *   **Завдання:** Реалізувати логіку перемикання між різними поданнями екрана (беклог, інбокс, розширений, додатки), поки що з використанням заглушок замість реального контенту.
     *   **Кроки:**
         1.  Створити `enum` або `sealed class` для режимів екрана (`ProjectViewMode.Backlog`, `ProjectViewMode.Inbox`, `ProjectViewMode.Advanced`, `ProjectViewMode.Attachments`).
@@ -91,7 +99,7 @@
         5.  У `ProjectScreen.kt` додати `when` блок, який відображає текстову заглушку для кожного режиму на основі `state.currentView`.
     *   **Прогрес:** Виконано. Створено `ProjectViewMode`, UI та логіка для перемикання режимів реалізовані з використанням заглушок.
 
-7.  **Етап 3: Поетапне підключення даних для кожного режиму**
+8.  **Етап 3: Поетапне підключення даних для кожного режиму**
     *   **Завдання:** По черзі для кожного режиму реалізувати завантаження даних з репозиторіїв та їх відображення.
     *   **Кроки:**
         1.  **Реалізувати режим "Inbox"**:
@@ -100,12 +108,6 @@
             *   У `ProjectScreen.kt` замінити заглушку для "Inbox" на реальний UI-компонент для відображення списку.
             *   **Прогрес:** Виконано.
         2.  **Реалізувати режим "Backlog"**:
-            *   [ ] **Реалізувати Drag-and-Drop (D&D) в беклозі:**
-                *   [ ] **Завдання:** Максимально точно перенести реалізацію D&D з `dev` гілки.
-                *   [ ] **Кроки:**
-                    *   [ ] Ретельно вивчити, як D&D влаштовано в `dev` гілці (UI, ViewModel).
-                    *   [ ] Створити план міграції D&D.
-                    *   [ ] Реалізувати міграцію D&D.
             *   **Поточна ситуація:** Реалізація режиму "Backlog" розпочата. Було створено файл `BacklogList.kt` з базовою структурою `BacklogView` та заглушками для `ListItemView`, `GoalItem`, `LinkItem`. Залежність `reorderable` підтверджена.
             *   **Прогрес:**
                 *   [x] Виправлено `ClassCastException` у `ProjectScreen.kt` шляхом корекції лямбда-функції `onMove`.
@@ -144,7 +146,7 @@
         4.  **Реалізувати режим "Advanced"**:
             *   Підключити логіку та UI для розширеного перегляду, використовуючи `projectArtifactRepository`.
 
-8.  **Етап 4: Відновлення функціоналу додавання вкладених та існуючих проектів**
+9.  **Етап 4: Відновлення функціоналу додавання вкладених та існуючих проектів**
     *   **Завдання:** Реалізувати можливість додавати нові проекти як під-проекти та зв'язувати існуючі проекти як під-проекти.
     *   **Кроки:**
         1.  **Додавання нового вкладеного проекту:**
