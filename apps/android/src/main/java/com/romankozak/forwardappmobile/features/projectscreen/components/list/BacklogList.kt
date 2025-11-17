@@ -52,13 +52,17 @@ import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.shared.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.shared.features.projects.core.domain.model.Project
 import android.util.Log
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextDecoration
+import com.mohamedrejeb.compose.dnd.reorder.ReorderableItemScope
 import com.romankozak.forwardappmobile.features.projectscreen.components.backlogitems.ModernTagChip
 import com.romankozak.forwardappmobile.features.projectscreen.components.backlogitems.TagType
 
 
 import com.romankozak.forwardappmobile.shared.features.projects.listitems.domain.model.ListItemContent
 import kotlinx.coroutines.delay
+import sh.calvin.reorderable.ReorderableCollectionItemScope
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
@@ -77,6 +81,8 @@ fun BacklogView(
     var showBottomSheet by remember { mutableStateOf(false) }
     var selectedItemForActions by remember { mutableStateOf<ListItemContent?>(null) }
 
+    val hapticFeedback = LocalHapticFeedback.current
+
     if (showBottomSheet && selectedItemForActions != null) {
         BacklogItemActionsBottomSheet(
             onDismiss = { showBottomSheet = false },
@@ -84,6 +90,7 @@ fun BacklogView(
             onRemindersClick = { onRemindersClick(selectedItemForActions!!) },
         )
     }
+
 
     LazyColumn(
         state = listState,
@@ -121,7 +128,21 @@ fun BacklogView(
                             currentTimeMillis = state.currentTimeMillis,
                             isSelected = state.selectedItemIds.contains(item.listItem.id),
                             reminders = item.reminders,
-                            endAction = {} // TODO: Implement end action
+                            reorderableScope = this,
+                            endAction = {
+                IconButton(
+                    onClick = { /* Nothing to do here, it's a drag handle */ },
+                    modifier =  with(this) {
+                        Modifier.longPressDraggableHandle(
+                            onDragStarted = {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                            }
+                        )
+                    },
+                ) {
+                    Icon(imageVector = Icons.Default.MoreVert, contentDescription = "More actions")
+                }
+            }
                         )
                     }
 
@@ -134,8 +155,6 @@ fun BacklogView(
     }
 }
 
-import sh.calvin.reorderable.ReorderableItemScope
-
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun SubProjectItem(
@@ -147,7 +166,7 @@ fun SubProjectItem(
     onTagClick: (String) -> Unit,
     onChildProjectClick: (Project) -> Unit,
     onRelatedLinkClick: (RelatedLink) -> Unit,
-    reorderableScope: ReorderableItemScope,
+    reorderableScope: ReorderableCollectionItemScope,
     modifier: Modifier = Modifier,
     emojiToHide: String? = null,
     contextMarkerToEmojiMap: Map<String, String>,
