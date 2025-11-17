@@ -678,7 +678,7 @@ fun ModernInputPanel(
   onSubmit: () -> Unit,
   onInputModeSelected: (InputMode) -> Unit,
   onRecentsClick: () -> Unit,
-  onAddListLinkClick: () -> Unit,
+  onLinkExistingProjectClick: () -> Unit,
   onShowAddWebLinkDialog: () -> Unit,
   onShowAddObsidianLinkDialog: () -> Unit,
   onAddListShortcutClick: () -> Unit,
@@ -766,6 +766,7 @@ fun ModernInputPanel(
         InputMode.AddQuickRecord,
         if (isProjectManagementEnabled) InputMode.AddProjectLog else null,
         if (isProjectManagementEnabled && currentView == ProjectViewMode.Advanced) InputMode.AddMilestone else null,
+        if (isProjectManagementEnabled && currentView == ProjectViewMode.Backlog) InputMode.AddNestedProject else null,
         InputMode.SearchGlobal,
         InputMode.SearchInList,
       )
@@ -822,6 +823,13 @@ fun ModernInputPanel(
           contentColor = inputPanelColors.addProjectLog.textColor,
           accentColor = inputPanelColors.addProjectLog.textColor,
           inputFieldColor = inputPanelColors.addProjectLog.inputFieldColor,
+        )
+      InputMode.AddNestedProject ->
+        PanelColors(
+            containerColor = inputPanelColors.addProjectLog.backgroundColor,
+            contentColor = inputPanelColors.addProjectLog.textColor,
+            accentColor = inputPanelColors.addProjectLog.textColor,
+            inputFieldColor = inputPanelColors.addProjectLog.inputFieldColor,
         )
     }
 
@@ -969,6 +977,7 @@ fun ModernInputPanel(
                     InputMode.SearchGlobal -> Icons.Outlined.TravelExplore
                     InputMode.AddProjectLog -> Icons.Outlined.PostAdd
                     InputMode.AddMilestone -> Icons.Outlined.Flag
+                    InputMode.AddNestedProject -> Icons.Default.AccountTree
                   }
                 Icon(
                   imageVector = icon,
@@ -1038,9 +1047,9 @@ fun ModernInputPanel(
                           InputMode.SearchInList -> "Search in list"
                           InputMode.SearchGlobal -> "Search global"
                           InputMode.AddProjectLog -> "Додати коментар до проекту..."
-                          InputMode.AddMilestone -> "Додати віху до проекту..."
-                        },
-                      style =
+                                                InputMode.AddMilestone -> "Додати віху до проекту..."
+                                                InputMode.AddNestedProject -> "Додати вкладений проект..."
+                                              },                      style =
                         MaterialTheme.typography.bodyLarge.copy(
                           color = panelColors.contentColor.copy(alpha = 0.7f),
                           fontSize = 16.sp,
@@ -1055,6 +1064,24 @@ fun ModernInputPanel(
                   horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                   NerIndicator(isActive = isNerActive, hasText = inputValue.text.isNotBlank())
+
+                  AnimatedVisibility(
+                    visible = inputMode == InputMode.AddNestedProject,
+                    enter = fadeIn(),
+                    exit = fadeOut(),
+                  ) {
+                    IconButton(
+                      onClick = { onLinkExistingProjectClick() },
+                      modifier = Modifier.size(24.dp),
+                    ) {
+                      Icon(
+                        imageVector = Icons.Default.Link,
+                        contentDescription = "Link existing project",
+                        tint = panelColors.contentColor.copy(alpha = 0.7f),
+                        modifier = Modifier.size(18.dp),
+                      )
+                    }
+                  }
 
                   AnimatedVisibility(
                     visible = inputValue.text.isNotBlank(),
@@ -1124,7 +1151,7 @@ fun ModernInputPanel(
       isProjectManagementEnabled = isProjectManagementEnabled,
       onDismiss = { showModeMenu = false },
       onInputModeSelected = onInputModeSelected,
-      onAddListLinkClick = onAddListLinkClick,
+      onLinkExistingProjectClick = onLinkExistingProjectClick,
       onShowAddWebLinkDialog = onShowAddWebLinkDialog,
       onShowAddObsidianLinkDialog = onShowAddObsidianLinkDialog,
       onAddListShortcutClick = onAddListShortcutClick,

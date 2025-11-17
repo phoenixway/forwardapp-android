@@ -41,6 +41,7 @@ import com.romankozak.forwardappmobile.shared.features.projects.listitems.domain
 import com.romankozak.forwardappmobile.shared.features.projects.views.inbox.domain.model.InboxRecord
 import com.benasher44.uuid.uuid4
 import com.romankozak.forwardappmobile.shared.features.goals.data.models.Goal
+import com.romankozak.forwardappmobile.shared.features.projects.core.domain.model.Project
 import com.romankozak.forwardappmobile.shared.features.projects.listitems.domain.model.ListItem
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
@@ -146,6 +147,8 @@ class ProjectScreenViewModel(
         data class AddBacklogGoal(val text: String) : Event()
         data class SubprojectClick(val projectId: String) : Event()
         data class SubprojectLongClick(val item: ListItemContent.SublistItem) : Event()
+        data class AddNestedProject(val name: String) : Event()
+        data class LinkExistingProject(val project: com.romankozak.forwardappmobile.shared.features.projects.core.domain.model.Project) : Event()
     }
     
         fun onStart() {
@@ -302,6 +305,80 @@ class ProjectScreenViewModel(
             is Event.TagClick -> TODO()
             is Event.RelatedLinkClick -> TODO()
             is Event.LinkClick -> TODO()
+            is Event.AddNestedProject -> addNestedProject(event.name)
+            is Event.LinkExistingProject -> linkExistingProject(event.project)
+        }
+    }
+
+    private fun linkExistingProject(project: com.romankozak.forwardappmobile.shared.features.projects.core.domain.model.Project) {
+        viewModelScope.launch(ioDispatcher) {
+            val currentProjectId = savedStateHandle.get<String>("projectId") ?: return@launch
+
+            val currentList = _uiState.value.backlogItems
+            val maxOrder = currentList.mapNotNull { it.listItem.itemOrder }.maxOfOrNull { it } ?: 0L
+
+            val newListItem = ListItem(
+                id = "listItem_${uuid4()}",
+                projectId = currentProjectId,
+                entityId = project.id,
+                itemType = "sublist",
+                itemOrder = maxOrder + 1
+            )
+            listItemRepository.insertListItem(newListItem)
+        }
+    }
+
+    private fun addNestedProject(name: String) {
+        viewModelScope.launch(ioDispatcher) {
+            val currentProjectId = savedStateHandle.get<String>("projectId") ?: return@launch
+
+            val newProject = Project(
+                id = "project_${uuid4()}",
+                name = name,
+                description = null,
+                parentId = currentProjectId,
+                createdAt = Clock.System.now().toEpochMilliseconds(),
+                updatedAt = null,
+                tags = null,
+                relatedLinks = null,
+                isExpanded = true,
+                goalOrder = 0,
+                isAttachmentsExpanded = false,
+                defaultViewMode = null,
+                isCompleted = false,
+                isProjectManagementEnabled = false,
+                projectStatus = null,
+                projectStatusText = null,
+                projectLogLevel = null,
+                totalTimeSpentMinutes = 0,
+                valueImportance = 0.0,
+                valueImpact = 0.0,
+                effort = 0.0,
+                cost = 0.0,
+                risk = 0.0,
+                weightEffort = 0.0,
+                weightCost = 0.0,
+                weightRisk = 0.0,
+                rawScore = 0.0,
+                displayScore = 0,
+                scoringStatus = null,
+                showCheckboxes = false,
+                projectType = null,
+                reservedGroup = null
+            )
+            projectRepository.upsertProject(newProject)
+
+            val currentList = _uiState.value.backlogItems
+            val maxOrder = currentList.mapNotNull { it.listItem.itemOrder }.maxOfOrNull { it } ?: 0L
+
+            val newListItem = ListItem(
+                id = "listItem_${uuid4()}",
+                projectId = currentProjectId,
+                entityId = newProject.id,
+                itemType = "sublist",
+                itemOrder = maxOrder + 1
+            )
+            listItemRepository.insertListItem(newListItem)
         }
     }
 

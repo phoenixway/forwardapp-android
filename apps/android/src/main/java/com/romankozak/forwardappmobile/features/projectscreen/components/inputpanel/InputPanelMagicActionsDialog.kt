@@ -44,7 +44,7 @@ fun InputPanelMagicActionsDialog(
     isProjectManagementEnabled: Boolean,
     onDismiss: () -> Unit,
     onInputModeSelected: (InputMode) -> Unit,
-    onAddListLinkClick: () -> Unit,
+    onLinkExistingProjectClick: () -> Unit,
     onShowAddWebLinkDialog: () -> Unit,
     onShowAddObsidianLinkDialog: () -> Unit,
     onAddListShortcutClick: () -> Unit,
@@ -84,7 +84,7 @@ fun InputPanelMagicActionsDialog(
                 icon = Icons.Outlined.AccountTree,
                 color = MaterialTheme.colorScheme.secondary,
                 action = {
-                    onAddListLinkClick()
+                    onLinkExistingProjectClick()
                     onDismiss()
                 },
             ),

@@ -33,6 +33,7 @@ import com.romankozak.forwardappmobile.features.projectscreen.models.ProjectView
 import com.romankozak.forwardappmobile.shared.features.projects.core.domain.model.Project
 import com.romankozak.forwardappmobile.features.projectscreen.components.inputpanel.ModernInputPanel
 import com.romankozak.forwardappmobile.features.projectscreen.components.inputpanel.InputMode
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -64,6 +65,18 @@ fun ProjectScreen(
     var showInputPanelMenu by rememberSaveable { mutableStateOf(false) }
 
     val listState = rememberLazyListState()
+
+    val selectedProject = navController.currentBackStackEntry
+        ?.savedStateHandle
+        ?.getLiveData<Project>("selected_project")
+        ?.observeAsState()
+
+    LaunchedEffect(selectedProject) {
+        selectedProject?.value?.let { project: Project ->
+            viewModel.onEvent(ProjectScreenViewModel.Event.LinkExistingProject(project))
+            navController.currentBackStackEntry?.savedStateHandle?.remove<Project>("selected_project")
+        }
+    }
 
     Scaffold(
         modifier = Modifier.navigationBarsPadding().imePadding(),
@@ -108,15 +121,16 @@ fun ProjectScreen(
                 onInputModeSelected = { viewModel.onEvent(ProjectScreenViewModel.Event.SwitchInputMode(it)) },
                 onSubmit = {
                     if (inputValue.text.isNotBlank()) {
-                        when (state.currentView) {
-                            ProjectViewMode.Backlog -> viewModel.onEvent(ProjectScreenViewModel.Event.AddBacklogGoal(inputValue.text))
+                        when (state.inputMode) {
+                            InputMode.AddNestedProject -> viewModel.onEvent(ProjectScreenViewModel.Event.AddNestedProject(inputValue.text))
+                            InputMode.AddGoal -> viewModel.onEvent(ProjectScreenViewModel.Event.AddBacklogGoal(inputValue.text))
                             else -> viewModel.onEvent(ProjectScreenViewModel.Event.AddInboxRecord(inputValue.text))
                         }
                         inputValue = TextFieldValue("")
                     }
                 },
                 onRecentsClick = { /* TODO */ },
-                onAddListLinkClick = { /* TODO */ },
+                onLinkExistingProjectClick = { navController.navigate("project_chooser") },
                 onShowAddWebLinkDialog = { /* TODO */ },
                 onShowAddObsidianLinkDialog = { /* TODO */ },
                 onAddListShortcutClick = { /* TODO */ },

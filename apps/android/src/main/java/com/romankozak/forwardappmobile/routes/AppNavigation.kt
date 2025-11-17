@@ -10,10 +10,12 @@ import com.romankozak.forwardappmobile.features.mainscreen.MainScreen
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.romankozak.forwardappmobile.features.projectscreen.ProjectScreen
+import com.romankozak.forwardappmobile.features.projectchooser.ProjectChooserScreen
 import com.romankozak.forwardappmobile.routes.PROJECT_ID_ARG
 import com.romankozak.forwardappmobile.routes.PROJECT_SCREEN_ROUTE
 
 const val MAIN_SCREEN_ROUTE = "main_screen"
+const val PROJECT_CHOOSER_ROUTE = "project_chooser"
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -75,6 +77,18 @@ fun AppNavigation() {
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedVisibilityScope = this,
                     projectId = projectId,
+                )
+            }
+
+            composable(PROJECT_CHOOSER_ROUTE) {
+                ProjectChooserScreen(
+                    navController = navController,
+                    onProjectSelected = { project ->
+                        navController.previousBackStackEntry
+                            ?.savedStateHandle
+                            ?.set("selected_project", project)
+                        navController.popBackStack()
+                    }
                 )
             }
         }

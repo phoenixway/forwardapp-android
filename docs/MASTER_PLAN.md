@@ -123,3 +123,22 @@
             *   Замінити заглушку на UI для відображення додатків.
         4.  **Реалізувати режим "Advanced"**:
             *   Підключити логіку та UI для розширеного перегляду, використовуючи `projectArtifactRepository`.
+
+8.  **Етап 4: Відновлення функціоналу додавання вкладених та існуючих проектів**
+    *   **Завдання:** Реалізувати можливість додавати нові проекти як під-проекти та зв'язувати існуючі проекти як під-проекти.
+    *   **Кроки:**
+        1.  **Додавання нового вкладеного проекту:**
+            *   [x] Додати `InputMode.AddNestedProject` до `InputMode.kt`.
+            *   [x] Оновити `ModernInputPanel`, щоб відображати відповідну іконку та підказку для цього режиму.
+            *   [x] Додати подію `AddNestedProject` до `ProjectScreenViewModel.kt`.
+            *   [x] Реалізувати логіку `addNestedProject` у `ProjectScreenViewModel` для створення нового проекту з `parentId` поточного проекту та додавання його до `ListItem`.
+            *   [x] Оновити `ProjectScreen.kt` для відправки події `AddNestedProject` при `onSubmit`.
+        2.  **Зв'язування існуючого проекту:**
+            *   [x] Створити `ProjectChooserScreen` та `ProjectChooserViewModel` для відображення списку проектів та вибору одного з них.
+            *   [x] Налаштувати DI для `ProjectChooserViewModel`.
+            *   [x] Додати кнопку "Link" до `ModernInputPanel`, яка з'являється в режимі `AddNestedProject`.
+            *   [x] Реалізувати навігацію до `ProjectChooserScreen` при натисканні на кнопку "Link".
+            *   [x] Реалізувати повернення вибраного проекту з `ProjectChooserScreen` до `ProjectScreen` за допомогою `SavedStateHandle`.
+            *   [x] Додати подію `LinkExistingProject` до `ProjectScreenViewModel.kt`.
+            *   [x] Реалізувати логіку `linkExistingProject` у `ProjectScreenViewModel` для створення `ListItem` типу "sublist" з `entityId` вибраного проекту.
+    *   **Прогрес:** Виконано.

@@ -7,6 +7,7 @@ import me.tatarka.inject.annotations.Provides
 import me.tatarka.inject.annotations.Scope
 import com.romankozak.forwardappmobile.features.mainscreen.MainScreenViewModel
 import com.romankozak.forwardappmobile.features.projectscreen.ProjectScreenViewModel
+import com.romankozak.forwardappmobile.features.projectchooser.ProjectChooserViewModel
 
 @Scope
 annotation class AndroidSingleton
@@ -32,6 +33,7 @@ abstract class AppComponent(
     abstract val mainScreenViewModel: MainScreenViewModel
     abstract val viewModelFactory: androidx.lifecycle.ViewModelProvider.Factory
     abstract val projectScreenViewModel: () -> ProjectScreenViewModel
+    abstract val projectChooserViewModel: () -> ProjectChooserViewModel
     //abstract val projectScreenViewModel: (SavedStateHandle) -> ProjectScreenViewModel
 
 
