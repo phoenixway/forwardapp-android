@@ -92,4 +92,16 @@ interface AttachmentDao {
 
     @Query("SELECT * FROM project_attachment_cross_ref")
     fun getAllProjectAttachmentLinksFlow(): Flow<List<ProjectAttachmentCrossRef>>
+
+    @Query("SELECT * FROM attachments")
+    suspend fun getAll(): List<AttachmentEntity>
+
+    @Query("SELECT * FROM project_attachment_cross_ref")
+    suspend fun getAllProjectAttachmentCrossRefs(): List<ProjectAttachmentCrossRef>
+
+    @Query("DELETE FROM attachments")
+    suspend fun deleteAll()
+
+    @Query("DELETE FROM project_attachment_cross_ref")
+    suspend fun deleteAllProjectAttachmentLinks()
 }
