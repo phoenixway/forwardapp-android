@@ -32,7 +32,7 @@
     -- Goal.sq
     import kotlin.Boolean;
     import kotlin.collections.List;
-    import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink;
+    import com.romankozak.forwardappmobile.shared.data.models.RelatedLink;
     ```
 
 2.  **Використовуйте `AS`** у декларації таблиці `CREATE TABLE`.

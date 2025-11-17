@@ -24,7 +24,7 @@ sealed class ListItemContent {
     ) : ListItemContent()
 
     data class LinkItem(
-        val link: com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink,
+        val link: com.romankozak.forwardappmobile.shared.data.models.RelatedLink,
         override val listItem: ListItem
     ) : ListItemContent()
 

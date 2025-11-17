@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.shared.database.adapters
 
 import app.cash.sqldelight.ColumnAdapter
-import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
+import com.romankozak.forwardappmobile.shared.data.models.RelatedLink
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json

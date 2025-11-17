@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.features.projectscreen.components.list
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
+import com.romankozak.forwardappmobile.shared.data.models.RelatedLink
 import com.romankozak.forwardappmobile.shared.features.projects.listitems.domain.model.ListItem
 import com.romankozak.forwardappmobile.shared.features.reminders.domain.model.Reminder
 

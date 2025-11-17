@@ -35,8 +35,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.launchIn
 import com.romankozak.forwardappmobile.features.projectscreen.models.ProjectViewMode
 import com.romankozak.forwardappmobile.features.projectscreen.components.inputpanel.InputMode
-import com.romankozak.forwardappmobile.shared.data.database.models.LinkType
-import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink
+import com.romankozak.forwardappmobile.shared.data.models.LinkType
+import com.romankozak.forwardappmobile.shared.data.models.RelatedLink
 import com.romankozak.forwardappmobile.shared.features.projects.listitems.domain.model.ListItemContent
 import com.romankozak.forwardappmobile.shared.features.projects.views.inbox.domain.model.InboxRecord
 import com.benasher44.uuid.uuid4

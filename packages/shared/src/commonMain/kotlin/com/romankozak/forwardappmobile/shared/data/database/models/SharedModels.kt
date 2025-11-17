@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.shared.data.database.models
 
 import kotlinx.serialization.Serializable
+import com.romankozak.forwardappmobile.shared.data.models.RelatedLink
 
 @Serializable
 data class Project(
@@ -54,16 +55,6 @@ enum class ProjectType {
         }
     }
 }
-
-@Serializable
-data class RelatedLink(
-    val type: LinkType?,
-    val target: String,
-    val displayName: String? = null,
-)
-
-@Serializable
-enum class LinkType { PROJECT, URL, OBSIDIAN }
 
 object ProjectStatusValues {
     const val NO_PLAN = "NO_PLAN"
