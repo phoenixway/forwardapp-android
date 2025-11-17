@@ -134,6 +134,8 @@ fun BacklogView(
     }
 }
 
+import sh.calvin.reorderable.ReorderableItemScope
+
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun SubProjectItem(
@@ -145,6 +147,7 @@ fun SubProjectItem(
     onTagClick: (String) -> Unit,
     onChildProjectClick: (Project) -> Unit,
     onRelatedLinkClick: (RelatedLink) -> Unit,
+    reorderableScope: ReorderableItemScope,
     modifier: Modifier = Modifier,
     emojiToHide: String? = null,
     contextMarkerToEmojiMap: Map<String, String>,
