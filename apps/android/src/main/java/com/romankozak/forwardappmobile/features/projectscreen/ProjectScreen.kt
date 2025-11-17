@@ -183,6 +183,7 @@ fun ProjectScreen(
                     .glitch(trigger = uiState.currentView),
                 listState = listState,
                 onMove = { from, to -> viewModel.onEvent(ProjectScreenViewModel.Event.MoveItem(from, to)) },
+                onDragEnd = { from, to -> viewModel.onEvent(ProjectScreenViewModel.Event.DragEnd(from, to)) },
                 onCopyContent = { /* TODO */ },
             )
             ProjectViewMode.Inbox -> {

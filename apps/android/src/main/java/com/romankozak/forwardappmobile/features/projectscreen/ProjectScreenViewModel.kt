@@ -156,6 +156,7 @@ class ProjectScreenViewModel(
         data class AddNestedProject(val name: String) : Event()
         data class LinkExistingProject(val project: com.romankozak.forwardappmobile.shared.features.projects.core.domain.model.Project) : Event()
         data class MoveItem(val from: Int, val to: Int) : Event()
+        data class DragEnd(val from: Int, val to: Int) : Event()
     }
     
         fun onStart() {
@@ -329,40 +330,37 @@ class ProjectScreenViewModel(
             is Event.AddNestedProject -> addNestedProject(event.name)
             is Event.LinkExistingProject -> linkExistingProject(event.project)
             is Event.MoveItem -> onBacklogItemMove(event.from, event.to)
+            is Event.DragEnd -> onBacklogItemDragEnd(event.from, event.to)
         }
     }
 
     private fun onBacklogItemMove(from: Int, to: Int) {
+        val currentItems = _uiState.value.backlogItems.toMutableList()
+        if (from < 0 || from >= currentItems.size || to < 0 || to >= currentItems.size) {
+            Log.e("ProjectScreenViewModel", "Invalid move indices: from=$from, to=$to")
+            return
+        }
+
+        val movedItem = currentItems.removeAt(from)
+        currentItems.add(to, movedItem)
+        _uiState.update { it.copy(backlogItems = currentItems) }
+    }
+
+    private fun onBacklogItemDragEnd(from: Int, to: Int) {
         viewModelScope.launch(ioDispatcher) {
-            val currentItems = _uiState.value.backlogItems.toMutableList()
+            val currentItems = _uiState.value.backlogItems
             if (from < 0 || from >= currentItems.size || to < 0 || to >= currentItems.size) {
-                Log.e("ProjectScreenViewModel", "Invalid move indices: from=$from, to=$to")
+                Log.e("ProjectScreenViewModel", "Invalid drag end indices: from=$from, to=$to")
                 return@launch
             }
 
-            val movedItem = currentItems.removeAt(from)
-            currentItems.add(to, movedItem)
-
-            // Update itemOrder for all affected items and persist to database
-            val updatedListItems = currentItems.mapIndexed { index, listItemContent ->
-                val newOrder = index.toLong() // Simple re-indexing
+            // Update itemOrder for all items in the database
+            currentItems.forEachIndexed { index, listItemContent ->
+                val newOrder = index.toLong()
                 if (listItemContent.listItem.itemOrder != newOrder) {
                     listItemRepository.updateListItemOrder(listItemContent.listItem.id, newOrder)
-                    val updatedListItem = listItemContent.listItem.copy(itemOrder = newOrder)
-                    when (listItemContent) {
-                        is ListItemContent.GoalItem -> listItemContent.copy(listItem = updatedListItem)
-                        is ListItemContent.LinkItem -> listItemContent.copy(listItem = updatedListItem)
-                        is ListItemContent.SublistItem -> listItemContent.copy(listItem = updatedListItem)
-                        is ListItemContent.ChecklistItem -> listItemContent.copy(listItem = updatedListItem)
-                        is ListItemContent.NoteDocumentItem -> listItemContent.copy(listItem = updatedListItem)
-                        is ListItemContent.NoteItem -> listItemContent.copy(listItem = updatedListItem)
-                    }
-                } else {
-                    listItemContent
                 }
             }
-
-            _uiState.update { it.copy(backlogItems = updatedListItems) }
         }
     }
 

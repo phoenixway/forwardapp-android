@@ -66,6 +66,7 @@ import sh.calvin.reorderable.ReorderableCollectionItemScope
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun BacklogView(
     modifier: Modifier = Modifier,
@@ -75,9 +76,21 @@ fun BacklogView(
     state: UiState,
     onRemindersClick: (ListItemContent) -> Unit,
     onMove: (from: Int, to: Int) -> Unit,
+    onDragEnd: (from: Int, to: Int) -> Unit,
     onCopyContent: (ListItemContent) -> Unit,
 ) {
-    val reorderableState = rememberReorderableLazyListState(listState) { from, to -> onMove(from.index, to.index) }
+    val reorderableState = rememberReorderableLazyListState(
+        lazyListState = listState,
+        scrollThresholdPadding = PaddingValues(0.dp),
+        scrollThreshold = 24.dp,
+        onMove = { from, to ->
+            onMove(from.index, to.index)
+        }
+    )
+
+
+
+
     var showBottomSheet by remember { mutableStateOf(false) }
     var selectedItemForActions by remember { mutableStateOf<ListItemContent?>(null) }
 
@@ -100,6 +113,7 @@ fun BacklogView(
             ReorderableItem(reorderableState, key = item.listItem.id) { isDragging ->
                 when (item) {
                     is ListItemContent.GoalItem -> GoalItem(
+                        modifier = Modifier.animateItem(),
                         goal = item,
                         obsidianVaultName = "Personal",
                         onCheckedChange = { viewModel.onEvent(GoalChecked(item, it)) },
@@ -136,6 +150,7 @@ fun BacklogView(
                     )
                     is ListItemContent.SublistItem -> {
                         SubProjectItem(
+                            modifier = Modifier.animateItem(),
                             project = item.project,
                             childProjects = item.childProjects,
                             onCheckedChange = { viewModel.onEvent(SubprojectChecked(item, it)) },
