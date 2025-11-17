@@ -135,4 +135,10 @@ class ListItemRepositoryImpl(
             )
         }
     }
+
+    override suspend fun updateListItemOrder(id: String, newOrder: Long) {
+        withContext(dispatcher) {
+            db.listItemsQueries.updateItemOrder(itemOrder = newOrder, id = id)
+        }
+    }
 }

@@ -24,6 +24,9 @@ UPDATE ListItems SET
     itemType = :itemType
 WHERE id = :id;
 
+updateItemOrder:
+UPDATE ListItems SET itemOrder = :itemOrder WHERE id = :id;
+
 deleteItemsByIds:
 DELETE FROM ListItems WHERE id IN :itemIds;
 

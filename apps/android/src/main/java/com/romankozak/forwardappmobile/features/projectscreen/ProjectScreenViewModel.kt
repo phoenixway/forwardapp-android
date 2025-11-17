@@ -328,7 +328,33 @@ class ProjectScreenViewModel(
             is Event.LinkClick -> TODO()
             is Event.AddNestedProject -> addNestedProject(event.name)
             is Event.LinkExistingProject -> linkExistingProject(event.project)
-            is Event.MoveItem -> TODO()
+            is Event.MoveItem -> onBacklogItemMove(event.from, event.to)
+        }
+    }
+
+    private fun onBacklogItemMove(from: Int, to: Int) {
+        viewModelScope.launch(ioDispatcher) {
+            val currentItems = _uiState.value.backlogItems.toMutableList()
+            if (from < 0 || from >= currentItems.size || to < 0 || to >= currentItems.size) {
+                Log.e("ProjectScreenViewModel", "Invalid move indices: from=$from, to=$to")
+                return@launch
+            }
+
+            val movedItem = currentItems.removeAt(from)
+            currentItems.add(to, movedItem)
+
+            // Update itemOrder for all affected items and persist to database
+            val updatedListItems = currentItems.mapIndexed { index, listItemContent ->
+                val newOrder = index.toLong() // Simple re-indexing
+                if (listItemContent.listItem.itemOrder != newOrder) {
+                    listItemRepository.updateListItemOrder(listItemContent.listItem.id, newOrder)
+                    listItemContent.copy(listItem = listItemContent.listItem.copy(itemOrder = newOrder))
+                } else {
+                    listItemContent
+                }
+            }
+
+            _uiState.update { it.copy(backlogItems = updatedListItems) }
         }
     }
 
