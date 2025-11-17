@@ -348,7 +348,15 @@ class ProjectScreenViewModel(
                 val newOrder = index.toLong() // Simple re-indexing
                 if (listItemContent.listItem.itemOrder != newOrder) {
                     listItemRepository.updateListItemOrder(listItemContent.listItem.id, newOrder)
-                    listItemContent.copy(listItem = listItemContent.listItem.copy(itemOrder = newOrder))
+                    val updatedListItem = listItemContent.listItem.copy(itemOrder = newOrder)
+                    when (listItemContent) {
+                        is ListItemContent.GoalItem -> listItemContent.copy(listItem = updatedListItem)
+                        is ListItemContent.LinkItem -> listItemContent.copy(listItem = updatedListItem)
+                        is ListItemContent.SublistItem -> listItemContent.copy(listItem = updatedListItem)
+                        is ListItemContent.ChecklistItem -> listItemContent.copy(listItem = updatedListItem)
+                        is ListItemContent.NoteDocumentItem -> listItemContent.copy(listItem = updatedListItem)
+                        is ListItemContent.NoteItem -> listItemContent.copy(listItem = updatedListItem)
+                    }
                 } else {
                     listItemContent
                 }
