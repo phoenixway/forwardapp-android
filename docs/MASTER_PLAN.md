@@ -11,6 +11,15 @@
 
 **Покроковий план:**
 
+0.  **Відновлення `SettingsRepository`:**
+    *   **Завдання:** Відновити `SettingsRepository` у KMP-модулі (`packages/shared`), максимально наближено до оригінальної версії з `dev` гілки.
+    *   **Кроки:**
+        *   Проаналізувати `SettingsRepository.kt` з `dev` гілки, щоб зрозуміти його залежності та публічний API.
+        *   Створити `expect` інтерфейс для `SettingsRepository` у `commonMain`.
+        *   Створити `actual` реалізацію для Android у `androidMain`, використовуючи `DataStore` або інший відповідний механізм для зберігання налаштувань.
+        *   Перенести логіку, пов'язану з `ContextHandler` та `contextMarkerToEmojiMap`, у новий KMP-сумісний `SettingsRepository`.
+        *   Налаштувати DI для надання `SettingsRepository`.
+
 1.  **Створення `ProjectScreenViewModel.kt`:**
     *   Створити файл `apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/ProjectScreenViewModel.kt`.
     *   Скопіювати вміст з `dev` версії.
