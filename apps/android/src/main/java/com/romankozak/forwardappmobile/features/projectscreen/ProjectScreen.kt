@@ -133,7 +133,7 @@ fun ProjectScreen(
                 onLinkExistingProjectClick = { navController.navigate("project_chooser") },
                 onShowAddWebLinkDialog = { /* TODO */ },
                 onShowAddObsidianLinkDialog = { /* TODO */ },
-                onAddListShortcutClick = { /* TODO */ },
+                onAddListShortcutClick = { viewModel.onEvent(ProjectScreenViewModel.Event.SwitchInputMode(InputMode.AddNestedProject)) },
                 canGoBack = false, // TODO
                 canGoForward = false, // TODO
                 onBackClick = { /* TODO */ },

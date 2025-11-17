@@ -349,8 +349,14 @@ class ProjectScreenViewModel(
     }
 
     private fun addNestedProject(name: String) {
+        Log.d("ProjectScreenViewModel", "addNestedProject called with name: $name")
         viewModelScope.launch(ioDispatcher) {
-            val currentProjectId = savedStateHandle.get<String>("projectId") ?: return@launch
+            val currentProjectId = savedStateHandle.get<String>("projectId")
+            if (currentProjectId == null) {
+                Log.e("ProjectScreenViewModel", "currentProjectId is null, cannot add nested project")
+                return@launch
+            }
+            Log.d("ProjectScreenViewModel", "currentProjectId: $currentProjectId")
 
             val newProject = Project(
                 id = "project_${uuid4()}",
@@ -386,6 +392,7 @@ class ProjectScreenViewModel(
                 projectType = ProjectType.DEFAULT,
                 reservedGroup = null
             )
+            Log.d("ProjectScreenViewModel", "newProject created: $newProject")
             projectRepository.upsertProject(newProject)
 
             val currentList = _uiState.value.backlogItems
@@ -398,6 +405,7 @@ class ProjectScreenViewModel(
                 itemType = "sublist",
                 itemOrder = maxOrder + 1
             )
+            Log.d("ProjectScreenViewModel", "newListItem created: $newListItem")
             listItemRepository.insertListItem(newListItem)
         }
     }
