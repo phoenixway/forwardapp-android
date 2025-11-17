@@ -1,21 +1,2 @@
-packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/AppComponent.kt
-     packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/AppModule.kt
-     packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/CoroutinesModule.kt                            ▄
-     packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/DatabaseModule.kt                              █
-     apps/android/src/main/java/com/romankozak/forwardappmobile/di/ActivityComponent.kt                                          █
-     apps/android/src/main/java/com/romankozak/forwardappmobile/di/ViewModelComponent.kt                                         █
-     apps/android/src/main/java/com/romankozak/forwardappmobile/di/injectedViewModel.kt                                          █
-     apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/ProjectScreenViewModel.kt                 █
-     apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/ProjectScreen.kt
-     
-apps/android/src/main/java/com/romankozak/forwardappmobile/di/ActivityComponent.kt                                          █
-     apps/android/src/main/java/com/romankozak/forwardappmobile/di/injectedViewModel.kt                                          █
-     apps/android/src/main/java/com/romankozak/forwardappmobile/di/ViewModelComponent.kt                                         █
-     packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/AppComponent.kt                                █
-     packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/AppModule.kt                                   █
-     packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/CoroutinesModule.kt                            █
-     packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/DatabaseModule.kt                              █
-     packages/shared-kmp/src/commonMain/kotlin/com/romankozak/forwardappmobile/di/UtilsModule.kt                                 █
-     packages/shared-kmp/src/desktopMain/kotlin/com/romankozak/forwardappmobile/di/DesktopAppComponent.kt                        █
-     packages/shared-kmp/src/desktopMain/kotlin/com/romankozak/forwardappmobile/di/DesktopAppModule.kt                           █
-     packages/shared-kmp/src/desktopMain/kotlin/com/romankozak/forwardappmobile/di/DesktopDriverModule.kt
+apps/android/src/main/java/com/romankozak/forwardappmobile/ui/components/HoldMenuButton.kt
+apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/components/inputpanel/ModernInputPanel.kt

@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.features.projectscreen.components.inputpanel
 
+import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
@@ -8,7 +9,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -23,9 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.ArrowLeft
-import androidx.compose.material.icons.automirrored.filled.ArrowRight
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -37,13 +38,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.changedToUp
+import androidx.compose.ui.input.pointer.consumePositionChange
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
@@ -53,7 +58,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.features.projectscreen.models.ProjectViewMode
+import com.romankozak.forwardappmobile.ui.holdmenu.HoldMenuButton
+import com.romankozak.forwardappmobile.ui.holdmenu.HoldMenuState
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import androidx.compose.ui.input.pointer.PointerInputScope
+import androidx.compose.ui.input.pointer.changedToUp
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.semantics
+import com.romankozak.forwardappmobile.ui.holdmenu.HoldMenuOverlay
 
 // TODO: Restore from theme
 object LocalInputPanelColors {
@@ -156,76 +170,79 @@ data class OptionsMenuActions(
 
 // ------------------- VIEW TOGGLE ---------------------
 
+
+
 @Composable
 private fun ViewModeToggle(
-  currentView: ProjectViewMode,
-  isProjectManagementEnabled: Boolean,
-  onViewChange: (ProjectViewMode) -> Unit,
-  onInputModeSelected: (InputMode) -> Unit,
-  contentColor: Color,
-  onToggleNavPanelMode: () -> Unit,
+
+    currentView: ProjectViewMode,
+    isProjectManagementEnabled: Boolean,
+    onViewChange: (ProjectViewMode) -> Unit,
+    onInputModeSelected: (InputMode) -> Unit,
+    contentColor: Color,
+    onToggleNavPanelMode: () -> Unit,
+    holdMenuState: MutableState<HoldMenuState>,
 ) {
-  Surface(
-    shape = RoundedCornerShape(16.dp),
-    color = contentColor.copy(alpha = 0.1f),
-    border = BorderStroke(1.dp, contentColor.copy(alpha = 0.1f)),
-  ) {
-    Row(modifier = Modifier.height(36.dp), verticalAlignment = Alignment.CenterVertically) {
-      IconButton(
-          onClick = onToggleNavPanelMode,
-          modifier = Modifier.size(36.dp),
-      ) {
-          Icon(
-              imageVector = Icons.AutoMirrored.Filled.ArrowRight,
-              contentDescription = "Перемкнути панель",
-              modifier = Modifier.size(18.dp),
-              tint = contentColor,
-          )
-      }
-      // Separator
-      Box(modifier = Modifier.width(1.dp).height(24.dp).background(contentColor.copy(alpha = 0.1f)))
-
-      val availableViews =
+    val availableViews =
         ProjectViewMode.values().filter {
-                          it != ProjectViewMode.Advanced || isProjectManagementEnabled        }
-      availableViews.forEach { viewMode ->
-        val isSelected = currentView == viewMode
-        IconButton(
-          onClick = {
-            onViewChange(viewMode)
-            val newMode =
-              when (viewMode) {
-                ProjectViewMode.Inbox -> InputMode.AddQuickRecord
-                ProjectViewMode.Advanced -> InputMode.AddQuickRecord
-                else -> InputMode.AddGoal
-              }
-            onInputModeSelected(newMode)
-            onToggleNavPanelMode()
-          },
-          modifier =
-            Modifier.size(36.dp)
-              .background(
-                color = if (isSelected) contentColor.copy(alpha = 0.2f) else Color.Transparent,
-                shape = RoundedCornerShape(16.dp),
-              ),
-        ) {
-          Icon(
-            imageVector =
-              when (viewMode) {
-                ProjectViewMode.Backlog -> Icons.Outlined.ListAlt
-                ProjectViewMode.Inbox -> Icons.Outlined.Notes
-                ProjectViewMode.Advanced -> Icons.Outlined.Dashboard
-                ProjectViewMode.Attachments -> Icons.Default.Attachment
-              },
-            contentDescription = viewMode.name,
-            modifier = Modifier.size(18.dp),
-            tint = contentColor,
-          )
+            it != ProjectViewMode.Advanced || isProjectManagementEnabled
         }
-      }
 
+    /*HoldMenuButtonTest(Icons.Default.MoreVert) {
+        item("Edit", Icons.Default.Edit) {}
+        item("Delete", Icons.Default.Delete) {}
+    }*/
+
+
+    /*HoldMenuButton(
+        icon = when (currentView) {
+            ProjectViewMode.Backlog -> Icons.Outlined.ListAlt
+            ProjectViewMode.Inbox -> Icons.Outlined.Notes
+            ProjectViewMode.Advanced -> Icons.Outlined.Dashboard
+            ProjectViewMode.Attachments -> Icons.Default.Attachment
+        },
+        state = holdMenuState
+    ) {
+        availableViews.forEach { viewMode ->
+            item(
+                label = viewMode.name,
+                icon = when (viewMode) {
+                    ProjectViewMode.Backlog -> Icons.Outlined.ListAlt
+                    ProjectViewMode.Inbox -> Icons.Outlined.Notes
+                    ProjectViewMode.Advanced -> Icons.Outlined.Dashboard
+                    ProjectViewMode.Attachments -> Icons.Default.Attachment
+                }
+            ) {
+                onViewChange(viewMode)
+                val newMode =
+                    when (viewMode) {
+                        ProjectViewMode.Inbox -> InputMode.AddQuickRecord
+                        ProjectViewMode.Advanced -> InputMode.AddQuickRecord
+                        else -> InputMode.AddGoal
+                    }
+                onInputModeSelected(newMode)
+            }
+        }
+    }*/
+
+    HoldMenuButton(
+        icon = Icons.Outlined.Dashboard,  // або що в тебе там
+        state = holdMenuState
+    ) {
+        // DSL
+        item("Inbox", Icons.Outlined.Notes) {
+            onViewChange(ProjectViewMode.Inbox)
+            onInputModeSelected(InputMode.AddQuickRecord)
+        }
+        item("Advanced", Icons.Outlined.Dashboard) {
+            onViewChange(ProjectViewMode.Advanced)
+            onInputModeSelected(InputMode.AddQuickRecord)
+        }
+        item("Attachments", Icons.Default.Attachment) {
+            onViewChange(ProjectViewMode.Attachments)
+            onInputModeSelected(InputMode.AddGoal)
+        }
     }
-  }
 }
 
 // ------------------- MENU ---------------------
@@ -534,10 +551,11 @@ private fun BackForwardIcon(state: NavPanelState, showForwardIcon: Boolean, cont
 @OptIn(ExperimentalAnimationApi::class, ExperimentalFoundationApi::class)
 @Composable
 private fun NavigationBar(
-  state: NavPanelState,
-  actions: NavPanelActions,
-  contentColor: Color,
-  modifier: Modifier = Modifier,
+    state: NavPanelState,
+    actions: NavPanelActions,
+    contentColor: Color,
+    modifier: Modifier = Modifier,
+    holdMenuState: MutableState<HoldMenuState>,
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val availableWidth = maxWidth
@@ -603,6 +621,7 @@ private fun NavigationBar(
                         onInputModeSelected = actions.onInputModeSelected,
                         contentColor = contentColor,
                         onToggleNavPanelMode = actions.onToggleNavPanelMode,
+                        holdMenuState = holdMenuState,
                     )
                 } else {
                     IconButton(onClick = actions.onToggleNavPanelMode, modifier = Modifier.size(40.dp)) {
@@ -664,499 +683,741 @@ private fun NerIndicator(isActive: Boolean, hasText: Boolean, modifier: Modifier
   }
 }
 
+
+
+
 @OptIn(
-  ExperimentalAnimationApi::class,
-  ExperimentalMaterial3Api::class,
-  ExperimentalFoundationApi::class,
+    ExperimentalAnimationApi::class,
+    ExperimentalMaterial3Api::class,
+    ExperimentalFoundationApi::class,
 )
 @Composable
 fun ModernInputPanel(
-  modifier: Modifier = Modifier,
-  inputValue: TextFieldValue,
-  inputMode: InputMode,
-  onValueChange: (TextFieldValue) -> Unit,
-  onSubmit: () -> Unit,
-  onInputModeSelected: (InputMode) -> Unit,
-  onRecentsClick: () -> Unit,
-  onLinkExistingProjectClick: () -> Unit,
-  onShowAddWebLinkDialog: () -> Unit,
-  onShowAddObsidianLinkDialog: () -> Unit,
-  onAddListShortcutClick: () -> Unit,
-  canGoBack: Boolean,
-  canGoForward: Boolean,
-  onBackClick: () -> Unit,
-  onForwardClick: () -> Unit,
-  onHomeClick: () -> Unit,
-  onEditList: () -> Unit,
-  onShareList: () -> Unit,
-  onDeleteList: () -> Unit,
-  onSetReminder: () -> Unit,
-  menuExpanded: Boolean,
-  onMenuExpandedChange: (Boolean) -> Unit,
-  currentView: ProjectViewMode,
-  onViewChange: (ProjectViewMode) -> Unit,
-  onImportFromMarkdown: () -> Unit,
-  onExportToMarkdown: () -> Unit,
-  onImportBacklogFromMarkdown: () -> Unit,
-  onExportBacklogToMarkdown: () -> Unit,
-  onExportProjectState: () -> Unit,
-  reminderParseResult: Any?, // TODO: Restore ReminderParseResult
-  onClearReminder: () -> Unit,
-  isNerActive: Boolean,
-  onStartTrackingCurrentProject: () -> Unit,
-  isProjectManagementEnabled: Boolean,
-  onToggleProjectManagement: () -> Unit,
-  onAddProjectToDayPlan: () -> Unit,
-  isViewModePanelVisible: Boolean,
-  onToggleNavPanelMode: () -> Unit,
-  onRevealInExplorer: () -> Unit,
-  onCloseSearch: () -> Unit,
-  onAddMilestone: () -> Unit,
-  onShowCreateNoteDocumentDialog: () -> Unit,
-  onCreateChecklist: () -> Unit,
-  onShowDisplayPropertiesClick: () -> Unit,
-  suggestions: List<String>,
-  onSuggestionClick: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    inputValue: TextFieldValue,
+    inputMode: InputMode,
+    onValueChange: (TextFieldValue) -> Unit,
+    onSubmit: () -> Unit,
+    onInputModeSelected: (InputMode) -> Unit,
+    onRecentsClick: () -> Unit,
+    onLinkExistingProjectClick: () -> Unit,
+    onShowAddWebLinkDialog: () -> Unit,
+    onShowAddObsidianLinkDialog: () -> Unit,
+    onAddListShortcutClick: () -> Unit,
+    canGoBack: Boolean,
+    canGoForward: Boolean,
+    onBackClick: () -> Unit,
+    onForwardClick: () -> Unit,
+    onHomeClick: () -> Unit,
+    onEditList: () -> Unit,
+    onShareList: () -> Unit,
+    onDeleteList: () -> Unit,
+    onSetReminder: () -> Unit,
+    menuExpanded: Boolean,
+    onMenuExpandedChange: (Boolean) -> Unit,
+    currentView: ProjectViewMode,
+    onViewChange: (ProjectViewMode) -> Unit,
+    onImportFromMarkdown: () -> Unit,
+    onExportToMarkdown: () -> Unit,
+    onImportBacklogFromMarkdown: () -> Unit,
+    onExportBacklogToMarkdown: () -> Unit,
+    onExportProjectState: () -> Unit,
+    reminderParseResult: Any?, // TODO: Restore ReminderParseResult
+    onClearReminder: () -> Unit,
+    isNerActive: Boolean,
+    onStartTrackingCurrentProject: () -> Unit,
+    isProjectManagementEnabled: Boolean,
+    onToggleProjectManagement: () -> Unit,
+    onAddProjectToDayPlan: () -> Unit,
+    isViewModePanelVisible: Boolean,
+    onToggleNavPanelMode: () -> Unit,
+    onRevealInExplorer: () -> Unit,
+    onCloseSearch: () -> Unit,
+    onAddMilestone: () -> Unit,
+    onShowCreateNoteDocumentDialog: () -> Unit,
+    onCreateChecklist: () -> Unit,
+    onShowDisplayPropertiesClick: () -> Unit,
+    suggestions: List<String>,
+    onSuggestionClick: (String) -> Unit,
+    holdMenuState: MutableState<HoldMenuState>,
 ) {
-  val state =
-    NavPanelState(
-      canGoBack = canGoBack,
-      canGoForward = canGoForward,
-      menuExpanded = menuExpanded,
-      currentView = currentView,
-      isProjectManagementEnabled = isProjectManagementEnabled,
-      inputMode = inputMode,
-      isViewModePanelVisible = isViewModePanelVisible,
-    )
-  val actions =
-    NavPanelActions(
-      onBackClick = onBackClick,
-      onForwardClick = onForwardClick,
-      onHomeClick = onHomeClick,
-      onRecentsClick = onRecentsClick,
-      onRevealInExplorer = onRevealInExplorer,
-      onCloseSearch = onCloseSearch,
-      onViewChange = onViewChange,
-      onInputModeSelected = onInputModeSelected,
-      onMenuExpandedChange = onMenuExpandedChange,
-      onAddProjectToDayPlan = onAddProjectToDayPlan,
-      onToggleNavPanelMode = onToggleNavPanelMode,
-      menuActions =
-        OptionsMenuActions(
-          onEditList = onEditList,
-          onToggleProjectManagement = onToggleProjectManagement,
-          onStartTrackingCurrentProject = onStartTrackingCurrentProject,
-          onShareList = onShareList,
-          onImportFromMarkdown = onImportFromMarkdown,
-          onExportToMarkdown = onExportToMarkdown,
-          onImportBacklogFromMarkdown = onImportBacklogFromMarkdown,
-          onExportBacklogToMarkdown = onExportBacklogToMarkdown,
-          onExportProjectState = onExportProjectState,
-          onDeleteList = onDeleteList,
-          onSetReminder = onSetReminder,
-          onShowDisplayPropertiesClick = onShowDisplayPropertiesClick,
-        ),
+    val state =
+        NavPanelState(
+            canGoBack = canGoBack,
+            canGoForward = canGoForward,
+            menuExpanded = menuExpanded,
+            currentView = currentView,
+            isProjectManagementEnabled = isProjectManagementEnabled,
+            inputMode = inputMode,
+            isViewModePanelVisible = isViewModePanelVisible,
+        )
+    val actions =
+        NavPanelActions(
+            onBackClick = onBackClick,
+            onForwardClick = onForwardClick,
+            onHomeClick = onHomeClick,
+            onRecentsClick = onRecentsClick,
+            onRevealInExplorer = onRevealInExplorer,
+            onCloseSearch = onCloseSearch,
+            onViewChange = onViewChange,
+            onInputModeSelected = onInputModeSelected,
+            onMenuExpandedChange = onMenuExpandedChange,
+            onAddProjectToDayPlan = onAddProjectToDayPlan,
+            onToggleNavPanelMode = onToggleNavPanelMode,
+            menuActions =
+                OptionsMenuActions(
+                    onEditList = onEditList,
+                    onToggleProjectManagement = onToggleProjectManagement,
+                    onStartTrackingCurrentProject = onStartTrackingCurrentProject,
+                    onShareList = onShareList,
+                    onImportFromMarkdown = onImportFromMarkdown,
+                    onExportToMarkdown = onExportToMarkdown,
+                    onImportBacklogFromMarkdown = onImportBacklogFromMarkdown,
+                    onExportBacklogToMarkdown = onExportBacklogToMarkdown,
+                    onExportProjectState = onExportProjectState,
+                    onDeleteList = onDeleteList,
+                    onSetReminder = onSetReminder,
+                    onShowDisplayPropertiesClick = onShowDisplayPropertiesClick,
+                ),
+        )
+
+    val focusRequester = remember { FocusRequester() }
+
+    val modes =
+        remember(isProjectManagementEnabled, currentView) {
+            listOfNotNull(
+                InputMode.AddGoal,
+                InputMode.AddQuickRecord,
+                if (isProjectManagementEnabled) InputMode.AddProjectLog else null,
+                if (isProjectManagementEnabled && currentView == ProjectViewMode.Advanced) InputMode.AddMilestone else null,
+                if (isProjectManagementEnabled && currentView == ProjectViewMode.Backlog) InputMode.AddNestedProject else null,
+                InputMode.SearchGlobal,
+                InputMode.SearchInList,
+            )
+        }
+
+    var dragOffset by remember { mutableFloatStateOf(0f) }
+    var isPressed by remember { mutableStateOf(false) }
+    var showModeMenu by remember { mutableStateOf(false) }
+
+    val currentModeIndex = modes.indexOf(inputMode)
+
+    val inputPanelColors = LocalInputPanelColors.current
+    val panelColors =
+        when (inputMode) {
+            InputMode.AddGoal ->
+                PanelColors(
+                    containerColor = inputPanelColors.addGoal.backgroundColor,
+                    contentColor = inputPanelColors.addGoal.textColor,
+                    accentColor = inputPanelColors.addGoal.textColor,
+                    inputFieldColor = inputPanelColors.addGoal.inputFieldColor,
+                )
+            InputMode.AddQuickRecord ->
+                PanelColors(
+                    containerColor = inputPanelColors.addQuickRecord.backgroundColor,
+                    contentColor = inputPanelColors.addQuickRecord.textColor,
+                    accentColor = inputPanelColors.addQuickRecord.textColor,
+                    inputFieldColor = inputPanelColors.addQuickRecord.inputFieldColor,
+                )
+            InputMode.SearchInList ->
+                PanelColors(
+                    containerColor = inputPanelColors.searchInList.backgroundColor,
+                    contentColor = inputPanelColors.searchInList.textColor,
+                    accentColor = inputPanelColors.searchInList.textColor,
+                    inputFieldColor = inputPanelColors.searchInList.inputFieldColor,
+                )
+            InputMode.SearchGlobal ->
+                PanelColors(
+                    containerColor = inputPanelColors.searchGlobal.backgroundColor,
+                    contentColor = inputPanelColors.searchGlobal.textColor,
+                    accentColor = inputPanelColors.searchGlobal.textColor,
+                    inputFieldColor = inputPanelColors.searchGlobal.inputFieldColor,
+                )
+            InputMode.AddProjectLog,
+            InputMode.AddMilestone,
+            InputMode.AddNestedProject ->
+                PanelColors(
+                    containerColor = inputPanelColors.addProjectLog.backgroundColor,
+                    contentColor = inputPanelColors.addProjectLog.textColor,
+                    accentColor = inputPanelColors.addProjectLog.textColor,
+                    inputFieldColor = inputPanelColors.addProjectLog.inputFieldColor,
+                )
+        }
+
+    val animatedContainerColor by
+    animateColorAsState(
+        targetValue = panelColors.containerColor,
+        animationSpec = tween(400),
+        label = "panel_color_animation",
     )
 
-  val focusRequester = remember { FocusRequester() }
-  val modes =
-    remember(isProjectManagementEnabled, currentView) {
-      listOfNotNull(
+    val buttonScale by
+    animateFloatAsState(
+        targetValue = if (isPressed) 0.92f else 1f,
+        animationSpec =
+            spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "button_scale",
+    )
+
+    LaunchedEffect(inputMode) {
+        if (inputMode == InputMode.SearchInList || inputMode == InputMode.SearchGlobal) {
+            delay(60)
+            focusRequester.requestFocus()
+        }
+    }
+
+    Surface(
+        modifier = modifier
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        shadowElevation = 0.dp,
+        tonalElevation = 0.dp,
+        color = animatedContainerColor,
+        border = BorderStroke(1.dp, panelColors.contentColor.copy(alpha = 0.1f)),
+    ){
+        Column {
+            AnimatedVisibility(visible = suggestions.isNotEmpty()) {
+                Column {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        color = panelColors.contentColor.copy(alpha = 0.12f),
+                    )
+                    // TODO: AutocompleteSuggestions(suggestions, onSuggestionClick)
+                }
+            }
+
+            NavigationBar(
+                state = state,
+                actions = actions,
+                contentColor = panelColors.contentColor,
+                holdMenuState = holdMenuState,
+            )
+
+            AnimatedVisibility(
+                visible = reminderParseResult != null,
+                enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
+                exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top),
+            ) {
+                // TODO: ReminderChip
+            }
+
+            Row(
+                modifier =
+                    Modifier.defaultMinSize(minHeight = 64.dp)
+                        .padding(horizontal = 8.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                MagicModeSwitcher(
+                    modes = modes,
+                    currentMode = inputMode,
+                    onTap = { showModeMenu = true },
+                    onModeSelected = { mode ->
+                        onInputModeSelected(mode)
+                    },
+                    modifier = Modifier.scale(buttonScale)
+                )
+
+
+                    AnimatedContent(
+                        targetState = inputMode,
+                        transitionSpec = {
+                            val initialIndex = modes.indexOf(initialState)
+                            val targetIndex = modes.indexOf(targetState)
+                            val forward = targetIndex > initialIndex
+
+                            val direction =
+                                if (forward) {
+                                    AnimatedContentTransitionScope.SlideDirection.Left
+                                } else {
+                                    AnimatedContentTransitionScope.SlideDirection.Right
+                                }
+
+                            slideIntoContainer(
+                                direction,
+                                animationSpec =
+                                    spring(
+                                        dampingRatio = Spring.DampingRatioNoBouncy,
+                                        stiffness = Spring.StiffnessLow,
+                                    ),
+                            ) + fadeIn(animationSpec = tween(300)) togetherWith
+                                    slideOutOfContainer(
+                                        direction,
+                                        animationSpec =
+                                            spring(
+                                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                                stiffness = Spring.StiffnessLow,
+                                            ),
+                                    ) + fadeOut(animationSpec = tween(250))
+                        },
+                        label = "mode_icon_animation",
+                    ) { mode ->
+                        val icon =
+                            when (mode) {
+                                InputMode.AddGoal -> Icons.Outlined.Add
+                                InputMode.AddQuickRecord -> Icons.Outlined.Inbox
+                                InputMode.SearchInList -> Icons.Outlined.Search
+                                InputMode.SearchGlobal -> Icons.Outlined.TravelExplore
+                                InputMode.AddProjectLog -> Icons.Outlined.PostAdd
+                                InputMode.AddMilestone -> Icons.Outlined.Flag
+                                InputMode.AddNestedProject -> Icons.Default.AccountTree
+                            }
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = "Magic Button",
+                            modifier =
+                                Modifier.size(22.dp).graphicsLayer {
+                                    rotationZ =
+                                        if (isPressed) (dragOffset / 20f).coerceIn(-15f, 15f) else 0f
+                                },
+                            tint = panelColors.contentColor,
+                        )
+                    }
+
+                    // маленький індикатор вгорі
+                    Box(
+                        modifier =
+                            Modifier
+                                .align(Alignment.Top)   // вертикально
+                                .padding(3.dp)
+                                .size(8.dp)
+                                .background(color = panelColors.accentColor, shape = CircleShape)
+                    )
+
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // 📝 TEXT FIELD
+                Surface(
+                    modifier =
+                        Modifier.weight(1f)
+                            .heightIn(max = LocalConfiguration.current.screenHeightDp.dp / 3)
+                            .defaultMinSize(minHeight = 44.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    color = panelColors.inputFieldColor,
+                    border = BorderStroke(1.dp, panelColors.accentColor.copy(alpha = 0.3f)),
+                    shadowElevation = 0.dp,
+                ) {
+                    BasicTextField(
+                        value = inputValue,
+                        onValueChange = onValueChange,
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .padding(vertical = 12.dp)
+                                .focusRequester(focusRequester),
+                        textStyle =
+                            MaterialTheme.typography.bodyLarge.copy(
+                                color = panelColors.contentColor,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Normal,
+                            ),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                        keyboardActions =
+                            KeyboardActions(onSend = { if (inputValue.text.isNotBlank()) onSubmit() }),
+                        singleLine = false,
+                        cursorBrush = SolidColor(panelColors.accentColor),
+                        decorationBox = { innerTextField ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Box(
+                                    modifier = Modifier.weight(1f),
+                                    contentAlignment = Alignment.CenterStart
+                                ) {
+                                    if (inputValue.text.isEmpty()) {
+                                        Text(
+                                            text =
+                                                when (inputMode) {
+                                                    InputMode.AddGoal -> "Add goal"
+                                                    InputMode.AddQuickRecord -> "Add quick record"
+                                                    InputMode.SearchInList -> "Search in list"
+                                                    InputMode.SearchGlobal -> "Search global"
+                                                    InputMode.AddProjectLog -> "Додати коментар до проекту..."
+                                                    InputMode.AddMilestone -> "Додати віху до проекту..."
+                                                    InputMode.AddNestedProject -> "Додати вкладений проект..."
+                                                },
+                                            style =
+                                                MaterialTheme.typography.bodyLarge.copy(
+                                                    color = panelColors.contentColor.copy(alpha = 0.7f),
+                                                    fontSize = 16.sp,
+                                                ),
+                                        )
+                                    }
+                                    innerTextField()
+                                }
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    NerIndicator(
+                                        isActive = isNerActive,
+                                        hasText = inputValue.text.isNotBlank()
+                                    )
+
+                                    AnimatedVisibility(
+                                        visible = inputMode == InputMode.AddNestedProject,
+                                        enter = fadeIn(),
+                                        exit = fadeOut(),
+                                    ) {
+                                        IconButton(
+                                            onClick = { onLinkExistingProjectClick() },
+                                            modifier = Modifier.size(24.dp),
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Link,
+                                                contentDescription = "Link existing project",
+                                                tint = panelColors.contentColor.copy(alpha = 0.7f),
+                                                modifier = Modifier.size(18.dp),
+                                            )
+                                        }
+                                    }
+
+                                    AnimatedVisibility(
+                                        visible = inputValue.text.isNotBlank(),
+                                        enter = fadeIn(),
+                                        exit = fadeOut(),
+                                    ) {
+                                        IconButton(
+                                            onClick = { onValueChange(TextFieldValue("")) },
+                                            modifier = Modifier.size(24.dp),
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "Clear input",
+                                                tint = panelColors.contentColor.copy(alpha = 0.7f),
+                                                modifier = Modifier.size(18.dp),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // ✉️ SEND BUTTON
+                AnimatedVisibility(
+                    visible = inputValue.text.isNotBlank(),
+                    enter =
+                        fadeIn() +
+                                scaleIn(
+                                    initialScale = 0.8f,
+                                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                ),
+                    exit = fadeOut() + scaleOut(targetScale = 0.8f),
+                ) {
+                    val sendButtonBackgroundColor = panelColors.accentColor
+                    val sendIconColor =
+                        remember(sendButtonBackgroundColor) {
+                            val luminance = sendButtonBackgroundColor.luminance()
+                            if (luminance > 0.55f) Color(0xFF1C1B1F) else Color.White
+                        }
+
+                    IconButton(
+                        onClick = onSubmit,
+                        modifier =
+                            Modifier.size(44.dp)
+                                .background(color = sendButtonBackgroundColor, shape = CircleShape),
+                        colors =
+                            IconButtonDefaults.iconButtonColors(
+                                contentColor = sendIconColor
+                            ),
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Send,
+                            contentDescription = "Send",
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    // Діалог режимів (по тапу по MagicButton)
+    if (showModeMenu) {
+        InputPanelMagicActionsDialog(
+            currentInputMode = inputMode,
+            isProjectManagementEnabled = isProjectManagementEnabled,
+            onDismiss = { showModeMenu = false },
+            onInputModeSelected = {
+                showModeMenu = false
+                onInputModeSelected(it)
+            },
+            onLinkExistingProjectClick = onLinkExistingProjectClick,
+            onShowAddWebLinkDialog = onShowAddWebLinkDialog,
+            onShowAddObsidianLinkDialog = onShowAddObsidianLinkDialog,
+            onAddListShortcutClick = onAddListShortcutClick,
+            onShowCreateNoteDocumentDialog = onShowCreateNoteDocumentDialog,
+            onCreateChecklist = onCreateChecklist,
+        )
+    }
+}
+
+/**
+ * Детектор: TAP або горизонтальний drag (одним пальцем).
+ *
+ * - короткий рух + up → onTap()
+ * - достатній горизонтальний drift → onDragEnd(totalDx)
+ */
+suspend fun PointerInputScope.detectTapOrHorizontalDrag(
+    dragThresholdPx: Float = 40f,
+    onTap: () -> Unit,
+    onDragEnd: (totalDx: Float) -> Unit,
+) {
+    awaitPointerEventScope {
+        while (true) {
+            val down = awaitFirstDown()
+
+            var totalDx = 0f
+            var finished = false
+
+            while (!finished) {
+                val event = awaitPointerEvent()
+                val change = event.changes.first { it.id == down.id }
+
+                val dx = change.position.x - change.previousPosition.x
+                totalDx += dx
+                change.consume()
+
+                if (change.changedToUp()) {
+                    finished = true
+
+                    if (kotlin.math.abs(totalDx) < dragThresholdPx) {
+                        onTap()
+                    } else {
+                        onDragEnd(totalDx)
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+
+suspend fun PointerInputScope.detectTapAndDrag(
+    onTap: () -> Unit,
+    onHorizontalDrag: (deltaX: Float) -> Unit,
+    onDragEnd: () -> Unit,
+) {
+    awaitPointerEventScope {
+        while (true) {
+
+            // Wait for finger down
+            val down = awaitFirstDown()
+            var dragTotal = 0f
+            var isDrag = false
+
+            // Handle movements
+            while (true) {
+                val event = awaitPointerEvent()
+                val change = event.changes.first()
+
+                val delta = change.positionChange()
+                if (delta != Offset.Zero) {
+                    dragTotal += delta.x
+                    onHorizontalDrag(delta.x)
+                    isDrag = true
+                    change.consume()
+                }
+
+                // Finger up
+                if (change.changedToUp()) {
+                    if (!isDrag) {
+                        onTap()
+                    } else {
+                        onDragEnd()
+                    }
+                    break
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
+fun DebugTouchOverlay() {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val e = awaitPointerEvent()
+                        Log.e("DEBUG_OVERLAY", "root event = $e")
+                    }
+                }
+            }
+    )
+}
+
+
+
+@Composable
+fun MagicModeSwitcher(
+    modes: List<InputMode>,
+    currentMode: InputMode,
+    onTap: () -> Unit,
+    onModeSelected: (InputMode) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val density = LocalDensity.current
+    val dragThreshold = with(density) { 24.dp.toPx() }
+
+    var accumulatedDrag by remember { mutableFloatStateOf(0f) }
+
+    Box(
+        modifier = modifier
+            .size(48.dp)
+            // 1) TAP
+            .pointerInput(modes, currentMode) {
+                detectTapGestures(
+                    onTap = {
+                        onTap()
+                    }
+                )
+            }
+            // 2) HORIZONTAL DRAG
+            .pointerInput(modes, currentMode) {
+                detectHorizontalDragGestures(
+                    onDragStart = {
+                        accumulatedDrag = 0f
+                    },
+                    onHorizontalDrag = { change, dragAmount ->
+                        accumulatedDrag += dragAmount
+                        change.consume()
+                    },
+                    onDragEnd = {
+                        if (kotlin.math.abs(accumulatedDrag) > dragThreshold && modes.isNotEmpty()) {
+                            val currentIndex = modes.indexOf(currentMode).coerceAtLeast(0)
+                            val nextIndex = if (accumulatedDrag < 0f) {
+                                // свайп вліво → наступний режим
+                                (currentIndex + 1) % modes.size
+                            } else {
+                                // свайп вправо → попередній режим
+                                (currentIndex - 1 + modes.size) % modes.size
+                            }
+                            onModeSelected(modes[nextIndex])
+                        }
+                        accumulatedDrag = 0f
+                    },
+                    onDragCancel = {
+                        accumulatedDrag = 0f
+                    }
+                )
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        AnimatedContent(
+            targetState = currentMode,
+            transitionSpec = {
+                val initialIndex = modes.indexOf(initialState)
+                val targetIndex  = modes.indexOf(targetState)
+                val forward = targetIndex > initialIndex
+
+                val dir = if (forward)
+                    AnimatedContentTransitionScope.SlideDirection.Left
+                else
+                    AnimatedContentTransitionScope.SlideDirection.Right
+
+                slideIntoContainer(
+                    dir,
+                    animationSpec = tween(250)
+                ) + fadeIn() togetherWith
+                        slideOutOfContainer(
+                            dir,
+                            animationSpec = tween(250)
+                        ) + fadeOut()
+            },
+            label = "MagicSwitcherIcon"
+        ) { mode ->
+            val icon = when (mode) {
+                InputMode.AddGoal -> Icons.Outlined.Add
+                InputMode.AddQuickRecord -> Icons.Outlined.Inbox
+                InputMode.SearchInList -> Icons.Outlined.Search
+                InputMode.SearchGlobal -> Icons.Outlined.TravelExplore
+                InputMode.AddProjectLog -> Icons.Outlined.PostAdd
+                InputMode.AddMilestone -> Icons.Outlined.Flag
+                InputMode.AddNestedProject -> Icons.Default.AccountTree
+            }
+
+            Icon(
+                icon,
+                contentDescription = "Mode",
+                modifier = Modifier.size(22.dp),
+                tint = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+
+
+@Composable
+fun MinimalInputPanel(
+    inputMode: InputMode,
+    onInputModeSelected: (InputMode) -> Unit,
+    holdMenuState: MutableState<HoldMenuState>
+) {
+    val modes = listOf(
         InputMode.AddGoal,
         InputMode.AddQuickRecord,
-        if (isProjectManagementEnabled) InputMode.AddProjectLog else null,
-        if (isProjectManagementEnabled && currentView == ProjectViewMode.Advanced) InputMode.AddMilestone else null,
-        if (isProjectManagementEnabled && currentView == ProjectViewMode.Backlog) InputMode.AddNestedProject else null,
-        InputMode.SearchGlobal,
         InputMode.SearchInList,
-      )
-    }
-
-  var dragOffset by remember { mutableFloatStateOf(0f) }
-  var isPressed by remember { mutableStateOf(false) }
-  var showModeMenu by remember { mutableStateOf(false) }
-  var animationDirection by remember { mutableIntStateOf(1) }
-
-  val currentModeIndex = modes.indexOf(inputMode)
-
-  val inputPanelColors = LocalInputPanelColors.current
-  val panelColors =
-    when (inputMode) {
-      InputMode.AddGoal ->
-        PanelColors(
-          containerColor = inputPanelColors.addGoal.backgroundColor,
-          contentColor = inputPanelColors.addGoal.textColor,
-          accentColor = inputPanelColors.addGoal.textColor,
-          inputFieldColor = inputPanelColors.addGoal.inputFieldColor,
-        )
-      InputMode.AddQuickRecord ->
-        PanelColors(
-          containerColor = inputPanelColors.addQuickRecord.backgroundColor,
-          contentColor = inputPanelColors.addQuickRecord.textColor,
-          accentColor = inputPanelColors.addQuickRecord.textColor,
-          inputFieldColor = inputPanelColors.addQuickRecord.inputFieldColor,
-        )
-      InputMode.SearchInList ->
-        PanelColors(
-          containerColor = inputPanelColors.searchInList.backgroundColor,
-          contentColor = inputPanelColors.searchInList.textColor,
-          accentColor = inputPanelColors.searchInList.textColor,
-          inputFieldColor = inputPanelColors.searchInList.inputFieldColor,
-        )
-      InputMode.SearchGlobal ->
-        PanelColors(
-          containerColor = inputPanelColors.searchGlobal.backgroundColor,
-          contentColor = inputPanelColors.searchGlobal.textColor,
-          accentColor = inputPanelColors.searchGlobal.textColor,
-          inputFieldColor = inputPanelColors.searchGlobal.inputFieldColor,
-        )
-      InputMode.AddProjectLog ->
-        PanelColors(
-          containerColor = inputPanelColors.addProjectLog.backgroundColor,
-          contentColor = inputPanelColors.addProjectLog.textColor,
-          accentColor = inputPanelColors.addProjectLog.textColor,
-          inputFieldColor = inputPanelColors.addProjectLog.inputFieldColor,
-        )
-      InputMode.AddMilestone ->
-        PanelColors(
-          containerColor = inputPanelColors.addProjectLog.backgroundColor,
-          contentColor = inputPanelColors.addProjectLog.textColor,
-          accentColor = inputPanelColors.addProjectLog.textColor,
-          inputFieldColor = inputPanelColors.addProjectLog.inputFieldColor,
-        )
-      InputMode.AddNestedProject ->
-        PanelColors(
-            containerColor = inputPanelColors.addProjectLog.backgroundColor,
-            contentColor = inputPanelColors.addProjectLog.textColor,
-            accentColor = inputPanelColors.addProjectLog.textColor,
-            inputFieldColor = inputPanelColors.addProjectLog.inputFieldColor,
-        )
-    }
-
-  val animatedContainerColor by
-    animateColorAsState(
-      targetValue = panelColors.containerColor,
-      animationSpec = tween(400),
-      label = "panel_color_animation",
+        InputMode.SearchGlobal
     )
 
-  val buttonScale by
-    animateFloatAsState(
-      targetValue = if (isPressed) 0.92f else 1f,
-      animationSpec =
-        spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-      label = "button_scale",
-    )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
 
-  LaunchedEffect(inputMode) {
-    if (inputMode == InputMode.SearchInList || inputMode == InputMode.SearchGlobal) {
-      delay(60)
-      focusRequester.requestFocus()
-    }
-  }
-
-  Surface(
-    modifier = modifier.padding(horizontal = 12.dp, vertical = 8.dp).fillMaxWidth(),
-    shape = RoundedCornerShape(28.dp),
-    shadowElevation = 0.dp,
-    tonalElevation = 0.dp,
-    color = animatedContainerColor,
-    border = BorderStroke(1.dp, panelColors.contentColor.copy(alpha = 0.1f)),
-  ) {
-    Column {
-      AnimatedVisibility(visible = suggestions.isNotEmpty()) {
-        Column {
-          HorizontalDivider(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            color = panelColors.contentColor.copy(alpha = 0.12f),
-          )
-          // TODO: Restore AutocompleteSuggestions
-          // AutocompleteSuggestions(suggestions = suggestions, onSuggestionClick = onSuggestionClick)
-        }
-      }
-      NavigationBar(state = state, actions = actions, contentColor = panelColors.contentColor)
-
-      AnimatedVisibility(
-        visible = reminderParseResult != null,
-        enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
-        exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top),
-      ) {
-        // TODO: Restore ReminderChip
-        /*
-        reminderParseResult?.let {
-          if (it.success) {
-            ReminderChip(suggestionText = it.suggestionText ?: "", onClear = onClearReminder)
-          } else {
-            Text(
-              text = "Не вдалося розпізнати дату/час: ${it.errorMessage}",
-              color = MaterialTheme.colorScheme.error,
-              style = MaterialTheme.typography.bodySmall,
-              modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-            )
-          }
-        }
-        */
-      }
-
-      Row(
-        modifier =
-          Modifier.defaultMinSize(minHeight = 64.dp).padding(horizontal = 8.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.Bottom,
-      ) {
-        Box {
-          Surface(
-            onClick = { showModeMenu = true },
-            shape = CircleShape,
-            color = panelColors.contentColor.copy(alpha = 0.1f),
-            contentColor = panelColors.contentColor,
-            modifier =
-              Modifier.size(48.dp).scale(buttonScale).pointerInput(inputMode) {
-                detectHorizontalDragGestures(
-                  onDragStart = { isPressed = true },
-                  onDragEnd = {
-                    isPressed = false
-                    val threshold = 50f
-                    when {
-                      dragOffset > threshold -> {
-                        animationDirection = -1
-                        val prevIndex = ((currentModeIndex - 1) + modes.size) % modes.size
-                        onInputModeSelected(modes[prevIndex])
-                      }
-                      dragOffset < -threshold -> {
-                        animationDirection = 1
-                        val nextIndex = (currentModeIndex + 1) % modes.size
-                        onInputModeSelected(modes[nextIndex])
-                      }
-                    }
-                    dragOffset = 0f
-                  },
-                ) { _, dragAmount ->
-                  dragOffset += dragAmount
-                }
-              },
-          ) {
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-              AnimatedContent(
-                targetState = inputMode,
-                transitionSpec = {
-                  val initialIndex = modes.indexOf(initialState)
-                  val targetIndex = modes.indexOf(targetState)
-                  val forward = targetIndex > initialIndex
-
-                  val direction =
-                    if (forward) {
-                      AnimatedContentTransitionScope.SlideDirection.Left
-                    } else {
-                      AnimatedContentTransitionScope.SlideDirection.Right
-                    }
-
-                  slideIntoContainer(
-                    direction,
-                    animationSpec =
-                      spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy,
-                        stiffness = Spring.StiffnessLow,
-                      ),
-                  ) + fadeIn(animationSpec = tween(800)) togetherWith
-                    slideOutOfContainer(
-                      direction,
-                      animationSpec =
-                        spring(
-                          dampingRatio = Spring.DampingRatioNoBouncy,
-                          stiffness = Spring.StiffnessLow,
-                        ),
-                    ) + fadeOut(animationSpec = tween(850))
-                },
-                label = "mode_icon_animation",
-              ) { mode ->
-                val icon =
-                  when (mode) {
-                    InputMode.AddGoal -> Icons.Outlined.Add
-                    InputMode.AddQuickRecord -> Icons.Outlined.Inbox
-                    InputMode.SearchInList -> Icons.Outlined.Search
-                    InputMode.SearchGlobal -> Icons.Outlined.TravelExplore
-                    InputMode.AddProjectLog -> Icons.Outlined.PostAdd
-                    InputMode.AddMilestone -> Icons.Outlined.Flag
-                    InputMode.AddNestedProject -> Icons.Default.AccountTree
-                  }
-                Icon(
-                  imageVector = icon,
-                  contentDescription = "Magic Button",
-                  modifier =
-                    Modifier.size(22.dp).graphicsLayer {
-                      rotationZ = if (isPressed) (dragOffset / 20f).coerceIn(-15f, 15f) else 0f
-                    },
-                )
-              }
-            }
-          }
-
-          Box(
-            modifier =
-              Modifier.align(Alignment.TopEnd)
-                .size(8.dp)
-                .background(color = panelColors.accentColor, shape = CircleShape)
-                .padding(1.dp)
-                .background(
-                  color = panelColors.contentColor.copy(alpha = 0.3f),
-                  shape = CircleShape,
-                )
-          )
-        }
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        Surface(
-          modifier =
-            Modifier.weight(1f)
-              .heightIn(max = LocalConfiguration.current.screenHeightDp.dp / 3)
-              .defaultMinSize(minHeight = 44.dp),
-          shape = RoundedCornerShape(20.dp),
-          color = panelColors.inputFieldColor,
-          border = BorderStroke(1.dp, panelColors.accentColor.copy(alpha = 0.3f)),
-          shadowElevation = 0.dp,
+        // ЛІВА КНОПКА — HoldMenu
+        HoldMenuButton(
+            icon = Icons.Default.MoreVert,
+            state = holdMenuState
         ) {
-          BasicTextField(
-            value = inputValue,
-            onValueChange = onValueChange,
-            modifier =
-              Modifier.fillMaxWidth().padding(vertical = 12.dp).focusRequester(focusRequester),
-            textStyle =
-              MaterialTheme.typography.bodyLarge.copy(
-                color = panelColors.contentColor,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Normal,
-              ),
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-            keyboardActions =
-              KeyboardActions(onSend = { if (inputValue.text.isNotBlank()) onSubmit() }),
-            singleLine = false,
-            cursorBrush = SolidColor(panelColors.accentColor),
-            decorationBox = { innerTextField ->
-              Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-              ) {
-                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                  if (inputValue.text.isEmpty()) {
-                    Text(
-                      text =
-                        when (inputMode) {
-                          InputMode.AddGoal -> "Add goal"
-                          InputMode.AddQuickRecord -> "Add quick record"
-                          InputMode.SearchInList -> "Search in list"
-                          InputMode.SearchGlobal -> "Search global"
-                          InputMode.AddProjectLog -> "Додати коментар до проекту..."
-                                                InputMode.AddMilestone -> "Додати віху до проекту..."
-                                                InputMode.AddNestedProject -> "Додати вкладений проект..."
-                                              },                      style =
-                        MaterialTheme.typography.bodyLarge.copy(
-                          color = panelColors.contentColor.copy(alpha = 0.7f),
-                          fontSize = 16.sp,
-                        ),
-                    )
-                  }
-                  innerTextField()
-                }
-
-                Row(
-                  verticalAlignment = Alignment.CenterVertically,
-                  horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                  NerIndicator(isActive = isNerActive, hasText = inputValue.text.isNotBlank())
-
-                  AnimatedVisibility(
-                    visible = inputMode == InputMode.AddNestedProject,
-                    enter = fadeIn(),
-                    exit = fadeOut(),
-                  ) {
-                    IconButton(
-                      onClick = { onLinkExistingProjectClick() },
-                      modifier = Modifier.size(24.dp),
-                    ) {
-                      Icon(
-                        imageVector = Icons.Default.Link,
-                        contentDescription = "Link existing project",
-                        tint = panelColors.contentColor.copy(alpha = 0.7f),
-                        modifier = Modifier.size(18.dp),
-                      )
-                    }
-                  }
-
-                  AnimatedVisibility(
-                    visible = inputValue.text.isNotBlank(),
-                    enter = fadeIn(),
-                    exit = fadeOut(),
-                  ) {
-                    IconButton(
-                      onClick = { onValueChange(TextFieldValue("")) },
-                      modifier = Modifier.size(24.dp),
-                    ) {
-                      Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Clear input",
-                        tint = panelColors.contentColor.copy(alpha = 0.7f),
-                        modifier = Modifier.size(18.dp),
-                      )
-                    }
-                  }
-                }
-              }
-            },
-          )
+            item("Inbox", Icons.Default.Inbox) { /* TODO */ }
+            item("Advanced", Icons.Default.Dashboard) { /* TODO */ }
+            item("Attachments", Icons.Default.Attachment) { /* TODO */ }
         }
 
-        Spacer(modifier = Modifier.width(8.dp))
-
-        AnimatedVisibility(
-          visible = inputValue.text.isNotBlank(),
-          enter =
-            fadeIn() +
-              scaleIn(
-                initialScale = 0.8f,
-                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-              ),
-          exit = fadeOut() + scaleOut(targetScale = 0.8f),
-        ) {
-          val sendButtonBackgroundColor = panelColors.accentColor
-          val sendIconColor =
-            remember(sendButtonBackgroundColor) {
-              val luminance = sendButtonBackgroundColor.luminance()
-              if (luminance > 0.55f) Color(0xFF1C1B1F) else Color.White
-            }
-
-          IconButton(
-            onClick = onSubmit,
-            modifier =
-              Modifier.size(44.dp)
-                .background(color = sendButtonBackgroundColor, shape = CircleShape),
-            colors =
-              IconButtonDefaults.iconButtonColors(
-                contentColor = sendIconColor
-              ),
-          ) {
-            Icon(
-              imageVector = Icons.AutoMirrored.Filled.Send,
-              contentDescription = "Send",
-              modifier = Modifier.size(20.dp),
-            )
-          }
-        }
-      }
+        // ПРАВА КНОПКА — свайпом міняє режим
+        MagicModeSwitcher(
+            modes = modes,
+            currentMode = inputMode,
+            onTap = { /* optional: показати діалог вибору режимів */ },
+            onModeSelected = onInputModeSelected,
+            modifier = Modifier.size(48.dp)
+        )
     }
-  }
-  if (showModeMenu) {
-    InputPanelMagicActionsDialog(
-      currentInputMode = inputMode,
-      isProjectManagementEnabled = isProjectManagementEnabled,
-      onDismiss = { showModeMenu = false },
-      onInputModeSelected = onInputModeSelected,
-      onLinkExistingProjectClick = onLinkExistingProjectClick,
-      onShowAddWebLinkDialog = onShowAddWebLinkDialog,
-      onShowAddObsidianLinkDialog = onShowAddObsidianLinkDialog,
-      onAddListShortcutClick = onAddListShortcutClick,
-      onShowCreateNoteDocumentDialog = onShowCreateNoteDocumentDialog,
-      onCreateChecklist = onCreateChecklist,
-    )
-  }
+
+    HoldMenuButton(
+        icon = Icons.Outlined.Dashboard,  // або що в тебе там
+        state = holdMenuState
+    ) {
+        // DSL
+        item("Inbox", Icons.Outlined.Notes) {
+     //       onViewChange(ProjectViewMode.Inbox)
+            onInputModeSelected(InputMode.AddQuickRecord)
+        }
+        item("Advanced", Icons.Outlined.Dashboard) {
+   //         onViewChange(ProjectViewMode.Advanced)
+            onInputModeSelected(InputMode.AddQuickRecord)
+        }
+        item("Attachments", Icons.Default.Attachment) {
+ //           onViewChange(ProjectViewMode.Attachments)
+            onInputModeSelected(InputMode.AddGoal)
+        }
+    }
+
+
 }

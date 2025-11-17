@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.features.projectscreen
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -9,7 +10,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -35,14 +35,17 @@ import com.romankozak.forwardappmobile.features.projectscreen.components.inputpa
 import com.romankozak.forwardappmobile.features.projectscreen.components.inputpanel.InputMode
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.text.input.TextFieldValue
+import com.romankozak.forwardappmobile.features.projectscreen.components.inputpanel.MinimalInputPanel
 import com.romankozak.forwardappmobile.features.projectscreen.components.list.BacklogView
-import com.romankozak.forwardappmobile.shared.features.projects.listitems.domain.model.ListItemContent
+import com.romankozak.forwardappmobile.ui.holdmenu.HoldMenuOverlay
+import com.romankozak.forwardappmobile.ui.holdmenu.HoldMenuState
 import kotlinx.coroutines.delay
 
 
@@ -66,6 +69,9 @@ fun ProjectScreen(
 
     val listState = rememberLazyListState()
 
+    val holdMenuState = remember { mutableStateOf(HoldMenuState()) }
+
+
     val selectedProject = navController.currentBackStackEntry
         ?.savedStateHandle
         ?.getLiveData<Project>("selected_project")
@@ -79,7 +85,11 @@ fun ProjectScreen(
     }
 
     Scaffold(
-        modifier = Modifier.navigationBarsPadding().imePadding(),
+        modifier = Modifier.navigationBarsPadding().imePadding()
+            .onGloballyPositioned {
+                Log.e("HOLDMENU", "📏 ROOT coords = ${it.positionInWindow()}, size=${it.size}")
+            }
+        ,
         topBar = {
             AdaptiveTopBar(
                 isSelectionModeActive = state.isSelectionModeActive,
@@ -114,11 +124,10 @@ fun ProjectScreen(
             )
         },
         bottomBar = {
-            ModernInputPanel(
+          /*  ModernInputPanel(
                 inputValue = inputValue,
-                onValueChange = { inputValue = it },
                 inputMode = state.inputMode,
-                onInputModeSelected = { viewModel.onEvent(ProjectScreenViewModel.Event.SwitchInputMode(it)) },
+                onValueChange = { inputValue = it },
                 onSubmit = {
                     if (inputValue.text.isNotBlank()) {
                         when (state.inputMode) {
@@ -129,6 +138,7 @@ fun ProjectScreen(
                         inputValue = TextFieldValue("")
                     }
                 },
+                onInputModeSelected = { viewModel.onEvent(ProjectScreenViewModel.Event.SwitchInputMode(it)) },
                 onRecentsClick = { /* TODO */ },
                 onLinkExistingProjectClick = { navController.navigate("project_chooser") },
                 onShowAddWebLinkDialog = { /* TODO */ },
@@ -168,8 +178,17 @@ fun ProjectScreen(
                 onCreateChecklist = { /* TODO */ },
                 onShowDisplayPropertiesClick = { /* TODO */ },
                 suggestions = emptyList(), // TODO
-                onSuggestionClick = { /* TODO */ }
+                onSuggestionClick = { /* TODO */ },
+                holdMenuState = holdMenuState
+            )*/
+
+            MinimalInputPanel(
+                inputMode = state.inputMode,
+                onInputModeSelected = { viewModel.onEvent(ProjectScreenViewModel.Event.SwitchInputMode(it)) },
+
+                holdMenuState = holdMenuState
             )
+
         }
     ) { paddingValues ->
         when (state.currentView) {
@@ -206,6 +225,24 @@ fun ProjectScreen(
             )
         }
     }
+    HoldMenuOverlay(
+        state = holdMenuState.value,
+        onChangeState = { holdMenuState.value = it },
+        onDismiss = {
+            holdMenuState.value =
+                holdMenuState.value.copy(isOpen = false, selectedIndex = null)
+        }
+    )
+
+
+
+
+    /*HoldMenuOverlay(
+        state = holdMenuState.value,
+        onDismiss = { holdMenuState.value = holdMenuState.value.copy(isOpen = false) }
+    )*/
+
+
 }
 
 
