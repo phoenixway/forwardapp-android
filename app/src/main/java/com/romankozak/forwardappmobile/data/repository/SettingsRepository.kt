@@ -65,18 +65,34 @@ class SettingsRepository @Inject constructor(
         ip
     }
     val wifiSyncPortFlow: Flow<Int> = context.dataStore.data.map {
-        it[wifiSyncPortKey] ?: 8080
+        try {
+            it[wifiSyncPortKey] ?: 8080
+        } catch (e: ClassCastException) {
+            it[stringPreferencesKey(wifiSyncPortKey.name)]?.toIntOrNull() ?: 8080
+        }
     }
     val ollamaPortFlow: Flow<Int> = context.dataStore.data.map {
-        it[ollamaPortKey] ?: 11434
+        try {
+            it[ollamaPortKey] ?: 11434
+        } catch (e: ClassCastException) {
+            it[stringPreferencesKey(ollamaPortKey.name)]?.toIntOrNull() ?: 11434
+        }
     }
     val fastApiPortFlow: Flow<Int> = context.dataStore.data.map {
-        it[fastApiPortKey] ?: 8000
+        try {
+            it[fastApiPortKey] ?: 8000
+        } catch (e: ClassCastException) {
+            it[stringPreferencesKey(fastApiPortKey.name)]?.toIntOrNull() ?: 8000
+        }
     }
 
     private val attachmentsLibraryKey = booleanPreferencesKey("attachments_library_enabled")
     val attachmentsLibraryEnabledFlow: Flow<Boolean> = context.dataStore.data.map {
-        it[attachmentsLibraryKey] ?: BuildConfig.DEBUG
+        try {
+            it[attachmentsLibraryKey] ?: BuildConfig.DEBUG
+        } catch (e: ClassCastException) {
+            it[stringPreferencesKey(attachmentsLibraryKey.name)]?.toBoolean() ?: BuildConfig.DEBUG
+        }
     }
 
     suspend fun saveServerAddressSettings(
