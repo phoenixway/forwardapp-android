@@ -5,36 +5,37 @@ import android.content.Context
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
-import androidx.core.net.toUri
 import android.util.Log
+import androidx.core.net.toUri
 import androidx.room.withTransaction
 import com.google.gson.GsonBuilder
-import com.romankozak.forwardappmobile.data.sync.ReservedGroupAdapter
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
-import com.romankozak.forwardappmobile.data.dao.NoteDocumentDao
+import com.romankozak.forwardappmobile.data.dao.ChecklistDao
 import com.romankozak.forwardappmobile.data.dao.GoalDao
 import com.romankozak.forwardappmobile.data.dao.InboxRecordDao
+import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
 import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
-import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
+import com.romankozak.forwardappmobile.data.dao.NoteDocumentDao
 import com.romankozak.forwardappmobile.data.dao.ProjectDao
 import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
 import com.romankozak.forwardappmobile.data.dao.RecentItemDao
-import com.romankozak.forwardappmobile.data.dao.ChecklistDao
 import com.romankozak.forwardappmobile.data.database.AppDatabase
-import com.romankozak.forwardappmobile.data.database.models.ChecklistEntity
-import com.romankozak.forwardappmobile.data.database.models.ChecklistItemEntity
-import com.romankozak.forwardappmobile.data.sync.DatabaseContent
-import com.romankozak.forwardappmobile.data.sync.FullAppBackup
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.ListItem
-import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.ProjectLogLevelValues
 import com.romankozak.forwardappmobile.data.database.models.ProjectStatusValues
 import com.romankozak.forwardappmobile.data.database.models.ProjectType
-import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
+import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
+import com.romankozak.forwardappmobile.data.sync.DatabaseContent
+import com.romankozak.forwardappmobile.data.sync.DesktopBackupFile
+import com.romankozak.forwardappmobile.data.sync.FullAppBackup
+import com.romankozak.forwardappmobile.data.sync.ReservedGroupAdapter
+import com.romankozak.forwardappmobile.data.sync.toGoal
+import com.romankozak.forwardappmobile.data.sync.toProject
+import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.ktor.client.HttpClient
@@ -43,9 +44,6 @@ import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.serialization.gson.gson
-import com.romankozak.forwardappmobile.data.sync.DesktopBackupFile
-import com.romankozak.forwardappmobile.data.sync.toGoal
-import com.romankozak.forwardappmobile.data.sync.toProject
 import kotlinx.coroutines.flow.first
 import java.text.SimpleDateFormat
 import java.time.OffsetDateTime
@@ -100,6 +98,7 @@ constructor(
     private val checklistDao: ChecklistDao,
     private val recentItemDao: RecentItemDao,
     private val attachmentRepository: AttachmentRepository,
+    private val attachmentDao: AttachmentDao,
 ) {
     private val TAG = "SyncRepository"
     private val gson = GsonBuilder()
@@ -154,7 +153,9 @@ constructor(
                 linkItemEntities = linkItemDao.getAllEntities(),
                 inboxRecords = inboxRecordDao.getAll(),
                 projectExecutionLogs = projectManagementDao.getAllLogs(),
-                recentProjectEntries = null
+                recentProjectEntries = null,
+                attachments = attachmentDao.getAll(),
+                projectAttachmentCrossRefs = attachmentDao.getAllProjectAttachmentCrossRefs(),
             )
         val settingsMap = settingsRepository.getPreferencesSnapshot().asMap().mapKeys { it.key.name }
             .mapValues { it.value.toString() }
@@ -252,14 +253,6 @@ constructor(
                 }
             Log.d(IMPORT_TAG, "Очищення ListItem завершено. Original: ${backup.listItems.size}, Cleaned: ${cleanedListItems.size}")
 
-            val attachmentItemTypes = setOf(
-                ListItemTypeValues.NOTE_DOCUMENT,
-                ListItemTypeValues.CHECKLIST,
-                ListItemTypeValues.LINK_ITEM,
-            )
-            val (attachmentListItems, backlogListItems) =
-                cleanedListItems.partition { it.itemType in attachmentItemTypes }
-
             val recentItemsToInsert = backup.recentProjectEntries?.mapNotNull { entry ->
                 val project = backup.projects.find { it.id == entry.projectId }
                 if (project != null) {
@@ -307,17 +300,19 @@ constructor(
                 Log.d(IMPORT_TAG, "  - checklists очищено")
                 recentItemDao.deleteAll()
                 Log.d(IMPORT_TAG, "  - recent_items очищено")
+                attachmentDao.deleteAllProjectAttachmentLinks()
+                Log.d(IMPORT_TAG, "  - project_attachment_links очищено")
+                attachmentDao.deleteAll()
+                Log.d(IMPORT_TAG, "  - attachments очищено")
 
                 Log.d(IMPORT_TAG, "Транзакція: вставка базових сутностей.")
                 goalDao.insertGoals(backup.goals)
                 Log.d(IMPORT_TAG, "  - goals вставлено: ${backup.goals.size}")
                 projectDao.insertProjects(cleanedProjects)
                 Log.d(IMPORT_TAG, "  - projects вставлено: ${cleanedProjects.size}")
+                listItemDao.insertItems(cleanedListItems)
+                Log.d(IMPORT_TAG, "  - list_items вставлено: ${cleanedListItems.size}")
 
-                // Отримуємо ID всіх щойно вставлених проектів для перевірки цілісності
-                val validProjectIds = cleanedProjects.map { it.id }.toSet()
-
-                // Спочатку вставляємо всі "контентні" сутності
                 backup.legacyNotes?.let {
                     legacyNoteDao.insertAll(it.orEmpty())
                     Log.d(IMPORT_TAG, "  - legacy_notes вставлено: ${it.size}")
@@ -338,24 +333,14 @@ constructor(
                     checklistDao.insertItems(backupChecklistItems)
                     Log.d(IMPORT_TAG, "  - checklist_items вставлено: ${backupChecklistItems.size}")
                 }
-                backup.linkItemEntities?.let {
-                    linkItemDao.insertAll(it)
-                    Log.d(IMPORT_TAG, "  - link_items вставлено: ${it.size}")
-                }
 
-                // Тепер вставляємо list_items, але тільки ті, що посилаються на існуючі проекти
-                val (validListItems, orphanedListItems) = backlogListItems.partition { it.projectId in validProjectIds }
-                if (orphanedListItems.isNotEmpty()) {
-                    Log.w(IMPORT_TAG, "Пропускаємо ${orphanedListItems.size} 'сирітських' ListItems, що посилаються на неіснуючі проекти.")
-                    orphanedListItems.forEach { Log.w(IMPORT_TAG, "  - Пропущений ListItem: id=${it.id}, projectId=${it.projectId}") }
-                }
-                listItemDao.insertItems(validListItems)
-                Log.d(IMPORT_TAG, "  - list_items вставлено: ${validListItems.size} (пропущено: ${orphanedListItems.size})")
-
-                // Решта сутностей
                 backup.activityRecords?.let {
                     activityRecordDao.insertAll(it)
                     Log.d(IMPORT_TAG, "  - activity_records вставлено: ${it.size}")
+                }
+                backup.linkItemEntities?.let {
+                    linkItemDao.insertAll(it)
+                    Log.d(IMPORT_TAG, "  - link_items вставлено: ${it.size}")
                 }
                 backup.inboxRecords?.let {
                     inboxRecordDao.insertAll(it)
@@ -370,26 +355,13 @@ constructor(
                     Log.d(IMPORT_TAG, "  - recent_items вставлено: ${it.size}")
                 }
 
-                if (attachmentListItems.isNotEmpty()) {
-                    Log.d(IMPORT_TAG, "Транзакція: формування attachments із legacy list_items: ${attachmentListItems.size}")
-                    val orderUpdatesByProject = mutableMapOf<String, MutableList<Pair<String, Long>>>()
-                    attachmentListItems.forEach { item ->
-                        val createdAt = if (item.order < 0) -item.order else System.currentTimeMillis()
-                        val attachment =
-                            attachmentRepository.ensureAttachmentLinkedToProject(
-                                attachmentType = item.itemType,
-                                entityId = item.entityId,
-                                projectId = item.projectId,
-                                ownerProjectId = item.projectId,
-                                createdAt = createdAt,
-                            )
-                        orderUpdatesByProject.getOrPut(item.projectId) { mutableListOf() }
-                            .add(attachment.id to item.order)
-                    }
-                    orderUpdatesByProject.forEach { (projectId, updates) ->
-                        attachmentRepository.updateAttachmentOrders(projectId, updates)
-                    }
-                    Log.d(IMPORT_TAG, "Транзакція: attachments сформовано для ${orderUpdatesByProject.size} проєктів")
+                backup.attachments?.let {
+                    attachmentDao.insertAttachments(it)
+                    Log.d(IMPORT_TAG, "  - attachments вставлено: ${it.size}")
+                }
+                backup.projectAttachmentCrossRefs?.let {
+                    attachmentDao.insertProjectAttachmentLinks(it)
+                    Log.d(IMPORT_TAG, "  - project_attachment_cross_refs вставлено: ${it.size}")
                 }
 
                 Log.d(IMPORT_TAG, "Транзакція: відновлення settings. Entries=${backupSettingsMap.size}")

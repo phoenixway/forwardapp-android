@@ -29,6 +29,8 @@ data class DatabaseContent(
     val linkItemEntities: List<LinkItemEntity>? = null,
     val inboxRecords: List<InboxRecord>? = null,
     val projectExecutionLogs: List<ProjectExecutionLog>? = null,
+    val attachments: List<com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentEntity>? = null,
+    val projectAttachmentCrossRefs: List<com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRef>? = null,
 )
 
 data class SettingsContent(
