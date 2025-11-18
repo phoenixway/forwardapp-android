@@ -233,8 +233,16 @@ constructor(
                 }
             Log.d(IMPORT_TAG, "JSON parsed successfully.")
 
+            val existingProjectIds = projectDao.getAll().map { it.id }.toSet()
+            Log.d(IMPORT_TAG, "Found ${existingProjectIds.size} existing projects in the database.")
+
+            val validCrossRefs = backupData.projectAttachmentCrossRefs.filter { it.projectId in existingProjectIds }
+            val orphanedCrossRefsCount = backupData.projectAttachmentCrossRefs.size - validCrossRefs.size
+            Log.d(IMPORT_TAG, "Found ${validCrossRefs.size} valid attachment links. $orphanedCrossRefsCount orphaned links will be skipped.")
+
             appDatabase.withTransaction {
                 Log.d(IMPORT_TAG, "Transaction: Inserting attachments data.")
+                // Insert content entities first
                 noteDocumentDao.insertAllDocuments(backupData.documents)
                 Log.d(IMPORT_TAG, "  - Inserted ${backupData.documents.size} note documents.")
                 noteDocumentDao.insertAllDocumentItems(backupData.documentItems)
@@ -245,14 +253,18 @@ constructor(
                 Log.d(IMPORT_TAG, "  - Inserted ${backupData.checklistItems.size} checklist items.")
                 linkItemDao.insertAll(backupData.linkItemEntities)
                 Log.d(IMPORT_TAG, "  - Inserted ${backupData.linkItemEntities.size} link items.")
+
+                // Insert attachments themselves
                 attachmentDao.insertAttachments(backupData.attachments)
                 Log.d(IMPORT_TAG, "  - Inserted ${backupData.attachments.size} attachments.")
-                attachmentDao.insertProjectAttachmentLinks(backupData.projectAttachmentCrossRefs)
-                Log.d(IMPORT_TAG, "  - Inserted ${backupData.projectAttachmentCrossRefs.size} attachment cross-refs.")
+
+                // Insert only the valid cross-references
+                attachmentDao.insertProjectAttachmentLinks(validCrossRefs)
+                Log.d(IMPORT_TAG, "  - Inserted ${validCrossRefs.size} valid attachment cross-refs.")
             }
 
-            Log.i(IMPORT_TAG, "Attachments import completed successfully.")
-            return Result.success("Attachments imported successfully!")
+            Log.i(IMPORT_TAG, "Attachments import completed successfully. $orphanedCrossRefsCount attachments were imported as orphans.")
+            return Result.success("Attachments imported successfully! $orphanedCrossRefsCount attachments were imported without a parent project and can be found in the attachments library.")
         } catch (e: Exception) {
             Log.e(IMPORT_TAG, "A critical error occurred during attachments import.", e)
             return Result.failure(e)
