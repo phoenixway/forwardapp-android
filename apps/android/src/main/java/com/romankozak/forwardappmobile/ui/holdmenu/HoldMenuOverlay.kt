@@ -12,8 +12,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
@@ -25,7 +23,8 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun HoldMenuOverlay(
     state: HoldMenuState,
-    onChangeState: (HoldMenuState) -> Unit,
+    selectedIndex: Int?,
+    onItemPositioned: (Int, Offset, IntSize) -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (!state.isOpen || state.items.isEmpty()) {
@@ -36,50 +35,8 @@ fun HoldMenuOverlay(
     val menuWidth = 220.dp
     val itemH = 48.dp
 
-    // Позиції кожного елемента меню
-    val itemPositions = remember { mutableStateMapOf<Int, Pair<Offset, IntSize>>() }
-    var selectedIndex by remember { mutableStateOf<Int?>(null) }
-
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .pointerInput(state.items) {
-                awaitPointerEventScope {
-                    while (true) {
-                        val event = awaitPointerEvent(PointerEventPass.Main)
-                        val change = event.changes.firstOrNull() ?: continue
-                        val position = change.position
-
-                        Log.e("HOLDMENU", "👆 Touch at $position")
-
-                        // Знаходимо елемент під пальцем
-                        val hoveredIndex = itemPositions.entries.firstOrNull { (_, posSize) ->
-                            val (topLeft, size) = posSize
-                            position.x >= topLeft.x &&
-                                    position.x <= topLeft.x + size.width &&
-                                    position.y >= topLeft.y &&
-                                    position.y <= topLeft.y + size.height
-                        }?.key
-
-                        if (hoveredIndex != selectedIndex) {
-                            selectedIndex = hoveredIndex
-                            Log.e("HOLDMENU", "🎯 Selected: $hoveredIndex")
-                        }
-
-                        // Відпустив палець - вибираємо елемент
-                        if (!change.pressed) {
-                            Log.e("HOLDMENU", "✅ Released on item: $selectedIndex")
-                            selectedIndex?.let { index ->
-                                state.onItemSelected?.invoke(index)
-                            }
-                            onChangeState(state.copy(isOpen = false))
-                            break
-                        }
-
-                        change.consume()
-                    }
-                }
-            },
+        modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.TopStart
     ) {
         val menuWidthPx = with(density) { menuWidth.toPx() }
@@ -90,6 +47,8 @@ fun HoldMenuOverlay(
 
         val offsetX = desiredX.toInt().coerceAtLeast(8)
         val offsetY = desiredY.toInt().coerceAtLeast(8)
+
+        Log.e("HOLDMENU", "📍 Menu offset = ($offsetX, $offsetY)")
 
         Column(
             modifier = Modifier
@@ -111,7 +70,8 @@ fun HoldMenuOverlay(
                         .height(itemH)
                         .onGloballyPositioned { coords ->
                             val pos = coords.positionInWindow()
-                            itemPositions[index] = pos to coords.size
+                            onItemPositioned(index, pos, coords.size)
+                            Log.e("HOLDMENU", "📍 Item $index at $pos, size=${coords.size}")
                         }
                         .scale(scale)
                         .background(

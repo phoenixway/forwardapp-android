@@ -65,6 +65,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.changedToUp
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -1364,9 +1366,9 @@ fun MinimalInputPanel(
     onInputModeSelected: (InputMode) -> Unit,
     holdMenuState: MutableState<HoldMenuState>,
     onHoldMenuSelect: (Int) -> Unit,
-    modifier: Modifier = Modifier,
-
-    ) {
+    onButtonCenterChanged: (Offset) -> Unit,
+    modifier: Modifier = Modifier
+) {
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -1377,29 +1379,26 @@ fun MinimalInputPanel(
         Box(
             modifier = Modifier
                 .size(64.dp)
-                .background(Color(0xFF222222), RoundedCornerShape(16.dp)),
+                .background(Color(0xFF222222), RoundedCornerShape(16.dp))
+                .onGloballyPositioned { coords ->
+                    val pos = coords.positionInWindow()
+                    val size = coords.size
+                    val center = Offset(
+                        x = pos.x + size.width / 2f,
+                        y = pos.y + size.height / 2f
+                    )
+                    onButtonCenterChanged(center)
+                },
             contentAlignment = Alignment.Center
         ) {
-            HoldMenuButton(
-                onLongPress = { anchor ->
-                    holdMenuState.value = HoldMenuState(
-                        isOpen = true,
-                        anchor = anchor,
-                        items = listOf("Backlog", "Advanced", "Inbox", "Attachments"),
-                        onItemSelected = onHoldMenuSelect
-                    )
-                }
-            ) {
-                Icon(
-                    Icons.Default.MoreVert,
-                    contentDescription = "menu",
-                    tint = Color.White
-                )
-            }
+            Icon(
+                Icons.Default.MoreVert,
+                contentDescription = "menu",
+                tint = Color.White
+            )
         }
     }
 }
-
 
 
 
