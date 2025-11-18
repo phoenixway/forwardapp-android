@@ -29,3 +29,9 @@
 2025-11-16: Реалізовано навігацію для кліків по `SubProjectItem`: додано подію `SubprojectClick` та `navigationEvents` `SharedFlow` у `ProjectScreenViewModel.kt`, а також збір цих подій у `ProjectScreen.kt` для навігації.
 2025-11-17: Реалізовано додавання вкладених проектів з панелі вводу: додано `InputMode.AddNestedProject`, оновлено `ModernInputPanel` та `ProjectScreenViewModel` для створення нового проекту як під-проекту.
 2025-11-17: Реалізовано зв'язування існуючих проектів як під-проектів: створено `ProjectChooserScreen` та `ProjectChooserViewModel` для вибору існуючого проекту, додано кнопку "Link" в `ModernInputPanel` та інтегровано `ProjectChooserScreen` у навігаційний граф з обробкою результату.
+2025-11-19: Визначено місцезнаходження файлів Backlog UI в гілці `dev`: `ProjectScreen.kt`, `ProjectScreenViewModel.kt`, `ProjectScreenContent.kt` у `app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectscreen/`, а `BacklogList.kt` та `SwipeableBacklogItem.kt` у `app/src/main/java/com.romankozak.forwardappmobile/ui/features/backlog/`.
+2025-11-19: Вивчено вміст `ProjectScreenViewModel.kt` з гілки `dev` для розуміння логіки завантаження даних та обробки подій беклогу.
+2025-11-19: Вивчено вміст `ProjectScreen.kt` з гілки `dev` для розуміння загальної структури UI ProjectScreen.
+2025-11-19: Вивчено вміст `ProjectScreenContent.kt` з гілки `dev`, який викликає `BacklogListScreen` для відображення беклогу.
+2025-11-19: Вивчено вміст `BacklogList.kt` з гілки `dev`, який використовує `SwipeableBacklogItem`.
+2025-11-19: Вивчено вміст `SwipeableBacklogItem.kt` з гілки `dev`, який обгортає `BacklogItem` та реалізує логіку свайпів.
