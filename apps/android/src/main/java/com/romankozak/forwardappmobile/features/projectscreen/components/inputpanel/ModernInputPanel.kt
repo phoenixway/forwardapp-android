@@ -1363,6 +1363,8 @@ fun MagicModeSwitcher(
 fun MinimalInputPanel(
     inputMode: InputMode,
     onInputModeSelected: (InputMode) -> Unit,
+    onHoldMenuSelect: (Int) -> Unit,     // ← ДОДАЙ ЦЕ
+
     holdMenuState: MutableState<HoldMenuState>
 ) {
     val modes = listOf(
@@ -1405,15 +1407,13 @@ fun MinimalInputPanel(
                 isOpen = true,
                 anchor = anchor,
                 touch = touch,
-                items = listOf(
-                    "Backlog",
-                    "Advanced",
-                    "Inbox",
-                    "Attachments"
-                )
+                items = listOf("Backlog", "Advanced", "Inbox", "Attachments"),
+                onItemSelected = onHoldMenuSelect       // ← ДУЖЕ ВАЖЛИВО
+
             )
         }
-    ) {
+    )
+ {
         Icon(Icons.Default.MoreVert, contentDescription = null)
     }
 

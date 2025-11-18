@@ -80,6 +80,17 @@ fun ProjectScreen(
         ?.getLiveData<Project>("selected_project")
         ?.observeAsState()
 
+
+    val onHoldMenuSelect: (Int) -> Unit = { index ->
+        when(index) {
+            0 -> viewModel.onEvent(ProjectScreenViewModel.Event.SwitchViewMode(ProjectViewMode.Backlog))
+            1 -> viewModel.onEvent(ProjectScreenViewModel.Event.SwitchViewMode(ProjectViewMode.Advanced))
+            2 -> viewModel.onEvent(ProjectScreenViewModel.Event.SwitchViewMode(ProjectViewMode.Inbox))
+            3 -> viewModel.onEvent(ProjectScreenViewModel.Event.SwitchViewMode(ProjectViewMode.Attachments))
+        }
+    }
+
+
     LaunchedEffect(selectedProject) {
         selectedProject?.value?.let { project: Project ->
             viewModel.onEvent(ProjectScreenViewModel.Event.LinkExistingProject(project))
@@ -201,7 +212,8 @@ fun ProjectScreen(
                         )
                     },
 
-                    holdMenuState = holdMenuState
+                    holdMenuState = holdMenuState,
+                    onHoldMenuSelect = onHoldMenuSelect,
                 )
 
             }
@@ -260,6 +272,9 @@ fun ProjectScreen(
         HoldMenuOverlay(
             state = holdMenuState.value,
             onChangeState = { holdMenuState.value = it },
+            modifier = Modifier
+                .fillMaxSize()
+                .zIndex(999f)   // ← ОБОВ’ЯЗКОВО!
 
         )
 

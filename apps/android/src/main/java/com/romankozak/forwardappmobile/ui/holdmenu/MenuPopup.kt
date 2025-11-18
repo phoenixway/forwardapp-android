@@ -22,14 +22,10 @@ import androidx.compose.ui.unit.toSize
 import kotlinx.coroutines.isActive
 
 @Composable
-fun MenuPopup(
-    state: HoldMenuState,
-    itemHeightPx: Float,
-    onChangeState: (HoldMenuState) -> Unit
-) {
-    Log.e("HOLDMENU", "🎨 MenuPopup START")
-
+fun MenuPopup(state: HoldMenuState) {
     val density = LocalDensity.current
+
+    Log.e("HOLDMENU", "🎨 MenuPopup START")
 
     BoxWithConstraints(
         modifier = Modifier.fillMaxSize()
@@ -40,60 +36,25 @@ fun MenuPopup(
         val itemH = 44.dp
 
         val menuWidthPx = with(density) { menuWidth.toPx() }
-        val menuHeightPx = itemHeightPx * state.items.size
+        val menuHeightPx = state.items.size * with(density) { itemH.toPx() }
 
-        // Бажана позиція над точкою long-press
+        val screenW = with(density) { maxWidth.toPx() }
+        val screenH = with(density) { maxHeight.toPx() }
+
         val desiredX = state.anchor.x - menuWidthPx / 2f
         val desiredY = state.anchor.y - menuHeightPx - 8f
 
-        val screenWpx = with(density) { maxWidth.toPx() }
-        val screenHpx = with(density) { maxHeight.toPx() }
+        val finalX = desiredX.coerceIn(0f, screenW - menuWidthPx)
+        val finalY = desiredY.coerceIn(0f, screenH - menuHeightPx)
 
-        val finalX = desiredX.coerceIn(0f, screenWpx - menuWidthPx)
-        val finalY = desiredY.coerceIn(0f, screenHpx - menuHeightPx)
+        Log.e("HOLDMENU", "📦 Drawing ${state.items.size} items")
 
-
-        // MAIN: gesture handling
         Column(
             modifier = Modifier
                 .offset { IntOffset(finalX.toInt(), finalY.toInt()) }
                 .width(menuWidth)
-                .background(Color(0xFF222222), RoundedCornerShape(12.dp))
-                .pointerInput(state.isOpen) {
-
-                    if (!state.isOpen) return@pointerInput
-                    awaitPointerEventScope {
-
-                    while (true) {
-
-                            val event = awaitPointerEvent()
-
-
-                            val press = event.changes.firstOrNull { it.pressed } ?: break
-
-                            // Визначаємо індекс по Y
-                            val relativeY = press.position.y - finalY
-                            val hover = (relativeY / itemHeightPx)
-                                .toInt()
-                                .coerceIn(0, state.items.lastIndex)
-
-                            if (hover != state.hoverIndex) {
-                                Log.e("HOLDMENU", "🖱 Hover = $hover")
-                                onChangeState(state.copy(hoverIndex = hover))
-                            }
-
-                            // Вибір пункту
-                            if (press.changedToUp()) {
-                                Log.e("HOLDMENU", "✅ CLICK index=$hover")
-                                state.onItemSelected?.invoke(hover)
-                                onChangeState(state.copy(isOpen = false, hoverIndex = -1))
-                                break
-                            }
-
-                    }}
-                }
+                .background(Color(0xFF222222))
         ) {
-            Log.e("HOLDMENU", "📦 Drawing ${state.items.size} items")
             state.items.forEachIndexed { index, label ->
                 val isHover = index == state.hoverIndex
 

@@ -22,38 +22,55 @@ import kotlinx.coroutines.isActive
 @Composable
 fun HoldMenuOverlay(
     state: HoldMenuState,
-    onChangeState: (HoldMenuState) -> Unit
+    onChangeState: (HoldMenuState) -> Unit,
+    modifier: Modifier = Modifier
+
 ) {
-    // ❌ Нема чого малювати
     if (!state.isOpen || state.items.isEmpty()) {
         Log.e("HOLDMENU", "❌ Nothing to draw, closed or empty")
         return
     }
 
-    val density = LocalDensity.current
-    val itemHeightDp = 44.dp
-    val itemHeightPx = with(density) { itemHeightDp.toPx() }
-
     Log.e("HOLDMENU", "📡 Overlay ACTIVE, anchor=${state.anchor}, items=${state.items.size}")
 
+    val density = LocalDensity.current
+    val itemHeightPx = with(density) { 44.dp.toPx() }
+
+    // FULLSCREEN overlay capturing all input
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
-            // тач поза меню — закриває меню
-            .pointerInput(Unit) {
+            .pointerInput(state.isOpen) {
                 if (!state.isOpen) return@pointerInput
-                awaitPointerEventScope {
-                    val event = awaitPointerEvent()
-                    val anyPressed = event.changes.any { it.pressed }
-                    if (!anyPressed) onChangeState(state.copy(isOpen = false, hoverIndex = -1))
+
+                val menuHeight = itemHeightPx * state.items.size
+                val menuTop = state.anchor.y - menuHeight - 8f
+                awaitPointerEventScope{
+                while (true) {
+                    val event = awaitPointerEvent()   // <— тепер працює 100%
+
+                    val press = event.changes.firstOrNull { it.pressed }
+                        ?: break
+
+                    val relativeY = press.position.y - menuTop
+                    val hoverIndex = (relativeY / itemHeightPx)
+                        .toInt()
+                        .coerceIn(0, state.items.lastIndex)
+
+                    if (hoverIndex != state.hoverIndex) {
+                        onChangeState(state.copy(hoverIndex = hoverIndex))
+                    }
+
+                    if (press.changedToUp()) {
+                        state.onItemSelected?.invoke(hoverIndex)
+                        onChangeState(state.copy(isOpen = false, hoverIndex = -1))
+                        break
+                    }
+
+                }
                 }
             }
     ) {
-
-        MenuPopup(
-            state = state,
-            itemHeightPx = itemHeightPx,
-            onChangeState = onChangeState
-        )
+        MenuPopup(state)
     }
 }
