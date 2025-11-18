@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.holdmenu2
+package com.romankozak.forwardappmobile.features.common.components.holdmenu2
 
 import android.util.Log
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -14,7 +14,6 @@ import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Кнопка з long-press меню та drag-to-select функціональністю

@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.holdmenu2
+package com.romankozak.forwardappmobile.features.common.components.holdmenu2
 
 import android.util.Log
 import androidx.compose.animation.core.animateFloatAsState
@@ -13,7 +13,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 

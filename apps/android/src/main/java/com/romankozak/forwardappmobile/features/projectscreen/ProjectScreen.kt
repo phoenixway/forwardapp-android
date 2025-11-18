@@ -12,9 +12,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.di.LocalAppComponent
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Overlay
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.rememberHoldMenu2
 import com.romankozak.forwardappmobile.features.projectscreen.components.inputpanel.MinimalInputPanelV2
 import com.romankozak.forwardappmobile.features.projectscreen.models.ProjectViewMode
-import com.romankozak.forwardappmobile.ui.holdmenu2.*
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable

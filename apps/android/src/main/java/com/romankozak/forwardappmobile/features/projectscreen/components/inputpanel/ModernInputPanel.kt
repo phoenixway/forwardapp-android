@@ -9,11 +9,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -48,7 +46,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.changedToUp
-import androidx.compose.ui.input.pointer.consumePositionChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.platform.LocalConfiguration
@@ -60,22 +57,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.features.projectscreen.models.ProjectViewMode
-import com.romankozak.forwardappmobile.ui.holdmenu.HoldMenuButton
 import com.romankozak.forwardappmobile.ui.holdmenu.HoldMenuState
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import androidx.compose.ui.input.pointer.PointerInputScope
-import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.semantics.semantics
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.romankozak.forwardappmobile.features.projectscreen.ProjectScreenViewModel
-import com.romankozak.forwardappmobile.ui.holdmenu.HoldMenuOverlay
-import com.romankozak.forwardappmobile.ui.holdmenu2.HoldMenu2Button
-import com.romankozak.forwardappmobile.ui.holdmenu2.HoldMenu2Controller
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Button
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller
 
 // TODO: Restore from theme
 object LocalInputPanelColors {

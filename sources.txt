@@ -5,9 +5,10 @@ TABLE OF CONTENTS
 - [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/components/inputpanel/ModernInputPanel.kt](##<<FILE_2>>)
 - [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu2/HoldMenu2Button.kt](##<<FILE_3>>)
 - [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu2/HoldMenu2Controller.kt](##<<FILE_4>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu2/HoldMenu2Overlay.kt](##<<FILE_5>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu2/HoldMenu2Popup.kt](##<<FILE_6>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu2/HoldMenu2State.kt](##<<FILE_7>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu2/HoldMenu2Geometry.k](##<<FILE_5>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu2/HoldMenu2Overlay.kt](##<<FILE_6>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu2/HoldMenu2Popup.kt](##<<FILE_7>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu2/HoldMenu2State.kt](##<<FILE_8>>)
 
 ================================================================================
 
@@ -18,30 +19,21 @@ BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/ap
 
 package com.romankozak.forwardappmobile.features.projectscreen
 
-import android.util.Log
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.di.LocalAppComponent
-import com.romankozak.forwardappmobile.features.projectscreen.components.inputpanel.MinimalInputPanel
+import com.romankozak.forwardappmobile.features.projectscreen.components.inputpanel.MinimalInputPanelV2
 import com.romankozak.forwardappmobile.features.projectscreen.models.ProjectViewMode
 import com.romankozak.forwardappmobile.ui.holdmenu2.*
-import kotlinx.coroutines.withTimeoutOrNull
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -59,12 +51,8 @@ fun ProjectScreen(
 
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val holdMenu = rememberHoldMenu2()
-    val density = LocalDensity.current
-
-    var buttonAnchor by remember { mutableStateOf(Offset.Zero) }
 
     val onHoldMenuSelect: (Int) -> Unit = { index ->
-        Log.e("HOLDMENU2", "🎉 Menu item $index selected")
         when (index) {
             0 -> viewModel.onEvent(ProjectScreenViewModel.Event.SwitchViewMode(ProjectViewMode.Backlog))
             1 -> viewModel.onEvent(ProjectScreenViewModel.Event.SwitchViewMode(ProjectViewMode.Advanced))
@@ -73,97 +61,21 @@ fun ProjectScreen(
         }
     }
 
-    Box(
-        Modifier
-            .fillMaxSize()
-            .pointerInput(Unit) {
-                awaitEachGesture {
-                    val down = awaitFirstDown(requireUnconsumed = false)
-
-                    // Перевіряємо чи натиснули на кнопку (64dp box)
-                    val isOnButton = buttonAnchor != Offset.Zero &&
-                            (down.position - buttonAnchor).getDistance() < 100f
-
-                    if (!isOnButton) return@awaitEachGesture
-
-                    Log.e("HOLDMENU2", "👇 Root: Finger on button")
-
-                    // Чекаємо long press
-                    val longPress = withTimeoutOrNull(400) {
-                        awaitPointerEvent(PointerEventPass.Main)
-                        null
-                    }
-
-                    if (longPress == null) {
-                        // Long press!
-                        Log.e("HOLDMENU2", "🔥 Root: Opening menu")
-                        holdMenu.open(
-                            anchor = buttonAnchor,
-                            touch = down.position,
-                            items = listOf("Backlog", "Advanced", "Inbox", "Attachments"),
-                            onSelect = onHoldMenuSelect
-                        )
-
-                        // Обробляємо drag
-                        val itemH = with(density) { 48.dp.toPx() }
-                        val menuHeight = itemH * 4
-                        val menuTop = buttonAnchor.y - menuHeight - with(density) { 16.dp.toPx() }
-
-                        Log.e("HOLDMENU2", "📐 Menu calc: itemH=$itemH, menuHeight=$menuHeight, menuTop=$menuTop")
-
-                        // Обробляємо поточну позицію (палець все ще натиснутий)
-                        var currentPos = down.position
-                        Log.e("HOLDMENU2", "👆 Initial pos=$currentPos")
-
-                        while (true) {
-                            // Вираховуємо hover для поточної позиції
-                            val relativeY = currentPos.y - menuTop
-
-                            val hover = if (relativeY >= 0 && relativeY <= menuHeight) {
-                                (relativeY / itemH).toInt().coerceIn(0, 3)
-                            } else {
-                                -1
-                            }
-
-                            if (hover != holdMenu.state.hoverIndex) {
-                                Log.e("HOLDMENU2", "🎯 Hover: $hover (relativeY=$relativeY)")
-                                holdMenu.setHover(hover)
-                            }
-
-                            // Чекаємо наступну подію
-                            val event = awaitPointerEvent(PointerEventPass.Main)
-                            val change = event.changes.firstOrNull() ?: break
-
-                            // Відпустили
-                            if (!change.pressed) {
-                                Log.e("HOLDMENU2", "✅ Released on: $hover")
-                                if (hover >= 0) {
-                                    onHoldMenuSelect(hover)
-                                }
-                                holdMenu.close()
-                                break
-                            }
-
-                            // Оновлюємо позицію для наступної ітерації
-                            currentPos = change.position
-                            change.consume()
-                        }
-                    }
-                }
-            }
-    ) {
-        MinimalInputPanel(
+    Box(Modifier.fillMaxSize()) {
+        MinimalInputPanelV2(
             inputMode = state.inputMode,
             onInputModeSelected = {
                 viewModel.onEvent(
                     ProjectScreenViewModel.Event.SwitchInputMode(it)
                 )
             },
-            onButtonAnchorChanged = { buttonAnchor = it },
+            menuItems = listOf("Backlog", "Advanced", "Inbox", "Attachments"),
+            onMenuItemSelected = onHoldMenuSelect,
+            holdMenuController = holdMenu,
             modifier = Modifier.zIndex(1f)
         )
 
-        // Overlay тільки для візуалізації
+        // Overlay для візуалізації меню
         HoldMenu2Overlay(
             controller = holdMenu,
             modifier = Modifier
@@ -258,6 +170,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.romankozak.forwardappmobile.features.projectscreen.ProjectScreenViewModel
 import com.romankozak.forwardappmobile.ui.holdmenu.HoldMenuOverlay
+import com.romankozak.forwardappmobile.ui.holdmenu2.HoldMenu2Button
 import com.romankozak.forwardappmobile.ui.holdmenu2.HoldMenu2Controller
 
 // TODO: Restore from theme
@@ -1582,6 +1495,45 @@ fun MinimalInputPanel(
     }
 }
 
+@Composable
+fun MinimalInputPanelV2(
+    inputMode: InputMode,
+    onInputModeSelected: (InputMode) -> Unit,
+    menuItems: List<String>,
+    onMenuItemSelected: (Int) -> Unit,
+    holdMenuController: HoldMenu2Controller,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(bottom = 32.dp)
+            .navigationBarsPadding(),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        HoldMenu2Button(
+            items = menuItems,
+            onSelect = onMenuItemSelected,
+            controller = holdMenuController,
+            modifier = Modifier
+                .size(64.dp)
+                .background(Color(0xFF222222), RoundedCornerShape(16.dp))
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.MoreVert,
+                    contentDescription = "menu",
+                    tint = Color.White
+                )
+            }
+        }
+    }
+}
+
+
 ================================================================================
 END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/components/inputpanel/ModernInputPanel.kt
 ================================================================================
@@ -1593,53 +1545,127 @@ BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/ap
 
 package com.romankozak.forwardappmobile.ui.holdmenu2
 
+import android.util.Log
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.withTimeoutOrNull
 
+/**
+ * Кнопка з long-press меню та drag-to-select функціональністю
+ *
+ * @param items Список текстових пунктів меню
+ * @param onSelect Callback при виборі пункту (передається індекс)
+ * @param modifier Modifier для кнопки
+ * @param controller Опціональний контролер (створюється автоматично якщо не передано)
+ * @param longPressDuration Тривалість утримання для відкриття меню (мс)
+ * @param content Вміст кнопки
+ */
 @Composable
 fun HoldMenu2Button(
-    modifier: Modifier = Modifier,
-    controller: HoldMenu2Controller,
     items: List<String>,
     onSelect: (Int) -> Unit,
-    holdDurationMs: Long = 350,
+    modifier: Modifier = Modifier,
+    controller: HoldMenu2Controller = rememberHoldMenu2(),
+    longPressDuration: Long = 400,
     content: @Composable () -> Unit
 ) {
-    var anchor by remember { mutableStateOf(Offset.Zero) }
+    val density = LocalDensity.current
+    val configuration = LocalConfiguration.current
+    val screenWidth = with(density) { configuration.screenWidthDp.dp.toPx() }
+    val screenHeight = with(density) { configuration.screenHeightDp.dp.toPx() }
+
+    var buttonAnchor by remember { mutableStateOf(Offset.Zero) }
+
+    // Встановлюємо розміри екрану в контролер
+    LaunchedEffect(screenWidth, screenHeight) {
+        controller.setScreenDimensions(screenWidth, screenHeight, density)
+    }
 
     Box(
         modifier = modifier
             .onGloballyPositioned { coords ->
                 val pos = coords.positionInWindow()
-                anchor = Offset(
-                    pos.x + coords.size.width / 2f,
-                    pos.y + coords.size.height / 2f
+                val size = coords.size
+                buttonAnchor = Offset(
+                    pos.x + size.width / 2f,
+                    pos.y + size.height / 2f
                 )
             }
-            .pointerInput(Unit) {
-                coroutineScope {
-                    awaitEachGesture {
-                        val down = awaitFirstDown()
-                        val touch = down.position
+            .pointerInput(items, onSelect) {
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
 
-                        val job = launch {
-                            delay(holdDurationMs)
-                            controller.open(anchor, touch, items, onSelect)
+                    // Перевіряємо чи натиснули на кнопку
+                    if (!HoldMenu2Geometry.isInsideButton(down.position, Offset(size.width / 2f, size.height / 2f))) {
+                        return@awaitEachGesture
+                    }
+
+                    Log.e("HOLDMENU2", "👇 Finger on button")
+
+                    // Чекаємо long press
+                    val longPress = withTimeoutOrNull(longPressDuration) {
+                        awaitPointerEvent(PointerEventPass.Main)
+                        null
+                    }
+
+                    if (longPress == null) {
+                        // Long press виконався - відкриваємо меню
+                        Log.e("HOLDMENU2", "🔥 Opening menu")
+
+                        // Використовуємо глобальні координати для anchor
+                        val globalAnchor = buttonAnchor
+                        val globalTouch = Offset(
+                            buttonAnchor.x + down.position.x - size.width / 2f,
+                            buttonAnchor.y + down.position.y - size.height / 2f
+                        )
+
+                        controller.open(
+                            anchor = globalAnchor,
+                            touch = globalTouch,
+                            items = items,
+                            onSelect = onSelect
+                        )
+
+                        // Обробляємо drag
+                        var currentPos = globalTouch
+
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Main)
+                            val change = event.changes.firstOrNull() ?: break
+
+                            // Конвертуємо локальну позицію в глобальну
+                            currentPos = Offset(
+                                buttonAnchor.x + change.position.x - size.width / 2f,
+                                buttonAnchor.y + change.position.y - size.height / 2f
+                            )
+
+                            // Оновлюємо hover
+                            controller.updateHover(currentPos)
+
+                            // Відпустили - виконуємо action
+                            if (!change.pressed) {
+                                val hover = controller.state.hoverIndex
+                                Log.e("HOLDMENU2", "✅ Released on: $hover")
+                                if (hover >= 0) {
+                                    onSelect(hover)
+                                }
+                                controller.close()
+                                break
+                            }
+
+                            change.consume()
                         }
-
-                        val up = waitForUpOrCancellation()
-                        job.cancel()
                     }
                 }
             }
@@ -1647,8 +1673,6 @@ fun HoldMenu2Button(
         content()
     }
 }
-
-
 
 ================================================================================
 END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu2/HoldMenu2Button.kt
@@ -1664,11 +1688,22 @@ package com.romankozak.forwardappmobile.ui.holdmenu2
 import android.util.Log
 import androidx.compose.runtime.*
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.Density
 
 @Stable
 class HoldMenu2Controller {
     var state by mutableStateOf(HoldMenu2State())
         private set
+
+    private var screenWidth: Float = 0f
+    private var screenHeight: Float = 0f
+    private var density: Density? = null
+
+    fun setScreenDimensions(width: Float, height: Float, density: Density) {
+        this.screenWidth = width
+        this.screenHeight = height
+        this.density = density
+    }
 
     fun open(
         anchor: Offset,
@@ -1677,20 +1712,54 @@ class HoldMenu2Controller {
         onSelect: (Int) -> Unit
     ) {
         Log.e("HOLDMENU2", "📝 Controller.open() called, items=$items")
+
+        val currentDensity = density
+        if (currentDensity == null || screenWidth == 0f || screenHeight == 0f) {
+            Log.e("HOLDMENU2", "⚠️ Screen dimensions not set!")
+            return
+        }
+
+        // Розраховуємо layout меню
+        val layout = HoldMenu2Geometry.calculateMenuLayout(
+            anchor = anchor,
+            itemCount = items.size,
+            density = currentDensity,
+            screenWidth = screenWidth,
+            screenHeight = screenHeight,
+        )
+
+        // Розраховуємо початковий hover
+        val initialHover = HoldMenu2Geometry.calculateHoverIndex(
+            fingerPosition = touch,
+            layout = layout,
+            itemCount = items.size,
+        )
+
         state = state.copy(
             isOpen = true,
             anchor = anchor,
             touch = touch,
             items = items,
             onItemSelected = onSelect,
-            hoverIndex = -1
+            hoverIndex = initialHover,
+            layout = layout,
         )
-        Log.e("HOLDMENU2", "📝 State updated: isOpen=${state.isOpen}, items=${state.items.size}")
+
+        Log.e("HOLDMENU2", "📝 State updated: isOpen=${state.isOpen}, items=${state.items.size}, hover=$initialHover")
     }
 
-    fun setHover(index: Int) {
-        if (state.hoverIndex != index) {
-            state = state.copy(hoverIndex = index)
+    fun updateHover(fingerPosition: Offset) {
+        val layout = state.layout ?: return
+
+        val newHover = HoldMenu2Geometry.calculateHoverIndex(
+            fingerPosition = fingerPosition,
+            layout = layout,
+            itemCount = state.items.size,
+        )
+
+        if (state.hoverIndex != newHover) {
+            Log.e("HOLDMENU2", "🎯 Hover: $newHover (pos=$fingerPosition)")
+            state = state.copy(hoverIndex = newHover)
         }
     }
 
@@ -1711,7 +1780,19 @@ END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps
 
 ## <<FILE_5>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu2/HoldMenu2Overlay.kt (ID: FILE_5)
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu2/HoldMenu2Geometry.k (ID: FILE_5)
+================================================================================
+
+[Помилка читання файлу /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu2/HoldMenu2Geometry.k: [Errno 2] No such file or directory: '/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu2/HoldMenu2Geometry.k']
+
+
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu2/HoldMenu2Geometry.k
+================================================================================
+
+## <<FILE_6>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu2/HoldMenu2Overlay.kt (ID: FILE_6)
 ================================================================================
 
 package com.romankozak.forwardappmobile.ui.holdmenu2
@@ -1747,9 +1828,9 @@ fun HoldMenu2Overlay(
 END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu2/HoldMenu2Overlay.kt
 ================================================================================
 
-## <<FILE_6>>
+## <<FILE_7>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu2/HoldMenu2Popup.kt (ID: FILE_6)
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu2/HoldMenu2Popup.kt (ID: FILE_7)
 ================================================================================
 
 package com.romankozak.forwardappmobile.ui.holdmenu2
@@ -1770,31 +1851,20 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlin.math.roundToInt
 
 @Composable
 fun HoldMenu2Popup(state: HoldMenu2State) {
+    val layout = state.layout ?: return
+
     Log.e("HOLDMENU2", "🎨 Popup rendering, items=${state.items.size}, hover=${state.hoverIndex}")
 
     val density = LocalDensity.current
-
-    val menuWidth = 220.dp
-    val itemH = 48.dp
-
-    val menuWidthPx = with(density) { menuWidth.toPx() }
-    val menuHeightPx = with(density) { (itemH * state.items.size).toPx() }
-
-    val desiredX = state.anchor.x - menuWidthPx / 2f
-    val desiredY = state.anchor.y - menuHeightPx - 16f
-
-    val offsetX = desiredX.roundToInt().coerceAtLeast(8)
-    val offsetY = desiredY.roundToInt().coerceAtLeast(8)
-
-    Log.e("HOLDMENU2", "📐 Popup at ($offsetX, $offsetY)")
+    val menuWidth = with(density) { layout.menuWidth.toDp() }
+    val itemHeight = with(density) { layout.itemHeight.toDp() }
 
     Box(
         modifier = Modifier
-            .offset { IntOffset(offsetX, offsetY) }
+            .offset { layout.menuTopLeft }
             .width(menuWidth)
             .background(
                 Color(0xFF2A2A2A),
@@ -1813,7 +1883,7 @@ fun HoldMenu2Popup(state: HoldMenu2State) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(itemH)
+                        .height(itemHeight)
                         .scale(scale)
                         .background(
                             if (isHover) Color(0xFF3A3A3A) else Color.Transparent,
@@ -1837,9 +1907,9 @@ fun HoldMenu2Popup(state: HoldMenu2State) {
 END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu2/HoldMenu2Popup.kt
 ================================================================================
 
-## <<FILE_7>>
+## <<FILE_8>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu2/HoldMenu2State.kt (ID: FILE_7)
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu2/HoldMenu2State.kt (ID: FILE_8)
 ================================================================================
 
 package com.romankozak.forwardappmobile.ui.holdmenu2
@@ -1853,9 +1923,8 @@ data class HoldMenu2State(
     val items: List<String> = emptyList(),
     val hoverIndex: Int = -1,
     val onItemSelected: ((Int) -> Unit)? = null,
+    val layout: HoldMenu2Geometry.MenuLayout? = null,
 )
-
-
 
 ================================================================================
 END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu2/HoldMenu2State.kt

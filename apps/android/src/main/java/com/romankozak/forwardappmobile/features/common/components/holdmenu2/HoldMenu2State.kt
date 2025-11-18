@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.holdmenu2
+package com.romankozak.forwardappmobile.features.common.components.holdmenu2
 
 import androidx.compose.ui.geometry.Offset
 

@@ -4,4 +4,5 @@ apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu2/HoldMenu
 apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu2/HoldMenu2Overlay.kt
 apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu2/HoldMenu2Button.kt
 apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu2/HoldMenu2Controller.kt
+apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu2/HoldMenu2Geometry.k
 apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu2/HoldMenu2State.kt
