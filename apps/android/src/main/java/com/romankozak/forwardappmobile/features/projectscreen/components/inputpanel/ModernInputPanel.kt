@@ -1360,19 +1360,13 @@ fun MagicModeSwitcher(
         }
     }
 }
-
-
-
 @Composable
 fun MinimalInputPanel(
     inputMode: InputMode,
     onInputModeSelected: (InputMode) -> Unit,
-    holdMenuController: HoldMenu2Controller,
-    onHoldMenuSelect: (Int) -> Unit,
+    onButtonAnchorChanged: (Offset) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var anchor = Offset.Zero
-
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -1387,31 +1381,11 @@ fun MinimalInputPanel(
                 .onGloballyPositioned { coords ->
                     val pos = coords.positionInWindow()
                     val size = coords.size
-                    anchor = Offset(
+                    val anchor = Offset(
                         pos.x + size.width / 2f,
                         pos.y + size.height / 2f
                     )
-                }
-                .pointerInput(Unit) {
-                    coroutineScope {
-                        awaitEachGesture {
-                            val down = awaitFirstDown()
-                            val touch = down.position
-
-                            val job = launch {
-                                delay(400)
-                                holdMenuController.open(
-                                    anchor = anchor,
-                                    touch = touch,
-                                    items = listOf("Backlog", "Advanced", "Inbox", "Attachments"),
-                                    onSelect = onHoldMenuSelect
-                                )
-                            }
-
-                            val up = waitForUpOrCancellation()
-                            job.cancel()
-                        }
-                    }
+                    onButtonAnchorChanged(anchor)
                 },
             contentAlignment = Alignment.Center
         ) {
@@ -1423,5 +1397,3 @@ fun MinimalInputPanel(
         }
     }
 }
-
-

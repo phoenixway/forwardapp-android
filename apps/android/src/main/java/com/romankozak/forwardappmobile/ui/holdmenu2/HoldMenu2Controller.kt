@@ -1,21 +1,13 @@
 package com.romankozak.forwardappmobile.ui.holdmenu2
 
+import android.util.Log
 import androidx.compose.runtime.*
 import androidx.compose.ui.geometry.Offset
 
 @Stable
-class HoldMenu2Controller internal constructor(
-    initial: HoldMenu2State,
-    private val onStateChange: (HoldMenu2State) -> Unit
-) {
-    var state: HoldMenu2State = initial
+class HoldMenu2Controller {
+    var state by mutableStateOf(HoldMenu2State())
         private set
-
-    private fun update(block: (HoldMenu2State) -> HoldMenu2State) {
-        val new = block(state)
-        state = new
-        onStateChange(new)
-    }
 
     fun open(
         anchor: Offset,
@@ -23,29 +15,31 @@ class HoldMenu2Controller internal constructor(
         items: List<String>,
         onSelect: (Int) -> Unit
     ) {
-        update {
-            it.copy(
-                isOpen = true,
-                anchor = anchor,
-                touch = touch,
-                items = items,
-                onItemSelected = onSelect
-            )
-        }
+        Log.e("HOLDMENU2", "📝 Controller.open() called, items=$items")
+        state = state.copy(
+            isOpen = true,
+            anchor = anchor,
+            touch = touch,
+            items = items,
+            onItemSelected = onSelect,
+            hoverIndex = -1
+        )
+        Log.e("HOLDMENU2", "📝 State updated: isOpen=${state.isOpen}, items=${state.items.size}")
     }
 
     fun setHover(index: Int) {
-        update { it.copy(hoverIndex = index) }
+        if (state.hoverIndex != index) {
+            state = state.copy(hoverIndex = index)
+        }
     }
 
     fun close() {
-        update { it.copy(isOpen = false, hoverIndex = -1) }
+        Log.e("HOLDMENU2", "📝 Controller.close() called")
+        state = state.copy(isOpen = false, hoverIndex = -1)
     }
 }
 
 @Composable
 fun rememberHoldMenu2(): HoldMenu2Controller {
-    val state = remember { mutableStateOf(HoldMenu2State()) }
-    return remember { HoldMenu2Controller(state.value) { state.value = it } }
+    return remember { HoldMenu2Controller() }
 }
-
