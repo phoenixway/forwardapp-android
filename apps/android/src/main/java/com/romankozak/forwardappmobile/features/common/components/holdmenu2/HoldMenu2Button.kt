@@ -13,25 +13,33 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import kotlin.compareTo
 import androidx.compose.ui.unit.dp
+
 
 /**
  * Кнопка з long-press меню та drag-to-select функціональністю
  *
- * @param items Список текстових пунктів меню
+ * @param items Список пунктів меню з іконками
  * @param onSelect Callback при виборі пункту (передається індекс)
  * @param modifier Modifier для кнопки
  * @param controller Опціональний контролер (створюється автоматично якщо не передано)
  * @param longPressDuration Тривалість утримання для відкриття меню (мс)
+ * @param onTap Callback для одинарного тапу (опціонально)
+ * @param iconPosition Позиція іконки (START/END)
+ * @param menuAlignment Вирівнювання контенту в меню
  * @param content Вміст кнопки
  */
 @Composable
 fun HoldMenu2Button(
-    items: List<String>,
+    items: List<HoldMenuItem>,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
     controller: HoldMenu2Controller = rememberHoldMenu2(),
     longPressDuration: Long = 400,
+    onTap: (() -> Unit)? = null,
+    iconPosition: IconPosition = IconPosition.START,
+    menuAlignment: MenuAlignment = MenuAlignment.START,
     content: @Composable () -> Unit
 ) {
     val density = LocalDensity.current
@@ -56,7 +64,7 @@ fun HoldMenu2Button(
                     pos.y + size.height / 2f
                 )
             }
-            .pointerInput(items, onSelect) {
+            .pointerInput(items, onSelect, onTap) {
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
 
@@ -88,7 +96,9 @@ fun HoldMenu2Button(
                             anchor = globalAnchor,
                             touch = globalTouch,
                             items = items,
-                            onSelect = onSelect
+                            onSelect = onSelect,
+                            iconPosition = iconPosition,
+                            menuAlignment = menuAlignment,
                         )
 
                         // Обробляємо drag
@@ -115,6 +125,31 @@ fun HoldMenu2Button(
                                     onSelect(hover)
                                 }
                                 controller.close()
+                                break
+                            }
+
+                            change.consume()
+                        }
+                    } else {
+                        // Не long press - перевіряємо чи це простий тап
+                        var wasDrag = false
+                        val initialPos = down.position
+
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Main)
+                            val change = event.changes.firstOrNull() ?: break
+
+                            // Якщо палець рухався більше ніж на 10px - це не тап
+                            if ((change.position - initialPos).getDistance() > 10f) {
+                                wasDrag = true
+                            }
+
+                            if (!change.pressed) {
+                                if (!wasDrag) {
+                                    // Це був простий тап
+                                    Log.e("HOLDMENU2", "👆 Single tap")
+                                    onTap?.invoke()
+                                }
                                 break
                             }
 

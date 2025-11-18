@@ -58,7 +58,13 @@ install: build-release
 		adb $(DEVICE_FLAG) install -r apps/android/build/outputs/apk/release/app-arm64-v8a-release.apk; \
 	else \
 		echo "ARM64 APK не знайдено. Шукаю інший варіант..."; \
-		find apps/android/build/outputs/apk/release -type f -name "*-release.apk" -print0 | xargs -0 -I {} adb $(DEVICE_FLAG) install -r {}; \
+		find apps/android/build/outputs/apk/release -type f -name "*-release.apk" | while read apk; do \
+			echo "Встановлюю $$apk..."; \
+			if adb $(DEVICE_FLAG) install -r "$$apk"; then \
+				echo "✅  Встановлено успішно."; \
+				break; \
+			fi; \
+		done; \
 	fi
 	@echo "✅  Release APK встановлено."
 
@@ -120,7 +126,13 @@ install-debug: debug
 		adb $(DEVICE_FLAG) install -r apps/android/build/outputs/apk/debug/app-arm64-v8a-debug.apk; \
 	else \
 		echo "ARM64 APK не знайдено. Шукаю інший варіант..."; \
-		find apps/android/build/outputs/apk/debug -type f -name "*-debug.apk" -print0 | xargs -0 -I {} adb $(DEVICE_FLAG) install -r {}; \
+		find apps/android/build/outputs/apk/debug -type f -name "*-debug.apk" | while read apk; do \
+			echo "Встановлюю $$apk..."; \
+			if adb $(DEVICE_FLAG) install -r "$$apk"; then \
+				echo "✅  Встановлено успішно."; \
+				break; \
+			fi; \
+		done; \
 	fi
 	@echo "✅  Debug APK встановлено."
 

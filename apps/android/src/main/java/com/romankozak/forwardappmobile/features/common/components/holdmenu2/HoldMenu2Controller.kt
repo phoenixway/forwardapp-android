@@ -23,10 +23,12 @@ class HoldMenu2Controller {
     fun open(
         anchor: Offset,
         touch: Offset,
-        items: List<String>,
-        onSelect: (Int) -> Unit
+        items: List<HoldMenuItem>,
+        onSelect: (Int) -> Unit,
+        iconPosition: IconPosition = IconPosition.START,
+        menuAlignment: MenuAlignment = MenuAlignment.START,
     ) {
-        Log.e("HOLDMENU2", "📝 Controller.open() called, items=$items")
+        Log.e("HOLDMENU2", "📝 Controller.open() called, items=${items.size}")
 
         val currentDensity = density
         if (currentDensity == null || screenWidth == 0f || screenHeight == 0f) {
@@ -58,6 +60,8 @@ class HoldMenu2Controller {
             onItemSelected = onSelect,
             hoverIndex = initialHover,
             layout = layout,
+            iconPosition = iconPosition,
+            menuAlignment = menuAlignment,
         )
 
         Log.e("HOLDMENU2", "📝 State updated: isOpen=${state.isOpen}, items=${state.items.size}, hover=$initialHover")

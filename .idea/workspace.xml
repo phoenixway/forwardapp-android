@@ -1,15 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="AndroidLayouts">
-    <shared>
-      <config />
-    </shared>
-  </component>
   <component name="AutoImportSettings">
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="09c4d5d7-eda6-4d44-a38e-92690dfcb42b" name="Changes" comment="" />
+    <list default="true" id="3fa939dc-cc1b-4e19-b3e8-b8338c479b17" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2Models.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/deploymentTargetSelector.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/deploymentTargetSelector.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Makefile" beforeDir="false" afterPath="$PROJECT_DIR$/Makefile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2Button.kt" beforeDir="false" afterPath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2Button.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2Controller.kt" beforeDir="false" afterPath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2Controller.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2Overlay.kt" beforeDir="false" afterPath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2Overlay.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2Popup.kt" beforeDir="false" afterPath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2Popup.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2State.kt" beforeDir="false" afterPath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2State.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/ProjectScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/ProjectScreen.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/components/inputpanel/ModernInputPanel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/components/inputpanel/ModernInputPanel.kt" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -24,139 +31,34 @@
       <ProjectState />
     </projectState>
   </component>
-  <component name="ExternalProjectsManager">
-    <system id="GRADLE">
-      <state>
-        <projects_view>
-          <tree_state>
-            <expand>
-              <path>
-                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
-                <item name="ForwardAppMobile" type="f1a62948:ProjectNode" />
-              </path>
-            </expand>
-            <select />
-          </tree_state>
-        </projects_view>
-      </state>
-    </system>
-  </component>
-  <component name="FileTemplateManagerImpl">
-    <option name="RECENT_TEMPLATES">
-      <list>
-        <option value="Kotlin Class" />
-        <option value="Kotlin File" />
-      </list>
-    </option>
-  </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="ProjectColorInfo">{
-  &quot;associatedIndex&quot;: 3
-}</component>
-  <component name="ProjectId" id="31EZGPYWBJr5EsAVMWsqOfKISMM" />
-  <component name="ProjectLevelVcsManager">
-    <ConfirmationsSetting value="2" id="Add" />
-  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "customColor": "",
+  "associatedIndex": 6
+}]]></component>
+  <component name="ProjectId" id="35eGQnVR0yfhxEnQcbwIosoHg8i" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-<<<<<<< HEAD
-<<<<<<< HEAD
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
-    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "Android App.app.executor": "Run",
-    "PROJECT_TRUSTED_KEY": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
     "RunOnceActivity.cidr.known.project.marker": "true",
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.readMode.enableVisualFormatting": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
-    "com.android.tools.idea.streaming.zoom.toolbar.visible": "false",
-    "com.google.services.firebase.aqiPopupShown": "true",
-    "git-widget-placeholder": "main",
-    "last_opened_file_path": "/home/romankozak/Documents",
-    "project.structure.last.edited": "Modules",
-    "project.structure.proportion": "0.17",
-    "project.structure.side.proportion": "0.2",
-    "settings.editor.selected.configurable": "preferences.pluginManager"
-=======
-=======
->>>>>>> feature/inbox
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;Android App.app.executor&quot;: &quot;Run&quot;,
-    &quot;PROJECT_TRUSTED_KEY&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
-    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
-    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;com.android.tools.idea.streaming.zoom.toolbar.visible&quot;: &quot;false&quot;,
-    &quot;com.google.services.firebase.aqiPopupShown&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;dev&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/romankozak/Documents&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.17&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;
-<<<<<<< HEAD
->>>>>>> dev
-=======
-=======
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "Android App.app.executor": "Run",
-    "PROJECT_TRUSTED_KEY": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.cidr.known.project.marker": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.readMode.enableVisualFormatting": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "cf.first.check.clang-format": "false",
-    "cidr.known.project.marker": "true",
-    "com.android.tools.idea.streaming.zoom.toolbar.visible": "false",
-    "com.google.services.firebase.aqiPopupShown": "true",
-    "git-widget-placeholder": "main",
-    "last_opened_file_path": "/home/romankozak/Documents",
-    "project.structure.last.edited": "Modules",
-    "project.structure.proportion": "0.17",
-    "project.structure.side.proportion": "0.2",
-    "settings.editor.selected.configurable": "preferences.pluginManager"
->>>>>>> 82e764d6bdb315b1ca8ce19867aa865ab4901e40
->>>>>>> feature/inbox
-  },
-  "keyToStringList": {
-    "com.android.tools.idea.sqlite.queryhistory": [
-      "SELECT * \nFROM goal_lists\nWHERE id = '62267f50-8e99-4396-8643-de20c6c73e3f';",
-      "SELECT * \nFROM goal_lists\nWHERE id = 't9N43rwhrXuXGauHM2Gyp';",
-      "SELECT * \nFROM goal_lists\nWHERE id = '68cda1d7-9590-43df-bc38-ff76d373ff41';",
-      "SELECT * \nFROM goal_lists\nWHERE id = 'd9d45d81-7bc0-4549-a3ba-9fb1e83bb3ae';",
-      "SELECT * \nFROM goal_lists\nWHERE id = '3a3c94aa-bdf9-4612-95fc-888abd0015dd';"
-    ]
+    "git-widget-placeholder": "refactoring",
+    "settings.editor.selected.configurable": "com.maddyhome.idea.vim.ui.VimEmulationConfigurable"
   }
 }]]></component>
-  <component name="RecentsManager">
-    <key name="K2MoveDeclarationsDialog.RECENT_PACKAGE_KEY">
-      <recent name="com.romankozak.forwardappmobile.ui.screens.backlog.components.goals" />
-      <recent name="com.romankozak.forwardappmobile.ui.screens.backlog.components.attachments" />
-      <recent name="com.romankozak.forwardappmobile.ui.screens.backlog.components.topbar" />
-      <recent name="com.romankozak.forwardappmobile.ui.screens.backlog.components.dnd" />
-      <recent name="com.romankozak.forwardappmobile.ui.screens.backlog.dialogs" />
-    </key>
-  </component>
-  <component name="RunManager">
-    <configuration name="app" type="AndroidRunConfigurationType" factoryName="Android App" activateToolWindowBeforeRun="false">
-      <module name="ForwardAppMobile.app" />
+  <component name="RunManager" selected="Android App.apps.android">
+    <configuration name="apps.android" type="AndroidRunConfigurationType" factoryName="Android App" activateToolWindowBeforeRun="false">
+      <module name="ForwardAppMobile.apps.android" />
       <option name="ANDROID_RUN_CONFIGURATION_SCHEMA_VERSION" value="1" />
       <option name="DEPLOY" value="true" />
       <option name="DEPLOY_APK_FROM_BUNDLE" value="false" />
@@ -230,38 +132,12 @@
   </component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
-      <changelist id="09c4d5d7-eda6-4d44-a38e-92690dfcb42b" name="Changes" comment="" />
-      <created>1755091095903</created>
+      <changelist id="3fa939dc-cc1b-4e19-b3e8-b8338c479b17" name="Changes" comment="" />
+      <created>1763463110364</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
-      <updated>1755091095903</updated>
+      <updated>1763463110364</updated>
     </task>
     <servers />
-  </component>
-  <component name="VcsManagerConfiguration">
-    <ignored-roots>
-      <path value="$PROJECT_DIR$/libs/Reorderable" />
-    </ignored-roots>
-  </component>
-  <component name="play_dynamic_filters_status">
-    <option name="appIdToCheckInfo">
-      <map>
-        <entry key="com.romankozak.forwardappmobile">
-          <value>
-            <CheckInfo lastCheckTimestamp="1756710923467" />
-          </value>
-        </entry>
-        <entry key="com.romankozak.forwardappmobile.debug">
-          <value>
-            <CheckInfo lastCheckTimestamp="1756710923468" />
-          </value>
-        </entry>
-        <entry key="com.romankozak.forwardappmobile.debug.test">
-          <value>
-            <CheckInfo lastCheckTimestamp="1756710923468" />
-          </value>
-        </entry>
-      </map>
-    </option>
   </component>
 </project>

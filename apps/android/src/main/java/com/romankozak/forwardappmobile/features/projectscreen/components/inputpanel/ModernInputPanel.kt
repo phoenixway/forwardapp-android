@@ -65,6 +65,9 @@ import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Button
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenuItem
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.IconPosition
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.MenuAlignment
 
 // TODO: Restore from theme
 object LocalInputPanelColors {
@@ -1351,49 +1354,12 @@ fun MagicModeSwitcher(
     }
 }
 @Composable
-fun MinimalInputPanel(
+fun MinimalInputPanelV3(
     inputMode: InputMode,
     onInputModeSelected: (InputMode) -> Unit,
-    onButtonAnchorChanged: (Offset) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(bottom = 32.dp)
-            .navigationBarsPadding(),
-        contentAlignment = Alignment.BottomCenter
-    ) {
-        Box(
-            modifier = Modifier
-                .size(64.dp)
-                .background(Color(0xFF222222), RoundedCornerShape(16.dp))
-                .onGloballyPositioned { coords ->
-                    val pos = coords.positionInWindow()
-                    val size = coords.size
-                    val anchor = Offset(
-                        pos.x + size.width / 2f,
-                        pos.y + size.height / 2f
-                    )
-                    onButtonAnchorChanged(anchor)
-                },
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                Icons.Default.MoreVert,
-                contentDescription = "menu",
-                tint = Color.White
-            )
-        }
-    }
-}
-
-@Composable
-fun MinimalInputPanelV2(
-    inputMode: InputMode,
-    onInputModeSelected: (InputMode) -> Unit,
-    menuItems: List<String>,
+    menuItems: List<HoldMenuItem>,
     onMenuItemSelected: (Int) -> Unit,
+    onTap: () -> Unit,
     holdMenuController: HoldMenu2Controller,
     modifier: Modifier = Modifier
 ) {
@@ -1407,7 +1373,10 @@ fun MinimalInputPanelV2(
         HoldMenu2Button(
             items = menuItems,
             onSelect = onMenuItemSelected,
+            onTap = onTap,
             controller = holdMenuController,
+            iconPosition = IconPosition.START,
+            menuAlignment = MenuAlignment.START,
             modifier = Modifier
                 .size(64.dp)
                 .background(Color(0xFF222222), RoundedCornerShape(16.dp))

@@ -1,6 +1,10 @@
 package com.romankozak.forwardappmobile.features.common.components.holdmenu2
 
 import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
@@ -14,15 +18,17 @@ fun HoldMenu2Overlay(
 ) {
     val state = controller.state
 
-    if (!state.isOpen || state.items.isEmpty()) {
-        return
-    }
-
-    Log.e("HOLDMENU2", "📍 Overlay: rendering popup")
-
-    Box(
-        modifier = modifier.background(Color.Black.copy(alpha = 0.4f))
+    AnimatedVisibility(
+        visible = state.isOpen && state.items.isNotEmpty(),
+        enter = fadeIn(tween(150)),
+        exit = fadeOut(tween(100)),
     ) {
-        HoldMenu2Popup(state)
+        Log.e("HOLDMENU2", "📍 Overlay: rendering popup")
+
+        Box(
+            modifier = modifier.background(Color.Black.copy(alpha = 0.4f))
+        ) {
+            HoldMenu2Popup(state)
+        }
     }
 }
