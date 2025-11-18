@@ -274,19 +274,14 @@ fun ProjectScreen(
                 )
             }
         }
-        if (holdMenuState.value.isOpen) {
-            HoldMenuOverlay(
-                state = holdMenuState.value,
-                onStateChange = { holdMenuState.value = it },
-                onDismiss = {
-                    holdMenuState.value = holdMenuState.value.copy(
-                        isOpen = false,
-                        selectedIndex = null,
-                    )
-                }
-            )
+        HoldMenuOverlay(
+            state = holdMenuState.value,
+            onChangeState = { holdMenuState.value = it }
+        )
 
-        }
+
+
+
 
 
 
@@ -397,6 +392,8 @@ import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.semantics
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.romankozak.forwardappmobile.features.projectscreen.ProjectScreenViewModel
 import com.romankozak.forwardappmobile.ui.holdmenu.HoldMenuItem
 import com.romankozak.forwardappmobile.ui.holdmenu.HoldMenuOverlay
 
@@ -557,24 +554,19 @@ private fun ViewModeToggle(
     }*/
 
     HoldMenuButton(
-        modifier = Modifier,
-        onLongPress = { anchor, pointerId ->
-            holdMenuState.value = HoldMenuState(
+        onLongPress = { anchor, touch ->
+            holdMenuState.value = holdMenuState.value.copy(
                 isOpen = true,
                 anchor = anchor,
-                pointerId = pointerId,
-                items = listOf(
-                    HoldMenuItem("Inbox") {  },
-                    HoldMenuItem("Advanced") {  },
-                    HoldMenuItem("Attachments") { }
-                )
-                ,
+                touch = touch,     // ← ТЕПЕР Є В STATE
                 selectedIndex = 0
             )
         }
     ) {
         Icon(Icons.Default.MoreVert, contentDescription = null)
     }
+
+
 
 }
 
@@ -1724,28 +1716,30 @@ fun MinimalInputPanel(
         }*/
 
         // ПРАВА КНОПКА — свайпом міняє режим
-        MagicModeSwitcher(
+        /*MagicModeSwitcher(
             modes = modes,
             currentMode = inputMode,
-            onTap = { /* optional: показати діалог вибору режимів */ },
+            onTap = { },
             onModeSelected = onInputModeSelected,
             modifier = Modifier.size(48.dp)
-        )
+        )*/
     }
 
     HoldMenuButton(
-        modifier = Modifier,
-        onLongPress = { anchor, pointerId ->
-            holdMenuState.value = HoldMenuState(
+        onLongPress = { anchor, touch ->
+            holdMenuState.value = holdMenuState.value.copy(
                 isOpen = true,
                 anchor = anchor,
-                pointerId = pointerId,
-                items = listOf(
-                    HoldMenuItem("Inbox") {  },
-                    HoldMenuItem("Advanced") {  },
-                    HoldMenuItem("Attachments") {  }
-                ),
-                selectedIndex = 0
+                touch = touch,
+                items = listOf("Backlog", "Advanced", "Inbox", "Attachments"),
+                onItemSelected = { index ->
+                    /*when (index) {
+                        0 -> viewModel.onEvent(ProjectScreenViewModel.Event.SwitchViewMode(ProjectViewMode.Backlog))
+                        1 -> viewModel.onEvent(ProjectScreenViewModel.Event.SwitchViewMode(ProjectViewMode.Advanced))
+                        2 -> viewModel.onEvent(ProjectScreenViewModel.Event.SwitchViewMode(ProjectViewMode.Inbox))
+                        3 -> {}viewModel.onEvent(ProjectScreenViewModel.Event.SwitchViewMode(ProjectViewMode.Attachments)
+                    }*/
+                }
             )
         }
     ) {
@@ -1754,6 +1748,10 @@ fun MinimalInputPanel(
 
 
 }
+
+
+
+
 
 
 ================================================================================
@@ -1806,8 +1804,6 @@ import androidx.compose.ui.input.pointer.*
 
 
 
-private const val TAG = "HOLDMENU"
-
 // ---------------------- STATE --------------------------
 
 // DSL-builder для кнопки
@@ -1851,88 +1847,55 @@ package com.romankozak.forwardappmobile.ui.holdmenu
 import android.util.Log
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.*
-import androidx.compose.ui.*
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.*
+import androidx.compose.ui.input.pointer.PointerId
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
-import androidx.compose.ui.unit.*
-import kotlinx.coroutines.Job
+import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 
 @Composable
 fun HoldMenuButton(
-    modifier: Modifier = Modifier,
-    onLongPress: (anchor: Offset, pointerId: PointerId) -> Unit,
+    modifier: Modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
+    holdDurationMs: Long = 350L,
+    onLongPress: (anchor: Offset, touch: Offset) -> Unit,
     content: @Composable () -> Unit
 ) {
     var center by remember { mutableStateOf(Offset.Zero) }
-    val scope = rememberCoroutineScope()
 
     Box(
         modifier = modifier
-            .onGloballyPositioned { layout ->
-                val pos = layout.positionInWindow()
-                val size = layout.size
-                center = Offset(
-                    pos.x + size.width / 2f,
-                    pos.y + size.height / 2f
-                )
-                Log.e("HOLDMENU", "📍 BUTTON center=$center")
+            .onGloballyPositioned { coords ->
+                val pos = coords.positionInWindow()
+                val size = coords.size
+                center = Offset(pos.x + size.width / 2f, pos.y + size.height / 2f)
             }
             .pointerInput(Unit) {
+                coroutineScope {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        val touchPos = down.position
 
-                awaitEachGesture {
-
-                    val down = awaitFirstDown(requireUnconsumed = false)
-                    val pid = down.id
-
-                    var longPressFired = false
-                    var job: Job? = null
-
-                    // Запускаємо long-press у звичайному CoroutineScope
-                    job = scope.launch {
-                        delay(350)
-                        longPressFired = true
-                        Log.e("HOLDMENU", "⏱ Long press → OPEN")
-                        onLongPress(center, pid)
-                    }
-
-                    // обробка pointer рухів
-                    while (true) {
-                        val event = awaitPointerEvent()
-
-                        val change = event.changes.firstOrNull { it.id == pid }
-                            ?: event.changes.first()
-
-                        // якщо користувач рухається ДО long-press → скасувати
-                        if (!longPressFired && change.positionChange() != Offset.Zero) {
-                            job?.cancel()
-                            break
+                        var fired = false
+                        val job = launch {
+                            delay(holdDurationMs)
+                            if (!fired) {
+                                fired = true
+                                Log.e("HOLDMENU", "🔥 LONG PRESS → center=$center")
+                                onLongPress(center, touchPos)
+                            }
                         }
 
-                        // якщо відпустив ДО long-press → скасувати
-                        if (!longPressFired && change.changedToUpIgnoreConsumed()) {
-                            job?.cancel()
-                            break
-                        }
-
-                        // якщо longPress спрацював → виходимо з gesture
-                        if (longPressFired) {
-                            change.consume()
-                            break
-                        }
-
-                        change.consume()
+                        val up = waitForUpOrCancellation()
+                        job.cancel()
                     }
                 }
             }
@@ -1955,135 +1918,108 @@ package com.romankozak.forwardappmobile.ui.holdmenu
 
 import android.util.Log
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import androidx.compose.ui.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.*
+import androidx.compose.ui.input.pointer.changedToUp
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.*
-import kotlinx.coroutines.launch
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.times
+import androidx.compose.ui.window.Popup
 import kotlin.math.roundToInt
-
-val TAG = "HOLDMENU"
 
 @Composable
 fun HoldMenuOverlay(
     state: HoldMenuState,
-    onStateChange: (HoldMenuState) -> Unit,
-    onDismiss: () -> Unit,
-    itemHeight: Dp = 40.dp,
+    onChangeState: (HoldMenuState) -> Unit
 ) {
-    if (!state.isOpen || state.items.isEmpty()) return
+    Log.e("HOLDMENU", "🔍 HoldMenuOverlay recomposed: isOpen=${state.isOpen}")
 
-    val density = LocalDensity.current
-    val itemHeightPx = with(density) { itemHeight.toPx() }
-
-    // Позиція меню на екрані (мінімальний варіант без жорсткого clamping до меж)
-    val menuOffset = remember(state.anchor, state.items.size, itemHeightPx) {
-        val x = state.anchor.x - with(density) { 120.dp.toPx() }
-        val y = state.anchor.y - (state.items.size * itemHeightPx) / 2f
-        IntOffset(x.roundToInt(), y.roundToInt())
+    if (!state.isOpen) {
+        Log.e("HOLDMENU", "❌ isOpen=false → NOTHING TO DRAW")
+        return
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Transparent) // overlay "шар"
-            .pointerInput(state.isOpen, state.items, state.anchor) {
-                awaitEachGesture {
-                    // Чекаємо перший дотик у межах overlay (тобто вже по меню)
-                    val down = awaitFirstDown(requireUnconsumed = false)
-                    var currentIndex: Int? = null
+    Log.e("HOLDMENU", "🎨 Drawing Menu")
+    MenuPopup(state)
+}
 
-                    fun updateSelection(pos: Offset) {
-                        val relY = pos.y - menuOffset.y
-                        val index = (relY / itemHeightPx).toInt()
-                        if (index in state.items.indices && index != currentIndex) {
-                            currentIndex = index
-                            Log.e(TAG, "🔄 Highlight index=$index")
-                            onStateChange(state.copy(selectedIndex = index))
-                        }
-                    }
+@Composable
+private fun MenuPopup(state: HoldMenuState) {
+    val itemH = 44.dp
+    val menuW = 220.dp
+    val density = LocalDensity.current
 
-                    // Одразу оновлюємо виділення під першим дотиком
-                    updateSelection(down.position)
-
-                    while (true) {
-                        val event = awaitPointerEvent()
-                        val change = event.changes.firstOrNull() ?: continue
-
-                        if (change.changedToUpIgnoreConsumed()) {
-                            // Відпускання пальця → виконуємо вибраний пункт
-                            val idx = currentIndex
-                            if (idx != null && idx in state.items.indices) {
-                                Log.e(TAG, "✔ SELECT: ${state.items[idx].label}")
-                                state.items[idx].onClick()
-                            }
-                            onDismiss()
-                            break
-                        } else {
-                            if (change.pressed) {
-                                updateSelection(change.position)
-                            } else {
-                                // Якийсь інший стан (gesture скасували) → просто закриваємо меню
-                                onDismiss()
-                                break
-                            }
-                        }
-                    }
-                }
-            },
-        contentAlignment = Alignment.TopStart,
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxSize()
     ) {
+        val screenW = maxWidth
+        val screenH = maxHeight
+
+        val menuWidthPx = with(density) { menuW.toPx() }
+        val menuHeightPx = with(density) { itemH.toPx() * state.items.size }
+
+        val desiredX = state.anchor.x - menuWidthPx / 2f
+        val desiredY = state.anchor.y - menuHeightPx - 8f
+
+        val maxWpx = with(density) { screenW.toPx() }
+        val maxHpx = with(density) { screenH.toPx() }
+
+        val finalX = desiredX.coerceIn(0f, maxWpx - menuWidthPx)
+        val finalY = desiredY.coerceIn(0f, maxHpx - menuHeightPx)
+
+        Log.e("HOLDMENU", "📍 MenuPopup FINAL offset = (${finalX.toInt()}, ${finalY.toInt()})")
+
         Column(
             modifier = Modifier
-                .offset { menuOffset }
-                .background(
-                    color = MaterialTheme.colorScheme.surface,
-                    shape = MaterialTheme.shapes.medium,
-                )
+                .offset { IntOffset(finalX.toInt(), finalY.toInt()) }
+                .width(menuW)
+                .background(Color(0xFF222222), RoundedCornerShape(12.dp))
         ) {
-            state.items.forEachIndexed { index, item ->
-                val selected = state.selectedIndex == index
-
-                Box(
+            state.items.forEachIndexed { i, label ->
+                Text(
+                    text = label,
+                    color = Color.White,
                     modifier = Modifier
+                        .height(itemH)
                         .fillMaxWidth()
-                        .height(itemHeight)
-                        .background(
-                            if (selected)
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                            else
-                                Color.Transparent
-                        )
-                        .padding(horizontal = 16.dp),
-                    contentAlignment = Alignment.CenterStart,
-                ) {
-                    Text(
-                        text = item.label,
-                        color = if (selected)
-                            MaterialTheme.colorScheme.primary
-                        else
-                            MaterialTheme.colorScheme.onSurface,
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
+                        .padding(horizontal = 16.dp)
+                        .clickable {
+                            state.onItemSelected?.invoke(i)
+                        }
+                )
             }
         }
     }
 }
+
+
+
+private fun resolveHoverIndex(
+    anchor: Offset,
+    touch: Offset,
+    count: Int
+): Int {
+    val top = anchor.y - (count * 44f) / 2f
+    val relativeY = touch.y - top
+    val index = (relativeY / 44f).toInt()
+
+    return if (index in 0 until count) index else -1
+}
+
 
 ================================================================================
 END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu/HoldMenuOverlay.kt
@@ -2108,11 +2044,18 @@ data class HoldMenuItem(
 
 data class HoldMenuState(
     val isOpen: Boolean = false,
-    val anchor: Offset = Offset.Zero,
-    val selectedIndex: Int? = null,
-    val items: List<HoldMenuItem> = emptyList(),
-    val pointerId: PointerId? = null
+    val anchor: Offset = Offset.Zero,        // де намалювати меню
+    val touch: Offset = Offset.Zero,         // де був торк пальця (може відрізнятися)
+    val selectedIndex: Int = 0,
+    val items: List<String> = emptyList(),
+    val onItemSelected: ((Int) -> Unit)? = null
 )
+
+
+
+
+
+
 
 
 ================================================================================

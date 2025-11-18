@@ -115,9 +115,15 @@ tasks.withType<Test> {
 }
 
 dependencies {
+
+
     implementation(project(":packages:shared"))
     implementation(libs.androidx.animation)
     ksp(libs.androidxRoomCompiler)
+
+    implementation(libs.compose.foundation.core)
+
+
 
     // ✅ SQLDelight + FTS5 через Requery
     // implementation("app.cash.sqldelight:android-driver:2.0.2")

@@ -1,4 +1,5 @@
 [versions]
+
 # --- Core Toolchain
 kotlin = "2.1.21"
 jetbrainsKotlinJvm = "2.1.21"
@@ -60,6 +61,8 @@ animation = "1.9.4"
 
 
 [libraries]
+compose-foundation-core = { group = "androidx.compose.foundation", name = "foundation" }
+
 # --- KotlinX
 kotlinxSerializationJson = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 kotlinxDatetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "kotlinxDatetime" }

@@ -3,88 +3,59 @@ package com.romankozak.forwardappmobile.ui.holdmenu
 import android.util.Log
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.*
-import androidx.compose.ui.*
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.*
+import androidx.compose.ui.input.pointer.PointerId
+import androidx.compose.ui.input.pointer.changedToUp
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
-import androidx.compose.ui.unit.*
-import kotlinx.coroutines.Job
+import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 
 @Composable
 fun HoldMenuButton(
     modifier: Modifier = Modifier,
-    onLongPress: (anchor: Offset, pointerId: PointerId) -> Unit,
+    holdDurationMs: Long = 350L,
+    onLongPress: (anchor: Offset, touch: Offset) -> Unit,
     content: @Composable () -> Unit
 ) {
     var center by remember { mutableStateOf(Offset.Zero) }
-    val scope = rememberCoroutineScope()
 
     Box(
         modifier = modifier
-            .onGloballyPositioned { layout ->
-                val pos = layout.positionInWindow()
-                val size = layout.size
+            .onGloballyPositioned { coords ->
+                val pos = coords.positionInWindow()
+                val size = coords.size
                 center = Offset(
                     pos.x + size.width / 2f,
                     pos.y + size.height / 2f
                 )
-                Log.e("HOLDMENU", "📍 BUTTON center=$center")
             }
-            .pointerInput(Unit) {
-
+            .pointerInput(holdDurationMs) {
                 awaitEachGesture {
-
+                    // 1. Чекаємо перший дотик
                     val down = awaitFirstDown(requireUnconsumed = false)
-                    val pid = down.id
+                    val start = down.position
 
-                    var longPressFired = false
-                    var job: Job? = null
-
-                    // Запускаємо long-press у звичайному CoroutineScope
-                    job = scope.launch {
-                        delay(350)
-                        longPressFired = true
-                        Log.e("HOLDMENU", "⏱ Long press → OPEN")
-                        onLongPress(center, pid)
+                    // 2. Чекаємо або UP, або timeout (long press)
+                    val up = withTimeoutOrNull(holdDurationMs) {
+                        waitForUpOrCancellation()
                     }
 
-                    // обробка pointer рухів
-                    while (true) {
-                        val event = awaitPointerEvent()
-
-                        val change = event.changes.firstOrNull { it.id == pid }
-                            ?: event.changes.first()
-
-                        // якщо користувач рухається ДО long-press → скасувати
-                        if (!longPressFired && change.positionChange() != Offset.Zero) {
-                            job?.cancel()
-                            break
-                        }
-
-                        // якщо відпустив ДО long-press → скасувати
-                        if (!longPressFired && change.changedToUpIgnoreConsumed()) {
-                            job?.cancel()
-                            break
-                        }
-
-                        // якщо longPress спрацював → виходимо з gesture
-                        if (longPressFired) {
-                            change.consume()
-                            break
-                        }
-
-                        change.consume()
+                    if (up == null) {
+                        // ❗ НІХТО не відпустив палець за holdDurationMs → long press
+                        Log.e("HOLDMENU", "🔥 LONG PRESS → center=$center, touch=$start")
+                        onLongPress(center, start)
+                    } else {
+                        // Це був короткий тап — нічого не робимо
+                        Log.e("HOLDMENU", "⏳ Short tap → ignore")
                     }
                 }
             }

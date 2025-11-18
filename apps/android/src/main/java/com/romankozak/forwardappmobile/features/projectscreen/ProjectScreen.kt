@@ -257,19 +257,16 @@ fun ProjectScreen(
                 )
             }
         }
-        if (holdMenuState.value.isOpen) {
-            HoldMenuOverlay(
-                state = holdMenuState.value,
-                onStateChange = { holdMenuState.value = it },
-                onDismiss = {
-                    holdMenuState.value = holdMenuState.value.copy(
-                        isOpen = false,
-                        selectedIndex = null,
-                    )
-                }
-            )
+        HoldMenuOverlay(
+            state = holdMenuState.value,
+            onChangeState = { holdMenuState.value = it },
 
-        }
+        )
+
+
+
+
+
 
 
 

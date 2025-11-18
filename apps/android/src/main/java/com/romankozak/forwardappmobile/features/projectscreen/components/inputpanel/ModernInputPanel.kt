@@ -67,6 +67,8 @@ import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.semantics
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.romankozak.forwardappmobile.features.projectscreen.ProjectScreenViewModel
 import com.romankozak.forwardappmobile.ui.holdmenu.HoldMenuItem
 import com.romankozak.forwardappmobile.ui.holdmenu.HoldMenuOverlay
 
@@ -227,24 +229,19 @@ private fun ViewModeToggle(
     }*/
 
     HoldMenuButton(
-        modifier = Modifier,
-        onLongPress = { anchor, pointerId ->
-            holdMenuState.value = HoldMenuState(
+        onLongPress = { anchor, touch ->
+            holdMenuState.value = holdMenuState.value.copy(
                 isOpen = true,
                 anchor = anchor,
-                pointerId = pointerId,
-                items = listOf(
-                    HoldMenuItem("Inbox") {  },
-                    HoldMenuItem("Advanced") {  },
-                    HoldMenuItem("Attachments") { }
-                )
-                ,
+                touch = touch,     // ← ТЕПЕР Є В STATE
                 selectedIndex = 0
             )
         }
     ) {
         Icon(Icons.Default.MoreVert, contentDescription = null)
     }
+
+
 
 }
 
@@ -1394,28 +1391,26 @@ fun MinimalInputPanel(
         }*/
 
         // ПРАВА КНОПКА — свайпом міняє режим
-        MagicModeSwitcher(
+        /*MagicModeSwitcher(
             modes = modes,
             currentMode = inputMode,
-            onTap = { /* optional: показати діалог вибору режимів */ },
+            onTap = { },
             onModeSelected = onInputModeSelected,
             modifier = Modifier.size(48.dp)
-        )
+        )*/
     }
-
     HoldMenuButton(
-        modifier = Modifier,
-        onLongPress = { anchor, pointerId ->
-            holdMenuState.value = HoldMenuState(
+        onLongPress = { anchor, touch ->
+            holdMenuState.value = holdMenuState.value.copy(
                 isOpen = true,
                 anchor = anchor,
-                pointerId = pointerId,
+                touch = touch,
                 items = listOf(
-                    HoldMenuItem("Inbox") {  },
-                    HoldMenuItem("Advanced") {  },
-                    HoldMenuItem("Attachments") {  }
-                ),
-                selectedIndex = 0
+                    "Backlog",
+                    "Advanced",
+                    "Inbox",
+                    "Attachments"
+                )
             )
         }
     ) {
@@ -1423,4 +1418,9 @@ fun MinimalInputPanel(
     }
 
 
+
 }
+
+
+
+

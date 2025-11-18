@@ -13,7 +13,17 @@ data class HoldMenuItem(
 data class HoldMenuState(
     val isOpen: Boolean = false,
     val anchor: Offset = Offset.Zero,
-    val selectedIndex: Int? = null,
-    val items: List<HoldMenuItem> = emptyList(),
-    val pointerId: PointerId? = null
+    val touch: Offset = Offset.Zero,
+    val selectedIndex: Int = 0,
+    val hoverIndex: Int = -1,
+    val items: List<String> = emptyList(),
+    val onItemSelected: ((Int) -> Unit)? = null
 )
+
+
+
+
+
+
+
+
