@@ -24,54 +24,36 @@ fun HoldMenuOverlay(
     state: HoldMenuState,
     onChangeState: (HoldMenuState) -> Unit
 ) {
+    // ❌ Нема чого малювати
     if (!state.isOpen || state.items.isEmpty()) {
         Log.e("HOLDMENU", "❌ Nothing to draw, closed or empty")
         return
     }
 
+    val density = LocalDensity.current
+    val itemHeightDp = 44.dp
+    val itemHeightPx = with(density) { itemHeightDp.toPx() }
 
     Log.e("HOLDMENU", "📡 Overlay ACTIVE, anchor=${state.anchor}, items=${state.items.size}")
-
-    if (!state.isOpen) return
-
-    val density = LocalDensity.current
-    val itemHeightPx = with(density) { 44.dp.toPx() }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
+            // тач поза меню — закриває меню
             .pointerInput(Unit) {
-                // Calculate menu dimensions
-                val menuHeight = itemHeightPx * state.items.size
-                val menuTop = state.anchor.y - menuHeight - 8f
-
-                // Detect pointer events
+                if (!state.isOpen) return@pointerInput
                 awaitPointerEventScope {
-                    while (true) {
-//                        Log.e("HOLDMENU", "🖱 Hover = $hover")
-
-                        val event = awaitPointerEvent()
-                        val press = event.changes.firstOrNull { it.pressed } ?: break
-
-                        val relativeY = press.position.y - menuTop
-                        val hover = (relativeY / itemHeightPx)
-                            .toInt()
-                            .coerceIn(0, state.items.lastIndex)
-                        Log.e("HOLDMENU", "🖱 Hover = $hover")
-
-                        if (hover != state.hoverIndex) {
-                            onChangeState(state.copy(hoverIndex = hover))
-                        }
-
-                        if (press.changedToUp()) {
-                            state.onItemSelected?.invoke(hover)
-                            onChangeState(state.copy(isOpen = false, hoverIndex = -1))
-                            break
-                        }
-                    }
+                    val event = awaitPointerEvent()
+                    val anyPressed = event.changes.any { it.pressed }
+                    if (!anyPressed) onChangeState(state.copy(isOpen = false, hoverIndex = -1))
                 }
             }
     ) {
-        MenuPopup(state)
+
+        MenuPopup(
+            state = state,
+            itemHeightPx = itemHeightPx,
+            onChangeState = onChangeState
+        )
     }
 }

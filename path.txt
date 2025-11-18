@@ -4,3 +4,4 @@ apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu/HoldMenuB
 apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu/HoldMenuOverlay.kt
 apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu/HoldMenuState.kt
 apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/components/inputpanel/ModernInputPanel.kt
+apps/android/src/main/java/com/romankozak/forwardappmobile/ui/holdmenu/MenuPopup.kt
