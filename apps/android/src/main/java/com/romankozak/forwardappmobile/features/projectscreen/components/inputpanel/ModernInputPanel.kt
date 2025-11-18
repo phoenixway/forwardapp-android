@@ -9,9 +9,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -72,6 +74,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.romankozak.forwardappmobile.features.projectscreen.ProjectScreenViewModel
 import com.romankozak.forwardappmobile.ui.holdmenu.HoldMenuOverlay
+import com.romankozak.forwardappmobile.ui.holdmenu2.HoldMenu2Controller
 
 // TODO: Restore from theme
 object LocalInputPanelColors {
@@ -1364,11 +1367,12 @@ fun MagicModeSwitcher(
 fun MinimalInputPanel(
     inputMode: InputMode,
     onInputModeSelected: (InputMode) -> Unit,
-    holdMenuState: MutableState<HoldMenuState>,
+    holdMenuController: HoldMenu2Controller,
     onHoldMenuSelect: (Int) -> Unit,
-    onButtonCenterChanged: (Offset) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var anchor = Offset.Zero
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -1383,11 +1387,31 @@ fun MinimalInputPanel(
                 .onGloballyPositioned { coords ->
                     val pos = coords.positionInWindow()
                     val size = coords.size
-                    val center = Offset(
-                        x = pos.x + size.width / 2f,
-                        y = pos.y + size.height / 2f
+                    anchor = Offset(
+                        pos.x + size.width / 2f,
+                        pos.y + size.height / 2f
                     )
-                    onButtonCenterChanged(center)
+                }
+                .pointerInput(Unit) {
+                    coroutineScope {
+                        awaitEachGesture {
+                            val down = awaitFirstDown()
+                            val touch = down.position
+
+                            val job = launch {
+                                delay(400)
+                                holdMenuController.open(
+                                    anchor = anchor,
+                                    touch = touch,
+                                    items = listOf("Backlog", "Advanced", "Inbox", "Attachments"),
+                                    onSelect = onHoldMenuSelect
+                                )
+                            }
+
+                            val up = waitForUpOrCancellation()
+                            job.cancel()
+                        }
+                    }
                 },
             contentAlignment = Alignment.Center
         ) {
@@ -1399,6 +1423,5 @@ fun MinimalInputPanel(
         }
     }
 }
-
 
 
