@@ -240,17 +240,43 @@ constructor(
             val orphanedCrossRefsCount = backupData.projectAttachmentCrossRefs.size - validCrossRefs.size
             Log.d(IMPORT_TAG, "Found ${validCrossRefs.size} valid attachment links. $orphanedCrossRefsCount orphaned links will be skipped.")
 
+            val validDocuments = backupData.documents.filter { it.projectId in existingProjectIds }
+            val orphanedDocumentsCount = backupData.documents.size - validDocuments.size
+            if (orphanedDocumentsCount > 0) {
+                Log.d(IMPORT_TAG, "Found ${validDocuments.size} valid documents. $orphanedDocumentsCount orphaned documents will be skipped.")
+            }
+
+            val validDocumentIds = validDocuments.map { it.id }.toSet()
+            val validDocumentItems = backupData.documentItems.filter { it.listId in validDocumentIds }
+            val orphanedDocumentItemsCount = backupData.documentItems.size - validDocumentItems.size
+            if (orphanedDocumentItemsCount > 0) {
+                Log.d(IMPORT_TAG, "Found ${validDocumentItems.size} valid document items. $orphanedDocumentItemsCount orphaned items will be skipped.")
+            }
+
+            val validChecklists = backupData.checklists.filter { it.projectId in existingProjectIds }
+            val orphanedChecklistsCount = backupData.checklists.size - validChecklists.size
+            if (orphanedChecklistsCount > 0) {
+                Log.d(IMPORT_TAG, "Found ${validChecklists.size} valid checklists. $orphanedChecklistsCount orphaned checklists will be skipped.")
+            }
+
+            val validChecklistIds = validChecklists.map { it.id }.toSet()
+            val validChecklistItems = backupData.checklistItems.filter { it.checklistId in validChecklistIds }
+            val orphanedChecklistItemsCount = backupData.checklistItems.size - validChecklistItems.size
+            if (orphanedChecklistItemsCount > 0) {
+                Log.d(IMPORT_TAG, "Found ${validChecklistItems.size} valid checklist items. $orphanedChecklistItemsCount orphaned items will be skipped.")
+            }
+
             appDatabase.withTransaction {
                 Log.d(IMPORT_TAG, "Transaction: Inserting attachments data.")
                 // Insert content entities first
-                noteDocumentDao.insertAllDocuments(backupData.documents)
-                Log.d(IMPORT_TAG, "  - Inserted ${backupData.documents.size} note documents.")
-                noteDocumentDao.insertAllDocumentItems(backupData.documentItems)
-                Log.d(IMPORT_TAG, "  - Inserted ${backupData.documentItems.size} note document items.")
-                checklistDao.insertChecklists(backupData.checklists)
-                Log.d(IMPORT_TAG, "  - Inserted ${backupData.checklists.size} checklists.")
-                checklistDao.insertItems(backupData.checklistItems)
-                Log.d(IMPORT_TAG, "  - Inserted ${backupData.checklistItems.size} checklist items.")
+                noteDocumentDao.insertAllDocuments(validDocuments)
+                Log.d(IMPORT_TAG, "  - Inserted ${validDocuments.size} note documents.")
+                noteDocumentDao.insertAllDocumentItems(validDocumentItems)
+                Log.d(IMPORT_TAG, "  - Inserted ${validDocumentItems.size} note document items.")
+                checklistDao.insertChecklists(validChecklists)
+                Log.d(IMPORT_TAG, "  - Inserted ${validChecklists.size} checklists.")
+                checklistDao.insertItems(validChecklistItems)
+                Log.d(IMPORT_TAG, "  - Inserted ${validChecklistItems.size} checklist items.")
                 linkItemDao.insertAll(backupData.linkItemEntities)
                 Log.d(IMPORT_TAG, "  - Inserted ${backupData.linkItemEntities.size} link items.")
 
