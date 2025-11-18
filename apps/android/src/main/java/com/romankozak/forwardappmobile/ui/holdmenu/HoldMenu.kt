@@ -41,19 +41,6 @@ import androidx.compose.ui.input.pointer.*
 
 // ---------------------- STATE --------------------------
 
-// DSL-builder для кнопки
-class HoldMenuBuilder {
-    internal val items = mutableListOf<HoldMenuItem>()
-
-    fun item(
-        label: String,
-        icon: ImageVector? = null,
-        onClick: () -> Unit
-    ) {
-        items += HoldMenuItem(label, icon, onClick)
-    }
-}
-
 
 
 // ---------------------- OVERLAY --------------------------

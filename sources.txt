@@ -59,6 +59,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.text.input.TextFieldValue
@@ -82,25 +83,14 @@ fun ProjectScreen(
     val viewModel: ProjectScreenViewModel = viewModel(
         factory = appComponent.viewModelFactory
     )
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-    var inputValue by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue("")) }
-    var showInputPanelMenu by rememberSaveable { mutableStateOf(false) }
 
-    val listState = rememberLazyListState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     val holdMenuState = remember { mutableStateOf(HoldMenuState()) }
 
-
-    val selectedProject = navController.currentBackStackEntry
-        ?.savedStateHandle
-        ?.getLiveData<Project>("selected_project")
-        ?.observeAsState()
-
-
+    // Виклик при натисканні пункту меню
     val onHoldMenuSelect: (Int) -> Unit = { index ->
-        when(index) {
+        when (index) {
             0 -> viewModel.onEvent(ProjectScreenViewModel.Event.SwitchViewMode(ProjectViewMode.Backlog))
             1 -> viewModel.onEvent(ProjectScreenViewModel.Event.SwitchViewMode(ProjectViewMode.Advanced))
             2 -> viewModel.onEvent(ProjectScreenViewModel.Event.SwitchViewMode(ProjectViewMode.Inbox))
@@ -108,208 +98,30 @@ fun ProjectScreen(
         }
     }
 
-
-    LaunchedEffect(selectedProject) {
-        selectedProject?.value?.let { project: Project ->
-            viewModel.onEvent(ProjectScreenViewModel.Event.LinkExistingProject(project))
-            navController.currentBackStackEntry?.savedStateHandle?.remove<Project>("selected_project")
-        }
-    }
+    // 🔥 Порожній екран
     Box(Modifier.fillMaxSize()) {
 
-        Scaffold(
-            modifier = Modifier.navigationBarsPadding().imePadding()
-                .onGloballyPositioned {
-                    Log.e("HOLDMENU", "📏 ROOT coords = ${it.positionInWindow()}, size=${it.size}")
-                },
-            topBar = {
-                AdaptiveTopBar(
-                    isSelectionModeActive = state.isSelectionModeActive,
-                    project = state.projectName?.let {
-                        Project(
-                            id = projectId ?: "",
-                            name = it,
-                            description = null,
-                            parentId = null,
-                            createdAt = 0,
-                            updatedAt = 0,
-                            isCompleted = false,
-                            isExpanded = false,
-                            goalOrder = 0,
-                            projectStatus = null,
-                            projectStatusText = null,
-                            isProjectManagementEnabled = false,
-                            showCheckboxes = false,
-                            tags = null
-                        )
-                    },
-                    selectedCount = state.selectedItemIds.size,
-                    areAllSelected = false, // TODO: Implement
-                    onClearSelection = { /* TODO */ },
-                    onSelectAll = { /* TODO */ },
-                    onDelete = { /* TODO */ },
-                    onMarkAsComplete = { /* TODO */ },
-                    onMarkAsIncomplete = { /* TODO */ },
-
-                    onInboxClick = {
-                        Toast.makeText(
-                            context,
-                            "Inbox (не реалізовано)",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    },
-                    currentViewMode = state.currentView
-                )
+        MinimalInputPanel(
+            inputMode = state.inputMode,
+            onInputModeSelected = {
+                viewModel.onEvent(ProjectScreenViewModel.Event.SwitchInputMode(it))
             },
-            bottomBar = {
-                /*  ModernInputPanel(
-                inputValue = inputValue,
-                inputMode = state.inputMode,
-                onValueChange = { inputValue = it },
-                onSubmit = {
-                    if (inputValue.text.isNotBlank()) {
-                        when (state.inputMode) {
-                            InputMode.AddNestedProject -> viewModel.onEvent(ProjectScreenViewModel.Event.AddNestedProject(inputValue.text))
-                            InputMode.AddGoal -> viewModel.onEvent(ProjectScreenViewModel.Event.AddBacklogGoal(inputValue.text))
-                            else -> viewModel.onEvent(ProjectScreenViewModel.Event.AddInboxRecord(inputValue.text))
-                        }
-                        inputValue = TextFieldValue("")
-                    }
-                },
-                onInputModeSelected = { viewModel.onEvent(ProjectScreenViewModel.Event.SwitchInputMode(it)) },
-                onRecentsClick = { /* TODO */ },
-                onLinkExistingProjectClick = { navController.navigate("project_chooser") },
-                onShowAddWebLinkDialog = { /* TODO */ },
-                onShowAddObsidianLinkDialog = { /* TODO */ },
-                onAddListShortcutClick = { viewModel.onEvent(ProjectScreenViewModel.Event.SwitchInputMode(InputMode.AddNestedProject)) },
-                canGoBack = false, // TODO
-                canGoForward = false, // TODO
-                onBackClick = { /* TODO */ },
-                onForwardClick = { /* TODO */ },
-                onHomeClick = { /* TODO */ },
-                onEditList = { /* TODO */ },
-                onShareList = { /* TODO */ },
-                onDeleteList = { /* TODO */ },
-                onSetReminder = { /* TODO */ },
-                menuExpanded = showInputPanelMenu,
-                onMenuExpandedChange = { showInputPanelMenu = it },
-                currentView = state.currentView,
-                onViewChange = { viewModel.onEvent(ProjectScreenViewModel.Event.SwitchViewMode(it)) },
-                onImportFromMarkdown = { /* TODO */ },
-                onExportToMarkdown = { /* TODO */ },
-                onImportBacklogFromMarkdown = { /* TODO */ },
-                onExportBacklogToMarkdown = { /* TODO */ },
-                onExportProjectState = { /* TODO */ },
-                reminderParseResult = null, // TODO
-                onClearReminder = { /* TODO */ },
-                isNerActive = false, // TODO
-                onStartTrackingCurrentProject = { /* TODO */ },
-                isProjectManagementEnabled = false, // TODO
-                onToggleProjectManagement = { /* TODO */ },
-                onAddProjectToDayPlan = { /* TODO */ },
-                isViewModePanelVisible = true, // TODO
-                onToggleNavPanelMode = { /* TODO */ },
-                onRevealInExplorer = { /* TODO */ },
-                onCloseSearch = { /* TODO */ },
-                onAddMilestone = { /* TODO */ },
-                onShowCreateNoteDocumentDialog = { /* TODO */ },
-                onCreateChecklist = { /* TODO */ },
-                onShowDisplayPropertiesClick = { /* TODO */ },
-                suggestions = emptyList(), // TODO
-                onSuggestionClick = { /* TODO */ },
-                holdMenuState = holdMenuState
-            )*/
+            holdMenuState = holdMenuState,
+            onHoldMenuSelect = onHoldMenuSelect
+        )
 
-                MinimalInputPanel(
-                    inputMode = state.inputMode,
-                    onInputModeSelected = {
-                        viewModel.onEvent(
-                            ProjectScreenViewModel.Event.SwitchInputMode(
-                                it
-                            )
-                        )
-                    },
-
-                    holdMenuState = holdMenuState,
-                    onHoldMenuSelect = onHoldMenuSelect,
-                )
-
-            }
-        ) { paddingValues ->
-            when (state.currentView) {
-                ProjectViewMode.Backlog -> BacklogView(
-                    listContent = state.backlogItems,
-                    viewModel = viewModel,
-                    state = state,
-                    onRemindersClick = { /* TODO */ },
-                    modifier = Modifier
-                        .padding(paddingValues)
-                        .glitch(trigger = uiState.currentView),
-                    listState = listState,
-                    onMove = { from, to ->
-                        viewModel.onEvent(
-                            ProjectScreenViewModel.Event.MoveItem(
-                                from,
-                                to
-                            )
-                        )
-                    },
-                    onDragEnd = { from, to ->
-                        viewModel.onEvent(
-                            ProjectScreenViewModel.Event.DragEnd(
-                                from,
-                                to
-                            )
-                        )
-                    },
-                    onCopyContent = { /* TODO */ },
-                )
-
-                ProjectViewMode.Inbox -> {
-                    LazyColumn(modifier = Modifier.padding(paddingValues)) {
-                        items(state.inboxItems) { item ->
-                            Text(
-                                text = item.text,
-                                modifier = Modifier.fillMaxWidth().padding(16.dp)
-                            )
-                        }
-                    }
-                }
-
-                ProjectViewMode.Advanced -> Text(
-                    text = "Advanced Content for ID: $projectId",
-                    modifier = Modifier.padding(paddingValues).fillMaxWidth().padding(16.dp)
-                )
-
-                ProjectViewMode.Attachments -> Text(
-                    text = "Attachments Content for ID: $projectId",
-                    modifier = Modifier.padding(paddingValues).fillMaxWidth().padding(16.dp)
-                )
-            }
-        }
         HoldMenuOverlay(
             state = holdMenuState.value,
             onChangeState = { holdMenuState.value = it },
             modifier = Modifier
                 .fillMaxSize()
-                .zIndex(999f)   // ← ОБОВ’ЯЗКОВО!
-
+                .zIndex(999f)
         )
-
-
-
-
-
-
-
-
-        /*HoldMenuOverlay(
-        state = holdMenuState.value,
-        onDismiss = { holdMenuState.value = holdMenuState.value.copy(isOpen = false) }
-    )*/
-
     }
+
+
 }
+
 
 
 fun Modifier.glitch(trigger: Any): Modifier = composed {
@@ -412,7 +224,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.romankozak.forwardappmobile.features.projectscreen.ProjectScreenViewModel
-import com.romankozak.forwardappmobile.ui.holdmenu.HoldMenuItem
 import com.romankozak.forwardappmobile.ui.holdmenu.HoldMenuOverlay
 
 // TODO: Restore from theme
@@ -571,7 +382,7 @@ private fun ViewModeToggle(
         }
     }*/
 
-    HoldMenuButton(
+    /*HoldMenuButton(
         onLongPress = { anchor, touch ->
             holdMenuState.value = holdMenuState.value.copy(
                 isOpen = true,
@@ -582,7 +393,7 @@ private fun ViewModeToggle(
         }
     ) {
         Icon(Icons.Default.MoreVert, contentDescription = null)
-    }
+    }*/
 
 
 
@@ -1706,62 +1517,40 @@ fun MagicModeSwitcher(
 fun MinimalInputPanel(
     inputMode: InputMode,
     onInputModeSelected: (InputMode) -> Unit,
-    onHoldMenuSelect: (Int) -> Unit,     // ← ДОДАЙ ЦЕ
-
-    holdMenuState: MutableState<HoldMenuState>
+    holdMenuState: MutableState<HoldMenuState>,
+    onHoldMenuSelect: (Int) -> Unit,
 ) {
-    val modes = listOf(
-        InputMode.AddGoal,
-        InputMode.AddQuickRecord,
-        InputMode.SearchInList,
-        InputMode.SearchGlobal
-    )
-
-    Row(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+            .padding(bottom = 32.dp)
+            .navigationBarsPadding(),
+        contentAlignment = Alignment.BottomCenter
     ) {
-
-        // ЛІВА КНОПКА — HoldMenu
-        /*HoldMenuButton(
-            icon = Icons.Default.MoreVert,
-            state = holdMenuState
+        Box(
+            modifier = Modifier
+                .size(64.dp)
+                .background(Color(0xFF222222), RoundedCornerShape(16.dp)),
+            contentAlignment = Alignment.Center
         ) {
-            item("Inbox", Icons.Default.Inbox) { /* TODO */ }
-            item("Advanced", Icons.Default.Dashboard) { /* TODO */ }
-            item("Attachments", Icons.Default.Attachment) { /* TODO */ }
-        }*/
-
-        // ПРАВА КНОПКА — свайпом міняє режим
-        /*MagicModeSwitcher(
-            modes = modes,
-            currentMode = inputMode,
-            onTap = { },
-            onModeSelected = onInputModeSelected,
-            modifier = Modifier.size(48.dp)
-        )*/
-    }
-    HoldMenuButton(
-        onLongPress = { anchor, touch ->
-            holdMenuState.value = holdMenuState.value.copy(
-                isOpen = true,
-                anchor = anchor,
-                touch = touch,
-                items = listOf("Backlog", "Advanced", "Inbox", "Attachments"),
-                onItemSelected = onHoldMenuSelect       // ← ДУЖЕ ВАЖЛИВО
-
-            )
+            HoldMenuButton(
+                onLongPress = { anchor ->
+                    holdMenuState.value = HoldMenuState(
+                        isOpen = true,
+                        anchor = anchor,
+                        items = listOf("Backlog", "Advanced", "Inbox", "Attachments"),
+                        onItemSelected = onHoldMenuSelect
+                    )
+                }
+            ) {
+                Icon(
+                    Icons.Default.MoreVert,
+                    contentDescription = "menu",
+                    tint = Color.White
+                )
+            }
         }
-    )
- {
-        Icon(Icons.Default.MoreVert, contentDescription = null)
     }
-
-
-
 }
 
 
@@ -1821,19 +1610,6 @@ import androidx.compose.ui.input.pointer.*
 
 // ---------------------- STATE --------------------------
 
-// DSL-builder для кнопки
-class HoldMenuBuilder {
-    internal val items = mutableListOf<HoldMenuItem>()
-
-    fun item(
-        label: String,
-        icon: ImageVector? = null,
-        onClick: () -> Unit
-    ) {
-        items += HoldMenuItem(label, icon, onClick)
-    }
-}
-
 
 
 // ---------------------- OVERLAY --------------------------
@@ -1860,29 +1636,19 @@ BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/ap
 package com.romankozak.forwardappmobile.ui.holdmenu
 
 import android.util.Log
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.pointer.PointerId
-import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
-import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 @Composable
 fun HoldMenuButton(
     modifier: Modifier = Modifier,
-    holdDurationMs: Long = 350L,
-    onLongPress: (anchor: Offset, touch: Offset) -> Unit,
+    onLongPress: (anchor: Offset) -> Unit,
     content: @Composable () -> Unit
 ) {
     var center by remember { mutableStateOf(Offset.Zero) }
@@ -1893,30 +1659,19 @@ fun HoldMenuButton(
                 val pos = coords.positionInWindow()
                 val size = coords.size
                 center = Offset(
-                    pos.x + size.width / 2f,
-                    pos.y + size.height / 2f
+                    x = pos.x + size.width / 2f,
+                    y = pos.y + size.height / 2f
                 )
+                Log.e("HOLDMENU", "📌 Button center = $center")
             }
-            .pointerInput(holdDurationMs) {
-                awaitEachGesture {
-                    // 1. Чекаємо перший дотик
-                    val down = awaitFirstDown(requireUnconsumed = false)
-                    val start = down.position
-
-                    // 2. Чекаємо або UP, або timeout (long press)
-                    val up = withTimeoutOrNull(holdDurationMs) {
-                        waitForUpOrCancellation()
+            .pointerInput(Unit) {
+                Log.e("HOLDMENU", "🎯 pointerInput STARTED")
+                detectTapGestures(
+                    onLongPress = {
+                        Log.e("HOLDMENU", "🔥 onLongPress fired, center=$center")
+                        onLongPress(center)
                     }
-
-                    if (up == null) {
-                        // ❗ НІХТО не відпустив палець за holdDurationMs → long press
-                        Log.e("HOLDMENU", "🔥 LONG PRESS → center=$center, touch=$start")
-                        onLongPress(center, start)
-                    } else {
-                        // Це був короткий тап — нічого не робимо
-                        Log.e("HOLDMENU", "⏳ Short tap → ignore")
-                    }
-                }
+                )
             }
     ) {
         content()
@@ -1937,76 +1692,73 @@ package com.romankozak.forwardappmobile.ui.holdmenu
 
 import android.util.Log
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.PointerEvent
-import androidx.compose.ui.input.pointer.changedToUp
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.toSize
-import kotlinx.coroutines.isActive
 
 @Composable
 fun HoldMenuOverlay(
     state: HoldMenuState,
     onChangeState: (HoldMenuState) -> Unit,
     modifier: Modifier = Modifier
-
 ) {
     if (!state.isOpen || state.items.isEmpty()) {
         Log.e("HOLDMENU", "❌ Nothing to draw, closed or empty")
         return
     }
 
-    Log.e("HOLDMENU", "📡 Overlay ACTIVE, anchor=${state.anchor}, items=${state.items.size}")
-
     val density = LocalDensity.current
-    val itemHeightPx = with(density) { 44.dp.toPx() }
+    val menuWidth = 220.dp
+    val itemH = 44.dp
 
-    // FULLSCREEN overlay capturing all input
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .pointerInput(state.isOpen) {
-                if (!state.isOpen) return@pointerInput
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopStart
+    ) {
+        val menuWidthPx = with(density) { menuWidth.toPx() }
+        val menuHeightPx = with(density) { (itemH * state.items.size).toPx() }
 
-                val menuHeight = itemHeightPx * state.items.size
-                val menuTop = state.anchor.y - menuHeight - 8f
-                awaitPointerEventScope{
-                while (true) {
-                    val event = awaitPointerEvent()   // <— тепер працює 100%
+        val desiredX = state.anchor.x - menuWidthPx / 2f
+        val desiredY = state.anchor.y - menuHeightPx - 8f
 
-                    val press = event.changes.firstOrNull { it.pressed }
-                        ?: break
+        val offsetX = desiredX.toInt().coerceAtLeast(0)
+        val offsetY = desiredY.toInt().coerceAtLeast(0)
 
-                    val relativeY = press.position.y - menuTop
-                    val hoverIndex = (relativeY / itemHeightPx)
-                        .toInt()
-                        .coerceIn(0, state.items.lastIndex)
+        Log.e("HOLDMENU", "📍 Menu offset = ($offsetX, $offsetY)")
 
-                    if (hoverIndex != state.hoverIndex) {
-                        onChangeState(state.copy(hoverIndex = hoverIndex))
-                    }
-
-                    if (press.changedToUp()) {
-                        state.onItemSelected?.invoke(hoverIndex)
-                        onChangeState(state.copy(isOpen = false, hoverIndex = -1))
-                        break
-                    }
-
-                }
+        Column(
+            modifier = Modifier
+                .offset { IntOffset(offsetX, offsetY) }
+                .width(menuWidth)
+                .background(Color(0xFF222222), RoundedCornerShape(12.dp))
+        ) {
+            state.items.forEachIndexed { index, label ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(itemH)
+                        .clickable {
+                            state.onItemSelected?.invoke(index)
+                            onChangeState(state.copy(isOpen = false))
+                        }
+                        .padding(horizontal = 16.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    Text(
+                        text = label,
+                        color = Color.White,
+                    )
                 }
             }
-    ) {
-        MenuPopup(state)
+        }
     }
 }
 
@@ -2023,28 +1775,13 @@ BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/ap
 package com.romankozak.forwardappmobile.ui.holdmenu
 
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.PointerId
-
-data class HoldMenuItem(
-    val label: String,
-    val icon: ImageVector? = null,
-    val onClick: () -> Unit
-)
 
 data class HoldMenuState(
     val isOpen: Boolean = false,
     val anchor: Offset = Offset.Zero,
-    val touch: Offset = Offset.Zero,
-    val selectedIndex: Int = 0,
-    val hoverIndex: Int = -1,
     val items: List<String> = emptyList(),
-    val onItemSelected: ((Int) -> Unit)? = null
+    val onItemSelected: ((Int) -> Unit)? = null,
 )
-
-
-
-
 
 
 
@@ -2062,75 +1799,74 @@ BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/ap
 
 package com.romankozak.forwardappmobile.ui.holdmenu
 
-import android.R.attr.maxHeight
-import android.R.attr.maxWidth
 import android.util.Log
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.PointerEvent
-import androidx.compose.ui.input.pointer.changedToUp
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.toSize
-import kotlinx.coroutines.isActive
 
 @Composable
-fun MenuPopup(state: HoldMenuState) {
+fun MenuPopup(
+    state: HoldMenuState,
+    onChangeState: (HoldMenuState) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (!state.isOpen || state.items.isEmpty()) {
+        Log.e("HOLDMENU", "❌ MenuPopup: nothing to draw")
+        return
+    }
+
     val density = LocalDensity.current
+    val menuWidth = 220.dp
+    val itemHeight = 44.dp
 
-    Log.e("HOLDMENU", "🎨 MenuPopup START")
-
-    BoxWithConstraints(
-        modifier = Modifier.fillMaxSize()
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopStart
     ) {
-        Log.e("HOLDMENU", "📏 Constraints = $maxWidth x $maxHeight")
-
-        val menuWidth = 220.dp
-        val itemH = 44.dp
-
+        // Конвертуємо розміри в px
         val menuWidthPx = with(density) { menuWidth.toPx() }
-        val menuHeightPx = state.items.size * with(density) { itemH.toPx() }
+        val menuHeightPx = with(density) { (itemHeight * state.items.size).toPx() }
 
-        val screenW = with(density) { maxWidth.toPx() }
-        val screenH = with(density) { maxHeight.toPx() }
-
+        // Позиція меню відносно anchor
         val desiredX = state.anchor.x - menuWidthPx / 2f
-        val desiredY = state.anchor.y - menuHeightPx - 8f
+        val desiredY = state.anchor.y - menuHeightPx - 8f  // 8dp відступ над натиском
 
-        val finalX = desiredX.coerceIn(0f, screenW - menuWidthPx)
-        val finalY = desiredY.coerceIn(0f, screenH - menuHeightPx)
+        // Обмежуємо popup межами вікна
+        val offsetX = desiredX.toInt().coerceAtLeast(0)
+        val offsetY = desiredY.toInt().coerceAtLeast(0)
 
-        Log.e("HOLDMENU", "📦 Drawing ${state.items.size} items")
+        Log.e("HOLDMENU", "📍 MenuPopup offset = ($offsetX, $offsetY)")
 
         Column(
             modifier = Modifier
-                .offset { IntOffset(finalX.toInt(), finalY.toInt()) }
+                .offset { IntOffset(offsetX, offsetY) }
                 .width(menuWidth)
-                .background(Color(0xFF222222))
+                .background(Color(0xFF222222), RoundedCornerShape(12.dp))
         ) {
             state.items.forEachIndexed { index, label ->
-                val isHover = index == state.hoverIndex
-
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(itemH)
-                        .background(if (isHover) Color(0xFF444444) else Color.Transparent),
+                        .height(itemHeight)
+                        .clickable {
+                            state.onItemSelected?.invoke(index)
+                            onChangeState(state.copy(isOpen = false))
+                        }
+                        .padding(horizontal = 16.dp),
                     contentAlignment = Alignment.CenterStart
                 ) {
                     Text(
                         text = label,
-                        color = Color.White,
-                        modifier = Modifier.padding(horizontal = 16.dp)
+                        color = Color.White
                     )
                 }
             }

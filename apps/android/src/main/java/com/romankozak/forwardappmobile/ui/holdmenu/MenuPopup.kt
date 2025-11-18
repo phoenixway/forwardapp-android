@@ -1,74 +1,73 @@
 package com.romankozak.forwardappmobile.ui.holdmenu
 
-import android.R.attr.maxHeight
-import android.R.attr.maxWidth
 import android.util.Log
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.PointerEvent
-import androidx.compose.ui.input.pointer.changedToUp
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.toSize
-import kotlinx.coroutines.isActive
 
 @Composable
-fun MenuPopup(state: HoldMenuState) {
+fun MenuPopup(
+    state: HoldMenuState,
+    onChangeState: (HoldMenuState) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (!state.isOpen || state.items.isEmpty()) {
+        Log.e("HOLDMENU", "❌ MenuPopup: nothing to draw")
+        return
+    }
+
     val density = LocalDensity.current
+    val menuWidth = 220.dp
+    val itemHeight = 44.dp
 
-    Log.e("HOLDMENU", "🎨 MenuPopup START")
-
-    BoxWithConstraints(
-        modifier = Modifier.fillMaxSize()
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopStart
     ) {
-        Log.e("HOLDMENU", "📏 Constraints = $maxWidth x $maxHeight")
-
-        val menuWidth = 220.dp
-        val itemH = 44.dp
-
+        // Конвертуємо розміри в px
         val menuWidthPx = with(density) { menuWidth.toPx() }
-        val menuHeightPx = state.items.size * with(density) { itemH.toPx() }
+        val menuHeightPx = with(density) { (itemHeight * state.items.size).toPx() }
 
-        val screenW = with(density) { maxWidth.toPx() }
-        val screenH = with(density) { maxHeight.toPx() }
-
+        // Позиція меню відносно anchor
         val desiredX = state.anchor.x - menuWidthPx / 2f
-        val desiredY = state.anchor.y - menuHeightPx - 8f
+        val desiredY = state.anchor.y - menuHeightPx - 8f  // 8dp відступ над натиском
 
-        val finalX = desiredX.coerceIn(0f, screenW - menuWidthPx)
-        val finalY = desiredY.coerceIn(0f, screenH - menuHeightPx)
+        // Обмежуємо popup межами вікна
+        val offsetX = desiredX.toInt().coerceAtLeast(0)
+        val offsetY = desiredY.toInt().coerceAtLeast(0)
 
-        Log.e("HOLDMENU", "📦 Drawing ${state.items.size} items")
+        Log.e("HOLDMENU", "📍 MenuPopup offset = ($offsetX, $offsetY)")
 
         Column(
             modifier = Modifier
-                .offset { IntOffset(finalX.toInt(), finalY.toInt()) }
+                .offset { IntOffset(offsetX, offsetY) }
                 .width(menuWidth)
-                .background(Color(0xFF222222))
+                .background(Color(0xFF222222), RoundedCornerShape(12.dp))
         ) {
             state.items.forEachIndexed { index, label ->
-                val isHover = index == state.hoverIndex
-
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(itemH)
-                        .background(if (isHover) Color(0xFF444444) else Color.Transparent),
+                        .height(itemHeight)
+                        .clickable {
+                            state.onItemSelected?.invoke(index)
+                            onChangeState(state.copy(isOpen = false))
+                        }
+                        .padding(horizontal = 16.dp),
                     contentAlignment = Alignment.CenterStart
                 ) {
                     Text(
                         text = label,
-                        color = Color.White,
-                        modifier = Modifier.padding(horizontal = 16.dp)
+                        color = Color.White
                     )
                 }
             }

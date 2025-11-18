@@ -69,7 +69,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.romankozak.forwardappmobile.features.projectscreen.ProjectScreenViewModel
-import com.romankozak.forwardappmobile.ui.holdmenu.HoldMenuItem
 import com.romankozak.forwardappmobile.ui.holdmenu.HoldMenuOverlay
 
 // TODO: Restore from theme
@@ -228,7 +227,7 @@ private fun ViewModeToggle(
         }
     }*/
 
-    HoldMenuButton(
+    /*HoldMenuButton(
         onLongPress = { anchor, touch ->
             holdMenuState.value = holdMenuState.value.copy(
                 isOpen = true,
@@ -239,7 +238,7 @@ private fun ViewModeToggle(
         }
     ) {
         Icon(Icons.Default.MoreVert, contentDescription = null)
-    }
+    }*/
 
 
 
@@ -1363,62 +1362,42 @@ fun MagicModeSwitcher(
 fun MinimalInputPanel(
     inputMode: InputMode,
     onInputModeSelected: (InputMode) -> Unit,
-    onHoldMenuSelect: (Int) -> Unit,     // ← ДОДАЙ ЦЕ
+    holdMenuState: MutableState<HoldMenuState>,
+    onHoldMenuSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
 
-    holdMenuState: MutableState<HoldMenuState>
-) {
-    val modes = listOf(
-        InputMode.AddGoal,
-        InputMode.AddQuickRecord,
-        InputMode.SearchInList,
-        InputMode.SearchGlobal
-    )
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-
-        // ЛІВА КНОПКА — HoldMenu
-        /*HoldMenuButton(
-            icon = Icons.Default.MoreVert,
-            state = holdMenuState
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(bottom = 32.dp)
+            .navigationBarsPadding(),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        Box(
+            modifier = Modifier
+                .size(64.dp)
+                .background(Color(0xFF222222), RoundedCornerShape(16.dp)),
+            contentAlignment = Alignment.Center
         ) {
-            item("Inbox", Icons.Default.Inbox) { /* TODO */ }
-            item("Advanced", Icons.Default.Dashboard) { /* TODO */ }
-            item("Attachments", Icons.Default.Attachment) { /* TODO */ }
-        }*/
-
-        // ПРАВА КНОПКА — свайпом міняє режим
-        /*MagicModeSwitcher(
-            modes = modes,
-            currentMode = inputMode,
-            onTap = { },
-            onModeSelected = onInputModeSelected,
-            modifier = Modifier.size(48.dp)
-        )*/
-    }
-    HoldMenuButton(
-        onLongPress = { anchor, touch ->
-            holdMenuState.value = holdMenuState.value.copy(
-                isOpen = true,
-                anchor = anchor,
-                touch = touch,
-                items = listOf("Backlog", "Advanced", "Inbox", "Attachments"),
-                onItemSelected = onHoldMenuSelect       // ← ДУЖЕ ВАЖЛИВО
-
-            )
+            HoldMenuButton(
+                onLongPress = { anchor ->
+                    holdMenuState.value = HoldMenuState(
+                        isOpen = true,
+                        anchor = anchor,
+                        items = listOf("Backlog", "Advanced", "Inbox", "Attachments"),
+                        onItemSelected = onHoldMenuSelect
+                    )
+                }
+            ) {
+                Icon(
+                    Icons.Default.MoreVert,
+                    contentDescription = "menu",
+                    tint = Color.White
+                )
+            }
         }
-    )
- {
-        Icon(Icons.Default.MoreVert, contentDescription = null)
     }
-
-
-
 }
 
 
