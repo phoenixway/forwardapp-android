@@ -96,7 +96,14 @@ class SettingsRepository @Inject constructor(
         }
     }
     val allowSystemProjectMovesFlow: Flow<Boolean> =
-        context.dataStore.data.map { preferences -> preferences[allowSystemProjectMovesKey] ?: false }
+        context.dataStore.data.map { preferences ->
+            try {
+                preferences[allowSystemProjectMovesKey] ?: false
+            } catch (e: ClassCastException) {
+                Log.w("SettingsRepository", "Could not read allowSystemProjectMoves as Boolean, attempting fallback to String.", e)
+                preferences[stringPreferencesKey(allowSystemProjectMovesKey.name)]?.toBoolean() ?: false
+            }
+        }
 
     suspend fun saveServerAddressSettings(
         mode: String,

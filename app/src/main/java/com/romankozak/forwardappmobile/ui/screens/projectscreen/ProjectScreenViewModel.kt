@@ -113,7 +113,6 @@ data class UiState(
   val inboxRecordToHighlight: String? = null,
   val needsStateRefresh: Boolean = false,
   val currentView: ProjectViewMode = ProjectViewMode.BACKLOG,
-  val isViewModePanelVisible: Boolean = false,
   val showRecentProjectsSheet: Boolean = false,
   val showImportFromMarkdownDialog: Boolean = false,
   val showImportBacklogFromMarkdownDialog: Boolean = false,
@@ -1704,9 +1703,7 @@ constructor(
     )
   }
 
-  fun onToggleNavPanelMode() {
-    _uiState.update { it.copy(isViewModePanelVisible = !it.isViewModePanelVisible) }
-  }
+
 
   fun onOpenRemindersDialog(item: ListItemContent) {
     _uiState.update { it.copy(showRemindersDialog = true, itemForRemindersDialog = item) }

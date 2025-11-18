@@ -9,8 +9,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
-
+import androidx.compose.ui.unit.dp
 @Composable
 fun HoldMenu2Overlay(
     controller: HoldMenu2Controller,
@@ -25,9 +27,17 @@ fun HoldMenu2Overlay(
     ) {
         Log.e("HOLDMENU2", "📍 Overlay: rendering popup")
 
-        Box(
-            modifier = modifier.background(Color.Black.copy(alpha = 0.4f))
-        ) {
+        Box(modifier = modifier.fillMaxSize()) {
+
+            // --- BACKDROP (blur only background, not popup) ---
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.35f))
+                    .blur(18.dp)
+            )
+
+            // --- POPUP ON TOP ---
             HoldMenu2Popup(state)
         }
     }

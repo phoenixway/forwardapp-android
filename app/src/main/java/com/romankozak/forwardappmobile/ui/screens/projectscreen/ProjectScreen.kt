@@ -471,8 +471,6 @@ private fun ProjectBottomBar(
                 onAddMilestone = viewModel::onAddMilestone,
                 onShowCreateNoteDocumentDialog = viewModel::onShowCreateNoteDocumentDialog,
                 onCreateChecklist = viewModel::onCreateChecklist,
-                isViewModePanelVisible = uiState.isViewModePanelVisible,
-                onToggleNavPanelMode = viewModel::onToggleNavPanelMode,
                 suggestions = suggestions,
                 onSuggestionClick = viewModel::onSuggestionClick,
                 onShowDisplayPropertiesClick = onShowDisplayPropertiesClick
