@@ -1,5 +1,7 @@
 package com.romankozak.forwardappmobile.ui.holdmenu
 
+import android.R.attr.maxHeight
+import android.R.attr.maxWidth
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -21,7 +23,10 @@ import kotlinx.coroutines.isActive
 
 @Composable
 fun MenuPopup(state: HoldMenuState) {
+    Log.e("HOLDMENU", "🎨 MenuPopup START")
+
     val density = LocalDensity.current
+
 
     BoxWithConstraints(
         modifier = Modifier.fillMaxSize()
@@ -47,6 +52,8 @@ fun MenuPopup(state: HoldMenuState) {
                 .width(menuWidth)
                 .background(Color(0xFF222222), RoundedCornerShape(12.dp))
         ) {
+            Log.e("HOLDMENU", "📦 Drawing ${state.items.size} items")
+
             state.items.forEachIndexed { index, label ->
                 val isHover = index == state.hoverIndex
 
@@ -66,4 +73,6 @@ fun MenuPopup(state: HoldMenuState) {
             }
         }
     }
+    Log.e("HOLDMENU", "📏 Constraints = ${maxWidth} x ${maxHeight}")
+
 }

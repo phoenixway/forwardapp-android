@@ -24,6 +24,14 @@ fun HoldMenuOverlay(
     state: HoldMenuState,
     onChangeState: (HoldMenuState) -> Unit
 ) {
+    if (!state.isOpen || state.items.isEmpty()) {
+        Log.e("HOLDMENU", "❌ Nothing to draw, closed or empty")
+        return
+    }
+
+
+    Log.e("HOLDMENU", "📡 Overlay ACTIVE, anchor=${state.anchor}, items=${state.items.size}")
+
     if (!state.isOpen) return
 
     val density = LocalDensity.current
@@ -40,6 +48,8 @@ fun HoldMenuOverlay(
                 // Detect pointer events
                 awaitPointerEventScope {
                     while (true) {
+//                        Log.e("HOLDMENU", "🖱 Hover = $hover")
+
                         val event = awaitPointerEvent()
                         val press = event.changes.firstOrNull { it.pressed } ?: break
 
@@ -47,6 +57,7 @@ fun HoldMenuOverlay(
                         val hover = (relativeY / itemHeightPx)
                             .toInt()
                             .coerceIn(0, state.items.lastIndex)
+                        Log.e("HOLDMENU", "🖱 Hover = $hover")
 
                         if (hover != state.hoverIndex) {
                             onChangeState(state.copy(hoverIndex = hover))
