@@ -129,10 +129,10 @@
                 *   [x] **Доопрацьовано `SubProjectItem` у `BacklogList.kt`:**
                     *   [x] Передано актуальні `childProjects`, `reminders`, `contextMarkerToEmojiMap`, `currentTimeMillis` з `BacklogView` до `SubProjectItem`.
                     *   [x] Реалізовано `onCheckedChange`.
-                    *   [ ] Реалізувати `endAction`.
-                *   [ ] **Відновити UI/UX для `GoalItem`:**
-                    *   [ ] **Завдання:** Максимально точно перенести UI/UX для `GoalItem` з `dev` гілки.
-                    *   [ ] **Кроки:**
+                    *   [x] Реалізовано `endAction`.
+                *   [x] **Відновити UI/UX для `GoalItem`:**
+                    *   [x] **Завдання:** Максимально точно перенести UI/UX для `GoalItem` з `dev` гілки.
+                    *   [x] **Кроки:**
                         *   [x] Ретельно вивчити, як `GoalItem` влаштовано в `dev` гілці (UI, UX, компоненти).
                         *   [x] Створити план міграції UI/UX для `GoalItem`.
                         *   [x] Реалізувати міграцію `GoalItem` UI/UX.

@@ -38,7 +38,7 @@ import com.romankozak.forwardappmobile.features.projectscreen.ProjectScreenViewM
 import com.romankozak.forwardappmobile.features.projectscreen.UiState
 import com.romankozak.forwardappmobile.features.projectscreen.components.backlogitems.MarkdownText
 import com.romankozak.forwardappmobile.shared.features.reminders.domain.model.Reminder
-import com.romankozak.forwardappmobile.features.common.ParsedData
+import com.romankozak.forwardappmobile.features.common.ParsedTextData
 import com.romankozak.forwardappmobile.features.common.rememberParsedText
 import com.romankozak.forwardappmobile.features.projectscreen.components.backlog.BacklogItemActionsBottomSheet
 import com.romankozak.forwardappmobile.features.projectscreen.components.backlogitems.AnimatedContextEmoji
@@ -165,19 +165,22 @@ fun BacklogView(
                             reminders = item.reminders,
                             reorderableScope = this,
                             endAction = {
-                IconButton(
-                    onClick = { /* Nothing to do here, it's a drag handle */ },
-                    modifier =  with(this) {
-                        Modifier.longPressDraggableHandle(
-                            onDragStarted = {
-                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                IconButton(
+                                    onClick = {
+                                        selectedItemForActions = item
+                                        showBottomSheet = true
+                                    },
+                                    modifier =  with(this) {
+                                        Modifier.longPressDraggableHandle(
+                                            onDragStarted = {
+                                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            }
+                                        )
+                                    },
+                                ) {
+                                    Icon(imageVector = Icons.Default.MoreVert, contentDescription = "More actions")
+                                }
                             }
-                        )
-                    },
-                ) {
-                    Icon(imageVector = Icons.Default.MoreVert, contentDescription = "More actions")
-                }
-            }
                         )
                     }
 

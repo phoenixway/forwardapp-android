@@ -35,3 +35,4 @@
 2025-11-19: Вивчено вміст `ProjectScreenContent.kt` з гілки `dev`, який викликає `BacklogListScreen` для відображення беклогу.
 2025-11-19: Вивчено вміст `BacklogList.kt` з гілки `dev`, який використовує `SwipeableBacklogItem`.
 2025-11-19: Вивчено вміст `SwipeableBacklogItem.kt` з гілки `dev`, який обгортає `BacklogItem` та реалізує логіку свайпів.
+2025-11-19: Оновлено `rememberParsedText` у `apps/android/src/main/java/com/romankozak/forwardappmobile/features/common/rememberParsedText.kt` для парсингу іконок. Оновлено `apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/components/backlogitems/StatusIconsRow.kt` з реалізацією з гілки `dev` (з адаптованими імпортами). Оновлено `apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/components/list/BacklogList.kt` для використання `ParsedTextData` (замість `ParsedData`) та виправлено `endAction` для `SubProjectItem`.
