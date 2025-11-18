@@ -29,7 +29,9 @@ data class DatabaseContent(
     val linkItemEntities: List<LinkItemEntity> = emptyList(),
     val inboxRecords: List<InboxRecord> = emptyList(),
     val projectExecutionLogs: List<ProjectExecutionLog> = emptyList(),
+    @SerializedName(value = "attachments", alternate = ["attachment_items"])
     val attachments: List<com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentEntity> = emptyList(),
+    @SerializedName(value = "projectAttachmentCrossRefs", alternate = ["project_attachment_links"])
     val projectAttachmentCrossRefs: List<com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRef> = emptyList(),
 )
 

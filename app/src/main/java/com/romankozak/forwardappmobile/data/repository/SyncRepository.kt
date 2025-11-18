@@ -23,10 +23,11 @@ import com.romankozak.forwardappmobile.data.dao.RecentItemDao
 import com.romankozak.forwardappmobile.data.database.AppDatabase
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.ListItem
-import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.data.database.models.ProjectLogLevelValues
-import com.romankozak.forwardappmobile.data.database.models.ProjectStatusValues
-import com.romankozak.forwardappmobile.data.database.models.ProjectType
+import com.romankozak.forwardappmobile.data.database.models.Project;
+import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues;
+import com.romankozak.forwardappmobile.data.database.models.ProjectLogLevelValues;
+import com.romankozak.forwardappmobile.data.database.models.ProjectStatusValues;
+import com.romankozak.forwardappmobile.data.database.models.ProjectType;
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.data.sync.DatabaseContent
@@ -474,6 +475,30 @@ constructor(
                 settingsRepository.restoreFromMap(backupSettingsMap)
                 Log.d(IMPORT_TAG, "Транзакція: запуск DatabaseInitializer.prePopulate().")
                 com.romankozak.forwardappmobile.data.database.DatabaseInitializer(projectDao, context).prePopulate()
+
+                if (backup.attachments.isEmpty()) {
+                    Log.d(IMPORT_TAG, "Спроба створити відсутні записи вкладень...")
+                    backup.documents.forEach {
+                        attachmentRepository.ensureAttachmentLinkedToProject(
+                            attachmentType = ListItemTypeValues.NOTE_DOCUMENT,
+                            entityId = it.id,
+                            projectId = it.projectId,
+                            ownerProjectId = it.projectId,
+                            createdAt = it.createdAt,
+                        )
+                    }
+                    backup.checklists.forEach {
+                        attachmentRepository.ensureAttachmentLinkedToProject(
+                            attachmentType = ListItemTypeValues.CHECKLIST,
+                            entityId = it.id,
+                            projectId = it.projectId,
+                            ownerProjectId = it.projectId,
+                            createdAt = System.currentTimeMillis(),
+                        )
+                    }
+                    Log.d(IMPORT_TAG, "Створення відсутніх записів вкладень завершено.")
+                }
+
                 Log.d(IMPORT_TAG, "Транзакція: вставка завершена.")
             }
 

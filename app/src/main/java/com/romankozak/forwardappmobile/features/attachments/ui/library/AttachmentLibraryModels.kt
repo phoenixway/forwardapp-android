@@ -40,6 +40,20 @@ data class AttachmentLibraryItem(
     val linkData: RelatedLink? = null,
 )
 
+data class AttachmentLibraryQueryResult(
+    val id: String,
+    val entityId: String,
+    val attachmentType: String,
+    val ownerProjectId: String?,
+    val attachmentUpdatedAt: Long,
+    val noteName: String?,
+    val noteUpdatedAt: Long?,
+    val checklistName: String?,
+    val linkDisplayName: String?,
+    val linkTarget: String?,
+    val linkCreatedAt: Long?,
+)
+
 data class AttachmentsLibraryUiState(
     val query: String = "",
     val filter: AttachmentLibraryFilter = AttachmentLibraryFilter.All,

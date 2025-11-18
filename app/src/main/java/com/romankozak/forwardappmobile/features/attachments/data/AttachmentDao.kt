@@ -104,4 +104,27 @@ interface AttachmentDao {
 
     @Query("DELETE FROM project_attachment_cross_ref")
     suspend fun deleteAllProjectAttachmentLinks()
+
+    @Transaction
+    @Query(
+        """
+        SELECT
+            a.id,
+            a.entity_id as entityId,
+            a.attachment_type as attachmentType,
+            a.owner_project_id as ownerProjectId,
+            a.updatedAt as attachmentUpdatedAt,
+            nd.name as noteName,
+            nd.updatedAt as noteUpdatedAt,
+            cl.name as checklistName,
+            li.link_data as linkDisplayName,
+            li.link_data as linkTarget,
+            li.createdAt as linkCreatedAt
+        FROM attachments as a
+        LEFT JOIN note_documents as nd ON a.entity_id = nd.id AND a.attachment_type = 'NOTE_DOCUMENT'
+        LEFT JOIN checklists as cl ON a.entity_id = cl.id AND a.attachment_type = 'CHECKLIST'
+        LEFT JOIN link_items as li ON a.entity_id = li.id AND a.attachment_type = 'LINK_ITEM'
+        """,
+    )
+    fun getAttachmentLibraryItems(): Flow<List<com.romankozak.forwardappmobile.features.attachments.ui.library.AttachmentLibraryQueryResult>>
 }

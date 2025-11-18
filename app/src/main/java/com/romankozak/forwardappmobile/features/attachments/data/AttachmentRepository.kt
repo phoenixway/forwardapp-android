@@ -28,6 +28,9 @@ class AttachmentRepository @Inject constructor(
 
     fun getAllLinkItems(): Flow<List<LinkItemEntity>> = linkItemDao.getAllEntitiesAsFlow()
 
+    fun getAttachmentLibraryItems(): Flow<List<com.romankozak.forwardappmobile.features.attachments.ui.library.AttachmentLibraryQueryResult>> =
+        attachmentDao.getAttachmentLibraryItems()
+
     suspend fun findAttachmentByEntity(
         attachmentType: String,
         entityId: String,
