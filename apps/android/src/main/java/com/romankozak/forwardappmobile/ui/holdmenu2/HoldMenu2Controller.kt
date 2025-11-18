@@ -3,11 +3,22 @@ package com.romankozak.forwardappmobile.ui.holdmenu2
 import android.util.Log
 import androidx.compose.runtime.*
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.Density
 
 @Stable
 class HoldMenu2Controller {
     var state by mutableStateOf(HoldMenu2State())
         private set
+
+    private var screenWidth: Float = 0f
+    private var screenHeight: Float = 0f
+    private var density: Density? = null
+
+    fun setScreenDimensions(width: Float, height: Float, density: Density) {
+        this.screenWidth = width
+        this.screenHeight = height
+        this.density = density
+    }
 
     fun open(
         anchor: Offset,
@@ -16,20 +27,54 @@ class HoldMenu2Controller {
         onSelect: (Int) -> Unit
     ) {
         Log.e("HOLDMENU2", "📝 Controller.open() called, items=$items")
+
+        val currentDensity = density
+        if (currentDensity == null || screenWidth == 0f || screenHeight == 0f) {
+            Log.e("HOLDMENU2", "⚠️ Screen dimensions not set!")
+            return
+        }
+
+        // Розраховуємо layout меню
+        val layout = HoldMenu2Geometry.calculateMenuLayout(
+            anchor = anchor,
+            itemCount = items.size,
+            density = currentDensity,
+            screenWidth = screenWidth,
+            screenHeight = screenHeight,
+        )
+
+        // Розраховуємо початковий hover
+        val initialHover = HoldMenu2Geometry.calculateHoverIndex(
+            fingerPosition = touch,
+            layout = layout,
+            itemCount = items.size,
+        )
+
         state = state.copy(
             isOpen = true,
             anchor = anchor,
             touch = touch,
             items = items,
             onItemSelected = onSelect,
-            hoverIndex = -1
+            hoverIndex = initialHover,
+            layout = layout,
         )
-        Log.e("HOLDMENU2", "📝 State updated: isOpen=${state.isOpen}, items=${state.items.size}")
+
+        Log.e("HOLDMENU2", "📝 State updated: isOpen=${state.isOpen}, items=${state.items.size}, hover=$initialHover")
     }
 
-    fun setHover(index: Int) {
-        if (state.hoverIndex != index) {
-            state = state.copy(hoverIndex = index)
+    fun updateHover(fingerPosition: Offset) {
+        val layout = state.layout ?: return
+
+        val newHover = HoldMenu2Geometry.calculateHoverIndex(
+            fingerPosition = fingerPosition,
+            layout = layout,
+            itemCount = state.items.size,
+        )
+
+        if (state.hoverIndex != newHover) {
+            Log.e("HOLDMENU2", "🎯 Hover: $newHover (pos=$fingerPosition)")
+            state = state.copy(hoverIndex = newHover)
         }
     }
 

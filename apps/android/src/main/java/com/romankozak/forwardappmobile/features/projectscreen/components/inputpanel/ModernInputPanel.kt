@@ -74,6 +74,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.romankozak.forwardappmobile.features.projectscreen.ProjectScreenViewModel
 import com.romankozak.forwardappmobile.ui.holdmenu.HoldMenuOverlay
+import com.romankozak.forwardappmobile.ui.holdmenu2.HoldMenu2Button
 import com.romankozak.forwardappmobile.ui.holdmenu2.HoldMenu2Controller
 
 // TODO: Restore from theme
@@ -1394,6 +1395,44 @@ fun MinimalInputPanel(
                 contentDescription = "menu",
                 tint = Color.White
             )
+        }
+    }
+}
+
+@Composable
+fun MinimalInputPanelV2(
+    inputMode: InputMode,
+    onInputModeSelected: (InputMode) -> Unit,
+    menuItems: List<String>,
+    onMenuItemSelected: (Int) -> Unit,
+    holdMenuController: HoldMenu2Controller,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(bottom = 32.dp)
+            .navigationBarsPadding(),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        HoldMenu2Button(
+            items = menuItems,
+            onSelect = onMenuItemSelected,
+            controller = holdMenuController,
+            modifier = Modifier
+                .size(64.dp)
+                .background(Color(0xFF222222), RoundedCornerShape(16.dp))
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.MoreVert,
+                    contentDescription = "menu",
+                    tint = Color.White
+                )
+            }
         }
     }
 }

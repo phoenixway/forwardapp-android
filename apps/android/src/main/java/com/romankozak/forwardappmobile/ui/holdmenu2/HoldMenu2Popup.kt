@@ -16,31 +16,20 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlin.math.roundToInt
 
 @Composable
 fun HoldMenu2Popup(state: HoldMenu2State) {
+    val layout = state.layout ?: return
+
     Log.e("HOLDMENU2", "🎨 Popup rendering, items=${state.items.size}, hover=${state.hoverIndex}")
 
     val density = LocalDensity.current
-
-    val menuWidth = 220.dp
-    val itemH = 48.dp
-
-    val menuWidthPx = with(density) { menuWidth.toPx() }
-    val menuHeightPx = with(density) { (itemH * state.items.size).toPx() }
-
-    val desiredX = state.anchor.x - menuWidthPx / 2f
-    val desiredY = state.anchor.y - menuHeightPx - 16f
-
-    val offsetX = desiredX.roundToInt().coerceAtLeast(8)
-    val offsetY = desiredY.roundToInt().coerceAtLeast(8)
-
-    Log.e("HOLDMENU2", "📐 Popup at ($offsetX, $offsetY)")
+    val menuWidth = with(density) { layout.menuWidth.toDp() }
+    val itemHeight = with(density) { layout.itemHeight.toDp() }
 
     Box(
         modifier = Modifier
-            .offset { IntOffset(offsetX, offsetY) }
+            .offset { layout.menuTopLeft }
             .width(menuWidth)
             .background(
                 Color(0xFF2A2A2A),
@@ -59,7 +48,7 @@ fun HoldMenu2Popup(state: HoldMenu2State) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(itemH)
+                        .height(itemHeight)
                         .scale(scale)
                         .background(
                             if (isHover) Color(0xFF3A3A3A) else Color.Transparent,

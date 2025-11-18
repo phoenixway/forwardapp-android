@@ -9,5 +9,5 @@ data class HoldMenu2State(
     val items: List<String> = emptyList(),
     val hoverIndex: Int = -1,
     val onItemSelected: ((Int) -> Unit)? = null,
+    val layout: HoldMenu2Geometry.MenuLayout? = null,
 )
-
