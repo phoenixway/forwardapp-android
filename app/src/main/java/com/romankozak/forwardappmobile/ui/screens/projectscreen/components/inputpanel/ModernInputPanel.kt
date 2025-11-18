@@ -57,6 +57,11 @@ import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.domain.ner.ReminderParseResult
 import com.romankozak.forwardappmobile.ui.theme.LocalInputPanelColors
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Button
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenuItem
+import androidx.compose.material.icons.outlined.ListAlt
+import androidx.compose.material.icons.outlined.Dashboard
 import kotlinx.coroutines.delay
 
 // ------------------- STATE ---------------------
@@ -110,6 +115,8 @@ data class OptionsMenuActions(
 
 // ------------------- VIEW TOGGLE ---------------------
 
+
+
 @Composable
 private fun ViewModeToggle(
   currentView: ProjectViewMode,
@@ -118,7 +125,28 @@ private fun ViewModeToggle(
   onInputModeSelected: (InputMode) -> Unit,
   contentColor: Color,
   onToggleNavPanelMode: () -> Unit,
+  holdMenuController: HoldMenu2Controller,
 ) {
+    val availableViews = remember(isProjectManagementEnabled) {
+        ProjectViewMode.values().filter {
+            it != ProjectViewMode.ADVANCED || isProjectManagementEnabled
+        }
+    }
+
+    val menuItems = remember(availableViews) {
+        availableViews.map { viewMode ->
+            HoldMenuItem(
+                label = viewMode.name.replaceFirstChar { it.titlecase() },
+                icon = when (viewMode) {
+                    ProjectViewMode.BACKLOG -> Icons.Outlined.ListAlt
+                    ProjectViewMode.INBOX -> Icons.Outlined.Notes
+                    ProjectViewMode.ADVANCED -> Icons.Outlined.Dashboard
+                    ProjectViewMode.ATTACHMENTS -> Icons.Default.Attachment
+                }
+            )
+        }
+    }
+
   Surface(
     shape = RoundedCornerShape(16.dp),
     color = contentColor.copy(alpha = 0.1f),
@@ -139,45 +167,36 @@ private fun ViewModeToggle(
       // Separator
       Box(modifier = Modifier.width(1.dp).height(24.dp).background(contentColor.copy(alpha = 0.1f)))
 
-      val availableViews =
-        ProjectViewMode.values().filter {
-                          it != ProjectViewMode.ADVANCED || isProjectManagementEnabled        }
-      availableViews.forEach { viewMode ->
-        val isSelected = currentView == viewMode
-        IconButton(
-          onClick = {
-            onViewChange(viewMode)
-            val newMode =
-              when (viewMode) {
-                ProjectViewMode.INBOX -> InputMode.AddQuickRecord
-                ProjectViewMode.ADVANCED -> InputMode.AddQuickRecord
-                else -> InputMode.AddGoal
-              }
-            onInputModeSelected(newMode)
-            onToggleNavPanelMode()
-          },
-          modifier =
-            Modifier.size(36.dp)
-              .background(
-                color = if (isSelected) contentColor.copy(alpha = 0.2f) else Color.Transparent,
-                shape = RoundedCornerShape(16.dp),
-              ),
+        HoldMenu2Button(
+            items = menuItems,
+            controller = holdMenuController,
+            onSelect = { index ->
+                val selectedViewMode = availableViews[index]
+                onViewChange(selectedViewMode)
+                val newMode = when (selectedViewMode) {
+                    ProjectViewMode.INBOX, ProjectViewMode.ADVANCED -> InputMode.AddQuickRecord
+                    else -> InputMode.AddGoal
+                }
+                onInputModeSelected(newMode)
+                onToggleNavPanelMode() // Close panel after selection
+            },
+            modifier = Modifier.size(40.dp).padding(2.dp)
         ) {
-          Icon(
-            imageVector =
-              when (viewMode) {
+            val currentIcon = when (currentView) {
                 ProjectViewMode.BACKLOG -> Icons.Outlined.ListAlt
                 ProjectViewMode.INBOX -> Icons.Outlined.Notes
                 ProjectViewMode.ADVANCED -> Icons.Outlined.Dashboard
                 ProjectViewMode.ATTACHMENTS -> Icons.Default.Attachment
-              },
-            contentDescription = viewMode.name,
-            modifier = Modifier.size(18.dp),
-            tint = contentColor,
-          )
+            }
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                Icon(
+                    imageVector = currentIcon,
+                    contentDescription = "Change View Mode",
+                    modifier = Modifier.size(18.dp),
+                    tint = contentColor,
+                )
+            }
         }
-      }
-
     }
   }
 }
@@ -492,6 +511,7 @@ private fun NavigationBar(
   actions: NavPanelActions,
   contentColor: Color,
   modifier: Modifier = Modifier,
+  holdMenuController: HoldMenu2Controller,
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val availableWidth = maxWidth
@@ -557,6 +577,7 @@ private fun NavigationBar(
                         onInputModeSelected = actions.onInputModeSelected,
                         contentColor = contentColor,
                         onToggleNavPanelMode = actions.onToggleNavPanelMode,
+                        holdMenuController = holdMenuController,
                     )
                 } else {
                     IconButton(onClick = actions.onToggleNavPanelMode, modifier = Modifier.size(40.dp)) {
@@ -626,6 +647,7 @@ private fun NerIndicator(isActive: Boolean, hasText: Boolean, modifier: Modifier
 @Composable
 fun ModernInputPanel(
   modifier: Modifier = Modifier,
+  holdMenuController: HoldMenu2Controller,
   inputValue: TextFieldValue,
   inputMode: InputMode,
   onValueChange: (TextFieldValue) -> Unit,
@@ -819,7 +841,7 @@ fun ModernInputPanel(
           AutocompleteSuggestions(suggestions = suggestions, onSuggestionClick = onSuggestionClick)
         }
       }
-      NavigationBar(state = state, actions = actions, contentColor = panelColors.contentColor)
+      NavigationBar(state = state, actions = actions, contentColor = panelColors.contentColor, holdMenuController = holdMenuController)
 
       AnimatedVisibility(
         visible = reminderParseResult != null,

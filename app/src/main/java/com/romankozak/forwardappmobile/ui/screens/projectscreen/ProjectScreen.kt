@@ -61,8 +61,9 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.GoalDeta
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.ProjectDisplayPropertiesDialog
 import com.romankozak.forwardappmobile.ui.shared.InProgressIndicator
 import kotlinx.coroutines.delay
-
-
+import androidx.compose.ui.zIndex
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Overlay
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.rememberHoldMenu2
 
 
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -172,6 +173,8 @@ private fun ProjectScaffold(
     var showRemindersListDialog by remember { mutableStateOf(false) }
     var selectedItemForReminders by remember { mutableStateOf<ListItemContent?>(null) }
 
+    val holdMenuController = rememberHoldMenu2()
+
     val targetBackgroundColor = MaterialTheme.colorScheme.surface
     val animatedBackgroundColor by animateColorAsState(
         targetValue = targetBackgroundColor,
@@ -275,92 +278,100 @@ private fun ProjectScaffold(
             null
         }
 
-    Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(animatedBackgroundColor),
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        topBar = {
-            val topBarContainerColor = MaterialTheme.colorScheme.surfaceContainer
-            with(sharedTransitionScope) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .sharedElement(
-                            sharedContentState = rememberSharedContentState(key = "project-card-$projectId"),
-                            animatedVisibilityScope = animatedVisibilityScope,
-                            boundsTransform = { _, _ ->
-                                tween(durationMillis = 600, easing = FastOutSlowInEasing)
-                            }
-                        )
-                        .graphicsLayer {
-                            scaleX = glow
-                            scaleY = glow
-                        },
-                    shape = RoundedCornerShape(0.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                    colors = CardDefaults.cardColors(containerColor = topBarContainerColor),
-                ) {
-                    AdaptiveTopBar(
-                        isSelectionModeActive = uiState.isSelectionModeActive,
-                        project = project,
-                        selectedCount = uiState.selectedItemIds.size,
-                        areAllSelected = draggableItems.isNotEmpty() && (uiState.selectedItemIds.size == draggableItems.size),
-                        onClearSelection = { viewModel.selectionHandler.clearSelection() },
-                        onSelectAll = { viewModel.selectionHandler.selectAllItems() },
-                        onDelete = { viewModel.selectionHandler.deleteSelectedItems(uiState.selectedItemIds) },
-                        onMoreActions = { actionType ->
-                            viewModel.selectionHandler.onBulkActionRequest(
-                                actionType,
-                                uiState.selectedItemIds
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(animatedBackgroundColor),
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
+            topBar = {
+                val topBarContainerColor = MaterialTheme.colorScheme.surfaceContainer
+                with(sharedTransitionScope) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .sharedElement(
+                                sharedContentState = rememberSharedContentState(key = "project-card-$projectId"),
+                                animatedVisibilityScope = animatedVisibilityScope,
+                                boundsTransform = { _, _ ->
+                                    tween(durationMillis = 600, easing = FastOutSlowInEasing)
+                                }
                             )
-                        },
-                        onInboxClick = {
-                            val today = System.currentTimeMillis()
-                            navController.navigate("day_plan_screen/$today?startTab=INBOX")
-                        },
-                        onMarkAsComplete = { viewModel.selectionHandler.markSelectedAsComplete(uiState.selectedItemIds) },
-                        onMarkAsIncomplete = { viewModel.selectionHandler.markSelectedAsIncomplete(uiState.selectedItemIds) },
-                        currentViewMode = uiState.currentView,
-                        windowInsets = WindowInsets.statusBars,
-                    )
+                            .graphicsLayer {
+                                scaleX = glow
+                                scaleY = glow
+                            },
+                        shape = RoundedCornerShape(0.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                        colors = CardDefaults.cardColors(containerColor = topBarContainerColor),
+                    ) {
+                        AdaptiveTopBar(
+                            isSelectionModeActive = uiState.isSelectionModeActive,
+                            project = project,
+                            selectedCount = uiState.selectedItemIds.size,
+                            areAllSelected = draggableItems.isNotEmpty() && (uiState.selectedItemIds.size == draggableItems.size),
+                            onClearSelection = { viewModel.selectionHandler.clearSelection() },
+                            onSelectAll = { viewModel.selectionHandler.selectAllItems() },
+                            onDelete = { viewModel.selectionHandler.deleteSelectedItems(uiState.selectedItemIds) },
+                            onMoreActions = { actionType ->
+                                viewModel.selectionHandler.onBulkActionRequest(
+                                    actionType,
+                                    uiState.selectedItemIds
+                                )
+                            },
+                            onInboxClick = {
+                                val today = System.currentTimeMillis()
+                                navController.navigate("day_plan_screen/$today?startTab=INBOX")
+                            },
+                            onMarkAsComplete = { viewModel.selectionHandler.markSelectedAsComplete(uiState.selectedItemIds) },
+                            onMarkAsIncomplete = { viewModel.selectionHandler.markSelectedAsIncomplete(uiState.selectedItemIds) },
+                            currentViewMode = uiState.currentView,
+                            windowInsets = WindowInsets.statusBars,
+                        )
+                    }
                 }
+            },
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            bottomBar = {
+                ProjectBottomBar(
+                    viewModel = viewModel,
+                    navController = navController,
+                    uiState = uiState,
+                    lastOngoingActivity = lastOngoingActivity,
+                    canGoBack = canGoBack,
+                    canGoForward = canGoForward,
+                    menuExpanded = menuExpanded,
+                    onMenuExpandedChange = { menuExpanded = it },
+                    reminderParseResult = reminderParseResult,
+                    suggestions = suggestions,
+                    project = project,
+                    onShowDisplayPropertiesClick = viewModel::onShowDisplayPropertiesDialog,
+                    holdMenuController = holdMenuController
+                )
             }
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        bottomBar = {
-            ProjectBottomBar(
+        ) { paddingValues ->
+            GoalDetailContent(
+                modifier = Modifier
+                    .padding(paddingValues)
+                    .glitch(trigger = uiState.currentView),
                 viewModel = viewModel,
-                navController = navController,
                 uiState = uiState,
-                lastOngoingActivity = lastOngoingActivity,
-                canGoBack = canGoBack,
-                canGoForward = canGoForward,
-                menuExpanded = menuExpanded,
-                onMenuExpandedChange = { menuExpanded = it },
-                reminderParseResult = reminderParseResult,
-                suggestions = suggestions,
-                project = project,
-                onShowDisplayPropertiesClick = viewModel::onShowDisplayPropertiesDialog
+                listState = listState,
+                inboxListState = inboxListState,
+                onEditLog = viewModel::onEditLogEntry,
+                onDeleteLog = viewModel::onDeleteLogEntry,
+                onSaveArtifact = viewModel::onSaveArtifact,
+                onEditArtifact = viewModel::onEditArtifact,
+                onRemindersClick = { item ->
+                    selectedItemForReminders = item
+                    showRemindersListDialog = true
+                }
             )
         }
-    ) { paddingValues ->
-        GoalDetailContent(
-            modifier = Modifier
-                .padding(paddingValues)
-                .glitch(trigger = uiState.currentView),
-            viewModel = viewModel,
-            uiState = uiState,
-            listState = listState,
-            inboxListState = inboxListState,
-            onEditLog = viewModel::onEditLogEntry,
-            onDeleteLog = viewModel::onDeleteLogEntry,
-            onSaveArtifact = viewModel::onSaveArtifact,
-            onEditArtifact = viewModel::onEditArtifact,
-            onRemindersClick = { item ->
-                selectedItemForReminders = item
-                showRemindersListDialog = true
-            }
+
+        HoldMenu2Overlay(
+            controller = holdMenuController,
+            modifier = Modifier.fillMaxSize().zIndex(10f)
         )
     }
 
@@ -386,7 +397,8 @@ private fun ProjectBottomBar(
     reminderParseResult: ReminderParseResult?,
     suggestions: List<String>,
     project: Project?,
-    onShowDisplayPropertiesClick: () -> Unit
+    onShowDisplayPropertiesClick: () -> Unit,
+    holdMenuController: com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller
 ) {
     val indicatorState = remember { com.romankozak.forwardappmobile.ui.shared.InProgressIndicatorState(isInitiallyExpanded = false) }
 
@@ -407,6 +419,7 @@ private fun ProjectBottomBar(
             exit = slideOutVertically { it } + fadeOut(),
         ) {
             ModernInputPanel(
+                holdMenuController = holdMenuController,
                 inputValue = uiState.inputValue,
                 inputMode = uiState.inputMode,
                 onValueChange = { viewModel.inputHandler.onInputTextChanged(it, uiState.inputMode) },
