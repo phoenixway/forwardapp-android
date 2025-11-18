@@ -470,6 +470,31 @@ constructor(
             }
           )
         }
+      is MainScreenEvent.ExportAttachments -> {
+          viewModelScope.launch {
+              val result = projectActionsUseCase.exportAttachments()
+              _uiEventChannel.send(
+                  if (result.isSuccess) {
+                      ProjectUiEvent.ShowToast(result.getOrNull() ?: "Attachments export successful")
+                  } else {
+                      ProjectUiEvent.ShowToast("Attachments export error: ${result.exceptionOrNull()?.message}")
+                  }
+              )
+          }
+      }
+      is MainScreenEvent.ImportAttachmentsFromFile -> {
+          viewModelScope.launch {
+              val result = projectActionsUseCase.importAttachments(event.uri)
+              dialogUseCase.dismissDialog()
+              _uiEventChannel.send(
+                  if (result.isSuccess) {
+                      ProjectUiEvent.ShowToast(result.getOrNull() ?: "Attachments import successful")
+                  } else {
+                      ProjectUiEvent.ShowToast("Attachments import error: ${result.exceptionOrNull()?.message}")
+                  }
+              )
+          }
+      }
       is MainScreenEvent.NavigateToChat -> {
         viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate(CHAT_ROUTE)) }
       }

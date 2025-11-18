@@ -98,6 +98,8 @@ sealed interface MainScreenEvent {
     data object ShowWifiImportDialog : MainScreenEvent
 
     data object ExportToFile : MainScreenEvent
+    data object ExportAttachments : MainScreenEvent
+    data class ImportAttachmentsFromFile(val uri: Uri) : MainScreenEvent
 
     object NavigateToChat : MainScreenEvent
 

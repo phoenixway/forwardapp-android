@@ -17,137 +17,53 @@ class DatabaseInitializer @Inject constructor(
     private val context: Context
 ) {
     suspend fun prePopulate() {
-        val specialProject = projectDao.getProjectsByType(ProjectType.SYSTEM.name).firstOrNull()
-        if (specialProject == null) {
-            prePopulateProjects(projectDao)
-        }
+        prePopulateProjects(projectDao)
     }
 
     private suspend fun prePopulateProjects(projectDao: ProjectDao) {
-        val personalManagementProjectId = UUID.randomUUID().toString()
-        val personalManagementProject = Project(
-            id = personalManagementProjectId,
-            name = "personal-management",
+        val personalManagementProjectId = ensureProjectExists(projectDao, ReservedProjectKeys.PERSONAL_MANAGEMENT, "personal-management", null, ProjectType.SYSTEM, null)
+        val strategicGroupId = ensureProjectExists(projectDao, ReservedProjectKeys.STRATEGIC, "strategic", personalManagementProjectId, ProjectType.RESERVED, ReservedGroup.StrategicGroup)
+        val strategicBeaconsGroupId = ensureProjectExists(projectDao, ReservedProjectKeys.STRATEGIC_BEACONS, "strategic-beacons", strategicGroupId, ProjectType.RESERVED, ReservedGroup.MainBeaconsGroup)
+        val weekProjectId = ensureProjectExists(projectDao, ReservedProjectKeys.WEEK, "week", personalManagementProjectId, ProjectType.RESERVED, ReservedGroup.Strategic)
+        val todayProjectId = ensureProjectExists(projectDao, ReservedProjectKeys.TODAY, "today", personalManagementProjectId, ProjectType.RESERVED, ReservedGroup.Inbox)
+        ensureProjectExists(projectDao, ReservedProjectKeys.MAIN_BEACONS, "main-beacons", personalManagementProjectId, ProjectType.RESERVED, ReservedGroup.MainBeacons)
+        ensureProjectExists(projectDao, ReservedProjectKeys.MISSION, "mission", strategicBeaconsGroupId, ProjectType.RESERVED, ReservedGroup.MainBeacons)
+        ensureProjectExists(projectDao, ReservedProjectKeys.LONG_TERM_STRATEGY, "long-term-strategy", strategicBeaconsGroupId, ProjectType.RESERVED, ReservedGroup.Strategic)
+        ensureProjectExists(projectDao, ReservedProjectKeys.STRATEGIC_PROGRAMS, "strategic-programs", strategicBeaconsGroupId, ProjectType.RESERVED, ReservedGroup.Strategic)
+        ensureProjectExists(projectDao, ReservedProjectKeys.MEDIUM_TERM_STRATEGY, "medium-term-strategy", personalManagementProjectId, ProjectType.RESERVED, ReservedGroup.Strategic)
+        ensureProjectExists(projectDao, ReservedProjectKeys.ACTIVE_QUESTS, "active-quests", weekProjectId, ProjectType.RESERVED, ReservedGroup.Strategic)
+        ensureProjectExists(projectDao, ReservedProjectKeys.STRATEGIC_INBOX, "strategic-inbox", strategicGroupId, ProjectType.RESERVED, ReservedGroup.Strategic)
+        ensureProjectExists(projectDao, ReservedProjectKeys.STRATEGIC_REVIEW, "strategic-review", strategicGroupId, ProjectType.RESERVED, ReservedGroup.Strategic)
+        ensureProjectExists(projectDao, ReservedProjectKeys.INBOX, "inbox", todayProjectId, ProjectType.RESERVED, ReservedGroup.Inbox)
+    }
+
+    private suspend fun ensureProjectExists(
+        projectDao: ProjectDao,
+        systemKey: String,
+        name: String,
+        parentId: String?,
+        projectType: ProjectType,
+        reservedGroup: ReservedGroup?
+    ): String {
+        val existingProject = projectDao.getProjectBySystemKey(systemKey)
+        if (existingProject != null) {
+            return existingProject.id
+        }
+
+        val newProject = Project(
+            id = UUID.randomUUID().toString(),
+            systemKey = systemKey,
+            name = name,
+            parentId = parentId,
+            projectType = projectType,
+            reservedGroup = reservedGroup,
             isExpanded = false,
-            projectType = ProjectType.SYSTEM,
-            parentId = null,
             description = null,
-            systemKey = ReservedProjectKeys.PERSONAL_MANAGEMENT,
             createdAt = System.currentTimeMillis(),
             updatedAt = null,
             tags = null
         )
-
-        val strategicGroupId = UUID.randomUUID().toString()
-        val strategicGroupProject = Project(
-            id = strategicGroupId,
-            name = "strategic",
-            parentId = personalManagementProjectId,
-            systemKey = ReservedProjectKeys.STRATEGIC,
-            isExpanded = false,
-            projectType = ProjectType.RESERVED,
-            reservedGroup = ReservedGroup.StrategicGroup,
-            description = null,
-            createdAt = System.currentTimeMillis(),
-            updatedAt = null,
-            tags = null
-        )
-
-        val strategicBeaconsGroupId = UUID.randomUUID().toString()
-        val strategicBeaconsGroupProject = Project(
-            id = strategicBeaconsGroupId,
-            name = "strategic-beacons",
-            parentId = strategicGroupId,
-            systemKey = ReservedProjectKeys.STRATEGIC_BEACONS,
-            isExpanded = false,
-            projectType = ProjectType.RESERVED,
-            reservedGroup = ReservedGroup.MainBeaconsGroup,
-            description = null,
-            createdAt = System.currentTimeMillis(),
-            updatedAt = null,
-            tags = null
-        )
-
-        val weekProjectId = UUID.randomUUID().toString()
-        val weekProject = Project(
-            id = weekProjectId,
-            name = "week",
-            parentId = personalManagementProjectId,
-            systemKey = ReservedProjectKeys.WEEK,
-            isExpanded = false,
-            projectType = ProjectType.RESERVED,
-            reservedGroup = ReservedGroup.Strategic,
-            description = null,
-            createdAt = System.currentTimeMillis(),
-            updatedAt = null,
-            tags = null,
-        )
-
-        val todayProjectId = UUID.randomUUID().toString()
-        val todayProject =
-            Project(
-                id = todayProjectId,
-                name = "today",
-                parentId = personalManagementProjectId,
-                systemKey = ReservedProjectKeys.TODAY,
-                isExpanded = false,
-                projectType = ProjectType.RESERVED,
-                reservedGroup = ReservedGroup.Inbox,
-                description = null,
-                createdAt = System.currentTimeMillis(),
-                updatedAt = null,
-                tags = null,
-            )
-
-        val mainBeaconsProjectId = UUID.randomUUID().toString()
-        val mainBeaconsProject =
-            Project(
-                id = mainBeaconsProjectId,
-                name = "main-beacons",
-                parentId = personalManagementProjectId,
-                systemKey = ReservedProjectKeys.MAIN_BEACONS,
-                isExpanded = false,
-                projectType = ProjectType.RESERVED,
-                reservedGroup = ReservedGroup.MainBeacons,
-                description = null,
-                createdAt = System.currentTimeMillis(),
-                updatedAt = null,
-                tags = null,
-            )
-
-        val projects = mutableListOf(
-            personalManagementProject,
-            strategicGroupProject,
-            strategicBeaconsGroupProject,
-            weekProject,
-            todayProject,
-            mainBeaconsProject,
-            Project(id = UUID.randomUUID().toString(), name = "mission", parentId = strategicBeaconsGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = ReservedGroup.MainBeacons, description = null, systemKey = ReservedProjectKeys.MISSION, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
-            Project(id = UUID.randomUUID().toString(), name = "long-term-strategy", parentId = strategicBeaconsGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = ReservedGroup.Strategic, description = null, systemKey = ReservedProjectKeys.LONG_TERM_STRATEGY, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
-            Project(id = UUID.randomUUID().toString(), name = "strategic-programs", parentId = strategicBeaconsGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = ReservedGroup.Strategic, description = null, systemKey = ReservedProjectKeys.STRATEGIC_PROGRAMS, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
-            Project(id = UUID.randomUUID().toString(), name = "medium-term-strategy", parentId = personalManagementProjectId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = ReservedGroup.Strategic, description = null, systemKey = ReservedProjectKeys.MEDIUM_TERM_STRATEGY, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
-            Project(id = UUID.randomUUID().toString(), name = "active-quests", parentId = weekProjectId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = ReservedGroup.Strategic, description = null, systemKey = ReservedProjectKeys.ACTIVE_QUESTS, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
-            Project(id = UUID.randomUUID().toString(), name = "strategic-inbox", parentId = strategicGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = ReservedGroup.Strategic, description = null, systemKey = ReservedProjectKeys.STRATEGIC_INBOX, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
-            Project(id = UUID.randomUUID().toString(), name = "strategic-review", parentId = strategicGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = ReservedGroup.Strategic, description = null, systemKey = ReservedProjectKeys.STRATEGIC_REVIEW, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
-        )
-
-        val inboxProjectId = UUID.randomUUID().toString()
-        val inboxProject =
-            Project(
-                id = inboxProjectId,
-                name = "inbox",
-                parentId = todayProjectId,
-                systemKey = ReservedProjectKeys.INBOX,
-                isExpanded = false,
-                projectType = ProjectType.RESERVED,
-                reservedGroup = ReservedGroup.Inbox,
-                description = null,
-                createdAt = System.currentTimeMillis(),
-                updatedAt = null,
-                tags = null,
-            )
-        projects.add(inboxProject)
-
-        projectDao.insertProjects(projects)
+        projectDao.insert(newProject)
+        return newProject.id
     }
 }

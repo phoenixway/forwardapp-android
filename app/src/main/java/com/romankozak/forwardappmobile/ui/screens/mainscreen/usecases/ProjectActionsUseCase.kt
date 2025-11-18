@@ -137,8 +137,15 @@ class ProjectActionsUseCase @Inject constructor(
 
     suspend fun exportToFile() = withContext(ioDispatcher) { syncRepository.exportFullBackupToFile() }
 
+    suspend fun exportAttachments(): Result<String> {
+        return withContext(ioDispatcher) { syncRepository.exportAttachmentsToFile() }
+    }
+
     suspend fun onFullImportConfirmed(uri: Uri) =
         withContext(ioDispatcher) { syncRepository.importFullBackupFromFile(uri) }
+
+    suspend fun importAttachments(uri: Uri) =
+        withContext(ioDispatcher) { syncRepository.importAttachmentsFromFile(uri) }
 
     suspend fun onBottomNavExpandedChange(expanded: Boolean) =
         withContext(ioDispatcher) { settingsRepository.saveBottomNavExpanded(expanded) }

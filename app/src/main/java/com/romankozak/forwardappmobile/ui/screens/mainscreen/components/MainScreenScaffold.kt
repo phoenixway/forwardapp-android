@@ -61,6 +61,11 @@ fun MainScreenScaffold(
             uri?.let { onEvent(MainScreenEvent.ImportFromFileRequest(it)) }
         }
 
+    val importAttachmentsLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
+            uri?.let { onEvent(MainScreenEvent.ImportAttachmentsFromFile(it)) }
+        }
+
     val backHandlerEnabled by remember(uiState.subStateStack, uiState.currentBreadcrumbs, uiState.areAnyProjectsExpanded) {
         derivedStateOf {
             val enabled =
@@ -98,6 +103,8 @@ fun MainScreenScaffold(
                 onShowWifiImport = { onEvent(MainScreenEvent.ShowWifiImportDialog) },
                 onExportToFile = { onEvent(MainScreenEvent.ExportToFile) },
                 onImportFromFile = { importLauncher.launch("application/json") },
+                onExportAttachments = { onEvent(MainScreenEvent.ExportAttachments) },
+                onImportAttachments = { importAttachmentsLauncher.launch("application/json") },
                 onShowSettings = { onEvent(MainScreenEvent.GoToSettings) },
                 onShowAbout = { onEvent(MainScreenEvent.ShowAboutDialog) },
                 onShowReminders = { onEvent(MainScreenEvent.GoToReminders) },

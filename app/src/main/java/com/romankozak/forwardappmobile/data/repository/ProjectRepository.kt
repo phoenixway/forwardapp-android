@@ -347,9 +347,6 @@ constructor(
         newParentId: String?,
         allowSystemProjectMoves: Boolean = false,
     ) {
-        if (!allowSystemProjectMoves && projectToMove.projectType != ProjectType.DEFAULT) {
-            return
-        }
         val projectFromDb = projectDao.getProjectById(projectToMove.id) ?: return
         val oldParentId = projectFromDb.parentId
 

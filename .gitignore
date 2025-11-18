@@ -16,4 +16,4 @@ build/reports/configuration-cache/
 # Gradle / Kotlin / Android build artifacts
 **/build/
 **/build/**
-
+apps/android/build/

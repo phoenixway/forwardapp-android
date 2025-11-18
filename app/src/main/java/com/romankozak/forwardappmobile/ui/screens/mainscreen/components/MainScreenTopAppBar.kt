@@ -55,6 +55,8 @@ fun MainScreenTopAppBar(
     onShowWifiImport: () -> Unit,
     onExportToFile: () -> Unit,
     onImportFromFile: () -> Unit,
+    onExportAttachments: () -> Unit,
+    onImportAttachments: () -> Unit,
     onShowSettings: () -> Unit,
     onShowAbout: () -> Unit,
     onShowReminders: () -> Unit,
@@ -139,6 +141,20 @@ fun MainScreenTopAppBar(
                         text = { Text("Import from file") },
                         onClick = {
                             onImportFromFile()
+                            menuExpanded = false
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Export Attachments (JSON)") },
+                        onClick = {
+                            onExportAttachments()
+                            menuExpanded = false
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Import Attachments (JSON)") },
+                        onClick = {
+                            onImportAttachments()
                             menuExpanded = false
                         },
                     )

@@ -47,6 +47,9 @@ interface ProjectDao {
     @Query("SELECT * FROM projects WHERE id = :id")
     fun getProjectByIdStream(id: String): Flow<Project?>
 
+    @Query("SELECT * FROM projects WHERE system_key = :systemKey")
+    suspend fun getProjectBySystemKey(systemKey: String): Project?
+
     @Query("UPDATE projects SET goal_order = :order WHERE id = :projectId")
     suspend fun updateOrder(
         projectId: String,

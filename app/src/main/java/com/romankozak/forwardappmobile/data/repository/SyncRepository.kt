@@ -32,6 +32,7 @@ import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.data.sync.DatabaseContent
 import com.romankozak.forwardappmobile.data.sync.DesktopBackupFile
 import com.romankozak.forwardappmobile.data.sync.FullAppBackup
+import com.romankozak.forwardappmobile.data.sync.AttachmentsBackup
 import com.romankozak.forwardappmobile.data.sync.ReservedGroupAdapter
 import com.romankozak.forwardappmobile.data.sync.toGoal
 import com.romankozak.forwardappmobile.data.sync.toProject
@@ -153,7 +154,7 @@ constructor(
                 linkItemEntities = linkItemDao.getAllEntities(),
                 inboxRecords = inboxRecordDao.getAll(),
                 projectExecutionLogs = projectManagementDao.getAllLogs(),
-                recentProjectEntries = null,
+                recentProjectEntries = emptyList(),
                 attachments = attachmentDao.getAll(),
                 projectAttachmentCrossRefs = attachmentDao.getAllProjectAttachmentCrossRefs(),
             )
@@ -163,6 +164,99 @@ constructor(
 
         val fullBackup = FullAppBackup(database = databaseContent, settings = settingsContent)
         return gson.toJson(fullBackup)
+    }
+
+    suspend fun exportAttachmentsToFile(): Result<String> =
+        try {
+            val backupJson = createAttachmentsBackupJsonString()
+            val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+            val fileName = "forward_app_attachments_backup_$timestamp.json"
+
+            val contentResolver = context.contentResolver
+            val contentValues =
+                ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                    put(MediaStore.MediaColumns.MIME_TYPE, "application/json")
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        put(MediaStore.MediaColumns.RELATIVE_PATH, "Download/ForwardApp")
+                    }
+                }
+
+            val uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+            if (uri != null) {
+                contentResolver.openOutputStream(uri)?.use { it.write(backupJson.toByteArray()) }
+                Result.success("Attachments backup saved to Downloads/ForwardApp.")
+            } else {
+                Result.failure(Exception("Failed to create file for attachments backup."))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error exporting attachments", e)
+            Result.failure(e)
+        }
+
+    suspend fun createAttachmentsBackupJsonString(): String {
+        val attachmentsBackup =
+            AttachmentsBackup(
+                documents = noteDocumentDao.getAllDocuments(),
+                documentItems = noteDocumentDao.getAllDocumentItems(),
+                checklists = checklistDao.getAllChecklists(),
+                checklistItems = checklistDao.getAllChecklistItems(),
+                linkItemEntities = linkItemDao.getAllEntities(),
+                attachments = attachmentDao.getAll(),
+                projectAttachmentCrossRefs = attachmentDao.getAllProjectAttachmentCrossRefs(),
+            )
+        return gson.toJson(attachmentsBackup)
+    }
+
+    suspend fun importAttachmentsFromFile(uri: Uri): Result<String> {
+        val IMPORT_TAG = "SyncRepo_AttachmentsImport"
+        try {
+            Log.d(IMPORT_TAG, "Starting attachments import from URI: $uri")
+            val jsonString =
+                context.contentResolver
+                    .openInputStream(uri)
+                    ?.bufferedReader()
+                    .use { it?.readText() }
+
+            if (jsonString.isNullOrBlank()) {
+                Log.e(IMPORT_TAG, "Error: Attachments backup file is empty or could not be read.")
+                return Result.failure(Exception("Attachments backup file is empty or could not be read."))
+            }
+            Log.d(IMPORT_TAG, "File read successfully. JSON size: ${jsonString.length} chars.")
+
+            val backupData =
+                try {
+                    gson.fromJson(jsonString, com.romankozak.forwardappmobile.data.sync.AttachmentsBackup::class.java)
+                } catch (parseError: Exception) {
+                    Log.e(IMPORT_TAG, "Failed to parse attachments backup JSON.", parseError)
+                    return Result.failure(parseError)
+                }
+            Log.d(IMPORT_TAG, "JSON parsed successfully.")
+
+            appDatabase.withTransaction {
+                Log.d(IMPORT_TAG, "Transaction: Inserting attachments data.")
+                noteDocumentDao.insertAllDocuments(backupData.documents)
+                Log.d(IMPORT_TAG, "  - Inserted ${backupData.documents.size} note documents.")
+                noteDocumentDao.insertAllDocumentItems(backupData.documentItems)
+                Log.d(IMPORT_TAG, "  - Inserted ${backupData.documentItems.size} note document items.")
+                checklistDao.insertChecklists(backupData.checklists)
+                Log.d(IMPORT_TAG, "  - Inserted ${backupData.checklists.size} checklists.")
+                checklistDao.insertItems(backupData.checklistItems)
+                Log.d(IMPORT_TAG, "  - Inserted ${backupData.checklistItems.size} checklist items.")
+                linkItemDao.insertAll(backupData.linkItemEntities)
+                Log.d(IMPORT_TAG, "  - Inserted ${backupData.linkItemEntities.size} link items.")
+                attachmentDao.insertAttachments(backupData.attachments)
+                Log.d(IMPORT_TAG, "  - Inserted ${backupData.attachments.size} attachments.")
+                attachmentDao.insertProjectAttachmentLinks(backupData.projectAttachmentCrossRefs)
+                Log.d(IMPORT_TAG, "  - Inserted ${backupData.projectAttachmentCrossRefs.size} attachment cross-refs.")
+            }
+
+            Log.i(IMPORT_TAG, "Attachments import completed successfully.")
+            return Result.success("Attachments imported successfully!")
+        } catch (e: Exception) {
+            Log.e(IMPORT_TAG, "A critical error occurred during attachments import.", e)
+            return Result.failure(e)
+        }
     }
 
     suspend fun importFullBackupFromFile(uri: Uri): Result<String> {
@@ -179,9 +273,8 @@ constructor(
                 Log.e(IMPORT_TAG, "Помилка: файл бекапу порожній або не вдалося прочитати.")
                 return Result.failure(Exception("Backup file is empty or could not be read."))
             }
-            Log.d(IMPORT_TAG, "Файл успішно прочитано.")
+            Log.d(IMPORT_TAG, "Файл успішно прочитано. Розмір: ${jsonString.length} символів.")
 
-            Log.d(IMPORT_TAG, "Отриманий JSON. Довжина = ${jsonString.length} символів.")
             Log.d(IMPORT_TAG, "Починаємо розбір JSON в об'єкт FullAppBackup...")
             val parseStartTime = System.currentTimeMillis()
             val backupData =
@@ -208,9 +301,21 @@ constructor(
             val backup = backupData.database
             Log.d(
                 IMPORT_TAG,
-                "Структура бекапу: projects=${backup.projects.size}, goals=${backup.goals.size}, " +
-                    "listItems=${backup.listItems.size}, noteDocs=${backup.documents?.size}, " +
-                    "checklists=${backup.checklists?.size}, linkItems=${backup.linkItemEntities?.size}",
+                "Дані з бекапу: \n" +
+                    "  - Projects: ${backup.projects.size}\n" +
+                    "  - Goals: ${backup.goals.size}\n" +
+                    "  - ListItems: ${backup.listItems.size}\n" +
+                    "  - NoteDocuments: ${backup.documents.size}\n" +
+                    "  - NoteDocumentItems: ${backup.documentItems.size}\n" +
+                    "  - Checklists: ${backup.checklists.size}\n" +
+                    "  - ChecklistItems: ${backup.checklistItems.size}\n" +
+                    "  - Attachments: ${backup.attachments.size}\n" +
+                    "  - Attachment CrossRefs: ${backup.projectAttachmentCrossRefs.size}\n" +
+                    "  - LinkItems: ${backup.linkItemEntities.size}\n" +
+                    "  - InboxRecords: ${backup.inboxRecords.size}\n" +
+                    "  - ActivityRecords: ${backup.activityRecords.size}\n" +
+                    "  - ProjectLogs: ${backup.projectExecutionLogs.size}\n" +
+                    "  - RecentEntries: ${backup.recentProjectEntries.size}"
             )
 
             val backupSettingsMap = backupData.settings?.settings ?: emptyMap()
@@ -253,7 +358,7 @@ constructor(
                 }
             Log.d(IMPORT_TAG, "Очищення ListItem завершено. Original: ${backup.listItems.size}, Cleaned: ${cleanedListItems.size}")
 
-            val recentItemsToInsert = backup.recentProjectEntries?.mapNotNull { entry ->
+            val recentItemsToInsert = backup.recentProjectEntries.mapNotNull { entry ->
                 val project = backup.projects.find { it.id == entry.projectId }
                 if (project != null) {
                     com.romankozak.forwardappmobile.data.database.models.RecentItem(
@@ -268,101 +373,64 @@ constructor(
                 }
             }
 
-            val backupChecklists = backup.checklists.orEmpty()
-            val backupChecklistItems = backup.checklistItems.orEmpty()
-
             Log.d(IMPORT_TAG, "Перед транзакцією. projectDao=${projectDao.hashCode()}")
             appDatabase.withTransaction {
                 Log.d(IMPORT_TAG, "Транзакція: очищення таблиць.")
                 projectManagementDao.deleteAllLogs()
-                Log.d(IMPORT_TAG, "  - logs очищено")
                 inboxRecordDao.deleteAll()
-                Log.d(IMPORT_TAG, "  - inbox очищено")
                 linkItemDao.deleteAll()
-                Log.d(IMPORT_TAG, "  - link_items очищено")
                 activityRecordDao.clearAll()
-                Log.d(IMPORT_TAG, "  - activity очищено")
                 listItemDao.deleteAll()
-                Log.d(IMPORT_TAG, "  - list_items очищено")
                 projectDao.deleteAll()
-                Log.d(IMPORT_TAG, "  - projects очищено")
                 goalDao.deleteAll()
-                Log.d(IMPORT_TAG, "  - goals очищено")
                 legacyNoteDao.deleteAll()
-                Log.d(IMPORT_TAG, "  - legacy_notes очищено")
-                noteDocumentDao.deleteAllDocuments()
-                Log.d(IMPORT_TAG, "  - note_documents очищено")
                 noteDocumentDao.deleteAllDocumentItems()
-                Log.d(IMPORT_TAG, "  - note_document_items очищено")
+                noteDocumentDao.deleteAllDocuments()
                 checklistDao.deleteAllChecklistItems()
-                Log.d(IMPORT_TAG, "  - checklist_items очищено")
                 checklistDao.deleteAllChecklists()
-                Log.d(IMPORT_TAG, "  - checklists очищено")
                 recentItemDao.deleteAll()
-                Log.d(IMPORT_TAG, "  - recent_items очищено")
                 attachmentDao.deleteAllProjectAttachmentLinks()
-                Log.d(IMPORT_TAG, "  - project_attachment_links очищено")
                 attachmentDao.deleteAll()
-                Log.d(IMPORT_TAG, "  - attachments очищено")
+                Log.d(IMPORT_TAG, "Всі таблиці очищено.")
 
                 Log.d(IMPORT_TAG, "Транзакція: вставка базових сутностей.")
                 goalDao.insertGoals(backup.goals)
-                Log.d(IMPORT_TAG, "  - goals вставлено: ${backup.goals.size}")
                 projectDao.insertProjects(cleanedProjects)
-                Log.d(IMPORT_TAG, "  - projects вставлено: ${cleanedProjects.size}")
                 listItemDao.insertItems(cleanedListItems)
-                Log.d(IMPORT_TAG, "  - list_items вставлено: ${cleanedListItems.size}")
+                Log.d(IMPORT_TAG, "  - Вставлено: ${backup.goals.size} goals, ${cleanedProjects.size} projects, ${cleanedListItems.size} listItems.")
 
-                backup.legacyNotes?.let {
-                    legacyNoteDao.insertAll(it.orEmpty())
-                    Log.d(IMPORT_TAG, "  - legacy_notes вставлено: ${it.size}")
+                legacyNoteDao.insertAll(backup.legacyNotes)
+                Log.d(IMPORT_TAG, "  - Вставлено: ${backup.legacyNotes.size} legacyNotes.")
+
+                noteDocumentDao.insertAllDocuments(backup.documents)
+                Log.d(IMPORT_TAG, "  - Вставлено: ${backup.documents.size} noteDocuments.")
+                noteDocumentDao.insertAllDocumentItems(backup.documentItems)
+                Log.d(IMPORT_TAG, "  - Вставлено: ${backup.documentItems.size} noteDocumentItems.")
+
+                if (backup.checklists.isNotEmpty()) {
+                    checklistDao.insertChecklists(backup.checklists)
+                    Log.d(IMPORT_TAG, "  - Вставлено: ${backup.checklists.size} checklists.")
                 }
-                backup.documents?.let {
-                    noteDocumentDao.insertAllDocuments(it.orEmpty())
-                    Log.d(IMPORT_TAG, "  - documents вставлено: ${it.size}")
-                }
-                backup.documentItems?.let {
-                    noteDocumentDao.insertAllDocumentItems(it.orEmpty())
-                    Log.d(IMPORT_TAG, "  - document_items вставлено: ${it.size}")
-                }
-                if (backupChecklists.isNotEmpty()) {
-                    checklistDao.insertChecklists(backupChecklists)
-                    Log.d(IMPORT_TAG, "  - checklists вставлено: ${backupChecklists.size}")
-                }
-                if (backupChecklistItems.isNotEmpty()) {
-                    checklistDao.insertItems(backupChecklistItems)
-                    Log.d(IMPORT_TAG, "  - checklist_items вставлено: ${backupChecklistItems.size}")
+                if (backup.checklistItems.isNotEmpty()) {
+                    checklistDao.insertItems(backup.checklistItems)
+                    Log.d(IMPORT_TAG, "  - Вставлено: ${backup.checklistItems.size} checklistItems.")
                 }
 
-                backup.activityRecords?.let {
-                    activityRecordDao.insertAll(it)
-                    Log.d(IMPORT_TAG, "  - activity_records вставлено: ${it.size}")
-                }
-                backup.linkItemEntities?.let {
-                    linkItemDao.insertAll(it)
-                    Log.d(IMPORT_TAG, "  - link_items вставлено: ${it.size}")
-                }
-                backup.inboxRecords?.let {
-                    inboxRecordDao.insertAll(it)
-                    Log.d(IMPORT_TAG, "  - inbox_records вставлено: ${it.size}")
-                }
-                backup.projectExecutionLogs?.let {
-                    projectManagementDao.insertAllLogs(it)
-                    Log.d(IMPORT_TAG, "  - project_logs вставлено: ${it.size}")
-                }
-                recentItemsToInsert?.let {
-                    recentItemDao.insertAll(it)
-                    Log.d(IMPORT_TAG, "  - recent_items вставлено: ${it.size}")
-                }
+                activityRecordDao.insertAll(backup.activityRecords)
+                Log.d(IMPORT_TAG, "  - Вставлено: ${backup.activityRecords.size} activityRecords.")
+                linkItemDao.insertAll(backup.linkItemEntities)
+                Log.d(IMPORT_TAG, "  - Вставлено: ${backup.linkItemEntities.size} linkItems.")
+                inboxRecordDao.insertAll(backup.inboxRecords)
+                Log.d(IMPORT_TAG, "  - Вставлено: ${backup.inboxRecords.size} inboxRecords.")
+                projectManagementDao.insertAllLogs(backup.projectExecutionLogs)
+                Log.d(IMPORT_TAG, "  - Вставлено: ${backup.projectExecutionLogs.size} projectLogs.")
+                recentItemDao.insertAll(recentItemsToInsert)
+                Log.d(IMPORT_TAG, "  - Вставлено: ${recentItemsToInsert.size} recentItems.")
 
-                backup.attachments?.let {
-                    attachmentDao.insertAttachments(it)
-                    Log.d(IMPORT_TAG, "  - attachments вставлено: ${it.size}")
-                }
-                backup.projectAttachmentCrossRefs?.let {
-                    attachmentDao.insertProjectAttachmentLinks(it)
-                    Log.d(IMPORT_TAG, "  - project_attachment_cross_refs вставлено: ${it.size}")
-                }
+                attachmentDao.insertAttachments(backup.attachments)
+                Log.d(IMPORT_TAG, "  - Вставлено: ${backup.attachments.size} attachments.")
+                attachmentDao.insertProjectAttachmentLinks(backup.projectAttachmentCrossRefs)
+                Log.d(IMPORT_TAG, "  - Вставлено: ${backup.projectAttachmentCrossRefs.size} projectAttachmentCrossRefs.")
 
                 Log.d(IMPORT_TAG, "Транзакція: відновлення settings. Entries=${backupSettingsMap.size}")
                 settingsRepository.restoreFromMap(backupSettingsMap)
