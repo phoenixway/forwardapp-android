@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -39,6 +41,7 @@ fun ProjectScreen(
 
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val holdMenu = rememberHoldMenu2()
+    val density = LocalDensity.current
 
     var buttonAnchor by remember { mutableStateOf(Offset.Zero) }
 
@@ -83,31 +86,55 @@ fun ProjectScreen(
                             onSelect = onHoldMenuSelect
                         )
 
-                        // Обробляємо drag
-                        val itemH = 48f * density
-                        val menuHeight = itemH * 4
+                        // Обробляємо drag - використовуємо ту саму логіку, що й в Popup
+                        val itemH = with(density) { 48.dp.toPx() }
+                        val menuWidthPx = with(density) { 220.dp.toPx() }
+                        val menuHeightPx = itemH * 4
+
+                        val desiredX = buttonAnchor.x - menuWidthPx / 2f
+                        val desiredY = buttonAnchor.y - menuHeightPx - 16f
+
+                        val menuTop = desiredY.coerceAtLeast(8f)
+
+                        Log.e("HOLDMENU2", "📐 Menu calc: itemH=$itemH, menuHeight=$menuHeightPx, menuTop=$menuTop, buttonY=${buttonAnchor.y}")
+
+                        // Початкова позиція
+                        var currentPos = down.position
+                        Log.e("HOLDMENU2", "👆 Initial pos=$currentPos")
+
+                        // Обчислюємо початковий hover
+                        val initialRelativeY = currentPos.y - menuTop
+                        val initialHover = if (initialRelativeY >= 0 && initialRelativeY <= menuHeightPx) {
+                            (initialRelativeY / itemH).toInt().coerceIn(0, 3)
+                        } else {
+                            -1
+                        }
+                        holdMenu.setHover(initialHover)
+                        Log.e("HOLDMENU2", "🎯 Initial hover: $initialHover")
 
                         while (true) {
+                            // Чекаємо наступну подію
                             val event = awaitPointerEvent(PointerEventPass.Main)
                             val change = event.changes.firstOrNull() ?: break
-                            val pos = change.position
 
-                            // Вираховуємо hover
-                            val menuTop = buttonAnchor.y - menuHeight - 16f
-                            val relativeY = pos.y - menuTop
+                            // Оновлюємо позицію ДО перевірки pressed
+                            currentPos = change.position
 
-                            val hover = if (relativeY >= 0 && relativeY <= menuHeight) {
+                            // Обчислюємо hover для поточної позиції
+                            val relativeY = currentPos.y - menuTop
+                            val hover = if (relativeY >= 0 && relativeY <= menuHeightPx) {
                                 (relativeY / itemH).toInt().coerceIn(0, 3)
                             } else {
                                 -1
                             }
 
+                            // Оновлюємо hover якщо змінився
                             if (hover != holdMenu.state.hoverIndex) {
-                                Log.e("HOLDMENU2", "🎯 Hover: $hover")
+                                Log.e("HOLDMENU2", "🎯 Hover: $hover (pos=$currentPos, relativeY=$relativeY)")
                                 holdMenu.setHover(hover)
                             }
 
-                            // Відпустили
+                            // Відпустили - виконуємо селект
                             if (!change.pressed) {
                                 Log.e("HOLDMENU2", "✅ Released on: $hover")
                                 if (hover >= 0) {
