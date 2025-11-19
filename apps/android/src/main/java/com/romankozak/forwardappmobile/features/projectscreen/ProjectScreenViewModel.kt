@@ -298,6 +298,31 @@ class ProjectScreenViewModel(
         }
     }*/
 
+    sealed class InboxEvent {
+        data class DeleteRecord(val recordId: String) : InboxEvent()
+        data class PromoteToGoal(val record: InboxRecord) : InboxEvent()
+        data class CopyRecordText(val text: String) : InboxEvent()
+    }
+
+    fun onEvent(event: InboxEvent) {
+        when (event) {
+            is InboxEvent.DeleteRecord -> {
+                viewModelScope.launch(ioDispatcher) {
+                    inboxRepository.delete(event.recordId)
+                }
+            }
+            is InboxEvent.PromoteToGoal -> {
+                viewModelScope.launch(ioDispatcher) {
+                    addBacklogGoal(event.record.text)
+                    inboxRepository.delete(event.record.id)
+                }
+            }
+            is InboxEvent.CopyRecordText -> {
+                // TODO: Implement copy to clipboard
+            }
+        }
+    }
+
     fun onEvent(event: Event) {
         when (event) {
             is Event.SwitchViewMode -> switchViewMode(event.viewMode)
