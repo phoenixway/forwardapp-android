@@ -4,9 +4,12 @@ import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.ui.zIndex
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -31,19 +34,14 @@ import com.romankozak.forwardappmobile.di.LocalAppComponent
 import com.romankozak.forwardappmobile.features.projectscreen.components.topbar.AdaptiveTopBar
 import com.romankozak.forwardappmobile.features.projectscreen.models.ProjectViewMode
 import com.romankozak.forwardappmobile.shared.features.projects.core.domain.model.Project
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.rememberHoldMenu2
 import com.romankozak.forwardappmobile.features.projectscreen.components.inputpanel.ModernInputPanel
 import com.romankozak.forwardappmobile.features.projectscreen.components.inputpanel.InputMode
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.withFrameNanos
-import androidx.compose.ui.composed
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.features.projectscreen.components.list.BacklogView
-import com.romankozak.forwardappmobile.shared.features.projects.listitems.domain.model.ListItemContent
-import kotlinx.coroutines.delay
 
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
@@ -71,6 +69,8 @@ fun ProjectScreen(
         ?.getLiveData<Project>("selected_project")
         ?.observeAsState()
 
+    val holdMenuController = rememberHoldMenu2()
+
     LaunchedEffect(selectedProject) {
         selectedProject?.value?.let { project: Project ->
             viewModel.onEvent(ProjectScreenViewModel.Event.LinkExistingProject(project))
@@ -78,153 +78,138 @@ fun ProjectScreen(
         }
     }
 
-    Scaffold(
-        modifier = Modifier.navigationBarsPadding().imePadding(),
-        topBar = {
-            AdaptiveTopBar(
-                isSelectionModeActive = state.isSelectionModeActive,
-                project = state.projectName?.let {
-                    Project(
-                        id = projectId ?: "",
-                        name = it,
-                        description = null,
-                        parentId = null,
-                        createdAt = 0,
-                        updatedAt = 0,
-                        isCompleted = false,
-                        isExpanded = false,
-                        goalOrder = 0,
-                        projectStatus = null,
-                        projectStatusText = null,
-                        isProjectManagementEnabled = false,
-                        showCheckboxes = false,
-                        tags = null
-                    )
-                },
-                selectedCount = state.selectedItemIds.size,
-                areAllSelected = false, // TODO: Implement
-                onClearSelection = { /* TODO */ },
-                onSelectAll = { /* TODO */ },
-                onDelete = { /* TODO */ },
-                onMarkAsComplete = { /* TODO */ },
-                onMarkAsIncomplete = { /* TODO */ },
-
-                onInboxClick = { Toast.makeText(context, "Inbox (не реалізовано)", Toast.LENGTH_SHORT).show() },
-                currentViewMode = state.currentView
-            )
-        },
-        bottomBar = {
-            ModernInputPanel(
-                inputValue = inputValue,
-                onValueChange = { inputValue = it },
-                inputMode = state.inputMode,
-                onInputModeSelected = { viewModel.onEvent(ProjectScreenViewModel.Event.SwitchInputMode(it)) },
-                onSubmit = {
-                    if (inputValue.text.isNotBlank()) {
-                        when (state.inputMode) {
-                            InputMode.AddNestedProject -> viewModel.onEvent(ProjectScreenViewModel.Event.AddNestedProject(inputValue.text))
-                            InputMode.AddGoal -> viewModel.onEvent(ProjectScreenViewModel.Event.AddBacklogGoal(inputValue.text))
-                            else -> viewModel.onEvent(ProjectScreenViewModel.Event.AddInboxRecord(inputValue.text))
-                        }
-                        inputValue = TextFieldValue("")
-                    }
-                },
-                onRecentsClick = { /* TODO */ },
-                onLinkExistingProjectClick = { navController.navigate("project_chooser") },
-                onShowAddWebLinkDialog = { /* TODO */ },
-                onShowAddObsidianLinkDialog = { /* TODO */ },
-                onAddListShortcutClick = { viewModel.onEvent(ProjectScreenViewModel.Event.SwitchInputMode(InputMode.AddNestedProject)) },
-                canGoBack = false, // TODO
-                canGoForward = false, // TODO
-                onBackClick = { /* TODO */ },
-                onForwardClick = { /* TODO */ },
-                onHomeClick = { /* TODO */ },
-                onEditList = { /* TODO */ },
-                onShareList = { /* TODO */ },
-                onDeleteList = { /* TODO */ },
-                onSetReminder = { /* TODO */ },
-                menuExpanded = showInputPanelMenu,
-                onMenuExpandedChange = { showInputPanelMenu = it },
-                currentView = state.currentView,
-                onViewChange = { viewModel.onEvent(ProjectScreenViewModel.Event.SwitchViewMode(it)) },
-                onImportFromMarkdown = { /* TODO */ },
-                onExportToMarkdown = { /* TODO */ },
-                onImportBacklogFromMarkdown = { /* TODO */ },
-                onExportBacklogToMarkdown = { /* TODO */ },
-                onExportProjectState = { /* TODO */ },
-                reminderParseResult = null, // TODO
-                onClearReminder = { /* TODO */ },
-                isNerActive = false, // TODO
-                onStartTrackingCurrentProject = { /* TODO */ },
-                isProjectManagementEnabled = false, // TODO
-                onToggleProjectManagement = { /* TODO */ },
-                onAddProjectToDayPlan = { /* TODO */ },
-                isViewModePanelVisible = true, // TODO
-                onToggleNavPanelMode = { /* TODO */ },
-                onRevealInExplorer = { /* TODO */ },
-                onCloseSearch = { /* TODO */ },
-                onAddMilestone = { /* TODO */ },
-                onShowCreateNoteDocumentDialog = { /* TODO */ },
-                onCreateChecklist = { /* TODO */ },
-                onShowDisplayPropertiesClick = { /* TODO */ },
-                suggestions = emptyList(), // TODO
-                onSuggestionClick = { /* TODO */ }
-            )
-        }
-    ) { paddingValues ->
-        when (state.currentView) {
-            ProjectViewMode.Backlog -> BacklogView(
-                listContent = state.backlogItems,
-                viewModel = viewModel,
-                state = state,
-                onRemindersClick = { /* TODO */ },
-                modifier = Modifier
-                    .padding(paddingValues)
-                    .glitch(trigger = uiState.currentView),
-                listState = listState,
-                onMove = { from, to -> viewModel.onEvent(ProjectScreenViewModel.Event.MoveItem(from, to)) },
-                onDragEnd = { from, to -> viewModel.onEvent(ProjectScreenViewModel.Event.DragEnd(from, to)) },
-                onCopyContent = { /* TODO */ },
-            )
-            ProjectViewMode.Inbox -> {
-                LazyColumn(modifier = Modifier.padding(paddingValues)) {
-                    items(state.inboxItems) { item ->
-                        Text(
-                            text = item.text,
-                            modifier = Modifier.fillMaxWidth().padding(16.dp)
+    Box(Modifier.fillMaxSize()) {
+        Scaffold(
+            modifier = Modifier.navigationBarsPadding().imePadding(),
+            topBar = {
+                AdaptiveTopBar(
+                    isSelectionModeActive = state.isSelectionModeActive,
+                    project = state.projectName?.let {
+                        Project(
+                            id = projectId ?: "",
+                            name = it,
+                            description = null,
+                            parentId = null,
+                            createdAt = 0,
+                            updatedAt = 0,
+                            isCompleted = false,
+                            isExpanded = false,
+                            goalOrder = 0,
+                            projectStatus = null,
+                            projectStatusText = null,
+                            isProjectManagementEnabled = false,
+                            showCheckboxes = false,
+                            tags = null
                         )
+                    },
+                    selectedCount = state.selectedItemIds.size,
+                    areAllSelected = false, // TODO: Implement
+                    onClearSelection = { /* TODO */ },
+                    onSelectAll = { /* TODO */ },
+                    onDelete = { /* TODO */ },
+                    onMarkAsComplete = { /* TODO */ },
+                    onMarkAsIncomplete = { /* TODO */ },
+
+                    onInboxClick = { Toast.makeText(context, "Inbox (не реалізовано)", Toast.LENGTH_SHORT).show() },
+                    currentViewMode = state.currentView
+                )
+            },
+            bottomBar = {
+                ModernInputPanel(
+                    holdMenuController = holdMenuController,
+                    inputValue = inputValue,
+                    onValueChange = { inputValue = it },
+                    inputMode = state.inputMode,
+                    onInputModeSelected = { viewModel.onEvent(ProjectScreenViewModel.Event.SwitchInputMode(it)) },
+                    onSubmit = {
+                        if (inputValue.text.isNotBlank()) {
+                            when (state.inputMode) {
+                                InputMode.AddNestedProject -> viewModel.onEvent(ProjectScreenViewModel.Event.AddNestedProject(inputValue.text))
+                                InputMode.AddGoal -> viewModel.onEvent(ProjectScreenViewModel.Event.AddBacklogGoal(inputValue.text))
+                                else -> viewModel.onEvent(ProjectScreenViewModel.Event.AddInboxRecord(inputValue.text))
+                            }
+                            inputValue = TextFieldValue("")
+                        }
+                    },
+                    onRecentsClick = { /* TODO */ },
+                    onLinkExistingProjectClick = { navController.navigate("project_chooser") },
+                    onShowAddWebLinkDialog = { /* TODO */ },
+                    onShowAddObsidianLinkDialog = { /* TODO */ },
+                    onAddListShortcutClick = { viewModel.onEvent(ProjectScreenViewModel.Event.SwitchInputMode(InputMode.AddNestedProject)) },
+                    canGoBack = false, // TODO
+                    canGoForward = false, // TODO
+                    onBackClick = { /* TODO */ },
+                    onForwardClick = { /* TODO */ },
+                    onHomeClick = { /* TODO */ },
+                    onEditList = { /* TODO */ },
+                    onShareList = { /* TODO */ },
+                    onDeleteList = { /* TODO */ },
+                    onSetReminder = { /* TODO */ },
+                    menuExpanded = showInputPanelMenu,
+                    onMenuExpandedChange = { showInputPanelMenu = it },
+                    currentView = state.currentView,
+                    onViewChange = { viewModel.onEvent(ProjectScreenViewModel.Event.SwitchViewMode(it)) },
+                    onImportFromMarkdown = { /* TODO */ },
+                    onExportToMarkdown = { /* TODO */ },
+                    onImportBacklogFromMarkdown = { /* TODO */ },
+                    onExportBacklogToMarkdown = { /* TODO */ },
+                    onExportProjectState = { /* TODO */ },
+                    reminderParseResult = null, // TODO
+                    onClearReminder = { /* TODO */ },
+                    isNerActive = false, // TODO
+                    onStartTrackingCurrentProject = { /* TODO */ },
+                    isProjectManagementEnabled = false, // TODO
+                    onToggleProjectManagement = { /* TODO */ },
+                    onAddProjectToDayPlan = { /* TODO */ },
+                    onRevealInExplorer = { /* TODO */ },
+                    onCloseSearch = { /* TODO */ },
+                    onAddMilestone = { /* TODO */ },
+                    onShowCreateNoteDocumentDialog = { /* TODO */ },
+                    onCreateChecklist = { /* TODO */ },
+                    onShowDisplayPropertiesClick = { /* TODO */ },
+                    suggestions = emptyList(), // TODO
+                    onSuggestionClick = { /* TODO */ }
+                )
+            }
+        ) { paddingValues ->
+            when (state.currentView) {
+                ProjectViewMode.Backlog -> BacklogView(
+                    listContent = state.backlogItems,
+                    viewModel = viewModel,
+                    state = state,
+                    onRemindersClick = { /* TODO */ },
+                    modifier = Modifier
+                        .padding(paddingValues),
+                    listState = listState,
+                    onMove = { from, to -> viewModel.onEvent(ProjectScreenViewModel.Event.MoveItem(from, to)) },
+                    onDragEnd = { from, to -> viewModel.onEvent(ProjectScreenViewModel.Event.DragEnd(from, to)) },
+                    onCopyContent = { /* TODO */ },
+                )
+                ProjectViewMode.Inbox -> {
+                    LazyColumn(modifier = Modifier.padding(paddingValues)) {
+                        items(state.inboxItems) { item ->
+                            Text(
+                                text = item.text,
+                                modifier = Modifier.fillMaxWidth().padding(16.dp)
+                            )
+                        }
                     }
                 }
+                ProjectViewMode.Advanced -> Text(
+                    text = "Advanced Content for ID: $projectId",
+                    modifier = Modifier.padding(paddingValues).fillMaxWidth().padding(16.dp)
+                )
+                ProjectViewMode.Attachments -> Text(
+                    text = "Attachments Content for ID: $projectId",
+                    modifier = Modifier.padding(paddingValues).fillMaxWidth().padding(16.dp)
+                )
             }
-            ProjectViewMode.Advanced -> Text(
-                text = "Advanced Content for ID: $projectId",
-                modifier = Modifier.padding(paddingValues).fillMaxWidth().padding(16.dp)
-            )
-            ProjectViewMode.Attachments -> Text(
-                text = "Attachments Content for ID: $projectId",
-                modifier = Modifier.padding(paddingValues).fillMaxWidth().padding(16.dp)
-            )
         }
-    }
-}
-
-
-fun Modifier.glitch(trigger: Any): Modifier = composed {
-    var glitchAmount by remember { mutableFloatStateOf(0f) }
-
-    LaunchedEffect(key1 = trigger) {
-        val glitchDuration = 150L
-        val startTime = withFrameNanos { it }
-
-        while (withFrameNanos { it } < startTime + (glitchDuration * 1_000_000)) {
-            glitchAmount = (Math.random() * 10 - 5).toFloat()
-            delay(40)
-        }
-        glitchAmount = 0f
-    }
-
-    this.graphicsLayer {
-        translationX = glitchAmount
-        translationY = (Math.random() * glitchAmount - glitchAmount / 2).toFloat()
+        com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Overlay(
+            controller = holdMenuController,
+            modifier = Modifier
+                .fillMaxSize()
+                .zIndex(999f)
+        )
     }
 }

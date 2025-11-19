@@ -22,10 +22,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.ArrowLeft
-import androidx.compose.material.icons.automirrored.filled.ArrowRight
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.automirrored.outlined.List
+import androidx.compose.material.icons.automirrored.outlined.ListAlt
+import androidx.compose.material.icons.automirrored.outlined.Notes
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -39,71 +38,28 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.romankozak.forwardappmobile.R
+import com.romankozak.forwardappmobile.domain.ner.ReminderParseResult
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Button
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenuItem
 import com.romankozak.forwardappmobile.features.projectscreen.models.ProjectViewMode
+import com.romankozak.forwardappmobile.ui.theme.LocalInputPanelColors
 import kotlinx.coroutines.delay
-
-// TODO: Restore from theme
-object LocalInputPanelColors {
-    val current: InputPanelColors = darkInputPanelColors()
-}
-
-fun darkInputPanelColors(): InputPanelColors {
-    return InputPanelColors(
-        addGoal = PanelTheme(
-            backgroundColor = Color(0xFF2E2E2E),
-            textColor = Color(0xFFE0E0E0),
-            inputFieldColor = Color(0xFF3C3C3C)
-        ),
-        addQuickRecord = PanelTheme(
-            backgroundColor = Color(0xFF2E3B4E),
-            textColor = Color(0xFFD0D8E8),
-            inputFieldColor = Color(0xFF3A475A)
-        ),
-        searchInList = PanelTheme(
-            backgroundColor = Color(0xFF4E3A2E),
-            textColor = Color(0xFFE8D8D0),
-            inputFieldColor = Color(0xFF5A463A)
-        ),
-        searchGlobal = PanelTheme(
-            backgroundColor = Color(0xFF4E2E4E),
-            textColor = Color(0xFFE8D0E8),
-            inputFieldColor = Color(0xFF5A3A5A)
-        ),
-        addProjectLog = PanelTheme(
-            backgroundColor = Color(0xFF2E4E3A),
-            textColor = Color(0xFFD0E8D8),
-            inputFieldColor = Color(0xFF3A5A46)
-        )
-    )
-}
-
-data class InputPanelColors(
-    val addGoal: PanelTheme,
-    val addQuickRecord: PanelTheme,
-    val searchInList: PanelTheme,
-    val searchGlobal: PanelTheme,
-    val addProjectLog: PanelTheme
-)
-
-data class PanelTheme(
-    val backgroundColor: Color,
-    val textColor: Color,
-    val inputFieldColor: Color
-)
-
 
 // ------------------- STATE ---------------------
 
@@ -121,7 +77,6 @@ data class NavPanelState(
   val currentView: ProjectViewMode,
   val isProjectManagementEnabled: Boolean,
   val inputMode: InputMode,
-  val isViewModePanelVisible: Boolean,
 )
 
 data class NavPanelActions(
@@ -135,7 +90,6 @@ data class NavPanelActions(
   val onInputModeSelected: (InputMode) -> Unit,
   val onMenuExpandedChange: (Boolean) -> Unit,
   val onAddProjectToDayPlan: () -> Unit,
-  val onToggleNavPanelMode: () -> Unit,
   val menuActions: OptionsMenuActions,
 )
 
@@ -156,6 +110,8 @@ data class OptionsMenuActions(
 
 // ------------------- VIEW TOGGLE ---------------------
 
+
+
 @Composable
 private fun ViewModeToggle(
   currentView: ProjectViewMode,
@@ -163,67 +119,63 @@ private fun ViewModeToggle(
   onViewChange: (ProjectViewMode) -> Unit,
   onInputModeSelected: (InputMode) -> Unit,
   contentColor: Color,
-  onToggleNavPanelMode: () -> Unit,
+  holdMenuController: HoldMenu2Controller,
 ) {
+    val availableViews = remember(isProjectManagementEnabled) {
+        ProjectViewMode.values().filter {
+            it != ProjectViewMode.Advanced || isProjectManagementEnabled
+        }
+    }
+
+    val menuItems = remember(availableViews) {
+        availableViews.map { viewMode ->
+            HoldMenuItem(
+                label = viewMode.name.replaceFirstChar { it.titlecase() },
+                icon = when (viewMode) {
+                    ProjectViewMode.Backlog -> Icons.AutoMirrored.Outlined.ListAlt
+                    ProjectViewMode.Inbox -> Icons.AutoMirrored.Outlined.Notes
+                    ProjectViewMode.Advanced -> Icons.Outlined.Dashboard
+                    ProjectViewMode.Attachments -> Icons.Default.Attachment
+                }
+            )
+        }
+    }
+
   Surface(
     shape = RoundedCornerShape(16.dp),
     color = contentColor.copy(alpha = 0.1f),
     border = BorderStroke(1.dp, contentColor.copy(alpha = 0.1f)),
   ) {
     Row(modifier = Modifier.height(36.dp), verticalAlignment = Alignment.CenterVertically) {
-      IconButton(
-          onClick = onToggleNavPanelMode,
-          modifier = Modifier.size(36.dp),
-      ) {
-          Icon(
-              imageVector = Icons.AutoMirrored.Filled.ArrowRight,
-              contentDescription = "Перемкнути панель",
-              modifier = Modifier.size(18.dp),
-              tint = contentColor,
-          )
-      }
-      // Separator
-      Box(modifier = Modifier.width(1.dp).height(24.dp).background(contentColor.copy(alpha = 0.1f)))
-
-      val availableViews =
-        ProjectViewMode.values().filter {
-                          it != ProjectViewMode.Advanced || isProjectManagementEnabled        }
-      availableViews.forEach { viewMode ->
-        val isSelected = currentView == viewMode
-        IconButton(
-          onClick = {
-            onViewChange(viewMode)
-            val newMode =
-              when (viewMode) {
-                ProjectViewMode.Inbox -> InputMode.AddQuickRecord
-                ProjectViewMode.Advanced -> InputMode.AddQuickRecord
-                else -> InputMode.AddGoal
-              }
-            onInputModeSelected(newMode)
-            onToggleNavPanelMode()
-          },
-          modifier =
-            Modifier.size(36.dp)
-              .background(
-                color = if (isSelected) contentColor.copy(alpha = 0.2f) else Color.Transparent,
-                shape = RoundedCornerShape(16.dp),
-              ),
+        HoldMenu2Button(
+            items = menuItems,
+            controller = holdMenuController,
+            onSelect = { index ->
+                val selectedViewMode = availableViews[index]
+                onViewChange(selectedViewMode)
+                val newMode = when (selectedViewMode) {
+                    ProjectViewMode.Inbox, ProjectViewMode.Advanced -> InputMode.AddQuickRecord
+                    else -> InputMode.AddGoal
+                }
+                onInputModeSelected(newMode)
+            },
+            modifier = Modifier.size(40.dp).padding(2.dp)
         ) {
-          Icon(
-            imageVector =
-              when (viewMode) {
-                ProjectViewMode.Backlog -> Icons.Outlined.ListAlt
-                ProjectViewMode.Inbox -> Icons.Outlined.Notes
+            val currentIcon = when (currentView) {
+                ProjectViewMode.Backlog -> Icons.AutoMirrored.Outlined.ListAlt
+                ProjectViewMode.Inbox -> Icons.AutoMirrored.Outlined.Notes
                 ProjectViewMode.Advanced -> Icons.Outlined.Dashboard
                 ProjectViewMode.Attachments -> Icons.Default.Attachment
-              },
-            contentDescription = viewMode.name,
-            modifier = Modifier.size(18.dp),
-            tint = contentColor,
-          )
+            }
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                Icon(
+                    imageVector = currentIcon,
+                    contentDescription = "Change View Mode",
+                    modifier = Modifier.size(18.dp),
+                    tint = contentColor,
+                )
+            }
         }
-      }
-
     }
   }
 }
@@ -271,7 +223,7 @@ private fun OptionsMenu(state: NavPanelState, actions: NavPanelActions, contentC
             if (mode == InputMode.SearchInList) {
               "Закрити пошук"
             } else {
-              "More options"
+              stringResource(R.string.more_options)
             },
           tint = contentColor.copy(alpha = 0.7f),
           modifier = Modifier.size(20.dp),
@@ -287,9 +239,9 @@ private fun OptionsMenu(state: NavPanelState, actions: NavPanelActions, contentC
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
       ) {
         val menu = actions.menuActions
-        val editListText = "Edit list"
-        val shareListText = "Share list"
-        val deleteListText = "Delete list"
+        val editListText = stringResource(R.string.edit_list)
+        val shareListText = stringResource(R.string.share_list)
+        val deleteListText = stringResource(R.string.delete_list)
 
         val menuItems =
           remember(state.currentView, state.isProjectManagementEnabled) {
@@ -538,12 +490,13 @@ private fun NavigationBar(
   actions: NavPanelActions,
   contentColor: Color,
   modifier: Modifier = Modifier,
+  holdMenuController: HoldMenu2Controller,
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val availableWidth = maxWidth
         val baseWidth = if (state.isProjectManagementEnabled) 380.dp else 320.dp
-        val showReveal = !state.isViewModePanelVisible || availableWidth > baseWidth
-        val showRecents = !state.isViewModePanelVisible || availableWidth > (baseWidth - 40.dp)
+        val showReveal = availableWidth > baseWidth
+        val showRecents = availableWidth > (baseWidth - 40.dp)
 
         Row(
             modifier = Modifier.heightIn(min = 52.dp).padding(horizontal = 12.dp, vertical = 6.dp),
@@ -587,35 +540,14 @@ private fun NavigationBar(
             Spacer(Modifier.weight(1f))
 
             // --- RIGHT SIDE ---
-            AnimatedContent(
-                targetState = state.isViewModePanelVisible,
-                transitionSpec = {
-                    (slideInHorizontally { it / 2 } + fadeIn()) togetherWith
-                            (slideOutHorizontally { -it / 2 } + fadeOut())
-                },
-                label = "NavBarRightAnimation",
-            ) { isViewMode ->
-                if (isViewMode) {
-                    ViewModeToggle(
-                        currentView = state.currentView,
-                        isProjectManagementEnabled = state.isProjectManagementEnabled,
-                        onViewChange = actions.onViewChange,
-                        onInputModeSelected = actions.onInputModeSelected,
-                        contentColor = contentColor,
-                        onToggleNavPanelMode = actions.onToggleNavPanelMode,
-                    )
-                } else {
-                    IconButton(onClick = actions.onToggleNavPanelMode, modifier = Modifier.size(40.dp)) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowLeft,
-                            contentDescription = "Перемкнути панель",
-                            tint = contentColor.copy(alpha = 0.7f),
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
-                }
-            }
-
+                                ViewModeToggle(
+                                    currentView = state.currentView,
+                                    isProjectManagementEnabled = state.isProjectManagementEnabled,
+                                    onViewChange = actions.onViewChange,
+                                    onInputModeSelected = actions.onInputModeSelected,
+                                    contentColor = contentColor,
+                                    holdMenuController = holdMenuController,
+                                )
             OptionsMenu(state = state, actions = actions, contentColor = contentColor)
         }
     }
@@ -672,6 +604,7 @@ private fun NerIndicator(isActive: Boolean, hasText: Boolean, modifier: Modifier
 @Composable
 fun ModernInputPanel(
   modifier: Modifier = Modifier,
+  holdMenuController: HoldMenu2Controller,
   inputValue: TextFieldValue,
   inputMode: InputMode,
   onValueChange: (TextFieldValue) -> Unit,
@@ -700,15 +633,13 @@ fun ModernInputPanel(
   onImportBacklogFromMarkdown: () -> Unit,
   onExportBacklogToMarkdown: () -> Unit,
   onExportProjectState: () -> Unit,
-  reminderParseResult: Any?, // TODO: Restore ReminderParseResult
+  reminderParseResult: ReminderParseResult?,
   onClearReminder: () -> Unit,
   isNerActive: Boolean,
   onStartTrackingCurrentProject: () -> Unit,
   isProjectManagementEnabled: Boolean,
   onToggleProjectManagement: () -> Unit,
   onAddProjectToDayPlan: () -> Unit,
-  isViewModePanelVisible: Boolean,
-  onToggleNavPanelMode: () -> Unit,
   onRevealInExplorer: () -> Unit,
   onCloseSearch: () -> Unit,
   onAddMilestone: () -> Unit,
@@ -726,7 +657,6 @@ fun ModernInputPanel(
       currentView = currentView,
       isProjectManagementEnabled = isProjectManagementEnabled,
       inputMode = inputMode,
-      isViewModePanelVisible = isViewModePanelVisible,
     )
   val actions =
     NavPanelActions(
@@ -740,7 +670,6 @@ fun ModernInputPanel(
       onInputModeSelected = onInputModeSelected,
       onMenuExpandedChange = onMenuExpandedChange,
       onAddProjectToDayPlan = onAddProjectToDayPlan,
-      onToggleNavPanelMode = onToggleNavPanelMode,
       menuActions =
         OptionsMenuActions(
           onEditList = onEditList,
@@ -766,7 +695,6 @@ fun ModernInputPanel(
         InputMode.AddQuickRecord,
         if (isProjectManagementEnabled) InputMode.AddProjectLog else null,
         if (isProjectManagementEnabled && currentView == ProjectViewMode.Advanced) InputMode.AddMilestone else null,
-        if (isProjectManagementEnabled && currentView == ProjectViewMode.Backlog) InputMode.AddNestedProject else null,
         InputMode.SearchGlobal,
         InputMode.SearchInList,
       )
@@ -824,12 +752,11 @@ fun ModernInputPanel(
           accentColor = inputPanelColors.addProjectLog.textColor,
           inputFieldColor = inputPanelColors.addProjectLog.inputFieldColor,
         )
-      InputMode.AddNestedProject ->
-        PanelColors(
-            containerColor = inputPanelColors.addProjectLog.backgroundColor,
-            contentColor = inputPanelColors.addProjectLog.textColor,
-            accentColor = inputPanelColors.addProjectLog.textColor,
-            inputFieldColor = inputPanelColors.addProjectLog.inputFieldColor,
+        else -> PanelColors(
+            containerColor = inputPanelColors.addGoal.backgroundColor,
+            contentColor = inputPanelColors.addGoal.textColor,
+            accentColor = inputPanelColors.addGoal.textColor,
+            inputFieldColor = inputPanelColors.addGoal.inputFieldColor,
         )
     }
 
@@ -870,22 +797,21 @@ fun ModernInputPanel(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             color = panelColors.contentColor.copy(alpha = 0.12f),
           )
-          // TODO: Restore AutocompleteSuggestions
+          // TODO
           // AutocompleteSuggestions(suggestions = suggestions, onSuggestionClick = onSuggestionClick)
         }
       }
-      NavigationBar(state = state, actions = actions, contentColor = panelColors.contentColor)
+      NavigationBar(state = state, actions = actions, contentColor = panelColors.contentColor, holdMenuController = holdMenuController)
 
       AnimatedVisibility(
         visible = reminderParseResult != null,
         enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
         exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top),
       ) {
-        // TODO: Restore ReminderChip
-        /*
         reminderParseResult?.let {
           if (it.success) {
-            ReminderChip(suggestionText = it.suggestionText ?: "", onClear = onClearReminder)
+            // TODO
+            // ReminderChip(suggestionText = it.suggestionText ?: "", onClear = onClearReminder)
           } else {
             Text(
               text = "Не вдалося розпізнати дату/час: ${it.errorMessage}",
@@ -895,7 +821,6 @@ fun ModernInputPanel(
             )
           }
         }
-        */
       }
 
       Row(
@@ -1042,14 +967,15 @@ fun ModernInputPanel(
                     Text(
                       text =
                         when (inputMode) {
-                          InputMode.AddGoal -> "Add goal"
-                          InputMode.AddQuickRecord -> "Add quick record"
-                          InputMode.SearchInList -> "Search in list"
-                          InputMode.SearchGlobal -> "Search global"
+                          InputMode.AddGoal -> stringResource(R.string.hint_add_goal)
+                          InputMode.AddQuickRecord -> stringResource(R.string.hint_add_quick_record)
+                          InputMode.SearchInList -> stringResource(R.string.hint_search_in_list)
+                          InputMode.SearchGlobal -> stringResource(R.string.hint_search_global)
                           InputMode.AddProjectLog -> "Додати коментар до проекту..."
-                                                InputMode.AddMilestone -> "Додати віху до проекту..."
-                                                InputMode.AddNestedProject -> "Додати вкладений проект..."
-                                              },                      style =
+                          InputMode.AddMilestone -> "Додати віху до проекту..."
+                          InputMode.AddNestedProject -> "Додати вкладений проект..."
+                        },
+                      style =
                         MaterialTheme.typography.bodyLarge.copy(
                           color = panelColors.contentColor.copy(alpha = 0.7f),
                           fontSize = 16.sp,
@@ -1066,24 +992,6 @@ fun ModernInputPanel(
                   NerIndicator(isActive = isNerActive, hasText = inputValue.text.isNotBlank())
 
                   AnimatedVisibility(
-                    visible = inputMode == InputMode.AddNestedProject,
-                    enter = fadeIn(),
-                    exit = fadeOut(),
-                  ) {
-                    IconButton(
-                      onClick = { onLinkExistingProjectClick() },
-                      modifier = Modifier.size(24.dp),
-                    ) {
-                      Icon(
-                        imageVector = Icons.Default.Link,
-                        contentDescription = "Link existing project",
-                        tint = panelColors.contentColor.copy(alpha = 0.7f),
-                        modifier = Modifier.size(18.dp),
-                      )
-                    }
-                  }
-
-                  AnimatedVisibility(
                     visible = inputValue.text.isNotBlank(),
                     enter = fadeIn(),
                     exit = fadeOut(),
@@ -1094,7 +1002,7 @@ fun ModernInputPanel(
                     ) {
                       Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Clear input",
+                        contentDescription = stringResource(R.string.clear_input),
                         tint = panelColors.contentColor.copy(alpha = 0.7f),
                         modifier = Modifier.size(18.dp),
                       )
@@ -1137,7 +1045,7 @@ fun ModernInputPanel(
           ) {
             Icon(
               imageVector = Icons.AutoMirrored.Filled.Send,
-              contentDescription = "Send",
+              contentDescription = stringResource(R.string.send),
               modifier = Modifier.size(20.dp),
             )
           }

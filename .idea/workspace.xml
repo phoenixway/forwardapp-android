@@ -5,17 +5,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3fa939dc-cc1b-4e19-b3e8-b8338c479b17" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2Models.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/deploymentTargetSelector.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/deploymentTargetSelector.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Makefile" beforeDir="false" afterPath="$PROJECT_DIR$/Makefile" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2Button.kt" beforeDir="false" afterPath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2Button.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2Controller.kt" beforeDir="false" afterPath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2Controller.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2Overlay.kt" beforeDir="false" afterPath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2Overlay.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2Popup.kt" beforeDir="false" afterPath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2Popup.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2State.kt" beforeDir="false" afterPath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2State.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/ProjectScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/ProjectScreen.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/components/inputpanel/InputPanelMagicActionsDialog.kt" beforeDir="false" afterPath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/components/inputpanel/InputPanelMagicActionsDialog.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/components/inputpanel/ModernInputPanel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/features/projectscreen/components/inputpanel/ModernInputPanel.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/theme/Color.kt" beforeDir="false" afterPath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/theme/Color.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/theme/Theme.kt" beforeDir="false" afterPath="$PROJECT_DIR$/apps/android/src/main/java/com/romankozak/forwardappmobile/ui/theme/Theme.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -34,10 +30,10 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "customColor": "",
-  "associatedIndex": 6
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 6
+}</component>
   <component name="ProjectId" id="35eGQnVR0yfhxEnQcbwIosoHg8i" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -53,7 +49,7 @@
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
     "git-widget-placeholder": "refactoring",
-    "settings.editor.selected.configurable": "com.maddyhome.idea.vim.ui.VimEmulationConfigurable"
+    "settings.editor.selected.configurable": "preferences.keymap"
   }
 }]]></component>
   <component name="RunManager" selected="Android App.apps.android">

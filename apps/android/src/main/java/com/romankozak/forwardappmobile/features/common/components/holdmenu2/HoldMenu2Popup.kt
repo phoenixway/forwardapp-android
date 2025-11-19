@@ -9,9 +9,11 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -40,19 +42,18 @@ fun HoldMenu2Popup(state: HoldMenu2State) {
     val menuWidth = with(density) { layout.menuWidth.toDp() }
     val itemHeight = with(density) { layout.itemHeight.toDp() }
 
-    // Анімація появи/зникнення меню
     val scale by animateFloatAsState(
-        targetValue = if (state.isOpen) 1f else 0.8f,
+        targetValue = if (state.isOpen) 1f else 0.92f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
+            stiffness = Spring.StiffnessLow
         ),
         label = "menu_scale"
     )
 
     val alpha by animateFloatAsState(
         targetValue = if (state.isOpen) 1f else 0f,
-        animationSpec = tween(200),
+        animationSpec = tween(150),
         label = "menu_alpha"
     )
 
@@ -60,46 +61,52 @@ fun HoldMenu2Popup(state: HoldMenu2State) {
         modifier = Modifier
             .offset { layout.menuTopLeft }
             .graphicsLayer {
+                this.alpha = alpha
                 scaleX = scale
                 scaleY = scale
-                this.alpha = alpha
-                transformOrigin = TransformOrigin(0.5f, 0f)
+                transformOrigin = TransformOrigin.Center
             }
             .width(menuWidth)
             .shadow(
-                elevation = 16.dp,
-                shape = RoundedCornerShape(20.dp),
-                ambientColor = Color.Black.copy(alpha = 0.3f),
-                spotColor = Color.Black.copy(alpha = 0.3f)
+                elevation = 20.dp,
+                shape = RoundedCornerShape(22.dp),
+                ambientColor = Color.Black.copy(alpha = 0.35f),
+                spotColor = Color.Black.copy(alpha = 0.45f)
             )
             .background(
-                Color(0xFF2A2A2A),
-                RoundedCornerShape(20.dp)
+                color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.92f),
+                shape = RoundedCornerShape(22.dp)
+            )
+
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
+                shape = RoundedCornerShape(22.dp)
             )
             .padding(vertical = 8.dp)
     ) {
-        Column {
+        Column(
+            verticalArrangement = Arrangement.Top,
+            horizontalAlignment = when (state.menuAlignment) {
+                MenuAlignment.START -> Alignment.Start
+                MenuAlignment.CENTER -> Alignment.CenterHorizontally
+                MenuAlignment.END -> Alignment.End
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
             state.items.forEachIndexed { index, item ->
-                val isHover = index == state.hoverIndex
-
                 MenuItemRow(
                     item = item,
-                    isHover = isHover,
+                    isHover = index == state.hoverIndex,
                     itemHeight = itemHeight,
                     iconPosition = state.iconPosition,
-                    menuAlignment = state.menuAlignment,
+                    menuAlignment = state.menuAlignment
                 )
             }
         }
-
-        // iOS-like hover tooltip
-//        IOSStyleHoverLabel(
-//            state = state,
-//            menuWidth = menuWidth,
-//            itemHeight = itemHeight,
-//        )
     }
 }
+
 
 @Composable
 private fun MenuItemRow(
@@ -109,41 +116,35 @@ private fun MenuItemRow(
     iconPosition: IconPosition,
     menuAlignment: MenuAlignment,
 ) {
-    // Анімації для hover
-    val scale by animateFloatAsState(
-        targetValue = if (isHover) 1.05f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "item_scale_${item.id}"
+    // Без scale!
+    val offsetX by animateDpAsState(
+        targetValue = if (isHover) 6.dp else 0.dp,
+        animationSpec = tween(90),
+        label = "offset"
     )
 
-    val backgroundColor by animateColorAsState(
-        targetValue = if (isHover) Color(0xFF3A3A3A) else Color.Transparent,
-        animationSpec = tween(150),
-        label = "item_bg_${item.id}"
-    )
+    val backgroundColor =
+        if (isHover)
+            MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.55f)
+        else
+            Color.Transparent
 
-    val textColor by animateColorAsState(
-        targetValue = if (isHover) Color.White else Color(0xFFCCCCCC),
-        animationSpec = tween(150),
-        label = "item_text_${item.id}"
-    )
+    val textColor =
+        if (isHover)
+            MaterialTheme.colorScheme.onSurface
+        else
+            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
 
-    val fontSize by animateFloatAsState(
-        targetValue = if (isHover) 16f else 15f,
-        animationSpec = spring(stiffness = Spring.StiffnessMedium),
-        label = "item_font_${item.id}"
-    )
+    val fontWeight =
+        if (isHover) FontWeight.SemiBold else FontWeight.Medium
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(itemHeight)
-            .scale(scale)
-            .background(backgroundColor, RoundedCornerShape(12.dp))
-            .padding(horizontal = 16.dp),
+            .offset(x = offsetX)
+            .padding(horizontal = 6.dp, vertical = 4.dp)
+            .background(backgroundColor, RoundedCornerShape(14.dp)),
         contentAlignment = when (menuAlignment) {
             MenuAlignment.START -> Alignment.CenterStart
             MenuAlignment.END -> Alignment.CenterEnd
@@ -153,45 +154,38 @@ private fun MenuItemRow(
         Row(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 14.dp)
         ) {
-            // Іконка та текст в залежності від iconPosition
-            when (iconPosition) {
-                IconPosition.START -> {
-                    item.icon?.let {
-                        Icon(
-                            imageVector = it,
-                            contentDescription = null,
-                            tint = textColor,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    Text(
-                        text = item.label,
-                        color = textColor,
-                        fontSize = fontSize.sp,
-                        fontWeight = if (isHover) FontWeight.SemiBold else FontWeight.Normal,
+            if (iconPosition == IconPosition.START)
+                item.icon?.let {
+                    Icon(
+                        imageVector = it,
+                        contentDescription = null,
+                        tint = textColor,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
-                IconPosition.END -> {
-                    Text(
-                        text = item.label,
-                        color = textColor,
-                        fontSize = fontSize.sp,
-                        fontWeight = if (isHover) FontWeight.SemiBold else FontWeight.Normal,
+
+            Text(
+                item.label,
+                color = textColor,
+                fontSize = 15.sp,
+                fontWeight = fontWeight
+            )
+
+            if (iconPosition == IconPosition.END)
+                item.icon?.let {
+                    Icon(
+                        imageVector = it,
+                        contentDescription = null,
+                        tint = textColor,
+                        modifier = Modifier.size(20.dp)
                     )
-                    item.icon?.let {
-                        Icon(
-                            imageVector = it,
-                            contentDescription = null,
-                            tint = textColor,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
                 }
-            }
         }
     }
 }
+
 
 @Composable
 private fun IOSStyleHoverLabel(
