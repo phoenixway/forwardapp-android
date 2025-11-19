@@ -6,7 +6,10 @@ build/
 ktlint
 google-cloud-sdk*
 loggy.log
-app/schemas/
+app/schemas/        
+
+.idea/workspace.xml
+
 # Local Gradle home used by Makefile
 /.gradle-project/
 

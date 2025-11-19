@@ -42,6 +42,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.features.projectscreen.components.list.BacklogView
+import com.romankozak.forwardappmobile.features.projectscreen.views.InboxView
 
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
@@ -186,14 +187,14 @@ fun ProjectScreen(
                     onCopyContent = { /* TODO */ },
                 )
                 ProjectViewMode.Inbox -> {
-                    LazyColumn(modifier = Modifier.padding(paddingValues)) {
-                        items(state.inboxItems) { item ->
-                            Text(
-                                text = item.text,
-                                modifier = Modifier.fillMaxWidth().padding(16.dp)
-                            )
-                        }
-                    }
+                    InboxView(
+                        modifier = Modifier.padding(paddingValues),
+                        viewModel = viewModel,
+                        inboxRecords = state.inboxItems,
+                        listState = rememberLazyListState(),
+                        highlightedRecordId = null,
+                        navController = navController,
+                    )
                 }
                 ProjectViewMode.Advanced -> Text(
                     text = "Advanced Content for ID: $projectId",
