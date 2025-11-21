@@ -99,6 +99,7 @@ fun UniversalEditorScreen(
   val keyboardController = LocalSoftwareKeyboardController.current
   val focusManager = LocalFocusManager.current
   val isEditingComputed = uiState.isEditing || startInEditMode
+  val isEditing = isEditingComputed
   val readOnly = !isEditingComputed
 
   LaunchedEffect(isEditingComputed, startInEditMode) {
