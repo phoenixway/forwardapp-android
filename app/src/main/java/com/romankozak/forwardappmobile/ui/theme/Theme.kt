@@ -166,8 +166,8 @@ private val SolarizedDarkColorScheme = darkColorScheme(
 )
 
 private val TerminalGreenDarkColorScheme = darkColorScheme(
-    primary = TerminalNeon,
-    secondary = TerminalNeonDim,
+    primary = TerminalNeonDim,
+    secondary = TerminalNeon,
     tertiary = TerminalAmber,
     background = TerminalBg,
     surface = TerminalSurface,
@@ -176,15 +176,19 @@ private val TerminalGreenDarkColorScheme = darkColorScheme(
     onTertiary = Color.Black,
     onBackground = TerminalNeonDim,
     onSurface = TerminalNeonDim,
+    primaryContainer = TerminalSurface,
+    onPrimaryContainer = TerminalNeon,
+    secondaryContainer = TerminalSurface,
+    onSecondaryContainer = TerminalNeon,
     surfaceContainer = TerminalSurface.copy(alpha = 0.92f),
     surfaceContainerHigh = TerminalGrid,
-    outlineVariant = TerminalNeon.copy(alpha = 0.25f),
+    outlineVariant = TerminalNeonDim.copy(alpha = 0.25f),
     scrim = TerminalScreenGlow
 )
 
 private val TerminalGreenLightColorScheme = lightColorScheme(
-    primary = TerminalNeon,
-    secondary = TerminalNeonDim,
+    primary = TerminalNeonDim,
+    secondary = TerminalNeon,
     tertiary = TerminalAmber,
     background = TerminalBg,
     surface = TerminalSurface,
@@ -193,9 +197,13 @@ private val TerminalGreenLightColorScheme = lightColorScheme(
     onTertiary = Color.Black,
     onBackground = TerminalNeonDim,
     onSurface = TerminalNeonDim,
+    primaryContainer = TerminalSurface,
+    onPrimaryContainer = TerminalNeon,
+    secondaryContainer = TerminalSurface,
+    onSecondaryContainer = TerminalNeon,
     surfaceContainer = TerminalSurface.copy(alpha = 0.92f),
     surfaceContainerHigh = TerminalGrid,
-    outlineVariant = TerminalNeon.copy(alpha = 0.25f),
+    outlineVariant = TerminalNeonDim.copy(alpha = 0.25f),
     scrim = TerminalScreenGlow
 )
 
