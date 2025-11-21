@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -85,6 +86,7 @@ fun AttachmentsView(
                         onShareAttachment = { attachment ->
                             viewModel.itemActionHandler.shareAttachmentToProject(attachment)
                         },
+                        onDeleteCompletely = { viewModel.deleteAttachmentEverywhere(it) },
                     )
                 }
             }
@@ -99,6 +101,7 @@ private fun AttachmentItemCard(
     onDeleteItem: (ListItemContent) -> Unit,
     onCopyContentRequest: (ListItemContent) -> Unit,
     onShareAttachment: (ListItemContent) -> Unit,
+    onDeleteCompletely: (ListItemContent) -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -145,6 +148,7 @@ private fun AttachmentItemCard(
                 modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, top = 4.dp),
                 onShareAttachment = { onShareAttachment(item) },
                 onDeleteItem = { onDeleteItem(item) },
+                onDeleteCompletely = { onDeleteCompletely(item) },
             )
         }
     }
@@ -155,6 +159,7 @@ private fun AttachmentActionsRow(
     modifier: Modifier = Modifier,
     onShareAttachment: () -> Unit,
     onDeleteItem: () -> Unit,
+    onDeleteCompletely: () -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current
     Row(
@@ -172,6 +177,19 @@ private fun AttachmentActionsRow(
                 imageVector = Icons.Default.Share,
                 contentDescription = stringResource(R.string.copy_attachment_to_project),
                 tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        IconButton(
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onDeleteCompletely()
+            },
+        ) {
+            Icon(
+                imageVector = Icons.Filled.DeleteForever,
+                contentDescription = stringResource(R.string.delete_attachment_completely),
+                tint = MaterialTheme.colorScheme.error,
                 modifier = Modifier.size(20.dp),
             )
         }

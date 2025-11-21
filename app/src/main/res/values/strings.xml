@@ -29,6 +29,7 @@
     <string name="attachment_type_web_link">Веб-посилання</string>
     <string name="attachment_type_obsidian">Obsidian</string>
     <string name="attachment_type_project_link">Посилання на проект</string>
+    <string name="delete_attachment_completely">Видалити вкладення у всіх проєктах</string>
     <string name="menu_add_project_shortcut">Додати ярлик проекту</string>
     <string name="attachment_note_icon_description">Іконка нотатки</string>
     <string name="attachment_label_note">Нотатка</string>

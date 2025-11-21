@@ -954,13 +954,52 @@ constructor(
         return@launch
       }
 
-      projectRepository.linkAttachmentToProject(attachment.listItem.id, targetProjectId)
+      val attachmentId =
+        try {
+          projectRepository.ensureAttachmentLinkedToProject(
+            attachmentType = attachment.listItem.itemType,
+            entityId = attachment.listItem.entityId,
+            targetProjectId = targetProjectId,
+            ownerProjectId = attachment.listItem.projectId.takeIf { it.isNotBlank() }
+              ?: projectIdFlow.value,
+          )
+        } catch (e: Exception) {
+          Log.e(TAG, "Failed to link attachment to project=$targetProjectId", e)
+          withContext(Dispatchers.Main) {
+            showSnackbar("Не вдалося додати вкладення до проєкту", null)
+          }
+          return@launch
+        }
       withContext(Dispatchers.Main) {
         if (targetProjectId == projectIdFlow.value) {
-          _uiState.update { it.copy(newlyAddedItemId = attachment.listItem.id) }
+          _uiState.update { it.copy(newlyAddedItemId = attachmentId) }
           forceRefresh()
         }
         showSnackbar("Вкладення додано до вибраного проєкту", null)
+      }
+    }
+  }
+
+  fun deleteAttachmentEverywhere(attachment: ListItemContent) {
+    val isAttachment =
+      attachment is ListItemContent.LinkItem ||
+        attachment is ListItemContent.NoteDocumentItem ||
+        attachment is ListItemContent.ChecklistItem
+    if (!isAttachment) return
+
+    viewModelScope.launch(Dispatchers.IO) {
+      runCatching {
+        projectRepository.deleteAttachmentEverywhere(attachment.listItem.id)
+      }.onSuccess {
+        withContext(Dispatchers.Main) {
+          forceRefresh()
+          showSnackbar("Вкладення повністю видалено", null)
+        }
+      }.onFailure { e ->
+        Log.e(TAG, "Failed to delete attachment everywhere", e)
+        withContext(Dispatchers.Main) {
+          showSnackbar("Не вдалося повністю видалити вкладення", null)
+        }
       }
     }
   }

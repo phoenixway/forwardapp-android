@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -40,6 +41,7 @@ fun AttachmentsSection(
     isExpanded: Boolean,
     onAddAttachment: (AttachmentType) -> Unit,
     onDeleteItem: (ListItemContent) -> Unit,
+    onDeleteCompletely: (ListItemContent) -> Unit,
     onItemClick: (ListItemContent) -> Unit,
     onCopyContentRequest: (ListItemContent) -> Unit,
 ) {
@@ -126,6 +128,10 @@ fun AttachmentsSection(
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                         onDeleteItem(content)
                                     },
+                                    onDeleteCompletely = { content ->
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        onDeleteCompletely(content)
+                                    },
                                     onCopyContentRequest = { content ->
                                         onCopyContentRequest(content)
                                     },
@@ -146,6 +152,7 @@ private fun AttachmentItemCard(
     item: ListItemContent,
     onItemClick: (ListItemContent) -> Unit,
     onDeleteItem: (ListItemContent) -> Unit,
+    onDeleteCompletely: (ListItemContent) -> Unit,
     onCopyContentRequest: (ListItemContent) -> Unit,
 ) {
     Card(
@@ -157,15 +164,27 @@ private fun AttachmentItemCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         val endAction = @Composable {
-            IconButton(
-                onClick = { onDeleteItem(item) },
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = stringResource(R.string.delete_attachment_description),
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(18.dp),
-                )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(
+                    onClick = { onDeleteCompletely(item) },
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.DeleteForever,
+                        contentDescription = stringResource(R.string.delete_attachment_completely),
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+                IconButton(
+                    onClick = { onDeleteItem(item) },
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = stringResource(R.string.delete_attachment_description),
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
             }
         }
 

@@ -403,6 +403,36 @@ constructor(
         targetProjectId: String,
     ) = attachmentRepository.linkAttachmentToProject(attachmentId, targetProjectId)
 
+    suspend fun ensureAttachmentLinkedToProject(
+        attachmentType: String,
+        entityId: String,
+        targetProjectId: String,
+        ownerProjectId: String?,
+        createdAt: Long = System.currentTimeMillis(),
+    ): String =
+        attachmentRepository
+            .ensureAttachmentLinkedToProject(
+                attachmentType = attachmentType,
+                entityId = entityId,
+                projectId = targetProjectId,
+                ownerProjectId = ownerProjectId,
+                createdAt = createdAt,
+            ).id
+
+    suspend fun unlinkAttachmentFromProject(
+        projectId: String,
+        attachmentId: String,
+    ): Boolean = attachmentRepository.unlinkAttachmentFromProject(attachmentId, projectId)
+
+    suspend fun deleteAttachmentEverywhere(attachmentId: String) {
+        val attachment = attachmentRepository.getAttachmentById(attachmentId) ?: return
+        when (attachment.attachmentType) {
+            ListItemTypeValues.NOTE_DOCUMENT -> noteDocumentRepository.deleteDocument(attachment.entityId)
+            ListItemTypeValues.CHECKLIST -> checklistRepository.deleteChecklist(attachment.entityId)
+            else -> attachmentRepository.deleteAttachment(attachmentId)
+        }
+    }
+
     suspend fun findProjectIdsByTag(tag: String): List<String> = projectDao.getProjectIdsByTag(tag)
 
     suspend fun getProjectsByType(projectType: ProjectType): List<Project> = projectDao.getProjectsByType(projectType.name)
