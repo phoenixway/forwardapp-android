@@ -24,7 +24,6 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectUiEve
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.navigation.RevealResult
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.flattenHierarchy
 import dagger.hilt.android.lifecycle.HiltViewModel
-import java.net.URLEncoder
 import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
@@ -81,7 +80,6 @@ constructor(
 
   private sealed class PendingChooserAction {
     data object MoveProject : PendingChooserAction()
-    data object AddChecklist : PendingChooserAction()
   }
 
   var enhancedNavigationManager: EnhancedNavigationManager? = null
@@ -377,27 +375,12 @@ constructor(
       }
       is MainScreenEvent.AddNoteDocumentRequest -> createNoteInInbox()
       is MainScreenEvent.AddChecklistRequest -> {
-        pendingChooserAction.value = PendingChooserAction.AddChecklist
-        viewModelScope.launch {
-          val title = URLEncoder.encode("Виберіть проєкт для чекліста", "UTF-8")
-          _uiEventChannel.send(ProjectUiEvent.Navigate("list_chooser_screen/$title?disabledIds="))
-        }
+        createChecklistInInbox()
       }
       is MainScreenEvent.ListChooserResult -> {
         val targetProjectId = event.projectId?.takeUnless { it.isBlank() || it == "root" }
         when (val action = pendingChooserAction.value) {
           PendingChooserAction.MoveProject -> handleMoveConfirm(event.projectId)
-          PendingChooserAction.AddChecklist -> {
-            if (targetProjectId.isNullOrBlank()) {
-              viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.ShowToast("Проєкт не вибрано")) }
-            } else {
-              viewModelScope.launch {
-                _uiEventChannel.send(
-                  ProjectUiEvent.Navigate("checklist_screen?projectId=$targetProjectId")
-                )
-              }
-            }
-          }
           null -> {
             handleMoveConfirm(event.projectId)
           }
@@ -720,6 +703,20 @@ constructor(
     viewModelScope.launch {
       _uiEventChannel.send(
         ProjectUiEvent.Navigate("note_document_edit_screen?projectId=$inboxProjectId")
+      )
+    }
+  }
+
+  private fun createChecklistInInbox() {
+    val inboxProjectId =
+      _allProjectsFlat.value.firstOrNull { it.systemKey == com.romankozak.forwardappmobile.data.database.models.ReservedProjectKeys.INBOX }?.id
+    if (inboxProjectId == null) {
+      viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.ShowToast("Inbox проект не знайдено")) }
+      return
+    }
+    viewModelScope.launch {
+      _uiEventChannel.send(
+        ProjectUiEvent.Navigate("checklist_screen?projectId=$inboxProjectId")
       )
     }
   }
