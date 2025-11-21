@@ -2,7 +2,6 @@ package com.romankozak.forwardappmobile.features.common.components.holdmenu2
 
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -13,7 +12,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -31,6 +29,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.compareTo
+import com.romankozak.forwardappmobile.ui.theme.HoldMenuColors
+import com.romankozak.forwardappmobile.ui.theme.LocalHoldMenuColors
 
 @Composable
 fun HoldMenu2Popup(state: HoldMenu2State) {
@@ -41,6 +41,7 @@ fun HoldMenu2Popup(state: HoldMenu2State) {
     val density = LocalDensity.current
     val menuWidth = with(density) { layout.menuWidth.toDp() }
     val itemHeight = with(density) { layout.itemHeight.toDp() }
+    val holdMenuColors = LocalHoldMenuColors.current
 
     val scale by animateFloatAsState(
         targetValue = if (state.isOpen) 1f else 0.92f,
@@ -74,13 +75,13 @@ fun HoldMenu2Popup(state: HoldMenu2State) {
                 spotColor = Color.Black.copy(alpha = 0.45f)
             )
             .background(
-                color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.92f),
+                color = holdMenuColors.background,
                 shape = RoundedCornerShape(22.dp)
             )
 
             .border(
                 width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
+                color = holdMenuColors.border,
                 shape = RoundedCornerShape(22.dp)
             )
             .padding(vertical = 8.dp)
@@ -100,7 +101,8 @@ fun HoldMenu2Popup(state: HoldMenu2State) {
                     isHover = index == state.hoverIndex,
                     itemHeight = itemHeight,
                     iconPosition = state.iconPosition,
-                    menuAlignment = state.menuAlignment
+                    menuAlignment = state.menuAlignment,
+                    colors = holdMenuColors
                 )
             }
         }
@@ -115,6 +117,7 @@ private fun MenuItemRow(
     itemHeight: Dp,
     iconPosition: IconPosition,
     menuAlignment: MenuAlignment,
+    colors: HoldMenuColors,
 ) {
     // Без scale!
     val offsetX by animateDpAsState(
@@ -123,17 +126,9 @@ private fun MenuItemRow(
         label = "offset"
     )
 
-    val backgroundColor =
-        if (isHover)
-            MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.55f)
-        else
-            Color.Transparent
+    val backgroundColor = if (isHover) colors.itemHoverBackground else Color.Transparent
 
-    val textColor =
-        if (isHover)
-            MaterialTheme.colorScheme.onSurface
-        else
-            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
+    val textColor = if (isHover) colors.itemText else colors.itemTextMuted
 
     val fontWeight =
         if (isHover) FontWeight.SemiBold else FontWeight.Medium
@@ -192,6 +187,7 @@ private fun IOSStyleHoverLabel(
     state: HoldMenu2State,
     menuWidth: Dp,
     itemHeight: Dp,
+    colors: HoldMenuColors,
 ) {
     val density = LocalDensity.current
     val hoverIndex = state.hoverIndex
@@ -223,14 +219,14 @@ private fun IOSStyleHoverLabel(
                             ambientColor = Color.Black.copy(alpha = 0.2f)
                         )
                         .background(
-                            Color(0xFF4A4A4A),
+                            colors.tooltipBackground,
                             RoundedCornerShape(12.dp)
                         )
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     Text(
                         text = item.label,
-                        color = Color.White,
+                        color = colors.tooltipText,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
                     )

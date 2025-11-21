@@ -9,16 +9,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.draw.blur
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.ui.theme.LocalHoldMenuColors
 @Composable
 fun HoldMenu2Overlay(
     controller: HoldMenu2Controller,
     modifier: Modifier = Modifier
 ) {
     val state = controller.state
+    val holdMenuColors = LocalHoldMenuColors.current
 
     AnimatedVisibility(
         visible = state.isOpen && state.items.isNotEmpty(),
@@ -33,7 +33,7 @@ fun HoldMenu2Overlay(
             Box(
                 Modifier
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.35f))
+                    .background(holdMenuColors.scrim)
                     .blur(18.dp)
             )
 

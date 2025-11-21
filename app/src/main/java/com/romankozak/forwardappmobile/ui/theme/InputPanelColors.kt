@@ -89,3 +89,19 @@ val SolarizedDarkInputPanelColors = InputPanelColors(
     addQuickRecord = InputModeColors(backgroundColor = SolarizedBase02, textColor = SolarizedGreen, inputFieldColor = SolarizedBase03),
     addProjectLog = InputModeColors(backgroundColor = SolarizedBase02, textColor = SolarizedOrange, inputFieldColor = SolarizedBase03)
 )
+
+val TerminalGreenInputPanelColors = InputPanelColors(
+    addGoal = InputModeColors(backgroundColor = TerminalSurface, textColor = TerminalNeon, inputFieldColor = TerminalGrid),
+    searchInList = InputModeColors(backgroundColor = TerminalSurface, textColor = TerminalNeonDim, inputFieldColor = TerminalGrid),
+    searchGlobal = InputModeColors(backgroundColor = TerminalSurface, textColor = TerminalAmber, inputFieldColor = TerminalGrid),
+    addQuickRecord = InputModeColors(backgroundColor = TerminalGrid, textColor = TerminalNeon, inputFieldColor = TerminalSurface),
+    addProjectLog = InputModeColors(backgroundColor = TerminalSurface, textColor = TerminalAmber, inputFieldColor = TerminalGrid)
+)
+
+val EmeraldInputPanelColors = InputPanelColors(
+    addGoal = InputModeColors(backgroundColor = EmeraldSurface, textColor = EmeraldMint, inputFieldColor = EmeraldDeep),
+    searchInList = InputModeColors(backgroundColor = EmeraldSurface, textColor = EmeraldLeaf, inputFieldColor = EmeraldDeep),
+    searchGlobal = InputModeColors(backgroundColor = EmeraldSurface, textColor = EmeraldLime, inputFieldColor = EmeraldDeep),
+    addQuickRecord = InputModeColors(backgroundColor = EmeraldDeep, textColor = EmeraldMint, inputFieldColor = EmeraldSurface),
+    addProjectLog = InputModeColors(backgroundColor = EmeraldSurface, textColor = EmeraldGray, inputFieldColor = EmeraldDeep)
+)
