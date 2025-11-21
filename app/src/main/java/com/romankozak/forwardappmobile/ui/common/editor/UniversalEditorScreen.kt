@@ -340,7 +340,7 @@ private fun Editor(
           .focusRequester(contentFocusRequester)
           .bringIntoViewRequester(bringIntoViewRequester)
           .focusProperties { canFocus = isEditingComputed }
-          .pointerInput(content.text, isEditingComputed) {
+          .pointerInput(content.text, isEditingComputed, readOnly) {
               if (!isEditingComputed) return@pointerInput
               detectTapGestures { offset ->
                 textLayoutResult?.let { layoutResult ->
