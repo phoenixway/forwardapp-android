@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.ui.screens.projectscreen.views
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -104,7 +105,9 @@ private fun AttachmentItemCard(
     onDeleteCompletely: (ListItemContent) -> Unit,
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onItemClick(item) },
         shape = RoundedCornerShape(16.dp),
         tonalElevation = 1.dp,
         shadowElevation = 1.dp,
@@ -145,7 +148,7 @@ private fun AttachmentItemCard(
             }
 
             AttachmentActionsRow(
-                modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, top = 4.dp),
+                modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, top = 2.dp),
                 onShareAttachment = { onShareAttachment(item) },
                 onDeleteItem = { onDeleteItem(item) },
                 onDeleteCompletely = { onDeleteCompletely(item) },
