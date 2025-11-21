@@ -18,6 +18,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.FormatListBulleted
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -179,9 +182,18 @@ fun MainScreenScaffold(
             AnimatedVisibility(visible = !isSearchActiveFab) {
                 val menuItems =
                     listOf(
-                        HoldMenuItem(label = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_project)),
-                        HoldMenuItem(label = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_note)),
-                        HoldMenuItem(label = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_checklist)),
+                        HoldMenuItem(
+                            label = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_project),
+                            icon = Icons.Default.FolderOpen,
+                        ),
+                        HoldMenuItem(
+                            label = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_note),
+                            icon = Icons.Default.Description,
+                        ),
+                        HoldMenuItem(
+                            label = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_checklist),
+                            icon = Icons.Default.FormatListBulleted,
+                        ),
                     )
                 HoldMenu2Button(
                     items = menuItems,
@@ -205,7 +217,7 @@ fun MainScreenScaffold(
                             onDismissRequest = { showAddMenu = false },
                         ) {
                             DropdownMenuItem(
-                                leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
+                                leadingIcon = { Icon(Icons.Default.FolderOpen, contentDescription = null) },
                                 text = { Text(text = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_project)) },
                                 onClick = {
                                     showAddMenu = false
@@ -213,7 +225,7 @@ fun MainScreenScaffold(
                                 },
                             )
                             DropdownMenuItem(
-                                leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
+                                leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) },
                                 text = { Text(text = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_note)) },
                                 onClick = {
                                     showAddMenu = false
@@ -221,7 +233,7 @@ fun MainScreenScaffold(
                                 },
                             )
                             DropdownMenuItem(
-                                leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
+                                leadingIcon = { Icon(Icons.Default.FormatListBulleted, contentDescription = null) },
                                 text = { Text(text = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_checklist)) },
                                 onClick = {
                                     showAddMenu = false

@@ -701,9 +701,12 @@ constructor(
       return
     }
     viewModelScope.launch {
-      _uiEventChannel.send(
-        ProjectUiEvent.Navigate("note_document_edit_screen?projectId=$inboxProjectId")
+      val documentId = noteDocumentRepository.createDocument(
+        name = "Нова нотатка",
+        projectId = inboxProjectId,
+        content = "",
       )
+      _uiEventChannel.send(ProjectUiEvent.Navigate("note_document_screen/$documentId"))
     }
   }
 
@@ -715,9 +718,8 @@ constructor(
       return
     }
     viewModelScope.launch {
-      _uiEventChannel.send(
-        ProjectUiEvent.Navigate("checklist_screen?projectId=$inboxProjectId")
-      )
+      val checklistId = checklistRepository.createChecklist(name = "Новий чекліст", projectId = inboxProjectId)
+      _uiEventChannel.send(ProjectUiEvent.Navigate("checklist_screen?checklistId=$checklistId"))
     }
   }
 
