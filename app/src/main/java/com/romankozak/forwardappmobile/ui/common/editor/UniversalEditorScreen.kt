@@ -332,7 +332,6 @@ private fun Editor(
       value = content,
       onValueChange = onContentChange,
       onTextLayout = { result -> textLayoutResult = result },
-      readOnly = readOnly,
       modifier =
         Modifier.padding(start = 16.dp)
           .weight(1f)
@@ -343,34 +342,33 @@ private fun Editor(
           .pointerInput(content.text, isEditing) {
               if (!isEditing) return@pointerInput
               detectTapGestures { offset ->
-                  textLayoutResult?.let { layoutResult ->
-                      val clickedOffset = layoutResult.getOffsetForPosition(offset)
-                      val lineIndex = layoutResult.getLineForOffset(clickedOffset)
-                      val lines = content.text.lines()
+                textLayoutResult?.let { layoutResult ->
+                  val clickedOffset = layoutResult.getOffsetForPosition(offset)
+                  val lineIndex = layoutResult.getLineForOffset(clickedOffset)
+                  val lines = content.text.lines()
 
-                      if (lineIndex >= lines.size) return@detectTapGestures
+                  if (lineIndex >= lines.size) return@detectTapGestures
 
-                      val line = lines[lineIndex]
-                      val trimmedLine = line.trimStart()
+                  val line = lines[lineIndex]
+                  val trimmedLine = line.trimStart()
 
-                      val checkboxRegex = Regex("""^\s*-\s\[[ x]\]\s?.*""", RegexOption.IGNORE_CASE)
-                      if (checkboxRegex.matches(trimmedLine)) {
-                          val lineStartOffset = layoutResult.getLineStart(lineIndex)
-                          val originalIndentLength = line.takeWhile { it.isWhitespace() }.length
+                  val checkboxRegex = Regex("""^\s*-\s\[[ x]\]\s?.*""", RegexOption.IGNORE_CASE)
+                  if (checkboxRegex.matches(trimmedLine)) {
+                    val lineStartOffset = layoutResult.getLineStart(lineIndex)
+                    val originalIndentLength = line.takeWhile { it.isWhitespace() }.length
 
-                          val offsetInLine = clickedOffset - lineStartOffset
+                    val offsetInLine = clickedOffset - lineStartOffset
 
-                          val checkboxStart = originalIndentLength
-                          val checkboxEnd = originalIndentLength + 8
+                    val checkboxStart = originalIndentLength
+                    val checkboxEnd = originalIndentLength + 8
 
-                          if (offsetInLine >= checkboxStart && offsetInLine < checkboxEnd) {
-                              onToggleCheckbox(lineIndex)
-                          }
-                      }
+                    if (offsetInLine >= checkboxStart && offsetInLine < checkboxEnd) {
+                      onToggleCheckbox(lineIndex)
+                    }
                   }
+                }
               }
-          }
-      readOnly = readOnly
+            }
           .drawBehind {
             textLayoutResult?.let {
               layoutResult ->

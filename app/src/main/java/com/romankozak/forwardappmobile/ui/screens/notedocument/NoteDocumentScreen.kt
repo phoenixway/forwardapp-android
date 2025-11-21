@@ -237,24 +237,6 @@ fun NoteDocumentScreen(
         }
       }
     },
-    floatingActionButton = {
-      AnimatedVisibility(
-        visible = screenMode == ScreenMode.CREATE,
-        enter =
-          scaleIn(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)) +
-            fadeIn(),
-        exit = scaleOut(animationSpec = tween(200)) + fadeOut(),
-      ) {
-        ExtendedFloatingActionButton(
-          onClick = viewModel::onSave,
-          icon = { Icon(Icons.Default.Add, contentDescription = "Створити список") },
-          text = { Text("Створити") },
-          containerColor = MaterialTheme.colorScheme.primaryContainer,
-          contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-          modifier = Modifier.navigationBarsPadding().clip(RoundedCornerShape(16.dp)),
-        )
-      }
-    },
   ) { paddingValues ->
     Box(
       modifier = Modifier
