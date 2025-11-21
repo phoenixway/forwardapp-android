@@ -31,6 +31,9 @@
     <string name="attachment_type_project_link">Посилання на проект</string>
     <string name="delete_attachment_completely">Видалити вкладення у всіх проєктах</string>
     <string name="menu_add_project_shortcut">Додати ярлик проекту</string>
+    <string name="add_action_project">Новий проєкт</string>
+    <string name="add_action_note">Нотатку</string>
+    <string name="add_action_checklist">Чекліст</string>
     <string name="attachment_note_icon_description">Іконка нотатки</string>
     <string name="attachment_label_note">Нотатка</string>
     <string name="attachment_note_delete_description">Видалити нотатку</string>

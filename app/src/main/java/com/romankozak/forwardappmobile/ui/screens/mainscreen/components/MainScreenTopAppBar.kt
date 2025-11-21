@@ -13,7 +13,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Badge
 import androidx.compose.material3.DropdownMenu
@@ -50,7 +49,6 @@ fun MainScreenTopAppBar(
     onGoBack: () -> Unit,
     onGoForward: () -> Unit,
     onShowHistory: () -> Unit,
-    onAddNewProject: () -> Unit,
     onShowWifiServer: () -> Unit,
     onShowWifiImport: () -> Unit,
     onExportToFile: () -> Unit,
@@ -91,13 +89,6 @@ fun MainScreenTopAppBar(
                 AnimatedVisibility(visible = false) {
                     IconButton(onClick = onGoForward) {
                         Icon(Icons.AutoMirrored.Outlined.ArrowForward, "Вперед")
-                    }
-                }
-
-                AnimatedVisibility(visible = !isFocusMode) {
-                    
-                    IconButton(onClick = onAddNewProject) {
-                        Icon(Icons.Default.Add, "Add new project")
                     }
                 }
                 var menuExpanded by remember { mutableStateOf(false) }

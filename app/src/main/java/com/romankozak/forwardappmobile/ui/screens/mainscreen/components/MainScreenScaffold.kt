@@ -4,18 +4,27 @@ import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -23,6 +32,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.ui.components.NewRecentListsSheet
@@ -98,7 +108,6 @@ fun MainScreenScaffold(
                 onGoBack = { onEvent(MainScreenEvent.BackClick) },
                 onGoForward = { onEvent(MainScreenEvent.ForwardClick) },
                 onShowHistory = { onEvent(MainScreenEvent.HistoryClick) },
-                onAddNewProject = { onEvent(MainScreenEvent.AddNewProjectRequest) },
                 onShowWifiServer = { onEvent(MainScreenEvent.ShowWifiServerDialog) },
                 onShowWifiImport = { onEvent(MainScreenEvent.ShowWifiImportDialog) },
                 onExportToFile = { onEvent(MainScreenEvent.ExportToFile) },
@@ -152,8 +161,52 @@ fun MainScreenScaffold(
                         onActivityTrackerClick = { onEvent(MainScreenEvent.NavigateToActivityTracker) },
                         onInsightsClick = { onEvent(MainScreenEvent.NavigateToAiInsights) },
                         onShowReminders = { onEvent(MainScreenEvent.GoToReminders) },
+                        onLifeStateClick = { onEvent(MainScreenEvent.NavigateToLifeState) },
                         onEvent = onEvent,
                     )
+                }
+            }
+        },
+        floatingActionButton = {
+            val isSearchActiveFab = uiState.subStateStack.any { it is MainSubState.LocalSearch }
+            var showAddMenu by remember { mutableStateOf(false) }
+
+            AnimatedVisibility(visible = !isSearchActiveFab) {
+                Box {
+                    androidx.compose.material3.FloatingActionButton(
+                        onClick = { showAddMenu = true },
+                    ) {
+                        androidx.compose.material3.Icon(Icons.Default.Add, contentDescription = "Додати")
+                    }
+                    DropdownMenu(
+                        expanded = showAddMenu,
+                        onDismissRequest = { showAddMenu = false },
+                    ) {
+                        DropdownMenuItem(
+                            leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
+                            text = { Text(text = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_project)) },
+                            onClick = {
+                                showAddMenu = false
+                                onEvent(MainScreenEvent.AddNewProjectRequest)
+                            },
+                        )
+                        DropdownMenuItem(
+                            leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
+                            text = { Text(text = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_note)) },
+                            onClick = {
+                                showAddMenu = false
+                                onEvent(MainScreenEvent.AddNoteDocumentRequest)
+                            },
+                        )
+                        DropdownMenuItem(
+                            leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
+                            text = { Text(text = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_checklist)) },
+                            onClick = {
+                                showAddMenu = false
+                                onEvent(MainScreenEvent.AddChecklistRequest)
+                            },
+                        )
+                    }
                 }
             }
         },

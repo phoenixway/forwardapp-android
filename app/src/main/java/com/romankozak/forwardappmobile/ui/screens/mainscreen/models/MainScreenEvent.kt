@@ -35,10 +35,13 @@ sealed interface MainScreenEvent {
     
     data class PlanningModeChange(val mode: PlanningMode) : MainScreenEvent
 
-    
+
     data object DismissDialog : MainScreenEvent
 
     data object AddNewProjectRequest : MainScreenEvent
+    data object AddNoteDocumentRequest : MainScreenEvent
+    data object AddChecklistRequest : MainScreenEvent
+    data class ListChooserResult(val projectId: String?) : MainScreenEvent
 
     data class DeleteRequest(val project: Project) : MainScreenEvent
 
@@ -106,6 +109,7 @@ sealed interface MainScreenEvent {
     object NavigateToActivityTracker : MainScreenEvent
 
     object NavigateToAiInsights : MainScreenEvent
+    object NavigateToLifeState : MainScreenEvent
 
     object NavigateToStrategicManagement : MainScreenEvent
 

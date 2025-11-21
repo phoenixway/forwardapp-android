@@ -134,7 +134,7 @@ fun MainScreen(
                         ?.savedStateHandle
                         ?.remove<String?>("list_chooser_result")
                         ?.let { result ->
-                            viewModel.onEvent(MainScreenEvent.MoveConfirm(result))
+                            viewModel.onEvent(MainScreenEvent.ListChooserResult(result))
                         }
 
                     navController.currentBackStackEntry

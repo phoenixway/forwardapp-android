@@ -16,6 +16,7 @@ import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.routes.CHAT_ROUTE
+import com.romankozak.forwardappmobile.routes.LIFE_STATE_ROUTE
 import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
 
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.*
@@ -23,6 +24,7 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectUiEve
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.navigation.RevealResult
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.flattenHierarchy
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.net.URLEncoder
 import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
@@ -75,6 +77,12 @@ constructor(
   companion object {
     private const val PROJECT_BEING_MOVED_ID_KEY = "projectBeingMovedId"
     private const val TAG = "MainScreenVM_DEBUG"
+  }
+
+  private sealed class PendingChooserAction {
+    data object MoveProject : PendingChooserAction()
+    data object AddNoteDocument : PendingChooserAction()
+    data object AddChecklist : PendingChooserAction()
   }
 
   var enhancedNavigationManager: EnhancedNavigationManager? = null
@@ -132,6 +140,7 @@ constructor(
   private val _showRecentListsSheet = MutableStateFlow(false)
   private val _isBottomNavExpanded = MutableStateFlow(false)
   private val _showSearchDialog = MutableStateFlow(false)
+  private val pendingChooserAction = MutableStateFlow<PendingChooserAction?>(null)
   private val projectBeingMovedId =
     savedStateHandle.getStateFlow<String?>(PROJECT_BEING_MOVED_ID_KEY, null)
   init {
@@ -367,6 +376,52 @@ constructor(
           dialogUseCase.onAddNewProjectRequest()
         }
       }
+      is MainScreenEvent.AddNoteDocumentRequest -> {
+        pendingChooserAction.value = PendingChooserAction.AddNoteDocument
+        viewModelScope.launch {
+          val title = URLEncoder.encode("Виберіть проєкт для нотатки", "UTF-8")
+          _uiEventChannel.send(ProjectUiEvent.Navigate("list_chooser_screen/$title?disabledIds="))
+        }
+      }
+      is MainScreenEvent.AddChecklistRequest -> {
+        pendingChooserAction.value = PendingChooserAction.AddChecklist
+        viewModelScope.launch {
+          val title = URLEncoder.encode("Виберіть проєкт для чекліста", "UTF-8")
+          _uiEventChannel.send(ProjectUiEvent.Navigate("list_chooser_screen/$title?disabledIds="))
+        }
+      }
+      is MainScreenEvent.ListChooserResult -> {
+        val targetProjectId = event.projectId?.takeUnless { it.isBlank() || it == "root" }
+        when (val action = pendingChooserAction.value) {
+          PendingChooserAction.MoveProject -> handleMoveConfirm(event.projectId)
+          PendingChooserAction.AddNoteDocument -> {
+            if (targetProjectId.isNullOrBlank()) {
+              viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.ShowToast("Проєкт не вибрано")) }
+            } else {
+              viewModelScope.launch {
+                _uiEventChannel.send(
+                  ProjectUiEvent.Navigate("note_document_edit_screen?projectId=$targetProjectId")
+                )
+              }
+            }
+          }
+          PendingChooserAction.AddChecklist -> {
+            if (targetProjectId.isNullOrBlank()) {
+              viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.ShowToast("Проєкт не вибрано")) }
+            } else {
+              viewModelScope.launch {
+                _uiEventChannel.send(
+                  ProjectUiEvent.Navigate("checklist_screen?projectId=$targetProjectId")
+                )
+              }
+            }
+          }
+          null -> {
+            handleMoveConfirm(event.projectId)
+          }
+        }
+        pendingChooserAction.value = null
+      }
       is MainScreenEvent.AddSubprojectRequest ->
         dialogUseCase.onAddSubprojectRequest(event.parentProject)
       is MainScreenEvent.DeleteRequest -> dialogUseCase.onDeleteRequest(event.project)
@@ -374,6 +429,7 @@ constructor(
         viewModelScope.launch {
           val route = projectActionsUseCase.getMoveProjectRoute(event.project, _allProjectsFlat.value)
           savedStateHandle[PROJECT_BEING_MOVED_ID_KEY] = event.project.id
+          pendingChooserAction.value = PendingChooserAction.MoveProject
           dialogUseCase.dismissDialog()
           _uiEventChannel.send(ProjectUiEvent.Navigate(route))
         }
@@ -388,14 +444,7 @@ constructor(
         }
       }
       is MainScreenEvent.MoveConfirm -> {
-        viewModelScope.launch {
-          projectActionsUseCase.onListChooserResult(
-            newParentId = event.newParentId,
-            projectBeingMovedId = projectBeingMovedId.value,
-            allProjects = _allProjectsFlat.value,
-          )
-          savedStateHandle[PROJECT_BEING_MOVED_ID_KEY] = null
-        }
+        handleMoveConfirm(event.newParentId)
       }
       is MainScreenEvent.FullImportConfirm -> {
         viewModelScope.launch {
@@ -507,6 +556,11 @@ constructor(
       is MainScreenEvent.NavigateToAiInsights -> {
         viewModelScope.launch {
           _uiEventChannel.send(ProjectUiEvent.Navigate("ai_insights_screen"))
+        }
+      }
+      is MainScreenEvent.NavigateToLifeState -> {
+        viewModelScope.launch {
+          _uiEventChannel.send(ProjectUiEvent.Navigate(LIFE_STATE_ROUTE))
         }
       }
 
@@ -660,6 +714,17 @@ constructor(
                 _uiEventChannel.send(ProjectUiEvent.OpenUri(uri))
             }
         }
+    }
+  }
+
+  private fun handleMoveConfirm(newParentId: String?) {
+    viewModelScope.launch {
+      projectActionsUseCase.onListChooserResult(
+        newParentId = newParentId,
+        projectBeingMovedId = projectBeingMovedId.value,
+        allProjects = _allProjectsFlat.value,
+      )
+      savedStateHandle[PROJECT_BEING_MOVED_ID_KEY] = null
     }
   }
 
