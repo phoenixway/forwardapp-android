@@ -2,7 +2,6 @@ package com.romankozak.forwardappmobile.features.attachments.ui.project.componen
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -72,10 +71,6 @@ fun LinkItemRow(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .combinedClickable(
-                            onClick = onClick,
-                            onLongClick = onLongClick,
-                        )
                         .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {

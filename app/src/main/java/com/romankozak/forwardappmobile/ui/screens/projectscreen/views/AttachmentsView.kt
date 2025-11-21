@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.ui.screens.projectscreen.views
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -107,7 +107,7 @@ private fun AttachmentItemCard(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onItemClick(item) },
+            .combinedClickable(onClick = { onItemClick(item) }),
         shape = RoundedCornerShape(16.dp),
         tonalElevation = 1.dp,
         shadowElevation = 1.dp,
