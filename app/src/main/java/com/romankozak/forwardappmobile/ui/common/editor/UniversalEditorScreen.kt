@@ -98,11 +98,11 @@ fun UniversalEditorScreen(
   val snackbarHostState = remember { SnackbarHostState() }
   val keyboardController = LocalSoftwareKeyboardController.current
   val focusManager = LocalFocusManager.current
-  val isEditing = uiState.isEditing || startInEditMode
-  val readOnly = !isEditing
+  val isEditingComputed = uiState.isEditing || startInEditMode
+  val readOnly = !isEditingComputed
 
-  LaunchedEffect(isEditing, startInEditMode) {
-    if (isEditing) {
+  LaunchedEffect(isEditingComputed, startInEditMode) {
+    if (isEditingComputed) {
       delay(50)
       contentFocusRequester.requestFocus()
       keyboardController?.show()
@@ -338,9 +338,9 @@ private fun Editor(
           .fillMaxHeight()
           .focusRequester(contentFocusRequester)
           .bringIntoViewRequester(bringIntoViewRequester)
-          .focusProperties { canFocus = isEditing }
-          .pointerInput(content.text, isEditing) {
-              if (!isEditing) return@pointerInput
+          .focusProperties { canFocus = isEditingComputed }
+          .pointerInput(content.text, isEditingComputed) {
+              if (!isEditingComputed) return@pointerInput
               detectTapGestures { offset ->
                 textLayoutResult?.let { layoutResult ->
                   val clickedOffset = layoutResult.getOffsetForPosition(offset)
