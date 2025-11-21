@@ -339,9 +339,9 @@ private fun Editor(
           .fillMaxHeight()
           .focusRequester(contentFocusRequester)
           .bringIntoViewRequester(bringIntoViewRequester)
-          .focusProperties { canFocus = isEditingComputed }
-          .pointerInput(content.text, isEditingComputed, readOnly) {
-              if (!isEditingComputed) return@pointerInput
+          .focusProperties { canFocus = isEditing }
+          .pointerInput(content.text, isEditing, readOnly) {
+              if (!isEditing) return@pointerInput
               detectTapGestures { offset ->
                 textLayoutResult?.let { layoutResult ->
                   val clickedOffset = layoutResult.getOffsetForPosition(offset)
