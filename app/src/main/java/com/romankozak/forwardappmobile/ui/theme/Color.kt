@@ -71,13 +71,13 @@ val SolarizedCyan = Color(0xFF2aa198)
 val SolarizedGreen = Color(0xFF859900)
 
 // Terminal Green Theme Colors
-val TerminalBg = Color(0xFF0B0F0A)
-val TerminalSurface = Color(0xFF101810)
-val TerminalGrid = Color(0xFF1A261A)
+val TerminalBg = Color(0xFF050705)
+val TerminalSurface = Color(0xFF080C08)
+val TerminalGrid = Color(0xFF0D130D)
 val TerminalNeon = Color(0xFF39FF14)
 val TerminalNeonDim = Color(0xFF2ECC71)
 val TerminalAmber = Color(0xFFFFD866)
-val TerminalScreenGlow = Color(0x8039FF14)
+val TerminalScreenGlow = Color(0x4039FF14)
 
 // Emerald Theme Colors (additional fresh green theme)
 val EmeraldDeep = Color(0xFF041B15)
