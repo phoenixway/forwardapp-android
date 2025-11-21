@@ -16,6 +16,8 @@ import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -182,6 +184,19 @@ fun NoteDocumentScreen(
           screenMode = ScreenMode.VIEW
         },
       )
+    },
+    floatingActionButton = {
+      val isViewMode = screenMode == ScreenMode.VIEW
+      FloatingActionButton(
+        onClick = {
+          screenMode = if (isViewMode) ScreenMode.EDIT_EXISTING else ScreenMode.VIEW
+        },
+      ) {
+        Icon(
+          imageVector = if (isViewMode) Icons.Default.Edit else Icons.Default.Visibility,
+          contentDescription = if (isViewMode) "Редагувати" else "Режим читання",
+        )
+      }
     },
     bottomBar = {
       if (screenMode != ScreenMode.VIEW) {

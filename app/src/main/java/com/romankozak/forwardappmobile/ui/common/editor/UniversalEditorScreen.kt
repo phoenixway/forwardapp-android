@@ -23,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -331,36 +332,37 @@ private fun Editor(
       value = content,
       onValueChange = onContentChange,
       onTextLayout = { result -> textLayoutResult = result },
+      readOnly = readOnly,
       modifier =
         Modifier.padding(start = 16.dp)
           .weight(1f)
           .fillMaxHeight()
           .focusRequester(contentFocusRequester)
           .bringIntoViewRequester(bringIntoViewRequester)
-          .pointerInput(content.text) {
-              detectTapGestures {
-                  offset ->
-                  textLayoutResult?.let {
-                      layoutResult ->
+          .focusProperties { canFocus = isEditing }
+          .pointerInput(content.text, isEditing) {
+              if (!isEditing) return@pointerInput
+              detectTapGestures { offset ->
+                  textLayoutResult?.let { layoutResult ->
                       val clickedOffset = layoutResult.getOffsetForPosition(offset)
                       val lineIndex = layoutResult.getLineForOffset(clickedOffset)
                       val lines = content.text.lines()
-                      
+
                       if (lineIndex >= lines.size) return@detectTapGestures
-                      
+
                       val line = lines[lineIndex]
                       val trimmedLine = line.trimStart()
-                      
+
                       val checkboxRegex = Regex("""^\s*-\s\[[ x]\]\s?.*""", RegexOption.IGNORE_CASE)
                       if (checkboxRegex.matches(trimmedLine)) {
                           val lineStartOffset = layoutResult.getLineStart(lineIndex)
                           val originalIndentLength = line.takeWhile { it.isWhitespace() }.length
-                          
+
                           val offsetInLine = clickedOffset - lineStartOffset
-                          
+
                           val checkboxStart = originalIndentLength
                           val checkboxEnd = originalIndentLength + 8
-                          
+
                           if (offsetInLine >= checkboxStart && offsetInLine < checkboxEnd) {
                               onToggleCheckbox(lineIndex)
                           }
@@ -368,6 +370,7 @@ private fun Editor(
                   }
               }
           }
+      readOnly = readOnly
           .drawBehind {
             textLayoutResult?.let {
               layoutResult ->
