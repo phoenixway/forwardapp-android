@@ -81,7 +81,6 @@ constructor(
 
   private sealed class PendingChooserAction {
     data object MoveProject : PendingChooserAction()
-    data object AddNoteDocument : PendingChooserAction()
     data object AddChecklist : PendingChooserAction()
   }
 
@@ -376,13 +375,7 @@ constructor(
           dialogUseCase.onAddNewProjectRequest()
         }
       }
-      is MainScreenEvent.AddNoteDocumentRequest -> {
-        pendingChooserAction.value = PendingChooserAction.AddNoteDocument
-        viewModelScope.launch {
-          val title = URLEncoder.encode("Виберіть проєкт для нотатки", "UTF-8")
-          _uiEventChannel.send(ProjectUiEvent.Navigate("list_chooser_screen/$title?disabledIds="))
-        }
-      }
+      is MainScreenEvent.AddNoteDocumentRequest -> createNoteInInbox()
       is MainScreenEvent.AddChecklistRequest -> {
         pendingChooserAction.value = PendingChooserAction.AddChecklist
         viewModelScope.launch {
@@ -394,17 +387,6 @@ constructor(
         val targetProjectId = event.projectId?.takeUnless { it.isBlank() || it == "root" }
         when (val action = pendingChooserAction.value) {
           PendingChooserAction.MoveProject -> handleMoveConfirm(event.projectId)
-          PendingChooserAction.AddNoteDocument -> {
-            if (targetProjectId.isNullOrBlank()) {
-              viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.ShowToast("Проєкт не вибрано")) }
-            } else {
-              viewModelScope.launch {
-                _uiEventChannel.send(
-                  ProjectUiEvent.Navigate("note_document_edit_screen?projectId=$targetProjectId")
-                )
-              }
-            }
-          }
           PendingChooserAction.AddChecklist -> {
             if (targetProjectId.isNullOrBlank()) {
               viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.ShowToast("Проєкт не вибрано")) }
@@ -725,6 +707,20 @@ constructor(
         allProjects = _allProjectsFlat.value,
       )
       savedStateHandle[PROJECT_BEING_MOVED_ID_KEY] = null
+    }
+  }
+
+  private fun createNoteInInbox() {
+    val inboxProjectId =
+      _allProjectsFlat.value.firstOrNull { it.systemKey == com.romankozak.forwardappmobile.data.database.models.ReservedProjectKeys.INBOX }?.id
+    if (inboxProjectId == null) {
+      viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.ShowToast("Inbox проект не знайдено")) }
+      return
+    }
+    viewModelScope.launch {
+      _uiEventChannel.send(
+        ProjectUiEvent.Navigate("note_document_edit_screen?projectId=$inboxProjectId")
+      )
     }
   }
 

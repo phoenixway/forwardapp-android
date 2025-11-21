@@ -35,6 +35,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Overlay
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Button
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenuItem
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.rememberHoldMenu2
 import com.romankozak.forwardappmobile.ui.components.NewRecentListsSheet
 import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.ui.reminders.dialogs.ReminderPropertiesDialog
@@ -62,6 +66,7 @@ fun MainScreenScaffold(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
+    val holdMenuController = rememberHoldMenu2()
     val listState = rememberLazyListState()
     var showContextSheet by remember { mutableStateOf(false) }
     var showSearchHistorySheet by remember { mutableStateOf(false) }
@@ -172,40 +177,58 @@ fun MainScreenScaffold(
             var showAddMenu by remember { mutableStateOf(false) }
 
             AnimatedVisibility(visible = !isSearchActiveFab) {
-                Box {
-                    androidx.compose.material3.FloatingActionButton(
-                        onClick = { showAddMenu = true },
-                    ) {
-                        androidx.compose.material3.Icon(Icons.Default.Add, contentDescription = "Додати")
-                    }
-                    DropdownMenu(
-                        expanded = showAddMenu,
-                        onDismissRequest = { showAddMenu = false },
-                    ) {
-                        DropdownMenuItem(
-                            leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
-                            text = { Text(text = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_project)) },
-                            onClick = {
-                                showAddMenu = false
-                                onEvent(MainScreenEvent.AddNewProjectRequest)
-                            },
-                        )
-                        DropdownMenuItem(
-                            leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
-                            text = { Text(text = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_note)) },
-                            onClick = {
-                                showAddMenu = false
-                                onEvent(MainScreenEvent.AddNoteDocumentRequest)
-                            },
-                        )
-                        DropdownMenuItem(
-                            leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
-                            text = { Text(text = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_checklist)) },
-                            onClick = {
-                                showAddMenu = false
-                                onEvent(MainScreenEvent.AddChecklistRequest)
-                            },
-                        )
+                val menuItems =
+                    listOf(
+                        HoldMenuItem(label = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_project)),
+                        HoldMenuItem(label = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_note)),
+                        HoldMenuItem(label = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_checklist)),
+                    )
+                HoldMenu2Button(
+                    items = menuItems,
+                    controller = holdMenuController,
+                    onSelect = { index ->
+                        when (index) {
+                            0 -> onEvent(MainScreenEvent.AddNewProjectRequest)
+                            1 -> onEvent(MainScreenEvent.AddNoteDocumentRequest)
+                            2 -> onEvent(MainScreenEvent.AddChecklistRequest)
+                        }
+                    },
+                    onTap = { showAddMenu = !showAddMenu },
+                    menuAlignment = com.romankozak.forwardappmobile.features.common.components.holdmenu2.MenuAlignment.CENTER,
+                ) {
+                    Box {
+                        FloatingActionButton(onClick = { showAddMenu = !showAddMenu }) {
+                            Icon(Icons.Default.Add, contentDescription = "Додати")
+                        }
+                        DropdownMenu(
+                            expanded = showAddMenu,
+                            onDismissRequest = { showAddMenu = false },
+                        ) {
+                            DropdownMenuItem(
+                                leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
+                                text = { Text(text = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_project)) },
+                                onClick = {
+                                    showAddMenu = false
+                                    onEvent(MainScreenEvent.AddNewProjectRequest)
+                                },
+                            )
+                            DropdownMenuItem(
+                                leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
+                                text = { Text(text = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_note)) },
+                                onClick = {
+                                    showAddMenu = false
+                                    onEvent(MainScreenEvent.AddNoteDocumentRequest)
+                                },
+                            )
+                            DropdownMenuItem(
+                                leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
+                                text = { Text(text = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_checklist)) },
+                                onClick = {
+                                    showAddMenu = false
+                                    onEvent(MainScreenEvent.AddChecklistRequest)
+                                },
+                            )
+                        }
                     }
                 }
             }
@@ -271,5 +294,5 @@ fun MainScreenScaffold(
         )
     }
 
-
+    HoldMenu2Overlay(controller = holdMenuController)
 }
