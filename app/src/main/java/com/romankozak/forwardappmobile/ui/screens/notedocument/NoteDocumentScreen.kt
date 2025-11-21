@@ -118,7 +118,7 @@ fun NoteDocumentScreen(
 
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
   var screenMode by remember {
-    mutableStateOf(if (viewModel.isNewDocument) ScreenMode.CREATE else ScreenMode.VIEW)
+    mutableStateOf(if (viewModel.isNewDocument) ScreenMode.EDIT_EXISTING else ScreenMode.VIEW)
   }
 
   val keyboardController = LocalSoftwareKeyboardController.current
