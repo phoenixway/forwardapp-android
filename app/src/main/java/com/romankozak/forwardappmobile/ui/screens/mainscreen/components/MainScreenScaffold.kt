@@ -206,7 +206,8 @@ fun MainScreenScaffold(
                         }
                     },
                     onTap = { showAddMenu = !showAddMenu },
-                    menuAlignment = com.romankozak.forwardappmobile.features.common.components.holdmenu2.MenuAlignment.CENTER,
+                    menuAlignment = com.romankozak.forwardappmobile.features.common.components.holdmenu2.MenuAlignment.END,
+                    iconPosition = com.romankozak.forwardappmobile.features.common.components.holdmenu2.IconPosition.END,
                 ) {
                     Box {
                         FloatingActionButton(onClick = { showAddMenu = !showAddMenu }) {
