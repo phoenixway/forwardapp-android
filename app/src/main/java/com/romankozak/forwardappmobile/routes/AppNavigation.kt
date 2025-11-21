@@ -294,8 +294,9 @@ private fun NavGraphBuilder.mainGraph(
                     defaultValue = false
                 },
             ),
-    ) {
-        NoteDocumentEditorScreen(navController = navController)
+    ) { backStackEntry ->
+        val startEdit = backStackEntry.arguments?.getBoolean("startEdit") ?: false
+        NoteDocumentEditorScreen(navController = navController, startEdit = startEdit)
     }
 
     composable(

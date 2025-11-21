@@ -18,6 +18,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun NoteDocumentEditorScreen(
   navController: NavController,
+  startEdit: Boolean = false,
   viewModel: NoteDocumentEditorViewModel = hiltViewModel(),
 ) {
   val backStackEntry = navController.currentBackStackEntry
@@ -50,5 +51,6 @@ fun NoteDocumentEditorScreen(
     viewModel = viewModel.universalEditorViewModel,
     navController = navController,
     contentFocusRequester = focusRequester,
+    startInEditMode = startEdit || documentId == null,
   )
 }
