@@ -100,6 +100,14 @@ fun UniversalEditorScreen(
   val isEditing = uiState.isEditing || startInEditMode
   val readOnly = !isEditing
 
+  LaunchedEffect(isEditing, startInEditMode) {
+    if (isEditing) {
+      delay(50)
+      contentFocusRequester.requestFocus()
+      keyboardController?.show()
+    }
+  }
+
   LaunchedEffect(Unit) {
     viewModel.events.collect {
       when (it) {
