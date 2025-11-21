@@ -44,6 +44,7 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.InboxM
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.ItemActionHandler
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.ProjectMarkdownExporter
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.SelectionHandler
+import com.romankozak.forwardappmobile.ui.common.editor.NoteTitleExtractor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.net.URLEncoder
 import java.text.SimpleDateFormat
@@ -1862,13 +1863,15 @@ constructor(
         _uiState.update { it.copy(logEntryToEdit = null) }
     }
 
-    fun onSaveNoteDocument(content: String) {
-        viewModelScope.launch {
-            val title = content.lines().firstOrNull()?.trim() ?: "Новий документ"
-            noteDocumentRepository.createDocument(title, projectIdFlow.value, content)
-            onDismissNoteDocumentEditor()
-        }
+  fun onSaveNoteDocument(content: String) {
+    viewModelScope.launch {
+      Log.d("NoteTitleExtractor", "onSaveNoteDocument called, content length=${content.length}")
+      val title = extractTitleFromContent(content)
+      Log.d("NoteTitleExtractor", "onSaveNoteDocument extracted title='$title'")
+      noteDocumentRepository.createDocument(title, projectIdFlow.value, content)
+      onDismissNoteDocumentEditor()
     }
+  }
 
     fun onDismissNoteDocumentEditor() {
         _uiState.update { it.copy(showNoteDocumentEditor = false) }
@@ -1916,13 +1919,11 @@ constructor(
         _uiState.update { it.copy(showDisplayPropertiesDialog = true) }
     }
 
-    fun onDismissDisplayPropertiesDialog() {
-        _uiState.update { it.copy(showDisplayPropertiesDialog = false) }
+  fun onDismissDisplayPropertiesDialog() {
+      _uiState.update { it.copy(showDisplayPropertiesDialog = false) }
+  }
+
+  private fun extractTitleFromContent(content: String): String {
+        return NoteTitleExtractor.extract(content)
     }
-
-
-
-
-
-
 }

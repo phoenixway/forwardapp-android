@@ -98,12 +98,19 @@ fun UniversalEditorScreen(
   val snackbarHostState = remember { SnackbarHostState() }
   val keyboardController = LocalSoftwareKeyboardController.current
   val focusManager = LocalFocusManager.current
-  val isEditingComputed = uiState.isEditing || startInEditMode
-  val isEditing = isEditingComputed
-  val readOnly = !isEditingComputed
+  var initialEditApplied by remember { mutableStateOf(false) }
+  val isEditing = uiState.isEditing || (startInEditMode && !initialEditApplied)
+  val readOnly = !isEditing
 
-  LaunchedEffect(isEditingComputed, startInEditMode) {
-    if (isEditingComputed) {
+  LaunchedEffect(startInEditMode) {
+    if (startInEditMode) {
+      viewModel.setEditingMode(true)
+    }
+    initialEditApplied = true
+  }
+
+  LaunchedEffect(isEditing) {
+    if (isEditing) {
       delay(50)
       contentFocusRequester.requestFocus()
       keyboardController?.show()
@@ -235,6 +242,7 @@ fun UniversalEditorScreen(
         contentFocusRequester = contentFocusRequester,
         isToolbarVisible = isToolbarVisible,
         readOnly = readOnly,
+        isEditing = isEditing
       )
       if (uiState.isLoading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -296,6 +304,7 @@ private fun Editor(
   contentFocusRequester: FocusRequester,
   isToolbarVisible: Boolean,
   readOnly: Boolean,
+  isEditing: Boolean,
 ) {
   val scrollState = rememberScrollState()
   var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
@@ -304,6 +313,7 @@ private fun Editor(
   val textColor = MaterialTheme.colorScheme.onSurface
   val accentColor = MaterialTheme.colorScheme.primary
   val density = LocalDensity.current
+  val focusManager = LocalFocusManager.current
 
   val imeHeight = WindowInsets.ime.getBottom(density)
   val isImeVisible = imeHeight > 0
@@ -341,8 +351,12 @@ private fun Editor(
           .bringIntoViewRequester(bringIntoViewRequester)
           .focusProperties { canFocus = isEditing }
           .pointerInput(content.text, isEditing, readOnly) {
-              if (!isEditing) return@pointerInput
               detectTapGestures { offset ->
+                if (!isEditing) {
+                  focusManager.clearFocus(force = true)
+                  return@detectTapGestures
+                }
+
                 textLayoutResult?.let { layoutResult ->
                   val clickedOffset = layoutResult.getOffsetForPosition(offset)
                   val lineIndex = layoutResult.getLineForOffset(clickedOffset)
@@ -371,6 +385,7 @@ private fun Editor(
               }
             }
           .drawBehind {
+            if (!isEditing) return@drawBehind
             textLayoutResult?.let {
               layoutResult ->
               val currentLine =

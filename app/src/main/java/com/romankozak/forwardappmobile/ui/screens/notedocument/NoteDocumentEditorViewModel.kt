@@ -1,10 +1,12 @@
 package com.romankozak.forwardappmobile.ui.screens.notedocument
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
+import com.romankozak.forwardappmobile.ui.common.editor.NoteTitleExtractor
 import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEditorViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -42,7 +44,8 @@ constructor(
     listId?.let {
       viewModelScope.launch {
         noteDocumentRepository.getDocumentById(it)?.let { document ->
-          val name = content.lines().firstOrNull()?.take(100) ?: "Unnamed Note"
+          val name = NoteTitleExtractor.extract(content).take(100)
+          Log.d("NoteTitleExtractor", "saveDocument extracted title='$name'")
           val updatedDocument = document.copy(
               name = name,
               content = content,
