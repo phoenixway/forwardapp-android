@@ -44,6 +44,7 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.ProjectsScreen
 import com.romankozak.forwardappmobile.ui.screens.settings.SettingsScreen
 import com.romankozak.forwardappmobile.ui.screens.settings.models.PlanningSettings
 import com.romankozak.forwardappmobile.ui.screens.sync.SyncScreen
+import com.romankozak.forwardappmobile.ui.screens.lifestate.LifeStateScreen
 import com.romankozak.forwardappmobile.ui.reminders.list.RemindersScreen
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import java.net.URLDecoder
@@ -52,6 +53,7 @@ import java.net.URLDecoder
 const val MAIN_GRAPH_ROUTE = "main_graph"
 const val GOAL_LISTS_ROUTE = "goal_lists_screen"
 const val AI_INSIGHTS_ROUTE = "ai_insights_screen"
+const val LIFE_STATE_ROUTE = "life_state_screen"
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -185,6 +187,10 @@ private fun NavGraphBuilder.mainGraph(
         AttachmentsLibraryScreen(navController = navController)
     }
 
+    composable(LIFE_STATE_ROUTE) {
+        LifeStateScreen(navController = navController)
+    }
+
     composable("settings_screen") { backStackEntry ->
 
         val parentEntry =
@@ -279,10 +285,15 @@ private fun NavGraphBuilder.mainGraph(
 
     // Об'єднаний екран для перегляду/редагування існуючого списку
     composable(
-        route = "note_document_screen/{documentId}",
-        arguments = listOf(
-            navArgument("documentId") { type = NavType.StringType }
-        ),
+        route = "note_document_screen/{documentId}?startEdit={startEdit}",
+        arguments =
+            listOf(
+                navArgument("documentId") { type = NavType.StringType },
+                navArgument("startEdit") {
+                    type = NavType.BoolType
+                    defaultValue = false
+                },
+            ),
     ) {
         NoteDocumentEditorScreen(navController = navController)
     }

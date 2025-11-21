@@ -117,8 +117,15 @@ fun NoteDocumentScreen(
   }
 
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+  val startEditArg = navController.currentBackStackEntry?.arguments?.getBoolean("startEdit") ?: false
   var screenMode by remember {
-    mutableStateOf(if (viewModel.isNewDocument) ScreenMode.EDIT_EXISTING else ScreenMode.VIEW)
+    mutableStateOf(
+      when {
+        startEditArg -> ScreenMode.EDIT_EXISTING
+        viewModel.isNewDocument -> ScreenMode.EDIT_EXISTING
+        else -> ScreenMode.VIEW
+      }
+    )
   }
 
   val keyboardController = LocalSoftwareKeyboardController.current

@@ -706,7 +706,7 @@ constructor(
         projectId = inboxProjectId,
         content = "",
       )
-      _uiEventChannel.send(ProjectUiEvent.Navigate("note_document_screen/$documentId"))
+      _uiEventChannel.send(ProjectUiEvent.Navigate("note_document_screen/$documentId?startEdit=true"))
     }
   }
 
