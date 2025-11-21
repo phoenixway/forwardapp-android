@@ -183,20 +183,20 @@ private val TerminalGreenDarkColorScheme = darkColorScheme(
 )
 
 private val TerminalGreenLightColorScheme = lightColorScheme(
-    primary = TerminalNeonDim,
-    secondary = TerminalNeon,
+    primary = TerminalNeon,
+    secondary = TerminalNeonDim,
     tertiary = TerminalAmber,
-    background = Color(0xFFF4FFF4),
-    surface = Color(0xFFE8F5E8),
+    background = TerminalBg,
+    surface = TerminalSurface,
     onPrimary = Color.Black,
     onSecondary = Color.Black,
     onTertiary = Color.Black,
-    onBackground = Color(0xFF0E1B0E),
-    onSurface = Color(0xFF0E1B0E),
-    surfaceContainer = Color(0xFFE0F2E0),
-    surfaceContainerHigh = Color(0xFFD6E8D6),
-    outlineVariant = Color(0xFF2E6132),
-    scrim = Color(0x33000000)
+    onBackground = TerminalNeonDim,
+    onSurface = TerminalNeonDim,
+    surfaceContainer = TerminalSurface.copy(alpha = 0.92f),
+    surfaceContainerHigh = TerminalGrid,
+    outlineVariant = TerminalNeon.copy(alpha = 0.25f),
+    scrim = TerminalScreenGlow
 )
 
 private val EmeraldDarkColorScheme = darkColorScheme(
@@ -243,7 +243,7 @@ object ThemeManager {
         AppTheme(ThemeName.DRACULA, DefaultLightColorScheme, DraculaColorScheme, DefaultLightInputPanelColors, DraculaInputPanelColors),
         AppTheme(ThemeName.NORD, DefaultLightColorScheme, NordColorScheme, DefaultLightInputPanelColors, NordInputPanelColors),
         AppTheme(ThemeName.SOLARIZED_DARK, DefaultLightColorScheme, SolarizedDarkColorScheme, DefaultLightInputPanelColors, SolarizedDarkInputPanelColors),
-        AppTheme(ThemeName.TERMINAL_GREEN, TerminalGreenLightColorScheme, TerminalGreenDarkColorScheme, DefaultLightInputPanelColors, TerminalGreenInputPanelColors),
+        AppTheme(ThemeName.TERMINAL_GREEN, TerminalGreenLightColorScheme, TerminalGreenDarkColorScheme, TerminalGreenInputPanelColors, TerminalGreenInputPanelColors),
         AppTheme(ThemeName.EMERALD, EmeraldLightColorScheme, EmeraldDarkColorScheme, DefaultLightInputPanelColors, EmeraldInputPanelColors)
     )
 
