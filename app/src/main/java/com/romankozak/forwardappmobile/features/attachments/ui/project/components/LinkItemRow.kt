@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.features.attachments.ui.project.componen
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,7 +22,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.LinkType
@@ -73,12 +72,10 @@ fun LinkItemRow(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .pointerInput(onClick, onLongClick) {
-                            detectTapGestures(
-                                onLongPress = { onLongClick() },
-                                onTap = { onClick() },
-                            )
-                        }
+                        .combinedClickable(
+                            onClick = onClick,
+                            onLongClick = onLongClick,
+                        )
                         .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
