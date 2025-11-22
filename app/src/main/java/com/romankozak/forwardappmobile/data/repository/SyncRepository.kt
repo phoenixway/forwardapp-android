@@ -20,6 +20,7 @@ import com.romankozak.forwardappmobile.data.dao.NoteDocumentDao
 import com.romankozak.forwardappmobile.data.dao.ProjectDao
 import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
 import com.romankozak.forwardappmobile.data.dao.RecentItemDao
+import com.romankozak.forwardappmobile.data.dao.SystemAppDao
 import com.romankozak.forwardappmobile.data.database.AppDatabase
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.ListItem
@@ -101,6 +102,7 @@ constructor(
     private val recentItemDao: RecentItemDao,
     private val attachmentRepository: AttachmentRepository,
     private val attachmentDao: AttachmentDao,
+    private val systemAppDao: SystemAppDao,
 ) {
     private val TAG = "SyncRepository"
     private val gson = GsonBuilder()
@@ -474,7 +476,13 @@ constructor(
                 Log.d(IMPORT_TAG, "Транзакція: відновлення settings. Entries=${backupSettingsMap.size}")
                 settingsRepository.restoreFromMap(backupSettingsMap)
                 Log.d(IMPORT_TAG, "Транзакція: запуск DatabaseInitializer.prePopulate().")
-                com.romankozak.forwardappmobile.data.database.DatabaseInitializer(projectDao, context).prePopulate()
+                val systemAppRepository = com.romankozak.forwardappmobile.data.repository.SystemAppRepository(
+                    systemAppDao = systemAppDao,
+                    projectDao = projectDao,
+                    noteDocumentDao = noteDocumentDao,
+                    attachmentRepository = attachmentRepository,
+                )
+                com.romankozak.forwardappmobile.data.database.DatabaseInitializer(projectDao, systemAppRepository).prePopulate()
 
                 if (backup.attachments.isEmpty()) {
                     Log.d(IMPORT_TAG, "Спроба створити відсутні записи вкладень...")

@@ -24,10 +24,7 @@ import javax.inject.Singleton
 private val TAG = "AI_CHAT_DEBUG"
 
 @Singleton
-class OllamaService
-    @Inject
-    constructor() {
-    }
+class OllamaService @Inject constructor() {
 
     private fun buildRetrofitApi(baseUrl: String): OllamaApi {
         val okHttpClient =
@@ -59,7 +56,7 @@ class OllamaService
         }
     }
 
-    suspend fun generateChatResponseStream(
+    suspend fun streamChatResponses(
         baseUrl: String,
         model: String,
         messages: List<Message>,
@@ -112,6 +109,13 @@ class OllamaService
             Log.e(TAG, "Error during streaming: ${e.message}", e)
             throw e
         }.flowOn(Dispatchers.IO)
+
+    suspend fun generateChatResponseStream(
+        baseUrl: String,
+        model: String,
+        messages: List<Message>,
+        temperature: Float,
+    ): Flow<String> = streamChatResponses(baseUrl, model, messages, temperature)
 
     private suspend fun FlowCollector<String>.processStreamingResponse(
         responseBody: ResponseBody,
@@ -184,3 +188,4 @@ class OllamaService
             Log.d(TAG, "Stream reading completed. Total lines processed: $lineCount")
         }
     }
+}

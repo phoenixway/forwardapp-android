@@ -150,6 +150,7 @@ internal fun MoreActionsBottomNavButton(
     onInsightsClick: () -> Unit,
     onShowReminders: () -> Unit,
     onAiChatClick: () -> Unit,
+    onLifeStateClick: () -> Unit,
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
@@ -183,6 +184,14 @@ internal fun MoreActionsBottomNavButton(
             onDismissRequest = { showMenu = false },
             offset = DpOffset(0.dp, (-50).dp) // Adjust offset to position above the button
         ) {
+            DropdownMenuItem(
+                text = { Text("AI Life-Management") },
+                leadingIcon = { Icon(Icons.Outlined.AutoAwesome, contentDescription = "AI Life-Management") },
+                onClick = {
+                    onLifeStateClick()
+                    showMenu = false
+                }
+            )
             DropdownMenuItem(
                 text = { Text("Insights") },
                 leadingIcon = { Icon(Icons.Outlined.Lightbulb, contentDescription = "Insights") },
@@ -229,6 +238,7 @@ internal fun ExpandingBottomNav(
     onActivityTrackerClick: () -> Unit,
     onInsightsClick: () -> Unit,
     onShowReminders: () -> Unit,
+    onLifeStateClick: () -> Unit,
     onEvent: (MainScreenEvent) -> Unit,
 ) {
     var showMoreMenu by remember { mutableStateOf(false) }
@@ -282,6 +292,7 @@ internal fun ExpandingBottomNav(
                         onInsightsClick = onInsightsClick,
                         onShowReminders = onShowReminders,
                         onAiChatClick = onAiChatClick,
+                        onLifeStateClick = onLifeStateClick,
                     )
                 }
             }

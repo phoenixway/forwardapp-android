@@ -2,36 +2,103 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:padding="8dp">
+    android:padding="16dp"
+    android:background="@drawable/notification_card_bg">
 
-    <ImageView
-        android:id="@+id/notification_icon"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
+    <View
+        android:id="@+id/notification_accent"
+        android:layout_width="6dp"
+        android:layout_height="match_parent"
         android:layout_alignParentStart="true"
-        android:layout_centerVertical="true"
-        android:src="@drawable/ic_launcher_foreground" />
+        android:layout_marginEnd="12dp"
+        android:background="@drawable/notification_accent_bar" />
+
+    <TextView
+        android:id="@+id/notification_emoji"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_alignTop="@+id/text_container"
+        android:layout_toEndOf="@id/notification_accent"
+        android:layout_marginStart="8dp"
+        android:gravity="center"
+        android:text="\uD83C\uDF1F"
+        android:textSize="26sp" />
 
     <LinearLayout
+        android:id="@+id/text_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_centerVertical="true"
-        android:layout_toEndOf="@id/notification_icon"
+        android:layout_toEndOf="@id/notification_emoji"
         android:orientation="vertical"
         android:paddingStart="8dp">
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingBottom="4dp">
+
+            <TextView
+                android:id="@+id/notification_chip"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/notification_chip_bg"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:text="REMINDER"
+                android:textAllCaps="true"
+                android:textColor="#A5B4FC"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/notification_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:background="@drawable/notification_time_bg"
+                android:text="Now"
+                android:textColor="#E2E8F0"
+                android:textSize="11sp" />
+        </LinearLayout>
+
         <TextView
             android:id="@+id/notification_title"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Title"
-            android:textAppearance="@style/TextAppearance.Compat.Notification.Title" />
+            android:textColor="#F8FAFC"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:maxLines="2" />
 
         <TextView
             android:id="@+id/notification_description"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
             android:text="Description"
-            android:textAppearance="@style/TextAppearance.Compat.Notification.Info" />
+            android:textColor="#CBD5E1"
+            android:textSize="14sp"
+            android:maxLines="3" />
+
+        <TextView
+            android:id="@+id/notification_extra"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="Notes or context"
+            android:textColor="#A5B4FC"
+            android:textSize="13sp"
+            android:ellipsize="end"
+            android:maxLines="2" />
     </LinearLayout>
+
 </RelativeLayout>

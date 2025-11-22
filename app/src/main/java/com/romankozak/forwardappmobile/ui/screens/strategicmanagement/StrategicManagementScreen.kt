@@ -16,13 +16,17 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -31,6 +35,11 @@ import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.routes.MAIN_GRAPH_ROUTE
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.MainScreenViewModel
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenEvent
+import com.romankozak.forwardappmobile.ui.screens.lifestate.LifeStateChatUiState
+import com.romankozak.forwardappmobile.ui.screens.lifestate.LifeStateChatViewModel
+import com.romankozak.forwardappmobile.ui.screens.lifestate.LifeStateViewModel
+import com.romankozak.forwardappmobile.ui.screens.lifestate.AnalysisContent
+import com.romankozak.forwardappmobile.ui.screens.lifestate.ChatSection
 
 @Composable
 fun StrategicManagementScreen(
@@ -73,11 +82,11 @@ fun StrategicManagementScreen(
             )
           }
 
-
-          StrategicManagementTab.INSIGHTS -> {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-              Text("Insights")
-            }
+          StrategicManagementTab.AI_INSIGHTS -> {
+            AiAnalysisPane()
+          }
+          StrategicManagementTab.AI_CHAT -> {
+            AiChatPane()
           }
         }
       }
@@ -140,6 +149,109 @@ private fun DashboardContent(
       onRevealProject = onRevealProject,
       modifier = Modifier.fillMaxWidth(),
     )
+  }
+}
+
+@Composable
+private fun AiAnalysisPane(
+  viewModel: LifeStateViewModel = hiltViewModel(),
+) {
+  val uiState by viewModel.uiState.collectAsState()
+  Column(
+    modifier = Modifier
+      .fillMaxSize()
+      .padding(horizontal = 16.dp, vertical = 12.dp),
+    verticalArrangement = Arrangement.spacedBy(12.dp),
+  ) {
+    Text(
+      text = "AI Life Analysis",
+      style = MaterialTheme.typography.headlineSmall,
+      fontWeight = FontWeight.SemiBold,
+    )
+    when {
+      uiState.isLoading -> {
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.spacedBy(12.dp),
+          verticalAlignment = Alignment.CenterVertically,
+        ) {
+          CircularProgressIndicator()
+          Text("Preparing analysis…", style = MaterialTheme.typography.bodyMedium)
+        }
+      }
+      uiState.error != null -> {
+        Column(
+          verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+          Text("Failed to load analysis", color = MaterialTheme.colorScheme.error)
+          Text(uiState.error ?: "", style = MaterialTheme.typography.bodySmall)
+          TextButton(onClick = { viewModel.loadAnalysis(force = true) }) {
+            Text("Retry")
+          }
+        }
+      }
+      uiState.analysis != null -> {
+        AnalysisContent(
+          analysis = uiState.analysis!!,
+          onRegenerateAnalysis = { viewModel.loadAnalysis(force = true) },
+          onBackgroundAnalysis = { viewModel.enqueueBackgroundAnalysis() },
+          chatSection = null,
+        )
+      }
+    }
+  }
+}
+
+@Composable
+private fun AiChatPane(
+  lifeStateViewModel: LifeStateViewModel = hiltViewModel(),
+  chatViewModel: LifeStateChatViewModel = hiltViewModel(),
+) {
+  val uiState by lifeStateViewModel.uiState.collectAsState()
+  val chatState by chatViewModel.uiState.collectAsState()
+
+  LaunchedEffect(uiState.analysis) {
+    uiState.analysis?.let { chatViewModel.attachContext(it) }
+  }
+
+  Column(
+    modifier = Modifier
+      .fillMaxSize()
+      .padding(horizontal = 16.dp, vertical = 12.dp),
+    verticalArrangement = Arrangement.spacedBy(12.dp),
+  ) {
+    when {
+      uiState.isLoading -> {
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.spacedBy(12.dp),
+          verticalAlignment = Alignment.CenterVertically,
+        ) {
+          CircularProgressIndicator()
+          Text("Preparing analysis context…", style = MaterialTheme.typography.bodyMedium)
+        }
+      }
+      uiState.error != null -> {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+          Text("Unable to load analysis", color = MaterialTheme.colorScheme.error)
+          Text(uiState.error ?: "", style = MaterialTheme.typography.bodySmall)
+          TextButton(onClick = { lifeStateViewModel.loadAnalysis(force = true) }) {
+            Text("Retry")
+          }
+        }
+      }
+      uiState.analysis != null -> {
+        val analysis = uiState.analysis!!
+        ChatSection(
+          state = chatState,
+          onInputChange = chatViewModel::onInputChange,
+          onSend = { chatViewModel.sendMessage(analysis) },
+          onRegenerate = { chatViewModel.regenerate(analysis) },
+          onRegenerateMessage = { msg -> chatViewModel.regenerateFromMessage(msg, analysis) },
+          onQuickPrompt = { prompt -> chatViewModel.sendQuickPrompt(prompt, analysis) },
+        )
+      }
+    }
   }
 }
 

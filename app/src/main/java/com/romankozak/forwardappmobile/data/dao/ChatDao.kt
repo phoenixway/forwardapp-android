@@ -29,6 +29,22 @@ interface ChatDao {
     @Query("SELECT * FROM chat_messages WHERE id = :messageId")
     suspend fun getMessageById(messageId: Long): ChatMessageEntity?
 
+    @Query(
+        """
+        UPDATE chat_messages
+        SET text = :text,
+            isStreaming = :isStreaming,
+            isError = :isError
+        WHERE id = :messageId
+        """,
+    )
+    suspend fun updateMessageContent(
+        messageId: Long,
+        text: String,
+        isStreaming: Boolean,
+        isError: Boolean = false,
+    )
+
     // ConversationEntity DAOs
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertConversation(conversation: ConversationEntity): Long
@@ -38,6 +54,9 @@ interface ChatDao {
 
     @Query("SELECT * FROM conversations ORDER BY creationTimestamp DESC")
     fun getAllConversations(): Flow<List<ConversationEntity>>
+
+    @Query("SELECT * FROM conversations WHERE title = :title LIMIT 1")
+    suspend fun getConversationByTitle(title: String): ConversationEntity?
 
     @Transaction
     @Query("SELECT * FROM conversations ORDER BY creationTimestamp DESC")
@@ -69,4 +88,3 @@ interface ChatDao {
     @Query("SELECT COUNT(*) FROM chat_messages WHERE conversationId = :conversationId")
     fun getMessageCountForConversation(conversationId: Long): Flow<Int>
 }
-

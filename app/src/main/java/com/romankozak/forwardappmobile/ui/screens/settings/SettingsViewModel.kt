@@ -8,12 +8,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.config.FeatureToggles
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.data.repository.RolesRepository
 import com.romankozak.forwardappmobile.domain.aichat.OllamaService
 import com.romankozak.forwardappmobile.domain.ner.NerManager
 import com.romankozak.forwardappmobile.domain.ner.NerState
 import com.romankozak.forwardappmobile.ui.ModelsState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -22,7 +27,7 @@ import com.romankozak.forwardappmobile.data.repository.ServerDiscoveryState
 data class SettingsUiState(
     val fastModel: String = "",
     val smartModel: String = "",
-    val modelsState: ModelsState = ModelsState.Loading,
+    val modelsState: ModelsState = ModelsState.Success(emptyList()),
     val nerModelUri: String = "",
     val nerTokenizerUri: String = "",
     val nerLabelsUri: String = "",
@@ -43,7 +48,11 @@ data class SettingsUiState(
 class SettingsViewModel @Inject constructor(
     private val settingsRepo: SettingsRepository,
     private val nerManager: NerManager,
+    private val rolesRepo: RolesRepository,
+    private val ollamaService: OllamaService,
 ) : ViewModel() {
+    private val logTag = "AI_CHAT_OLLAMA"
+    private var fetchModelsJob: Job? = null
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState = _uiState.asStateFlow()
@@ -99,12 +108,11 @@ class SettingsViewModel @Inject constructor(
 
     fun refreshServerDiscovery() {
         viewModelScope.launch {
-            settingsRepo.discoverServer().collect {
-                _uiState.update { ui -> ui.copy(serverDiscoveryState = it) }
-                if (it is ServerDiscoveryState.Found) {
-                    fetchAvailableModels()
+            settingsRepo
+                .discoverServer()
+                .collect {
+                    _uiState.update { ui -> ui.copy(serverDiscoveryState = it) }
                 }
-            }
         }
     }
 
@@ -117,7 +125,32 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun fetchAvailableModels() {
-
+        fetchModelsJob?.cancel()
+        fetchModelsJob = viewModelScope.launch {
+            _uiState.update { it.copy(modelsState = ModelsState.Loading) }
+            try {
+                val manualBase = _uiState.value.manualServerIp.takeIf { ip -> ip.isNotBlank() }
+                val resolvedDiscovery = withTimeoutOrNull(3_000) { settingsRepo.getOllamaUrl().firstOrNull { !it.isNullOrBlank() } }
+                val baseUrl = manualBase ?: resolvedDiscovery
+                if (baseUrl.isNullOrBlank()) {
+                    _uiState.update { it.copy(modelsState = ModelsState.Error("Не знайдено адресу Ollama")) }
+                    return@launch
+                }
+                Log.d(logTag, "[Settings] Fetch models from $baseUrl")
+                val result = ollamaService.getAvailableModels(baseUrl)
+                result.onSuccess { models ->
+                    Log.d(logTag, "[Settings] Models loaded: ${models.size}")
+                    _uiState.update { it.copy(modelsState = ModelsState.Success(models)) }
+                }.onFailure { e ->
+                    Log.e(logTag, "[Settings] Model fetch failed: ${e.message}", e)
+                    _uiState.update { it.copy(modelsState = ModelsState.Error(e.message ?: "Помилка завантаження моделей")) }
+                }
+            } catch (e: Exception) {
+                if (e is CancellationException) return@launch
+                Log.e(logTag, "[Settings] Model fetch unexpected error: ${e.message}", e)
+                _uiState.update { it.copy(modelsState = ModelsState.Error(e.message ?: "Помилка завантаження моделей")) }
+            }
+        }
     }
 
     fun onNerModelFileSelected(uri: String) {

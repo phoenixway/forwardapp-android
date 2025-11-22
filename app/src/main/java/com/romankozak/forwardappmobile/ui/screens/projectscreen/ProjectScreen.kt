@@ -211,17 +211,6 @@ private fun ProjectScaffold(
         )
     }
 
-    uiState.recordForReminderDialog?.let {
-        ReminderPropertiesDialog(
-            onDismiss = viewModel::onReminderDialogDismiss,
-            onSetReminder = viewModel::onSetReminder,
-            onRemoveReminder = null,
-            currentReminders = uiState.remindersForDialog,
-        )
-    }
-
-    
-
     val draggableItems = remember(listContent) {
         listContent.filterNot { it is ListItemContent.LinkItem }
     }

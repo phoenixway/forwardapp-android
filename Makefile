@@ -23,7 +23,16 @@ DEVICE_FLAG=-s $(DEVICE_ID)
 
 # --- Цілі (Targets) ---
 
-.PHONY: all debug-cycle release install start stop logcat debug install-debug start-debug stop-debug logcat-debug clean help test
+.PHONY: work-end work-start all debug-cycle release install start stop logcat debug install-debug start-debug stop-debug logcat-debug clean help test
+
+work-start:
+	@echo "▶ Starting agent workflow…"
+	@forwardapp-devtools/work.sh start
+
+work-end:
+	@echo "⏹ Ending agent workflow…"
+	@forwardapp-devtools/work.sh end
+
 
 # ============== ОСНОВНІ КОМАНДИ ==============
 

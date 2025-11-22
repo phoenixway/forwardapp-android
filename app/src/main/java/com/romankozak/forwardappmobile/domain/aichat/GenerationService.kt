@@ -12,6 +12,9 @@ import androidx.core.app.NotificationCompat
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.repository.ChatRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.domain.aichat.Message
+import com.romankozak.forwardappmobile.domain.aichat.OllamaService
+import kotlinx.coroutines.flow.firstOrNull
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
@@ -31,6 +34,9 @@ class GenerationService : Service() {
     @Inject
     lateinit var settingsRepo: SettingsRepository
 
+    @Inject
+    lateinit var ollamaService: OllamaService
+
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onStartCommand(
@@ -38,12 +44,13 @@ class GenerationService : Service() {
         flags: Int,
         startId: Int,
     ): Int {
-        startForeground(NOTIFICATION_ID, createNotification())
+        val assistantMessageId = intent?.getLongExtra(EXTRA_ASSISTANT_MESSAGE_ID, -1L) ?: -1L
+        val conversationId = intent?.getLongExtra(EXTRA_CONVERSATION_ID, -1L) ?: -1L
+        val systemPrompt = intent?.getStringExtra(EXTRA_SYSTEM_PROMPT)
 
-        val assistantMessageId = intent?.getLongExtra("assistantMessageId", -1L) ?: -1L
-        val conversationId = intent?.getLongExtra("conversationId", -1L) ?: -1L
+        startForeground(NOTIFICATION_ID, createNotification(contentText = "Generating response…"))
 
-        if (assistantMessageId == -1L || conversationId == -1L) {
+        if (assistantMessageId == -1L || conversationId == -1L || systemPrompt.isNullOrBlank()) {
             Log.e(TAG, "Invalid assistantMessageId or conversationId. Stopping service.")
             stopSelf()
             return START_NOT_STICKY
@@ -51,67 +58,65 @@ class GenerationService : Service() {
 
         serviceScope.launch {
             try {
-                val url = settingsRepo.getOllamaUrl().first()
-                if (url.isNullOrBlank()) {
-                    Log.e(TAG, "Server address is not configured.")
-                    val errorMessage = chatRepo.getChatHistory(conversationId).first().find { it.id == assistantMessageId }
-                    errorMessage?.let {
-                        chatRepo.addMessage(
-                            it.copy(
-                                text = "Error: Server address is not configured in settings.",
-                                isError = true,
-                                isStreaming = false,
-                            ),
-                        )
-                    }
+                val url = resolveBaseUrl()
+                val model = resolveModel()
+                val temperature = settingsRepo.temperatureFlow.first()
+                if (url.isNullOrBlank() || model.isNullOrBlank()) {
+                    Log.e(TAG, "Server or model is not configured. url=$url model=$model")
+                    markAssistantError(
+                        conversationId = conversationId,
+                        assistantMessageId = assistantMessageId,
+                        message = "Error: Ollama server or model is not configured.",
+                    )
                     stopSelf()
                     return@launch
                 }
 
-                val smartModel = settingsRepo.ollamaSmartModelFlow.first()
-                val systemPrompt = settingsRepo.systemPromptFlow.first()
-                val temperature = settingsRepo.temperatureFlow.first()
                 val historyEntities = chatRepo.getChatHistory(conversationId).first()
+                val historyMessages =
+                    historyEntities
+                        .filter { !it.isError && it.id != assistantMessageId }
+                        .map { msg ->
+                            Message(
+                                role = if (msg.isFromUser) "user" else "assistant",
+                                content = msg.text,
+                            )
+                        }
+                val messages = listOf(Message(role = "system", content = systemPrompt)) + historyMessages
 
                 Log.d(TAG, "--- Ollama Request ---")
                 Log.d(TAG, "URL: $url")
-                Log.d(TAG, "Model: $smartModel")
-                Log.d(TAG, "System Prompt: $systemPrompt")
+                Log.d(TAG, "Model: $model")
                 Log.d(TAG, "Temperature: $temperature")
+                Log.d(TAG, "History Size: ${messages.size}")
 
-                val systemMessage = Message(role = "system", content = systemPrompt)
-                val history =
-                    listOf(systemMessage) +
-                        historyEntities
-                            .filter { !it.isError && it.id != assistantMessageId }
-                            .map { msg ->
-                                Message(
-                                    role = if (msg.isFromUser) "user" else "assistant",
-                                    content = msg.text,
-                                )
-                            }
-                Log.d(TAG, "History Size: ${history.size}")
-                Log.d(TAG, "History Content: ${history.joinToString { it.role + ": " + it.content.take(50) + "..." }}")
+                val responseBuilder = StringBuilder()
+                ollamaService
+                    .generateChatResponseStream(url, model, messages, temperature)
+                    .collect { chunk ->
+                        responseBuilder.append(chunk)
+                        chatRepo.updateMessageContent(
+                            messageId = assistantMessageId,
+                            text = responseBuilder.toString(),
+                            isStreaming = true,
+                        )
+                    }
 
-                var fullResponse = ""
+                chatRepo.updateMessageContent(
+                    messageId = assistantMessageId,
+                    text = responseBuilder.toString(),
+                    isStreaming = false,
+                )
 
-
-                val finalMessage = chatRepo.getChatHistory(conversationId).first().find { it.id == assistantMessageId }
-                finalMessage?.let {
-                    chatRepo.addMessage(it.copy(text = fullResponse, isStreaming = false))
-                }
+                notifyReady()
             } catch (e: Exception) {
                 Log.e(TAG, "Error during streaming generation", e)
-                val errorMessage = chatRepo.getChatHistory(conversationId).first().find { it.id == assistantMessageId }
-                errorMessage?.let {
-                    chatRepo.addMessage(
-                        it.copy(
-                            text = "Error: ${e.message ?: "Unknown error"}",
-                            isError = true,
-                            isStreaming = false,
-                        ),
-                    )
-                }
+                chatRepo.updateMessageContent(
+                    messageId = assistantMessageId,
+                    text = "Error: ${e.message ?: "Unknown error"}",
+                    isStreaming = false,
+                    isError = true,
+                )
             } finally {
                 stopSelf()
             }
@@ -120,7 +125,15 @@ class GenerationService : Service() {
         return START_NOT_STICKY
     }
 
-    private fun createNotification(): Notification {
+    private fun notifyReady() {
+        val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        manager.notify(
+            NOTIFICATION_ID,
+            createNotification(contentText = "AI response is ready"),
+        )
+    }
+
+    private fun createNotification(contentText: String): Notification {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel =
                 NotificationChannel(
@@ -135,10 +148,36 @@ class GenerationService : Service() {
         return NotificationCompat
             .Builder(this, NOTIFICATION_CHANNEL_ID)
             .setContentTitle("AI Assistant")
-            .setContentText("Generating response...")
+            .setContentText(contentText)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
+    }
+
+    private suspend fun resolveBaseUrl(): String? {
+        return settingsRepo.getOllamaUrl().firstOrNull()
+    }
+
+    private suspend fun resolveModel(): String? {
+        val smart = settingsRepo.ollamaSmartModelFlow.first()
+        val fast = settingsRepo.ollamaFastModelFlow.first()
+        return smart.ifBlank { fast }
+    }
+
+    private suspend fun markAssistantError(
+        conversationId: Long,
+        assistantMessageId: Long,
+        message: String,
+    ) {
+        val targetMessage = chatRepo.getChatHistory(conversationId).first().find { it.id == assistantMessageId }
+        targetMessage?.let {
+            chatRepo.updateMessageContent(
+                messageId = assistantMessageId,
+                text = message,
+                isStreaming = false,
+                isError = true,
+            )
+        }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -146,5 +185,11 @@ class GenerationService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         serviceScope.cancel()
+    }
+
+    companion object {
+        const val EXTRA_ASSISTANT_MESSAGE_ID = "assistantMessageId"
+        const val EXTRA_CONVERSATION_ID = "conversationId"
+        const val EXTRA_SYSTEM_PROMPT = "systemPrompt"
     }
 }

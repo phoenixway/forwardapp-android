@@ -3,5 +3,6 @@ package com.romankozak.forwardappmobile.ui.screens.strategicmanagement
 
 enum class StrategicManagementTab {
     DASHBOARD,
-    INSIGHTS
+    AI_INSIGHTS,
+    AI_CHAT,
 }

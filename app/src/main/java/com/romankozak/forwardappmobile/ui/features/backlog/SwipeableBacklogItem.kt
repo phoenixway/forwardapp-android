@@ -17,9 +17,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PlayCircleOutline
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
@@ -31,6 +31,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -58,7 +59,7 @@ fun SwipeableBacklogItem(
     onMoreClick: (ListItemContent) -> Unit,
     onCheckedChange: (ListItemContent, Boolean) -> Unit,
     onDelete: (ListItemContent) -> Unit,
-    onDeleteEverywhere: (ListItemContent) -> Unit,
+    onAddReminder: (ListItemContent) -> Unit,
     onMoveToTop: (ListItemContent) -> Unit,
     onAddToDayPlan: (ListItemContent) -> Unit,
     onStartTracking: (ListItemContent) -> Unit,
@@ -126,19 +127,19 @@ fun SwipeableBacklogItem(
                 horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.Start),
             ) {
                 SwipeActionButton(
-                    icon = Icons.Default.Share,
-                    contentDescription = "Share",
-                    color = MaterialTheme.colorScheme.primary,
-                ) {
-                    onShowGoalTransportMenu(item)
-                    resetSwipe()
-                }
-                SwipeActionButton(
                     icon = Icons.Default.KeyboardArrowUp,
                     contentDescription = "Move to top",
                     color = MaterialTheme.colorScheme.primary,
                 ) {
                     onMoveToTop(item)
+                    resetSwipe()
+                }
+                SwipeActionButton(
+                    icon = Icons.Default.Share,
+                    contentDescription = "Share",
+                    color = MaterialTheme.colorScheme.primary,
+                ) {
+                    onShowGoalTransportMenu(item)
                     resetSwipe()
                 }
                 SwipeActionButton(
@@ -185,12 +186,16 @@ fun SwipeableBacklogItem(
                     resetSwipe()
                 }
                 SwipeActionButton(
-                    icon = Icons.Default.DeleteForever,
-                    contentDescription = "Delete everywhere",
-                    color = MaterialTheme.colorScheme.errorContainer,
+                    icon = Icons.Default.Notifications,
+                    contentDescription = "Add reminder",
+                    color = MaterialTheme.colorScheme.secondary,
                 ) {
-                    onDeleteEverywhere(item)
-                    resetSwipe()
+                    coroutineScope.launch {
+                        offsetX = 0f
+                        withFrameNanos { }
+                        withFrameNanos { }
+                        onAddReminder(item)
+                    }
                 }
             }
         }

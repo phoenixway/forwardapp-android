@@ -625,3 +625,27 @@ val MIGRATION_65_66 = object : Migration(65, 66) {
         migrateSpecialProjects(db)
     }
 }
+
+val MIGRATION_66_67 = object : Migration(66, 67) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `system_apps` (
+                `id` TEXT NOT NULL,
+                `system_key` TEXT NOT NULL,
+                `app_type` TEXT NOT NULL,
+                `project_id` TEXT NOT NULL,
+                `note_document_id` TEXT,
+                `createdAt` INTEGER NOT NULL,
+                `updatedAt` INTEGER NOT NULL,
+                PRIMARY KEY(`id`),
+                FOREIGN KEY(`project_id`) REFERENCES `projects`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
+                FOREIGN KEY(`note_document_id`) REFERENCES `note_documents`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL
+            )
+            """.trimIndent(),
+        )
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_system_apps_system_key` ON `system_apps` (`system_key`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_system_apps_project_id` ON `system_apps` (`project_id`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_system_apps_note_document_id` ON `system_apps` (`note_document_id`)")
+    }
+}

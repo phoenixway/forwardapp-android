@@ -64,6 +64,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.romankozak.forwardappmobile.ui.common.MatrixRainView
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.tween
+import kotlinx.coroutines.delay
 
 private const val TAG = "AI_CHAT_DEBUG"
 
@@ -296,6 +297,7 @@ fun ChatScreen(
                         .padding(paddingValues)
                         .imePadding(),
                 ) {
+                    val hasPendingStreaming = uiState.messages.any { !it.isFromUser && it.isStreaming && it.text.isBlank() }
                     LazyColumn(
                         state = listState,
                         modifier = Modifier
@@ -306,6 +308,12 @@ fun ChatScreen(
                     ) {
                         if (uiState.messages.isEmpty() && !uiState.messages.any { it.isStreaming }) {
                             item { EmptyStateMessage() }
+                        }
+
+                        if (hasPendingStreaming) {
+                            item(key = "pending_indicator") {
+                                PendingResponseIndicator()
+                            }
                         }
 
                         itemsIndexed(uiState.messages, key = { _, msg -> msg.id }) { index, message ->
@@ -375,6 +383,29 @@ fun MessageBubble(
     bringIntoViewRequester: BringIntoViewRequester? = null,
 ) {
     val isUser = message.isFromUser
+    val isStreaming = message.isStreaming && !isUser
+    var animatedText by remember(message.id) { mutableStateOf(if (isUser) message.text else "") }
+
+    LaunchedEffect(message.text, message.isStreaming) {
+        if (!isStreaming) {
+            animatedText = message.text
+            return@LaunchedEffect
+        }
+        if (isUser) {
+            animatedText = message.text
+            return@LaunchedEffect
+        }
+        val target = message.text
+        if (!target.startsWith(animatedText)) {
+            animatedText = ""
+        }
+        var currentLength = animatedText.length
+        while (currentLength < target.length) {
+            currentLength += 1
+            animatedText = target.take(currentLength)
+            delay(12L)
+        }
+    }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -428,7 +459,7 @@ fun MessageBubble(
                 ) {
                     Row(verticalAlignment = Alignment.Top) {
                         Text(
-                            text = if (message.text.isBlank() && message.isStreaming) "..." else message.text,
+                            text = animatedText.ifBlank { if (isStreaming) "…" else message.text },
                             modifier = Modifier.weight(1f, fill = false),
                             color = when {
                                 message.isError -> MaterialTheme.colorScheme.onErrorContainer
@@ -438,7 +469,7 @@ fun MessageBubble(
                             fontSize = 15.sp,
                             lineHeight = 20.sp,
                         )
-                        if (message.isStreaming && !isUser) {
+                        if (isStreaming) {
                             Spacer(modifier = Modifier.width(8.dp))
                             StreamingIndicator()
                         }
@@ -776,6 +807,24 @@ fun StreamingIndicator() {
 }
 
 @Composable
+fun PendingResponseIndicator() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp, horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
+        Text(
+            text = "Preparing response…",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
 fun ChatInput(
     value: String,
     onValueChange: (String) -> Unit,
@@ -839,7 +888,7 @@ fun ChatInput(
                     value = value,
                     onValueChange = onValueChange,
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("Напишіть повідомлення...") },
+                    placeholder = { Text("Type a message...") },
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Sentences,
                         imeAction = ImeAction.Send,
@@ -945,7 +994,7 @@ fun EmptyStateMessage() {
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            "Привіт! Я ваш AI-асистент",
+            "Hi! I'm your AI assistant",
             fontSize = 20.sp,
             fontWeight = FontWeight.Medium,
             textAlign = TextAlign.Center,
@@ -953,7 +1002,7 @@ fun EmptyStateMessage() {
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            "Поставте будь-яке питання, і я допоможу вам знайти відповідь",
+            "Ask anything and I'll help you quickly.",
             fontSize = 14.sp,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,

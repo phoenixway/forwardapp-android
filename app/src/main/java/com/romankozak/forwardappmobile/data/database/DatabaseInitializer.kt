@@ -1,12 +1,12 @@
 package com.romankozak.forwardappmobile.data.database
 
-import android.content.Context
-import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.dao.ProjectDao
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.ProjectType
 import com.romankozak.forwardappmobile.data.database.models.ReservedGroup
 import com.romankozak.forwardappmobile.data.database.models.ReservedProjectKeys
+import com.romankozak.forwardappmobile.data.database.models.ReservedSystemAppKeys
+import com.romankozak.forwardappmobile.data.repository.SystemAppRepository
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -14,10 +14,11 @@ import javax.inject.Singleton
 @Singleton
 class DatabaseInitializer @Inject constructor(
     private val projectDao: ProjectDao,
-    private val context: Context
+    private val systemAppRepository: SystemAppRepository,
 ) {
     suspend fun prePopulate() {
         prePopulateProjects(projectDao)
+        prePopulateSystemApps()
     }
 
     private suspend fun prePopulateProjects(projectDao: ProjectDao) {
@@ -65,5 +66,17 @@ class DatabaseInitializer @Inject constructor(
         )
         projectDao.insert(newProject)
         return newProject.id
+    }
+
+    private suspend fun prePopulateSystemApps() {
+        val lifeStateApp = systemAppRepository.ensureNoteApp(
+            systemKey = ReservedSystemAppKeys.MY_LIFE_CURRENT_STATE,
+            projectSystemKey = ReservedProjectKeys.STRATEGIC,
+            documentName = "my-life-current-state",
+        )
+        systemAppRepository.linkSystemNoteToProject(
+            systemKey = ReservedSystemAppKeys.MY_LIFE_CURRENT_STATE,
+            targetProjectSystemKey = ReservedProjectKeys.TODAY,
+        )
     }
 }

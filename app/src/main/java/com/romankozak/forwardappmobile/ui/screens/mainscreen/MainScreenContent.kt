@@ -204,6 +204,7 @@ internal fun OptimizedExpandingBottomNav(
     onActivityTrackerClick: () -> Unit,
     onInsightsClick: () -> Unit,
     onShowReminders: () -> Unit,
+    onLifeStateClick: () -> Unit,
     onEvent: (MainScreenEvent) -> Unit,
 ) {
     
@@ -230,6 +231,7 @@ internal fun OptimizedExpandingBottomNav(
         onActivityTrackerClick = stableOnActivityTrackerClick,
         onInsightsClick = onInsightsClick,
         onShowReminders = onShowReminders,
+        onLifeStateClick = onLifeStateClick,
         onEvent = onEvent,
     )
 }

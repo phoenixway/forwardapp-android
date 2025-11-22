@@ -9,9 +9,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Dashboard
-import androidx.compose.material.icons.outlined.DonutSmall
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Lightbulb
+import androidx.compose.material.icons.outlined.Analytics
+import androidx.compose.material.icons.outlined.Chat
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -50,10 +50,16 @@ fun StrategicManagementBottomNav(
                 )
                 ModernBottomNavButton(text = "Projects", icon = Icons.Outlined.Home, onClick = onHomeClick)
                 ModernBottomNavButton(
-                    text = "Insights",
-                    icon = Icons.Outlined.Lightbulb,
-                    isSelected = currentTab == StrategicManagementTab.INSIGHTS,
-                    onClick = { onTabSelected(StrategicManagementTab.INSIGHTS) }
+                    text = "AI Insights",
+                    icon = Icons.Outlined.Analytics,
+                    isSelected = currentTab == StrategicManagementTab.AI_INSIGHTS,
+                    onClick = { onTabSelected(StrategicManagementTab.AI_INSIGHTS) }
+                )
+                ModernBottomNavButton(
+                    text = "Ask AI",
+                    icon = Icons.Outlined.Chat,
+                    isSelected = currentTab == StrategicManagementTab.AI_CHAT,
+                    onClick = { onTabSelected(StrategicManagementTab.AI_CHAT) }
                 )
             }
         }

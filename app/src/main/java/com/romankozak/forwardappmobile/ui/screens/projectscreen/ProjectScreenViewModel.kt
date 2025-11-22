@@ -1301,7 +1301,14 @@ constructor(
   }
 
   fun onReminderDialogDismiss() {
-    _uiState.update { it.copy(recordForReminderDialog = null, remindersForDialog = emptyList()) }
+    _uiState.update {
+      it.copy(
+        recordForReminderDialog = null,
+        remindersForDialog = emptyList(),
+        showRemindersDialog = false,
+        itemForRemindersDialog = null,
+      )
+    }
   }
 
   fun onSetReminder(timestamp: Long) =

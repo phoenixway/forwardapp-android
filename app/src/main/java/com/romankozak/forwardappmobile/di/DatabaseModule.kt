@@ -92,6 +92,9 @@ import com.romankozak.forwardappmobile.data.database.MIGRATION_62_63
 import com.romankozak.forwardappmobile.data.database.MIGRATION_63_64
 import com.romankozak.forwardappmobile.data.database.MIGRATION_64_65
 import com.romankozak.forwardappmobile.data.database.MIGRATION_65_66
+import com.romankozak.forwardappmobile.data.database.MIGRATION_66_67
+import com.romankozak.forwardappmobile.data.repository.SystemAppRepository
+import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 
 private lateinit var db: AppDatabase
 
@@ -109,7 +112,9 @@ object DatabaseModule {
             override fun onOpen(dbSupport: SupportSQLiteDatabase) {
                 super.onOpen(dbSupport)
                 scope.launch(Dispatchers.IO) {
-                    val databaseInitializer = com.romankozak.forwardappmobile.data.database.DatabaseInitializer(db.projectDao(), context)
+                    val attachmentRepository = AttachmentRepository(db.attachmentDao(), db.linkItemDao())
+                    val systemAppRepository = SystemAppRepository(db.systemAppDao(), db.projectDao(), db.noteDocumentDao(), attachmentRepository)
+                    val databaseInitializer = com.romankozak.forwardappmobile.data.database.DatabaseInitializer(db.projectDao(), systemAppRepository)
                     databaseInitializer.prePopulate()
                     migrateSpecialProjects(dbSupport)
                 }
@@ -176,6 +181,7 @@ object DatabaseModule {
             MIGRATION_63_64,
             MIGRATION_64_65,
             MIGRATION_65_66,
+            MIGRATION_66_67,
         ).addCallback(callback).build()
         return db
     }
@@ -259,4 +265,8 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideConversationFolderDao(appDatabase: AppDatabase) = appDatabase.conversationFolderDao()
+
+    @Provides
+    @Singleton
+    fun provideSystemAppDao(appDatabase: AppDatabase) = appDatabase.systemAppDao()
 }

@@ -77,5 +77,24 @@ interface ActivityRecordDao {
     @Query("SELECT * FROM activity_records WHERE id = :recordId")
     suspend fun findById(recordId: String): ActivityRecord?
 
-    
+    @Query(
+        """
+        SELECT * FROM activity_records
+        WHERE createdAt >= :fromTimestamp
+        ORDER BY COALESCE(startTime, createdAt) DESC
+        """,
+    )
+    suspend fun getRecordsFrom(fromTimestamp: Long): List<ActivityRecord>
+
+    @Query(
+        """
+        SELECT * FROM activity_records
+        WHERE createdAt BETWEEN :fromTimestamp AND :toTimestamp
+        ORDER BY COALESCE(startTime, createdAt) DESC
+        """,
+    )
+    suspend fun getRecordsBetween(
+        fromTimestamp: Long,
+        toTimestamp: Long,
+    ): List<ActivityRecord>
 }
