@@ -36,8 +36,8 @@ fun BacklogItemActionsBottomSheet(
                 modifier = androidx.compose.ui.Modifier.clickable { onCopyContent(); onDismiss() }
             )
             ListItem(
-                headlineContent = { Text("Reminders") },
-                leadingContent = { Icon(Icons.Default.Notifications, contentDescription = "Reminders") },
+                headlineContent = { Text("Reminder properties") },
+                leadingContent = { Icon(Icons.Default.Notifications, contentDescription = "Reminder properties") },
                 modifier = androidx.compose.ui.Modifier.clickable { onRemindersClick(); onDismiss() }
             )
             ListItem(

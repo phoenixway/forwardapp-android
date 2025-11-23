@@ -39,7 +39,6 @@ fun BacklogListScreen(
     onRelatedLinkClick: (com.romankozak.forwardappmobile.data.database.models.RelatedLink) -> Unit,
     onRemindersClick: (ListItemContent) -> Unit,
     onCopyContent: (ListItemContent) -> Unit,
-    onAddReminder: (ListItemContent) -> Unit,
 ) {
     val reorderableState = rememberReorderableLazyListState(listState) { from, to -> onMove(from.index, to.index) }
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -76,7 +75,7 @@ fun BacklogListScreen(
                     },
                     onCheckedChange = onCheckedChange,
                     onDelete = { onDelete(item) },
-                    onAddReminder = { onAddReminder(item) },
+                    onRemindersClick = { onRemindersClick(item) },
                     onMoveToTop = { onMoveToTop(item) },
                     onAddToDayPlan = { onAddToDayPlan(item) },
                     onStartTracking = { onStartTracking(item) },

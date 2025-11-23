@@ -68,7 +68,6 @@ fun GoalDetailContent(
                 onRelatedLinkClick = viewModel.itemActionHandler::onRelatedLinkClick,
                 onRemindersClick = onRemindersClick,
                 onCopyContent = viewModel.itemActionHandler::copyContentRequest,
-                onAddReminder = { item -> viewModel.onSetReminderForItem(item) },
             )
         }
         ProjectViewMode.INBOX -> {

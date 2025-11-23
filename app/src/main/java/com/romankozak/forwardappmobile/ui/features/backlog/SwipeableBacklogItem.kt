@@ -39,6 +39,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import sh.calvin.reorderable.ReorderableCollectionItemScope
 import kotlin.math.roundToInt
@@ -59,7 +61,7 @@ fun SwipeableBacklogItem(
     onMoreClick: (ListItemContent) -> Unit,
     onCheckedChange: (ListItemContent, Boolean) -> Unit,
     onDelete: (ListItemContent) -> Unit,
-    onAddReminder: (ListItemContent) -> Unit,
+    onRemindersClick: (ListItemContent) -> Unit,
     onMoveToTop: (ListItemContent) -> Unit,
     onAddToDayPlan: (ListItemContent) -> Unit,
     onStartTracking: (ListItemContent) -> Unit,
@@ -187,14 +189,14 @@ fun SwipeableBacklogItem(
                 }
                 SwipeActionButton(
                     icon = Icons.Default.Notifications,
-                    contentDescription = "Add reminder",
+                    contentDescription = "Reminder properties",
                     color = MaterialTheme.colorScheme.secondary,
                 ) {
                     coroutineScope.launch {
                         offsetX = 0f
                         withFrameNanos { }
                         withFrameNanos { }
-                        onAddReminder(item)
+                        onRemindersClick(item)
                     }
                 }
             }
@@ -225,7 +227,9 @@ private fun SwipeActionButton(
     onClick: () -> Unit,
 ) {
     Surface(
-        modifier = Modifier.size(48.dp),
+        modifier = Modifier
+            .size(48.dp)
+            .semantics { this.contentDescription = contentDescription },
         shape = RoundedCornerShape(12.dp),
         color = color.copy(alpha = 0.9f),
         tonalElevation = 0.dp,
@@ -234,7 +238,7 @@ private fun SwipeActionButton(
         Box(contentAlignment = Alignment.Center) {
             Icon(
                 imageVector = icon,
-                contentDescription = contentDescription,
+                contentDescription = null,
                 tint = Color.White,
                 modifier = Modifier.size(24.dp),
             )
