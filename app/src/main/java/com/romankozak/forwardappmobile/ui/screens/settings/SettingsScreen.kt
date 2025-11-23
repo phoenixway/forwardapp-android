@@ -203,6 +203,45 @@ fun SettingsScreen(
                             onCheckedChange = viewModel::onAllowSystemProjectMovesToggle,
                         )
                     }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Planning modes",
+                            modifier = Modifier.weight(1f),
+                        )
+                        Switch(
+                            checked = uiState.planningModesEnabled,
+                            onCheckedChange = viewModel::onPlanningModesToggle,
+                        )
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Wi‑Fi sync",
+                            modifier = Modifier.weight(1f),
+                        )
+                        Switch(
+                            checked = uiState.wifiSyncEnabled,
+                            onCheckedChange = viewModel::onWifiSyncToggle,
+                        )
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Strategic management",
+                            modifier = Modifier.weight(1f),
+                        )
+                        Switch(
+                            checked = uiState.strategicManagementEnabled,
+                            onCheckedChange = viewModel::onStrategicManagementToggle,
+                        )
+                    }
                 }
             }
 

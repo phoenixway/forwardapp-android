@@ -355,7 +355,11 @@ constructor(
       is MainScreenEvent.BreadcrumbNavigation -> searchUseCase.navigateToBreadcrumb(event.breadcrumb)
       is MainScreenEvent.ClearBreadcrumbNavigation -> searchUseCase.clearNavigation()
 
-      is MainScreenEvent.PlanningModeChange -> planningUseCase.onPlanningModeChange(event.mode)
+      is MainScreenEvent.PlanningModeChange -> {
+        if (FeatureToggles.isEnabled(FeatureFlag.PlanningModes)) {
+          planningUseCase.onPlanningModeChange(event.mode)
+        }
+      }
 
       is MainScreenEvent.DismissDialog -> dialogUseCase.dismissDialog()
       is MainScreenEvent.AddNewProjectRequest -> {
@@ -474,8 +478,8 @@ constructor(
       is MainScreenEvent.ShowSearchDialog -> _showSearchDialog.value = true
       is MainScreenEvent.DismissSearchDialog -> _showSearchDialog.value = false
 
-      is MainScreenEvent.ShowWifiServerDialog -> syncUseCase.onShowWifiServerDialog()
-      is MainScreenEvent.ShowWifiImportDialog -> syncUseCase.onShowWifiImportDialog()
+      is MainScreenEvent.ShowWifiServerDialog -> if (FeatureToggles.isEnabled(FeatureFlag.WifiSync)) syncUseCase.onShowWifiServerDialog()
+      is MainScreenEvent.ShowWifiImportDialog -> if (FeatureToggles.isEnabled(FeatureFlag.WifiSync)) syncUseCase.onShowWifiImportDialog()
       is MainScreenEvent.ExportToFile ->
         viewModelScope.launch {
           val result = projectActionsUseCase.exportToFile()
@@ -533,8 +537,10 @@ constructor(
       }
 
       is MainScreenEvent.NavigateToStrategicManagement -> {
-        viewModelScope.launch {
-          _uiEventChannel.send(ProjectUiEvent.NavigateToStrategicManagement)
+        if (FeatureToggles.isEnabled(FeatureFlag.StrategicManagement)) {
+          viewModelScope.launch {
+            _uiEventChannel.send(ProjectUiEvent.NavigateToStrategicManagement)
+          }
         }
       }
 
@@ -544,11 +550,11 @@ constructor(
       is MainScreenEvent.SaveAllContexts -> {
         settingsUseCase.saveAllContexts(viewModelScope, event.updatedContexts)
       }
-      is MainScreenEvent.DismissWifiServerDialog -> syncUseCase.onDismissWifiServerDialog()
-      is MainScreenEvent.DismissWifiImportDialog -> syncUseCase.onDismissWifiImportDialog()
+      is MainScreenEvent.DismissWifiServerDialog -> if (FeatureToggles.isEnabled(FeatureFlag.WifiSync)) syncUseCase.onDismissWifiServerDialog()
+      is MainScreenEvent.DismissWifiImportDialog -> if (FeatureToggles.isEnabled(FeatureFlag.WifiSync)) syncUseCase.onDismissWifiImportDialog()
       is MainScreenEvent.DesktopAddressChange ->
         syncUseCase.onDesktopAddressChange(event.address)
-      is MainScreenEvent.PerformWifiImport -> syncUseCase.performWifiImport(event.address)
+      is MainScreenEvent.PerformWifiImport -> if (FeatureToggles.isEnabled(FeatureFlag.WifiSync)) syncUseCase.performWifiImport(event.address)
       is MainScreenEvent.AddProjectConfirm -> {
         viewModelScope.launch {
           projectActionsUseCase.addNewProject(

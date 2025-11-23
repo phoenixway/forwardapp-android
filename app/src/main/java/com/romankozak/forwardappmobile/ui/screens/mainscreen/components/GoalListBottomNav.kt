@@ -226,11 +226,13 @@ internal fun ExpandingBottomNav(
     onGlobalSearchClick: () -> Unit,
     currentMode: PlanningMode,
     onPlanningModeChange: (PlanningMode) -> Unit,
+    planningModesEnabled: Boolean,
     onContextsClick: () -> Unit,
     onRecentsClick: () -> Unit,
     onDayPlanClick: () -> Unit,
     onHomeClick: () -> Unit,
     onStrManagementClick: () -> Unit,
+    strategicManagementEnabled: Boolean,
     isExpanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
     
@@ -269,10 +271,12 @@ internal fun ExpandingBottomNav(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceEvenly,
                 ) {
-                    PlanningModeSelector(
-                        currentMode = currentMode,
-                        onPlanningModeChange = onPlanningModeChange,
-                    )
+                    if (planningModesEnabled) {
+                        PlanningModeSelector(
+                            currentMode = currentMode,
+                            onPlanningModeChange = onPlanningModeChange,
+                        )
+                    }
                     SmallBottomNavButton(
                         text = "Inbox",
                         icon = Icons.Outlined.Inbox,
@@ -338,7 +342,9 @@ internal fun ExpandingBottomNav(
                 ModernBottomNavButton(text = "Day", icon = Icons.Outlined.WbSunny, onClick = onDayPlanClick)
                 ModernBottomNavButton(text = "Home", icon = Icons.Outlined.Home, onClick = onHomeClick)
                 ModernBottomNavButton(text = "Recent", icon = Icons.Outlined.History, onClick = onRecentsClick)
-                ModernBottomNavButton(text = "Strategy", icon = Icons.Outlined.Domain, onClick = onStrManagementClick)
+                if (strategicManagementEnabled) {
+                    ModernBottomNavButton(text = "Strategy", icon = Icons.Outlined.Domain, onClick = onStrManagementClick)
+                }
 
             }
         }

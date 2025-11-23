@@ -44,6 +44,9 @@ data class SettingsUiState(
     val featureToggles: Map<FeatureFlag, Boolean> = FeatureFlag.values().associateWith { FeatureToggles.isEnabled(it) },
     val attachmentsLibraryEnabled: Boolean = FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary),
     val allowSystemProjectMoves: Boolean = FeatureToggles.isEnabled(FeatureFlag.AllowSystemProjectMoves),
+    val planningModesEnabled: Boolean = FeatureToggles.isEnabled(FeatureFlag.PlanningModes),
+    val wifiSyncEnabled: Boolean = FeatureToggles.isEnabled(FeatureFlag.WifiSync),
+    val strategicManagementEnabled: Boolean = FeatureToggles.isEnabled(FeatureFlag.StrategicManagement),
 )
 
 @HiltViewModel
@@ -86,6 +89,9 @@ class SettingsViewModel @Inject constructor(
                 val featureToggles = values[12] as Map<FeatureFlag, Boolean>
                 val attachmentsEnabled = featureToggles[FeatureFlag.AttachmentsLibrary] ?: FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary)
                 val allowSystemMoves = featureToggles[FeatureFlag.AllowSystemProjectMoves] ?: FeatureToggles.isEnabled(FeatureFlag.AllowSystemProjectMoves)
+                val planningModesEnabled = featureToggles[FeatureFlag.PlanningModes] ?: FeatureToggles.isEnabled(FeatureFlag.PlanningModes)
+                val wifiSyncEnabled = featureToggles[FeatureFlag.WifiSync] ?: FeatureToggles.isEnabled(FeatureFlag.WifiSync)
+                val strategicEnabled = featureToggles[FeatureFlag.StrategicManagement] ?: FeatureToggles.isEnabled(FeatureFlag.StrategicManagement)
                 FeatureToggles.updateAll(featureToggles)
                 _uiState.update {
                     it.copy(
@@ -104,6 +110,9 @@ class SettingsViewModel @Inject constructor(
                         featureToggles = featureToggles,
                         attachmentsLibraryEnabled = attachmentsEnabled,
                         allowSystemProjectMoves = allowSystemMoves,
+                        planningModesEnabled = planningModesEnabled,
+                        wifiSyncEnabled = wifiSyncEnabled,
+                        strategicManagementEnabled = strategicEnabled,
                     )
                 }
             }.collect {
@@ -228,6 +237,9 @@ class SettingsViewModel @Inject constructor(
                 featureToggles = updated,
                 attachmentsLibraryEnabled = updated[FeatureFlag.AttachmentsLibrary] ?: state.attachmentsLibraryEnabled,
                 allowSystemProjectMoves = updated[FeatureFlag.AllowSystemProjectMoves] ?: state.allowSystemProjectMoves,
+                planningModesEnabled = updated[FeatureFlag.PlanningModes] ?: state.planningModesEnabled,
+                wifiSyncEnabled = updated[FeatureFlag.WifiSync] ?: state.wifiSyncEnabled,
+                strategicManagementEnabled = updated[FeatureFlag.StrategicManagement] ?: state.strategicManagementEnabled,
             )
         }
         FeatureToggles.update(flag, enabled)
@@ -240,6 +252,18 @@ class SettingsViewModel @Inject constructor(
 
     fun onAllowSystemProjectMovesToggle(enabled: Boolean) {
         updateFeatureToggle(FeatureFlag.AllowSystemProjectMoves, enabled)
+    }
+
+    fun onPlanningModesToggle(enabled: Boolean) {
+        updateFeatureToggle(FeatureFlag.PlanningModes, enabled)
+    }
+
+    fun onWifiSyncToggle(enabled: Boolean) {
+        updateFeatureToggle(FeatureFlag.WifiSync, enabled)
+    }
+
+    fun onStrategicManagementToggle(enabled: Boolean) {
+        updateFeatureToggle(FeatureFlag.StrategicManagement, enabled)
     }
 
     fun saveSettings() {
@@ -261,8 +285,10 @@ class SettingsViewModel @Inject constructor(
                 fastApiPort = currentState.fastApiPort,
             )
             settingsRepo.saveThemeSettings(currentState.themeSettings)
-            settingsRepo.saveFeatureToggle(FeatureFlag.AttachmentsLibrary, currentState.attachmentsLibraryEnabled)
-            settingsRepo.saveFeatureToggle(FeatureFlag.AllowSystemProjectMoves, currentState.allowSystemProjectMoves)
+            FeatureFlag.values().forEach { flag ->
+                val enabled = currentState.featureToggles[flag] ?: FeatureToggles.isEnabled(flag)
+                settingsRepo.saveFeatureToggle(flag, enabled)
+            }
         }
     }
 }

@@ -107,21 +107,23 @@ fun MainScreenTopAppBar(
                         )
                         HorizontalDivider()
                     }
-                    DropdownMenuItem(
-                        text = { Text("Run Wi-Fi Server") },
-                        onClick = {
-                            onShowWifiServer()
-                            menuExpanded = false
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Import from Wi-Fi") },
-                        onClick = {
-                            onShowWifiImport()
-                            menuExpanded = false
-                        },
-                    )
-                    HorizontalDivider()
+                    if (FeatureToggles.isEnabled(FeatureFlag.WifiSync)) {
+                        DropdownMenuItem(
+                            text = { Text("Run Wi-Fi Server") },
+                            onClick = {
+                                onShowWifiServer()
+                                menuExpanded = false
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Import from Wi-Fi") },
+                            onClick = {
+                                onShowWifiImport()
+                                menuExpanded = false
+                            },
+                        )
+                        HorizontalDivider()
+                    }
                     DropdownMenuItem(
                         text = { Text("Export to file") },
                         onClick = {
