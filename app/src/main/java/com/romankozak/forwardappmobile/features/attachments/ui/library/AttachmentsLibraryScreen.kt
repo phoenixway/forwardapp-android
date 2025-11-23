@@ -13,10 +13,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -46,6 +48,8 @@ import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.config.FeatureFlag
 import com.romankozak.forwardappmobile.config.FeatureToggles
 import com.romankozak.forwardappmobile.data.database.models.LinkType
+import java.net.URLEncoder
+import android.widget.Toast
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,6 +67,32 @@ fun AttachmentsLibraryScreen(
     }
 
     val context = LocalContext.current
+
+    LaunchedEffect(viewModel, navController) {
+        val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
+        savedStateHandle
+            ?.getStateFlow<String?>("list_chooser_result", null)
+            ?.collect { result ->
+                result?.let {
+                    savedStateHandle["list_chooser_result"] = null
+                    viewModel.onProjectChosen(it)
+                }
+            }
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is AttachmentsLibraryEvent.NavigateToProjectChooser -> {
+                    val title = URLEncoder.encode(event.title, "UTF-8")
+                    navController.navigate("list_chooser_screen/$title")
+                }
+                is AttachmentsLibraryEvent.ShowToast -> {
+                    Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -158,6 +188,7 @@ fun AttachmentsLibraryScreen(
                                     }
                                 }
                             },
+                            onShareClick = { viewModel.onShareToProjectClick(item) },
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                     }
@@ -199,6 +230,7 @@ private fun FilterRow(
 private fun AttachmentCard(
     item: AttachmentLibraryItem,
     onClick: () -> Unit,
+    onShareClick: () -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -209,13 +241,19 @@ private fun AttachmentCard(
             ),
     ) {
         Column(Modifier.padding(16.dp)) {
-            Text(
-                text = item.title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = item.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = onShareClick) {
+                    Icon(Icons.Filled.Share, contentDescription = "Зберегти в проєкт")
+                }
+            }
 
             item.subtitle?.let {
                 Spacer(modifier = Modifier.height(4.dp))

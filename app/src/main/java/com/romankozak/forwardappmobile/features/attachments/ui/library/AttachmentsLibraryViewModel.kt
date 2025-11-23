@@ -12,10 +12,13 @@ import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepos
 import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRef
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 @HiltViewModel
 class AttachmentsLibraryViewModel @Inject constructor(
@@ -23,8 +26,12 @@ class AttachmentsLibraryViewModel @Inject constructor(
     private val projectDao: ProjectDao,
 ) : ViewModel() {
 
+    private val _events = MutableSharedFlow<AttachmentsLibraryEvent>()
+    val events = _events.asSharedFlow()
+
     private val queryState = MutableStateFlow("")
     private val filterState = MutableStateFlow(AttachmentLibraryFilter.All)
+    private var pendingShareItem: AttachmentLibraryItem? = null
 
     val uiState =
                         combine(
@@ -151,5 +158,33 @@ class AttachmentsLibraryViewModel @Inject constructor(
 
     fun onFilterChange(filter: AttachmentLibraryFilter) {
         filterState.value = filter
+    }
+
+    fun onShareToProjectClick(item: AttachmentLibraryItem) {
+        pendingShareItem = item
+        viewModelScope.launch {
+            _events.emit(
+                AttachmentsLibraryEvent.NavigateToProjectChooser(
+                    title = "Виберіть проєкт для \"${item.title}\"",
+                ),
+            )
+        }
+    }
+
+    fun onProjectChosen(projectId: String?) {
+        val attachment = pendingShareItem ?: return
+        if (projectId.isNullOrBlank() || projectId == "root") {
+            pendingShareItem = null
+            return
+        }
+
+        viewModelScope.launch {
+            attachmentRepository.linkAttachmentToProject(
+                attachmentId = attachment.id,
+                projectId = projectId,
+            )
+            _events.emit(AttachmentsLibraryEvent.ShowToast("Додано до проєкту"))
+            pendingShareItem = null
+        }
     }
 }
