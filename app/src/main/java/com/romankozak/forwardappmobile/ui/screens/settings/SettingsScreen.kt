@@ -242,6 +242,45 @@ fun SettingsScreen(
                             onCheckedChange = viewModel::onStrategicManagementToggle,
                         )
                     }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "AI Chat",
+                            modifier = Modifier.weight(1f),
+                        )
+                        Switch(
+                            checked = uiState.aiChatEnabled,
+                            onCheckedChange = viewModel::onAiChatToggle,
+                        )
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "AI Insights",
+                            modifier = Modifier.weight(1f),
+                        )
+                        Switch(
+                            checked = uiState.aiInsightsEnabled,
+                            onCheckedChange = viewModel::onAiInsightsToggle,
+                        )
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "AI Life Management",
+                            modifier = Modifier.weight(1f),
+                        )
+                        Switch(
+                            checked = uiState.aiLifeManagementEnabled,
+                            onCheckedChange = viewModel::onAiLifeManagementToggle,
+                        )
+                    }
                 }
             }
 

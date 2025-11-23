@@ -6,4 +6,7 @@ enum class FeatureFlag(val storageKey: String) {
     PlanningModes("planning_modes"),
     WifiSync("wifi_sync"),
     StrategicManagement("strategic_management"),
+    AiChat("ai_chat"),
+    AiInsights("ai_insights"),
+    AiLifeManagement("ai_life_management"),
 }

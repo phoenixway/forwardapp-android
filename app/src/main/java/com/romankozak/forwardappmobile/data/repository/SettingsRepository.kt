@@ -97,6 +97,9 @@ class SettingsRepository @Inject constructor(
             FeatureFlag.PlanningModes -> BuildConfig.DEBUG
             FeatureFlag.WifiSync -> BuildConfig.DEBUG
             FeatureFlag.StrategicManagement -> BuildConfig.DEBUG
+            FeatureFlag.AiChat -> BuildConfig.DEBUG
+            FeatureFlag.AiInsights -> BuildConfig.DEBUG
+            FeatureFlag.AiLifeManagement -> BuildConfig.DEBUG
         }
 
     val featureTogglesFlow: Flow<Map<FeatureFlag, Boolean>> =

@@ -151,6 +151,9 @@ internal fun MoreActionsBottomNavButton(
     onShowReminders: () -> Unit,
     onAiChatClick: () -> Unit,
     onLifeStateClick: () -> Unit,
+    aiChatEnabled: Boolean,
+    aiInsightsEnabled: Boolean,
+    aiLifeManagementEnabled: Boolean,
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
@@ -184,22 +187,26 @@ internal fun MoreActionsBottomNavButton(
             onDismissRequest = { showMenu = false },
             offset = DpOffset(0.dp, (-50).dp) // Adjust offset to position above the button
         ) {
-            DropdownMenuItem(
-                text = { Text("AI Life-Management") },
-                leadingIcon = { Icon(Icons.Outlined.AutoAwesome, contentDescription = "AI Life-Management") },
-                onClick = {
-                    onLifeStateClick()
-                    showMenu = false
-                }
-            )
-            DropdownMenuItem(
-                text = { Text("Insights") },
-                leadingIcon = { Icon(Icons.Outlined.Lightbulb, contentDescription = "Insights") },
-                onClick = {
-                    onInsightsClick()
-                    showMenu = false
-                }
-            )
+            if (aiLifeManagementEnabled) {
+                DropdownMenuItem(
+                    text = { Text("AI Life-Management") },
+                    leadingIcon = { Icon(Icons.Outlined.AutoAwesome, contentDescription = "AI Life-Management") },
+                    onClick = {
+                        onLifeStateClick()
+                        showMenu = false
+                    }
+                )
+            }
+            if (aiInsightsEnabled) {
+                DropdownMenuItem(
+                    text = { Text("Insights") },
+                    leadingIcon = { Icon(Icons.Outlined.Lightbulb, contentDescription = "Insights") },
+                    onClick = {
+                        onInsightsClick()
+                        showMenu = false
+                    }
+                )
+            }
             DropdownMenuItem(
                 text = { Text("Reminders") },
                 leadingIcon = { Icon(Icons.Outlined.Notifications, contentDescription = "Reminders") },
@@ -208,14 +215,16 @@ internal fun MoreActionsBottomNavButton(
                     showMenu = false
                 }
             )
-            DropdownMenuItem(
-                text = { Text("AI-Chat") },
-                leadingIcon = { Icon(Icons.Outlined.AutoAwesome, contentDescription = "AI-Chat") },
-                onClick = {
-                    onAiChatClick()
-                    showMenu = false
-                }
-            )
+            if (aiChatEnabled) {
+                DropdownMenuItem(
+                    text = { Text("AI-Chat") },
+                    leadingIcon = { Icon(Icons.Outlined.AutoAwesome, contentDescription = "AI-Chat") },
+                    onClick = {
+                        onAiChatClick()
+                        showMenu = false
+                    }
+                )
+            }
         }
     }
 }
@@ -233,6 +242,9 @@ internal fun ExpandingBottomNav(
     onHomeClick: () -> Unit,
     onStrManagementClick: () -> Unit,
     strategicManagementEnabled: Boolean,
+    aiChatEnabled: Boolean,
+    aiInsightsEnabled: Boolean,
+    aiLifeManagementEnabled: Boolean,
     isExpanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
     
@@ -297,6 +309,9 @@ internal fun ExpandingBottomNav(
                         onShowReminders = onShowReminders,
                         onAiChatClick = onAiChatClick,
                         onLifeStateClick = onLifeStateClick,
+                        aiChatEnabled = aiChatEnabled,
+                        aiInsightsEnabled = aiInsightsEnabled,
+                        aiLifeManagementEnabled = aiLifeManagementEnabled,
                     )
                 }
             }

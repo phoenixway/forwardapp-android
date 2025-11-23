@@ -517,7 +517,9 @@ constructor(
           }
       }
       is MainScreenEvent.NavigateToChat -> {
-        viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate(CHAT_ROUTE)) }
+        if (FeatureToggles.isEnabled(FeatureFlag.AiChat)) {
+          viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate(CHAT_ROUTE)) }
+        }
       }
       is MainScreenEvent.NavigateToActivityTrackerScreen -> {
         viewModelScope.launch {
@@ -526,13 +528,17 @@ constructor(
       }
       
       is MainScreenEvent.NavigateToAiInsights -> {
-        viewModelScope.launch {
-          _uiEventChannel.send(ProjectUiEvent.Navigate("ai_insights_screen"))
+        if (FeatureToggles.isEnabled(FeatureFlag.AiInsights)) {
+          viewModelScope.launch {
+            _uiEventChannel.send(ProjectUiEvent.Navigate("ai_insights_screen"))
+          }
         }
       }
       is MainScreenEvent.NavigateToLifeState -> {
-        viewModelScope.launch {
-          _uiEventChannel.send(ProjectUiEvent.Navigate(LIFE_STATE_ROUTE))
+        if (FeatureToggles.isEnabled(FeatureFlag.AiLifeManagement)) {
+          viewModelScope.launch {
+            _uiEventChannel.send(ProjectUiEvent.Navigate(LIFE_STATE_ROUTE))
+          }
         }
       }
 

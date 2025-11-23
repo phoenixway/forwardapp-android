@@ -47,6 +47,9 @@ data class SettingsUiState(
     val planningModesEnabled: Boolean = FeatureToggles.isEnabled(FeatureFlag.PlanningModes),
     val wifiSyncEnabled: Boolean = FeatureToggles.isEnabled(FeatureFlag.WifiSync),
     val strategicManagementEnabled: Boolean = FeatureToggles.isEnabled(FeatureFlag.StrategicManagement),
+    val aiChatEnabled: Boolean = FeatureToggles.isEnabled(FeatureFlag.AiChat),
+    val aiInsightsEnabled: Boolean = FeatureToggles.isEnabled(FeatureFlag.AiInsights),
+    val aiLifeManagementEnabled: Boolean = FeatureToggles.isEnabled(FeatureFlag.AiLifeManagement),
 )
 
 @HiltViewModel
@@ -92,6 +95,9 @@ class SettingsViewModel @Inject constructor(
                 val planningModesEnabled = featureToggles[FeatureFlag.PlanningModes] ?: FeatureToggles.isEnabled(FeatureFlag.PlanningModes)
                 val wifiSyncEnabled = featureToggles[FeatureFlag.WifiSync] ?: FeatureToggles.isEnabled(FeatureFlag.WifiSync)
                 val strategicEnabled = featureToggles[FeatureFlag.StrategicManagement] ?: FeatureToggles.isEnabled(FeatureFlag.StrategicManagement)
+                val aiChatEnabled = featureToggles[FeatureFlag.AiChat] ?: FeatureToggles.isEnabled(FeatureFlag.AiChat)
+                val aiInsightsEnabled = featureToggles[FeatureFlag.AiInsights] ?: FeatureToggles.isEnabled(FeatureFlag.AiInsights)
+                val aiLifeEnabled = featureToggles[FeatureFlag.AiLifeManagement] ?: FeatureToggles.isEnabled(FeatureFlag.AiLifeManagement)
                 FeatureToggles.updateAll(featureToggles)
                 _uiState.update {
                     it.copy(
@@ -113,6 +119,9 @@ class SettingsViewModel @Inject constructor(
                         planningModesEnabled = planningModesEnabled,
                         wifiSyncEnabled = wifiSyncEnabled,
                         strategicManagementEnabled = strategicEnabled,
+                        aiChatEnabled = aiChatEnabled,
+                        aiInsightsEnabled = aiInsightsEnabled,
+                        aiLifeManagementEnabled = aiLifeEnabled,
                     )
                 }
             }.collect {
@@ -240,6 +249,9 @@ class SettingsViewModel @Inject constructor(
                 planningModesEnabled = updated[FeatureFlag.PlanningModes] ?: state.planningModesEnabled,
                 wifiSyncEnabled = updated[FeatureFlag.WifiSync] ?: state.wifiSyncEnabled,
                 strategicManagementEnabled = updated[FeatureFlag.StrategicManagement] ?: state.strategicManagementEnabled,
+                aiChatEnabled = updated[FeatureFlag.AiChat] ?: state.aiChatEnabled,
+                aiInsightsEnabled = updated[FeatureFlag.AiInsights] ?: state.aiInsightsEnabled,
+                aiLifeManagementEnabled = updated[FeatureFlag.AiLifeManagement] ?: state.aiLifeManagementEnabled,
             )
         }
         FeatureToggles.update(flag, enabled)
@@ -264,6 +276,18 @@ class SettingsViewModel @Inject constructor(
 
     fun onStrategicManagementToggle(enabled: Boolean) {
         updateFeatureToggle(FeatureFlag.StrategicManagement, enabled)
+    }
+
+    fun onAiChatToggle(enabled: Boolean) {
+        updateFeatureToggle(FeatureFlag.AiChat, enabled)
+    }
+
+    fun onAiInsightsToggle(enabled: Boolean) {
+        updateFeatureToggle(FeatureFlag.AiInsights, enabled)
+    }
+
+    fun onAiLifeManagementToggle(enabled: Boolean) {
+        updateFeatureToggle(FeatureFlag.AiLifeManagement, enabled)
     }
 
     fun saveSettings() {

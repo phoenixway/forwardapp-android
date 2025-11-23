@@ -9,6 +9,9 @@ object FeatureToggles {
         FeatureFlag.PlanningModes to BuildConfig.DEBUG,
         FeatureFlag.WifiSync to BuildConfig.DEBUG,
         FeatureFlag.StrategicManagement to BuildConfig.DEBUG,
+        FeatureFlag.AiChat to BuildConfig.DEBUG,
+        FeatureFlag.AiInsights to BuildConfig.DEBUG,
+        FeatureFlag.AiLifeManagement to BuildConfig.DEBUG,
     )
 
     @Volatile
