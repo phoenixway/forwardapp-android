@@ -67,7 +67,7 @@ class SettingsViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            combine(
+            val settingsFlows = listOf(
                 settingsRepo.ollamaFastModelFlow,
                 settingsRepo.ollamaSmartModelFlow,
                 settingsRepo.nerModelUriFlow,
@@ -81,24 +81,26 @@ class SettingsViewModel @Inject constructor(
                 settingsRepo.ollamaPortFlow,
                 settingsRepo.fastApiPortFlow,
                 settingsRepo.featureTogglesFlow,
-            ) { fast, smart, nerModel, nerTokenizer, nerLabels, rolesFolder, themeSettings, serverMode, manualIp, wifiPort, ollamaPort, fastApiPort, featureToggles ->
+            )
+            combine(settingsFlows) { values ->
+                val featureToggles = values[12] as Map<FeatureFlag, Boolean>
                 val attachmentsEnabled = featureToggles[FeatureFlag.AttachmentsLibrary] ?: FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary)
                 val allowSystemMoves = featureToggles[FeatureFlag.AllowSystemProjectMoves] ?: FeatureToggles.isEnabled(FeatureFlag.AllowSystemProjectMoves)
                 FeatureToggles.updateAll(featureToggles)
                 _uiState.update {
                     it.copy(
-                        fastModel = fast,
-                        smartModel = smart,
-                        nerModelUri = nerModel,
-                        nerTokenizerUri = nerTokenizer,
-                        nerLabelsUri = nerLabels,
-                        rolesFolderUri = rolesFolder,
-                        themeSettings = themeSettings,
-                        serverIpConfigurationMode = serverMode,
-                        manualServerIp = manualIp,
-                        wifiSyncPort = wifiPort,
-                        ollamaPort = ollamaPort,
-                        fastApiPort = fastApiPort,
+                        fastModel = values[0] as String,
+                        smartModel = values[1] as String,
+                        nerModelUri = values[2] as String,
+                        nerTokenizerUri = values[3] as String,
+                        nerLabelsUri = values[4] as String,
+                        rolesFolderUri = values[5] as String,
+                        themeSettings = values[6] as com.romankozak.forwardappmobile.ui.theme.ThemeSettings,
+                        serverIpConfigurationMode = values[7] as String,
+                        manualServerIp = values[8] as String,
+                        wifiSyncPort = values[9] as Int,
+                        ollamaPort = values[10] as Int,
+                        fastApiPort = values[11] as Int,
                         featureToggles = featureToggles,
                         attachmentsLibraryEnabled = attachmentsEnabled,
                         allowSystemProjectMoves = allowSystemMoves,
