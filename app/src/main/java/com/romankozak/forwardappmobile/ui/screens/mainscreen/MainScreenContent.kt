@@ -159,10 +159,13 @@ fun MainScreenContent(
                     onProjectClicked = { onEvent(MainScreenEvent.ProjectClick(it)) },
                     onToggleExpanded = { onEvent(MainScreenEvent.ToggleProjectExpanded(it)) },
                     onMenuRequested = { onEvent(MainScreenEvent.ProjectMenuRequest(it)) },
-                    onNavigateToProject = {  },
                     onProjectReorder = { from, to, pos ->
                         onEvent(MainScreenEvent.ProjectReorder(from, to, pos))
                     },
+                    onFocusProject = { onEvent(MainScreenEvent.FocusProject(it)) },
+                    onAddSubproject = { onEvent(MainScreenEvent.AddSubprojectRequest(it)) },
+                    onDeleteProject = { onEvent(MainScreenEvent.DeleteRequest(it)) },
+                    onEditProject = { onEvent(MainScreenEvent.EditRequest(it)) },
                 )
             }
         }

@@ -6,9 +6,13 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -17,25 +21,35 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FilterCenterFocus
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.google.android.material.transition.platform.MaterialContainerTransform
 import com.mohamedrejeb.compose.dnd.DragAndDropState
@@ -46,6 +60,8 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbIt
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DropPosition
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.HierarchyDisplaySettings
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
+import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 
 // Remove SharedTransition imports for now - they seem to be causing issues
 // import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -268,6 +284,205 @@ fun ProjectRow(
 }
 
 @Composable
+fun SwipeableProjectRow(
+    project: Project,
+    level: Int,
+    hasChildren: Boolean,
+    onProjectClick: (String) -> Unit,
+    onToggleExpanded: (project: Project) -> Unit,
+    onMenuRequested: (project: Project) -> Unit,
+    isCurrentlyDragging: Boolean,
+    isHovered: Boolean,
+    isDraggingDown: Boolean,
+    isHighlighted: Boolean,
+    showFocusButton: Boolean,
+    onFocusRequested: (project: Project) -> Unit,
+    onAddSubproject: (project: Project) -> Unit,
+    onDelete: (project: Project) -> Unit,
+    onEdit: (project: Project) -> Unit,
+    modifier: Modifier = Modifier,
+    displayName: AnnotatedString? = null,
+    isFocused: Boolean = false,
+) {
+    val density = LocalDensity.current
+    val coroutineScope = rememberCoroutineScope()
+    val startActionWidth = 120.dp
+    val endActionWidth = 120.dp
+    val startActionWidthPx = with(density) { startActionWidth.toPx() }
+    val endActionWidthPx = with(density) { endActionWidth.toPx() }
+
+    var offsetX by remember { mutableFloatStateOf(0f) }
+
+    val startProgress by remember {
+        derivedStateOf { (offsetX / startActionWidthPx).coerceIn(0f, 1f) }
+    }
+    val endProgress by remember {
+        derivedStateOf { (-offsetX / endActionWidthPx).coerceIn(0f, 1f) }
+    }
+
+    val draggableState = rememberDraggableState { delta ->
+        offsetX = (offsetX + delta).coerceIn(-endActionWidthPx, startActionWidthPx)
+    }
+
+    fun animateTo(target: Float) {
+        coroutineScope.launch {
+            animate(initialValue = offsetX, targetValue = target) { value, _ ->
+                offsetX = value
+            }
+        }
+    }
+
+    Box(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .draggable(
+                    orientation = Orientation.Horizontal,
+                    state = draggableState,
+                    onDragStopped = { velocity ->
+                        val velocityThreshold = 300f
+                        val startThreshold = startActionWidthPx * 0.12f
+                        val endThreshold = endActionWidthPx * 0.12f
+                        when {
+                            offsetX > 0f && velocity < -velocityThreshold -> animateTo(0f)
+                            offsetX < 0f && velocity > velocityThreshold -> animateTo(0f)
+                            offsetX >= 0f && velocity > velocityThreshold -> animateTo(startActionWidthPx)
+                            offsetX <= 0f && velocity < -velocityThreshold -> animateTo(-endActionWidthPx)
+                            offsetX > startThreshold -> animateTo(startActionWidthPx)
+                            offsetX < -endThreshold -> animateTo(-endActionWidthPx)
+                            else -> animateTo(0f)
+                        }
+                    },
+                ),
+    ) {
+        fun resetSwipe() = animateTo(0f)
+
+        if (startProgress > 0.02f) {
+            val startBg = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f)
+            Surface(
+                modifier =
+                    Modifier
+                        .width(startActionWidth)
+                        .align(Alignment.CenterStart)
+                        .padding(start = 14.dp, end = 6.dp)
+                        .alpha(startProgress),
+                tonalElevation = 2.dp,
+                shape = RoundedCornerShape(14.dp),
+                color = startBg,
+            ) {
+                Row(
+                    modifier = Modifier
+                        .padding(horizontal = 6.dp, vertical = 4.dp)
+                        .alpha(startProgress),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    ProjectSwipeActionButton(
+                        icon = Icons.Default.FilterCenterFocus,
+                        contentDescription = "Фокус",
+                        color = MaterialTheme.colorScheme.primary,
+                    ) {
+                        onFocusRequested(project)
+                        resetSwipe()
+                    }
+                    ProjectSwipeActionButton(
+                        icon = Icons.Default.Add,
+                        contentDescription = "Додати підпроєкт",
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                    ) {
+                        onAddSubproject(project)
+                        resetSwipe()
+                    }
+                }
+            }
+        }
+
+        if (endProgress > 0.02f) {
+            val endBg = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.9f)
+            Surface(
+                modifier =
+                    Modifier
+                        .width(endActionWidth)
+                        .align(Alignment.CenterEnd)
+                        .padding(end = 14.dp, start = 6.dp)
+                        .alpha(endProgress),
+                tonalElevation = 2.dp,
+                shape = RoundedCornerShape(14.dp),
+                color = endBg,
+            ) {
+                Row(
+                    modifier = Modifier
+                        .padding(horizontal = 6.dp, vertical = 4.dp)
+                        .alpha(endProgress),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    ProjectSwipeActionButton(
+                        icon = Icons.Default.Delete,
+                        contentDescription = "Видалити проєкт",
+                        color = MaterialTheme.colorScheme.error,
+                    ) {
+                        onDelete(project)
+                        resetSwipe()
+                    }
+                    ProjectSwipeActionButton(
+                        icon = Icons.Default.Edit,
+                        contentDescription = "Редагувати проєкт",
+                        color = MaterialTheme.colorScheme.primary,
+                    ) {
+                        onEdit(project)
+                        resetSwipe()
+                    }
+                }
+            }
+        }
+
+        ProjectRow(
+            project = project,
+            level = level,
+            hasChildren = hasChildren,
+            onProjectClick = onProjectClick,
+            onToggleExpanded = onToggleExpanded,
+            onMenuRequested = onMenuRequested,
+            isCurrentlyDragging = isCurrentlyDragging,
+            isHovered = isHovered,
+            isDraggingDown = isDraggingDown,
+            isHighlighted = isHighlighted,
+            showFocusButton = showFocusButton,
+            onFocusRequested = onFocusRequested,
+            modifier = Modifier.offset { IntOffset(offsetX.roundToInt(), 0) },
+            displayName = displayName,
+            isFocused = isFocused,
+        )
+    }
+}
+
+@Composable
+private fun ProjectSwipeActionButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    color: Color,
+    onClick: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.size(44.dp),
+        shape = RoundedCornerShape(12.dp),
+        color = color.copy(alpha = 0.92f),
+        tonalElevation = 0.dp,
+        onClick = onClick,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = Color.White,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+    }
+}
+
+@Composable
 fun BreadcrumbNavigation(
     breadcrumbs: List<BreadcrumbItem>,
     onNavigate: (BreadcrumbItem) -> Unit,
@@ -374,13 +589,16 @@ fun SmartHierarchyView(
     highlightedProjectId: String?,
     settings: HierarchyDisplaySettings,
     searchQuery: String,
-    onNavigateToProject: (String) -> Unit,
     focusedProjectId: String?,
     longDescendantsMap: Map<String, Boolean>,
     onProjectClick: (String) -> Unit,
     onToggleExpanded: (Project) -> Unit,
     onMenuRequested: (Project) -> Unit,
     onProjectReorder: (fromId: String, toId: String, position: DropPosition) -> Unit,
+    onFocusProject: (Project) -> Unit,
+    onAddSubproject: (Project) -> Unit,
+    onDeleteProject: (Project) -> Unit,
+    onEditProject: (Project) -> Unit,
     // Add the animation scopes to the signature
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
@@ -405,16 +623,7 @@ fun SmartHierarchyView(
     val isFocused = project.id == focusedProjectId
 
     with(sharedTransitionScope) {
-        Column(
-            modifier = Modifier
-                .sharedElement(
-                    // FIX: Changed the parameter name from 'state' to 'sharedContentState'
-                    sharedContentState = rememberSharedContentState(key = "project-card-${project.id}"),
-                    animatedVisibilityScope = animatedVisibilityScope,
-                    boundsTransform = { initialBounds, targetBounds ->
-                        tween(durationMillis = 600, easing = FastOutSlowInEasing)
-                    }                )
-        ) {
+        Column {
             DraggableItem(
                 state = dragAndDropState,
                 key = project.id,
@@ -438,7 +647,7 @@ fun SmartHierarchyView(
                     }
 
                 Box(modifier = Modifier.fillMaxWidth()) {
-                    ProjectRow(
+                    SwipeableProjectRow(
                         project = project,
                         level = level,
                         hasChildren = hasChildren,
@@ -451,7 +660,10 @@ fun SmartHierarchyView(
                         isHighlighted = project.id == highlightedProjectId,
                         displayName = displayName,
                         showFocusButton = shouldShowFocusButton,
-                        onFocusRequested = { onNavigateToProject(it.id) },
+                        onFocusRequested = onFocusProject,
+                        onAddSubproject = onAddSubproject,
+                        onDelete = onDeleteProject,
+                        onEdit = onEditProject,
                         isFocused = isFocused,
                     )
 
@@ -490,13 +702,16 @@ fun SmartHierarchyView(
                             highlightedProjectId = highlightedProjectId,
                             settings = settings,
                             searchQuery = searchQuery,
-                            onNavigateToProject = onNavigateToProject,
                             focusedProjectId = focusedProjectId,
                             longDescendantsMap = longDescendantsMap,
                             onProjectClick = onProjectClick,
                             onToggleExpanded = onToggleExpanded,
                             onMenuRequested = onMenuRequested,
                             onProjectReorder = onProjectReorder,
+                            onFocusProject = onFocusProject,
+                            onAddSubproject = onAddSubproject,
+                            onDeleteProject = onDeleteProject,
+                            onEditProject = onEditProject,
                             sharedTransitionScope = sharedTransitionScope,
                             animatedVisibilityScope = animatedVisibilityScope
                         )
