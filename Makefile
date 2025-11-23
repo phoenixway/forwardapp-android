@@ -5,6 +5,7 @@
 # --- Конфігурація Проєкту ---
 # Базове ім'я пакета вашого додатку.
 PACKAGE_NAME=com.romankozak.forwardappmobile
+export GRADLE_USER_HOME := $(PWD)/.gradle
 
 # Ім'я пакета для дебаг-збірки (зазвичай з суфіксом .debug).
 DEBUG_PACKAGE_NAME=$(PACKAGE_NAME).debug

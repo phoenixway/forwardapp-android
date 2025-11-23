@@ -229,18 +229,55 @@ class ChecklistViewModel @Inject constructor(
 
     fun onDeleteItem(itemId: String) {
         val itemToDelete = itemsById.value[itemId] ?: return
-        _uiState.update { it.copy(lastDeletedItem = itemToDelete, showUndoSnackbar = true) }
+
+        // If another delete is pending, we can't undo it anymore.
+        if (_uiState.value.showUndoSnackbar) {
+            _uiState.update { it.copy(lastDeletedItem = null, showUndoSnackbar = false) }
+        }
+
+        itemsById.value = itemsById.value - itemId
+        _uiState.update { state ->
+            state.copy(
+                items = state.items.filterNot { it.id == itemId },
+                lastDeletedItem = itemToDelete,
+                showUndoSnackbar = true,
+            )
+        }
+
+        viewModelScope.launch {
+            checklistRepository.deleteItem(itemId)
+        }
     }
 
     fun onUndoDelete() {
-        _uiState.update { it.copy(lastDeletedItem = null, showUndoSnackbar = false) }
+        val itemToRestore = _uiState.value.lastDeletedItem ?: return
+
+        val restoredUiItem =
+            ChecklistItemUiModel(
+                id = itemToRestore.id,
+                content = itemToRestore.content,
+                isChecked = itemToRestore.isChecked,
+                order = itemToRestore.itemOrder,
+            )
+
+        itemsById.value = itemsById.value + (itemToRestore.id to itemToRestore)
+        _uiState.update { state ->
+            val updatedItems =
+                (state.items + restoredUiItem)
+                    .sortedBy { it.order }
+            state.copy(
+                items = updatedItems,
+                lastDeletedItem = null,
+                showUndoSnackbar = false,
+            )
+        }
+
+        viewModelScope.launch {
+            checklistRepository.addItems(listOf(itemToRestore))
+        }
     }
 
     fun onConfirmDelete() {
-        val itemToDelete = _uiState.value.lastDeletedItem ?: return
-        viewModelScope.launch {
-            checklistRepository.deleteItem(itemToDelete.id)
-        }
         _uiState.update { it.copy(lastDeletedItem = null, showUndoSnackbar = false) }
     }
 

@@ -1,6 +1,7 @@
+import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.implementation
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-import org.gradle.api.tasks.testing.Test
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -20,6 +21,15 @@ plugins {
 
 }
 
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) {
+        file.inputStream().use { load(it) }
+    } else {
+        error("Missing local.properties for signing configuration.")
+    }
+}
+
 android {
     namespace = "com.romankozak.forwardappmobile"
     compileSdk = 36
@@ -28,8 +38,8 @@ android {
         applicationId = "com.romankozak.forwardappmobile"
         minSdk = 29
         targetSdk = 36
-        versionCode = 53
-        versionName = "10.0-alpha1"
+        versionCode = 54
+        versionName = "1.20.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -77,10 +87,15 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("keystore.jks")          // <- через =
-            storePassword = "defpass1"
-            keyAlias = "romanKeyAlias"
-            keyPassword = "defpass1"
+            val storeFilePath = localProperties.getProperty("signing.storeFile")
+                ?: error("signing.storeFile is not set in local.properties")
+            storeFile = file(storeFilePath)
+            storePassword = localProperties.getProperty("signing.storePassword")
+                ?: error("signing.storePassword is not set in local.properties")
+            keyAlias = localProperties.getProperty("signing.keyAlias")
+                ?: error("signing.keyAlias is not set in local.properties")
+            keyPassword = localProperties.getProperty("signing.keyPassword")
+                ?: error("signing.keyPassword is not set in local.properties")
         }
     }
 
@@ -92,7 +107,11 @@ android {
         }
 
         getByName("release") {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
             signingConfig = signingConfigs.getByName("release")
         }
     }
@@ -208,19 +227,19 @@ dependencies {
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.compose.material3:material3-window-size-class:1.1.1")
 
-    implementation("com.squareup.retrofit2:retrofit:2.9.0")
-    //implementation("com.squareup.retrofit2:converter-gson:2.9.0")
-
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
-    implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:1.0.0")
-
-
     // OkHttp (для налаштування тайм-аутів, опціонально, але рекомендовано)
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0") // Для дебагу
+
+    // Retrofit
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:1.0.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+    implementation("org.jmdns:jmdns:3.5.9")
 
     // Jetpack DataStore (якщо ще не додано, для збереження налаштувань)
-    implementation(libs.androidx.datastore.preferences)
-    implementation("androidx.compose.runtime:runtime-livedata:1.6.8")
+    implementation("androidx.compose.runtime:runtime-livedata")
 
     // ONNX Runtime для Android
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.18.0")
@@ -231,19 +250,11 @@ dependencies {
     // DJL вимагає SLF4J, додаємо реалізацію без логування, щоб уникнути помилок
     implementation("org.slf4j:slf4j-nop:2.0.13")
 
-    //implementation("ai.djl.android:core:0.25.0")
-    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.16.3")
-
     // Додайте явно нативну бібліотеку
     //implementation("ai.djl.huggingface:tokenizers:0.25.0:android-native")
 
     implementation("com.google.mlkit:translate:17.0.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
-
-    implementation("com.squareup.retrofit2:retrofit:2.9.0")
-    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
-            implementation("org.jmdns:jmdns:3.5.9")
-    implementation("com.squareup.okhttp3:logging-interceptor:4.11.0") // Для дебагу
 
     // Для безпечного зберігання даних
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
@@ -253,24 +264,12 @@ dependencies {
 // Biometric authentication
     implementation("androidx.biometric:biometric:1.1.0")
 // Google Play Services (необхідно для Passkeys)
-    implementation("com.google.android.gms:play-services-auth:20.7.0")
     implementation("com.google.android.gms:play-services-base:18.2.0")
 // Якщо ще немає
     implementation("com.google.android.gms:play-services-fido:20.1.0")
 
 
 
-// KotlinX Serialization для роботи з JSON
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
-// Адаптер для Retrofit, щоб він працював з KotlinX Serialization
-    implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:1.0.0")
-    /*implementation("androidx.compose.animation:animation")
-    implementation("androidx.compose.foundation:foundation")
-    implementation("androidx.compose.ui:ui")*/
-
-    implementation("androidx.compose.animation:animation")
-    implementation("androidx.compose.ui:ui")
-
     // Рекомендується використовувати останню версію бібліотеки
-implementation("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
+    implementation("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
 }
