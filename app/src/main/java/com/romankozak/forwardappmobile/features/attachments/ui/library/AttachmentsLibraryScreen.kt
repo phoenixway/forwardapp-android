@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.config.FeatureFlag
 import com.romankozak.forwardappmobile.config.FeatureToggles
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 
@@ -54,7 +55,7 @@ fun AttachmentsLibraryScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    if (!uiState.isFeatureEnabled && !FeatureToggles.attachmentsLibraryEnabled) {
+    if (!uiState.isFeatureEnabled && !FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary)) {
         LaunchedEffect(Unit) {
             navController.popBackStack()
         }

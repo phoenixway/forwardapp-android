@@ -25,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import com.romankozak.forwardappmobile.config.FeatureFlag
 import com.romankozak.forwardappmobile.config.FeatureToggles
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -96,7 +97,7 @@ fun MainScreenTopAppBar(
                     Icon(Icons.Default.MoreVert, "Menu")
                 }
                 DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }, modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
-                    if (FeatureToggles.attachmentsLibraryEnabled) {
+                    if (FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary)) {
                         DropdownMenuItem(
                             text = { Text("Attachments library") },
                             onClick = {

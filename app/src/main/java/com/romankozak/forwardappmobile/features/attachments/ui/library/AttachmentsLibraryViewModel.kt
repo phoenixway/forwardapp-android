@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.features.attachments.ui.library
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.romankozak.forwardappmobile.config.FeatureFlag
 import com.romankozak.forwardappmobile.config.FeatureToggles
 import com.romankozak.forwardappmobile.data.dao.ProjectDao
 import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
@@ -136,12 +137,12 @@ class AttachmentsLibraryViewModel @Inject constructor(
                 items = filteredItems,
                 totalCount = items.size,
                 matchedCount = filteredItems.size,
-                isFeatureEnabled = FeatureToggles.attachmentsLibraryEnabled,
+                isFeatureEnabled = FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary),
             )
         }.stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5_000),
-            AttachmentsLibraryUiState(isFeatureEnabled = FeatureToggles.attachmentsLibraryEnabled),
+            AttachmentsLibraryUiState(isFeatureEnabled = FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary)),
         )
 
     fun onQueryChange(value: String) {

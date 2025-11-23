@@ -6,6 +6,7 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.romankozak.forwardappmobile.config.FeatureFlag
 import com.romankozak.forwardappmobile.config.FeatureToggles
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.data.repository.RolesRepository
@@ -40,8 +41,9 @@ data class SettingsUiState(
     val fastApiPort: Int = 8000,
     val serverDiscoveryState: ServerDiscoveryState = ServerDiscoveryState.Loading,
     val themeSettings: com.romankozak.forwardappmobile.ui.theme.ThemeSettings = com.romankozak.forwardappmobile.ui.theme.ThemeSettings(),
-    val attachmentsLibraryEnabled: Boolean = FeatureToggles.attachmentsLibraryEnabled,
-    val allowSystemProjectMoves: Boolean = false,
+    val featureToggles: Map<FeatureFlag, Boolean> = FeatureFlag.values().associateWith { FeatureToggles.isEnabled(it) },
+    val attachmentsLibraryEnabled: Boolean = FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary),
+    val allowSystemProjectMoves: Boolean = FeatureToggles.isEnabled(FeatureFlag.AllowSystemProjectMoves),
 )
 
 @HiltViewModel
@@ -65,7 +67,7 @@ class SettingsViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            val settingsFlows = listOf(
+            combine(
                 settingsRepo.ollamaFastModelFlow,
                 settingsRepo.ollamaSmartModelFlow,
                 settingsRepo.nerModelUriFlow,
@@ -78,29 +80,31 @@ class SettingsViewModel @Inject constructor(
                 settingsRepo.wifiSyncPortFlow,
                 settingsRepo.ollamaPortFlow,
                 settingsRepo.fastApiPortFlow,
-                settingsRepo.attachmentsLibraryEnabledFlow,
-                settingsRepo.allowSystemProjectMovesFlow,
-            )
-            combine(settingsFlows) { values ->
+                settingsRepo.featureTogglesFlow,
+            ) { fast, smart, nerModel, nerTokenizer, nerLabels, rolesFolder, themeSettings, serverMode, manualIp, wifiPort, ollamaPort, fastApiPort, featureToggles ->
+                val attachmentsEnabled = featureToggles[FeatureFlag.AttachmentsLibrary] ?: FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary)
+                val allowSystemMoves = featureToggles[FeatureFlag.AllowSystemProjectMoves] ?: FeatureToggles.isEnabled(FeatureFlag.AllowSystemProjectMoves)
+                FeatureToggles.updateAll(featureToggles)
                 _uiState.update {
                     it.copy(
-                        fastModel = values[0] as String,
-                        smartModel = values[1] as String,
-                        nerModelUri = values[2] as String,
-                        nerTokenizerUri = values[3] as String,
-                        nerLabelsUri = values[4] as String,
-                        rolesFolderUri = values[5] as String,
-                        themeSettings = values[6] as com.romankozak.forwardappmobile.ui.theme.ThemeSettings,
-                        serverIpConfigurationMode = values[7] as String,
-                        manualServerIp = values[8] as String,
-                        wifiSyncPort = values[9] as Int,
-                        ollamaPort = values[10] as Int,
-                        fastApiPort = values[11] as Int,
-                        attachmentsLibraryEnabled = values[12] as Boolean,
-                        allowSystemProjectMoves = values[13] as Boolean,
+                        fastModel = fast,
+                        smartModel = smart,
+                        nerModelUri = nerModel,
+                        nerTokenizerUri = nerTokenizer,
+                        nerLabelsUri = nerLabels,
+                        rolesFolderUri = rolesFolder,
+                        themeSettings = themeSettings,
+                        serverIpConfigurationMode = serverMode,
+                        manualServerIp = manualIp,
+                        wifiSyncPort = wifiPort,
+                        ollamaPort = ollamaPort,
+                        fastApiPort = fastApiPort,
+                        featureToggles = featureToggles,
+                        attachmentsLibraryEnabled = attachmentsEnabled,
+                        allowSystemProjectMoves = allowSystemMoves,
                     )
                 }
-            }.collect { 
+            }.collect {
                 refreshServerDiscovery()
             }
         }
@@ -215,16 +219,25 @@ class SettingsViewModel @Inject constructor(
         _uiState.update { it.copy(fastApiPort = port.toIntOrNull() ?: 8000) }
     }
 
-    fun onAttachmentsLibraryToggle(enabled: Boolean) {
-        _uiState.update {
-            it.copy(attachmentsLibraryEnabled = enabled)
+    private fun updateFeatureToggle(flag: FeatureFlag, enabled: Boolean) {
+        _uiState.update { state ->
+            val updated = state.featureToggles + (flag to enabled)
+            state.copy(
+                featureToggles = updated,
+                attachmentsLibraryEnabled = updated[FeatureFlag.AttachmentsLibrary] ?: state.attachmentsLibraryEnabled,
+                allowSystemProjectMoves = updated[FeatureFlag.AllowSystemProjectMoves] ?: state.allowSystemProjectMoves,
+            )
         }
-        FeatureToggles.attachmentsLibraryEnabled = enabled
+        FeatureToggles.update(flag, enabled)
+        viewModelScope.launch { settingsRepo.saveFeatureToggle(flag, enabled) }
+    }
+
+    fun onAttachmentsLibraryToggle(enabled: Boolean) {
+        updateFeatureToggle(FeatureFlag.AttachmentsLibrary, enabled)
     }
 
     fun onAllowSystemProjectMovesToggle(enabled: Boolean) {
-        _uiState.update { it.copy(allowSystemProjectMoves = enabled) }
-        viewModelScope.launch { settingsRepo.saveAllowSystemProjectMoves(enabled) }
+        updateFeatureToggle(FeatureFlag.AllowSystemProjectMoves, enabled)
     }
 
     fun saveSettings() {
@@ -246,8 +259,8 @@ class SettingsViewModel @Inject constructor(
                 fastApiPort = currentState.fastApiPort,
             )
             settingsRepo.saveThemeSettings(currentState.themeSettings)
-            settingsRepo.saveAttachmentsLibraryEnabled(currentState.attachmentsLibraryEnabled)
-            settingsRepo.saveAllowSystemProjectMoves(currentState.allowSystemProjectMoves)
+            settingsRepo.saveFeatureToggle(FeatureFlag.AttachmentsLibrary, currentState.attachmentsLibraryEnabled)
+            settingsRepo.saveFeatureToggle(FeatureFlag.AllowSystemProjectMoves, currentState.allowSystemProjectMoves)
         }
     }
 }

@@ -12,6 +12,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.romankozak.forwardappmobile.BuildConfig
+import com.romankozak.forwardappmobile.config.FeatureFlag
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.PlanningSettingsProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -86,24 +87,32 @@ class SettingsRepository @Inject constructor(
         }
     }
 
-    private val attachmentsLibraryKey = booleanPreferencesKey("attachments_library_enabled")
-    private val allowSystemProjectMovesKey = booleanPreferencesKey("allow_system_project_moves")
-    val attachmentsLibraryEnabledFlow: Flow<Boolean> = context.dataStore.data.map {
-        try {
-            it[attachmentsLibraryKey] ?: BuildConfig.DEBUG
-        } catch (e: ClassCastException) {
-            it[stringPreferencesKey(attachmentsLibraryKey.name)]?.toBoolean() ?: BuildConfig.DEBUG
+    private val featureToggleKeys: Map<FeatureFlag, androidx.datastore.preferences.core.Preferences.Key<Boolean>> =
+        FeatureFlag.values().associateWith { flag -> booleanPreferencesKey("feature_toggle_${flag.storageKey}") }
+
+    private fun defaultFor(flag: FeatureFlag): Boolean =
+        when (flag) {
+            FeatureFlag.AttachmentsLibrary -> BuildConfig.DEBUG
+            FeatureFlag.AllowSystemProjectMoves -> false
         }
-    }
-    val allowSystemProjectMovesFlow: Flow<Boolean> =
-        context.dataStore.data.map { preferences ->
-            try {
-                preferences[allowSystemProjectMovesKey] ?: false
-            } catch (e: ClassCastException) {
-                Log.w("SettingsRepository", "Could not read allowSystemProjectMoves as Boolean, attempting fallback to String.", e)
-                preferences[stringPreferencesKey(allowSystemProjectMovesKey.name)]?.toBoolean() ?: false
+
+    val featureTogglesFlow: Flow<Map<FeatureFlag, Boolean>> =
+        context.dataStore.data.map { prefs ->
+            FeatureFlag.values().associateWith { flag ->
+                try {
+                    prefs[featureToggleKeys[flag]!!] ?: defaultFor(flag)
+                } catch (e: ClassCastException) {
+                    Log.w("SettingsRepository", "Could not read feature toggle ${flag.storageKey} as Boolean, attempting fallback to String.", e)
+                    prefs[stringPreferencesKey(featureToggleKeys[flag]!!.name)]?.toBoolean() ?: defaultFor(flag)
+                }
             }
         }
+
+    val attachmentsLibraryEnabledFlow: Flow<Boolean> =
+        featureTogglesFlow.map { toggles -> toggles[FeatureFlag.AttachmentsLibrary] ?: defaultFor(FeatureFlag.AttachmentsLibrary) }
+
+    val allowSystemProjectMovesFlow: Flow<Boolean> =
+        featureTogglesFlow.map { toggles -> toggles[FeatureFlag.AllowSystemProjectMoves] ?: defaultFor(FeatureFlag.AllowSystemProjectMoves) }
 
     suspend fun saveServerAddressSettings(
         mode: String,
@@ -121,12 +130,10 @@ class SettingsRepository @Inject constructor(
         }
     }
 
-    suspend fun saveAttachmentsLibraryEnabled(enabled: Boolean) {
-        context.dataStore.edit { it[attachmentsLibraryKey] = enabled }
-    }
-
-    suspend fun saveAllowSystemProjectMoves(enabled: Boolean) {
-        context.dataStore.edit { it[allowSystemProjectMovesKey] = enabled }
+    suspend fun saveFeatureToggle(flag: FeatureFlag, enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[featureToggleKeys[flag]!!] = enabled
+        }
     }
 
     fun discoverServer(): Flow<ServerDiscoveryState> = callbackFlow {

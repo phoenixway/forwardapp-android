@@ -28,6 +28,7 @@ import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.channels.Channel
+import com.romankozak.forwardappmobile.config.FeatureFlag
 import com.romankozak.forwardappmobile.config.FeatureToggles
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -569,7 +570,7 @@ constructor(
         viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate("reminders_screen")) }
       }
       is MainScreenEvent.OpenAttachmentsLibrary -> {
-        if (FeatureToggles.attachmentsLibraryEnabled) {
+        if (FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary)) {
           viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate("attachments_library_screen")) }
         }
       }
