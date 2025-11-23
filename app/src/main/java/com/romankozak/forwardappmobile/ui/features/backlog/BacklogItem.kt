@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Flag
@@ -120,7 +121,11 @@ private fun InternalGoalItem(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp, horizontal = 8.dp),
+            .padding(vertical = 6.dp, horizontal = 8.dp)
+            .combinedClickable(
+                onClick = onItemClick,
+                onLongClick = onLongClick,
+            ),
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = if (isSelected) 4.dp else 1.dp,
@@ -154,13 +159,7 @@ private fun InternalGoalItem(
 
                 Column(
                     modifier = Modifier
-                        .weight(1f)
-                        .pointerInput(onItemClick, onLongClick) {
-                            detectTapGestures(
-                                onLongPress = { onLongClick() },
-                                onTap = { onItemClick() },
-                            )
-                        },
+                        .weight(1f),
                 ) {
                     MarkdownText(
                         text = parsedData.mainText,
@@ -247,7 +246,11 @@ private fun InternalSubprojectItem(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp, horizontal = 8.dp),
+            .padding(vertical = 6.dp, horizontal = 8.dp)
+            .combinedClickable(
+                onClick = onItemClick,
+                onLongClick = onLongClick,
+            ),
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = if (isSelected) 4.dp else 1.dp,
