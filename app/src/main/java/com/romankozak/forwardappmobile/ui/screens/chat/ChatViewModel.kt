@@ -15,12 +15,17 @@ import com.romankozak.forwardappmobile.data.repository.ChatRepository
 import com.romankozak.forwardappmobile.data.repository.RolesRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.domain.aichat.GenerationService
+import com.romankozak.forwardappmobile.domain.aichat.Message
 import com.romankozak.forwardappmobile.domain.aichat.OllamaService
 import com.romankozak.forwardappmobile.domain.aichat.RoleItem
 import com.romankozak.forwardappmobile.ui.ModelsState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
@@ -37,7 +42,7 @@ data class ChatUiState(
     val temperature: Float = 0.8f,
     val rolesHierarchy: List<RoleItem> = emptyList(),
     val smartModel: String = "",
-    val availableModels: ModelsState = ModelsState.Loading,
+    val availableModels: ModelsState = ModelsState.Success(emptyList()),
 )
 
 @HiltViewModel
@@ -45,6 +50,7 @@ class ChatViewModel @Inject constructor(
     private val settingsRepo: SettingsRepository,
     private val chatRepo: ChatRepository,
     private val rolesRepo: RolesRepository,
+    private val ollamaService: OllamaService,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -52,13 +58,29 @@ class ChatViewModel @Inject constructor(
 
     private val _userInput = MutableStateFlow("")
     val userInput = _userInput.asStateFlow()
+    private var modelsJob: Job? = null
+    private var currentSendJob: Job? = null
+    private var currentAssistantDraftId: Long? = null
 
     init {
         viewModelScope.launch {
             chatRepo.getDrawerItems().collectLatest { drawerItems ->
-                _uiState.update { it.copy(drawerItems = drawerItems) }
+                val filtered =
+                    drawerItems.filterNot { item ->
+                        item is DrawerItem.Conversation && item.conversationWithLastMessage.conversation.title == "Life Management"
+                    }.map { item ->
+                        if (item is DrawerItem.Folder) {
+                            item.copy(
+                                conversations = item.conversations.filter { conv ->
+                                    conv.conversation.title != "Life Management"
+                                },
+                            )
+                        } else item
+                    }
+
+                _uiState.update { it.copy(drawerItems = filtered) }
                 if (uiState.value.currentConversation == null) {
-                    val firstConversation = drawerItems.firstNotNullOfOrNull { item ->
+                    val firstConversation = filtered.firstNotNullOfOrNull { item ->
                         when (item) {
                             is DrawerItem.Conversation -> item.conversationWithLastMessage.conversation
                             is DrawerItem.Folder -> item.conversations.firstOrNull()?.conversation
@@ -101,6 +123,9 @@ class ChatViewModel @Inject constructor(
                 }
             }.collect{}
         }
+
+        // авто-завантаження моделей щоб не зависав спінер
+        loadAvailableModels()
     }
 
     fun setCurrentConversation(conversationId: Long) {
@@ -169,7 +194,67 @@ class ChatViewModel @Inject constructor(
     }
 
     fun loadAvailableModels() {
+        modelsJob?.cancel()
+        modelsJob = viewModelScope.launch {
+            _uiState.update { it.copy(availableModels = ModelsState.Loading) }
+            try {
+                val baseUrl = resolveOllamaBaseUrl() ?: run {
+                    _uiState.update { it.copy(availableModels = ModelsState.Error("Не знайдено адресу Ollama")) }
+                    return@launch
+                }
+                Log.d(TAG, "[Chat] Fetch models from $baseUrl")
+                val result = ollamaService.getAvailableModels(baseUrl)
+                result.onSuccess { models ->
+                    Log.d(TAG, "[Chat] Models loaded: ${models.size}")
+                    _uiState.update { it.copy(availableModels = ModelsState.Success(models)) }
+                }.onFailure { e ->
+                    Log.e(TAG, "[Chat] Model fetch failed: ${e.message}", e)
+                    _uiState.update { it.copy(availableModels = ModelsState.Error(e.message ?: "Помилка завантаження моделей")) }
+                }
+            } catch (e: Exception) {
+                when (e) {
+                    is CancellationException -> {
+                        Log.w(TAG, "[Chat] Model fetch cancelled")
+                        _uiState.update { it.copy(availableModels = ModelsState.Error("Запит скасовано")) }
+                    }
+                    else -> {
+                        Log.e(TAG, "[Chat] Model fetch unexpected error: ${e.message}", e)
+                        _uiState.update { it.copy(availableModels = ModelsState.Error(e.message ?: "Помилка завантаження моделей")) }
+                    }
+                }
+            }
+        }
+    }
 
+    private suspend fun resolveOllamaBaseUrl(): String? {
+        val manualRaw = runCatching { settingsRepo.manualServerIpFlow.first() }.getOrNull().orEmpty()
+        val port = runCatching { settingsRepo.ollamaPortFlow.first() }.getOrDefault(11434)
+
+        val manualResolved =
+            manualRaw.takeIf { it.isNotBlank() }?.let { url ->
+                if (url.startsWith("http")) url else "http://$url:$port"
+            }
+        if (!manualResolved.isNullOrBlank()) {
+            Log.d(TAG, "[Chat] resolveOllamaBaseUrl manual raw='$manualRaw', resolved=$manualResolved")
+            return manualResolved
+        }
+
+        val discovered =
+            try {
+                withTimeoutOrNull(3_000) {
+                    settingsRepo.getOllamaUrl().firstOrNull { !it.isNullOrBlank() }
+                }
+            } catch (e: TimeoutCancellationException) {
+                null
+            }
+        Log.d(TAG, "[Chat] resolveOllamaBaseUrl fallback discovery, discovered=$discovered")
+        return discovered
+    }
+
+    private suspend fun resolveOllamaModel(): String? {
+        val smart = settingsRepo.ollamaSmartModelFlow.first()
+        val fast = settingsRepo.ollamaFastModelFlow.first()
+        return smart.ifBlank { fast }.takeIf { it.isNotBlank() }
     }
 
     fun selectSmartModel(modelName: String) {
@@ -184,7 +269,128 @@ class ChatViewModel @Inject constructor(
     }
 
     fun sendMessage() {
+        val text = _userInput.value.trim()
+        if (text.isBlank()) return
+        if (currentSendJob?.isActive == true) return
+        currentSendJob =
+            viewModelScope.launch {
+                val conversationId = _uiState.value.currentConversation?.id ?: run {
+                    val newId = chatRepo.createConversation("New Chat")
+                    setCurrentConversation(newId)
+                    newId
+                }
 
+                val userMessage =
+                    ChatMessage(
+                        conversationId = conversationId,
+                        text = text,
+                        isFromUser = true,
+                    )
+                chatRepo.addMessage(userMessage.toEntity())
+                _userInput.value = ""
+                _uiState.update { it.copy(isLoading = true) }
+                Log.d(TAG, "[Chat] User message queued, id=$conversationId textLen=${text.length}")
+
+                val baseUrl = resolveOllamaBaseUrl()
+                val model = resolveOllamaModel()
+                if (baseUrl.isNullOrBlank() || model.isNullOrBlank()) {
+                    Log.e(TAG, "[Chat] Missing Ollama config. url=$baseUrl model=$model")
+                    chatRepo.addMessage(
+                        ChatMessage(
+                            conversationId = conversationId,
+                            text = "Не налаштовано Ollama (URL або модель).",
+                            isFromUser = false,
+                            isError = true,
+                        ).toEntity(),
+                    )
+                    _uiState.update { it.copy(isLoading = false) }
+                    currentSendJob = null
+                    return@launch
+                }
+
+                var assistantDraftId: Long? = null
+                try {
+                    val historyEntities = chatRepo.getChatHistory(conversationId).first()
+                    val systemPrompt = settingsRepo.systemPromptFlow.first()
+                    val temperature = settingsRepo.temperatureFlow.first()
+                    Log.d(TAG, "[Chat] Sending to Ollama url=$baseUrl model=$model temp=$temperature history=${historyEntities.size}")
+                    val messages =
+                        listOf(Message(role = "system", content = systemPrompt)) +
+                            historyEntities.map { msg ->
+                                Message(role = if (msg.isFromUser) "user" else "assistant", content = msg.text)
+                            }
+
+                    assistantDraftId =
+                        chatRepo.addMessage(
+                            ChatMessage(
+                                conversationId = conversationId,
+                                text = "",
+                                isFromUser = false,
+                                isStreaming = true,
+                            ).toEntity(),
+                        )
+                    currentAssistantDraftId = assistantDraftId
+
+                    val responseBuilder = StringBuilder()
+                    ollamaService
+                        .generateChatResponseStream(baseUrl!!, model!!, messages, temperature)
+                        .collect { chunk ->
+                            responseBuilder.append(chunk)
+                            assistantDraftId?.let { id ->
+                                chatRepo.updateMessageContent(
+                                    messageId = id,
+                                    text = responseBuilder.toString(),
+                                    isStreaming = true,
+                                )
+                            }
+                        }
+                    Log.d(TAG, "[Chat] Ollama response received chars=${responseBuilder.length}")
+
+                    assistantDraftId?.let { id ->
+                        chatRepo.updateMessageContent(
+                            messageId = id,
+                            text = responseBuilder.toString(),
+                            isStreaming = false,
+                        )
+                    }
+                    currentAssistantDraftId = null
+                } catch (e: CancellationException) {
+                    Log.w(TAG, "[Chat] sendMessage cancelled")
+                    assistantDraftId?.let { id ->
+                        val latestText = _uiState.value.messages.find { it.id == id }?.text.orEmpty()
+                        val stoppedText =
+                            if (latestText.isNotBlank()) "$latestText\n\n[Stopped by user]" else "[Stopped by user]"
+                        chatRepo.updateMessageContent(
+                            messageId = id,
+                            text = stoppedText,
+                            isStreaming = false,
+                            isError = true,
+                        )
+                    }
+                    currentAssistantDraftId = null
+                } catch (e: Exception) {
+                    Log.e(TAG, "[Chat] sendMessage failed: ${e.message}", e)
+                    assistantDraftId?.let { id ->
+                        chatRepo.updateMessageContent(
+                            messageId = id,
+                            text = e.message ?: "Request failed",
+                            isStreaming = false,
+                            isError = true,
+                        )
+                    } ?: chatRepo.addMessage(
+                        ChatMessage(
+                            conversationId = conversationId,
+                            text = e.message ?: "Request failed",
+                            isFromUser = false,
+                            isError = true,
+                        ).toEntity(),
+                    )
+                } finally {
+                    _uiState.update { it.copy(isLoading = false) }
+                    currentSendJob = null
+                    currentAssistantDraftId = null
+                }
+            }
     }
 
     fun regenerateLastResponse() {
@@ -202,17 +408,20 @@ class ChatViewModel @Inject constructor(
     }
 
     fun stopGeneration() {
+        currentSendJob?.cancel()
         viewModelScope.launch {
-            val streamingMessage = _uiState.value.messages.find { it.isStreaming }
-            if (streamingMessage != null) {
-                chatRepo.addMessage(
-                    streamingMessage.copy(
-                        text = streamingMessage.text + "\n\n[Generation stopped by user]",
-                        isStreaming = false,
-                        isError = true,
-                    ).toEntity()
+            currentAssistantDraftId?.let { id ->
+                val latestText = _uiState.value.messages.find { it.id == id }?.text.orEmpty()
+                val stoppedText =
+                    if (latestText.isNotBlank()) "$latestText\n\n[Stopped by user]" else "[Stopped by user]"
+                chatRepo.updateMessageContent(
+                    messageId = id,
+                    text = stoppedText,
+                    isStreaming = false,
+                    isError = true,
                 )
             }
+            _uiState.update { it.copy(isLoading = false) }
 
             val serviceIntent = Intent(context, GenerationService::class.java)
             context.stopService(serviceIntent)

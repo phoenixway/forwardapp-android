@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningSettingsState
@@ -57,6 +59,7 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.only
 import com.romankozak.forwardappmobile.ui.screens.settings.components.AnimatedTextField
 import com.romankozak.forwardappmobile.ui.screens.settings.components.SettingsCard
+import com.romankozak.forwardappmobile.R
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -169,6 +172,79 @@ fun SettingsScreen(
                 onDarkThemeSelected = viewModel::onDarkThemeSelected,
             )
 
+            SettingsCard(
+                title = "Experimental Features",
+                icon = Icons.Default.Build,
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Attachments library",
+                            modifier = Modifier.weight(1f),
+                        )
+                        Switch(
+                            checked = uiState.attachmentsLibraryEnabled,
+                            onCheckedChange = viewModel::onAttachmentsLibraryToggle
+                        )
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = stringResource(R.string.settings_allow_system_project_moves),
+                            modifier = Modifier.weight(1f),
+                        )
+                        Switch(
+                            checked = uiState.allowSystemProjectMoves,
+                            onCheckedChange = viewModel::onAllowSystemProjectMovesToggle,
+                        )
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Planning modes",
+                            modifier = Modifier.weight(1f),
+                        )
+                        Switch(
+                            checked = uiState.planningModesEnabled,
+                            onCheckedChange = viewModel::onPlanningModesToggle,
+                        )
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Wi‑Fi sync",
+                            modifier = Modifier.weight(1f),
+                        )
+                        Switch(
+                            checked = uiState.wifiSyncEnabled,
+                            onCheckedChange = viewModel::onWifiSyncToggle,
+                        )
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Strategic management",
+                            modifier = Modifier.weight(1f),
+                        )
+                        Switch(
+                            checked = uiState.strategicManagementEnabled,
+                            onCheckedChange = viewModel::onStrategicManagementToggle,
+                        )
+                    }
+                }
+            }
+
             ServerSettingsCard(
                 state = uiState,
                 onIpConfigModeChange = viewModel::onServerIpConfigurationModeChanged,
@@ -259,4 +335,3 @@ fun SettingsScreen(
         }
     }
 }
-

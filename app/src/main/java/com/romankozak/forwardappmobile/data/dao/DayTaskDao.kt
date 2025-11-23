@@ -136,6 +136,9 @@ interface DayTaskDao {
 
 
 
+    @Query("SELECT * FROM day_tasks WHERE recurringTaskId = :recurringTaskId ORDER BY createdAt DESC LIMIT 1")
+    suspend fun findTemplateForRecurringTask(recurringTaskId: String): DayTask?
+
     @Query("SELECT * FROM day_tasks WHERE recurringTaskId = :recurringTaskId AND dayPlanId = :dayPlanId LIMIT 1")
     suspend fun findByRecurringIdAndDate(recurringTaskId: String, dayPlanId: String): DayTask?
 
@@ -147,4 +150,5 @@ interface DayTaskDao {
 
     @Query("UPDATE day_tasks SET nextOccurrenceTime = :nextOccurrenceTime WHERE id = :taskId")
     suspend fun updateNextOccurrenceTime(taskId: String, nextOccurrenceTime: Long)
+
 }

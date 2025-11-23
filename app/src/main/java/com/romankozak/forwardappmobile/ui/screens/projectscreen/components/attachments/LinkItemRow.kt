@@ -91,7 +91,7 @@ fun LinkItemRow(
                     Text(
                         text = link.displayName ?: link.target,
                         style = MaterialTheme.typography.bodyLarge,
-                        maxLines = 1,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(

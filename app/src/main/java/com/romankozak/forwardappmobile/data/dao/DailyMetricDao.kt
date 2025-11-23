@@ -50,4 +50,7 @@ interface DailyMetricDao {
 
     @Query("SELECT * FROM daily_metrics WHERE dayPlanId = :dayPlanId LIMIT 1")
     fun getMetricForDayStream(dayPlanId: String): Flow<DailyMetric?>
+
+    @Query("SELECT MAX(completedPoints) FROM daily_metrics")
+    suspend fun getMaxCompletedPoints(): Int?
 }

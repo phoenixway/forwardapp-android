@@ -129,7 +129,17 @@ fun GoalDetailDialogs(viewModel: BacklogViewModel) {
         )
     }
 
-    uiState.recordForReminderDialog?.let { record ->
+    var showReminderDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(uiState.recordForReminderDialog) {
+        showReminderDialog = false
+        if (uiState.recordForReminderDialog != null) {
+            withFrameNanos { }
+            showReminderDialog = true
+        }
+    }
+
+    if (showReminderDialog && uiState.recordForReminderDialog != null) {
         com.romankozak.forwardappmobile.ui.reminders.dialogs.ReminderPropertiesDialog(
             onDismiss = viewModel::onReminderDialogDismiss,
             onSetReminder = viewModel::onSetReminder,

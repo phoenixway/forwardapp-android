@@ -4,8 +4,30 @@ import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import com.romankozak.forwardappmobile.data.dao.*
+import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
+import com.romankozak.forwardappmobile.data.dao.ChatDao
+import com.romankozak.forwardappmobile.data.dao.ConversationFolderDao
+import com.romankozak.forwardappmobile.data.dao.ChecklistDao
+import com.romankozak.forwardappmobile.data.dao.DailyMetricDao
+import com.romankozak.forwardappmobile.data.dao.DayPlanDao
+import com.romankozak.forwardappmobile.data.dao.DayTaskDao
+import com.romankozak.forwardappmobile.data.dao.GoalDao
+import com.romankozak.forwardappmobile.data.dao.InboxRecordDao
+import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
+import com.romankozak.forwardappmobile.data.dao.LinkItemDao
+import com.romankozak.forwardappmobile.data.dao.ListItemDao
+import com.romankozak.forwardappmobile.data.dao.NoteDocumentDao
+import com.romankozak.forwardappmobile.data.dao.ProjectArtifactDao
+import com.romankozak.forwardappmobile.data.dao.ProjectDao
+import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
+import com.romankozak.forwardappmobile.data.dao.RecentItemDao
+import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
+import com.romankozak.forwardappmobile.data.dao.ReminderDao
+import com.romankozak.forwardappmobile.data.dao.SystemAppDao
+import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.data.database.models.*
+import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentEntity
+import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRef
 
 @Database(
     entities = [
@@ -15,6 +37,7 @@ import com.romankozak.forwardappmobile.data.database.models.*
         ListItem::class,
         ActivityRecord::class,
         LinkItemEntity::class,
+        AttachmentEntity::class,
         InboxRecord::class,
         ChatMessageEntity::class,
         ProjectExecutionLog::class,
@@ -31,6 +54,8 @@ import com.romankozak.forwardappmobile.data.database.models.*
         RecurringTask::class,
         Reminder::class,
         ProjectArtifact::class,
+        ProjectAttachmentCrossRef::class,
+        SystemAppEntity::class,
 
         GoalFts::class,
         ProjectFts::class,
@@ -38,7 +63,7 @@ import com.romankozak.forwardappmobile.data.database.models.*
         LegacyNoteFts::class,
         RecurringTaskFts::class,
     ],
-    version = 62,
+    version = 67,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class, ProjectTypeConverter::class)
@@ -56,6 +81,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun inboxRecordDao(): InboxRecordDao
 
     abstract fun chatDao(): ChatDao
+
+    abstract fun attachmentDao(): AttachmentDao
 
     abstract fun conversationFolderDao(): ConversationFolderDao
 
@@ -79,7 +106,7 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun projectArtifactDao(): ProjectArtifactDao
 
-
+    abstract fun systemAppDao(): SystemAppDao
 
     abstract fun recurringTaskDao(): RecurringTaskDao
 

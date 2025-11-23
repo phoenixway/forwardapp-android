@@ -1,22 +1,132 @@
-# Repository Guidelines
+# ForwardApp DevTools – Agent System Manifest
 
-## Project Structure & Module Organization
-The Android application sits in `app/`, with feature-driven Kotlin sources under `app/src/main/java/com/romankozak/forwardappmobile`. UI assets and previews live in `app/src/main/res`, Room schemas in `app/schemas`, and static bundles in `app/src/main/assets`. Unit tests occupy `app/src/test`, instrumentation suites `app/src/androidTest`, and Gradle outputs are confined to `app/build`.
+Цей файл описує архітектуру всіх агентів, які беруть участь у твоєму
+робочому процесі:
 
-## Build, Test, and Development Commands
-Use `./gradlew :app:assembleDebug` for iteration and `./gradlew :app:assembleRelease` for signed artifacts. `make debug-cycle` assembles, installs, and launches the debug build on the default device; `make clean` purges intermediates. Run `make check-compile` for a fast Kotlin sanity check and follow up with `make logcat` or `make logcat-debug` to inspect runtime traces.
+- coding agent (Gemini / Codex)
+- voice agent (voice.py)
+- orchestrator (work.sh)
+- template engine
+- context memory system (Context.md / Masterplan.md / Progress.md)
+- dictionary expansions
 
-## Coding Style & Naming Conventions
-Author Kotlin with Jetpack Compose components using 4-space indentation and trailing commas where Compose encourages diffing. Classes and enums use PascalCase, functions and properties camelCase, and ViewModels must end with `ViewModel`. Keep files scoped to a single feature or screen and execute `./ktlint` before committing to apply formatting and guard style drift.
+---
 
-## Testing Guidelines
-Place JUnit tests in `app/src/test` with names like `SearchUseCaseTest`, and integration or Compose UI checks in `app/src/androidTest` extending the instrumentation runner. Prior to opening a PR, run `./gradlew test` locally and, when a device or emulator is available, `./gradlew connectedAndroidTest`. Add coverage whenever you touch navigation, persistence, or critical business logic.
+# 1. Структура forwardapp-devtools
 
-## Commit & Pull Request Guidelines
-Follow the existing conventional commit style (`feat`, `fix`, `refactor(scope): summary`) with imperative summaries under 65 characters. PRs should link tasks, note risky areas, and include screenshots or clips for UI shifts. Document which build and test commands were executed and highlight any intentionally skipped checks.
+forwardapp-devtools/
+context/
+Context.md
+Context-example.md
+Masterplan.md
+Progress.md
+dictionary/
+default.env
+templates/
+start.md
+step.md
+fix.md
+tools/
+work.sh
+voice.py
 
-## Agent Workflow & Coordination
-Before each significant response, agents must inspect `MASTER_PLAN.md` and `PROGRESS_LOG.md` to align with the active roadmap. If the plan is missing, collaborate with the team to produce one; otherwise, advance the next unchecked task. Use the commands “ПАУЗА” to temporarily suspend the plan and “ПОВЕРНЕННЯ” to resume. The preferred communication language is Ukrainian. File writes sometimes misbehave, so always re-open modified files to confirm changes before moving on.
 
-## Security & Configuration Tips
-Keep signing assets (`keystore.jks`) and SDK secrets in `local.properties`; never publish personal overrides. Firebase credentials remain in `app/google-services.json` and should be rotated before distributions. For branch hygiene, rely on `make feature-start NAME=...` and remember to `git add` and propose a `git cz`-formatted commit after each meaningful change.
+---
+
+# 2. Ролі агентів
+
+## Coding Agent (Gemini / Codex)
+- отримує промпти із work.sh (через tmux)
+- читає CONTEXT.md та MASTERPLAN.md
+- виконує рівно одну дію за раз
+- пропонує оновлення CONTEXT.md
+- формує внески в Progress.md
+- пише код, пояснює помилки, виправляє їх
+
+Детальна логіка — у `GEMINI.md`.
+
+---
+
+## Orchestrator (work.sh)
+- читає шаблони з `templates/*`
+- читає словники з `dictionary/*.env`
+- підставляє {{context}}, {{plan}}, {{progress}}
+- підтримує багаторядкові аргументи
+- формує готовий промпт для агента
+- відправляє його в tmux-сесію `agent`
+
+Команди:
+- `work start`
+- `work step`
+- `work fix`
+- `work build`
+- і будь-які інші шаблони
+
+---
+
+## Context Memory System
+Оперативна пам'ять агента — це:
+
+- **Context.md** — основний робочий стан (CURRENT TASK, PLAN, PROBLEMS…)
+- **Masterplan.md** — стратегічні задачі
+- **Progress.md** — історія виконання
+
+Ці файли НЕ редагуються агентом напряму.  
+Всі зміни проходять через:
+- `=== PROPOSED CONTEXT UPDATE ===`
+- і потім застосовуються work.sh або вручну.
+
+---
+
+## Voice Agent (voice.py)
+Функції:
+- Hotword: “Форвард, слухай”
+- перетворення голос → команд
+- підтримка команд:
+  - почати роботу  
+  - наступний крок  
+  - онови контекст  
+  - виправ помилку  
+  - зачитай контекст  
+  - додай до плану / проблем / ходу роботи  
+  - запам’ятай наступний текст як інструкцію
+
+Використовує Whisper.cpp + простий NLP router.
+
+---
+
+# 3. Взаємодія агентів
+
+voice → voice.py → work.sh → tmux → coding agent → результат → Context.md
+
+
+Шаблони визначають формат промптів.  
+Словники визначають розширення даних.  
+Context визначає поточну оперативну пам’ять.
+
+---
+
+# 4. Правила взаємодії всередині системи
+
+- coding agent НІКОЛИ сам не змінює файли  
+- coding agent завжди пропонує зміни блоками
+- context-файли — єдине джерело правди
+- всі агенти працюють українською
+- кожна дія → один крок
+- coding agent після дії пропонує `make debug-cycle`
+- voice agent може додавати записи в Context.md напряму
+
+---
+
+# 5. Git Guidelines
+
+Після значимих змін:
+- `git add ...`
+- `git cz`
+
+Контекстні файли краще зберігати в окремому приватному репозиторії.
+
+---
+
+Цей файл описує всю агентну екосистему ForwardApp.
+

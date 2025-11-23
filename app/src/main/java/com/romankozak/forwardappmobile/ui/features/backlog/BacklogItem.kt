@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Flag
@@ -27,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -119,7 +121,11 @@ private fun InternalGoalItem(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp, horizontal = 8.dp),
+            .padding(vertical = 6.dp, horizontal = 8.dp)
+            .combinedClickable(
+                onClick = onItemClick,
+                onLongClick = onLongClick,
+            ),
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = if (isSelected) 4.dp else 1.dp,
@@ -153,13 +159,7 @@ private fun InternalGoalItem(
 
                 Column(
                     modifier = Modifier
-                        .weight(1f)
-                        .pointerInput(onItemClick, onLongClick) {
-                            detectTapGestures(
-                                onLongPress = { onLongClick() },
-                                onTap = { onItemClick() },
-                            )
-                        },
+                        .weight(1f),
                 ) {
                     MarkdownText(
                         text = parsedData.mainText,
@@ -228,12 +228,29 @@ private fun InternalSubprojectItem(
     contextMarkerToEmojiMap: Map<String, String>
 ) {
     val parsedData = rememberParsedText(subproject.name, contextMarkerToEmojiMap) // Simplified
+    val tagContextIcons = remember(subproject.tags, contextMarkerToEmojiMap) {
+        subproject.tags.orEmpty().mapNotNull { rawTag ->
+            val normalized = rawTag.trim().removePrefix("#").removePrefix("@").lowercase()
+            listOf("@$normalized", "#$normalized", normalized).firstNotNullOfOrNull { candidate ->
+                contextMarkerToEmojiMap[candidate]
+            }
+        }
+    }
+    val enrichedParsedData = remember(parsedData, tagContextIcons) {
+        if (tagContextIcons.isEmpty()) parsedData else parsedData.copy(
+            icons = (parsedData.icons + tagContextIcons).distinct()
+        )
+    }
     val hapticFeedback = LocalHapticFeedback.current
 
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp, horizontal = 8.dp),
+            .padding(vertical = 6.dp, horizontal = 8.dp)
+            .combinedClickable(
+                onClick = onItemClick,
+                onLongClick = onLongClick,
+            ),
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = if (isSelected) 4.dp else 1.dp,
@@ -276,7 +293,7 @@ private fun InternalSubprojectItem(
                         },
                 ) {
                     Text(
-                        text = parsedData.mainText,
+                        text = enrichedParsedData.mainText,
                         style = MaterialTheme.typography.bodyLarge,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -285,7 +302,7 @@ private fun InternalSubprojectItem(
 
                     val shouldShowStatusIcons =
                         (subproject.scoringStatus != ScoringStatusValues.NOT_ASSESSED) ||
-                            (parsedData.icons.isNotEmpty()) ||
+                            (enrichedParsedData.icons.isNotEmpty()) ||
                             (!subproject.description.isNullOrBlank()) ||
                             (!subproject.relatedLinks.isNullOrEmpty())
 
@@ -297,7 +314,7 @@ private fun InternalSubprojectItem(
                             Spacer(modifier = Modifier.height(6.dp))
                             StatusIconsRow(
                                 project = subproject,
-                                parsedData = parsedData,
+                                parsedData = enrichedParsedData,
                                 reminder = null, // Subprojects don't have reminders directly
                                 emojiToHide = null, // Simplified
                                 onRelatedLinkClick = onRelatedLinkClick

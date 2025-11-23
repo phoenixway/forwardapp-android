@@ -161,6 +161,7 @@ dependencies {
     // Hilt
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)
+    implementation(libs.hilt.work)
     //kapt(libs.hilt.compiler)
     ksp(libs.hilt.compiler)
 
@@ -183,6 +184,7 @@ dependencies {
     // Other Libraries
     implementation(libs.google.gson)
     implementation(libs.compose.dnd)
+    implementation(libs.androidx.work.runtime)
 
     // Testing
     testImplementation(libs.junit)

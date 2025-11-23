@@ -11,6 +11,8 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.romankozak.forwardappmobile.BuildConfig
+import com.romankozak.forwardappmobile.config.FeatureFlag
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.PlanningSettingsProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -64,14 +66,56 @@ class SettingsRepository @Inject constructor(
         ip
     }
     val wifiSyncPortFlow: Flow<Int> = context.dataStore.data.map {
-        it[wifiSyncPortKey] ?: 8080
+        try {
+            it[wifiSyncPortKey] ?: 8080
+        } catch (e: ClassCastException) {
+            it[stringPreferencesKey(wifiSyncPortKey.name)]?.toIntOrNull() ?: 8080
+        }
     }
     val ollamaPortFlow: Flow<Int> = context.dataStore.data.map {
-        it[ollamaPortKey] ?: 11434
+        try {
+            it[ollamaPortKey] ?: 11434
+        } catch (e: ClassCastException) {
+            it[stringPreferencesKey(ollamaPortKey.name)]?.toIntOrNull() ?: 11434
+        }
     }
     val fastApiPortFlow: Flow<Int> = context.dataStore.data.map {
-        it[fastApiPortKey] ?: 8000
+        try {
+            it[fastApiPortKey] ?: 8000
+        } catch (e: ClassCastException) {
+            it[stringPreferencesKey(fastApiPortKey.name)]?.toIntOrNull() ?: 8000
+        }
     }
+
+    private val featureToggleKeys: Map<FeatureFlag, androidx.datastore.preferences.core.Preferences.Key<Boolean>> =
+        FeatureFlag.values().associateWith { flag -> booleanPreferencesKey("feature_toggle_${flag.storageKey}") }
+
+    private fun defaultFor(flag: FeatureFlag): Boolean =
+        when (flag) {
+            FeatureFlag.AttachmentsLibrary -> BuildConfig.DEBUG
+            FeatureFlag.AllowSystemProjectMoves -> false
+            FeatureFlag.PlanningModes -> BuildConfig.DEBUG
+            FeatureFlag.WifiSync -> BuildConfig.DEBUG
+            FeatureFlag.StrategicManagement -> BuildConfig.DEBUG
+        }
+
+    val featureTogglesFlow: Flow<Map<FeatureFlag, Boolean>> =
+        context.dataStore.data.map { prefs ->
+            FeatureFlag.values().associateWith { flag ->
+                try {
+                    prefs[featureToggleKeys[flag]!!] ?: defaultFor(flag)
+                } catch (e: ClassCastException) {
+                    Log.w("SettingsRepository", "Could not read feature toggle ${flag.storageKey} as Boolean, attempting fallback to String.", e)
+                    prefs[stringPreferencesKey(featureToggleKeys[flag]!!.name)]?.toBoolean() ?: defaultFor(flag)
+                }
+            }
+        }
+
+    val attachmentsLibraryEnabledFlow: Flow<Boolean> =
+        featureTogglesFlow.map { toggles -> toggles[FeatureFlag.AttachmentsLibrary] ?: defaultFor(FeatureFlag.AttachmentsLibrary) }
+
+    val allowSystemProjectMovesFlow: Flow<Boolean> =
+        featureTogglesFlow.map { toggles -> toggles[FeatureFlag.AllowSystemProjectMoves] ?: defaultFor(FeatureFlag.AllowSystemProjectMoves) }
 
     suspend fun saveServerAddressSettings(
         mode: String,
@@ -86,6 +130,12 @@ class SettingsRepository @Inject constructor(
             it[wifiSyncPortKey] = wifiSyncPort
             it[ollamaPortKey] = ollamaPort
             it[fastApiPortKey] = fastApiPort
+        }
+    }
+
+    suspend fun saveFeatureToggle(flag: FeatureFlag, enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[featureToggleKeys[flag]!!] = enabled
         }
     }
 

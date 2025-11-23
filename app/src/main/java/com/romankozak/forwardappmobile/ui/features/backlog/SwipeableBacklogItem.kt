@@ -17,9 +17,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PlayCircleOutline
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
@@ -31,6 +31,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -38,6 +39,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import sh.calvin.reorderable.ReorderableCollectionItemScope
 import kotlin.math.roundToInt
@@ -58,7 +61,7 @@ fun SwipeableBacklogItem(
     onMoreClick: (ListItemContent) -> Unit,
     onCheckedChange: (ListItemContent, Boolean) -> Unit,
     onDelete: (ListItemContent) -> Unit,
-    onDeleteEverywhere: (ListItemContent) -> Unit,
+    onRemindersClick: (ListItemContent) -> Unit,
     onMoveToTop: (ListItemContent) -> Unit,
     onAddToDayPlan: (ListItemContent) -> Unit,
     onStartTracking: (ListItemContent) -> Unit,
@@ -126,19 +129,19 @@ fun SwipeableBacklogItem(
                 horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.Start),
             ) {
                 SwipeActionButton(
-                    icon = Icons.Default.Share,
-                    contentDescription = "Share",
-                    color = MaterialTheme.colorScheme.primary,
-                ) {
-                    onShowGoalTransportMenu(item)
-                    resetSwipe()
-                }
-                SwipeActionButton(
                     icon = Icons.Default.KeyboardArrowUp,
                     contentDescription = "Move to top",
                     color = MaterialTheme.colorScheme.primary,
                 ) {
                     onMoveToTop(item)
+                    resetSwipe()
+                }
+                SwipeActionButton(
+                    icon = Icons.Default.Share,
+                    contentDescription = "Share",
+                    color = MaterialTheme.colorScheme.primary,
+                ) {
+                    onShowGoalTransportMenu(item)
                     resetSwipe()
                 }
                 SwipeActionButton(
@@ -185,12 +188,16 @@ fun SwipeableBacklogItem(
                     resetSwipe()
                 }
                 SwipeActionButton(
-                    icon = Icons.Default.DeleteForever,
-                    contentDescription = "Delete everywhere",
-                    color = MaterialTheme.colorScheme.errorContainer,
+                    icon = Icons.Default.Notifications,
+                    contentDescription = "Reminder properties",
+                    color = MaterialTheme.colorScheme.secondary,
                 ) {
-                    onDeleteEverywhere(item)
-                    resetSwipe()
+                    coroutineScope.launch {
+                        offsetX = 0f
+                        withFrameNanos { }
+                        withFrameNanos { }
+                        onRemindersClick(item)
+                    }
                 }
             }
         }
@@ -220,7 +227,9 @@ private fun SwipeActionButton(
     onClick: () -> Unit,
 ) {
     Surface(
-        modifier = Modifier.size(48.dp),
+        modifier = Modifier
+            .size(48.dp)
+            .semantics { this.contentDescription = contentDescription },
         shape = RoundedCornerShape(12.dp),
         color = color.copy(alpha = 0.9f),
         tonalElevation = 0.dp,
@@ -229,7 +238,7 @@ private fun SwipeActionButton(
         Box(contentAlignment = Alignment.Center) {
             Icon(
                 imageVector = icon,
-                contentDescription = contentDescription,
+                contentDescription = null,
                 tint = Color.White,
                 modifier = Modifier.size(24.dp),
             )

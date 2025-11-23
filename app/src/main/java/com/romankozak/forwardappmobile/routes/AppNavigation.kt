@@ -28,6 +28,7 @@ import com.romankozak.forwardappmobile.ui.screens.notedocument.NoteDocumentScree
 
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchScreen
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchViewModel
+import com.romankozak.forwardappmobile.features.attachments.ui.library.AttachmentsLibraryScreen
 import com.romankozak.forwardappmobile.ui.screens.projectsettings.ProjectSettingsScreen
 import com.romankozak.forwardappmobile.ui.screens.insights.AiInsightsScreen
 import com.romankozak.forwardappmobile.ui.screens.inbox.InboxEditorScreen
@@ -43,6 +44,7 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.ProjectsScreen
 import com.romankozak.forwardappmobile.ui.screens.settings.SettingsScreen
 import com.romankozak.forwardappmobile.ui.screens.settings.models.PlanningSettings
 import com.romankozak.forwardappmobile.ui.screens.sync.SyncScreen
+import com.romankozak.forwardappmobile.ui.screens.lifestate.LifeStateScreen
 import com.romankozak.forwardappmobile.ui.reminders.list.RemindersScreen
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import java.net.URLDecoder
@@ -51,6 +53,7 @@ import java.net.URLDecoder
 const val MAIN_GRAPH_ROUTE = "main_graph"
 const val GOAL_LISTS_ROUTE = "goal_lists_screen"
 const val AI_INSIGHTS_ROUTE = "ai_insights_screen"
+const val LIFE_STATE_ROUTE = "life_state_screen"
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -180,6 +183,14 @@ private fun NavGraphBuilder.mainGraph(
         )
     }
 
+    composable("attachments_library_screen") {
+        AttachmentsLibraryScreen(navController = navController)
+    }
+
+    composable(LIFE_STATE_ROUTE) {
+        LifeStateScreen(navController = navController)
+    }
+
     composable("settings_screen") { backStackEntry ->
 
         val parentEntry =
@@ -274,12 +285,18 @@ private fun NavGraphBuilder.mainGraph(
 
     // Об'єднаний екран для перегляду/редагування існуючого списку
     composable(
-        route = "note_document_screen/{documentId}",
-        arguments = listOf(
-            navArgument("documentId") { type = NavType.StringType }
-        ),
-    ) {
-        NoteDocumentEditorScreen(navController = navController)
+        route = "note_document_screen/{documentId}?startEdit={startEdit}",
+        arguments =
+            listOf(
+                navArgument("documentId") { type = NavType.StringType },
+                navArgument("startEdit") {
+                    type = NavType.BoolType
+                    defaultValue = false
+                },
+            ),
+    ) { backStackEntry ->
+        val startEdit = backStackEntry.arguments?.getBoolean("startEdit") ?: false
+        NoteDocumentEditorScreen(navController = navController, startEdit = startEdit)
     }
 
     composable(

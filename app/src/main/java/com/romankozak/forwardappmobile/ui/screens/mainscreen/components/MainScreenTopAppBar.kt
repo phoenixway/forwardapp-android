@@ -13,7 +13,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Badge
 import androidx.compose.material3.DropdownMenu
@@ -26,6 +25,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import com.romankozak.forwardappmobile.config.FeatureFlag
+import com.romankozak.forwardappmobile.config.FeatureToggles
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,14 +50,16 @@ fun MainScreenTopAppBar(
     onGoBack: () -> Unit,
     onGoForward: () -> Unit,
     onShowHistory: () -> Unit,
-    onAddNewProject: () -> Unit,
     onShowWifiServer: () -> Unit,
     onShowWifiImport: () -> Unit,
     onExportToFile: () -> Unit,
     onImportFromFile: () -> Unit,
+    onExportAttachments: () -> Unit,
+    onImportAttachments: () -> Unit,
     onShowSettings: () -> Unit,
     onShowAbout: () -> Unit,
     onShowReminders: () -> Unit,
+    onShowAttachmentsLibrary: () -> Unit,
 ) {
     var swipeState by remember { mutableStateOf(0f) }
     TopAppBar(
@@ -89,33 +92,38 @@ fun MainScreenTopAppBar(
                         Icon(Icons.AutoMirrored.Outlined.ArrowForward, "Вперед")
                     }
                 }
-
-                AnimatedVisibility(visible = !isFocusMode) {
-                    
-                    IconButton(onClick = onAddNewProject) {
-                        Icon(Icons.Default.Add, "Add new project")
-                    }
-                }
                 var menuExpanded by remember { mutableStateOf(false) }
                 IconButton(onClick = { menuExpanded = true }) {
                     Icon(Icons.Default.MoreVert, "Menu")
                 }
                 DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }, modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
-                    DropdownMenuItem(
-                        text = { Text("Run Wi-Fi Server") },
-                        onClick = {
-                            onShowWifiServer()
-                            menuExpanded = false
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Import from Wi-Fi") },
-                        onClick = {
-                            onShowWifiImport()
-                            menuExpanded = false
-                        },
-                    )
-                    HorizontalDivider()
+                    if (FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary)) {
+                        DropdownMenuItem(
+                            text = { Text("Attachments library") },
+                            onClick = {
+                                onShowAttachmentsLibrary()
+                                menuExpanded = false
+                            },
+                        )
+                        HorizontalDivider()
+                    }
+                    if (FeatureToggles.isEnabled(FeatureFlag.WifiSync)) {
+                        DropdownMenuItem(
+                            text = { Text("Run Wi-Fi Server") },
+                            onClick = {
+                                onShowWifiServer()
+                                menuExpanded = false
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Import from Wi-Fi") },
+                            onClick = {
+                                onShowWifiImport()
+                                menuExpanded = false
+                            },
+                        )
+                        HorizontalDivider()
+                    }
                     DropdownMenuItem(
                         text = { Text("Export to file") },
                         onClick = {
@@ -127,6 +135,20 @@ fun MainScreenTopAppBar(
                         text = { Text("Import from file") },
                         onClick = {
                             onImportFromFile()
+                            menuExpanded = false
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Export Attachments (JSON)") },
+                        onClick = {
+                            onExportAttachments()
+                            menuExpanded = false
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Import Attachments (JSON)") },
+                        onClick = {
+                            onImportAttachments()
                             menuExpanded = false
                         },
                     )

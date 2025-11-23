@@ -65,7 +65,7 @@ fun ActivityTrackerScreen(
     viewModel: ActivityTrackerViewModel = hiltViewModel(),
 )
 {
-    val log by viewModel.activityLog.collectAsStateWithLifecycle()
+    val groupedByDate by viewModel.groupedActivityLog.collectAsStateWithLifecycle()
     val inputText by viewModel.inputText.collectAsStateWithLifecycle()
     val lastOngoingActivity by viewModel.lastOngoingActivity.collectAsStateWithLifecycle()
     val editingRecord by viewModel.editingRecord.collectAsStateWithLifecycle()
@@ -84,7 +84,7 @@ fun ActivityTrackerScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onClearLogRequest = { showClearConfirmDialog = true },
                     onExportRequest = {
-                        val markdown = exportLogToMarkdown(log)
+                        val markdown = exportLogToMarkdown(groupedByDate.values.flatten())
                         copyToClipboard(context, markdown)
                     },
                 )
@@ -97,11 +97,13 @@ fun ActivityTrackerScreen(
                         .navigationBarsPadding()
                         .imePadding(),
                 ) {
+                    val indicatorState = remember { com.romankozak.forwardappmobile.ui.shared.InProgressIndicatorState(isInitiallyExpanded = true) }
                     InProgressIndicator(
                         ongoingActivity = lastOngoingActivity,
                         onStopClick = viewModel::onToggleStartStop,
                         onReminderClick = { lastOngoingActivity?.let { viewModel.onSetReminder(it) } },
-                        onIndicatorClick = { } 
+                        onIndicatorClick = { },
+                        indicatorState = indicatorState
                     )
                     ActivityInputBar(
                         text = inputText,
@@ -114,7 +116,7 @@ fun ActivityTrackerScreen(
             },
         ) { paddingValues ->
             ActivityLog(
-                log = log,
+                groupedByDate = groupedByDate,
                 modifier = Modifier.padding(paddingValues),
                 onEdit = viewModel::onEditRequest,
                 onRestart = viewModel::onRestartActivity,
@@ -198,7 +200,7 @@ private fun ActivityTrackerTopAppBar(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ActivityLog(
-    log: List<ActivityRecord>,
+    groupedByDate: Map<String, List<ActivityRecord>>,
     modifier: Modifier = Modifier,
     onEdit: (ActivityRecord) -> Unit,
     onRestart: (ActivityRecord) -> Unit,
@@ -206,11 +208,10 @@ private fun ActivityLog(
     onSetReminder: (ActivityRecord) -> Unit,
 )
 {
-    val groupedByDate = remember(log) { log.groupBy { toDateHeader(it.createdAt) } }
     val lazyListState = rememberLazyListState()
 
-    LaunchedEffect(log.size) {
-        if (log.isNotEmpty()) {
+    LaunchedEffect(groupedByDate.values.flatten().size) {
+        if (groupedByDate.isNotEmpty()) {
             lazyListState.animateScrollToItem(lazyListState.layoutInfo.totalItemsCount.coerceAtLeast(0))
         }
     }
@@ -219,7 +220,7 @@ private fun ActivityLog(
         state = lazyListState,
         modifier = modifier.padding(horizontal = 12.dp),
     ) {
-        if (log.isEmpty()) {
+        if (groupedByDate.isEmpty()) {
             item {
                 Box(modifier = Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center) {
                     Text("Лог порожній. Почніть першу активність!")
@@ -525,10 +526,7 @@ private fun ActivityInputBar(
     }
 }
 
-private fun toDateHeader(timestamp: Long): String {
-    val sdf = SimpleDateFormat("EEEE, d MMMM yyyy", Locale.getDefault())
-    return sdf.format(Date(timestamp))
-}
+
 
 private fun exportLogToMarkdown(log: List<ActivityRecord>): String {
     val sdfTime = SimpleDateFormat("HH:mm", Locale.getDefault())

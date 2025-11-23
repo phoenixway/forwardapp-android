@@ -25,6 +25,7 @@ fun AdaptiveTopBar(
     onMarkAsComplete: () -> Unit,
     onMarkAsIncomplete: () -> Unit,
     onMoreActions: (GoalActionType) -> Unit,
+    onInboxClick: () -> Unit,
     currentViewMode: ProjectViewMode? = null,
     modifier: Modifier = Modifier,
     windowInsets: WindowInsets = WindowInsets.statusBars,
@@ -36,6 +37,7 @@ fun AdaptiveTopBar(
             ListTitleBar(
                 project = project?.copy(isProjectManagementEnabled = false),
                 currentViewMode = currentViewMode,
+                onInboxClick = onInboxClick,
             )
             MultiSelectTopAppBar(
                 selectedCount = selectedCount,
@@ -51,6 +53,7 @@ fun AdaptiveTopBar(
             ListTitleBar(
                 project = project,
                 currentViewMode = currentViewMode,
+                onInboxClick = onInboxClick,
             )
         }
     }

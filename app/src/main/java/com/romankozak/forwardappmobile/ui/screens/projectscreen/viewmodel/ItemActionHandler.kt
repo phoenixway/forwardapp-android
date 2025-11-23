@@ -32,6 +32,8 @@ class ItemActionHandler
             fun isSelectionModeActive(): Boolean
 
             fun toggleSelection(itemId: String)
+
+            fun requestAttachmentShare(item: ListItemContent)
         }
 
         private var recentlyDeletedItems: List<ListItemContent>? = null
@@ -94,9 +96,23 @@ class ItemActionHandler
         fun deleteItem(item: ListItemContent) {
             scope.launch {
                 recentlyDeletedItems = listOf(item)
-                projectRepository.deleteListItems(listOf(item.listItem.id))
-                resultListener.showSnackbar("Елемент видалено", "Скасувати")
+                val currentProjectId = projectIdFlow.value
+                val isAttachment =
+                    item is ListItemContent.LinkItem ||
+                        item is ListItemContent.NoteDocumentItem ||
+                        item is ListItemContent.ChecklistItem
+                if (isAttachment) {
+                    projectRepository.unlinkAttachmentFromProject(currentProjectId, item.listItem.id)
+                    resultListener.showSnackbar("Вкладення видалено з проєкту", null)
+                } else {
+                    projectRepository.deleteListItems(currentProjectId, listOf(item.listItem.id))
+                    resultListener.showSnackbar("Елемент видалено", "Скасувати")
+                }
             }
+        }
+
+        fun shareAttachmentToProject(item: ListItemContent) {
+            resultListener.requestAttachmentShare(item)
         }
 
         fun onGoalActionInitiated(item: ListItemContent) {

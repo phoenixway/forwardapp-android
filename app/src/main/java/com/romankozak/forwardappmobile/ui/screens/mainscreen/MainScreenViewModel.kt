@@ -16,6 +16,7 @@ import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.routes.CHAT_ROUTE
+import com.romankozak.forwardappmobile.routes.LIFE_STATE_ROUTE
 import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
 
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.*
@@ -27,14 +28,19 @@ import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.channels.Channel
+import com.romankozak.forwardappmobile.config.FeatureFlag
+import com.romankozak.forwardappmobile.config.FeatureToggles
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.withContext
 
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SearchUseCase
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.DialogUseCase
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.PlanningUseCase
+import com.romankozak.forwardappmobile.data.database.models.ReservedGroup
+import com.romankozak.forwardappmobile.data.database.models.ReservedProjectKeys
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.ProjectActionsUseCase
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SyncUseCase
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.ThemingUseCase
@@ -75,6 +81,10 @@ constructor(
     private const val TAG = "MainScreenVM_DEBUG"
   }
 
+  private sealed class PendingChooserAction {
+    data object MoveProject : PendingChooserAction()
+  }
+
   var enhancedNavigationManager: EnhancedNavigationManager? = null
     set(value) {
       if (field === value) return
@@ -100,6 +110,8 @@ constructor(
 
   private val navigationSnapshot =
     MutableStateFlow(MainScreenStateUseCase.NavigationSnapshot())
+
+  val contextMarkerToEmojiMap: StateFlow<Map<String, String>> = contextHandler.contextMarkerToEmojiMap
 
   val uiState: StateFlow<MainScreenUiState>
     get() = mainScreenStateUseCase.uiState
@@ -128,6 +140,7 @@ constructor(
   private val _showRecentListsSheet = MutableStateFlow(false)
   private val _isBottomNavExpanded = MutableStateFlow(false)
   private val _showSearchDialog = MutableStateFlow(false)
+  private val pendingChooserAction = MutableStateFlow<PendingChooserAction?>(null)
   private val projectBeingMovedId =
     savedStateHandle.getStateFlow<String?>(PROJECT_BEING_MOVED_ID_KEY, null)
   init {
@@ -190,9 +203,49 @@ constructor(
   private fun onContextSelected(name: String) {
     viewModelScope.launch {
       val tag = contextHandler.getContextTag(name)
-      val query = tag?.let { if (it.startsWith("#")) it else "#$it" } ?: name
-      searchUseCase.onSearchQueryChanged(TextFieldValue(query))
-      searchUseCase.onToggleSearch(true)
+      val projectId =
+        if (tag != null) {
+          withContext(ioDispatcher) { projectRepository.findProjectIdsByTag(tag).firstOrNull() }
+        } else {
+          null
+        }
+
+      if (projectId != null) {
+        onNavigateToProject(projectId)
+      } else {
+        val query = tag?.let { if (it.startsWith("#")) it else "#$it" } ?: name
+        searchUseCase.onSearchQueryChanged(TextFieldValue(query))
+        searchUseCase.onToggleSearch(true)
+      }
+    }
+  }
+
+  private suspend fun revealProject(projectId: String) {
+    android.util.Log.d("ProjectRevealDebug", "Attempting to reveal projectId: $projectId")
+    planningUseCase.onPlanningModeChange(PlanningMode.All)
+
+    when (val result = searchUseCase.revealProjectInHierarchy(projectId)) {
+      is RevealResult.Success -> {
+        android.util.Log.d("ProjectRevealDebug", "revealProjectInHierarchy result: Success, shouldFocus=${result.shouldFocus}")
+        searchUseCase.pushSubState(MainSubState.ProjectFocused(result.projectId))
+        if (result.shouldFocus) {
+          android.util.Log.d("ProjectRevealDebug", "Calling navigateToProject for ${result.projectId}")
+          searchUseCase.navigateToProject(
+            result.projectId,
+            uiState.value.projectHierarchy,
+          )
+        } else {
+          android.util.Log.d("ProjectRevealDebug", "Setting projectToRevealAndScroll to ${result.projectId}")
+          projectToRevealAndScroll = result.projectId
+          if (searchUseCase.isSearchActive()) {
+            searchUseCase.popToSubState(MainSubState.Hierarchy)
+          }
+        }
+      }
+      is RevealResult.Failure -> {
+        android.util.Log.d("ProjectRevealDebug", "revealProjectInHierarchy result: Failure")
+        _uiEventChannel.send(ProjectUiEvent.ShowToast("Не удалось показать локацию"))
+      }
     }
   }
 
@@ -302,7 +355,11 @@ constructor(
       is MainScreenEvent.BreadcrumbNavigation -> searchUseCase.navigateToBreadcrumb(event.breadcrumb)
       is MainScreenEvent.ClearBreadcrumbNavigation -> searchUseCase.clearNavigation()
 
-      is MainScreenEvent.PlanningModeChange -> planningUseCase.onPlanningModeChange(event.mode)
+      is MainScreenEvent.PlanningModeChange -> {
+        if (FeatureToggles.isEnabled(FeatureFlag.PlanningModes)) {
+          planningUseCase.onPlanningModeChange(event.mode)
+        }
+      }
 
       is MainScreenEvent.DismissDialog -> dialogUseCase.dismissDialog()
       is MainScreenEvent.AddNewProjectRequest -> {
@@ -323,6 +380,20 @@ constructor(
           dialogUseCase.onAddNewProjectRequest()
         }
       }
+      is MainScreenEvent.AddNoteDocumentRequest -> createNoteInInbox()
+      is MainScreenEvent.AddChecklistRequest -> {
+        createChecklistInInbox()
+      }
+      is MainScreenEvent.ListChooserResult -> {
+        val targetProjectId = event.projectId?.takeUnless { it.isBlank() || it == "root" }
+        when (val action = pendingChooserAction.value) {
+          PendingChooserAction.MoveProject -> handleMoveConfirm(event.projectId)
+          null -> {
+            handleMoveConfirm(event.projectId)
+          }
+        }
+        pendingChooserAction.value = null
+      }
       is MainScreenEvent.AddSubprojectRequest ->
         dialogUseCase.onAddSubprojectRequest(event.parentProject)
       is MainScreenEvent.DeleteRequest -> dialogUseCase.onDeleteRequest(event.project)
@@ -330,6 +401,7 @@ constructor(
         viewModelScope.launch {
           val route = projectActionsUseCase.getMoveProjectRoute(event.project, _allProjectsFlat.value)
           savedStateHandle[PROJECT_BEING_MOVED_ID_KEY] = event.project.id
+          pendingChooserAction.value = PendingChooserAction.MoveProject
           dialogUseCase.dismissDialog()
           _uiEventChannel.send(ProjectUiEvent.Navigate(route))
         }
@@ -344,14 +416,7 @@ constructor(
         }
       }
       is MainScreenEvent.MoveConfirm -> {
-        viewModelScope.launch {
-          projectActionsUseCase.onListChooserResult(
-            newParentId = event.newParentId,
-            projectBeingMovedId = projectBeingMovedId.value,
-            allProjects = _allProjectsFlat.value,
-          )
-          savedStateHandle[PROJECT_BEING_MOVED_ID_KEY] = null
-        }
+        handleMoveConfirm(event.newParentId)
       }
       is MainScreenEvent.FullImportConfirm -> {
         viewModelScope.launch {
@@ -413,8 +478,8 @@ constructor(
       is MainScreenEvent.ShowSearchDialog -> _showSearchDialog.value = true
       is MainScreenEvent.DismissSearchDialog -> _showSearchDialog.value = false
 
-      is MainScreenEvent.ShowWifiServerDialog -> syncUseCase.onShowWifiServerDialog()
-      is MainScreenEvent.ShowWifiImportDialog -> syncUseCase.onShowWifiImportDialog()
+      is MainScreenEvent.ShowWifiServerDialog -> if (FeatureToggles.isEnabled(FeatureFlag.WifiSync)) syncUseCase.onShowWifiServerDialog()
+      is MainScreenEvent.ShowWifiImportDialog -> if (FeatureToggles.isEnabled(FeatureFlag.WifiSync)) syncUseCase.onShowWifiImportDialog()
       is MainScreenEvent.ExportToFile ->
         viewModelScope.launch {
           val result = projectActionsUseCase.exportToFile()
@@ -426,13 +491,37 @@ constructor(
             }
           )
         }
+      is MainScreenEvent.ExportAttachments -> {
+          viewModelScope.launch {
+              val result = projectActionsUseCase.exportAttachments()
+              _uiEventChannel.send(
+                  if (result.isSuccess) {
+                      ProjectUiEvent.ShowToast(result.getOrNull() ?: "Attachments export successful")
+                  } else {
+                      ProjectUiEvent.ShowToast("Attachments export error: ${result.exceptionOrNull()?.message}")
+                  }
+              )
+          }
+      }
+      is MainScreenEvent.ImportAttachmentsFromFile -> {
+          viewModelScope.launch {
+              val result = projectActionsUseCase.importAttachments(event.uri)
+              dialogUseCase.dismissDialog()
+              _uiEventChannel.send(
+                  if (result.isSuccess) {
+                      ProjectUiEvent.ShowToast(result.getOrNull() ?: "Attachments import successful")
+                  } else {
+                      ProjectUiEvent.ShowToast("Attachments import error: ${result.exceptionOrNull()?.message}")
+                  }
+              )
+          }
+      }
       is MainScreenEvent.NavigateToChat -> {
         viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate(CHAT_ROUTE)) }
       }
-      is MainScreenEvent.NavigateToActivityTracker -> {
+      is MainScreenEvent.NavigateToActivityTrackerScreen -> {
         viewModelScope.launch {
-          val today = System.currentTimeMillis()
-          _uiEventChannel.send(ProjectUiEvent.NavigateToDayPlan(today, "PLAN"))
+          _uiEventChannel.send(ProjectUiEvent.Navigate("activity_tracker_screen"))
         }
       }
       
@@ -441,10 +530,17 @@ constructor(
           _uiEventChannel.send(ProjectUiEvent.Navigate("ai_insights_screen"))
         }
       }
+      is MainScreenEvent.NavigateToLifeState -> {
+        viewModelScope.launch {
+          _uiEventChannel.send(ProjectUiEvent.Navigate(LIFE_STATE_ROUTE))
+        }
+      }
 
       is MainScreenEvent.NavigateToStrategicManagement -> {
-        viewModelScope.launch {
-          _uiEventChannel.send(ProjectUiEvent.NavigateToStrategicManagement)
+        if (FeatureToggles.isEnabled(FeatureFlag.StrategicManagement)) {
+          viewModelScope.launch {
+            _uiEventChannel.send(ProjectUiEvent.NavigateToStrategicManagement)
+          }
         }
       }
 
@@ -454,11 +550,11 @@ constructor(
       is MainScreenEvent.SaveAllContexts -> {
         settingsUseCase.saveAllContexts(viewModelScope, event.updatedContexts)
       }
-      is MainScreenEvent.DismissWifiServerDialog -> syncUseCase.onDismissWifiServerDialog()
-      is MainScreenEvent.DismissWifiImportDialog -> syncUseCase.onDismissWifiImportDialog()
+      is MainScreenEvent.DismissWifiServerDialog -> if (FeatureToggles.isEnabled(FeatureFlag.WifiSync)) syncUseCase.onDismissWifiServerDialog()
+      is MainScreenEvent.DismissWifiImportDialog -> if (FeatureToggles.isEnabled(FeatureFlag.WifiSync)) syncUseCase.onDismissWifiImportDialog()
       is MainScreenEvent.DesktopAddressChange ->
         syncUseCase.onDesktopAddressChange(event.address)
-      is MainScreenEvent.PerformWifiImport -> syncUseCase.performWifiImport(event.address)
+      is MainScreenEvent.PerformWifiImport -> if (FeatureToggles.isEnabled(FeatureFlag.WifiSync)) syncUseCase.performWifiImport(event.address)
       is MainScreenEvent.AddProjectConfirm -> {
         viewModelScope.launch {
           projectActionsUseCase.addNewProject(
@@ -479,35 +575,27 @@ constructor(
       is MainScreenEvent.GoToReminders -> {
         viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate("reminders_screen")) }
       }
+      is MainScreenEvent.OpenAttachmentsLibrary -> {
+        if (FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary)) {
+          viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate("attachments_library_screen")) }
+        }
+      }
       is MainScreenEvent.RevealProjectInHierarchy -> {
-        android.util.Log.d("ProjectRevealDebug", "MainScreenViewModel received RevealProjectInHierarchy event with projectId: ${event.projectId}")
+        viewModelScope.launch { revealProject(event.projectId) }
+      }
+      is MainScreenEvent.OpenInboxProject -> {
         viewModelScope.launch {
-          // Switch to "All" mode to ensure the project isn't filtered out by a planning mode
-          planningUseCase.onPlanningModeChange(PlanningMode.All)
-
-          when (val result = searchUseCase.revealProjectInHierarchy(event.projectId)) {
-            is RevealResult.Success -> {
-              android.util.Log.d("ProjectRevealDebug", "revealProjectInHierarchy result: Success, shouldFocus=${result.shouldFocus}")
-              searchUseCase.pushSubState(MainSubState.ProjectFocused(result.projectId))
-              if (result.shouldFocus) {
-                android.util.Log.d("ProjectRevealDebug", "Calling navigateToProject for ${result.projectId}")
-                searchUseCase.navigateToProject(
-                  result.projectId,
-                  uiState.value.projectHierarchy,
-                )
-              } else {
-                android.util.Log.d("ProjectRevealDebug", "Setting projectToRevealAndScroll to ${result.projectId}")
-                projectToRevealAndScroll = result.projectId
-                if (searchUseCase.isSearchActive()) {
-                  searchUseCase.popToSubState(MainSubState.Hierarchy)
-                }
-              }
-            }
-            is RevealResult.Failure -> {
-              android.util.Log.d("ProjectRevealDebug", "revealProjectInHierarchy result: Failure")
-              _uiEventChannel.send(ProjectUiEvent.ShowToast("Не удалось показать локацию"))
-            }
+          val inboxProject =
+              _allProjectsFlat.value.firstOrNull { it.systemKey == ReservedProjectKeys.INBOX }
+                  ?: _allProjectsFlat.value.firstOrNull {
+                      it.reservedGroup == ReservedGroup.Inbox && it.systemKey != ReservedProjectKeys.TODAY
+                  }
+          if (inboxProject == null) {
+            _uiEventChannel.send(ProjectUiEvent.ShowToast("Inbox project not found"))
+            return@launch
           }
+
+          _uiEventChannel.send(ProjectUiEvent.NavigateToDetails(inboxProject.id))
         }
       }
       else -> {}
@@ -598,6 +686,47 @@ constructor(
                 _uiEventChannel.send(ProjectUiEvent.OpenUri(uri))
             }
         }
+    }
+  }
+
+  private fun handleMoveConfirm(newParentId: String?) {
+    viewModelScope.launch {
+      projectActionsUseCase.onListChooserResult(
+        newParentId = newParentId,
+        projectBeingMovedId = projectBeingMovedId.value,
+        allProjects = _allProjectsFlat.value,
+      )
+      savedStateHandle[PROJECT_BEING_MOVED_ID_KEY] = null
+    }
+  }
+
+  private fun createNoteInInbox() {
+    val inboxProjectId =
+      _allProjectsFlat.value.firstOrNull { it.systemKey == com.romankozak.forwardappmobile.data.database.models.ReservedProjectKeys.INBOX }?.id
+    if (inboxProjectId == null) {
+      viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.ShowToast("Inbox проект не знайдено")) }
+      return
+    }
+    viewModelScope.launch {
+      val documentId = noteDocumentRepository.createDocument(
+        name = "Нова нотатка",
+        projectId = inboxProjectId,
+        content = "",
+      )
+      _uiEventChannel.send(ProjectUiEvent.Navigate("note_document_screen/$documentId?startEdit=true"))
+    }
+  }
+
+  private fun createChecklistInInbox() {
+    val inboxProjectId =
+      _allProjectsFlat.value.firstOrNull { it.systemKey == com.romankozak.forwardappmobile.data.database.models.ReservedProjectKeys.INBOX }?.id
+    if (inboxProjectId == null) {
+      viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.ShowToast("Inbox проект не знайдено")) }
+      return
+    }
+    viewModelScope.launch {
+      val checklistId = checklistRepository.createChecklist(name = "Новий чекліст", projectId = inboxProjectId)
+      _uiEventChannel.send(ProjectUiEvent.Navigate("checklist_screen?checklistId=$checklistId"))
     }
   }
 

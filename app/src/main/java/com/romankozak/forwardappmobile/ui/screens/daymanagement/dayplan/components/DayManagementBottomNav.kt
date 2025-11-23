@@ -36,6 +36,7 @@ fun DayManagementBottomNav(
     currentTab: DayManagementTab,
     onTabSelected: (DayManagementTab) -> Unit,
     onHomeClick: () -> Unit,
+    onInboxClick: () -> Unit,
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
@@ -61,7 +62,12 @@ fun DayManagementBottomNav(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceEvenly,
                 ) {
-                    // Context specific buttons can be placed here
+                    ModernBottomNavButton(
+                        text = "Analytics",
+                        icon = Icons.Outlined.Analytics,
+                        isSelected = currentTab == DayManagementTab.ANALYTICS,
+                        onClick = { onTabSelected(DayManagementTab.ANALYTICS) }
+                    )
                 }
             }
 
@@ -115,10 +121,10 @@ fun DayManagementBottomNav(
                     onClick = { onTabSelected(DayManagementTab.DASHBOARD) }
                 )
                 ModernBottomNavButton(
-                    text = "Analytics",
-                    icon = Icons.Outlined.Analytics,
-                    isSelected = currentTab == DayManagementTab.ANALYTICS,
-                    onClick = { onTabSelected(DayManagementTab.ANALYTICS) }
+                    text = "Inbox",
+                    icon = Icons.Outlined.Inbox,
+                    isSelected = false, // It's not a tab, so it's never selected
+                    onClick = onInboxClick
                 )
             }
         }

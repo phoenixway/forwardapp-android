@@ -20,6 +20,10 @@ import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material.icons.outlined.Domain
+import androidx.compose.material.icons.outlined.Inbox
+import androidx.compose.material.icons.outlined.AccountTree
+import androidx.compose.material.icons.outlined.TrackChanges
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -37,6 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenEvent
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
 
 @Composable
@@ -141,16 +146,93 @@ private fun PlanningModeSelector(
 }
 
 @Composable
+internal fun MoreActionsBottomNavButton(
+    onInsightsClick: () -> Unit,
+    onShowReminders: () -> Unit,
+    onAiChatClick: () -> Unit,
+    onLifeStateClick: () -> Unit,
+) {
+    var showMenu by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.Transparent)
+            .clickable { showMenu = true }
+            .padding(horizontal = 4.dp, vertical = 6.dp)
+            .widthIn(min = 56.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.MoreVert,
+            contentDescription = "More Actions",
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+            modifier = Modifier.size(20.dp),
+        )
+        Spacer(modifier = Modifier.height(3.dp))
+        Text(
+            text = "More",
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+        )
+
+        DropdownMenu(
+            expanded = showMenu,
+            onDismissRequest = { showMenu = false },
+            offset = DpOffset(0.dp, (-50).dp) // Adjust offset to position above the button
+        ) {
+            DropdownMenuItem(
+                text = { Text("AI Life-Management") },
+                leadingIcon = { Icon(Icons.Outlined.AutoAwesome, contentDescription = "AI Life-Management") },
+                onClick = {
+                    onLifeStateClick()
+                    showMenu = false
+                }
+            )
+            DropdownMenuItem(
+                text = { Text("Insights") },
+                leadingIcon = { Icon(Icons.Outlined.Lightbulb, contentDescription = "Insights") },
+                onClick = {
+                    onInsightsClick()
+                    showMenu = false
+                }
+            )
+            DropdownMenuItem(
+                text = { Text("Reminders") },
+                leadingIcon = { Icon(Icons.Outlined.Notifications, contentDescription = "Reminders") },
+                onClick = {
+                    onShowReminders()
+                    showMenu = false
+                }
+            )
+            DropdownMenuItem(
+                text = { Text("AI-Chat") },
+                leadingIcon = { Icon(Icons.Outlined.AutoAwesome, contentDescription = "AI-Chat") },
+                onClick = {
+                    onAiChatClick()
+                    showMenu = false
+                }
+            )
+        }
+    }
+}
+
+@Composable
 internal fun ExpandingBottomNav(
     onToggleSearch: (Boolean) -> Unit,
     onGlobalSearchClick: () -> Unit,
     currentMode: PlanningMode,
     onPlanningModeChange: (PlanningMode) -> Unit,
+    planningModesEnabled: Boolean,
     onContextsClick: () -> Unit,
     onRecentsClick: () -> Unit,
     onDayPlanClick: () -> Unit,
     onHomeClick: () -> Unit,
     onStrManagementClick: () -> Unit,
+    strategicManagementEnabled: Boolean,
     isExpanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
     
@@ -158,6 +240,8 @@ internal fun ExpandingBottomNav(
     onActivityTrackerClick: () -> Unit,
     onInsightsClick: () -> Unit,
     onShowReminders: () -> Unit,
+    onLifeStateClick: () -> Unit,
+    onEvent: (MainScreenEvent) -> Unit,
 ) {
     var showMoreMenu by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
@@ -187,95 +271,33 @@ internal fun ExpandingBottomNav(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceEvenly,
                 ) {
-                    PlanningModeSelector(
-                        currentMode = currentMode,
-                        onPlanningModeChange = onPlanningModeChange,
-                    )
-
+                    if (planningModesEnabled) {
+                        PlanningModeSelector(
+                            currentMode = currentMode,
+                            onPlanningModeChange = onPlanningModeChange,
+                        )
+                    }
                     SmallBottomNavButton(
-                        text = "Insights",
-                        icon = Icons.Outlined.Lightbulb,
-                        onClick = onInsightsClick,
+                        text = "Inbox",
+                        icon = Icons.Outlined.Inbox,
+                        onClick = { onEvent(MainScreenEvent.OpenInboxProject) },
                     )
-                    SmallBottomNavButton(
-                        text = "AI-Chat",
-                        icon = Icons.Outlined.AutoAwesome,
-                        
-                        onClick = onAiChatClick,
-                    )
-
                     SmallBottomNavButton(
                         text = "Contexts",
-                        icon = Icons.Outlined.Style,
+                        icon = Icons.Outlined.AccountTree,
                         onClick = onContextsClick,
                     )
-
                     SmallBottomNavButton(
-                        text = "Reminders",
-                        icon = Icons.Outlined.Notifications,
-                        onClick = onShowReminders,
+                        text = "Tracker",
+                        icon = Icons.Outlined.TrackChanges,
+                        onClick = { onEvent(MainScreenEvent.NavigateToActivityTrackerScreen) },
                     )
-
-                    Box {
-                        SmallBottomNavButton(
-                            text = "More",
-                            icon = Icons.Outlined.MoreHoriz,
-                            onClick = { showMoreMenu = !showMoreMenu },
-                            isSelected = showMoreMenu,
-                        )
-                        DropdownMenu(
-                            expanded = showMoreMenu,
-                            onDismissRequest = { showMoreMenu = false },
-                            offset = DpOffset((-16).dp, (-8).dp),
-                            modifier =
-                                Modifier
-                                    .background(
-                                        MaterialTheme.colorScheme.surfaceContainer,
-                                        RoundedCornerShape(16.dp),
-                                    )
-                                    .clip(RoundedCornerShape(16.dp)),
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Global Search") },
-                                leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = "Global Search") },
-                                onClick = {
-                                    onGlobalSearchClick()
-                                    showMoreMenu = false
-                                },
-                            )
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                            DropdownMenuItem(
-                                text = {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                    ) {
-                                        Icon(
-                                            Icons.Outlined.AccountBox,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.tertiary,
-                                        )
-                                        Column {
-                                            Text(
-                                                "AI Inbox",
-                                                style =
-                                                    MaterialTheme.typography.bodyMedium.copy(
-                                                        fontWeight = FontWeight.Medium,
-                                                    ),
-                                            )
-                                            Text(
-                                                "Messages from AI",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                                            )
-                                        }
-                                    }
-                                },
-                                onClick = { showMoreMenu = false },
-                                modifier = Modifier.padding(horizontal = 4.dp),
-                            )
-                        }
-                    }
+                    MoreActionsBottomNavButton(
+                        onInsightsClick = onInsightsClick,
+                        onShowReminders = onShowReminders,
+                        onAiChatClick = onAiChatClick,
+                        onLifeStateClick = onLifeStateClick,
+                    )
                 }
             }
 
@@ -320,7 +342,10 @@ internal fun ExpandingBottomNav(
                 ModernBottomNavButton(text = "Day", icon = Icons.Outlined.WbSunny, onClick = onDayPlanClick)
                 ModernBottomNavButton(text = "Home", icon = Icons.Outlined.Home, onClick = onHomeClick)
                 ModernBottomNavButton(text = "Recent", icon = Icons.Outlined.History, onClick = onRecentsClick)
-                ModernBottomNavButton(text = "Strategy", icon = Icons.Outlined.Domain, onClick = onStrManagementClick)
+                if (strategicManagementEnabled) {
+                    ModernBottomNavButton(text = "Strategy", icon = Icons.Outlined.Domain, onClick = onStrManagementClick)
+                }
+
             }
         }
     }

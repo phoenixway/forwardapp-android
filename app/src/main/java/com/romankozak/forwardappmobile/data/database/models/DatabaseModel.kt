@@ -5,6 +5,7 @@ import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Fts4
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
@@ -164,8 +165,6 @@ data class LinkItemEntity(
     val createdAt: Long,
 )
 
-
-
 @Entity(tableName = "goals")
 data class Goal(
     @PrimaryKey val id: String,
@@ -242,6 +241,7 @@ data class Project(
     val name: String,
     val description: String?,
     val parentId: String?,
+    @ColumnInfo(name = "system_key") val systemKey: String? = null,
     val createdAt: Long,
     val updatedAt: Long?,
     val tags: List<String>? = null,

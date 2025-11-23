@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.StopCircle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -31,13 +30,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material3.FloatingActionButton
+import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
 
 @Composable
 fun InProgressIndicator(
-    ongoingActivity: com.romankozak.forwardappmobile.data.database.models.ActivityRecord?,
+    ongoingActivity: ActivityRecord?,
     onStopClick: () -> Unit,
     onReminderClick: () -> Unit,
-    onIndicatorClick: () -> Unit
+    onIndicatorClick: () -> Unit,
+    indicatorState: InProgressIndicatorState = remember { InProgressIndicatorState() }
 ) {
     AnimatedVisibility(
         visible = ongoingActivity != null,
@@ -54,38 +57,45 @@ fun InProgressIndicator(
                 }
             }
             val timeString = formatElapsedTime(elapsedTime)
-            val context = androidx.compose.ui.platform.LocalContext.current
 
-            Surface(
-                modifier = Modifier.fillMaxWidth().clickable(onClick = onIndicatorClick),
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+            if (indicatorState.isExpanded) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth().clickable(onClick = onIndicatorClick),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
                 ) {
-                    Icon(Icons.Default.HourglassTop, contentDescription = "В процесі", tint = MaterialTheme.colorScheme.primary)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = ongoingActivity.text,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Text(text = timeString, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-                    IconButton(onClick = onReminderClick) {
-                        Icon(Icons.Default.Notifications, contentDescription = "Встановити нагадування")
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(Icons.Default.HourglassTop, contentDescription = "В процесі", tint = MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = ongoingActivity.text,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Text(text = timeString, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                        IconButton(onClick = onReminderClick) {
+                            Icon(Icons.Default.Notifications, contentDescription = "Встановити нагадування")
+                        }
+                        IconButton(onClick = onStopClick) {
+                            Icon(Icons.Default.StopCircle, contentDescription = "Зупинити")
+                        }
+                        IconButton(onClick = { indicatorState.isExpanded = false }) {
+                            Icon(Icons.Default.ExpandLess, contentDescription = "Згорнути")
+                        }
                     }
-                    IconButton(onClick = onStopClick) {
-                        Icon(Icons.Default.StopCircle, contentDescription = "Зупинити")
-                    }
-                    IconButton(onClick = { 
-                        val intent = android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                        val uri = android.net.Uri.fromParts("package", context.packageName, null)
-                        intent.data = uri
-                        context.startActivity(intent)
-                    }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Налаштування")
+                }
+            } else {
+                FloatingActionButton(
+                    onClick = { indicatorState.isExpanded = true },
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                        Icon(Icons.Default.HourglassTop, contentDescription = "В процесі")
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = timeString)
                     }
                 }
             }

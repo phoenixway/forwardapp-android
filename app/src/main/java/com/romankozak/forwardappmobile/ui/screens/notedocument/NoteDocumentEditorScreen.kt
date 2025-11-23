@@ -8,15 +8,35 @@ import com.romankozak.forwardappmobile.ui.common.editor.UniversalEditorScreen
 import androidx.compose.ui.res.stringResource
 import com.romankozak.forwardappmobile.R
 
+import android.content.Context
+import android.view.inputmethod.InputMethodManager
+import androidx.compose.runtime.remember
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.platform.LocalView
+import kotlinx.coroutines.delay
+
 @Composable
 fun NoteDocumentEditorScreen(
   navController: NavController,
+  startEdit: Boolean = false,
   viewModel: NoteDocumentEditorViewModel = hiltViewModel(),
 ) {
   val backStackEntry = navController.currentBackStackEntry
   val documentId: String? =
     backStackEntry?.arguments?.getString("documentId")
       ?: backStackEntry?.arguments?.getString("listId")
+
+  val focusRequester = remember { FocusRequester() }
+  val view = LocalView.current
+
+  LaunchedEffect(documentId) {
+    if (documentId == null) {
+      delay(300)
+      focusRequester.requestFocus()
+      val imm = view.context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+      imm.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT)
+    }
+  }
 
   LaunchedEffect(documentId) { documentId?.let { viewModel.loadDocument(it) } }
 
@@ -30,5 +50,7 @@ fun NoteDocumentEditorScreen(
     onNavigateBack = { navController.popBackStack() },
     viewModel = viewModel.universalEditorViewModel,
     navController = navController,
+    contentFocusRequester = focusRequester,
+    startInEditMode = startEdit || documentId == null,
   )
 }

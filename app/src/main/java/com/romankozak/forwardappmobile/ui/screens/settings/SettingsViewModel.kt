@@ -6,13 +6,20 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.romankozak.forwardappmobile.config.FeatureFlag
+import com.romankozak.forwardappmobile.config.FeatureToggles
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.data.repository.RolesRepository
 import com.romankozak.forwardappmobile.domain.aichat.OllamaService
 import com.romankozak.forwardappmobile.domain.ner.NerManager
 import com.romankozak.forwardappmobile.domain.ner.NerState
 import com.romankozak.forwardappmobile.ui.ModelsState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -21,7 +28,7 @@ import com.romankozak.forwardappmobile.data.repository.ServerDiscoveryState
 data class SettingsUiState(
     val fastModel: String = "",
     val smartModel: String = "",
-    val modelsState: ModelsState = ModelsState.Loading,
+    val modelsState: ModelsState = ModelsState.Success(emptyList()),
     val nerModelUri: String = "",
     val nerTokenizerUri: String = "",
     val nerLabelsUri: String = "",
@@ -34,13 +41,23 @@ data class SettingsUiState(
     val fastApiPort: Int = 8000,
     val serverDiscoveryState: ServerDiscoveryState = ServerDiscoveryState.Loading,
     val themeSettings: com.romankozak.forwardappmobile.ui.theme.ThemeSettings = com.romankozak.forwardappmobile.ui.theme.ThemeSettings(),
+    val featureToggles: Map<FeatureFlag, Boolean> = FeatureFlag.values().associateWith { FeatureToggles.isEnabled(it) },
+    val attachmentsLibraryEnabled: Boolean = FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary),
+    val allowSystemProjectMoves: Boolean = FeatureToggles.isEnabled(FeatureFlag.AllowSystemProjectMoves),
+    val planningModesEnabled: Boolean = FeatureToggles.isEnabled(FeatureFlag.PlanningModes),
+    val wifiSyncEnabled: Boolean = FeatureToggles.isEnabled(FeatureFlag.WifiSync),
+    val strategicManagementEnabled: Boolean = FeatureToggles.isEnabled(FeatureFlag.StrategicManagement),
 )
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val settingsRepo: SettingsRepository,
     private val nerManager: NerManager,
+    private val rolesRepo: RolesRepository,
+    private val ollamaService: OllamaService,
 ) : ViewModel() {
+    private val logTag = "AI_CHAT_OLLAMA"
+    private var fetchModelsJob: Job? = null
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState = _uiState.asStateFlow()
@@ -66,8 +83,16 @@ class SettingsViewModel @Inject constructor(
                 settingsRepo.wifiSyncPortFlow,
                 settingsRepo.ollamaPortFlow,
                 settingsRepo.fastApiPortFlow,
+                settingsRepo.featureTogglesFlow,
             )
             combine(settingsFlows) { values ->
+                val featureToggles = values[12] as Map<FeatureFlag, Boolean>
+                val attachmentsEnabled = featureToggles[FeatureFlag.AttachmentsLibrary] ?: FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary)
+                val allowSystemMoves = featureToggles[FeatureFlag.AllowSystemProjectMoves] ?: FeatureToggles.isEnabled(FeatureFlag.AllowSystemProjectMoves)
+                val planningModesEnabled = featureToggles[FeatureFlag.PlanningModes] ?: FeatureToggles.isEnabled(FeatureFlag.PlanningModes)
+                val wifiSyncEnabled = featureToggles[FeatureFlag.WifiSync] ?: FeatureToggles.isEnabled(FeatureFlag.WifiSync)
+                val strategicEnabled = featureToggles[FeatureFlag.StrategicManagement] ?: FeatureToggles.isEnabled(FeatureFlag.StrategicManagement)
+                FeatureToggles.updateAll(featureToggles)
                 _uiState.update {
                     it.copy(
                         fastModel = values[0] as String,
@@ -82,9 +107,15 @@ class SettingsViewModel @Inject constructor(
                         wifiSyncPort = values[9] as Int,
                         ollamaPort = values[10] as Int,
                         fastApiPort = values[11] as Int,
+                        featureToggles = featureToggles,
+                        attachmentsLibraryEnabled = attachmentsEnabled,
+                        allowSystemProjectMoves = allowSystemMoves,
+                        planningModesEnabled = planningModesEnabled,
+                        wifiSyncEnabled = wifiSyncEnabled,
+                        strategicManagementEnabled = strategicEnabled,
                     )
                 }
-            }.collect { 
+            }.collect {
                 refreshServerDiscovery()
             }
         }
@@ -92,12 +123,11 @@ class SettingsViewModel @Inject constructor(
 
     fun refreshServerDiscovery() {
         viewModelScope.launch {
-            settingsRepo.discoverServer().collect {
-                _uiState.update { ui -> ui.copy(serverDiscoveryState = it) }
-                if (it is ServerDiscoveryState.Found) {
-                    fetchAvailableModels()
+            settingsRepo
+                .discoverServer()
+                .collect {
+                    _uiState.update { ui -> ui.copy(serverDiscoveryState = it) }
                 }
-            }
         }
     }
 
@@ -110,7 +140,32 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun fetchAvailableModels() {
-
+        fetchModelsJob?.cancel()
+        fetchModelsJob = viewModelScope.launch {
+            _uiState.update { it.copy(modelsState = ModelsState.Loading) }
+            try {
+                val manualBase = _uiState.value.manualServerIp.takeIf { ip -> ip.isNotBlank() }
+                val resolvedDiscovery = withTimeoutOrNull(3_000) { settingsRepo.getOllamaUrl().firstOrNull { !it.isNullOrBlank() } }
+                val baseUrl = manualBase ?: resolvedDiscovery
+                if (baseUrl.isNullOrBlank()) {
+                    _uiState.update { it.copy(modelsState = ModelsState.Error("Не знайдено адресу Ollama")) }
+                    return@launch
+                }
+                Log.d(logTag, "[Settings] Fetch models from $baseUrl")
+                val result = ollamaService.getAvailableModels(baseUrl)
+                result.onSuccess { models ->
+                    Log.d(logTag, "[Settings] Models loaded: ${models.size}")
+                    _uiState.update { it.copy(modelsState = ModelsState.Success(models)) }
+                }.onFailure { e ->
+                    Log.e(logTag, "[Settings] Model fetch failed: ${e.message}", e)
+                    _uiState.update { it.copy(modelsState = ModelsState.Error(e.message ?: "Помилка завантаження моделей")) }
+                }
+            } catch (e: Exception) {
+                if (e is CancellationException) return@launch
+                Log.e(logTag, "[Settings] Model fetch unexpected error: ${e.message}", e)
+                _uiState.update { it.copy(modelsState = ModelsState.Error(e.message ?: "Помилка завантаження моделей")) }
+            }
+        }
     }
 
     fun onNerModelFileSelected(uri: String) {
@@ -175,6 +230,42 @@ class SettingsViewModel @Inject constructor(
         _uiState.update { it.copy(fastApiPort = port.toIntOrNull() ?: 8000) }
     }
 
+    private fun updateFeatureToggle(flag: FeatureFlag, enabled: Boolean) {
+        _uiState.update { state ->
+            val updated = state.featureToggles + (flag to enabled)
+            state.copy(
+                featureToggles = updated,
+                attachmentsLibraryEnabled = updated[FeatureFlag.AttachmentsLibrary] ?: state.attachmentsLibraryEnabled,
+                allowSystemProjectMoves = updated[FeatureFlag.AllowSystemProjectMoves] ?: state.allowSystemProjectMoves,
+                planningModesEnabled = updated[FeatureFlag.PlanningModes] ?: state.planningModesEnabled,
+                wifiSyncEnabled = updated[FeatureFlag.WifiSync] ?: state.wifiSyncEnabled,
+                strategicManagementEnabled = updated[FeatureFlag.StrategicManagement] ?: state.strategicManagementEnabled,
+            )
+        }
+        FeatureToggles.update(flag, enabled)
+        viewModelScope.launch { settingsRepo.saveFeatureToggle(flag, enabled) }
+    }
+
+    fun onAttachmentsLibraryToggle(enabled: Boolean) {
+        updateFeatureToggle(FeatureFlag.AttachmentsLibrary, enabled)
+    }
+
+    fun onAllowSystemProjectMovesToggle(enabled: Boolean) {
+        updateFeatureToggle(FeatureFlag.AllowSystemProjectMoves, enabled)
+    }
+
+    fun onPlanningModesToggle(enabled: Boolean) {
+        updateFeatureToggle(FeatureFlag.PlanningModes, enabled)
+    }
+
+    fun onWifiSyncToggle(enabled: Boolean) {
+        updateFeatureToggle(FeatureFlag.WifiSync, enabled)
+    }
+
+    fun onStrategicManagementToggle(enabled: Boolean) {
+        updateFeatureToggle(FeatureFlag.StrategicManagement, enabled)
+    }
+
     fun saveSettings() {
         viewModelScope.launch {
             val currentState = _uiState.value
@@ -194,6 +285,10 @@ class SettingsViewModel @Inject constructor(
                 fastApiPort = currentState.fastApiPort,
             )
             settingsRepo.saveThemeSettings(currentState.themeSettings)
+            FeatureFlag.values().forEach { flag ->
+                val enabled = currentState.featureToggles[flag] ?: FeatureToggles.isEnabled(flag)
+                settingsRepo.saveFeatureToggle(flag, enabled)
+            }
         }
     }
 }

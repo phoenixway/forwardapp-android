@@ -24,7 +24,9 @@ enum class ThemeName(val displayName: String) {
     SCI_FI("Sci-Fi"),
     DRACULA("Dracula"),
     NORD("Nord"),
-    SOLARIZED_DARK("Solarized Dark")
+    SOLARIZED_DARK("Solarized Dark"),
+    TERMINAL_GREEN("Terminal Green"),
+    EMERALD("Emerald")
 }
 
 enum class ThemeMode {
@@ -163,6 +165,96 @@ private val SolarizedDarkColorScheme = darkColorScheme(
     surfaceContainer = SolarizedBase02.copy(alpha = 0.8f),
 )
 
+private val TerminalGreenDarkColorScheme = darkColorScheme(
+    primary = TerminalNeonDim,
+    secondary = TerminalNeon,
+    tertiary = TerminalAmber,
+    background = TerminalBg,
+    surface = TerminalSurface,
+    onPrimary = Color.Black,
+    onSecondary = Color.Black,
+    onTertiary = Color.Black,
+    onBackground = TerminalNeonDim,
+    onSurface = TerminalNeonDim,
+    primaryContainer = TerminalSurface,
+    onPrimaryContainer = TerminalNeon,
+    secondaryContainer = TerminalSurface,
+    onSecondaryContainer = TerminalNeon,
+    surfaceVariant = TerminalGrid,
+    onSurfaceVariant = TerminalNeonDim.copy(alpha = 0.8f),
+    outline = TerminalNeonDim.copy(alpha = 0.5f),
+    outlineVariant = TerminalNeonDim.copy(alpha = 0.25f),
+    scrim = Color(0x99000000),
+    surfaceTint = Color.Transparent,
+    surfaceContainerLowest = TerminalBg,
+    surfaceContainerLow = TerminalSurface,
+    surfaceContainer = TerminalSurface,
+    surfaceContainerHigh = TerminalGrid,
+    surfaceContainerHighest = TerminalGrid,
+)
+
+private val TerminalGreenLightColorScheme = lightColorScheme(
+    primary = TerminalNeonDim,
+    secondary = TerminalNeon,
+    tertiary = TerminalAmber,
+    background = TerminalBg,
+    surface = TerminalSurface,
+    onPrimary = Color.Black,
+    onSecondary = Color.Black,
+    onTertiary = Color.Black,
+    onBackground = TerminalNeonDim,
+    onSurface = TerminalNeonDim,
+    primaryContainer = TerminalSurface,
+    onPrimaryContainer = TerminalNeon,
+    secondaryContainer = TerminalSurface,
+    onSecondaryContainer = TerminalNeon,
+    surfaceVariant = TerminalGrid,
+    onSurfaceVariant = TerminalNeonDim.copy(alpha = 0.8f),
+    outline = TerminalNeonDim.copy(alpha = 0.5f),
+    outlineVariant = TerminalNeonDim.copy(alpha = 0.25f),
+    scrim = Color(0x99000000),
+    surfaceTint = Color.Transparent,
+    surfaceContainerLowest = TerminalBg,
+    surfaceContainerLow = TerminalSurface,
+    surfaceContainer = TerminalSurface,
+    surfaceContainerHigh = TerminalGrid,
+    surfaceContainerHighest = TerminalGrid,
+)
+
+private val EmeraldDarkColorScheme = darkColorScheme(
+    primary = EmeraldMint,
+    secondary = EmeraldLeaf,
+    tertiary = EmeraldLime,
+    background = EmeraldDeep,
+    surface = EmeraldSurface,
+    onPrimary = Color(0xFF012A1E),
+    onSecondary = Color.Black,
+    onTertiary = Color.Black,
+    onBackground = EmeraldGray,
+    onSurface = EmeraldGray,
+    surfaceContainer = EmeraldSurface.copy(alpha = 0.9f),
+    surfaceContainerHigh = EmeraldSurface,
+    outlineVariant = EmeraldMint.copy(alpha = 0.3f),
+    scrim = Color(0x66020813)
+)
+
+private val EmeraldLightColorScheme = lightColorScheme(
+    primary = EmeraldLeaf,
+    secondary = EmeraldMint,
+    tertiary = EmeraldLime,
+    background = Color(0xFFF4FFF9),
+    surface = Color(0xFFECF7F1),
+    onPrimary = Color(0xFF033024),
+    onSecondary = Color(0xFF033024),
+    onTertiary = Color(0xFF102207),
+    onBackground = Color(0xFF0B1D15),
+    onSurface = Color(0xFF0B1D15),
+    surfaceContainer = Color(0xFFE4F1EA),
+    surfaceContainerHigh = Color(0xFFD8E7DF),
+    outlineVariant = Color(0xFF2E5944),
+    scrim = Color(0x33010202)
+)
+
 // endregion
 
 object ThemeManager {
@@ -172,7 +264,9 @@ object ThemeManager {
         AppTheme(ThemeName.SCI_FI, SciFiLightColorScheme, SciFiDarkColorScheme, SciFiLightInputPanelColors, SciFiDarkInputPanelColors),
         AppTheme(ThemeName.DRACULA, DefaultLightColorScheme, DraculaColorScheme, DefaultLightInputPanelColors, DraculaInputPanelColors),
         AppTheme(ThemeName.NORD, DefaultLightColorScheme, NordColorScheme, DefaultLightInputPanelColors, NordInputPanelColors),
-        AppTheme(ThemeName.SOLARIZED_DARK, DefaultLightColorScheme, SolarizedDarkColorScheme, DefaultLightInputPanelColors, SolarizedDarkInputPanelColors)
+        AppTheme(ThemeName.SOLARIZED_DARK, DefaultLightColorScheme, SolarizedDarkColorScheme, DefaultLightInputPanelColors, SolarizedDarkInputPanelColors),
+        AppTheme(ThemeName.TERMINAL_GREEN, TerminalGreenLightColorScheme, TerminalGreenDarkColorScheme, TerminalGreenInputPanelColors, TerminalGreenInputPanelColors),
+        AppTheme(ThemeName.EMERALD, EmeraldLightColorScheme, EmeraldDarkColorScheme, DefaultLightInputPanelColors, EmeraldInputPanelColors)
     )
 
     fun getTheme(name: ThemeName): AppTheme {
@@ -212,7 +306,12 @@ fun ForwardAppMobileTheme(
         }
     }
 
-    CompositionLocalProvider(LocalInputPanelColors provides inputPanelColors) {
+    val holdMenuColors = holdMenuColorsFromScheme(colorScheme, useDarkTheme)
+
+    CompositionLocalProvider(
+        LocalInputPanelColors provides inputPanelColors,
+        LocalHoldMenuColors provides holdMenuColors
+    ) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = Typography,

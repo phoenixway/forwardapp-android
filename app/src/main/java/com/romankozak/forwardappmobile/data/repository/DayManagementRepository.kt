@@ -32,7 +32,8 @@ class DayManagementRepository
         private val alarmScheduler: javax.inject.Provider<AlarmScheduler>,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     ) {
-        
+        @Volatile
+        private var cachedBestCompletedPoints: Int? = null
 
         fun getPlanByIdStream(planId: String): Flow<DayPlan?> = dayPlanDao.getPlanByIdStream(planId)
 
@@ -100,16 +101,29 @@ class DayManagementRepository
             priority: TaskPriority,
             recurrenceRule: RecurrenceRule,
             dayPlanId: String,
-            goalId: String? = null
+            goalId: String? = null,
+            projectId: String? = null,
+            taskType: String? = null,
+            points: Int = 0,
         ) {
             withContext(ioDispatcher) {
                 val dayPlan = dayPlanDao.getPlanById(dayPlanId) ?: return@withContext
+
+                val resolvedTaskType =
+                    taskType
+                        ?: when {
+                            goalId != null -> ListItemTypeValues.GOAL
+                            projectId != null -> ListItemTypeValues.SUBLIST
+                            else -> ListItemTypeValues.GOAL
+                        }
+
                 val recurringTask = RecurringTask(
                     title = title,
                     description = description,
                     goalId = goalId,
                     duration = duration?.toInt(),
                     priority = priority,
+                    points = points,
                     recurrenceRule = recurrenceRule,
                     startDate = dayPlan.date
                 )
@@ -121,8 +135,10 @@ class DayManagementRepository
                     description = description,
                     priority = priority,
                     goalId = goalId,
+                    projectId = projectId,
                     estimatedDurationMinutes = duration,
-                    taskType = ListItemTypeValues.GOAL,
+                    taskType = resolvedTaskType,
+                    points = points,
                 )
                 val dayTask = addTaskToDayPlan(taskParams).copy(
                     recurringTaskId = recurringTask.id,
@@ -462,6 +478,8 @@ class DayManagementRepository
 
         suspend fun calculateAndSaveDailyMetrics(dayPlanId: String) =
             withContext(ioDispatcher) {
+                cachedBestCompletedPoints = null
+
                 val tasks = dayTaskDao.getTasksForDaySync(dayPlanId)
                 val plan = dayPlanDao.getPlanById(dayPlanId) ?: return@withContext
 
@@ -471,6 +489,7 @@ class DayManagementRepository
 
                 val totalPlannedTime = tasks.mapNotNull { it.estimatedDurationMinutes }.sum()
                 val totalActiveTime = tasks.mapNotNull { it.actualDurationMinutes }.sum()
+                val completedPoints = tasks.filter { it.completed }.sumOf { it.points.coerceAtLeast(0) }
 
                 val metric =
                     DailyMetric(
@@ -481,6 +500,7 @@ class DayManagementRepository
                         completionRate = completionRate,
                         totalPlannedTime = totalPlannedTime,
                         totalActiveTime = totalActiveTime,
+                        completedPoints = completedPoints,
                     )
 
                 dailyMetricDao.insert(metric)
@@ -535,34 +555,47 @@ class DayManagementRepository
                             val existingTask = dayTaskDao.findByRecurringIdAndDate(recurringTask.id, dayPlan.id)
                             if (existingTask == null) {
 
-                                val title: String
-                                val description: String?
-                                val goalId: String?
+                                val templateTask = dayTaskDao.findTemplateForRecurringTask(recurringTask.id)
+                                val templateGoalId = templateTask?.goalId ?: recurringTask.goalId
+                                val projectId = templateTask?.projectId
+                                val points = templateTask?.points ?: recurringTask.points
+                                val priority = templateTask?.priority ?: recurringTask.priority
+                                val estimatedDurationMinutes = templateTask?.estimatedDurationMinutes ?: recurringTask.duration?.toLong()
 
-                                if (recurringTask.goalId != null) {
-                                    val goal = goalDao.getGoalById(recurringTask.goalId)
-                                    if (goal != null) {
-                                        title = goal.text
-                                        description = goal.description
-                                        goalId = goal.id
+                                val (title, description, goalId) =
+                                    if (templateGoalId != null) {
+                                        val goal = goalDao.getGoalById(templateGoalId)
+                                        if (goal != null) {
+                                            Triple(goal.text, goal.description, goal.id)
+                                        } else {
+                                            return@forEach
+                                        }
                                     } else {
-                                        // Goal was deleted, skip this occurrence
-                                        return@forEach
+                                        Triple(
+                                            templateTask?.title ?: recurringTask.title,
+                                            templateTask?.description ?: recurringTask.description,
+                                            null,
+                                        )
                                     }
-                                } else {
-                                    title = recurringTask.title
-                                    description = recurringTask.description
-                                    goalId = null
-                                }
+
+                                val resolvedTaskType =
+                                    templateTask?.taskType
+                                        ?: when {
+                                            goalId != null -> ListItemTypeValues.GOAL
+                                            projectId != null -> ListItemTypeValues.SUBLIST
+                                            else -> ListItemTypeValues.GOAL
+                                        }
 
                                 val taskParams = NewTaskParameters(
                                     dayPlanId = dayPlan.id,
                                     title = title,
                                     description = description,
                                     goalId = goalId,
-                                    priority = recurringTask.priority,
-                                    estimatedDurationMinutes = recurringTask.duration?.toLong(),
-                                    taskType = ListItemTypeValues.GOAL,
+                                    projectId = projectId,
+                                    priority = priority,
+                                    estimatedDurationMinutes = estimatedDurationMinutes,
+                                    taskType = resolvedTaskType,
+                                    points = points,
                                 )
                                 addTaskToDayPlan(taskParams).copy(recurringTaskId = recurringTask.id).also { dayTaskDao.update(it) }
                             }
@@ -658,9 +691,29 @@ class DayManagementRepository
             }
         }
 
+        suspend fun getProject(id: String): Project? {
+            return withContext(ioDispatcher) {
+                projectDao.getProjectById(id)
+            }
+        }
+
         suspend fun detachFromRecurrence(taskId: String) {
             withContext(ioDispatcher) {
                 dayTaskDao.detachFromRecurrence(taskId)
+            }
+        }
+
+        suspend fun getHighestCompletedPointsAcrossPlans(): Int =
+            withContext(ioDispatcher) {
+                cachedBestCompletedPoints
+                    ?: dailyMetricDao.getMaxCompletedPoints()
+                        .also { cachedBestCompletedPoints = it ?: 0 }
+                        ?: 0
+            }
+
+        suspend fun findProjectIdForGoal(goalId: String): String? {
+            return withContext(ioDispatcher) {
+                listItemDao.findProjectIdForGoal(goalId)
             }
         }
 

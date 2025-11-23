@@ -47,6 +47,9 @@ interface ProjectDao {
     @Query("SELECT * FROM projects WHERE id = :id")
     fun getProjectByIdStream(id: String): Flow<Project?>
 
+    @Query("SELECT * FROM projects WHERE system_key = :systemKey")
+    suspend fun getProjectBySystemKey(systemKey: String): Project?
+
     @Query("UPDATE projects SET goal_order = :order WHERE id = :projectId")
     suspend fun updateOrder(
         projectId: String,
@@ -68,7 +71,7 @@ interface ProjectDao {
     @Query("SELECT * FROM projects WHERE reserved_group = :reservedGroup")
     suspend fun getProjectsByReservedGroup(reservedGroup: String): List<Project>
 
-    @Query("SELECT id FROM projects WHERE tags LIKE '%' || :tag || '%'")
+    @Query("SELECT id FROM projects WHERE tags LIKE '%' || :tag || '%' ORDER BY goal_order ASC, createdAt ASC")
     suspend fun getProjectIdsByTag(tag: String): List<String>
 
     @Transaction

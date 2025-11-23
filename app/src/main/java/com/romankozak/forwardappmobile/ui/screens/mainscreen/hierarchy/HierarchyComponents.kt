@@ -424,7 +424,7 @@ fun SmartHierarchyView(
                 val draggedItemData = dragAndDropState.draggedItem?.data
                 val isDropAllowed =
                     remember(draggedItemData, project) {
-                        draggedItemData == null || (draggedItemData.parentId == project.parentId)
+                        draggedItemData == null || draggedItemData.id != project.id
                     }
 
                 val hoveredDropTargetKey = dragAndDropState.hoveredDropTargetKey

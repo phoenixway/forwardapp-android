@@ -35,10 +35,13 @@ sealed interface MainScreenEvent {
     
     data class PlanningModeChange(val mode: PlanningMode) : MainScreenEvent
 
-    
+
     data object DismissDialog : MainScreenEvent
 
     data object AddNewProjectRequest : MainScreenEvent
+    data object AddNoteDocumentRequest : MainScreenEvent
+    data object AddChecklistRequest : MainScreenEvent
+    data class ListChooserResult(val projectId: String?) : MainScreenEvent
 
     data class DeleteRequest(val project: Project) : MainScreenEvent
 
@@ -98,12 +101,15 @@ sealed interface MainScreenEvent {
     data object ShowWifiImportDialog : MainScreenEvent
 
     data object ExportToFile : MainScreenEvent
+    data object ExportAttachments : MainScreenEvent
+    data class ImportAttachmentsFromFile(val uri: Uri) : MainScreenEvent
 
     object NavigateToChat : MainScreenEvent
 
     object NavigateToActivityTracker : MainScreenEvent
 
     object NavigateToAiInsights : MainScreenEvent
+    object NavigateToLifeState : MainScreenEvent
 
     object NavigateToStrategicManagement : MainScreenEvent
 
@@ -134,4 +140,7 @@ sealed interface MainScreenEvent {
     data class UpdateThemeMode(val themeMode: com.romankozak.forwardappmobile.ui.theme.ThemeMode) : MainScreenEvent
     data object GoToReminders : MainScreenEvent
     data class RevealProjectInHierarchy(val projectId: String) : MainScreenEvent
+    object OpenInboxProject : MainScreenEvent
+    object NavigateToActivityTrackerScreen : MainScreenEvent
+    object OpenAttachmentsLibrary : MainScreenEvent
 }

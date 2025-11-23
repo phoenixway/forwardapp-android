@@ -31,6 +31,8 @@ data class ChecklistUiState(
     val showCheckboxes: Boolean = true,
     val pendingFocusItemId: String? = null,
     val errorMessage: String? = null,
+    val showUndoSnackbar: Boolean = false,
+    val lastDeletedItem: ChecklistItemEntity? = null,
 )
 
 @HiltViewModel
@@ -177,6 +179,14 @@ class ChecklistViewModel @Inject constructor(
     fun onAddItem(afterItemId: String?) {
         val checklistId = checklistIdState.value ?: return
         val currentItems = _uiState.value.items
+
+        val existingBlankItem =
+            currentItems.firstOrNull { it.content.isBlank() }
+        if (existingBlankItem != null) {
+            _uiState.update { it.copy(pendingFocusItemId = existingBlankItem.id) }
+            return
+        }
+
         val insertIndex =
             when {
                 afterItemId == null -> currentItems.size
@@ -218,22 +228,20 @@ class ChecklistViewModel @Inject constructor(
     }
 
     fun onDeleteItem(itemId: String) {
-        val currentItems = _uiState.value.items
-        val index = currentItems.indexOfFirst { it.id == itemId }
-        val focusTarget =
-            when {
-                index > 0 -> currentItems[index - 1].id
-                index == 0 && currentItems.size > 1 -> currentItems[1].id
-                else -> null
-            }
+        val itemToDelete = itemsById.value[itemId] ?: return
+        _uiState.update { it.copy(lastDeletedItem = itemToDelete, showUndoSnackbar = true) }
+    }
 
-        itemsById.value = itemsById.value - itemId
+    fun onUndoDelete() {
+        _uiState.update { it.copy(lastDeletedItem = null, showUndoSnackbar = false) }
+    }
+
+    fun onConfirmDelete() {
+        val itemToDelete = _uiState.value.lastDeletedItem ?: return
         viewModelScope.launch {
-            checklistRepository.deleteItem(itemId)
+            checklistRepository.deleteItem(itemToDelete.id)
         }
-        if (focusTarget != null) {
-            _uiState.update { it.copy(pendingFocusItemId = focusTarget) }
-        }
+        _uiState.update { it.copy(lastDeletedItem = null, showUndoSnackbar = false) }
     }
 
     fun onClearCompleted() {
@@ -263,5 +271,74 @@ class ChecklistViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun buildMarkdownExport(): String {
+        val state = _uiState.value
+        val titleLine = state.title.takeIf { it.isNotBlank() } ?: DEFAULT_CHECKLIST_NAME
+        val builder = StringBuilder()
+        builder.append("# ").append(titleLine).append("\n\n")
+        if (state.items.isEmpty()) {
+            builder.append("_(empty checklist)_\n")
+        } else {
+            state.items.forEach { item ->
+                val checkbox = if (item.isChecked) "[x]" else "[ ]"
+                val content = item.content.ifBlank { "(blank)" }
+                builder.append("- ").append(checkbox).append(" ").append(content).append("\n")
+            }
+        }
+        return builder.toString()
+    }
+
+    fun importMarkdown(markdown: String, onResult: (Boolean) -> Unit = {}) {
+        val checklistId = checklistIdState.value ?: run {
+            onResult(false)
+            return
+        }
+        val parsedItems = parseMarkdown(markdown, checklistId)
+        if (parsedItems.isEmpty()) {
+            onResult(false)
+            return
+        }
+        viewModelScope.launch {
+            checklistRepository.deleteItemsByChecklist(checklistId)
+            checklistRepository.addItems(parsedItems)
+            onResult(true)
+        }
+    }
+
+    private fun parseMarkdown(markdown: String, checklistId: String): List<ChecklistItemEntity> {
+        val checkboxRegex = Regex("""^\s*[-*+] \[(x|X| )]\s*(.+)$""")
+        val bulletRegex = Regex("""^\s*(?:[-*+]|[0-9]+\.)\s*(.+)$""")
+        val result = mutableListOf<ChecklistItemEntity>()
+        var order = 0L
+        markdown.lineSequence().forEach { rawLine ->
+            val line = rawLine.trim()
+            if (line.isEmpty()) return@forEach
+
+            var isChecked = false
+            var content: String? = null
+
+            val checkboxMatch = checkboxRegex.find(line)
+            if (checkboxMatch != null) {
+                isChecked = checkboxMatch.groupValues[1].equals("x", ignoreCase = true)
+                content = checkboxMatch.groupValues[2].trim()
+            } else {
+                val bulletMatch = bulletRegex.find(line)
+                if (bulletMatch != null) {
+                    content = bulletMatch.groupValues[1].trim()
+                }
+            }
+
+            if (!content.isNullOrBlank()) {
+                result += ChecklistItemEntity(
+                    checklistId = checklistId,
+                    content = content,
+                    isChecked = isChecked,
+                    itemOrder = order++
+                )
+            }
+        }
+        return result
     }
 }

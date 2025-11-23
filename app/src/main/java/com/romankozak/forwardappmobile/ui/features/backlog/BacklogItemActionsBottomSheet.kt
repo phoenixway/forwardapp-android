@@ -4,12 +4,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.PlaylistAdd
-import androidx.compose.material.icons.filled.Send
-import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -24,6 +20,7 @@ fun BacklogItemActionsBottomSheet(
     onDismiss: () -> Unit,
     onCopyContent: () -> Unit,
     onRemindersClick: () -> Unit,
+    onDeleteEverywhere: () -> Unit,
 ) {
     val modalBottomSheetState = rememberModalBottomSheetState()
 
@@ -39,9 +36,14 @@ fun BacklogItemActionsBottomSheet(
                 modifier = androidx.compose.ui.Modifier.clickable { onCopyContent(); onDismiss() }
             )
             ListItem(
-                headlineContent = { Text("Reminders") },
-                leadingContent = { Icon(Icons.Default.Notifications, contentDescription = "Reminders") },
+                headlineContent = { Text("Reminder properties") },
+                leadingContent = { Icon(Icons.Default.Notifications, contentDescription = "Reminder properties") },
                 modifier = androidx.compose.ui.Modifier.clickable { onRemindersClick(); onDismiss() }
+            )
+            ListItem(
+                headlineContent = { Text("Delete everywhere") },
+                leadingContent = { Icon(Icons.Default.DeleteForever, contentDescription = "Delete everywhere") },
+                modifier = androidx.compose.ui.Modifier.clickable { onDeleteEverywhere(); onDismiss() }
             )
         }
     }

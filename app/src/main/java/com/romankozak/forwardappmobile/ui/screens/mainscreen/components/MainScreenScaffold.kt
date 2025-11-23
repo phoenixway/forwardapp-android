@@ -4,18 +4,30 @@ import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.FormatListBulleted
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -23,8 +35,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Overlay
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Button
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenuItem
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.rememberHoldMenu2
 import com.romankozak.forwardappmobile.ui.components.NewRecentListsSheet
 import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.ui.reminders.dialogs.ReminderPropertiesDialog
@@ -34,8 +51,10 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.SearchBottomBar
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenEvent
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenUiState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainSubState
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.OptimizedExpandingBottomNav
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.HandleDialogs
 import com.romankozak.forwardappmobile.ui.shared.InProgressIndicator
+
 
 private const val UI_TAG = "MainScreenUI_DEBUG"
 
@@ -50,6 +69,7 @@ fun MainScreenScaffold(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
+    val holdMenuController = rememberHoldMenu2()
     val listState = rememberLazyListState()
     var showContextSheet by remember { mutableStateOf(false) }
     var showSearchHistorySheet by remember { mutableStateOf(false) }
@@ -57,6 +77,11 @@ fun MainScreenScaffold(
     val importLauncher =
         rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
             uri?.let { onEvent(MainScreenEvent.ImportFromFileRequest(it)) }
+        }
+
+    val importAttachmentsLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
+            uri?.let { onEvent(MainScreenEvent.ImportAttachmentsFromFile(it)) }
         }
 
     val backHandlerEnabled by remember(uiState.subStateStack, uiState.currentBreadcrumbs, uiState.areAnyProjectsExpanded) {
@@ -75,6 +100,8 @@ fun MainScreenScaffold(
         onEvent(MainScreenEvent.BackClick)
     }
 
+    val indicatorState = remember { com.romankozak.forwardappmobile.ui.shared.InProgressIndicatorState(isInitiallyExpanded = false) }
+
     Scaffold(
         modifier = Modifier.imePadding(),
         topBar = {
@@ -89,14 +116,16 @@ fun MainScreenScaffold(
                 onGoBack = { onEvent(MainScreenEvent.BackClick) },
                 onGoForward = { onEvent(MainScreenEvent.ForwardClick) },
                 onShowHistory = { onEvent(MainScreenEvent.HistoryClick) },
-                onAddNewProject = { onEvent(MainScreenEvent.AddNewProjectRequest) },
                 onShowWifiServer = { onEvent(MainScreenEvent.ShowWifiServerDialog) },
                 onShowWifiImport = { onEvent(MainScreenEvent.ShowWifiImportDialog) },
                 onExportToFile = { onEvent(MainScreenEvent.ExportToFile) },
                 onImportFromFile = { importLauncher.launch("application/json") },
+                onExportAttachments = { onEvent(MainScreenEvent.ExportAttachments) },
+                onImportAttachments = { importAttachmentsLauncher.launch("application/json") },
                 onShowSettings = { onEvent(MainScreenEvent.GoToSettings) },
                 onShowAbout = { onEvent(MainScreenEvent.ShowAboutDialog) },
                 onShowReminders = { onEvent(MainScreenEvent.GoToReminders) },
+                onShowAttachmentsLibrary = { onEvent(MainScreenEvent.OpenAttachmentsLibrary) },
             )
         },
         bottomBar = {
@@ -105,7 +134,8 @@ fun MainScreenScaffold(
                     ongoingActivity = lastOngoingActivity,
                     onStopClick = { viewModel.stopOngoingActivity() },
                     onReminderClick = { viewModel.setReminderForOngoingActivity() },
-                    onIndicatorClick = { onEvent(MainScreenEvent.NavigateToActivityTracker) }
+                    onIndicatorClick = { onEvent(MainScreenEvent.NavigateToActivityTracker) },
+                    indicatorState = indicatorState
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 val isSearchActive = uiState.subStateStack.any { it is MainSubState.LocalSearch }
@@ -121,25 +151,100 @@ fun MainScreenScaffold(
                         onShowSearchHistory = { showSearchHistorySheet = true },
                     )
                 } else {
-                    ExpandingBottomNav(
+                    OptimizedExpandingBottomNav(
                         onToggleSearch = {
                             onEvent(MainScreenEvent.SearchQueryChanged(TextFieldValue("")))
                         },
                         onGlobalSearchClick = { onEvent(MainScreenEvent.ShowSearchDialog) },
                         currentMode = uiState.planningMode,
+                        planningModesEnabled = com.romankozak.forwardappmobile.config.FeatureToggles.isEnabled(com.romankozak.forwardappmobile.config.FeatureFlag.PlanningModes),
                         onPlanningModeChange = { onEvent(MainScreenEvent.PlanningModeChange(it)) },
                         onContextsClick = { showContextSheet = true },
                         onRecentsClick = { onEvent(MainScreenEvent.ShowRecentLists) },
                         onDayPlanClick = { onEvent(MainScreenEvent.DayPlanClick) },
                         onHomeClick = { onEvent(MainScreenEvent.HomeClick) },
                         onStrManagementClick = { onEvent(MainScreenEvent.NavigateToStrategicManagement) },
+                        strategicManagementEnabled = com.romankozak.forwardappmobile.config.FeatureToggles.isEnabled(com.romankozak.forwardappmobile.config.FeatureFlag.StrategicManagement),
                         isExpanded = uiState.isBottomNavExpanded,
                         onExpandedChange = { onEvent(MainScreenEvent.BottomNavExpandedChange(it)) },
                         onAiChatClick = { onEvent(MainScreenEvent.NavigateToChat) },
                         onActivityTrackerClick = { onEvent(MainScreenEvent.NavigateToActivityTracker) },
                         onInsightsClick = { onEvent(MainScreenEvent.NavigateToAiInsights) },
                         onShowReminders = { onEvent(MainScreenEvent.GoToReminders) },
+                        onLifeStateClick = { onEvent(MainScreenEvent.NavigateToLifeState) },
+                        onEvent = onEvent,
                     )
+                }
+            }
+        },
+        floatingActionButton = {
+            val isSearchActiveFab = uiState.subStateStack.any { it is MainSubState.LocalSearch }
+            var showAddMenu by remember { mutableStateOf(false) }
+
+            AnimatedVisibility(visible = !isSearchActiveFab) {
+                val menuItems =
+                    listOf(
+                        HoldMenuItem(
+                            label = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_project),
+                            icon = Icons.Default.FolderOpen,
+                        ),
+                        HoldMenuItem(
+                            label = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_note),
+                            icon = Icons.Default.Description,
+                        ),
+                        HoldMenuItem(
+                            label = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_checklist),
+                            icon = Icons.Default.FormatListBulleted,
+                        ),
+                    )
+                HoldMenu2Button(
+                    items = menuItems,
+                    controller = holdMenuController,
+                    onSelect = { index ->
+                        when (index) {
+                            0 -> onEvent(MainScreenEvent.AddNewProjectRequest)
+                            1 -> onEvent(MainScreenEvent.AddNoteDocumentRequest)
+                            2 -> onEvent(MainScreenEvent.AddChecklistRequest)
+                        }
+                    },
+                    onTap = { showAddMenu = !showAddMenu },
+                    menuAlignment = com.romankozak.forwardappmobile.features.common.components.holdmenu2.MenuAlignment.END,
+                    iconPosition = com.romankozak.forwardappmobile.features.common.components.holdmenu2.IconPosition.END,
+                ) {
+                    Box {
+                        FloatingActionButton(onClick = { showAddMenu = !showAddMenu }) {
+                            Icon(Icons.Default.Add, contentDescription = "Додати")
+                        }
+                        DropdownMenu(
+                            expanded = showAddMenu,
+                            onDismissRequest = { showAddMenu = false },
+                        ) {
+                            DropdownMenuItem(
+                                leadingIcon = { Icon(Icons.Default.FolderOpen, contentDescription = null) },
+                                text = { Text(text = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_project)) },
+                                onClick = {
+                                    showAddMenu = false
+                                    onEvent(MainScreenEvent.AddNewProjectRequest)
+                                },
+                            )
+                            DropdownMenuItem(
+                                leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) },
+                                text = { Text(text = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_note)) },
+                                onClick = {
+                                    showAddMenu = false
+                                    onEvent(MainScreenEvent.AddNoteDocumentRequest)
+                                },
+                            )
+                            DropdownMenuItem(
+                                leadingIcon = { Icon(Icons.Default.FormatListBulleted, contentDescription = null) },
+                                text = { Text(text = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_checklist)) },
+                                onClick = {
+                                    showAddMenu = false
+                                    onEvent(MainScreenEvent.AddChecklistRequest)
+                                },
+                            )
+                        }
+                    }
                 }
             }
         },
@@ -165,6 +270,7 @@ fun MainScreenScaffold(
         showSheet = showContextSheet,
         onDismiss = { showContextSheet = false },
         contexts = uiState.allContexts,
+        contextMarkerToEmojiMap = uiState.contextMarkerToEmojiMap,
         onContextSelected = {
             onEvent(MainScreenEvent.ContextSelected(it))
             showContextSheet = false
@@ -202,4 +308,6 @@ fun MainScreenScaffold(
             currentReminders = listOfNotNull(record.reminderTime).map { com.romankozak.forwardappmobile.data.database.models.Reminder(entityId = record.id, entityType = "TASK", reminderTime = it, status = "SCHEDULED", creationTime = System.currentTimeMillis()) },
         )
     }
+
+    HoldMenu2Overlay(controller = holdMenuController)
 }

@@ -49,6 +49,7 @@ fun BacklogListScreen(
             onDismiss = { showBottomSheet = false },
             onCopyContent = { onCopyContent(selectedItemForActions!!) },
             onRemindersClick = { onRemindersClick(selectedItemForActions!!) },
+            onDeleteEverywhere = { onDeleteEverywhere(selectedItemForActions!!) },
         )
     }
 
@@ -74,7 +75,7 @@ fun BacklogListScreen(
                     },
                     onCheckedChange = onCheckedChange,
                     onDelete = { onDelete(item) },
-                    onDeleteEverywhere = { onDeleteEverywhere(item) },
+                    onRemindersClick = { onRemindersClick(item) },
                     onMoveToTop = { onMoveToTop(item) },
                     onAddToDayPlan = { onAddToDayPlan(item) },
                     onStartTracking = { onStartTracking(item) },

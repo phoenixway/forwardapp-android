@@ -13,6 +13,7 @@ import java.net.URLEncoder
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.first
 
 class ProjectActionsUseCase @Inject constructor(
     private val projectRepository: ProjectRepository,
@@ -69,7 +70,8 @@ class ProjectActionsUseCase @Inject constructor(
 
         if (projectToMove.parentId == finalNewParentId) return@withContext
 
-        projectRepository.moveProject(projectToMove, finalNewParentId)
+        val allowSystemMoves = settingsRepository.allowSystemProjectMovesFlow.first()
+        projectRepository.moveProject(projectToMove, finalNewParentId, allowSystemMoves)
 
         if (finalNewParentId != null) {
             val parentProject = allProjects.find { it.id == finalNewParentId }
@@ -91,32 +93,78 @@ class ProjectActionsUseCase @Inject constructor(
         val fromProject = allProjects.find { it.id == fromId }
         val toProject = allProjects.find { it.id == toId }
 
-        if (fromProject == null || toProject == null || fromProject.parentId != toProject.parentId) {
+        if (fromProject == null || toProject == null) {
             return@withContext
         }
 
-        val parentId = fromProject.parentId
-        val siblings = allProjects.filter { it.parentId == parentId }.sortedBy { it.order }
-        val mutableSiblings = siblings.toMutableList()
-        val fromIndex = mutableSiblings.indexOfFirst { it.id == fromId }
-        val toIndex = mutableSiblings.indexOfFirst { it.id == toId }
+        val newParentId = toProject.parentId
+        val childMap = allProjects.filter { it.parentId != null }.groupBy { it.parentId!! }
+        val descendantsOfFrom = getDescendantIds(fromProject.id, childMap)
+        if (newParentId == fromProject.id || (newParentId != null && descendantsOfFrom.contains(newParentId))) {
+            return@withContext // Prevent cycles
+        }
 
-        if (fromIndex == -1 || toIndex == -1) return@withContext
+        val now = System.currentTimeMillis()
+        val sourceParentId = fromProject.parentId
+        val sourceSiblings =
+            allProjects
+                .filter { it.parentId == sourceParentId }
+                .sortedBy { it.order }
+        val targetSiblings =
+            allProjects
+                .filter { it.parentId == newParentId }
+                .sortedBy { it.order }
 
-        val movedItem = mutableSiblings.removeAt(fromIndex)
+        val targetList = targetSiblings.filterNot { it.id == fromId }.toMutableList()
+        val targetIndex = targetList.indexOfFirst { it.id == toId }
+        if (targetIndex == -1) return@withContext
+
         val insertionIndex =
-            when {
-                fromIndex < toIndex -> if (position == DropPosition.BEFORE) toIndex - 1 else toIndex
-                else -> if (position == DropPosition.BEFORE) toIndex else toIndex + 1
-            }
-        val finalIndex = insertionIndex.coerceIn(0, mutableSiblings.size)
-        mutableSiblings.add(finalIndex, movedItem)
+            when (position) {
+                DropPosition.BEFORE -> targetIndex
+                DropPosition.AFTER -> targetIndex + 1
+            }.coerceIn(0, targetList.size)
 
-        val projectsToUpdate =
-            mutableSiblings.mapIndexed { index, project ->
-                project.copy(order = index.toLong(), updatedAt = System.currentTimeMillis())
+        val movedProject = fromProject.copy(parentId = newParentId)
+        targetList.add(insertionIndex, movedProject)
+
+        val updates = mutableListOf<Project>()
+
+        if (newParentId == sourceParentId) {
+            val reordered =
+                targetList.mapIndexed { index, project ->
+                    val base = if (project.id == fromId) movedProject else project
+                    base.copy(order = index.toLong(), updatedAt = now)
+                }
+            updates.addAll(reordered)
+        } else {
+            val sourceWithout =
+                sourceSiblings
+                    .filterNot { it.id == fromId }
+                    .mapIndexed { index, project ->
+                        project.copy(order = index.toLong(), updatedAt = now)
+                    }
+
+            val targetWithOrder =
+                targetList.mapIndexed { index, project ->
+                    val base = if (project.id == fromId) movedProject else project
+                    base.copy(parentId = newParentId, order = index.toLong(), updatedAt = now)
+                }
+
+            updates.addAll(sourceWithout)
+            updates.addAll(targetWithOrder)
+
+            if (newParentId != null) {
+                val newParent = allProjects.find { it.id == newParentId }
+                if (newParent != null && !newParent.isExpanded) {
+                    updates.add(newParent.copy(isExpanded = true, updatedAt = now))
+                }
             }
-        projectRepository.updateProjects(projectsToUpdate)
+        }
+
+        if (updates.isNotEmpty()) {
+            projectRepository.updateProjects(updates)
+        }
     }
 
     suspend fun collapseAllProjects(allProjects: List<Project>) = withContext(ioDispatcher) {
@@ -135,8 +183,15 @@ class ProjectActionsUseCase @Inject constructor(
 
     suspend fun exportToFile() = withContext(ioDispatcher) { syncRepository.exportFullBackupToFile() }
 
+    suspend fun exportAttachments(): Result<String> {
+        return withContext(ioDispatcher) { syncRepository.exportAttachmentsToFile() }
+    }
+
     suspend fun onFullImportConfirmed(uri: Uri) =
         withContext(ioDispatcher) { syncRepository.importFullBackupFromFile(uri) }
+
+    suspend fun importAttachments(uri: Uri) =
+        withContext(ioDispatcher) { syncRepository.importAttachmentsFromFile(uri) }
 
     suspend fun onBottomNavExpandedChange(expanded: Boolean) =
         withContext(ioDispatcher) { settingsRepository.saveBottomNavExpanded(expanded) }

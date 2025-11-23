@@ -23,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -33,6 +34,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
@@ -68,6 +70,8 @@ fun UniversalEditorScreen(
   onNavigateBack: () -> Unit,
   navController: NavController,
   viewModel: UniversalEditorViewModel = hiltViewModel(),
+  contentFocusRequester: FocusRequester,
+  startInEditMode: Boolean = false,
 ) {
   var isToolbarVisible by remember { mutableStateOf(false) }
   val topBarContainerColor = MaterialTheme.colorScheme.surfaceContainer
@@ -91,11 +95,27 @@ fun UniversalEditorScreen(
   }
 
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-  val contentFocusRequester = remember { FocusRequester() }
   val snackbarHostState = remember { SnackbarHostState() }
   val keyboardController = LocalSoftwareKeyboardController.current
-  var isKeyboardVisible by remember { mutableStateOf(false) }
-  val readOnly by remember { derivedStateOf { !isKeyboardVisible } }
+  val focusManager = LocalFocusManager.current
+  var initialEditApplied by remember { mutableStateOf(false) }
+  val isEditing = uiState.isEditing || (startInEditMode && !initialEditApplied)
+  val readOnly = !isEditing
+
+  LaunchedEffect(startInEditMode) {
+    if (startInEditMode) {
+      viewModel.setEditingMode(true)
+    }
+    initialEditApplied = true
+  }
+
+  LaunchedEffect(isEditing) {
+    if (isEditing) {
+      delay(50)
+      contentFocusRequester.requestFocus()
+      keyboardController?.show()
+    }
+  }
 
   LaunchedEffect(Unit) {
     viewModel.events.collect {
@@ -179,19 +199,32 @@ fun UniversalEditorScreen(
                 onBold = viewModel::onBold,
                 onItalic = viewModel::onItalic,
                 onInsertSeparator = viewModel::onInsertSeparator,
-                onToggleKeyboard = {
-                    if (isKeyboardVisible) {
-                        keyboardController?.hide()
-                    } else {
-                        contentFocusRequester.requestFocus()
-                    }
-                    isKeyboardVisible = !isKeyboardVisible
-                }
               )
             } else {
               ShowToolbarButton(onClick = { isToolbarVisible = true })
             }
           }
+        }
+      }
+    },
+    floatingActionButton = {
+      FloatingActionButton(
+        onClick = {
+          val nextMode = !isEditing
+          viewModel.setEditingMode(nextMode)
+          if (nextMode) {
+            contentFocusRequester.requestFocus()
+            keyboardController?.show()
+          } else {
+            focusManager.clearFocus(force = true)
+            keyboardController?.hide()
+          }
+        }
+      ) {
+        if (isEditing) {
+          Icon(Icons.Default.Visibility, contentDescription = "Switch to read mode")
+        } else {
+          Icon(Icons.Default.Edit, contentDescription = "Switch to edit mode")
         }
       }
     },
@@ -209,6 +242,7 @@ fun UniversalEditorScreen(
         contentFocusRequester = contentFocusRequester,
         isToolbarVisible = isToolbarVisible,
         readOnly = readOnly,
+        isEditing = isEditing
       )
       if (uiState.isLoading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -270,6 +304,7 @@ private fun Editor(
   contentFocusRequester: FocusRequester,
   isToolbarVisible: Boolean,
   readOnly: Boolean,
+  isEditing: Boolean,
 ) {
   val scrollState = rememberScrollState()
   var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
@@ -278,6 +313,7 @@ private fun Editor(
   val textColor = MaterialTheme.colorScheme.onSurface
   val accentColor = MaterialTheme.colorScheme.primary
   val density = LocalDensity.current
+  val focusManager = LocalFocusManager.current
 
   val imeHeight = WindowInsets.ime.getBottom(density)
   val isImeVisible = imeHeight > 0
@@ -313,38 +349,43 @@ private fun Editor(
           .fillMaxHeight()
           .focusRequester(contentFocusRequester)
           .bringIntoViewRequester(bringIntoViewRequester)
-          .pointerInput(content.text) {
-              detectTapGestures {
-                  offset ->
-                  textLayoutResult?.let {
-                      layoutResult ->
-                      val clickedOffset = layoutResult.getOffsetForPosition(offset)
-                      val lineIndex = layoutResult.getLineForOffset(clickedOffset)
-                      val lines = content.text.lines()
-                      
-                      if (lineIndex >= lines.size) return@detectTapGestures
-                      
-                      val line = lines[lineIndex]
-                      val trimmedLine = line.trimStart()
-                      
-                      val checkboxRegex = Regex("""^\s*-\s\[[ x]\]\s?.*""", RegexOption.IGNORE_CASE)
-                      if (checkboxRegex.matches(trimmedLine)) {
-                          val lineStartOffset = layoutResult.getLineStart(lineIndex)
-                          val originalIndentLength = line.takeWhile { it.isWhitespace() }.length
-                          
-                          val offsetInLine = clickedOffset - lineStartOffset
-                          
-                          val checkboxStart = originalIndentLength
-                          val checkboxEnd = originalIndentLength + 8
-                          
-                          if (offsetInLine >= checkboxStart && offsetInLine < checkboxEnd) {
-                              onToggleCheckbox(lineIndex)
-                          }
-                      }
+          .focusProperties { canFocus = isEditing }
+          .pointerInput(content.text, isEditing, readOnly) {
+              detectTapGestures { offset ->
+                if (!isEditing) {
+                  focusManager.clearFocus(force = true)
+                  return@detectTapGestures
+                }
+
+                textLayoutResult?.let { layoutResult ->
+                  val clickedOffset = layoutResult.getOffsetForPosition(offset)
+                  val lineIndex = layoutResult.getLineForOffset(clickedOffset)
+                  val lines = content.text.lines()
+
+                  if (lineIndex >= lines.size) return@detectTapGestures
+
+                  val line = lines[lineIndex]
+                  val trimmedLine = line.trimStart()
+
+                  val checkboxRegex = Regex("""^\s*-\s\[[ x]\]\s?.*""", RegexOption.IGNORE_CASE)
+                  if (checkboxRegex.matches(trimmedLine)) {
+                    val lineStartOffset = layoutResult.getLineStart(lineIndex)
+                    val originalIndentLength = line.takeWhile { it.isWhitespace() }.length
+
+                    val offsetInLine = clickedOffset - lineStartOffset
+
+                    val checkboxStart = originalIndentLength
+                    val checkboxEnd = originalIndentLength + 8
+
+                    if (offsetInLine >= checkboxStart && offsetInLine < checkboxEnd) {
+                      onToggleCheckbox(lineIndex)
+                    }
                   }
+                }
               }
-          }
+            }
           .drawBehind {
+            if (!isEditing) return@drawBehind
             textLayoutResult?.let {
               layoutResult ->
               val currentLine =

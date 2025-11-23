@@ -56,4 +56,7 @@ interface LinkItemDao {
 
     @Query("DELETE FROM link_items")
     suspend fun deleteAll()
+
+    @Query("DELETE FROM link_items WHERE id = :id")
+    suspend fun deleteById(id: String)
 }

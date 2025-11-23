@@ -4,3 +4,16 @@ ktlint
 google-cloud-sdk*
 loggy.log
 app/schemas/
+tools/.node/
+.pnpm-store/
+.gradle-project/
+node_modules/
+apps/*/node_modules/
+packages/*/node_modules/
+android_tmp/
+build/android-profile/
+build/reports/configuration-cache/
+# Gradle / Kotlin / Android build artifacts
+**/build/
+**/build/**
+apps/android/build/

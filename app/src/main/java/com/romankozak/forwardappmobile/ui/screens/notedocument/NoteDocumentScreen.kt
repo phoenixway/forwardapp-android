@@ -16,6 +16,8 @@ import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -117,8 +119,15 @@ fun NoteDocumentScreen(
   }
 
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+  val startEditArg = navController.currentBackStackEntry?.arguments?.getBoolean("startEdit") ?: false
   var screenMode by remember {
-    mutableStateOf(if (viewModel.isNewDocument) ScreenMode.CREATE else ScreenMode.VIEW)
+    mutableStateOf(
+      when {
+        startEditArg -> ScreenMode.EDIT_EXISTING
+        viewModel.isNewDocument -> ScreenMode.EDIT_EXISTING
+        else -> ScreenMode.VIEW
+      }
+    )
   }
 
   val keyboardController = LocalSoftwareKeyboardController.current
@@ -176,6 +185,19 @@ fun NoteDocumentScreen(
         },
       )
     },
+    floatingActionButton = {
+      val isViewMode = screenMode == ScreenMode.VIEW
+      FloatingActionButton(
+        onClick = {
+          screenMode = if (isViewMode) ScreenMode.EDIT_EXISTING else ScreenMode.VIEW
+        },
+      ) {
+        Icon(
+          imageVector = if (isViewMode) Icons.Default.Edit else Icons.Default.Visibility,
+          contentDescription = if (isViewMode) "Редагувати" else "Режим читання",
+        )
+      }
+    },
     bottomBar = {
       if (screenMode != ScreenMode.VIEW) {
         Box(modifier = Modifier.navigationBarsPadding()) {
@@ -213,24 +235,6 @@ fun NoteDocumentScreen(
             }
           }
         }
-      }
-    },
-    floatingActionButton = {
-      AnimatedVisibility(
-        visible = screenMode == ScreenMode.CREATE,
-        enter =
-          scaleIn(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)) +
-            fadeIn(),
-        exit = scaleOut(animationSpec = tween(200)) + fadeOut(),
-      ) {
-        ExtendedFloatingActionButton(
-          onClick = viewModel::onSave,
-          icon = { Icon(Icons.Default.Add, contentDescription = "Створити список") },
-          text = { Text("Створити") },
-          containerColor = MaterialTheme.colorScheme.primaryContainer,
-          contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-          modifier = Modifier.navigationBarsPadding().clip(RoundedCornerShape(16.dp)),
-        )
       }
     },
   ) { paddingValues ->
@@ -423,12 +427,8 @@ private fun CreateEditContent(
     value = uiState.content,
     onValueChange = { newValue ->
         val firstLine = newValue.text.lines().firstOrNull() ?: ""
+        val title = extractTitleFromFirstLine(firstLine)
         Log.d("TitleFormation", "Original first line: '$firstLine'")
-val markerRegex = Regex(
-    """^(\s*)(\*|•|\d+\.|\[\s*x?\])\s*""",
-    RegexOption.IGNORE_CASE
-)
-        val title = firstLine.replaceFirst(markerRegex, "").trim()
         Log.d("TitleFormation", "Cleaned title: '$title'")
         viewModel.onTitleChange(title)
 
@@ -631,6 +631,29 @@ val uncheckedRegex = Regex("""^(\s*)\[\s\]\s(.*)""")
 
     return TransformedText(transformedText, offsetMapping)
   }
+}
+
+private fun extractTitleFromFirstLine(firstLine: String): String {
+  val trimmed = firstLine.trimStart()
+
+  val extractors = listOf<Regex>(
+    Regex("^\\s*#{1,6}\\s*(.*)$"), // Headings like "# Title" or "##Title"
+    Regex("^\\s*[-*+]\\s*\\[(?: |x|X)?]\\s*(.*)$"), // Checkbox with bullet "- [ ] Title"
+    Regex("^\\s*\\[(?: |x|X)?]\\s*(.*)$"), // Checkbox without bullet "[ ] Title"
+    Regex("^\\s*\\d+[.)]\\s+(.*)$"), // Numbered list "1. Title"
+    Regex("^\\s*[-*+]\\s+(.*)$"), // Bullet "- Title" or "* Title"
+    Regex("^\\s*>\\s*(.*)$"), // Blockquote "> Title"
+  )
+
+  for (regex in extractors) {
+    val match = regex.find(trimmed)
+    if (match != null) {
+      val content = match.groupValues.getOrNull(1)?.takeIf { it.isNotBlank() }
+      if (content != null) return content.trim()
+    }
+  }
+
+  return trimmed.trim()
 }
 
 @Composable

@@ -35,7 +35,7 @@ import com.romankozak.forwardappmobile.domain.wifirestapi.RetrofitClient
 import com.romankozak.forwardappmobile.ui.navigation.ClearAndNavigateHomeUseCase
 import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.TagUtils
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.attachments.AttachmentType
+import com.romankozak.forwardappmobile.features.attachments.ui.project.AttachmentType
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.inputpanel.InputHandler
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.inputpanel.InputMode
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.InboxHandler
@@ -44,6 +44,7 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.InboxM
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.ItemActionHandler
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.ProjectMarkdownExporter
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.SelectionHandler
+import com.romankozak.forwardappmobile.ui.common.editor.NoteTitleExtractor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.net.URLEncoder
 import java.text.SimpleDateFormat
@@ -113,7 +114,6 @@ data class UiState(
   val inboxRecordToHighlight: String? = null,
   val needsStateRefresh: Boolean = false,
   val currentView: ProjectViewMode = ProjectViewMode.BACKLOG,
-  val isViewModePanelVisible: Boolean = false,
   val showRecentProjectsSheet: Boolean = false,
   val showImportFromMarkdownDialog: Boolean = false,
   val showImportBacklogFromMarkdownDialog: Boolean = false,
@@ -301,12 +301,14 @@ constructor(
   val listContent: StateFlow<List<ListItemContent>> = _listContent.asStateFlow()
 
   val itemActionHandler = ItemActionHandler(projectRepository, goalRepository, recentItemsRepository, viewModelScope, projectIdFlow, this)
-  val selectionHandler = SelectionHandler(projectRepository, goalRepository, viewModelScope, _listContent, this)
+  val selectionHandler = SelectionHandler(projectRepository, goalRepository, viewModelScope, projectIdFlow, _listContent, this)
   val inboxHandler = InboxHandler(projectRepository, inboxRepository, viewModelScope, projectIdFlow, this)
   val inboxMarkdownHandler = InboxMarkdownHandler(projectRepository, goalRepository, viewModelScope, this)
   val backlogMarkdownHandler = BacklogMarkdownHandler(projectRepository, goalRepository, viewModelScope, this)
 
   private lateinit var lazyListState: LazyListState
+
+  private var pendingAttachmentShare: ListItemContent? = null
 
 
 
@@ -759,6 +761,11 @@ constructor(
     }
   }
 
+  override fun requestAttachmentShare(item: ListItemContent) {
+    pendingAttachmentShare = item
+    navigateToListChooser("Виберіть проект для вкладення")
+  }
+
   override fun setPendingAction(
     actionType: GoalActionType,
     itemIds: Set<String>,
@@ -847,6 +854,12 @@ constructor(
   }
 
   fun onListChooserResult(targetProjectId: String) {
+    pendingAttachmentShare?.let { attachment ->
+      pendingAttachmentShare = null
+      shareAttachmentToProject(attachment, targetProjectId)
+      return
+    }
+
     if (inboxHandler.recordForPromotion.value != null) {
       inboxHandler.onListSelectedForInboxPromotion(targetProjectId)
       return
@@ -871,7 +884,7 @@ constructor(
               target = targetProjectId,
               displayName = targetProject?.name ?: "Проект без назви",
             )
-          val newItemId = listItemRepository.addLinkItemToProjectFromLink(projectIdFlow.value, link)
+          val newItemId = projectRepository.addLinkItemToProjectFromLink(projectIdFlow.value, link)
           withContext(Dispatchers.Main) {
             _uiState.update { it.copy(newlyAddedItemId = newItemId) }
           }
@@ -926,6 +939,72 @@ constructor(
     _uiState.update { it.copy(newlyAddedItemId = null) }
   }
 
+  private fun shareAttachmentToProject(
+    attachment: ListItemContent,
+    targetProjectId: String,
+  ) {
+    viewModelScope.launch(Dispatchers.IO) {
+      val isAttachmentSupported =
+        attachment is ListItemContent.LinkItem ||
+          attachment is ListItemContent.NoteDocumentItem ||
+          attachment is ListItemContent.ChecklistItem
+      if (!isAttachmentSupported) {
+        withContext(Dispatchers.Main) {
+          showSnackbar("Цей тип вкладення не підтримує копіювання", null)
+        }
+        return@launch
+      }
+
+      val attachmentId =
+        try {
+          projectRepository.ensureAttachmentLinkedToProject(
+            attachmentType = attachment.listItem.itemType,
+            entityId = attachment.listItem.entityId,
+            targetProjectId = targetProjectId,
+            ownerProjectId = attachment.listItem.projectId.takeIf { it.isNotBlank() }
+              ?: projectIdFlow.value,
+          )
+        } catch (e: Exception) {
+          Log.e(TAG, "Failed to link attachment to project=$targetProjectId", e)
+          withContext(Dispatchers.Main) {
+            showSnackbar("Не вдалося додати вкладення до проєкту", null)
+          }
+          return@launch
+        }
+      withContext(Dispatchers.Main) {
+        if (targetProjectId == projectIdFlow.value) {
+          _uiState.update { it.copy(newlyAddedItemId = attachmentId) }
+          forceRefresh()
+        }
+        showSnackbar("Вкладення додано до вибраного проєкту", null)
+      }
+    }
+  }
+
+  fun deleteAttachmentEverywhere(attachment: ListItemContent) {
+    val isAttachment =
+      attachment is ListItemContent.LinkItem ||
+        attachment is ListItemContent.NoteDocumentItem ||
+        attachment is ListItemContent.ChecklistItem
+    if (!isAttachment) return
+
+    viewModelScope.launch(Dispatchers.IO) {
+      runCatching {
+        projectRepository.deleteAttachmentEverywhere(attachment.listItem.id)
+      }.onSuccess {
+        withContext(Dispatchers.Main) {
+          forceRefresh()
+          showSnackbar("Вкладення повністю видалено", null)
+        }
+      }.onFailure { e ->
+        Log.e(TAG, "Failed to delete attachment everywhere", e)
+        withContext(Dispatchers.Main) {
+          showSnackbar("Не вдалося повністю видалити вкладення", null)
+        }
+      }
+    }
+  }
+
   fun onMove(fromIndex: Int, toIndex: Int) {
     Log.d(TAG, "onMove called with fromIndex: $fromIndex, toIndex: $toIndex")
     viewModelScope.launch {
@@ -949,9 +1028,26 @@ constructor(
     withContext(Dispatchers.IO) {
       Log.d(TAG, "[saveListOrder] Starting to save order for ${listToSave.size} items.")
       try {
+        val attachmentOrders = mutableListOf<Pair<String, Long>>()
         val updatedItems =
-          listToSave.mapIndexed { index, content -> content.listItem.copy(order = index.toLong()) }
-        listItemRepository.updateListItemsOrder(updatedItems)
+          listToSave.mapIndexedNotNull { index, content ->
+            val order = index.toLong()
+            when (content.listItem.itemType) {
+              ListItemTypeValues.LINK_ITEM,
+              ListItemTypeValues.NOTE_DOCUMENT,
+              ListItemTypeValues.CHECKLIST -> {
+                attachmentOrders += content.listItem.id to order
+                null
+              }
+              else -> content.listItem.copy(order = order)
+            }
+          }
+        if (updatedItems.isNotEmpty()) {
+          listItemRepository.updateListItemsOrder(updatedItems)
+        }
+        if (attachmentOrders.isNotEmpty()) {
+          projectRepository.updateAttachmentOrders(projectIdFlow.value, attachmentOrders)
+        }
         Log.d(TAG, "[saveListOrder] Successfully saved new order to the database.")
       } catch (e: Exception) {
         Log.e(TAG, "[saveListOrder] Failed to save list order", e)
@@ -1205,7 +1301,14 @@ constructor(
   }
 
   fun onReminderDialogDismiss() {
-    _uiState.update { it.copy(recordForReminderDialog = null, remindersForDialog = emptyList()) }
+    _uiState.update {
+      it.copy(
+        recordForReminderDialog = null,
+        remindersForDialog = emptyList(),
+        showRemindersDialog = false,
+        itemForRemindersDialog = null,
+      )
+    }
   }
 
   fun onSetReminder(timestamp: Long) =
@@ -1647,9 +1750,7 @@ constructor(
     )
   }
 
-  fun onToggleNavPanelMode() {
-    _uiState.update { it.copy(isViewModePanelVisible = !it.isViewModePanelVisible) }
-  }
+
 
   fun onOpenRemindersDialog(item: ListItemContent) {
     _uiState.update { it.copy(showRemindersDialog = true, itemForRemindersDialog = item) }
@@ -1769,13 +1870,15 @@ constructor(
         _uiState.update { it.copy(logEntryToEdit = null) }
     }
 
-    fun onSaveNoteDocument(content: String) {
-        viewModelScope.launch {
-            val title = content.lines().firstOrNull()?.trim() ?: "Новий документ"
-            noteDocumentRepository.createDocument(title, projectIdFlow.value, content)
-            onDismissNoteDocumentEditor()
-        }
+  fun onSaveNoteDocument(content: String) {
+    viewModelScope.launch {
+      Log.d("NoteTitleExtractor", "onSaveNoteDocument called, content length=${content.length}")
+      val title = extractTitleFromContent(content)
+      Log.d("NoteTitleExtractor", "onSaveNoteDocument extracted title='$title'")
+      noteDocumentRepository.createDocument(title, projectIdFlow.value, content)
+      onDismissNoteDocumentEditor()
     }
+  }
 
     fun onDismissNoteDocumentEditor() {
         _uiState.update { it.copy(showNoteDocumentEditor = false) }
@@ -1823,13 +1926,11 @@ constructor(
         _uiState.update { it.copy(showDisplayPropertiesDialog = true) }
     }
 
-    fun onDismissDisplayPropertiesDialog() {
-        _uiState.update { it.copy(showDisplayPropertiesDialog = false) }
+  fun onDismissDisplayPropertiesDialog() {
+      _uiState.update { it.copy(showDisplayPropertiesDialog = false) }
+  }
+
+  private fun extractTitleFromContent(content: String): String {
+        return NoteTitleExtractor.extract(content)
     }
-
-
-
-
-
-
 }

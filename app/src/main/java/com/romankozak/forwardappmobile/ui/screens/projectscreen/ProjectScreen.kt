@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
@@ -60,8 +61,9 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.GoalDeta
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.ProjectDisplayPropertiesDialog
 import com.romankozak.forwardappmobile.ui.shared.InProgressIndicator
 import kotlinx.coroutines.delay
-
-
+import androidx.compose.ui.zIndex
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Overlay
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.rememberHoldMenu2
 
 
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -101,6 +103,7 @@ fun ProjectsScreen(
         }
         uiState.artifactToEdit != null -> {
             val artifact = uiState.artifactToEdit!!
+            val focusRequester = remember { FocusRequester() }
             LaunchedEffect(artifact) {
                 if (editorViewModel.uiState.value.content.text != artifact.content) {
                     val newContent = artifact.content
@@ -114,10 +117,12 @@ fun ProjectsScreen(
                 onSave = { content, _ -> viewModel.onSaveArtifact(content) },
                 onNavigateBack = { viewModel.onDismissArtifactEditor() },
                 navController = navController,
-                viewModel = editorViewModel
+                viewModel = editorViewModel,
+                contentFocusRequester = focusRequester,
             )
         }
         uiState.showNoteDocumentEditor -> {
+            val focusRequester = remember { FocusRequester() }
             LaunchedEffect(Unit) {
                 editorViewModel.onContentChange(TextFieldValue(""))
             }
@@ -126,7 +131,8 @@ fun ProjectsScreen(
                 onSave = { content, _ -> viewModel.onSaveNoteDocument(content) },
                 onNavigateBack = { viewModel.onDismissNoteDocumentEditor() },
                 navController = navController,
-                viewModel = editorViewModel
+                viewModel = editorViewModel,
+                contentFocusRequester = focusRequester,
             )
         }
         else -> {
@@ -167,6 +173,8 @@ private fun ProjectScaffold(
     var showRemindersListDialog by remember { mutableStateOf(false) }
     var selectedItemForReminders by remember { mutableStateOf<ListItemContent?>(null) }
 
+    val holdMenuController = rememberHoldMenu2()
+
     val targetBackgroundColor = MaterialTheme.colorScheme.surface
     val animatedBackgroundColor by animateColorAsState(
         targetValue = targetBackgroundColor,
@@ -202,17 +210,6 @@ private fun ProjectScaffold(
             content = viewModel.getBacklogAsMarkdown()
         )
     }
-
-    uiState.recordForReminderDialog?.let {
-        ReminderPropertiesDialog(
-            onDismiss = viewModel::onReminderDialogDismiss,
-            onSetReminder = viewModel::onSetReminder,
-            onRemoveReminder = null,
-            currentReminders = uiState.remindersForDialog,
-        )
-    }
-
-    
 
     val draggableItems = remember(listContent) {
         listContent.filterNot { it is ListItemContent.LinkItem }
@@ -270,88 +267,100 @@ private fun ProjectScaffold(
             null
         }
 
-    Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(animatedBackgroundColor),
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        topBar = {
-            val topBarContainerColor = MaterialTheme.colorScheme.surfaceContainer
-            with(sharedTransitionScope) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .sharedElement(
-                            sharedContentState = rememberSharedContentState(key = "project-card-$projectId"),
-                            animatedVisibilityScope = animatedVisibilityScope,
-                            boundsTransform = { _, _ ->
-                                tween(durationMillis = 600, easing = FastOutSlowInEasing)
-                            }
-                        )
-                        .graphicsLayer {
-                            scaleX = glow
-                            scaleY = glow
-                        },
-                    shape = RoundedCornerShape(0.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                    colors = CardDefaults.cardColors(containerColor = topBarContainerColor),
-                ) {
-                    AdaptiveTopBar(
-                        isSelectionModeActive = uiState.isSelectionModeActive,
-                        project = project,
-                        selectedCount = uiState.selectedItemIds.size,
-                        areAllSelected = draggableItems.isNotEmpty() && (uiState.selectedItemIds.size == draggableItems.size),
-                        onClearSelection = { viewModel.selectionHandler.clearSelection() },
-                        onSelectAll = { viewModel.selectionHandler.selectAllItems() },
-                        onDelete = { viewModel.selectionHandler.deleteSelectedItems(uiState.selectedItemIds) },
-                        onMoreActions = { actionType ->
-                            viewModel.selectionHandler.onBulkActionRequest(
-                                actionType,
-                                uiState.selectedItemIds
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(animatedBackgroundColor),
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
+            topBar = {
+                val topBarContainerColor = MaterialTheme.colorScheme.surfaceContainer
+                with(sharedTransitionScope) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .sharedElement(
+                                sharedContentState = rememberSharedContentState(key = "project-card-$projectId"),
+                                animatedVisibilityScope = animatedVisibilityScope,
+                                boundsTransform = { _, _ ->
+                                    tween(durationMillis = 600, easing = FastOutSlowInEasing)
+                                }
                             )
-                        },
-                        onMarkAsComplete = { viewModel.selectionHandler.markSelectedAsComplete(uiState.selectedItemIds) },
-                        onMarkAsIncomplete = { viewModel.selectionHandler.markSelectedAsIncomplete(uiState.selectedItemIds) },
-                        currentViewMode = uiState.currentView,
-                        windowInsets = WindowInsets.statusBars,
-                    )
+                            .graphicsLayer {
+                                scaleX = glow
+                                scaleY = glow
+                            },
+                        shape = RoundedCornerShape(0.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                        colors = CardDefaults.cardColors(containerColor = topBarContainerColor),
+                    ) {
+                        AdaptiveTopBar(
+                            isSelectionModeActive = uiState.isSelectionModeActive,
+                            project = project,
+                            selectedCount = uiState.selectedItemIds.size,
+                            areAllSelected = draggableItems.isNotEmpty() && (uiState.selectedItemIds.size == draggableItems.size),
+                            onClearSelection = { viewModel.selectionHandler.clearSelection() },
+                            onSelectAll = { viewModel.selectionHandler.selectAllItems() },
+                            onDelete = { viewModel.selectionHandler.deleteSelectedItems(uiState.selectedItemIds) },
+                            onMoreActions = { actionType ->
+                                viewModel.selectionHandler.onBulkActionRequest(
+                                    actionType,
+                                    uiState.selectedItemIds
+                                )
+                            },
+                            onInboxClick = {
+                                val today = System.currentTimeMillis()
+                                navController.navigate("day_plan_screen/$today?startTab=INBOX")
+                            },
+                            onMarkAsComplete = { viewModel.selectionHandler.markSelectedAsComplete(uiState.selectedItemIds) },
+                            onMarkAsIncomplete = { viewModel.selectionHandler.markSelectedAsIncomplete(uiState.selectedItemIds) },
+                            currentViewMode = uiState.currentView,
+                            windowInsets = WindowInsets.statusBars,
+                        )
+                    }
                 }
+            },
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            bottomBar = {
+                ProjectBottomBar(
+                    viewModel = viewModel,
+                    navController = navController,
+                    uiState = uiState,
+                    lastOngoingActivity = lastOngoingActivity,
+                    canGoBack = canGoBack,
+                    canGoForward = canGoForward,
+                    menuExpanded = menuExpanded,
+                    onMenuExpandedChange = { menuExpanded = it },
+                    reminderParseResult = reminderParseResult,
+                    suggestions = suggestions,
+                    project = project,
+                    onShowDisplayPropertiesClick = viewModel::onShowDisplayPropertiesDialog,
+                    holdMenuController = holdMenuController
+                )
             }
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        bottomBar = {
-            ProjectBottomBar(
+        ) { paddingValues ->
+            GoalDetailContent(
+                modifier = Modifier
+                    .padding(paddingValues)
+                    .glitch(trigger = uiState.currentView),
                 viewModel = viewModel,
-                navController = navController,
                 uiState = uiState,
-                lastOngoingActivity = lastOngoingActivity,
-                canGoBack = canGoBack,
-                canGoForward = canGoForward,
-                menuExpanded = menuExpanded,
-                onMenuExpandedChange = { menuExpanded = it },
-                reminderParseResult = reminderParseResult,
-                suggestions = suggestions,
-                project = project,
-                onShowDisplayPropertiesClick = viewModel::onShowDisplayPropertiesDialog
+                listState = listState,
+                inboxListState = inboxListState,
+                onEditLog = viewModel::onEditLogEntry,
+                onDeleteLog = viewModel::onDeleteLogEntry,
+                onSaveArtifact = viewModel::onSaveArtifact,
+                onEditArtifact = viewModel::onEditArtifact,
+                onRemindersClick = { item ->
+                    selectedItemForReminders = item
+                    showRemindersListDialog = true
+                }
             )
         }
-    ) { paddingValues ->
-        GoalDetailContent(
-            modifier = Modifier
-                .padding(paddingValues)
-                .glitch(trigger = uiState.currentView),
-            viewModel = viewModel,
-            uiState = uiState,
-            listState = listState,
-            inboxListState = inboxListState,
-            onEditLog = viewModel::onEditLogEntry,
-            onDeleteLog = viewModel::onDeleteLogEntry,
-            onSaveArtifact = viewModel::onSaveArtifact,
-            onEditArtifact = viewModel::onEditArtifact,
-            onRemindersClick = { item ->
-                selectedItemForReminders = item
-                showRemindersListDialog = true
-            }
+
+        HoldMenu2Overlay(
+            controller = holdMenuController,
+            modifier = Modifier.fillMaxSize().zIndex(10f)
         )
     }
 
@@ -377,8 +386,11 @@ private fun ProjectBottomBar(
     reminderParseResult: ReminderParseResult?,
     suggestions: List<String>,
     project: Project?,
-    onShowDisplayPropertiesClick: () -> Unit
+    onShowDisplayPropertiesClick: () -> Unit,
+    holdMenuController: com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller
 ) {
+    val indicatorState = remember { com.romankozak.forwardappmobile.ui.shared.InProgressIndicatorState(isInitiallyExpanded = false) }
+
     Column {
         InProgressIndicator(
             ongoingActivity = lastOngoingActivity,
@@ -387,7 +399,8 @@ private fun ProjectBottomBar(
             onIndicatorClick = {
                 val today = System.currentTimeMillis()
                 navController.navigate("day_plan_screen/$today?startTab=TRACK")
-            }
+            },
+            indicatorState = indicatorState
         )
         AnimatedVisibility(
             visible = !uiState.isSelectionModeActive,
@@ -395,6 +408,7 @@ private fun ProjectBottomBar(
             exit = slideOutVertically { it } + fadeOut(),
         ) {
             ModernInputPanel(
+                holdMenuController = holdMenuController,
                 inputValue = uiState.inputValue,
                 inputMode = uiState.inputMode,
                 onValueChange = { viewModel.inputHandler.onInputTextChanged(it, uiState.inputMode) },
@@ -446,8 +460,6 @@ private fun ProjectBottomBar(
                 onAddMilestone = viewModel::onAddMilestone,
                 onShowCreateNoteDocumentDialog = viewModel::onShowCreateNoteDocumentDialog,
                 onCreateChecklist = viewModel::onCreateChecklist,
-                isViewModePanelVisible = uiState.isViewModePanelVisible,
-                onToggleNavPanelMode = viewModel::onToggleNavPanelMode,
                 suggestions = suggestions,
                 onSuggestionClick = viewModel::onSuggestionClick,
                 onShowDisplayPropertiesClick = onShowDisplayPropertiesClick

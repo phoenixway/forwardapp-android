@@ -40,6 +40,8 @@ constructor(
 
     fun getAllConversations(): Flow<List<ConversationEntity>> = chatDao.getAllConversations()
 
+    suspend fun getConversationByTitle(title: String): ConversationEntity? = chatDao.getConversationByTitle(title)
+
     fun getConversationsWithLastMessage(): Flow<List<ConversationWithLastMessage>> = chatDao.getConversationsWithLastMessage()
 
     fun getDrawerItems(): Flow<List<DrawerItem>> {
@@ -80,6 +82,22 @@ constructor(
             chatDao.deleteMessageById(message.id)
         }
     }
+
+    suspend fun updateMessageContent(
+        messageId: Long,
+        text: String,
+        isStreaming: Boolean,
+        isError: Boolean = false,
+    ) {
+        chatDao.updateMessageContent(
+            messageId = messageId,
+            text = text,
+            isStreaming = isStreaming,
+            isError = isError,
+        )
+    }
+
+    suspend fun getMessageById(messageId: Long) = chatDao.getMessageById(messageId)
 
     // ConversationFolderEntity related operations
     suspend fun createFolder(folderName: String): Long {

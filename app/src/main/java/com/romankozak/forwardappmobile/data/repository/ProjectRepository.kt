@@ -19,6 +19,8 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Provider
 import com.romankozak.forwardappmobile.data.repository.SearchRepository
+import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
+import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentWithProject
 import javax.inject.Singleton
 
 internal enum class ContextTextAction { ADD, REMOVE }
@@ -38,6 +40,7 @@ constructor(
     private val searchRepository: SearchRepository,
     private val noteDocumentRepository: NoteDocumentRepository,
     private val checklistRepository: ChecklistRepository,
+    private val attachmentRepository: AttachmentRepository,
     private val goalRepository: GoalRepository,
     private val inboxRepository: InboxRepository,
     private val projectTimeTrackingRepository: ProjectTimeTrackingRepository,
@@ -102,19 +105,38 @@ constructor(
             listItemRepository.getAllEntitiesAsFlow(),
             legacyNoteRepository.getAllAsFlow(),
             noteDocumentRepository.getAllDocumentsAsFlow(),
-            checklistRepository.getAllChecklistsAsFlow()
+            checklistRepository.getAllChecklistsAsFlow(),
+            attachmentRepository.getAttachmentsForProject(projectId),
         ) { array ->
             @Suppress("UNCHECKED_CAST")
+            val items = array[0] as List<ListItem>
+            @Suppress("UNCHECKED_CAST")
+            val reminders = array[1] as List<Reminder>
+            @Suppress("UNCHECKED_CAST")
+            val goals = array[2] as List<Goal>
+            @Suppress("UNCHECKED_CAST")
+            val projects = array[3] as List<Project>
+            @Suppress("UNCHECKED_CAST")
+            val links = array[4] as List<LinkItemEntity>
+            @Suppress("UNCHECKED_CAST")
+            val notes = array[5] as List<LegacyNoteEntity>
+            @Suppress("UNCHECKED_CAST")
+            val noteDocuments = array[6] as List<NoteDocumentEntity>
+            @Suppress("UNCHECKED_CAST")
+            val checklists = array[7] as List<ChecklistEntity>
+            @Suppress("UNCHECKED_CAST")
+            val attachments = array[8] as List<AttachmentWithProject>
             mapToListItemContent(
                 projectId = projectId,
-                items = array[0] as List<ListItem>,
-                reminders = array[1] as List<Reminder>,
-                goals = array[2] as List<Goal>,
-                projects = array[3] as List<Project>,
-                links = array[4] as List<LinkItemEntity>,
-                notes = array[5] as List<LegacyNoteEntity>,
-                noteDocuments = array[6] as List<NoteDocumentEntity>,
-                checklists = array[7] as List<ChecklistEntity>,
+                items = items,
+                attachments = attachments,
+                reminders = reminders,
+                goals = goals,
+                projects = projects,
+                links = links,
+                notes = notes,
+                noteDocuments = noteDocuments,
+                checklists = checklists,
             )
         }
     }
@@ -122,6 +144,7 @@ constructor(
     private fun mapToListItemContent(
         projectId: String,
         items: List<ListItem>,
+        attachments: List<AttachmentWithProject>,
         reminders: List<Reminder>,
         goals: List<Goal>,
         projects: List<Project>,
@@ -130,6 +153,21 @@ constructor(
         noteDocuments: List<NoteDocumentEntity>,
         checklists: List<ChecklistEntity>,
     ): List<ListItemContent> {
+        val attachmentListItems =
+            attachments.map { attachment ->
+                val order = attachment.attachmentOrder ?: -attachment.attachment.createdAt
+                ListItem(
+                    id = attachment.attachment.id,
+                    projectId = projectId,
+                    itemType = attachment.attachment.attachmentType,
+                    entityId = attachment.attachment.entityId,
+                    order = order,
+                )
+            }
+        val combinedItems =
+            (items + attachmentListItems).sortedWith(
+                compareBy<ListItem> { it.order }.thenBy { it.id },
+            )
         val remindersMap = reminders.groupBy { it.entityId }
         val goalsMap = goals.associateBy { it.id }
         val projectsMap = projects.associateBy { it.id }
@@ -138,7 +176,7 @@ constructor(
         val noteDocumentsMap = noteDocuments.associateBy { it.id }
         val checklistsMap = checklists.associateBy { it.id }
 
-        val backlogItems = items.mapNotNull { item ->
+        val backlogItems = combinedItems.mapNotNull { item ->
             when (item.itemType) {
                 ListItemTypeValues.GOAL ->
                     goalsMap[item.entityId]?.let { goal ->
@@ -184,11 +222,45 @@ constructor(
         targetProjectId: String,
     ) = listItemRepository.moveListItems(itemIds, targetProjectId)
 
-    suspend fun deleteListItems(itemIds: List<String>) = listItemRepository.deleteListItems(itemIds)
+    suspend fun deleteListItems(
+        projectId: String,
+        itemIds: List<String>,
+    ) {
+        if (itemIds.isEmpty()) return
+
+        val backlogIds = mutableListOf<String>()
+
+        for (itemId in itemIds) {
+            val attachment = attachmentRepository.getAttachmentById(itemId)
+            if (attachment != null) {
+                when (attachment.attachmentType) {
+                    ListItemTypeValues.NOTE_DOCUMENT ->
+                        noteDocumentRepository.deleteDocument(attachment.entityId)
+                    ListItemTypeValues.CHECKLIST ->
+                        checklistRepository.deleteChecklist(attachment.entityId)
+                    ListItemTypeValues.LINK_ITEM ->
+                        attachmentRepository.unlinkAttachmentFromProject(itemId, projectId)
+                    else ->
+                        attachmentRepository.unlinkAttachmentFromProject(itemId, projectId)
+                }
+            } else {
+                backlogIds += itemId
+            }
+        }
+
+        if (backlogIds.isNotEmpty()) {
+            listItemRepository.deleteListItems(backlogIds)
+        }
+    }
 
     suspend fun restoreListItems(items: List<ListItem>) = listItemRepository.restoreListItems(items)
 
     suspend fun updateListItemsOrder(items: List<ListItem>) = listItemRepository.updateListItemsOrder(items)
+
+    suspend fun updateAttachmentOrders(
+        projectId: String,
+        updates: List<Pair<String, Long>>,
+    ) = attachmentRepository.updateAttachmentOrders(projectId, updates)
 
 
 
@@ -273,10 +345,8 @@ constructor(
     suspend fun moveProject(
         projectToMove: Project,
         newParentId: String?,
+        allowSystemProjectMoves: Boolean = false,
     ) {
-        if (projectToMove.projectType != ProjectType.DEFAULT) {
-            return
-        }
         val projectFromDb = projectDao.getProjectById(projectToMove.id) ?: return
         val oldParentId = projectFromDb.parentId
 
@@ -323,7 +393,45 @@ constructor(
     suspend fun addLinkItemToProjectFromLink(
         projectId: String,
         link: RelatedLink,
-    ): String = listItemRepository.addLinkItemToProjectFromLink(projectId, link)
+    ): String {
+        val attachment = attachmentRepository.createLinkAttachment(projectId, link)
+        return attachment.id
+    }
+
+    suspend fun linkAttachmentToProject(
+        attachmentId: String,
+        targetProjectId: String,
+    ) = attachmentRepository.linkAttachmentToProject(attachmentId, targetProjectId)
+
+    suspend fun ensureAttachmentLinkedToProject(
+        attachmentType: String,
+        entityId: String,
+        targetProjectId: String,
+        ownerProjectId: String?,
+        createdAt: Long = System.currentTimeMillis(),
+    ): String =
+        attachmentRepository
+            .ensureAttachmentLinkedToProject(
+                attachmentType = attachmentType,
+                entityId = entityId,
+                projectId = targetProjectId,
+                ownerProjectId = ownerProjectId,
+                createdAt = createdAt,
+            ).id
+
+    suspend fun unlinkAttachmentFromProject(
+        projectId: String,
+        attachmentId: String,
+    ): Boolean = attachmentRepository.unlinkAttachmentFromProject(attachmentId, projectId)
+
+    suspend fun deleteAttachmentEverywhere(attachmentId: String) {
+        val attachment = attachmentRepository.getAttachmentById(attachmentId) ?: return
+        when (attachment.attachmentType) {
+            ListItemTypeValues.NOTE_DOCUMENT -> noteDocumentRepository.deleteDocument(attachment.entityId)
+            ListItemTypeValues.CHECKLIST -> checklistRepository.deleteChecklist(attachment.entityId)
+            else -> attachmentRepository.deleteAttachment(attachmentId)
+        }
+    }
 
     suspend fun findProjectIdsByTag(tag: String): List<String> = projectDao.getProjectIdsByTag(tag)
 
