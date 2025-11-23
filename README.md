@@ -1,50 +1,49 @@
 # ForwardAppMobile
 
-ForwardAppMobile — Android-додаток для управління проєктами, цілями та особистою ефективністю: беклог, щоденний план, нагадування, трекер активностей, стратегічний шар і експериментальні можливості (AI/файли/Wi‑Fi синк).
+ForwardAppMobile is an Android app for managing projects, goals, and personal productivity: backlog, daily plan, reminders, activity tracking, strategic view, and experimental capabilities (AI/files/Wi‑Fi sync).
 
-## Основні фічі
-- Беклог проєкту з свайпами, вибором, переміщенням і швидкими діями (додавання до дня, трекінг, нагадування).
-- Розширена навігація: головний екран з планувальними режимами, історією, пошуком, контекстами; окремі екрани дня, трекера, стратегічного менеджменту.
-- Нагадування та трекінг активностей: ReminderPropertiesDialog, ActivityTracker, інтеграція з записами проєктів/цілей.
-- Вкладення й документи: бібліотека вкладень (експериментальна), редактор документів/чеклістів, посилання на зовнішні ресурси.
-- Wi‑Fi синк/імпорт (експериментально), експериментальні фічі з керуванням через налаштування.
-- Тоглери фіч: `FeatureFlag`/`FeatureToggles` збережені у DataStore та керовані в налаштуваннях.
+## Highlights
+- Project backlog with swipes, selection/reorder, and quick actions (add to day plan, start tracking, reminders).
+- Rich navigation: main screen with planning modes, history, search, contexts; dedicated screens for day plan, tracker, and strategic management.
+- Reminders and activity tracking: `ReminderPropertiesDialog`, ActivityTracker, integration with project/goal records.
+- Attachments and documents: experimental attachment library, document/checklist editor, external links.
+- Wi‑Fi sync/import (experimental) with feature toggles to disable in production.
+- Feature flags: `FeatureFlag`/`FeatureToggles` persisted via DataStore and controlled from Settings.
 
-Детальний огляд фіч і ключових файлів: `docs/FEATURES2.md`.
+See `docs/FEATURES2.md` for a feature/file map.
 
-## Архітектура (скорочено)
-- **UI/Compose**: `ui/screens/*`, `ui/features/*`, спільні компоненти в `features/common`.
-- **Домени/репозиторії**: `data/repository/*`, моделі/DAO в `data/database/*`.
-- **Навігація**: графи у `routes/*`.
-- **Фічетогли**: `config/FeatureFlag.kt`, `config/FeatureToggles.kt`, налаштування `ui/screens/settings/*`.
-- **Інтеграції**: Wi‑Fi синк (`ui/screens/mainscreen/usecases/SyncUseCase.kt`, `WifiSyncServer.kt`), AI/чат маршрути (`routes/ChatRoute.kt`).
+## Architecture at a Glance
+- **UI/Compose**: `ui/screens/*`, `ui/features/*`, shared components in `features/common`.
+- **Domain/Repositories**: `data/repository/*`, models/DAO in `data/database/*`.
+- **Navigation**: graphs in `routes/*`.
+- **Feature toggles**: `config/FeatureFlag.kt`, `config/FeatureToggles.kt`, settings UI in `ui/screens/settings/*`.
+- **Integrations**: Wi‑Fi sync (`ui/screens/mainscreen/usecases/SyncUseCase.kt`, `WifiSyncServer.kt`), AI/chat routes (`routes/ChatRoute.kt`).
 
-## Швидкий старт (локальна збірка)
+## Getting Started (local)
 ```bash
-# Встановлення залежностей
-./gradlew tasks   # перевірити доступність Gradle wrapper
+# Check Gradle wrapper
+./gradlew tasks
 
-# Збірка
+# Build
 ./gradlew :app:assembleDebug
 
-# Тести (якщо потрібні)
+# Tests (optional)
 ./gradlew :app:testDebugUnitTest
 ```
 
-## Керування фічами (feature toggles)
-- Тоглери зберігаються у DataStore (`SettingsRepository.featureTogglesFlow`).
-- Керування у UI: Settings → Experimental Features (Attachments library, Planning modes, Wi‑Fi sync, Strategic management, System project moves тощо).
-- Програмно: `FeatureToggles.isEnabled(FeatureFlag.X)`; оновлення через `SettingsViewModel.updateFeatureToggle`.
+## Feature Toggles
+- Stored in DataStore (`SettingsRepository.featureTogglesFlow`).
+- UI controls: Settings → Experimental Features (Attachments library, Planning modes, Wi‑Fi sync, Strategic management, System project moves, etc.).
+- Programmatic check: `FeatureToggles.isEnabled(FeatureFlag.X)`; update via `SettingsViewModel` helpers.
 
-## Корисні шляхи
-- Головний екран і навігація: `ui/screens/mainscreen/*`, `routes/AppNavigation.kt`.
-- Беклог/проєкт: `ui/screens/projectscreen/*`, `ui/features/backlog/*`.
-- Нагадування: `ui/reminders/dialogs/ReminderPropertiesDialog.kt`, VM-хендлери в `ProjectScreenViewModel.kt`.
-- Вкладення: `features/attachments/ui/library/*`.
-- Синк: `ui/screens/mainscreen/usecases/SyncUseCase.kt`, `WifiSyncServer.kt`.
+## Useful Paths
+- Main screen & navigation: `ui/screens/mainscreen/*`, `routes/AppNavigation.kt`.
+- Backlog/project: `ui/screens/projectscreen/*`, `ui/features/backlog/*`.
+- Reminders: `ui/reminders/dialogs/ReminderPropertiesDialog.kt`, handlers in `ProjectScreenViewModel.kt`.
+- Attachments: `features/attachments/ui/library/*`.
+- Sync: `ui/screens/mainscreen/usecases/SyncUseCase.kt`, `WifiSyncServer.kt`.
 
-## Документація
-- Архітектурні нотатки: `docs/ARCHITECTURE_NOTES.md`.
-- Огляд фіч і ключових файлів: `docs/FEATURES2.md`.
-- Компонент HoldMenu2: `docs/HoldMenu2-manual.md`.
-
+## Documentation
+- Architecture notes: `docs/ARCHITECTURE_NOTES.md`.
+- Feature/file overview: `docs/FEATURES2.md`.
+- HoldMenu2 component: `docs/HoldMenu2-manual.md`.
