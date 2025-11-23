@@ -38,6 +38,8 @@ import kotlinx.coroutines.withContext
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SearchUseCase
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.DialogUseCase
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.PlanningUseCase
+import com.romankozak.forwardappmobile.data.database.models.ReservedGroup
+import com.romankozak.forwardappmobile.data.database.models.ReservedProjectKeys
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.ProjectActionsUseCase
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SyncUseCase
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.ThemingUseCase
@@ -576,13 +578,11 @@ constructor(
       }
       is MainScreenEvent.OpenInboxProject -> {
         viewModelScope.launch {
-          val specialProject = _allProjectsFlat.value.find { it.projectType == com.romankozak.forwardappmobile.data.database.models.ProjectType.SYSTEM }
-          if (specialProject == null) {
-            _uiEventChannel.send(ProjectUiEvent.ShowToast("System projects not found"))
-            return@launch
-          }
-
-          val inboxProject = _allProjectsFlat.value.find { it.reservedGroup == com.romankozak.forwardappmobile.data.database.models.ReservedGroup.Inbox && it.parentId == specialProject.id }
+          val inboxProject =
+              _allProjectsFlat.value.firstOrNull { it.systemKey == ReservedProjectKeys.INBOX }
+                  ?: _allProjectsFlat.value.firstOrNull {
+                      it.reservedGroup == ReservedGroup.Inbox && it.systemKey != ReservedProjectKeys.TODAY
+                  }
           if (inboxProject == null) {
             _uiEventChannel.send(ProjectUiEvent.ShowToast("Inbox project not found"))
             return@launch
