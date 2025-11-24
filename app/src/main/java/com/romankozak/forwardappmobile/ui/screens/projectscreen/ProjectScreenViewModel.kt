@@ -38,6 +38,7 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.TagUt
 import com.romankozak.forwardappmobile.features.attachments.ui.project.AttachmentType
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.inputpanel.InputHandler
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.inputpanel.InputMode
+import com.romankozak.forwardappmobile.ui.features.backlog.withCompletedAtEnd
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.InboxHandler
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.InboxHandlerResultListener
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.InboxMarkdownHandler
@@ -531,7 +532,7 @@ constructor(
     viewModelScope.launch {
         databaseContentStream.collect { dbContent ->
             Log.d(TAG, "databaseContentStream collected, list size: ${dbContent.size}")
-            _listContent.value = dbContent
+            _listContent.value = dbContent.withCompletedAtEnd()
         }
     }
 
@@ -1011,8 +1012,9 @@ constructor(
         val currentContent = _listContent.value.toMutableList()
         val movedItem = currentContent.removeAt(fromIndex)
         currentContent.add(toIndex, movedItem)
-        _listContent.value = currentContent
-        saveListOrder(currentContent)
+        val reorderedContent = currentContent.withCompletedAtEnd()
+        _listContent.value = reorderedContent
+        saveListOrder(reorderedContent)
     }
   }
 

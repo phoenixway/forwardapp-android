@@ -13,7 +13,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Inbox
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -66,7 +65,7 @@ fun FocusedProjectView(
   if (focusedProject != null) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
       stickyHeader(key = "focused-project-header") {
-        Column(Modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
+        Box(Modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
           BreadcrumbNavigation(
             breadcrumbs = breadcrumbs,
             onNavigate = { onEvent(MainScreenEvent.BreadcrumbNavigation(it)) },
@@ -76,12 +75,6 @@ fun FocusedProjectView(
                 .find { it.id == projectId }
                 ?.let { onEvent(MainScreenEvent.ProjectMenuRequest(it)) }
             },
-          )
-          HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-          FocusedProjectHeader(
-            project = focusedProject,
-            onMoreActionsClick = { onMenuRequested(focusedProject) },
-            onProjectClick = { onProjectClick(focusedProject.id) },
           )
         }
       }

@@ -107,10 +107,27 @@ fun MainScreenScaffold(
         topBar = {
             val isSearchActive = uiState.subStateStack.any { it is MainSubState.LocalSearch }
             val isFocusMode = uiState.currentBreadcrumbs.isNotEmpty()
+            val focusedProjectId = (uiState.currentSubState as? MainSubState.ProjectFocused)?.projectId
+            val focusedProjectTitle =
+                focusedProjectId?.let { id ->
+                    uiState.projectHierarchy.allProjects.find { it.id == id }?.name
+                        ?: uiState.currentBreadcrumbs.lastOrNull()?.name
+                }
 
             MainScreenTopAppBar(
                 isSearchActive = isSearchActive,
                 isFocusMode = isFocusMode,
+                focusedProjectTitle = focusedProjectTitle,
+                focusedProjectMenuClick = focusedProjectId?.let { id ->
+                    {
+                        uiState.projectHierarchy.allProjects.find { it.id == id }?.let {
+                            onEvent(MainScreenEvent.ProjectMenuRequest(it))
+                        }
+                    }
+                },
+                focusedProjectOpenClick = focusedProjectId?.let { id ->
+                    { onEvent(MainScreenEvent.ProjectClick(id)) }
+                },
                 canGoBack = uiState.canGoBack,
                 canGoForward = uiState.canGoForward,
                 onGoBack = { onEvent(MainScreenEvent.BackClick) },
