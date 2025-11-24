@@ -6,6 +6,7 @@ import android.content.Intent
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.media.RingtoneManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
@@ -51,12 +52,16 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
+import com.romankozak.forwardappmobile.data.repository.RingtoneSettings
+import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.ui.theme.ForwardAppMobileTheme
+import com.romankozak.forwardappmobile.domain.reminders.RingtoneType
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -69,10 +74,14 @@ class ReminderLockScreenActivity : ComponentActivity() {
   @Inject
   lateinit var reminderRepository: com.romankozak.forwardappmobile.data.repository.ReminderRepository
 
+  @Inject
+  lateinit var settingsRepository: SettingsRepository
+
   private var wakeLock: PowerManager.WakeLock? = null
   private var mediaPlayer: MediaPlayer? = null
   private var vibrator: Vibrator? = null
   private val tag = "LockScreenReminder"
+  private var selectedRingtoneUri: Uri? = null
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -104,6 +113,10 @@ class ReminderLockScreenActivity : ComponentActivity() {
 
     Log.d(tag, "ReminderLockScreenActivity created for goal: $goalId")
 
+    selectedRingtoneUri = loadRingtoneUri()
+
+    setupLockScreenFlags()
+
     val notificationManager =
       getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
     notificationManager.cancel(ReminderBroadcastReceiver.Companion.getNotificationId(reminderId))
@@ -113,7 +126,7 @@ class ReminderLockScreenActivity : ComponentActivity() {
     val goalEmoji = intent.getStringExtra(ReminderBroadcastReceiver.Companion.EXTRA_GOAL_EMOJI) ?: "🎯"
     val extraInfo = intent.getStringExtra(ReminderBroadcastReceiver.Companion.EXTRA_INFO)
 
-    startAlarmSoundAndVibration()
+    startAlarmSoundAndVibration(selectedRingtoneUri)
 
     setContent {
       ForwardAppMobileTheme {
@@ -140,13 +153,6 @@ class ReminderLockScreenActivity : ComponentActivity() {
           Log.d(tag, "Back button pressed - ignored to prevent accidental dismiss")
         }
       },
-    )
-
-    window.addFlags(
-      WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-        WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
-        WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
-        WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
     )
   }
 
@@ -212,11 +218,53 @@ class ReminderLockScreenActivity : ComponentActivity() {
     Log.d(tag, "Wake lock acquired")
   }
 
-  private fun startAlarmSoundAndVibration() {
+  private fun loadRingtoneUri(): Uri? =
+    runBlocking {
+      try {
+        val ringtoneSettings: RingtoneSettings = settingsRepository.getRingtoneSettings()
+        val storedUri = ringtoneSettings.uris[ringtoneSettings.currentType].orEmpty()
+        val resolved = storedUri.takeIf { it.isNotBlank() }?.let { Uri.parse(it) }
+          ?: defaultUriFor(ringtoneSettings.currentType)
+        Log.d(tag, "Ringtone resolved: type=${ringtoneSettings.currentType} uri=$resolved")
+        resolved
+      } catch (e: Exception) {
+        Log.w(tag, "Failed to load ringtone settings, using fallback", e)
+        fallbackRingtone()
+      }
+    }
+
+  private fun loadRingtoneVolume(): Float =
+    runBlocking {
+      try {
+        val settings = settingsRepository.getRingtoneSettings()
+        settings.volumes[settings.currentType]?.coerceIn(0f, 1f) ?: 1f
+      } catch (e: Exception) {
+        Log.w(tag, "Failed to load ringtone volume, using default", e)
+        1f
+      }
+    }
+
+  private fun defaultUriFor(type: RingtoneType): Uri? =
+    when (type) {
+      RingtoneType.Energetic -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+      RingtoneType.Moderate -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+      RingtoneType.Quiet -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+    }
+
+  private fun fallbackRingtone(): Uri? {
+    return defaultUriFor(RingtoneType.Energetic)
+      ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+      ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+  }
+
+  private fun startAlarmSoundAndVibration(customUri: Uri?) {
     try {
-      val alarmUri =
-        RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-          ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+      val alarmUri = customUri ?: fallbackRingtone()
+
+      if (alarmUri == null) {
+        Log.e(tag, "No ringtone URI available")
+        return
+      }
 
       mediaPlayer =
         MediaPlayer().apply {
@@ -229,6 +277,8 @@ class ReminderLockScreenActivity : ComponentActivity() {
           )
           isLooping = true
           prepare()
+          val volume = loadRingtoneVolume()
+          setVolume(volume, volume)
           start()
         }
       Log.d(tag, "Alarm sound started")

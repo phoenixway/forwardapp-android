@@ -10,9 +10,11 @@ import com.romankozak.forwardappmobile.config.FeatureFlag
 import com.romankozak.forwardappmobile.config.FeatureToggles
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.data.repository.RolesRepository
+import com.romankozak.forwardappmobile.data.repository.RingtoneSettings
 import com.romankozak.forwardappmobile.domain.aichat.OllamaService
 import com.romankozak.forwardappmobile.domain.ner.NerManager
 import com.romankozak.forwardappmobile.domain.ner.NerState
+import com.romankozak.forwardappmobile.domain.reminders.RingtoneType
 import com.romankozak.forwardappmobile.ui.ModelsState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -50,6 +52,17 @@ data class SettingsUiState(
     val aiChatEnabled: Boolean = FeatureToggles.isEnabled(FeatureFlag.AiChat),
     val aiInsightsEnabled: Boolean = FeatureToggles.isEnabled(FeatureFlag.AiInsights),
     val aiLifeManagementEnabled: Boolean = FeatureToggles.isEnabled(FeatureFlag.AiLifeManagement),
+    val ringtoneType: RingtoneType = RingtoneType.Energetic,
+    val ringtoneUris: Map<RingtoneType, String> = mapOf(
+        RingtoneType.Energetic to "",
+        RingtoneType.Moderate to "",
+        RingtoneType.Quiet to "",
+    ),
+    val ringtoneVolumes: Map<RingtoneType, Float> = mapOf(
+        RingtoneType.Energetic to 1f,
+        RingtoneType.Moderate to 0.8f,
+        RingtoneType.Quiet to 0.5f,
+    ),
 )
 
 @HiltViewModel
@@ -87,9 +100,15 @@ class SettingsViewModel @Inject constructor(
                 settingsRepo.ollamaPortFlow,
                 settingsRepo.fastApiPortFlow,
                 settingsRepo.featureTogglesFlow,
+                settingsRepo.ringtoneTypeFlow,
+                settingsRepo.ringtoneUrisFlow,
+                settingsRepo.ringtoneVolumesFlow,
             )
             combine(settingsFlows) { values ->
                 val featureToggles = values[12] as Map<FeatureFlag, Boolean>
+                val ringtoneType = values[13] as RingtoneType
+                val ringtoneUris = values[14] as Map<RingtoneType, String>
+                val ringtoneVolumes = values[15] as Map<RingtoneType, Float>
                 val attachmentsEnabled = featureToggles[FeatureFlag.AttachmentsLibrary] ?: FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary)
                 val allowSystemMoves = featureToggles[FeatureFlag.AllowSystemProjectMoves] ?: FeatureToggles.isEnabled(FeatureFlag.AllowSystemProjectMoves)
                 val planningModesEnabled = featureToggles[FeatureFlag.PlanningModes] ?: FeatureToggles.isEnabled(FeatureFlag.PlanningModes)
@@ -122,6 +141,9 @@ class SettingsViewModel @Inject constructor(
                         aiChatEnabled = aiChatEnabled,
                         aiInsightsEnabled = aiInsightsEnabled,
                         aiLifeManagementEnabled = aiLifeEnabled,
+                        ringtoneType = ringtoneType,
+                        ringtoneUris = ringtoneUris,
+                        ringtoneVolumes = ringtoneVolumes,
                     )
                 }
             }.collect {
@@ -290,6 +312,18 @@ class SettingsViewModel @Inject constructor(
         updateFeatureToggle(FeatureFlag.AiLifeManagement, enabled)
     }
 
+    fun onRingtoneTypeSelected(type: RingtoneType) {
+        _uiState.update { it.copy(ringtoneType = type) }
+    }
+
+    fun onRingtoneUriSelected(type: RingtoneType, uri: String) {
+        _uiState.update { it.copy(ringtoneUris = it.ringtoneUris + (type to uri)) }
+    }
+
+    fun onRingtoneVolumeChanged(type: RingtoneType, volume: Float) {
+        _uiState.update { it.copy(ringtoneVolumes = it.ringtoneVolumes + (type to volume.coerceIn(0f, 1f))) }
+    }
+
     fun saveSettings() {
         viewModelScope.launch {
             val currentState = _uiState.value
@@ -308,6 +342,13 @@ class SettingsViewModel @Inject constructor(
                 ollamaPort = currentState.ollamaPort,
                 fastApiPort = currentState.fastApiPort,
             )
+            settingsRepo.saveRingtoneType(currentState.ringtoneType)
+            currentState.ringtoneUris.forEach { (type, uri) ->
+                settingsRepo.saveRingtoneUri(type, uri)
+            }
+            currentState.ringtoneVolumes.forEach { (type, volume) ->
+                settingsRepo.saveRingtoneVolume(type, volume)
+            }
             settingsRepo.saveThemeSettings(currentState.themeSettings)
             FeatureFlag.values().forEach { flag ->
                 val enabled = currentState.featureToggles[flag] ?: FeatureToggles.isEnabled(flag)

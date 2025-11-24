@@ -49,6 +49,7 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningSett
 import com.romankozak.forwardappmobile.ui.screens.settings.components.NerSettingsCard
 import com.romankozak.forwardappmobile.ui.screens.settings.components.PermissionsSettingsCard
 import com.romankozak.forwardappmobile.ui.screens.settings.components.RolesSettingsCard
+import com.romankozak.forwardappmobile.ui.screens.settings.components.RingtoneSettingsCard
 import com.romankozak.forwardappmobile.ui.screens.settings.components.ServerSettingsCard
 import com.romankozak.forwardappmobile.ui.screens.settings.components.ThemeSettingsCard
 import com.romankozak.forwardappmobile.ui.screens.settings.models.PlanningSettings
@@ -107,7 +108,10 @@ fun SettingsScreen(
                 uiState.nerTokenizerUri != it.nerTokenizerUri ||
                 uiState.nerLabelsUri != it.nerLabelsUri ||
                 uiState.rolesFolderUri != it.rolesFolderUri ||
-                uiState.themeSettings != it.themeSettings
+                uiState.themeSettings != it.themeSettings ||
+                uiState.ringtoneType != it.ringtoneType ||
+                uiState.ringtoneUris != it.ringtoneUris ||
+                uiState.ringtoneVolumes != it.ringtoneVolumes
             } ?: false
 
             planningIsDirty || viewModelIsDirty
@@ -164,6 +168,15 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             PermissionsSettingsCard()
+
+            RingtoneSettingsCard(
+                currentType = uiState.ringtoneType,
+                ringtoneUris = uiState.ringtoneUris,
+                ringtoneVolumes = uiState.ringtoneVolumes,
+                onTypeSelected = viewModel::onRingtoneTypeSelected,
+                onRingtonePicked = viewModel::onRingtoneUriSelected,
+                onVolumeChanged = viewModel::onRingtoneVolumeChanged,
+            )
 
             ThemeSettingsCard(
                 themeSettings = uiState.themeSettings,

@@ -15,6 +15,7 @@ import com.romankozak.forwardappmobile.BuildConfig
 import com.romankozak.forwardappmobile.config.FeatureFlag
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.PlanningSettingsProvider
+import com.romankozak.forwardappmobile.domain.reminders.RingtoneType
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -42,6 +43,12 @@ sealed class ServerDiscoveryState {
     data class Error(val message: String) : ServerDiscoveryState()
 }
 
+data class RingtoneSettings(
+    val currentType: RingtoneType,
+    val uris: Map<RingtoneType, String>,
+    val volumes: Map<RingtoneType, Float>,
+)
+
 @Singleton
 class SettingsRepository @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -53,6 +60,13 @@ class SettingsRepository @Inject constructor(
     private val wifiSyncPortKey = intPreferencesKey("wifi_sync_port")
     private val ollamaPortKey = intPreferencesKey("ollama_port")
     private val fastApiPortKey = intPreferencesKey("fastapi_port")
+    private val ringtoneTypeKey = stringPreferencesKey("ringtone_type")
+    private val ringtoneEnergeticKey = stringPreferencesKey("ringtone_uri_energetic")
+    private val ringtoneModerateKey = stringPreferencesKey("ringtone_uri_moderate")
+    private val ringtoneQuietKey = stringPreferencesKey("ringtone_uri_quiet")
+    private val ringtoneEnergeticVolumeKey = floatPreferencesKey("ringtone_volume_energetic")
+    private val ringtoneModerateVolumeKey = floatPreferencesKey("ringtone_volume_moderate")
+    private val ringtoneQuietVolumeKey = floatPreferencesKey("ringtone_volume_quiet")
 
 
     val serverIpConfigurationModeFlow: Flow<String> = context.dataStore.data.map {
@@ -86,6 +100,29 @@ class SettingsRepository @Inject constructor(
             it[stringPreferencesKey(fastApiPortKey.name)]?.toIntOrNull() ?: 8000
         }
     }
+
+    val ringtoneTypeFlow: Flow<RingtoneType> =
+        context.dataStore.data.map { prefs ->
+            RingtoneType.fromStorage(prefs[ringtoneTypeKey])
+        }
+
+    val ringtoneUrisFlow: Flow<Map<RingtoneType, String>> =
+        context.dataStore.data.map { prefs ->
+            mapOf(
+                RingtoneType.Energetic to (prefs[ringtoneEnergeticKey] ?: ""),
+                RingtoneType.Moderate to (prefs[ringtoneModerateKey] ?: ""),
+                RingtoneType.Quiet to (prefs[ringtoneQuietKey] ?: ""),
+            )
+        }
+
+    val ringtoneVolumesFlow: Flow<Map<RingtoneType, Float>> =
+        context.dataStore.data.map { prefs ->
+            mapOf(
+                RingtoneType.Energetic to (prefs[ringtoneEnergeticVolumeKey] ?: 1.0f),
+                RingtoneType.Moderate to (prefs[ringtoneModerateVolumeKey] ?: 0.8f),
+                RingtoneType.Quiet to (prefs[ringtoneQuietVolumeKey] ?: 0.5f),
+            )
+        }
 
     private val featureToggleKeys: Map<FeatureFlag, androidx.datastore.preferences.core.Preferences.Key<Boolean>> =
         FeatureFlag.values().associateWith { flag -> booleanPreferencesKey("feature_toggle_${flag.storageKey}") }
@@ -140,6 +177,40 @@ class SettingsRepository @Inject constructor(
         context.dataStore.edit { prefs ->
             prefs[featureToggleKeys[flag]!!] = enabled
         }
+    }
+
+    suspend fun saveRingtoneType(type: RingtoneType) {
+        context.dataStore.edit { prefs ->
+            prefs[ringtoneTypeKey] = type.storageKey
+        }
+    }
+
+    suspend fun saveRingtoneUri(type: RingtoneType, uri: String) {
+        context.dataStore.edit { prefs ->
+            when (type) {
+                RingtoneType.Energetic -> prefs[ringtoneEnergeticKey] = uri
+                RingtoneType.Moderate -> prefs[ringtoneModerateKey] = uri
+                RingtoneType.Quiet -> prefs[ringtoneQuietKey] = uri
+            }
+        }
+    }
+
+    suspend fun saveRingtoneVolume(type: RingtoneType, volume: Float) {
+        val clamped = volume.coerceIn(0f, 1f)
+        context.dataStore.edit { prefs ->
+            when (type) {
+                RingtoneType.Energetic -> prefs[ringtoneEnergeticVolumeKey] = clamped
+                RingtoneType.Moderate -> prefs[ringtoneModerateVolumeKey] = clamped
+                RingtoneType.Quiet -> prefs[ringtoneQuietVolumeKey] = clamped
+            }
+        }
+    }
+
+    suspend fun getRingtoneSettings(): RingtoneSettings {
+        val type = ringtoneTypeFlow.first()
+        val uris = ringtoneUrisFlow.first()
+        val volumes = ringtoneVolumesFlow.first()
+        return RingtoneSettings(type, uris, volumes)
     }
 
     fun discoverServer(): Flow<ServerDiscoveryState> = callbackFlow {
