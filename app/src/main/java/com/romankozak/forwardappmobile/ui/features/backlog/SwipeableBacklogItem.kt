@@ -12,10 +12,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Delete
@@ -38,6 +40,7 @@ import androidx.compose.runtime.withFrameNanos
 import kotlin.math.absoluteValue
 import kotlinx.coroutines.delay
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -189,39 +192,49 @@ fun SwipeableBacklogItem(
         }
 
         if (offsetX < 0f) {
-            Row(
+            Box(
                 modifier = Modifier
                     .width(rightActionWidth)
+                    .fillMaxHeight()
                     .align(Alignment.CenterEnd)
-                    .padding(end = 16.dp, start = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End),
+                    .padding(end = 12.dp, start = 8.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(MaterialTheme.colorScheme.error.copy(alpha = 0.18f)),
             ) {
-                SwipeActionButton(
-                    icon = Icons.Default.Done,
-                    contentDescription = "Complete",
-                    color = MaterialTheme.colorScheme.primary,
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    onCheckedChange(item, !isCompleted)
-                    resetSwipe()
-                }
-                SwipeActionButton(
-                    icon = Icons.Default.Delete,
-                    contentDescription = "Delete",
-                    color = MaterialTheme.colorScheme.error,
-                ) {
-                    onDelete(item)
-                    resetSwipe()
-                }
-                SwipeActionButton(
-                    icon = Icons.Default.Notifications,
-                    contentDescription = "Reminder properties",
-                    color = MaterialTheme.colorScheme.secondary,
-                ) {
-                    coroutineScope.launch {
-                        offsetX = 0f
-                        withFrameNanos { }
-                        withFrameNanos { }
-                        onRemindersClick(item)
+                    SwipeActionButton(
+                        icon = Icons.Default.Done,
+                        contentDescription = "Complete",
+                        color = MaterialTheme.colorScheme.primary,
+                    ) {
+                        onCheckedChange(item, !isCompleted)
+                        resetSwipe()
+                    }
+                    SwipeActionButton(
+                        icon = Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        color = MaterialTheme.colorScheme.error,
+                    ) {
+                        onDelete(item)
+                        resetSwipe()
+                    }
+                    SwipeActionButton(
+                        icon = Icons.Default.Notifications,
+                        contentDescription = "Reminder properties",
+                        color = MaterialTheme.colorScheme.secondary,
+                    ) {
+                        coroutineScope.launch {
+                            offsetX = 0f
+                            withFrameNanos { }
+                            withFrameNanos { }
+                            onRemindersClick(item)
+                        }
                     }
                 }
             }

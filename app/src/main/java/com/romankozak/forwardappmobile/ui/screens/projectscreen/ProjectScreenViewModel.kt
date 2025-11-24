@@ -733,6 +733,21 @@ constructor(
             .find { it.target == target }
         if (link != null) {
           onLinkItemClick(link)
+        } else {
+          val project =
+            withContext(ioDispatcher) { projectRepository.getProjectById(target) }
+          when {
+            project != null -> {
+              enhancedNavigationManager.navigateToProject(project.id, project.name)
+            }
+            target.startsWith("http://") || target.startsWith("https://") -> {
+              _uiEventFlow.send(UiEvent.OpenUri(target))
+            }
+            else -> {
+              Log.w(TAG, "Unknown related link target: $target")
+              _uiEventFlow.send(UiEvent.ShowSnackbar("Невідоме посилання: $target", null))
+            }
+          }
         }
       } else {
 
