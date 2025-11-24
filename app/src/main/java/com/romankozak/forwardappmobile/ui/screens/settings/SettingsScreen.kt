@@ -111,7 +111,8 @@ fun SettingsScreen(
                 uiState.themeSettings != it.themeSettings ||
                 uiState.ringtoneType != it.ringtoneType ||
                 uiState.ringtoneUris != it.ringtoneUris ||
-                uiState.ringtoneVolumes != it.ringtoneVolumes
+                uiState.ringtoneVolumes != it.ringtoneVolumes ||
+                uiState.reminderVibrationEnabled != it.reminderVibrationEnabled
             } ?: false
 
             planningIsDirty || viewModelIsDirty
@@ -173,9 +174,11 @@ fun SettingsScreen(
                 currentType = uiState.ringtoneType,
                 ringtoneUris = uiState.ringtoneUris,
                 ringtoneVolumes = uiState.ringtoneVolumes,
+                vibrationEnabled = uiState.reminderVibrationEnabled,
                 onTypeSelected = viewModel::onRingtoneTypeSelected,
                 onRingtonePicked = viewModel::onRingtoneUriSelected,
                 onVolumeChanged = viewModel::onRingtoneVolumeChanged,
+                onVibrationToggle = viewModel::onReminderVibrationToggle,
             )
 
             ThemeSettingsCard(

@@ -67,6 +67,7 @@ class SettingsRepository @Inject constructor(
     private val ringtoneEnergeticVolumeKey = floatPreferencesKey("ringtone_volume_energetic")
     private val ringtoneModerateVolumeKey = floatPreferencesKey("ringtone_volume_moderate")
     private val ringtoneQuietVolumeKey = floatPreferencesKey("ringtone_volume_quiet")
+    private val reminderVibrationEnabledKey = booleanPreferencesKey("reminder_vibration_enabled")
 
 
     val serverIpConfigurationModeFlow: Flow<String> = context.dataStore.data.map {
@@ -122,6 +123,11 @@ class SettingsRepository @Inject constructor(
                 RingtoneType.Moderate to (prefs[ringtoneModerateVolumeKey] ?: 0.8f),
                 RingtoneType.Quiet to (prefs[ringtoneQuietVolumeKey] ?: 0.5f),
             )
+        }
+
+    val reminderVibrationEnabledFlow: Flow<Boolean> =
+        context.dataStore.data.map { prefs ->
+            prefs[reminderVibrationEnabledKey] ?: true
         }
 
     private val featureToggleKeys: Map<FeatureFlag, androidx.datastore.preferences.core.Preferences.Key<Boolean>> =
@@ -206,12 +212,20 @@ class SettingsRepository @Inject constructor(
         }
     }
 
+    suspend fun setReminderVibrationEnabled(enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[reminderVibrationEnabledKey] = enabled
+        }
+    }
+
     suspend fun getRingtoneSettings(): RingtoneSettings {
         val type = ringtoneTypeFlow.first()
         val uris = ringtoneUrisFlow.first()
         val volumes = ringtoneVolumesFlow.first()
         return RingtoneSettings(type, uris, volumes)
     }
+
+    suspend fun isReminderVibrationEnabled(): Boolean = reminderVibrationEnabledFlow.first()
 
     fun discoverServer(): Flow<ServerDiscoveryState> = callbackFlow {
         val job = launch(Dispatchers.IO) {

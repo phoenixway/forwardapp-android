@@ -244,6 +244,13 @@ class ReminderLockScreenActivity : ComponentActivity() {
       }
     }
 
+  private fun isVibrationEnabled(): Boolean =
+    runBlocking {
+      runCatching { settingsRepository.isReminderVibrationEnabled() }
+        .onFailure { Log.w(tag, "Failed to read vibration setting, defaulting to ON", it) }
+        .getOrDefault(true)
+    }
+
   private fun defaultUriFor(type: RingtoneType): Uri? =
     when (type) {
       RingtoneType.Energetic -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
@@ -286,25 +293,29 @@ class ReminderLockScreenActivity : ComponentActivity() {
       Log.e(tag, "Failed to start alarm sound", e)
     }
 
-    try {
-      vibrator =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-          val vibratorManager = getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
-          vibratorManager.defaultVibrator
-        } else {
-          @Suppress("DEPRECATION")
-          getSystemService(VIBRATOR_SERVICE) as Vibrator
-        }
+    if (isVibrationEnabled()) {
+      try {
+        vibrator =
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vibratorManager = getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            vibratorManager.defaultVibrator
+          } else {
+            @Suppress("DEPRECATION")
+            getSystemService(VIBRATOR_SERVICE) as Vibrator
+          }
 
-      val vibrationPattern = longArrayOf(0, 800, 400, 800)
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        vibrator?.vibrate(VibrationEffect.createWaveform(vibrationPattern, 0))
-      } else {
-        @Suppress("DEPRECATION") vibrator?.vibrate(vibrationPattern, 0)
+        val vibrationPattern = longArrayOf(0, 800, 400, 800)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+          vibrator?.vibrate(VibrationEffect.createWaveform(vibrationPattern, 0))
+        } else {
+          @Suppress("DEPRECATION") vibrator?.vibrate(vibrationPattern, 0)
+        }
+        Log.d(tag, "Vibration started")
+      } catch (e: Exception) {
+        Log.e(tag, "Failed to start vibration", e)
       }
-      Log.d(tag, "Vibration started")
-    } catch (e: Exception) {
-      Log.e(tag, "Failed to start vibration", e)
+    } else {
+      Log.d(tag, "Vibration disabled in settings; skipping vibration.")
     }
   }
 

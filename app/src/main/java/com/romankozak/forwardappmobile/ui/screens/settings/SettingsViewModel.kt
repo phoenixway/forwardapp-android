@@ -63,6 +63,7 @@ data class SettingsUiState(
         RingtoneType.Moderate to 0.8f,
         RingtoneType.Quiet to 0.5f,
     ),
+    val reminderVibrationEnabled: Boolean = true,
 )
 
 @HiltViewModel
@@ -103,12 +104,14 @@ class SettingsViewModel @Inject constructor(
                 settingsRepo.ringtoneTypeFlow,
                 settingsRepo.ringtoneUrisFlow,
                 settingsRepo.ringtoneVolumesFlow,
+                settingsRepo.reminderVibrationEnabledFlow,
             )
             combine(settingsFlows) { values ->
                 val featureToggles = values[12] as Map<FeatureFlag, Boolean>
                 val ringtoneType = values[13] as RingtoneType
                 val ringtoneUris = values[14] as Map<RingtoneType, String>
                 val ringtoneVolumes = values[15] as Map<RingtoneType, Float>
+                val reminderVibrationEnabled = values[16] as Boolean
                 val attachmentsEnabled = featureToggles[FeatureFlag.AttachmentsLibrary] ?: FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary)
                 val allowSystemMoves = featureToggles[FeatureFlag.AllowSystemProjectMoves] ?: FeatureToggles.isEnabled(FeatureFlag.AllowSystemProjectMoves)
                 val planningModesEnabled = featureToggles[FeatureFlag.PlanningModes] ?: FeatureToggles.isEnabled(FeatureFlag.PlanningModes)
@@ -144,6 +147,7 @@ class SettingsViewModel @Inject constructor(
                         ringtoneType = ringtoneType,
                         ringtoneUris = ringtoneUris,
                         ringtoneVolumes = ringtoneVolumes,
+                        reminderVibrationEnabled = reminderVibrationEnabled,
                     )
                 }
             }.collect {
@@ -324,6 +328,10 @@ class SettingsViewModel @Inject constructor(
         _uiState.update { it.copy(ringtoneVolumes = it.ringtoneVolumes + (type to volume.coerceIn(0f, 1f))) }
     }
 
+    fun onReminderVibrationToggle(enabled: Boolean) {
+        _uiState.update { it.copy(reminderVibrationEnabled = enabled) }
+    }
+
     fun saveSettings() {
         viewModelScope.launch {
             val currentState = _uiState.value
@@ -349,6 +357,7 @@ class SettingsViewModel @Inject constructor(
             currentState.ringtoneVolumes.forEach { (type, volume) ->
                 settingsRepo.saveRingtoneVolume(type, volume)
             }
+            settingsRepo.setReminderVibrationEnabled(currentState.reminderVibrationEnabled)
             settingsRepo.saveThemeSettings(currentState.themeSettings)
             FeatureFlag.values().forEach { flag ->
                 val enabled = currentState.featureToggles[flag] ?: FeatureToggles.isEnabled(flag)

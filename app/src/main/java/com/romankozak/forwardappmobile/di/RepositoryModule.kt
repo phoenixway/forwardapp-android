@@ -38,8 +38,9 @@ object RepositoryModule {
     fun provideReminderRepository(
         reminderDao: ReminderDao,
         alarmScheduler: AlarmScheduler,
+        dayManagementRepository: com.romankozak.forwardappmobile.data.repository.DayManagementRepository,
         @IoDispatcher ioDispatcher: CoroutineDispatcher
-    ): ReminderRepository = ReminderRepository(reminderDao, alarmScheduler, ioDispatcher)
+    ): ReminderRepository = ReminderRepository(reminderDao, alarmScheduler, dayManagementRepository, ioDispatcher)
 
     @Provides
     @Singleton

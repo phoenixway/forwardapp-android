@@ -21,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -39,9 +40,11 @@ fun RingtoneSettingsCard(
     currentType: RingtoneType,
     ringtoneUris: Map<RingtoneType, String>,
     ringtoneVolumes: Map<RingtoneType, Float>,
+    vibrationEnabled: Boolean,
     onTypeSelected: (RingtoneType) -> Unit,
     onRingtonePicked: (RingtoneType, String) -> Unit,
     onVolumeChanged: (RingtoneType, Float) -> Unit,
+    onVibrationToggle: (Boolean) -> Unit,
 ) {
     val context = LocalContext.current
     var previewPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
@@ -58,6 +61,22 @@ fun RingtoneSettingsCard(
         icon = Icons.Default.NotificationsActive,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Вібрація нагадувань", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        text = "Застосовується до всіх типів нагадувань",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(checked = vibrationEnabled, onCheckedChange = onVibrationToggle)
+            }
+
             Text("Тип гучності", style = MaterialTheme.typography.titleMedium)
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 RingtoneType.values().forEach { type ->

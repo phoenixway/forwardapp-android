@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.data.repository
 import com.romankozak.forwardappmobile.data.dao.ReminderDao
 import com.romankozak.forwardappmobile.data.database.models.Reminder
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
+import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import com.romankozak.forwardappmobile.di.IoDispatcher
@@ -18,6 +19,7 @@ import kotlinx.coroutines.SupervisorJob
 class ReminderRepository @Inject constructor(
     private val reminderDao: ReminderDao,
     private val alarmScheduler: AlarmScheduler,
+    private val dayManagementRepository: DayManagementRepository,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) {
     private val repositoryScope = CoroutineScope(ioDispatcher + SupervisorJob())
@@ -83,9 +85,18 @@ class ReminderRepository @Inject constructor(
     suspend fun markAsCompleted(reminderId: String) {
         val reminder = reminderDao.getReminderById(reminderId)
         if (reminder != null) {
-            val completedReminder = reminder.copy(status = "COMPLETED")
-            reminderDao.update(completedReminder)
-            alarmScheduler.cancel(reminder)
+            val isRecurringTaskReminder =
+                reminder.entityType == "TASK" &&
+                    dayManagementRepository.getTaskById(reminder.entityId)?.recurringTaskId != null
+
+            if (isRecurringTaskReminder) {
+                val completedReminder = reminder.copy(status = "COMPLETED")
+                reminderDao.update(completedReminder)
+                alarmScheduler.cancel(reminder)
+            } else {
+                reminderDao.delete(reminder)
+                alarmScheduler.cancel(reminder)
+            }
         }
     }
 
