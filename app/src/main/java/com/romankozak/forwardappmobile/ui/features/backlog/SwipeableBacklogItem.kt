@@ -2,6 +2,8 @@
 package com.romankozak.forwardappmobile.ui.features.backlog
 
 import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
@@ -28,10 +30,14 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
+import kotlin.math.absoluteValue
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -67,6 +73,9 @@ fun SwipeableBacklogItem(
     onStartTracking: (ListItemContent) -> Unit,
     onShowGoalTransportMenu: (ListItemContent) -> Unit,
     onRelatedLinkClick: (com.romankozak.forwardappmobile.data.database.models.RelatedLink) -> Unit,
+    onRequestCloseOthers: () -> Unit,
+    swipedItemId: String?,
+    resetCounter: Int,
     modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
@@ -77,16 +86,20 @@ fun SwipeableBacklogItem(
     val leftActionWidthPx = with(density) { leftActionWidth.toPx() }
 
     var offsetX by remember { mutableFloatStateOf(0f) }
+    val lastResetCounter = remember { mutableStateOf(resetCounter) }
 
     val draggableState = rememberDraggableState { delta ->
         offsetX = (offsetX + delta).coerceIn(-rightActionWidthPx, leftActionWidthPx)
+        if (offsetX != 0f) onRequestCloseOthers()
     }
 
     fun animateTo(target: Float) {
         coroutineScope.launch {
-            animate(initialValue = offsetX, targetValue = target) { value, _ ->
-                offsetX = value
-            }
+            animate(
+                initialValue = offsetX,
+                targetValue = target,
+                animationSpec = tween(durationMillis = 180, easing = LinearOutSlowInEasing)
+            ) { value, _ -> offsetX = value }
         }
     }
 
@@ -94,6 +107,18 @@ fun SwipeableBacklogItem(
         is ListItemContent.GoalItem -> item.goal.completed
         is ListItemContent.SublistItem -> item.project.isCompleted
         else -> false
+    }
+
+    LaunchedEffect(resetCounter, swipedItemId) {
+        val shouldReset =
+            resetCounter != lastResetCounter.value &&
+                swipedItemId != item.listItem.id
+        lastResetCounter.value = resetCounter
+        if (shouldReset) {
+            val delayMs = (item.listItem.id.hashCode().absoluteValue % 160) + 80
+            delay(delayMs.toLong())
+            animateTo(0f)
+        }
     }
 
     Box(

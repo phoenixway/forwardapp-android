@@ -49,6 +49,8 @@ fun GoalDetailContent(
                 showCheckboxes = uiState.showCheckboxes,
                 selectedItemIds = uiState.selectedItemIds,
                 contextMarkerToEmojiMap = contextMarkerToEmojiMap,
+                swipedItemId = uiState.swipedItemId,
+                swipeResetCounter = uiState.swipeResetCounter,
                 onMove = { from, to -> viewModel.onMove(from, to) },
                 onItemClick = { item -> viewModel.itemActionHandler.onItemClick(item) },
                 onLongClick = { item -> viewModel.toggleSelection(item.listItem.id) },
@@ -68,6 +70,7 @@ fun GoalDetailContent(
                 onRelatedLinkClick = viewModel.itemActionHandler::onRelatedLinkClick,
                 onRemindersClick = onRemindersClick,
                 onCopyContent = viewModel.itemActionHandler::copyContentRequest,
+                onResetSwipe = viewModel::resetSwipeStatesExcept
             )
         }
         ProjectViewMode.INBOX -> {

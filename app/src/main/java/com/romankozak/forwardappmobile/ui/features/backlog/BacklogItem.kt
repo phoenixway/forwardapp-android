@@ -194,14 +194,6 @@ private fun InternalGoalItem(
                 Spacer(modifier = Modifier.width(16.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
-                    if (goal.completed) {
-                        CompletedBadge(
-                            backgroundColor = completedColors.badgeBackground,
-                            textColor = completedColors.badgeText
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
-
                     Box(modifier = if (goal.completed) Modifier.alpha(0.65f) else Modifier) {
                         MarkdownText(
                             text = parsedData.mainText,
@@ -272,32 +264,7 @@ private fun CompletedBadge(
     backgroundColor: Color,
     textColor: Color
 ) {
-    Surface(
-        shape = RoundedCornerShape(20.dp),
-            color = backgroundColor,
-            modifier = Modifier.padding(bottom = 2.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.CheckCircle,
-                 contentDescription = null,
-                 tint = textColor,
-                 modifier = Modifier.size(14.dp)
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = "Виконано",
-                 style = MaterialTheme.typography.labelSmall.copy(
-                     fontSize = 11.sp,
-                     fontWeight = FontWeight.Medium
-                 ),
-                 color = textColor
-            )
-        }
-    }
+    // Deprecated badge removed intentionally
 }
 
 @Composable

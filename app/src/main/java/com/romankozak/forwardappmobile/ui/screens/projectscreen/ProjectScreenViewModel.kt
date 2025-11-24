@@ -109,6 +109,7 @@ data class UiState(
   val inputValue: TextFieldValue = TextFieldValue(""),
   val resetTriggers: Map<String, Int> = emptyMap(),
   val swipedItemId: String? = null,
+  val swipeResetCounter: Int = 0,
   val showAddWebLinkDialog: Boolean = false,
   val showAddObsidianLinkDialog: Boolean = false,
   val itemToHighlight: String? = null,
@@ -1077,7 +1078,13 @@ constructor(
     _uiState.update { currentState ->
       val newTriggers = currentState.resetTriggers.toMutableMap()
       newTriggers[itemId] = (newTriggers[itemId] ?: 0) + 1
-      currentState.copy(resetTriggers = newTriggers, swipedItemId = null)
+      currentState.copy(resetTriggers = newTriggers)
+    }
+  }
+
+  fun resetSwipeStatesExcept(activeItemId: String) {
+    _uiState.update { current ->
+      current.copy(swipedItemId = activeItemId, swipeResetCounter = current.swipeResetCounter + 1)
     }
   }
 

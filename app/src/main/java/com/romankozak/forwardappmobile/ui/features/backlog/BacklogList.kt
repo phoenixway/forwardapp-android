@@ -37,6 +37,8 @@ fun BacklogListScreen(
     showCheckboxes: Boolean,
     selectedItemIds: Set<String>,
     contextMarkerToEmojiMap: Map<String, String>,
+    swipedItemId: String?,
+    swipeResetCounter: Int,
     onMove: (from: Int, to: Int) -> Unit,
     onItemClick: (ListItemContent) -> Unit,
     onLongClick: (ListItemContent) -> Unit,
@@ -50,6 +52,7 @@ fun BacklogListScreen(
     onRelatedLinkClick: (com.romankozak.forwardappmobile.data.database.models.RelatedLink) -> Unit,
     onRemindersClick: (ListItemContent) -> Unit,
     onCopyContent: (ListItemContent) -> Unit,
+    onResetSwipe: (String) -> Unit,
 ) {
     val reorderableState = rememberReorderableLazyListState(listState) { from, to -> onMove(from.index, to.index) }
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -88,6 +91,9 @@ fun BacklogListScreen(
                         isDragging = isDragging,
                         isSelected = isSelected,
                         contextMarkerToEmojiMap = contextMarkerToEmojiMap,
+                        onRequestCloseOthers = { onResetSwipe(item.listItem.id) },
+                        swipedItemId = swipedItemId,
+                        resetCounter = swipeResetCounter,
                         onItemClick = { onItemClick(item) },
                         onLongClick = { onLongClick(item) },
                         onMoreClick = {
