@@ -1,0 +1,17 @@
+app/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/
+app/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2Button.kt
+app/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2Controller.kt
+app/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2Geometry.kt
+app/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2Models.kt
+app/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2Overlay.kt
+app/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2Popup.kt
+app/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2State.kt
+apps/android/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/
+apps/android/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2Button.kt
+apps/android/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2Controller.kt
+apps/android/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2Geometry.kt
+apps/android/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2Models.kt
+apps/android/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2Overlay.kt
+apps/android/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2Popup.kt
+apps/android/src/main/java/com/romankozak/forwardappmobile/features/common/components/holdmenu2/HoldMenu2State.kt
+docs/HoldMenu2-manual.md

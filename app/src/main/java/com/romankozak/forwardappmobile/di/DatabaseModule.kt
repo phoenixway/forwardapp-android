@@ -24,6 +24,7 @@ import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
 import com.romankozak.forwardappmobile.data.dao.ChatDao
 import com.romankozak.forwardappmobile.data.dao.ConversationFolderDao
 import com.romankozak.forwardappmobile.data.dao.ChecklistDao
+import com.romankozak.forwardappmobile.data.dao.ScriptDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import dagger.Module
 import dagger.Provides
@@ -93,6 +94,7 @@ import com.romankozak.forwardappmobile.data.database.MIGRATION_63_64
 import com.romankozak.forwardappmobile.data.database.MIGRATION_64_65
 import com.romankozak.forwardappmobile.data.database.MIGRATION_65_66
 import com.romankozak.forwardappmobile.data.database.MIGRATION_66_67
+import com.romankozak.forwardappmobile.data.database.MIGRATION_67_68
 import com.romankozak.forwardappmobile.data.repository.SystemAppRepository
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 
@@ -182,6 +184,7 @@ object DatabaseModule {
             MIGRATION_64_65,
             MIGRATION_65_66,
             MIGRATION_66_67,
+            MIGRATION_67_68,
         ).addCallback(callback).build()
         return db
     }
@@ -269,4 +272,8 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideSystemAppDao(appDatabase: AppDatabase) = appDatabase.systemAppDao()
+
+    @Provides
+    @Singleton
+    fun provideScriptDao(appDatabase: AppDatabase): ScriptDao = appDatabase.scriptDao()
 }

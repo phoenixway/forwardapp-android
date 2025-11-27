@@ -201,6 +201,7 @@ dependencies {
     implementation(libs.slf4j.android)
 
     // Other Libraries
+    implementation("org.luaj:luaj-jse:3.0.1")
     implementation(libs.google.gson)
     implementation(libs.compose.dnd)
     implementation(libs.androidx.work.runtime)

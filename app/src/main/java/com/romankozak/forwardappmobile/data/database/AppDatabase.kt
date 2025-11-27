@@ -23,6 +23,7 @@ import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
 import com.romankozak.forwardappmobile.data.dao.RecentItemDao
 import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
 import com.romankozak.forwardappmobile.data.dao.ReminderDao
+import com.romankozak.forwardappmobile.data.dao.ScriptDao
 import com.romankozak.forwardappmobile.data.dao.SystemAppDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.data.database.models.*
@@ -49,6 +50,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAt
         NoteDocumentItemEntity::class,
         ChecklistEntity::class,
         ChecklistItemEntity::class,
+        ScriptEntity::class,
         RecentItem::class,
         ConversationFolderEntity::class,
         RecurringTask::class,
@@ -63,7 +65,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAt
         LegacyNoteFts::class,
         RecurringTaskFts::class,
     ],
-    version = 67,
+    version = 68,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class, ProjectTypeConverter::class)
@@ -111,4 +113,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun recurringTaskDao(): RecurringTaskDao
 
     abstract fun reminderDao(): ReminderDao
+
+    abstract fun scriptDao(): ScriptDao
 }

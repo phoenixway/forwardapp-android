@@ -44,5 +44,6 @@
 -dontwarn java.lang.management.ManagementFactory
 -dontwarn java.lang.management.RuntimeMXBean
 -dontwarn reactor.blockhound.integration.BlockHoundIntegration
+-dontwarn javax.script.**
 -keep class retrofit2.** { *; }
 -keep class com.romankozak.forwardappmobile.**Service { *; }

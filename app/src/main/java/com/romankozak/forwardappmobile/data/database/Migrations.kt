@@ -649,3 +649,25 @@ val MIGRATION_66_67 = object : Migration(66, 67) {
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_system_apps_note_document_id` ON `system_apps` (`note_document_id`)")
     }
 }
+
+val MIGRATION_67_68 = object : Migration(67, 68) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `scripts` (
+                `id` TEXT NOT NULL,
+                `projectId` TEXT,
+                `name` TEXT NOT NULL,
+                `description` TEXT,
+                `content` TEXT NOT NULL,
+                `createdAt` INTEGER NOT NULL,
+                `updatedAt` INTEGER NOT NULL,
+                PRIMARY KEY(`id`),
+                FOREIGN KEY(`projectId`) REFERENCES `projects`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL
+            )
+            """.trimIndent(),
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_scripts_projectId` ON `scripts` (`projectId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_scripts_name` ON `scripts` (`name`)")
+    }
+}

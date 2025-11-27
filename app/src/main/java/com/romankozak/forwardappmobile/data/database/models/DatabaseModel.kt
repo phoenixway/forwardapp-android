@@ -124,6 +124,7 @@ object ListItemTypeValues {
     const val NOTE = "NOTE"
     const val NOTE_DOCUMENT = "NOTE_DOCUMENT"
     const val CHECKLIST = "CHECKLIST"
+    const val SCRIPT = "SCRIPT"
 }
 
 
