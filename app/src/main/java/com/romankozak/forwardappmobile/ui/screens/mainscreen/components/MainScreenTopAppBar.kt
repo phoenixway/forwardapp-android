@@ -28,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.res.stringResource
 import com.romankozak.forwardappmobile.config.FeatureFlag
 import com.romankozak.forwardappmobile.config.FeatureToggles
 import androidx.compose.material3.DropdownMenuItem
@@ -151,7 +152,7 @@ fun MainScreenTopAppBar(
                         if (showAttachmentsLibrary || showScriptsLibrary) {
                             if (showAttachmentsLibrary) {
                                 DropdownMenuItem(
-                                    text = { Text("Attachments library") },
+                                    text = { Text(stringResource(id = com.romankozak.forwardappmobile.R.string.menu_attachments_library)) },
                                     onClick = {
                                         onShowAttachmentsLibrary()
                                         menuExpanded = false
@@ -160,7 +161,7 @@ fun MainScreenTopAppBar(
                             }
                             if (showScriptsLibrary) {
                                 DropdownMenuItem(
-                                    text = { Text("Scripts library") },
+                                    text = { Text(stringResource(id = com.romankozak.forwardappmobile.R.string.menu_scripts_library)) },
                                     onClick = {
                                         onShowScriptsLibrary()
                                         menuExpanded = false
@@ -171,14 +172,14 @@ fun MainScreenTopAppBar(
                         }
                         if (FeatureToggles.isEnabled(FeatureFlag.WifiSync)) {
                             DropdownMenuItem(
-                                text = { Text("Run Wi-Fi Server") },
+                                text = { Text(stringResource(id = com.romankozak.forwardappmobile.R.string.menu_run_wifi_server)) },
                                 onClick = {
                                     onShowWifiServer()
                                     menuExpanded = false
                                 },
                             )
                             DropdownMenuItem(
-                                text = { Text("Import from Wi-Fi") },
+                                text = { Text(stringResource(id = com.romankozak.forwardappmobile.R.string.menu_import_wifi)) },
                                 onClick = {
                                     onShowWifiImport()
                                     menuExpanded = false
@@ -187,7 +188,7 @@ fun MainScreenTopAppBar(
                             HorizontalDivider()
                         }
                         DropdownMenuItem(
-                            text = { Text("Import/Export ›") },
+                            text = { Text(stringResource(id = com.romankozak.forwardappmobile.R.string.menu_import_export)) },
                             onClick = { importExportMenuExpanded = true; menuExpanded = false },
                         )
                         HorizontalDivider()
@@ -212,28 +213,28 @@ fun MainScreenTopAppBar(
                         modifier = Modifier.background(MaterialTheme.colorScheme.surface),
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Export to file") },
+                            text = { Text(stringResource(id = com.romankozak.forwardappmobile.R.string.menu_export_to_file)) },
                             onClick = {
                                 onExportToFile()
                                 importExportMenuExpanded = false
                             },
                         )
                         DropdownMenuItem(
-                            text = { Text("Import from file") },
+                            text = { Text(stringResource(id = com.romankozak.forwardappmobile.R.string.menu_import_from_file)) },
                             onClick = {
                                 onImportFromFile()
                                 importExportMenuExpanded = false
                             },
                         )
                         DropdownMenuItem(
-                            text = { Text("Export Attachments (JSON)") },
+                            text = { Text(stringResource(id = com.romankozak.forwardappmobile.R.string.menu_export_attachments)) },
                             onClick = {
                                 onExportAttachments()
                                 importExportMenuExpanded = false
                             },
                         )
                         DropdownMenuItem(
-                            text = { Text("Import Attachments (JSON)") },
+                            text = { Text(stringResource(id = com.romankozak.forwardappmobile.R.string.menu_import_attachments)) },
                             onClick = {
                                 onImportAttachments()
                                 importExportMenuExpanded = false

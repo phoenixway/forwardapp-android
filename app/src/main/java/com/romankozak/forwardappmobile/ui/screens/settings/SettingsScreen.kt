@@ -41,6 +41,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -64,6 +65,10 @@ import androidx.compose.foundation.layout.only
 import com.romankozak.forwardappmobile.ui.screens.settings.components.AnimatedTextField
 import com.romankozak.forwardappmobile.ui.screens.settings.components.SettingsCard
 import com.romankozak.forwardappmobile.R
+import androidx.compose.material3.Tab
+import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.TabRowDefaults
+import com.romankozak.forwardappmobile.BuildConfig
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -91,17 +96,18 @@ fun SettingsScreen(
         }
     }
 
-    val tabs = listOf(
+    val tabs = listOfNotNull(
         SettingsTab.General,
         SettingsTab.Ui,
         SettingsTab.Reminders,
         SettingsTab.Management,
         SettingsTab.Integrations,
-        SettingsTab.Ai,
-        SettingsTab.Experiments,
+        if (BuildConfig.IS_EXPERIMENTAL_BUILD) SettingsTab.Ai else null,
+        if (BuildConfig.IS_EXPERIMENTAL_BUILD) SettingsTab.Experiments else null,
         SettingsTab.Diagnostics,
     )
-    var selectedTab by remember { mutableStateOf(SettingsTab.General) }
+    var selectedTabName by rememberSaveable { mutableStateOf(SettingsTab.General.name) }
+    val selectedTab = tabs.firstOrNull { it.name == selectedTabName } ?: SettingsTab.General
 
     val isDirty by remember(uiState, tempShowModes, tempDailyTag, tempMediumTag, tempLongTag, tempVaultName) {
         derivedStateOf {
@@ -190,8 +196,8 @@ fun SettingsScreen(
                 tabs.forEach { tab ->
                     Tab(
                         selected = selectedTab == tab,
-                        onClick = { selectedTab = tab },
-                        text = { Text(tab.label) },
+                        onClick = { selectedTabName = tab.name },
+                        text = { Text(stringResource(id = tab.labelRes)) },
                     )
                 }
             }
@@ -231,7 +237,7 @@ fun SettingsScreen(
                                 icon = Icons.Default.Tune,
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                                    Text("Show planning scale modes", modifier = Modifier.weight(1f))
+                                    Text(stringResource(id = R.string.settings_planning_modes_label), modifier = Modifier.weight(1f))
                                     Switch(checked = tempShowModes, onCheckedChange = { tempShowModes = it })
                                 }
                                 AnimatedTextField(
@@ -311,7 +317,7 @@ fun SettingsScreen(
                                 onReloadClick = viewModel::reloadNerModel,
                             )
                         } else {
-                            Text("AI features вимкнені. Увімкніть їх на вкладці Experiments.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(id = R.string.settings_ai_disabled_msg), color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                     SettingsTab.Experiments -> {
@@ -456,13 +462,13 @@ fun SettingsScreen(
     }
 }
 
-private enum class SettingsTab(val label: String) {
-    General("General"),
-    Ui("UI"),
-    Reminders("Reminders"),
-    Management("Management"),
-    Integrations("Integrations"),
-    Ai("AI"),
-    Experiments("Experiments"),
-    Diagnostics("Diagnostics"),
+private enum class SettingsTab(@androidx.annotation.StringRes val labelRes: Int) {
+    General(R.string.settings_tab_general),
+    Ui(R.string.settings_tab_ui),
+    Reminders(R.string.settings_tab_reminders),
+    Management(R.string.settings_tab_management),
+    Integrations(R.string.settings_tab_integrations),
+    Ai(R.string.settings_tab_ai),
+    Experiments(R.string.settings_tab_experiments),
+    Diagnostics(R.string.settings_tab_diagnostics),
 }

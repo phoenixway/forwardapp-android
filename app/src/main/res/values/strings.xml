@@ -85,4 +85,39 @@
     <string name="menu_add_obsidian_link">Додати посилання Obsidian</string>
     <string name="note_name">Назва нотатки</string>
     <string name="settings_allow_system_project_moves">Дозволити переміщувати системні проекти</string>
+
+    <!-- Settings tabs -->
+    <string name="settings_tab_general">Загальні</string>
+    <string name="settings_tab_ui">Інтерфейс</string>
+    <string name="settings_tab_reminders">Нагадування</string>
+    <string name="settings_tab_management">Управління</string>
+    <string name="settings_tab_integrations">Інтеграції</string>
+    <string name="settings_tab_ai">AI</string>
+    <string name="settings_tab_experiments">Експерименти</string>
+    <string name="settings_tab_diagnostics">Діагностика</string>
+
+    <!-- Settings misc -->
+    <string name="settings_planning_modes_label">Показувати режими планування</string>
+    <string name="settings_ai_disabled_msg">AI-функції вимкнені. Увімкніть їх на вкладці Експерименти.</string>
+
+    <!-- Script editor -->
+    <string name="script_editor_new">Новий скрипт</string>
+    <string name="script_editor_edit">Редагування скрипта</string>
+    <string name="script_editor_primary_section">Основне</string>
+    <string name="script_editor_code_section">Код скрипта (Lua)</string>
+    <string name="script_editor_dry_run">Dry-run</string>
+    <string name="script_editor_dry_running">Перевіряю…</string>
+    <string name="script_editor_execution_log">Лог виконання</string>
+    <string name="script_editor_mock_hint">Мок-контекст для dry-run: input, conversation_title.</string>
+
+    <!-- Main menu -->
+    <string name="menu_import_export">Імпорт/Експорт ›</string>
+    <string name="menu_attachments_library">Бібліотека вкладень</string>
+    <string name="menu_scripts_library">Скрипти</string>
+    <string name="menu_run_wifi_server">Запустити Wi‑Fi сервер</string>
+    <string name="menu_import_wifi">Імпорт по Wi‑Fi</string>
+    <string name="menu_export_to_file">Експорт у файл</string>
+    <string name="menu_import_from_file">Імпорт з файлу</string>
+    <string name="menu_export_attachments">Експорт вкладень (JSON)</string>
+    <string name="menu_import_attachments">Імпорт вкладень (JSON)</string>
 </resources>

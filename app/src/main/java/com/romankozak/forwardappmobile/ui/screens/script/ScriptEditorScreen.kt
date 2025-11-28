@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.config.FeatureFlag
@@ -71,7 +72,7 @@ fun ScriptEditorScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (uiState.scriptId == null) "Новий скрипт" else "Редагування скрипта") },
+                title = { Text(if (uiState.scriptId == null) stringResource(R.string.script_editor_new) else stringResource(R.string.script_editor_edit)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
@@ -101,11 +102,11 @@ fun ScriptEditorScreen(
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Основне", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.script_editor_primary_section), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     OutlinedTextField(
                         value = uiState.name,
                         onValueChange = viewModel::onNameChange,
-                        label = { Text("Назва") },
+                        label = { Text(stringResource(R.string.note_name)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                     )
@@ -123,9 +124,9 @@ fun ScriptEditorScreen(
                 colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface),
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Код скрипта (Lua)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.script_editor_code_section), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Text(
-                        text = "Доступний мок-контекст для dry-run: input, conversation_title.",
+                        text = stringResource(R.string.script_editor_mock_hint),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -146,7 +147,7 @@ fun ScriptEditorScreen(
                     enabled = !uiState.isPreviewRunning && uiState.content.isNotBlank(),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
                 ) {
-                    Text(if (uiState.isPreviewRunning) "Перевіряю…" else "Dry-run")
+                    Text(if (uiState.isPreviewRunning) stringResource(R.string.script_editor_dry_running) else stringResource(R.string.script_editor_dry_run))
                 }
                 Button(onClick = { viewModel.onSave() }, enabled = !uiState.isSaving) {
                     Text("Зберегти та закрити")
@@ -158,7 +159,7 @@ fun ScriptEditorScreen(
                     colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                 ) {
                     Text(
-                        text = "Лог виконання",
+                        text = stringResource(R.string.script_editor_execution_log),
                         style = MaterialTheme.typography.labelMedium,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
