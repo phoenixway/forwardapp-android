@@ -652,6 +652,7 @@ fun ModernInputPanel(
   onShowDisplayPropertiesClick: () -> Unit,
   suggestions: List<String>,
   onSuggestionClick: (String) -> Unit,
+  onAddScript: (() -> Unit)? = null,
 ) {
   val state =
     NavPanelState(
@@ -1059,6 +1060,9 @@ fun ModernInputPanel(
       onAddListShortcutClick = onAddListShortcutClick,
       onShowCreateNoteDocumentDialog = onShowCreateNoteDocumentDialog,
       onCreateChecklist = onCreateChecklist,
+      onAddScript = if (com.romankozak.forwardappmobile.config.FeatureToggles.isEnabled(com.romankozak.forwardappmobile.config.FeatureFlag.ScriptsLibrary)) {
+        onAddScript
+      } else null,
     )
   }
 }

@@ -5,6 +5,7 @@ import com.romankozak.forwardappmobile.BuildConfig
 object FeatureToggles {
     private val defaults: Map<FeatureFlag, Boolean> = mapOf(
         FeatureFlag.AttachmentsLibrary to BuildConfig.DEBUG,
+        FeatureFlag.ScriptsLibrary to BuildConfig.DEBUG,
         FeatureFlag.AllowSystemProjectMoves to false,
         FeatureFlag.PlanningModes to BuildConfig.DEBUG,
         FeatureFlag.WifiSync to BuildConfig.DEBUG,

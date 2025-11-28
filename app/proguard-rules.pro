@@ -47,3 +47,6 @@
 -dontwarn javax.script.**
 -keep class retrofit2.** { *; }
 -keep class com.romankozak.forwardappmobile.**Service { *; }
+
+# LuaJ: keep libs (bit32 and friends) to avoid reflection instantiation issues after shrinking.
+-keep class org.luaj.vm2.lib.** { *; }

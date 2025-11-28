@@ -143,4 +143,6 @@ sealed interface MainScreenEvent {
     object OpenInboxProject : MainScreenEvent
     object NavigateToActivityTrackerScreen : MainScreenEvent
     object OpenAttachmentsLibrary : MainScreenEvent
+    object OpenScriptsLibrary : MainScreenEvent
+    object AddScriptRequest : MainScreenEvent
 }

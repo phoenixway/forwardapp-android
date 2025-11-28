@@ -29,6 +29,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.times
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.romankozak.forwardappmobile.config.FeatureFlag
+import com.romankozak.forwardappmobile.config.FeatureToggles
 
 data class ActionItem(
     val title: String,
@@ -50,8 +52,10 @@ fun InputPanelMagicActionsDialog(
     onAddListShortcutClick: () -> Unit,
     onShowCreateNoteDocumentDialog: () -> Unit,
     onCreateChecklist: () -> Unit,
+    onAddScript: (() -> Unit)? = null,
 ) {
     val haptic = LocalHapticFeedback.current
+    val scriptsEnabled = FeatureToggles.isEnabled(FeatureFlag.ScriptsLibrary)
 
     val searchActions =
         listOf(
@@ -78,7 +82,8 @@ fun InputPanelMagicActionsDialog(
         )
 
     val linkActions =
-        listOf(
+        buildList {
+            add(
             ActionItem(
                 title = "Вкладений проект",
                 icon = Icons.Outlined.AccountTree,
@@ -88,7 +93,9 @@ fun InputPanelMagicActionsDialog(
                     onDismiss()
                 },
             ),
-            ActionItem(
+            )
+            add(
+                ActionItem(
                 title = "Web посилання",
                 icon = Icons.Outlined.Public,
                 color = MaterialTheme.colorScheme.secondary,
@@ -97,7 +104,9 @@ fun InputPanelMagicActionsDialog(
                     onDismiss()
                 },
             ),
-            ActionItem(
+            )
+            add(
+                ActionItem(
                 title = "Obsidian нотатка",
                 icon = Icons.Outlined.DataObject,
                 color = MaterialTheme.colorScheme.secondary,
@@ -106,7 +115,9 @@ fun InputPanelMagicActionsDialog(
                     onDismiss()
                 },
             ),
-            ActionItem(
+            )
+            add(
+                ActionItem(
                 title = "Документ",
                 icon = Icons.Outlined.List,
                 color = MaterialTheme.colorScheme.secondary,
@@ -115,7 +126,9 @@ fun InputPanelMagicActionsDialog(
                     onDismiss()
                 },
             ),
-            ActionItem(
+            )
+            add(
+                ActionItem(
                 title = "Чекліст",
                 icon = Icons.Outlined.Checklist,
                 color = MaterialTheme.colorScheme.secondary,
@@ -124,7 +137,21 @@ fun InputPanelMagicActionsDialog(
                     onDismiss()
                 },
             ),
-        )
+            )
+            if (scriptsEnabled && onAddScript != null) {
+                add(
+                    ActionItem(
+                        title = "Скрипт",
+                        icon = Icons.Outlined.Code,
+                        color = MaterialTheme.colorScheme.secondary,
+                        action = {
+                            onAddScript()
+                            onDismiss()
+                        },
+                    ),
+                )
+            }
+        }
 
     val addActions =
         buildList {

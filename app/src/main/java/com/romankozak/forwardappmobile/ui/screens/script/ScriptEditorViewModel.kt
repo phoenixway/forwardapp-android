@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.database.models.ScriptEntity
 import com.romankozak.forwardappmobile.data.repository.ScriptRepository
+import com.romankozak.forwardappmobile.domain.scripts.LuaScriptRunner
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +23,8 @@ data class ScriptEditorUiState(
     val description: String = "",
     val content: String = "",
     val isSaving: Boolean = false,
+    val isPreviewRunning: Boolean = false,
+    val previewLog: String? = null,
     val error: String? = null,
 )
 
@@ -33,6 +36,7 @@ sealed interface ScriptEditorEvent {
 @HiltViewModel
 class ScriptEditorViewModel @Inject constructor(
     private val scriptRepository: ScriptRepository,
+    private val luaScriptRunner: LuaScriptRunner,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -74,6 +78,44 @@ class ScriptEditorViewModel @Inject constructor(
     fun onDescriptionChange(value: String) = _uiState.update { it.copy(description = value) }
 
     fun onContentChange(value: String) = _uiState.update { it.copy(content = value) }
+
+    fun onPreview() {
+        val state = _uiState.value
+        if (state.content.isBlank()) {
+            viewModelScope.launch { _events.send(ScriptEditorEvent.ShowError("Скрипт не може бути порожнім")) }
+            return
+        }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isPreviewRunning = true, previewLog = null, error = null) }
+            runCatching {
+                val context =
+                    mapOf(
+                        "input" to "Sample user input",
+                        "conversation_title" to "Sample Chat",
+                    )
+                luaScriptRunner.runScript(state.content, context).fold(
+                    onSuccess = { value ->
+                        _uiState.update { ui ->
+                            ui.copy(
+                                isPreviewRunning = false,
+                                previewLog = "✅ Успіх: $value",
+                            )
+                        }
+                    },
+                    onFailure = { e ->
+                        _uiState.update { ui ->
+                            ui.copy(
+                                isPreviewRunning = false,
+                                previewLog = "❌ Помилка: ${e.message ?: e}",
+                            )
+                        }
+                    },
+                )
+            }.onFailure { e ->
+                _uiState.update { it.copy(isPreviewRunning = false, previewLog = "❌ Помилка: ${e.message ?: e}") }
+            }
+        }
+    }
 
     fun onSave() {
         val state = _uiState.value

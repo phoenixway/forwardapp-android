@@ -136,6 +136,7 @@ class SettingsRepository @Inject constructor(
     private fun defaultFor(flag: FeatureFlag): Boolean =
         when (flag) {
             FeatureFlag.AttachmentsLibrary -> BuildConfig.DEBUG
+            FeatureFlag.ScriptsLibrary -> BuildConfig.DEBUG
             FeatureFlag.AllowSystemProjectMoves -> false
             FeatureFlag.PlanningModes -> BuildConfig.DEBUG
             FeatureFlag.WifiSync -> BuildConfig.DEBUG

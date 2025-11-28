@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -54,6 +55,8 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainSubState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.OptimizedExpandingBottomNav
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.HandleDialogs
 import com.romankozak.forwardappmobile.ui.shared.InProgressIndicator
+import com.romankozak.forwardappmobile.config.FeatureFlag
+import com.romankozak.forwardappmobile.config.FeatureToggles
 
 
 private const val UI_TAG = "MainScreenUI_DEBUG"
@@ -143,6 +146,7 @@ fun MainScreenScaffold(
                 onShowAbout = { onEvent(MainScreenEvent.ShowAboutDialog) },
                 onShowReminders = { onEvent(MainScreenEvent.GoToReminders) },
                 onShowAttachmentsLibrary = { onEvent(MainScreenEvent.OpenAttachmentsLibrary) },
+                onShowScriptsLibrary = { onEvent(MainScreenEvent.OpenScriptsLibrary) },
             )
         },
         bottomBar = {
@@ -202,21 +206,36 @@ fun MainScreenScaffold(
             var showAddMenu by remember { mutableStateOf(false) }
 
             AnimatedVisibility(visible = !isSearchActiveFab) {
+                val scriptsEnabled = FeatureToggles.isEnabled(FeatureFlag.ScriptsLibrary)
                 val menuItems =
-                    listOf(
-                        HoldMenuItem(
-                            label = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_project),
-                            icon = Icons.Default.FolderOpen,
-                        ),
-                        HoldMenuItem(
-                            label = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_note),
-                            icon = Icons.Default.Description,
-                        ),
-                        HoldMenuItem(
-                            label = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_checklist),
-                            icon = Icons.Default.FormatListBulleted,
-                        ),
-                    )
+                    buildList {
+                        add(
+                            HoldMenuItem(
+                                label = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_project),
+                                icon = Icons.Default.FolderOpen,
+                            ),
+                        )
+                        add(
+                            HoldMenuItem(
+                                label = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_note),
+                                icon = Icons.Default.Description,
+                            ),
+                        )
+                        add(
+                            HoldMenuItem(
+                                label = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_checklist),
+                                icon = Icons.Default.FormatListBulleted,
+                            ),
+                        )
+                        if (scriptsEnabled) {
+                            add(
+                                HoldMenuItem(
+                                    label = "Скрипт",
+                                    icon = Icons.Default.Code,
+                                ),
+                            )
+                        }
+                    }
                 HoldMenu2Button(
                     items = menuItems,
                     controller = holdMenuController,
@@ -225,6 +244,7 @@ fun MainScreenScaffold(
                             0 -> onEvent(MainScreenEvent.AddNewProjectRequest)
                             1 -> onEvent(MainScreenEvent.AddNoteDocumentRequest)
                             2 -> onEvent(MainScreenEvent.AddChecklistRequest)
+                            3 -> onEvent(MainScreenEvent.AddScriptRequest)
                         }
                     },
                     onTap = { showAddMenu = !showAddMenu },
@@ -263,6 +283,16 @@ fun MainScreenScaffold(
                                     onEvent(MainScreenEvent.AddChecklistRequest)
                                 },
                             )
+                            if (scriptsEnabled) {
+                                DropdownMenuItem(
+                                    leadingIcon = { Icon(Icons.Default.Code, contentDescription = null) },
+                                    text = { Text(text = "Скрипт") },
+                                    onClick = {
+                                        showAddMenu = false
+                                        onEvent(MainScreenEvent.AddScriptRequest)
+                                    },
+                                )
+                            }
                         }
                     }
                 }

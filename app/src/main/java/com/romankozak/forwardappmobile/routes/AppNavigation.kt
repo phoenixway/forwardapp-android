@@ -29,6 +29,9 @@ import com.romankozak.forwardappmobile.ui.screens.notedocument.NoteDocumentScree
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchScreen
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchViewModel
 import com.romankozak.forwardappmobile.features.attachments.ui.library.AttachmentsLibraryScreen
+import com.romankozak.forwardappmobile.ui.screens.script.ScriptChooserScreen
+import com.romankozak.forwardappmobile.ui.screens.script.ScriptEditorScreen
+import com.romankozak.forwardappmobile.ui.screens.script.ScriptsLibraryScreen
 import com.romankozak.forwardappmobile.ui.screens.projectsettings.ProjectSettingsScreen
 import com.romankozak.forwardappmobile.ui.screens.insights.AiInsightsScreen
 import com.romankozak.forwardappmobile.ui.screens.inbox.InboxEditorScreen
@@ -187,6 +190,14 @@ private fun NavGraphBuilder.mainGraph(
         AttachmentsLibraryScreen(navController = navController)
     }
 
+    composable("scripts_library_screen") {
+        ScriptsLibraryScreen(navController = navController)
+    }
+
+    composable("script_chooser_screen") {
+        ScriptChooserScreen(navController = navController)
+    }
+
     composable(LIFE_STATE_ROUTE) {
         LifeStateScreen(navController = navController)
     }
@@ -325,6 +336,27 @@ private fun NavGraphBuilder.mainGraph(
             ),
     ) {
         NoteDocumentScreen(
+            navController = navController,
+        )
+    }
+
+    composable(
+        route = "script_editor_screen?projectId={projectId}&scriptId={scriptId}",
+        arguments =
+            listOf(
+                navArgument("projectId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("scriptId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+            ),
+    ) {
+        ScriptEditorScreen(
             navController = navController,
         )
     }

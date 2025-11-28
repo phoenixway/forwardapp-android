@@ -31,6 +31,9 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRowDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -87,6 +90,18 @@ fun SettingsScreen(
             initialViewModelState = uiState
         }
     }
+
+    val tabs = listOf(
+        SettingsTab.General,
+        SettingsTab.Ui,
+        SettingsTab.Reminders,
+        SettingsTab.Management,
+        SettingsTab.Integrations,
+        SettingsTab.Ai,
+        SettingsTab.Experiments,
+        SettingsTab.Diagnostics,
+    )
+    var selectedTab by remember { mutableStateOf(SettingsTab.General) }
 
     val isDirty by remember(uiState, tempShowModes, tempDailyTag, tempMediumTag, tempLongTag, tempVaultName) {
         derivedStateOf {
@@ -165,228 +180,289 @@ fun SettingsScreen(
         },
     ) { padding ->
         Column(
-            modifier = Modifier.padding(padding).verticalScroll(rememberScrollState()).fillMaxSize().imePadding().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
+            modifier = Modifier.padding(padding).imePadding(),
         ) {
-            PermissionsSettingsCard()
-
-            RingtoneSettingsCard(
-                currentType = uiState.ringtoneType,
-                ringtoneUris = uiState.ringtoneUris,
-                ringtoneVolumes = uiState.ringtoneVolumes,
-                vibrationEnabled = uiState.reminderVibrationEnabled,
-                onTypeSelected = viewModel::onRingtoneTypeSelected,
-                onRingtonePicked = viewModel::onRingtoneUriSelected,
-                onVolumeChanged = viewModel::onRingtoneVolumeChanged,
-                onVibrationToggle = viewModel::onReminderVibrationToggle,
-            )
-
-            ThemeSettingsCard(
-                themeSettings = uiState.themeSettings,
-                onThemeModeSelected = viewModel::onThemeModeSelected,
-                onLightThemeSelected = viewModel::onLightThemeSelected,
-                onDarkThemeSelected = viewModel::onDarkThemeSelected,
-            )
-
-            SettingsCard(
-                title = "Experimental Features",
-                icon = Icons.Default.Build,
+            ScrollableTabRow(
+                selectedTabIndex = tabs.indexOf(selectedTab),
+                edgePadding = 12.dp,
+                divider = {},
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "Attachments library",
-                            modifier = Modifier.weight(1f),
-                        )
-                        Switch(
-                            checked = uiState.attachmentsLibraryEnabled,
-                            onCheckedChange = viewModel::onAttachmentsLibraryToggle
-                        )
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = stringResource(R.string.settings_allow_system_project_moves),
-                            modifier = Modifier.weight(1f),
-                        )
-                        Switch(
-                            checked = uiState.allowSystemProjectMoves,
-                            onCheckedChange = viewModel::onAllowSystemProjectMovesToggle,
-                        )
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "Planning modes",
-                            modifier = Modifier.weight(1f),
-                        )
-                        Switch(
-                            checked = uiState.planningModesEnabled,
-                            onCheckedChange = viewModel::onPlanningModesToggle,
-                        )
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "Wi‑Fi sync",
-                            modifier = Modifier.weight(1f),
-                        )
-                        Switch(
-                            checked = uiState.wifiSyncEnabled,
-                            onCheckedChange = viewModel::onWifiSyncToggle,
-                        )
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "Strategic management",
-                            modifier = Modifier.weight(1f),
-                        )
-                        Switch(
-                            checked = uiState.strategicManagementEnabled,
-                            onCheckedChange = viewModel::onStrategicManagementToggle,
-                        )
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "AI Chat",
-                            modifier = Modifier.weight(1f),
-                        )
-                        Switch(
-                            checked = uiState.aiChatEnabled,
-                            onCheckedChange = viewModel::onAiChatToggle,
-                        )
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "AI Insights",
-                            modifier = Modifier.weight(1f),
-                        )
-                        Switch(
-                            checked = uiState.aiInsightsEnabled,
-                            onCheckedChange = viewModel::onAiInsightsToggle,
-                        )
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "AI Life Management",
-                            modifier = Modifier.weight(1f),
-                        )
-                        Switch(
-                            checked = uiState.aiLifeManagementEnabled,
-                            onCheckedChange = viewModel::onAiLifeManagementToggle,
-                        )
-                    }
+                tabs.forEach { tab ->
+                    Tab(
+                        selected = selectedTab == tab,
+                        onClick = { selectedTab = tab },
+                        text = { Text(tab.label) },
+                    )
                 }
             }
 
-            ServerSettingsCard(
-                state = uiState,
-                onIpConfigModeChange = viewModel::onServerIpConfigurationModeChanged,
-                onIpChange = viewModel::onManualServerIpChanged,
-                onOllamaPortChange = viewModel::onOllamaPortChanged,
-                onWifiSyncPortChange = viewModel::onWifiSyncPortChanged,
-                onFastApiPortChange = viewModel::onFastApiPortChanged,
-                onFetchClick = viewModel::fetchAvailableModels,
-                onFastModelSelect = viewModel::onFastModelSelected,
-                onSmartModelSelect = viewModel::onSmartModelSelected,
-                onRefreshDiscovery = viewModel::refreshServerDiscovery
-            )
-
-            RolesSettingsCard(
-                state = uiState,
-                onFolderSelected = viewModel::onRolesFolderSelected,
-            )
-            NerSettingsCard(
-                state = uiState,
-                onModelFileSelected = viewModel::onNerModelFileSelected,
-                onTokenizerFileSelected = viewModel::onNerTokenizerFileSelected,
-                onLabelsFileSelected = viewModel::onNerLabelsFileSelected,
-                onReloadClick = viewModel::reloadNerModel,
-            )
-
-            SettingsCard(
-                title = "Planning Modes",
-                icon = Icons.Default.Tune,
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()).fillMaxSize().padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp),
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                    Text("Show planning scale modes", modifier = Modifier.weight(1f))
-                    Switch(checked = tempShowModes, onCheckedChange = { tempShowModes = it })
-                }
-                AnimatedTextField(
-                    value = tempDailyTag,
-                    onValueChange = { tempDailyTag = it },
-                    label = "Daily Mode Tag",
-                    helper = "Tag used for daily planning mode",
-                )
-                AnimatedTextField(
-                    value = tempMediumTag,
-                    onValueChange = { tempMediumTag = it },
-                    label = "Medium Mode Tag",
-                    helper = "Tag used for medium planning mode",
-                )
-                AnimatedTextField(
-                    value = tempLongTag,
-                    onValueChange = { tempLongTag = it },
-                    label = "Long Mode Tag",
-                    helper = "Tag used for long planning mode",
-                )
-            }
-
-            SettingsCard(
-                title = "Integrations",
-                icon = Icons.Default.Link,
-            ) {
-                Text("Specify the exact name of your Obsidian Vault for link integration.")
-                AnimatedTextField(
-                    value = tempVaultName,
-                    onValueChange = { tempVaultName = it },
-                    label = "Obsidian Vault Name",
-                    helper = "Exact vault name for link integration",
-                    singleLine = true,
-                )
-            }
-
-            SettingsCard(
-                title = "Contexts",
-                icon = Icons.Default.Label,
-            ) {
-                OutlinedButton(
-                    onClick = onManageContextsClick,
-                    modifier = Modifier.fillMaxWidth(),
-                    content = { Text("Manage Reserved Contexts ($reservedContextCount)") },
-                    colors = ButtonDefaults.outlinedButtonColors(),
-                )
-            }
-
-            SettingsCard(
-                title = "Debug Options",
-                icon = Icons.Default.BugReport,
-            ) {
-                Button(onClick = { throw RuntimeException("Test Crash from Settings") }) {
-                    Text("Test Crash")
+                when (selectedTab) {
+                    SettingsTab.General -> {
+                        PermissionsSettingsCard()
+                    }
+                    SettingsTab.Ui -> {
+                        ThemeSettingsCard(
+                            themeSettings = uiState.themeSettings,
+                            onThemeModeSelected = viewModel::onThemeModeSelected,
+                            onLightThemeSelected = viewModel::onLightThemeSelected,
+                            onDarkThemeSelected = viewModel::onDarkThemeSelected,
+                        )
+                    }
+                    SettingsTab.Reminders -> {
+                        RingtoneSettingsCard(
+                            currentType = uiState.ringtoneType,
+                            ringtoneUris = uiState.ringtoneUris,
+                            ringtoneVolumes = uiState.ringtoneVolumes,
+                            vibrationEnabled = uiState.reminderVibrationEnabled,
+                            onTypeSelected = viewModel::onRingtoneTypeSelected,
+                            onRingtonePicked = viewModel::onRingtoneUriSelected,
+                            onVolumeChanged = viewModel::onRingtoneVolumeChanged,
+                            onVibrationToggle = viewModel::onReminderVibrationToggle,
+                        )
+                    }
+                    SettingsTab.Management -> {
+                        if (com.romankozak.forwardappmobile.config.FeatureToggles.isEnabled(com.romankozak.forwardappmobile.config.FeatureFlag.PlanningModes)) {
+                            SettingsCard(
+                                title = "Planning Modes",
+                                icon = Icons.Default.Tune,
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                                    Text("Show planning scale modes", modifier = Modifier.weight(1f))
+                                    Switch(checked = tempShowModes, onCheckedChange = { tempShowModes = it })
+                                }
+                                AnimatedTextField(
+                                    value = tempDailyTag,
+                                    onValueChange = { tempDailyTag = it },
+                                    label = "Daily Mode Tag",
+                                    helper = "Tag used for daily planning mode",
+                                )
+                                AnimatedTextField(
+                                    value = tempMediumTag,
+                                    onValueChange = { tempMediumTag = it },
+                                    label = "Medium Mode Tag",
+                                    helper = "Tag used for medium planning mode",
+                                )
+                                AnimatedTextField(
+                                    value = tempLongTag,
+                                    onValueChange = { tempLongTag = it },
+                                    label = "Long Mode Tag",
+                                    helper = "Tag used for long planning mode",
+                                )
+                            }
+                        }
+                        SettingsCard(
+                            title = "Contexts",
+                            icon = Icons.Default.Label,
+                        ) {
+                            OutlinedButton(
+                                onClick = onManageContextsClick,
+                                modifier = Modifier.fillMaxWidth(),
+                                content = { Text("Manage Reserved Contexts ($reservedContextCount)") },
+                                colors = ButtonDefaults.outlinedButtonColors(),
+                            )
+                        }
+                    }
+                    SettingsTab.Integrations -> {
+                        SettingsCard(
+                            title = "Integrations",
+                            icon = Icons.Default.Link,
+                        ) {
+                            Text("Specify the exact name of your Obsidian Vault for link integration.")
+                            AnimatedTextField(
+                                value = tempVaultName,
+                                onValueChange = { tempVaultName = it },
+                                label = "Obsidian Vault Name",
+                                helper = "Exact vault name for link integration",
+                                singleLine = true,
+                            )
+                        }
+                    }
+                    SettingsTab.Ai -> {
+                        val aiEnabled =
+                            com.romankozak.forwardappmobile.config.FeatureToggles.isEnabled(com.romankozak.forwardappmobile.config.FeatureFlag.AiChat) ||
+                                com.romankozak.forwardappmobile.config.FeatureToggles.isEnabled(com.romankozak.forwardappmobile.config.FeatureFlag.AiInsights) ||
+                                com.romankozak.forwardappmobile.config.FeatureToggles.isEnabled(com.romankozak.forwardappmobile.config.FeatureFlag.AiLifeManagement)
+                        if (aiEnabled) {
+                            ServerSettingsCard(
+                                state = uiState,
+                                onIpConfigModeChange = viewModel::onServerIpConfigurationModeChanged,
+                                onIpChange = viewModel::onManualServerIpChanged,
+                                onOllamaPortChange = viewModel::onOllamaPortChanged,
+                                onWifiSyncPortChange = viewModel::onWifiSyncPortChanged,
+                                onFastApiPortChange = viewModel::onFastApiPortChanged,
+                                onFetchClick = viewModel::fetchAvailableModels,
+                                onFastModelSelect = viewModel::onFastModelSelected,
+                                onSmartModelSelect = viewModel::onSmartModelSelected,
+                                onRefreshDiscovery = viewModel::refreshServerDiscovery
+                            )
+                            RolesSettingsCard(
+                                state = uiState,
+                                onFolderSelected = viewModel::onRolesFolderSelected,
+                            )
+                            NerSettingsCard(
+                                state = uiState,
+                                onModelFileSelected = viewModel::onNerModelFileSelected,
+                                onTokenizerFileSelected = viewModel::onNerTokenizerFileSelected,
+                                onLabelsFileSelected = viewModel::onNerLabelsFileSelected,
+                                onReloadClick = viewModel::reloadNerModel,
+                            )
+                        } else {
+                            Text("AI features вимкнені. Увімкніть їх на вкладці Experiments.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                    SettingsTab.Experiments -> {
+                        SettingsCard(
+                            title = "Experimental Features",
+                            icon = Icons.Default.Build,
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = "Attachments library",
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    Switch(
+                                        checked = uiState.attachmentsLibraryEnabled,
+                                        onCheckedChange = viewModel::onAttachmentsLibraryToggle
+                                    )
+                                }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = "Scripts",
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    Switch(
+                                        checked = uiState.scriptsLibraryEnabled,
+                                        onCheckedChange = viewModel::onScriptsLibraryToggle
+                                    )
+                                }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.settings_allow_system_project_moves),
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    Switch(
+                                        checked = uiState.allowSystemProjectMoves,
+                                        onCheckedChange = viewModel::onAllowSystemProjectMovesToggle,
+                                    )
+                                }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = "Planning modes",
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    Switch(
+                                        checked = uiState.planningModesEnabled,
+                                        onCheckedChange = viewModel::onPlanningModesToggle,
+                                    )
+                                }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = "Wi‑Fi sync",
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    Switch(
+                                        checked = uiState.wifiSyncEnabled,
+                                        onCheckedChange = viewModel::onWifiSyncToggle,
+                                    )
+                                }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = "Strategic management",
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    Switch(
+                                        checked = uiState.strategicManagementEnabled,
+                                        onCheckedChange = viewModel::onStrategicManagementToggle,
+                                    )
+                                }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = "AI Chat",
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    Switch(
+                                        checked = uiState.aiChatEnabled,
+                                        onCheckedChange = viewModel::onAiChatToggle,
+                                    )
+                                }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = "AI Insights",
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    Switch(
+                                        checked = uiState.aiInsightsEnabled,
+                                        onCheckedChange = viewModel::onAiInsightsToggle,
+                                    )
+                                }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = "AI Life Management",
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    Switch(
+                                        checked = uiState.aiLifeManagementEnabled,
+                                        onCheckedChange = viewModel::onAiLifeManagementToggle,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    SettingsTab.Diagnostics -> {
+                        SettingsCard(
+                            title = "Debug Options",
+                            icon = Icons.Default.BugReport,
+                        ) {
+                            Button(onClick = { throw RuntimeException("Test Crash from Settings") }) {
+                                Text("Test Crash")
+                            }
+                        }
+                    }
                 }
             }
         }
     }
+}
+
+private enum class SettingsTab(val label: String) {
+    General("General"),
+    Ui("UI"),
+    Reminders("Reminders"),
+    Management("Management"),
+    Integrations("Integrations"),
+    Ai("AI"),
+    Experiments("Experiments"),
+    Diagnostics("Diagnostics"),
 }

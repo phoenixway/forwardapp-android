@@ -45,6 +45,7 @@ data class SettingsUiState(
     val themeSettings: com.romankozak.forwardappmobile.ui.theme.ThemeSettings = com.romankozak.forwardappmobile.ui.theme.ThemeSettings(),
     val featureToggles: Map<FeatureFlag, Boolean> = FeatureFlag.values().associateWith { FeatureToggles.isEnabled(it) },
     val attachmentsLibraryEnabled: Boolean = FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary),
+    val scriptsLibraryEnabled: Boolean = FeatureToggles.isEnabled(FeatureFlag.ScriptsLibrary),
     val allowSystemProjectMoves: Boolean = FeatureToggles.isEnabled(FeatureFlag.AllowSystemProjectMoves),
     val planningModesEnabled: Boolean = FeatureToggles.isEnabled(FeatureFlag.PlanningModes),
     val wifiSyncEnabled: Boolean = FeatureToggles.isEnabled(FeatureFlag.WifiSync),
@@ -113,6 +114,7 @@ class SettingsViewModel @Inject constructor(
                 val ringtoneVolumes = values[15] as Map<RingtoneType, Float>
                 val reminderVibrationEnabled = values[16] as Boolean
                 val attachmentsEnabled = featureToggles[FeatureFlag.AttachmentsLibrary] ?: FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary)
+                val scriptsEnabled = featureToggles[FeatureFlag.ScriptsLibrary] ?: FeatureToggles.isEnabled(FeatureFlag.ScriptsLibrary)
                 val allowSystemMoves = featureToggles[FeatureFlag.AllowSystemProjectMoves] ?: FeatureToggles.isEnabled(FeatureFlag.AllowSystemProjectMoves)
                 val planningModesEnabled = featureToggles[FeatureFlag.PlanningModes] ?: FeatureToggles.isEnabled(FeatureFlag.PlanningModes)
                 val wifiSyncEnabled = featureToggles[FeatureFlag.WifiSync] ?: FeatureToggles.isEnabled(FeatureFlag.WifiSync)
@@ -137,6 +139,7 @@ class SettingsViewModel @Inject constructor(
                         fastApiPort = values[11] as Int,
                         featureToggles = featureToggles,
                         attachmentsLibraryEnabled = attachmentsEnabled,
+                        scriptsLibraryEnabled = scriptsEnabled,
                         allowSystemProjectMoves = allowSystemMoves,
                         planningModesEnabled = planningModesEnabled,
                         wifiSyncEnabled = wifiSyncEnabled,
@@ -271,6 +274,7 @@ class SettingsViewModel @Inject constructor(
             state.copy(
                 featureToggles = updated,
                 attachmentsLibraryEnabled = updated[FeatureFlag.AttachmentsLibrary] ?: state.attachmentsLibraryEnabled,
+                scriptsLibraryEnabled = updated[FeatureFlag.ScriptsLibrary] ?: state.scriptsLibraryEnabled,
                 allowSystemProjectMoves = updated[FeatureFlag.AllowSystemProjectMoves] ?: state.allowSystemProjectMoves,
                 planningModesEnabled = updated[FeatureFlag.PlanningModes] ?: state.planningModesEnabled,
                 wifiSyncEnabled = updated[FeatureFlag.WifiSync] ?: state.wifiSyncEnabled,
@@ -286,6 +290,10 @@ class SettingsViewModel @Inject constructor(
 
     fun onAttachmentsLibraryToggle(enabled: Boolean) {
         updateFeatureToggle(FeatureFlag.AttachmentsLibrary, enabled)
+    }
+
+    fun onScriptsLibraryToggle(enabled: Boolean) {
+        updateFeatureToggle(FeatureFlag.ScriptsLibrary, enabled)
     }
 
     fun onAllowSystemProjectMovesToggle(enabled: Boolean) {

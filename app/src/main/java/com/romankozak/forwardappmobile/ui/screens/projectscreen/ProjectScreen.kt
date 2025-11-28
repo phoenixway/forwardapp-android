@@ -53,6 +53,8 @@ import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEdito
 import com.romankozak.forwardappmobile.ui.reminders.dialogs.ReminderPropertiesDialog
 import com.romankozak.forwardappmobile.ui.reminders.dialogs.RemindersDialog
 import com.romankozak.forwardappmobile.ui.reminders.viewmodel.ReminderViewModel
+import com.romankozak.forwardappmobile.config.FeatureFlag
+import com.romankozak.forwardappmobile.config.FeatureToggles
 
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.inputpanel.ModernInputPanel
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.topbar.AdaptiveTopBar
@@ -462,7 +464,15 @@ private fun ProjectBottomBar(
                 onCreateChecklist = viewModel::onCreateChecklist,
                 suggestions = suggestions,
                 onSuggestionClick = viewModel::onSuggestionClick,
-                onShowDisplayPropertiesClick = onShowDisplayPropertiesClick
+                onShowDisplayPropertiesClick = onShowDisplayPropertiesClick,
+                onAddScript = if (FeatureToggles.isEnabled(FeatureFlag.ScriptsLibrary)) {
+                    {
+                        val route =
+                            project?.id?.let { id -> "script_editor_screen?projectId=$id" }
+                                ?: "script_editor_screen"
+                        navController.navigate(route)
+                    }
+                } else null,
             )
         }
     }

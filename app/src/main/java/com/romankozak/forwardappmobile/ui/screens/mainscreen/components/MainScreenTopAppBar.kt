@@ -30,6 +30,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import com.romankozak.forwardappmobile.config.FeatureFlag
 import com.romankozak.forwardappmobile.config.FeatureToggles
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -66,6 +68,7 @@ fun MainScreenTopAppBar(
     onShowAbout: () -> Unit,
     onShowReminders: () -> Unit,
     onShowAttachmentsLibrary: () -> Unit,
+    onShowScriptsLibrary: () -> Unit,
 ) {
     var swipeState by remember { mutableStateOf(0f) }
     TopAppBar(
@@ -138,18 +141,32 @@ fun MainScreenTopAppBar(
                         }
                     }
                     var menuExpanded by remember { mutableStateOf(false) }
+                    var importExportMenuExpanded by remember { mutableStateOf(false) }
                     IconButton(onClick = { menuExpanded = true }) {
                         Icon(Icons.Default.MoreVert, "Menu")
                     }
                     DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }, modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
-                        if (FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary)) {
-                            DropdownMenuItem(
-                                text = { Text("Attachments library") },
-                                onClick = {
-                                    onShowAttachmentsLibrary()
-                                    menuExpanded = false
-                                },
-                            )
+                        val showAttachmentsLibrary = FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary)
+                        val showScriptsLibrary = FeatureToggles.isEnabled(FeatureFlag.ScriptsLibrary)
+                        if (showAttachmentsLibrary || showScriptsLibrary) {
+                            if (showAttachmentsLibrary) {
+                                DropdownMenuItem(
+                                    text = { Text("Attachments library") },
+                                    onClick = {
+                                        onShowAttachmentsLibrary()
+                                        menuExpanded = false
+                                    },
+                                )
+                            }
+                            if (showScriptsLibrary) {
+                                DropdownMenuItem(
+                                    text = { Text("Scripts library") },
+                                    onClick = {
+                                        onShowScriptsLibrary()
+                                        menuExpanded = false
+                                    },
+                                )
+                            }
                             HorizontalDivider()
                         }
                         if (FeatureToggles.isEnabled(FeatureFlag.WifiSync)) {
@@ -170,32 +187,8 @@ fun MainScreenTopAppBar(
                             HorizontalDivider()
                         }
                         DropdownMenuItem(
-                            text = { Text("Export to file") },
-                            onClick = {
-                                onExportToFile()
-                                menuExpanded = false
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Import from file") },
-                            onClick = {
-                                onImportFromFile()
-                                menuExpanded = false
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Export Attachments (JSON)") },
-                            onClick = {
-                                onExportAttachments()
-                                menuExpanded = false
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Import Attachments (JSON)") },
-                            onClick = {
-                                onImportAttachments()
-                                menuExpanded = false
-                            },
+                            text = { Text("Import/Export ›") },
+                            onClick = { importExportMenuExpanded = true; menuExpanded = false },
                         )
                         HorizontalDivider()
                         DropdownMenuItem(
@@ -212,7 +205,40 @@ fun MainScreenTopAppBar(
                                 menuExpanded = false
                             },
                         )
-
+                    }
+                    DropdownMenu(
+                        expanded = importExportMenuExpanded,
+                        onDismissRequest = { importExportMenuExpanded = false },
+                        modifier = Modifier.background(MaterialTheme.colorScheme.surface),
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Export to file") },
+                            onClick = {
+                                onExportToFile()
+                                importExportMenuExpanded = false
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Import from file") },
+                            onClick = {
+                                onImportFromFile()
+                                importExportMenuExpanded = false
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Export Attachments (JSON)") },
+                            onClick = {
+                                onExportAttachments()
+                                importExportMenuExpanded = false
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Import Attachments (JSON)") },
+                            onClick = {
+                                onImportAttachments()
+                                importExportMenuExpanded = false
+                            },
+                        )
                     }
                 }
             }

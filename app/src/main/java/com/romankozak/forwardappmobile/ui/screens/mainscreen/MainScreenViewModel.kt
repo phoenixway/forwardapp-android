@@ -586,6 +586,16 @@ constructor(
           viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate("attachments_library_screen")) }
         }
       }
+      is MainScreenEvent.AddScriptRequest -> {
+        if (FeatureToggles.isEnabled(FeatureFlag.ScriptsLibrary)) {
+          viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate("script_editor_screen")) }
+        }
+      }
+      is MainScreenEvent.OpenScriptsLibrary -> {
+        if (FeatureToggles.isEnabled(FeatureFlag.ScriptsLibrary)) {
+          viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate("scripts_library_screen")) }
+        }
+      }
       is MainScreenEvent.RevealProjectInHierarchy -> {
         viewModelScope.launch { revealProject(event.projectId) }
       }
