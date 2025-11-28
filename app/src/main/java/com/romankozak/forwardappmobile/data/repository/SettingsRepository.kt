@@ -135,15 +135,15 @@ class SettingsRepository @Inject constructor(
 
     private fun defaultFor(flag: FeatureFlag): Boolean =
         when (flag) {
-            FeatureFlag.AttachmentsLibrary -> BuildConfig.DEBUG
-            FeatureFlag.ScriptsLibrary -> BuildConfig.DEBUG
+            FeatureFlag.AttachmentsLibrary -> BuildConfig.IS_EXPERIMENTAL_BUILD
+            FeatureFlag.ScriptsLibrary -> BuildConfig.IS_EXPERIMENTAL_BUILD
             FeatureFlag.AllowSystemProjectMoves -> false
-            FeatureFlag.PlanningModes -> BuildConfig.DEBUG
-            FeatureFlag.WifiSync -> BuildConfig.DEBUG
-            FeatureFlag.StrategicManagement -> BuildConfig.DEBUG
-            FeatureFlag.AiChat -> BuildConfig.DEBUG
-            FeatureFlag.AiInsights -> BuildConfig.DEBUG
-            FeatureFlag.AiLifeManagement -> BuildConfig.DEBUG
+            FeatureFlag.PlanningModes -> BuildConfig.IS_EXPERIMENTAL_BUILD
+            FeatureFlag.WifiSync -> BuildConfig.IS_EXPERIMENTAL_BUILD
+            FeatureFlag.StrategicManagement -> BuildConfig.IS_EXPERIMENTAL_BUILD
+            FeatureFlag.AiChat -> BuildConfig.IS_EXPERIMENTAL_BUILD
+            FeatureFlag.AiInsights -> BuildConfig.IS_EXPERIMENTAL_BUILD
+            FeatureFlag.AiLifeManagement -> BuildConfig.IS_EXPERIMENTAL_BUILD
         }
 
     val featureTogglesFlow: Flow<Map<FeatureFlag, Boolean>> =

@@ -37,43 +37,45 @@ work-end:
 
 # ============== ОСНОВНІ КОМАНДИ ==============
 
-## Зібрати, встановити та запустити RELEASE версію
-all: install start
+## Зібрати, встановити та запустити продовий RELEASE (prodRelease)
+all: install-prod start
 
 ## Зібрати, встановити та запустити DEBUG версію
 debug-cycle: install-debug start-debug
+## Зібрати, встановити та запустити EXPERIMENTAL RELEASE (expRelease)
+exp-cycle: install-exp start-exp
 
 
 # ============== RELEASE ЦИКЛ ==============
 
-# Зібрати release APK
+# Зібрати prod release APK
 build-release:
-	@echo "🚀  Збираю release APK..."
-	@./gradlew :app:assembleRelease
+	@echo "🚀  Збираю prod release APK..."
+	@./gradlew :app:assembleProdRelease
 
-# Встановити release APK
-install: build-release
+# Встановити prod release APK
+install-prod: build-release
 	@echo "📦  Встановлюю release APK (пріоритет ARM64)..."
-	@if [ -f app/build/outputs/apk/release/app-arm64-v8a-release.apk ]; then \
+	@if [ -f app/build/outputs/apk/prod/release/app-prod-arm64-v8a-release.apk ]; then \
 		echo "Знайдено ARM64 APK. Встановлюю..."; \
-		adb $(DEVICE_FLAG) install -r app/build/outputs/apk/release/app-arm64-v8a-release.apk; \
+		adb $(DEVICE_FLAG) install -r app/build/outputs/apk/prod/release/app-prod-arm64-v8a-release.apk; \
 	else \
 		echo "ARM64 APK не знайдено. Шукаю інший варіант..."; \
-		find app/build/outputs/apk/release -type f -name "*-release.apk" -print0 | xargs -0 -I {} adb $(DEVICE_FLAG) install -r {}; \
+		find app/build/outputs/apk/prod/release -type f -name "*-release.apk" -print0 | xargs -0 -I {} adb $(DEVICE_FLAG) install -r {}; \
 	fi
 	@echo "✅  Release APK встановлено."
 
-# Запустити release додаток
+# Запустити prod release додаток
 start:
-	@echo "▶️  Запускаю release додаток ($(PACKAGE_NAME))..."
+	@echo "▶️  Запускаю prod release додаток ($(PACKAGE_NAME))..."
 	@adb $(DEVICE_FLAG) shell am start -n $(PACKAGE_NAME)/$(MAIN_ACTIVITY)
 
-# Зупинити release додаток
+# Зупинити prod release додаток
 stop:
 	@echo "🛑  Зупиняю release додаток ($(PACKAGE_NAME))..."
 	@adb $(DEVICE_FLAG) shell am force-stop $(PACKAGE_NAME)
 
-# Показати логи для release додатка
+# Показати логи для prod release додатка
 logcat:
 	@echo "📋  Показую логи для release: $(PACKAGE_NAME)..."
 	@adb $(DEVICE_FLAG) logcat $(PACKAGE_NAME):V *:S
@@ -117,6 +119,34 @@ logcat-debug:
 	@echo "📋  Показую логи для debug: $(DEBUG_PACKAGE_NAME)..."
 	@adb $(DEVICE_FLAG) logcat $(DEBUG_PACKAGE_NAME):V *:S
 
+# ============== EXPERIMENTAL RELEASE ЦИКЛ ==============
+
+build-exp:
+	@echo "🚀  Збираю exp release APK..."
+	@./gradlew :app:assembleExpRelease
+
+install-exp: build-exp
+	@echo "📦  Встановлюю exp release APK (пріоритет ARM64)..."
+	@if [ -f app/build/outputs/apk/exp/release/app-exp-arm64-v8a-release.apk ]; then \
+		echo "Знайдено ARM64 APK. Встановлюю..."; \
+		adb $(DEVICE_FLAG) install -r app/build/outputs/apk/exp/release/app-exp-arm64-v8a-release.apk; \
+	else \
+		echo "ARM64 APK не знайдено. Шукаю інший варіант..."; \
+		find app/build/outputs/apk/exp/release -type f -name "*-release.apk" -print0 | xargs -0 -I {} adb $(DEVICE_FLAG) install -r {}; \
+	fi
+	@echo "✅  Exp release APK встановлено."
+
+start-exp:
+	@echo "▶️  Запускаю exp додаток ($(PACKAGE_NAME).exp)..."
+	@adb $(DEVICE_FLAG) shell am start -n $(PACKAGE_NAME).exp/$(MAIN_ACTIVITY)
+
+stop-exp:
+	@echo "🛑  Зупиняю exp додаток ($(PACKAGE_NAME).exp)..."
+	@adb $(DEVICE_FLAG) shell am force-stop $(PACKAGE_NAME).exp)
+
+logcat-exp:
+	@echo "📋  Показую логи для exp: $(PACKAGE_NAME).exp..."
+	@adb $(DEVICE_FLAG) logcat $(PACKAGE_NAME).exp:V *:S
 
 # ============== СЕРВІСНІ КОМАНДИ ==============
 

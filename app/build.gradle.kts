@@ -104,6 +104,7 @@ android {
             // для дебажної версії змінюємо applicationId
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
+            buildConfigField("Boolean", "IS_EXPERIMENTAL_BUILD", "true")
         }
 
         getByName("release") {
@@ -113,6 +114,21 @@ android {
                 "proguard-rules.pro"
             )
             signingConfig = signingConfigs.getByName("release")
+        }
+    }
+    flavorDimensions += "env"
+    productFlavors {
+        create("prod") {
+            dimension = "env"
+            isDefault = true
+            applicationId = "com.romankozak.forwardappmobile"
+            buildConfigField("Boolean", "IS_EXPERIMENTAL_BUILD", "false")
+        }
+        create("exp") {
+            dimension = "env"
+            applicationIdSuffix = ".exp"
+            versionNameSuffix = "-exp"
+            buildConfigField("Boolean", "IS_EXPERIMENTAL_BUILD", "true")
         }
     }
     splits {
