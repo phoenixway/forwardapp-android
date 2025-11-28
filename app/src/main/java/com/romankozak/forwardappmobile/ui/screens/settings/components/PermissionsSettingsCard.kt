@@ -37,6 +37,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.compose.ui.res.stringResource
+import com.romankozak.forwardappmobile.R
 
 @Composable
 fun PermissionsSettingsCard() {
@@ -74,11 +76,11 @@ fun PermissionsSettingsCard() {
         onResult = { permissionUpdateTrigger++ }
     )
 
-    SettingsCard(title = "Permissions", icon = Icons.Default.Security) {
+    SettingsCard(title = stringResource(id = R.string.settings_permissions_title), icon = Icons.Default.Security) {
         PermissionRow(
             icon = Icons.Default.Notifications,
-            name = "Notifications",
-            description = "Required to show reminders",
+            name = stringResource(id = R.string.settings_permission_notifications_title),
+            description = stringResource(id = R.string.settings_permission_notifications_desc),
             isGranted = hasNotificationPermission,
             onGrantClick = {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -89,8 +91,8 @@ fun PermissionsSettingsCard() {
         Divider(modifier = Modifier.padding(vertical = 8.dp))
         PermissionRow(
             icon = Icons.Default.Alarm,
-            name = "Exact Alarms",
-            description = "Required for reminders to be on time",
+            name = stringResource(id = R.string.settings_permission_exact_alarms_title),
+            description = stringResource(id = R.string.settings_permission_exact_alarms_desc),
             isGranted = canScheduleExactAlarms,
             onGrantClick = {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -104,8 +106,8 @@ fun PermissionsSettingsCard() {
         Divider(modifier = Modifier.padding(vertical = 8.dp))
         PermissionRow(
             icon = Icons.Default.BatteryFull,
-            name = "Battery optimization",
-            description = "Allow running reminders without being killed",
+            name = stringResource(id = R.string.settings_permission_battery_title),
+            description = stringResource(id = R.string.settings_permission_battery_desc),
             isGranted = ignoresBatteryOptimizations,
             onGrantClick = {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -143,12 +145,12 @@ private fun PermissionRow(
             if (isGranted) {
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
-                    contentDescription = "Granted",
+                    contentDescription = stringResource(id = R.string.settings_permission_granted),
                     tint = Color(0xFF388E3C)
                 )
             } else {
                 Button(onClick = onGrantClick, contentPadding = PaddingValues(horizontal = 16.dp)) {
-                    Text("Grant")
+                    Text(stringResource(id = R.string.settings_permission_grant_action))
                 }
             }
         }

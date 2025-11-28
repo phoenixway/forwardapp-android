@@ -120,4 +120,15 @@
     <string name="menu_import_from_file">Імпорт з файлу</string>
     <string name="menu_export_attachments">Експорт вкладень (JSON)</string>
     <string name="menu_import_attachments">Імпорт вкладень (JSON)</string>
+
+    <!-- Permissions -->
+    <string name="settings_permissions_title">Дозволи</string>
+    <string name="settings_permission_notifications_title">Сповіщення</string>
+    <string name="settings_permission_notifications_desc">Потрібні для показу нагадувань</string>
+    <string name="settings_permission_exact_alarms_title">Точні будильники</string>
+    <string name="settings_permission_exact_alarms_desc">Щоб нагадування спрацьовували вчасно</string>
+    <string name="settings_permission_battery_title">Оптимізація батареї</string>
+    <string name="settings_permission_battery_desc">Дозволити нагадуванням працювати без завершення</string>
+    <string name="settings_permission_granted">Надано</string>
+    <string name="settings_permission_grant_action">Надати</string>
 </resources>

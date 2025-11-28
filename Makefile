@@ -137,16 +137,16 @@ install-exp: build-exp
 	@echo "✅  Exp release APK встановлено."
 
 start-exp:
-	@echo "▶️  Запускаю exp додаток ($(PACKAGE_NAME).exp)..."
-	@adb $(DEVICE_FLAG) shell am start -n $(PACKAGE_NAME).exp/$(MAIN_ACTIVITY)
+	@echo "▶️  Запускаю exp додаток ($(PACKAGE_NAME))..."
+	@adb $(DEVICE_FLAG) shell am start -n $(PACKAGE_NAME)/$(MAIN_ACTIVITY)
 
 stop-exp:
-	@echo "🛑  Зупиняю exp додаток ($(PACKAGE_NAME).exp)..."
-	@adb $(DEVICE_FLAG) shell am force-stop $(PACKAGE_NAME).exp)
+	@echo "🛑  Зупиняю exp додаток ($(PACKAGE_NAME))..."
+	@adb $(DEVICE_FLAG) shell am force-stop $(PACKAGE_NAME)
 
 logcat-exp:
-	@echo "📋  Показую логи для exp: $(PACKAGE_NAME).exp..."
-	@adb $(DEVICE_FLAG) logcat $(PACKAGE_NAME).exp:V *:S
+	@echo "📋  Показую логи для exp: $(PACKAGE_NAME)..."
+	@adb $(DEVICE_FLAG) logcat $(PACKAGE_NAME):V *:S
 
 # ============== СЕРВІСНІ КОМАНДИ ==============
 

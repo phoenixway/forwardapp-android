@@ -31,8 +31,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.ui.res.stringResource
 import com.romankozak.forwardappmobile.config.FeatureFlag
 import com.romankozak.forwardappmobile.config.FeatureToggles
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -108,15 +106,15 @@ fun MainScreenTopAppBar(
                 }
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    NeonTitle("Projects")
-                    if (com.romankozak.forwardappmobile.BuildConfig.DEBUG) {
+                    NeonTitle(stringResource(id = com.romankozak.forwardappmobile.R.string.app_name))
+                    if (com.romankozak.forwardappmobile.BuildConfig.DEBUG || com.romankozak.forwardappmobile.BuildConfig.IS_EXPERIMENTAL_BUILD) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Badge(
                             containerColor = MaterialTheme.colorScheme.errorContainer,
                             contentColor = MaterialTheme.colorScheme.onErrorContainer,
                         ) {
                             Text(
-                                text = "Debug",
+                                text = if (com.romankozak.forwardappmobile.BuildConfig.IS_EXPERIMENTAL_BUILD) "Experimental" else "Debug",
                                 style = MaterialTheme.typography.labelSmall,
                             )
                         }
@@ -128,25 +126,32 @@ fun MainScreenTopAppBar(
             if (!isSearchActive) {
                 if (isFocusMode && focusedProjectMenuClick != null) {
                     IconButton(onClick = focusedProjectMenuClick) {
-                        Icon(Icons.Default.MoreVert, "Project menu")
+                        Icon(Icons.Default.MoreVert, stringResource(id = com.romankozak.forwardappmobile.R.string.more_options))
                     }
                 } else {
                     AnimatedVisibility(visible = false) {
                         IconButton(onClick = onGoBack) {
-                            Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Назад")
+                            Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(id = com.romankozak.forwardappmobile.R.string.back))
                         }
                     }
                     AnimatedVisibility(visible = false) {
                         IconButton(onClick = onGoForward) {
-                            Icon(Icons.AutoMirrored.Outlined.ArrowForward, "Вперед")
+                            Icon(Icons.AutoMirrored.Outlined.ArrowForward, stringResource(id = com.romankozak.forwardappmobile.R.string.forward))
                         }
                     }
                     var menuExpanded by remember { mutableStateOf(false) }
                     var importExportMenuExpanded by remember { mutableStateOf(false) }
                     IconButton(onClick = { menuExpanded = true }) {
-                        Icon(Icons.Default.MoreVert, "Menu")
+                        Icon(Icons.Default.MoreVert, stringResource(id = com.romankozak.forwardappmobile.R.string.more_options))
                     }
-                    DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }, modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = {
+                            menuExpanded = false
+                            importExportMenuExpanded = false
+                        },
+                        modifier = Modifier.background(MaterialTheme.colorScheme.surface),
+                    ) {
                         val showAttachmentsLibrary = FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary)
                         val showScriptsLibrary = FeatureToggles.isEnabled(FeatureFlag.ScriptsLibrary)
                         if (showAttachmentsLibrary || showScriptsLibrary) {

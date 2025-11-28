@@ -126,7 +126,8 @@ android {
         }
         create("exp") {
             dimension = "env"
-            applicationIdSuffix = ".exp"
+            // Використовуємо той самий applicationId, щоб не вимагати окремий google-services.json
+            applicationId = "com.romankozak.forwardappmobile"
             versionNameSuffix = "-exp"
             buildConfigField("Boolean", "IS_EXPERIMENTAL_BUILD", "true")
         }
