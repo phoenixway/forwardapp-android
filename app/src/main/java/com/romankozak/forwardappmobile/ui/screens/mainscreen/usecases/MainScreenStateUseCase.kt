@@ -12,11 +12,13 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.AppStatistic
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DialogState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.FilterState
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.FlatHierarchyItem
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenUiState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainSubState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningSettingsState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.SearchResult
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.flattenHierarchyWithLevels
 import dagger.hilt.android.scopes.ViewModelScoped
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
@@ -156,6 +158,11 @@ constructor(
             projectHierarchy = hierarchy,
             currentBreadcrumbs = breadcrumbs,
             planningMode = planningMode,
+            flattenedHierarchy =
+              flattenHierarchyWithLevels(
+                hierarchy.topLevelProjects,
+                hierarchy.childMap,
+              ),
           )
         }
 
@@ -211,6 +218,7 @@ constructor(
             searchQuery = coreState.searchQuery,
             searchHistory = searchHistory,
             projectHierarchy = coreState.projectHierarchy,
+            flattenedHierarchy = coreState.flattenedHierarchy,
             currentBreadcrumbs = coreState.currentBreadcrumbs,
             areAnyProjectsExpanded = expensiveCalcs.areAnyProjectsExpanded,
             planningMode = coreState.planningMode,
@@ -266,6 +274,7 @@ constructor(
     val projectHierarchy: ListHierarchyData,
     val currentBreadcrumbs: List<BreadcrumbItem>,
     val planningMode: PlanningMode,
+    val flattenedHierarchy: List<FlatHierarchyItem>,
   )
 
   private data class DialogUiState(

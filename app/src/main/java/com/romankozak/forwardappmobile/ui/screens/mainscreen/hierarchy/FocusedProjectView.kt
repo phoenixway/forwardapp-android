@@ -17,6 +17,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -28,6 +29,7 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DropPosition
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.HierarchyDisplaySettings
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenEvent
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.flattenHierarchyWithLevels
 
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -80,11 +82,18 @@ fun FocusedProjectView(
       }
 
       if (children.isNotEmpty()) {
-        items(children, key = { it.id }) { child ->
-          SmartHierarchyView(
-            project = child,
+        val flattenedChildren =
+          remember(children, hierarchy.childMap) {
+            flattenHierarchyWithLevels(children, hierarchy.childMap)
+          }
+        val visibleItems =
+          remember(flattenedChildren, longDescendantsMap, hierarchy.childMap) {
+            buildVisibleHierarchy(flattenedChildren, hierarchy.childMap, longDescendantsMap)
+          }
+        items(visibleItems, key = { it.project.id }) { item ->
+          HierarchyListItem(
+            item = item,
             childMap = hierarchy.childMap,
-            level = 0,
             dragAndDropState = dragAndDropState,
             isSearchActive = isSearchActive,
             planningMode = planningMode,
@@ -103,8 +112,7 @@ fun FocusedProjectView(
             onEditProject = onEditProject,
             sharedTransitionScope =  sharedTransitionScope,
             animatedVisibilityScope = animatedVisibilityScope,
-
-            )
+          )
         }
       } else {
         item(key = "empty_state") {

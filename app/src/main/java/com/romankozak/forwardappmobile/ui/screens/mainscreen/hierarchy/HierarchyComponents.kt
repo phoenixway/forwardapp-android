@@ -58,6 +58,7 @@ import com.mohamedrejeb.compose.dnd.drop.dropTarget
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DropPosition
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.FlatHierarchyItem
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.HierarchyDisplaySettings
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
 import kotlin.math.roundToInt
@@ -577,12 +578,41 @@ fun BreadcrumbNavigation(
     }
 }
 
+internal fun buildVisibleHierarchy(
+    flattenedHierarchy: List<FlatHierarchyItem>,
+    childMap: Map<String, List<Project>>,
+    longDescendantsMap: Map<String, Boolean>,
+): List<FlatHierarchyItem> {
+    val visibleItems = mutableListOf<FlatHierarchyItem>()
+    var skipLevel: Int? = null
+
+    flattenedHierarchy.forEach { item ->
+        if (skipLevel != null) {
+            if (item.level > skipLevel!!) return@forEach
+            skipLevel = null
+        }
+
+        val hasChildren = childMap[item.project.id]?.isNotEmpty() == true
+        val hasLongDescendants = longDescendantsMap[item.project.id] ?: false
+        val isDeeplyNested = hasChildren && item.level >= 3
+        val shouldShowFocusButton = hasLongDescendants || isDeeplyNested
+
+        if (shouldShowFocusButton) {
+            skipLevel = item.level
+        }
+
+        visibleItems.add(item)
+    }
+
+    return visibleItems
+}
+
+@Suppress("UNUSED_PARAMETER")
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun SmartHierarchyView(
-    project: Project,
+fun HierarchyListItem(
+    item: FlatHierarchyItem,
     childMap: Map<String, List<Project>>,
-    level: Int,
     dragAndDropState: DragAndDropState<Project>,
     isSearchActive: Boolean,
     planningMode: PlanningMode,
@@ -599,11 +629,11 @@ fun SmartHierarchyView(
     onAddSubproject: (Project) -> Unit,
     onDeleteProject: (Project) -> Unit,
     onEditProject: (Project) -> Unit,
-    // Add the animation scopes to the signature
     sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope
+    animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
-    val children = childMap[project.id]?.sortedBy { it.order } ?: emptyList()
+    val project = item.project
+    val children = childMap[project.id].orEmpty()
     val hasChildren = children.isNotEmpty()
 
     val displayName =
@@ -618,103 +648,72 @@ fun SmartHierarchyView(
         }
 
     val hasLongDescendants = longDescendantsMap[project.id] ?: false
-    val isDeeplyNested = hasChildren && level >= 3
+    val isDeeplyNested = hasChildren && item.level >= 3
     val shouldShowFocusButton = hasLongDescendants || isDeeplyNested
     val isFocused = project.id == focusedProjectId
 
     with(sharedTransitionScope) {
-        Column {
-            DraggableItem(
-                state = dragAndDropState,
-                key = project.id,
-                data = project,
-                dragAfterLongPress = true,
-            ) {
-                val draggedItemData = dragAndDropState.draggedItem?.data
-                val isDropAllowed =
-                    remember(draggedItemData, project) {
-                        draggedItemData == null || draggedItemData.id != project.id
-                    }
-
-                val hoveredDropTargetKey = dragAndDropState.hoveredDropTargetKey
-                val isHovered =
-                    remember(hoveredDropTargetKey, project.id) {
-                        isDropAllowed && (hoveredDropTargetKey == "before-${project.id}" || hoveredDropTargetKey == "after-${project.id}")
-                    }
-                val isDraggingDown =
-                    remember(hoveredDropTargetKey, project.id) {
-                        isDropAllowed && hoveredDropTargetKey == "after-${project.id}"
-                    }
-
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    SwipeableProjectRow(
-                        project = project,
-                        level = level,
-                        hasChildren = hasChildren,
-                        onProjectClick = onProjectClick,
-                        onToggleExpanded = onToggleExpanded,
-                        onMenuRequested = onMenuRequested,
-                        isCurrentlyDragging = isDragging,
-                        isHovered = isHovered,
-                        isDraggingDown = isDraggingDown,
-                        isHighlighted = project.id == highlightedProjectId,
-                        displayName = displayName,
-                        showFocusButton = shouldShowFocusButton,
-                        onFocusRequested = onFocusProject,
-                        onAddSubproject = onAddSubproject,
-                        onDelete = onDeleteProject,
-                        onEdit = onEditProject,
-                        isFocused = isFocused,
-                    )
-
-                    if (!isDragging) {
-                        Column(modifier = Modifier.matchParentSize()) {
-                            val dropModifier = { position: DropPosition ->
-                                Modifier
-                                    .fillMaxWidth()
-                                    .weight(1f)
-                                    .then(
-                                        if (isDropAllowed) {
-                                            Modifier.dropTarget(state = dragAndDropState, key = "$position-${project.id}") {
-                                                onProjectReorder(it.data.id, project.id, position)
-                                            }
-                                        } else {
-                                            Modifier
-                                        },
-                                    )
-                            }
-                            Box(modifier = dropModifier(DropPosition.BEFORE))
-                            Box(modifier = dropModifier(DropPosition.AFTER))
-                        }
-                    }
+        DraggableItem(
+            state = dragAndDropState,
+            key = project.id,
+            data = project,
+            dragAfterLongPress = true,
+        ) {
+            val draggedItemData = dragAndDropState.draggedItem?.data
+            val isDropAllowed =
+                remember(draggedItemData, project) {
+                    draggedItemData == null || draggedItemData.id != project.id
                 }
-            }
-            if (project.isExpanded && !shouldShowFocusButton) {
-                Column(modifier = Modifier.padding(start = 24.dp)) {
-                    children.forEach { child ->
-                        SmartHierarchyView(
-                            project = child,
-                            childMap = childMap,
-                            level = level + 1,
-                            dragAndDropState = dragAndDropState,
-                            isSearchActive = isSearchActive,
-                            planningMode = planningMode,
-                            highlightedProjectId = highlightedProjectId,
-                            settings = settings,
-                            searchQuery = searchQuery,
-                            focusedProjectId = focusedProjectId,
-                            longDescendantsMap = longDescendantsMap,
-                            onProjectClick = onProjectClick,
-                            onToggleExpanded = onToggleExpanded,
-                            onMenuRequested = onMenuRequested,
-                            onProjectReorder = onProjectReorder,
-                            onFocusProject = onFocusProject,
-                            onAddSubproject = onAddSubproject,
-                            onDeleteProject = onDeleteProject,
-                            onEditProject = onEditProject,
-                            sharedTransitionScope = sharedTransitionScope,
-                            animatedVisibilityScope = animatedVisibilityScope
-                        )
+
+            val hoveredDropTargetKey = dragAndDropState.hoveredDropTargetKey
+            val isHovered =
+                remember(hoveredDropTargetKey, project.id) {
+                    isDropAllowed && (hoveredDropTargetKey == "before-${project.id}" || hoveredDropTargetKey == "after-${project.id}")
+                }
+            val isDraggingDown =
+                remember(hoveredDropTargetKey, project.id) {
+                    isDropAllowed && hoveredDropTargetKey == "after-${project.id}"
+                }
+
+            Box(modifier = Modifier.fillMaxWidth()) {
+                SwipeableProjectRow(
+                    project = project,
+                    level = item.level,
+                    hasChildren = hasChildren,
+                    onProjectClick = onProjectClick,
+                    onToggleExpanded = onToggleExpanded,
+                    onMenuRequested = onMenuRequested,
+                    isCurrentlyDragging = isDragging,
+                    isHovered = isHovered,
+                    isDraggingDown = isDraggingDown,
+                    isHighlighted = project.id == highlightedProjectId,
+                    displayName = displayName,
+                    showFocusButton = shouldShowFocusButton,
+                    onFocusRequested = onFocusProject,
+                    onAddSubproject = onAddSubproject,
+                    onDelete = onDeleteProject,
+                    onEdit = onEditProject,
+                    isFocused = isFocused,
+                )
+
+                if (!isDragging) {
+                    Column(modifier = Modifier.matchParentSize()) {
+                        val dropModifier = { position: DropPosition ->
+                            Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .then(
+                                    if (isDropAllowed) {
+                                        Modifier.dropTarget(state = dragAndDropState, key = "$position-${project.id}") {
+                                            onProjectReorder(it.data.id, project.id, position)
+                                        }
+                                    } else {
+                                        Modifier
+                                    },
+                                )
+                        }
+                        Box(modifier = dropModifier(DropPosition.BEFORE))
+                        Box(modifier = dropModifier(DropPosition.AFTER))
                     }
                 }
             }

@@ -2,7 +2,6 @@ package com.romankozak.forwardappmobile.ui.screens.mainscreen.models
 
 import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
-import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 
 
@@ -14,6 +13,7 @@ data class MainScreenUiState(
     val searchHistory: List<String> = emptyList(),
     
     val projectHierarchy: ListHierarchyData = ListHierarchyData(),
+    val flattenedHierarchy: List<FlatHierarchyItem> = emptyList(),
     val currentBreadcrumbs: List<BreadcrumbItem> = emptyList(),
     val areAnyProjectsExpanded: Boolean = false,
     

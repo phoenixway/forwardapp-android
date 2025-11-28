@@ -140,6 +140,7 @@ fun MainScreenContent(
                 ProjectHierarchyView(
                     modifier = Modifier.weight(1f),
                     hierarchy = uiState.projectHierarchy,
+                    flattenedHierarchy = uiState.flattenedHierarchy,
                     breadcrumbs = uiState.currentBreadcrumbs,
                     focusedProjectId =
                         when (currentSubState) {
