@@ -3,13 +3,10 @@ package com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -22,6 +19,7 @@ import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DropPosition
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.HierarchyDisplaySettings
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
+
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -64,17 +62,7 @@ fun LegacySmartHierarchyView(
     val shouldShowFocusButton = hasLongDescendants || isDeeplyNested
     val isFocused = project.id == focusedProjectId
 
-    with(sharedTransitionScope) {
-        Column(
-            modifier = Modifier
-                .sharedElement(
-                    sharedContentState = rememberSharedContentState(key = "project-card-${project.id}"),
-                    animatedVisibilityScope = animatedVisibilityScope,
-                    boundsTransform = { initialBounds, targetBounds ->
-                        tween(durationMillis = 600, easing = FastOutSlowInEasing)
-                    }
-                )
-        ) {
+        Column() {
             DraggableItem(
                 state = dragAndDropState,
                 key = project.id,
@@ -164,5 +152,4 @@ fun LegacySmartHierarchyView(
                 }
             }
         }
-    }
 }
