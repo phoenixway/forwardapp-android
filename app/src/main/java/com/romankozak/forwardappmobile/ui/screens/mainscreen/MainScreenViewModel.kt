@@ -17,7 +17,9 @@ import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.routes.CHAT_ROUTE
 import com.romankozak.forwardappmobile.routes.LIFE_STATE_ROUTE
+import com.romankozak.forwardappmobile.routes.SELECTIVE_IMPORT_ROUTE
 import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
+import java.net.URLEncoder
 
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.*
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectUiEvent
@@ -420,15 +422,10 @@ constructor(
       }
       is MainScreenEvent.FullImportConfirm -> {
         viewModelScope.launch {
-          val result = projectActionsUseCase.onFullImportConfirmed(event.uri)
+          val encodedUri = URLEncoder.encode(event.uri.toString(), "UTF-8")
+          val route = "selective_import_screen/$encodedUri"
           dialogUseCase.dismissDialog()
-          _uiEventChannel.send(
-            if (result.isSuccess) {
-              ProjectUiEvent.ShowToast(result.getOrNull() ?: "Import successful")
-            } else {
-              ProjectUiEvent.ShowToast("Import error: ${result.exceptionOrNull()?.message}")
-            }
-          )
+          _uiEventChannel.send(ProjectUiEvent.Navigate(route))
         }
       }
       is MainScreenEvent.ShowAboutDialog -> dialogUseCase.onShowAboutDialog()

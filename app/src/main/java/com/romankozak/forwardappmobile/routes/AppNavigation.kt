@@ -57,6 +57,7 @@ const val MAIN_GRAPH_ROUTE = "main_graph"
 const val GOAL_LISTS_ROUTE = "goal_lists_screen"
 const val AI_INSIGHTS_ROUTE = "ai_insights_screen"
 const val LIFE_STATE_ROUTE = "life_state_screen"
+const val SELECTIVE_IMPORT_ROUTE = "selective_import_screen/{fileUri}"
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -465,5 +466,22 @@ private fun NavGraphBuilder.mainGraph(
         arguments = listOf(navArgument("inboxId") { type = NavType.StringType })
     ) {
         InboxEditorScreen(navController = navController)
+    }
+
+    composable(
+        route = SELECTIVE_IMPORT_ROUTE,
+        arguments = listOf(navArgument("fileUri") { type = NavType.StringType })
+    ) { backStackEntry ->
+        val fileUri = backStackEntry.arguments?.getString("fileUri")?.let {
+            URLDecoder.decode(it, "UTF-8")
+        }
+        if (fileUri != null) {
+            com.romankozak.forwardappmobile.ui.screens.selectiveimport.SelectiveImportScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        } else {
+            // Handle error: URI is missing. Maybe pop back or show an error message.
+            navController.popBackStack()
+        }
     }
 }

@@ -34,6 +34,8 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.flattenHierar
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy.buildVisibleHierarchy
+
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
 @Composable

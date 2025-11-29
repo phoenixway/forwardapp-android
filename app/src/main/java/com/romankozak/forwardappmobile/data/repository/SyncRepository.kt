@@ -218,6 +218,26 @@ constructor(
         return gson.toJson(attachmentsBackup)
     }
 
+    suspend fun parseBackupFile(uri: Uri): Result<FullAppBackup> {
+        return try {
+            val jsonString =
+                context.contentResolver
+                    .openInputStream(uri)
+                    ?.bufferedReader()
+                    .use { it?.readText() }
+
+            if (jsonString.isNullOrBlank()) {
+                Result.failure(Exception("Backup file is empty or could not be read."))
+            } else {
+                val backupData = gson.fromJson(jsonString, FullAppBackup::class.java)
+                Result.success(backupData)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to parse backup file.", e)
+            Result.failure(e)
+        }
+    }
+
     suspend fun importAttachmentsFromFile(uri: Uri): Result<String> {
         val IMPORT_TAG = "SyncRepo_AttachmentsImport"
         try {
@@ -669,5 +689,52 @@ constructor(
         val db = appDatabase.openHelper.writableDatabase
         com.romankozak.forwardappmobile.data.database.migrateSpecialProjects(db)
         Log.d(TAG, "runPostBackupMigration: Finished post-backup migration")
+    }
+
+    suspend fun importSelectedData(selectedData: DatabaseContent): Result<String> {
+        val IMPORT_TAG = "SyncRepo_SelectiveImport"
+        return try {
+            appDatabase.withTransaction {
+                Log.d(IMPORT_TAG, "Transaction: Inserting selected data.")
+
+                if (selectedData.projects.isNotEmpty()) {
+                    projectDao.insertProjects(selectedData.projects)
+                    Log.d(IMPORT_TAG, "  - Upserted ${selectedData.projects.size} projects.")
+                }
+                if (selectedData.goals.isNotEmpty()) {
+                    goalDao.insertGoals(selectedData.goals)
+                    Log.d(IMPORT_TAG, "  - Upserted ${selectedData.goals.size} goals.")
+                }
+                if (selectedData.listItems.isNotEmpty()) {
+                    listItemDao.insertItems(selectedData.listItems)
+                    Log.d(IMPORT_TAG, "  - Upserted ${selectedData.listItems.size} list items.")
+                }
+                if (selectedData.legacyNotes.isNotEmpty()) {
+                    legacyNoteDao.insertAll(selectedData.legacyNotes)
+                    Log.d(IMPORT_TAG, "  - Upserted ${selectedData.legacyNotes.size} legacy notes.")
+                }
+                if (selectedData.documents.isNotEmpty()) {
+                    noteDocumentDao.insertAllDocuments(selectedData.documents)
+                    Log.d(IMPORT_TAG, "  - Upserted ${selectedData.documents.size} documents.")
+                }
+                if (selectedData.documentItems.isNotEmpty()) {
+                    noteDocumentDao.insertAllDocumentItems(selectedData.documentItems)
+                    Log.d(IMPORT_TAG, "  - Upserted ${selectedData.documentItems.size} document items.")
+                }
+                if (selectedData.checklists.isNotEmpty()) {
+                    checklistDao.insertChecklists(selectedData.checklists)
+                    Log.d(IMPORT_TAG, "  - Upserted ${selectedData.checklists.size} checklists.")
+                }
+                if (selectedData.checklistItems.isNotEmpty()) {
+                    checklistDao.insertItems(selectedData.checklistItems)
+                    Log.d(IMPORT_TAG, "  - Upserted ${selectedData.checklistItems.size} checklist items.")
+                }
+                // Add other entities as needed
+            }
+            Result.success("Selected items imported successfully!")
+        } catch (e: Exception) {
+            Log.e(IMPORT_TAG, "A critical error occurred during selective import.", e)
+            Result.failure(e)
+        }
     }
 }

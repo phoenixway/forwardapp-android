@@ -14,6 +14,7 @@ android_tmp/
 build/android-profile/
 build/reports/configuration-cache/
 local.properties
+signing.properties
 # Keep signing config local
 # Gradle / Kotlin / Android build artifacts
 **/build/

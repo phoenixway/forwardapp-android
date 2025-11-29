@@ -1,23 +1,27 @@
-# Masterplan
+# Masterplan: Selective JSON Import Feature
 
-## Phase 1: UI/UX Audit and Refinement
+This plan outlines the implementation of a selective import feature for the ForwardApp Android application. The goal is to allow users to import data from a JSON backup file and choose which specific items to synchronize.
 
-- [ ] **1. UI/UX Audit:**
-  - [x] 1.1. Analyze production UI/UX code (High-level).
-  - [x] 1.2. Deep-dive analysis of problematic components (`HoldMenu2`, `TopAppBar`, `MainScreenContent`).
-  - [ ] 1.3. Code-level analysis of core view components (`ProjectHierarchyView`).
-  - [x] 1.4. Identify areas for improvement (from all analysis phases).
-  - [x] 1.5. Create a report with actionable recommendations (from all analysis phases).
-- [ ] **2. Implementation of UI/UX Improvements:**
-  - [ ] 2.1. Prioritize recommendations from the audit.
-  - [ ] 2.2. Implement high-priority changes.
-- [ ] **3. (Optional) Advanced UI Features:**
-  - [ ] 3.1. Explore and implement advanced UI patterns (e.g., complex animations, custom components).
+## Key Stages:
 
-## Phase 2: Feature Development
+-   [x] **Stage 1: Foundation & UI Scaffolding**
+    -   [x] Create `Masterplan.md` and `Progress.md` to track the feature development.
+    -   [x] Create the basic file structure for the new selective import screen (`SelectiveImportScreen.kt`, `SelectiveImportViewModel.kt`).
+    -   [x] Define the data classes required to hold the state of the selectable items in the ViewModel.
 
-- (To be defined based on project goals)
+-   [x] **Stage 2: Data Loading and Display**
+    -   [x] Implement logic in `SelectiveImportViewModel.kt` to read a file URI, parse the JSON into `FullAppBackup` using Gson.
+    -   [x] Build the Jetpack Compose UI in `SelectiveImportScreen.kt` to display the parsed data (e.g., lists of projects, goals) with checkboxes.
 
-## Phase 3: Release Preparation
+-   [x] **Stage 3: Navigation**
+    -   [x] Create a new navigation route for the selective import screen.
+    -   [x] Modify `MainScreenViewModel.kt` and the navigation host to navigate to the new screen, passing the selected file's URI.
 
-- (To be defined)
+-   [x] **Stage 4: Core Import Logic**
+    -   [x] Create a new function in `SyncRepository.kt` (e.g., `importSelectedData`) that accepts a subset of `DatabaseContent`.
+    -   [x] Implement the `upsert` logic within this function using the existing DAOs.
+
+-   [x] **Stage 5: Integration and Finalization**
+    -   [x] Connect the "Import" button on `SelectiveImportScreen.kt` to trigger the `importSelectedData` function via the ViewModel.
+    -   [x] Handle post-import navigation (e.g., navigate back to the main screen).
+    -   [x] Thoroughly test the entire flow.

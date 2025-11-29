@@ -30,6 +30,13 @@ val localProperties = Properties().apply {
     }
 }
 
+val signingPropsFile = rootProject.file("signing.properties")
+val signingProps = Properties()
+
+if (signingPropsFile.exists()) {
+    signingProps.load(signingPropsFile.inputStream())
+}
+
 android {
     namespace = "com.romankozak.forwardappmobile"
     compileSdk = 36
@@ -87,33 +94,38 @@ android {
 
     signingConfigs {
         create("release") {
-            val storeFilePath = localProperties.getProperty("signing.storeFile")
-                ?: error("signing.storeFile is not set in local.properties")
-            storeFile = file(storeFilePath)
-            storePassword = localProperties.getProperty("signing.storePassword")
-                ?: error("signing.storePassword is not set in local.properties")
-            keyAlias = localProperties.getProperty("signing.keyAlias")
-                ?: error("signing.keyAlias is not set in local.properties")
-            keyPassword = localProperties.getProperty("signing.keyPassword")
-                ?: error("signing.keyPassword is not set in local.properties")
+
+            if (signingProps.isNotEmpty()) {
+                val storeFilePath = signingProps.getProperty("storeFile")
+                require(!storeFilePath.isNullOrBlank()) {
+                    "storeFile is missing in signing.properties"
+                }
+
+                storeFile = file(storeFilePath)
+                storePassword = signingProps.getProperty("storePassword")
+                keyAlias = signingProps.getProperty("keyAlias")
+                keyPassword = signingProps.getProperty("keyPassword")
+            }
         }
     }
 
     buildTypes {
         getByName("debug") {
-            // для дебажної версії змінюємо applicationId
-            applicationIdSuffix = ".debug"
-            versionNameSuffix = "-debug"
-            buildConfigField("Boolean", "IS_EXPERIMENTAL_BUILD", "true")
+            // DEBUG ALWAYS BUILDS
+            signingConfig = null
         }
 
         getByName("release") {
             isMinifyEnabled = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-            signingConfig = signingConfigs.getByName("release")
+	    isShrinkResources = true
+
+
+            // RELEASE ONLY SIGNED IF CONFIG EXISTS
+            if (signingProps.isNotEmpty()) {
+                signingConfig = signingConfigs.getByName("release")
+            } else {
+                logger.warn("⚠ No signing.properties found — RELEASE will be UNSIGNED")
+            }
         }
     }
     flavorDimensions += "env"
