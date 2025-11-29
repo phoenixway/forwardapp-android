@@ -73,7 +73,7 @@ import kotlinx.coroutines.launch
 // import androidx.compose.animation.LocalAnimatedVisibilityScope
 
 
-private fun fuzzyMatchAndGetIndices(
+fun fuzzyMatchAndGetIndices(
     query: String,
     text: String,
 ): List<Int>? {
@@ -95,7 +95,7 @@ private fun fuzzyMatchAndGetIndices(
 }
 
 @Composable
-internal fun highlightFuzzy(
+fun highlightFuzzy(
     text: String,
     query: String,
 ): AnnotatedString {
@@ -123,7 +123,7 @@ internal fun highlightFuzzy(
 }
 
 @Composable
-internal fun highlightSubstring(
+fun highlightSubstring(
     text: String,
     query: String,
 ): AnnotatedString {

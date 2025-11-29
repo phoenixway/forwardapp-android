@@ -37,6 +37,10 @@ import androidx.compose.animation.SharedTransitionScope
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy.buildVisibleHierarchy
 
 
+
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+
 @OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun FocusedProjectView(
@@ -67,59 +71,47 @@ fun FocusedProjectView(
   val children = (hierarchy.childMap[focusedProjectId] ?: emptyList()).sortedBy { it.order }
 
   if (focusedProject != null) {
-    LazyColumn(modifier = Modifier.fillMaxSize()) {
-      stickyHeader(key = "focused-project-header") {
-        Box(Modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
-          BreadcrumbNavigation(
-            breadcrumbs = breadcrumbs,
-            onNavigate = { onEvent(MainScreenEvent.BreadcrumbNavigation(it)) },
-            onClearNavigation = { onEvent(MainScreenEvent.ClearBreadcrumbNavigation) },
-            onFocusedListMenuClick = { projectId ->
-              hierarchy.allProjects
-                .find { it.id == projectId }
-                ?.let { onEvent(MainScreenEvent.ProjectMenuRequest(it)) }
-            },
-          )
-        }
+    Column(modifier = Modifier.fillMaxSize()) {
+      Box(Modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
+        BreadcrumbNavigation(
+          breadcrumbs = breadcrumbs,
+          onNavigate = { onEvent(MainScreenEvent.BreadcrumbNavigation(it)) },
+          onClearNavigation = { onEvent(MainScreenEvent.ClearBreadcrumbNavigation) },
+          onFocusedListMenuClick = { projectId ->
+            hierarchy.allProjects
+              .find { it.id == projectId }
+              ?.let { onEvent(MainScreenEvent.ProjectMenuRequest(it)) }
+          },
+        )
       }
 
-      if (children.isNotEmpty()) {
-        val flattenedChildren =
-          remember(children, hierarchy.childMap) {
-            flattenHierarchyWithLevels(children, hierarchy.childMap)
+      Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+        if (children.isNotEmpty()) {
+          children.forEach { child ->
+            LegacySmartHierarchyView(
+              project = child,
+              childMap = hierarchy.childMap,
+              level = 0,
+              dragAndDropState = dragAndDropState,
+              isSearchActive = isSearchActive,
+              planningMode = planningMode,
+              highlightedProjectId = highlightedProjectId,
+              settings = settings,
+              searchQuery = searchQuery,
+              focusedProjectId = focusedProjectId,
+              longDescendantsMap = longDescendantsMap,
+              onProjectClick = onProjectClick,
+              onToggleExpanded = onToggleExpanded,
+              onMenuRequested = onMenuRequested,
+              onProjectReorder = onProjectReorder,
+              onNavigateToProject = { onEvent(MainScreenEvent.ProjectClick(it)) },
+              sharedTransitionScope =  sharedTransitionScope,
+              animatedVisibilityScope = animatedVisibilityScope,
+            )
           }
-        val visibleItems =
-          remember(flattenedChildren, longDescendantsMap, hierarchy.childMap) {
-            buildVisibleHierarchy(flattenedChildren, hierarchy.childMap, longDescendantsMap)
-          }
-        items(visibleItems, key = { it.project.id }) { item ->
-          HierarchyListItem(
-            item = item,
-            childMap = hierarchy.childMap,
-            dragAndDropState = dragAndDropState,
-            isSearchActive = isSearchActive,
-            planningMode = planningMode,
-            highlightedProjectId = highlightedProjectId,
-            settings = settings,
-            searchQuery = searchQuery,
-            focusedProjectId = focusedProjectId,
-            longDescendantsMap = longDescendantsMap,
-            onProjectClick = onProjectClick,
-            onToggleExpanded = onToggleExpanded,
-            onMenuRequested = onMenuRequested,
-            onProjectReorder = onProjectReorder,
-            onFocusProject = onFocusProject,
-            onAddSubproject = onAddSubproject,
-            onDeleteProject = onDeleteProject,
-            onEditProject = onEditProject,
-            sharedTransitionScope =  sharedTransitionScope,
-            animatedVisibilityScope = animatedVisibilityScope,
-          )
-        }
-      } else {
-        item(key = "empty_state") {
+        } else {
           Box(
-            modifier = Modifier.fillParentMaxSize().padding(16.dp),
+            modifier = Modifier.fillMaxSize().padding(16.dp),
             contentAlignment = Alignment.Center,
           ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -141,7 +133,6 @@ fun FocusedProjectView(
       }
     }
   } else {
-
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
       Text("Focused project not found.")
     }
