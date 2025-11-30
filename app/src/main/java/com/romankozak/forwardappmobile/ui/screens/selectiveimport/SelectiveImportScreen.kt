@@ -113,32 +113,52 @@ fun SelectiveImportScreen(
 }
 
 @Composable
-private fun BackupContentList(
-    content: SelectableDatabaseContent,
-    viewModel: SelectiveImportViewModel
+private fun SectionHeader(
+    title: String,
+    onSelectAll: () -> Unit,
+    onDeselectAll: () -> Unit
 ) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        if (content.projects.isNotEmpty()) {
-            item {
-                SectionHeader(
-                    title = "Projects (${content.projects.size})",
-                    onSelectAll = { viewModel.toggleAllSelection(EntityType.PROJECT, true) },
-                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.PROJECT, false) }
-                )
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium
+        )
+        Row {
+            Button(onClick = onSelectAll, modifier = Modifier.padding(end = 8.dp)) {
+                Text("All")
             }
-            items(content.projects, key = { it.item.id }) { selectableProject ->
-                SelectableRow(
-                    label = selectableProject.item.name,
-                    isSelected = selectableProject.isSelected,
-                    onToggle = { isSelected ->
-                        viewModel.toggleProjectSelection(selectableProject.item.id, isSelected)
-                    }
-                )
+            Button(onClick = onDeselectAll) {
+                Text("None")
             }
         }
+    }
+    Spacer(modifier = Modifier.height(8.dp))
+}
+
+@Composable
+private fun SelectableRow(
+    label: String,
+    isSelected: Boolean,
+    onToggle: (Boolean) -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = label, modifier = Modifier.weight(1f))
+            Checkbox(checked = isSelected, onCheckedChange = onToggle)
+        }
+    }
+}
 
 @Composable
 private fun BackupContentList(
