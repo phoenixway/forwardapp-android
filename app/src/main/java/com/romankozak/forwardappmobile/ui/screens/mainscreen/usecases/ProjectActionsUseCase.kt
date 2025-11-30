@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
 
 import android.net.Uri
+import android.util.Log
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
@@ -187,8 +188,10 @@ class ProjectActionsUseCase @Inject constructor(
         return withContext(ioDispatcher) { syncRepository.exportAttachmentsToFile() }
     }
 
-    suspend fun onFullImportConfirmed(uri: Uri) =
-        withContext(ioDispatcher) { syncRepository.importFullBackupFromFile(uri) }
+    suspend fun onFullImportConfirmed(uri: Uri): Result<String> {
+        Log.e("GEMINI_DEBUG", "ProjectActionsUseCase.onFullImportConfirmed is called")
+        return withContext(ioDispatcher) { syncRepository.importFullBackupFromFile(uri) }
+    }
 
     suspend fun importAttachments(uri: Uri) =
         withContext(ioDispatcher) { syncRepository.importAttachmentsFromFile(uri) }

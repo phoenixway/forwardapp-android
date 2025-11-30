@@ -29,6 +29,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 
+private fun hasItemsSelected(uiState: SelectiveImportState): Boolean {
+    val backupContent = uiState.backupContent ?: return false
+    val hasSelectedProjects = backupContent.projects.any { it.isSelected }
+    val hasSelectedGoals = backupContent.goals.any { it.isSelected }
+    return hasSelectedProjects || hasSelectedGoals
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SelectiveImportScreen(
@@ -60,11 +67,11 @@ fun SelectiveImportScreen(
                     Text("Cancel")
                 }
                 Button(
-                    onClick = { viewModel.onImportClicked() },
-                    enabled = !uiState.isLoading && uiState.error == null
-                ) {
-                    Text("Import")
-                }
+                     onClick = { viewModel.onImportClicked() },
+                     enabled = !uiState.isLoading && uiState.error == null && hasItemsSelected(uiState)
+                 ) {
+                     Text("Import")
+                 }
             }
         }
     ) { paddingValues ->

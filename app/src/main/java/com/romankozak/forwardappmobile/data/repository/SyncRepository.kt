@@ -229,7 +229,14 @@ constructor(
             if (jsonString.isNullOrBlank()) {
                 Result.failure(Exception("Backup file is empty or could not be read."))
             } else {
+                Log.d(TAG, "parseBackupFile: JSON size=${jsonString.length}, first 500 chars: ${jsonString.take(500)}")
                 val backupData = gson.fromJson(jsonString, FullAppBackup::class.java)
+                Log.d(TAG, "parseBackupFile: Parsed FullAppBackup - database=${backupData.database}, backupVersion=${backupData.backupSchemaVersion}")
+                if (backupData.database != null) {
+                    Log.d(TAG, "parseBackupFile: Database projects=${backupData.database.projects.size}, goals=${backupData.database.goals.size}")
+                } else {
+                    Log.w(TAG, "parseBackupFile: Database is NULL!")
+                }
                 Result.success(backupData)
             }
         } catch (e: Exception) {
@@ -329,6 +336,7 @@ constructor(
 
     suspend fun importFullBackupFromFile(uri: Uri): Result<String> {
         val IMPORT_TAG = "SyncRepository_IMPORT"
+
         try {
             Log.d(IMPORT_TAG, "Починаємо імпорт з URI: $uri")
             val jsonString =
@@ -347,7 +355,10 @@ constructor(
             val parseStartTime = System.currentTimeMillis()
             val backupData =
                 try {
-                    gson.fromJson(jsonString, FullAppBackup::class.java)
+                    val parsed = gson.fromJson(jsonString, FullAppBackup::class.java)
+                    Log.d(IMPORT_TAG, "Parsed FullAppBackup: database=${parsed.database}, backupVersion=${parsed.backupSchemaVersion}")
+                    Log.d(IMPORT_TAG, "Database projects: ${parsed.database.projects.size}, goals: ${parsed.database.goals.size}")
+                    parsed
                 } catch (parseError: Exception) {
                     Log.e(IMPORT_TAG, "Не вдалося розпарсити JSON бекапу.", parseError)
                     return Result.failure(parseError)
@@ -367,6 +378,11 @@ constructor(
             Log.d(IMPORT_TAG, "Версія бекапу підтримується: $rawBackupVersion (normalized=$normalizedBackupVersion).")
 
             val backup = backupData.database
+            if (backup == null) {
+                val message = "Backup database content is null. The backup file may be corrupted."
+                Log.e(IMPORT_TAG, message)
+                return Result.failure(Exception(message))
+            }
             Log.d(
                 IMPORT_TAG,
                 "Дані з бекапу: \n" +
@@ -511,8 +527,10 @@ constructor(
                 )
                 com.romankozak.forwardappmobile.data.database.DatabaseInitializer(projectDao, systemAppRepository).prePopulate()
 
-                if (backup.attachments.isEmpty()) {
-                    Log.d(IMPORT_TAG, "Спроба створити відсутні записи вкладень...")
+                // Create attachment records for documents and checklists if they don't have attachments yet
+                // This ensures backward compatibility with older backup files
+                if (backup.attachments.isEmpty() && backup.projectAttachmentCrossRefs.isEmpty()) {
+                    Log.d(IMPORT_TAG, "Спроба створити відсутні записи вкладень для старих бекапів...")
                     backup.documents.forEach {
                         attachmentRepository.ensureAttachmentLinkedToProject(
                             attachmentType = ListItemTypeValues.NOTE_DOCUMENT,
@@ -532,6 +550,8 @@ constructor(
                         )
                     }
                     Log.d(IMPORT_TAG, "Створення відсутніх записів вкладень завершено.")
+                } else {
+                    Log.d(IMPORT_TAG, "Attachments уже присутні в бекапі, пропускаємо автоматичне створення. attachments=${backup.attachments.size}, crossRefs=${backup.projectAttachmentCrossRefs.size}")
                 }
 
                 Log.d(IMPORT_TAG, "Транзакція: вставка завершена.")
@@ -698,17 +718,35 @@ constructor(
                 Log.d(IMPORT_TAG, "Transaction: Inserting selected data.")
 
                 if (selectedData.projects.isNotEmpty()) {
-                    projectDao.insertProjects(selectedData.projects)
-                    Log.d(IMPORT_TAG, "  - Upserted ${selectedData.projects.size} projects.")
+                    // Filter out system projects (those with systemKey) to prevent duplication
+                    // System projects are managed by DatabaseInitializer.prePopulate()
+                    val regularProjects = selectedData.projects.filter { it.systemKey == null }
+                    if (regularProjects.isNotEmpty()) {
+                        projectDao.insertProjects(regularProjects)
+                        Log.d(IMPORT_TAG, "  - Upserted ${regularProjects.size} regular projects. Skipped ${selectedData.projects.size - regularProjects.size} system projects.")
+                    } else {
+                        Log.d(IMPORT_TAG, "  - All ${selectedData.projects.size} projects are system projects, skipped.")
+                    }
                 }
                 if (selectedData.goals.isNotEmpty()) {
                     goalDao.insertGoals(selectedData.goals)
                     Log.d(IMPORT_TAG, "  - Upserted ${selectedData.goals.size} goals.")
                 }
                 if (selectedData.listItems.isNotEmpty()) {
-                    listItemDao.insertItems(selectedData.listItems)
-                    Log.d(IMPORT_TAG, "  - Upserted ${selectedData.listItems.size} list items.")
-                }
+                    // Filter out list items that reference non-existent projects/goals
+                    val importedProjectIds = selectedData.projects.map { it.id }.toSet()
+                    val importedGoalIds = selectedData.goals.map { it.id }.toSet()
+                    val validListItems = selectedData.listItems.filter { 
+                        it.projectId in importedProjectIds || it.entityId in importedGoalIds
+                    }
+                    if (validListItems.isNotEmpty()) {
+                        listItemDao.insertItems(validListItems)
+                        Log.d(IMPORT_TAG, "  - Upserted ${validListItems.size} list items (filtered from ${selectedData.listItems.size}).")
+                    }
+                    if (validListItems.size < selectedData.listItems.size) {
+                        Log.w(IMPORT_TAG, "  - Skipped ${selectedData.listItems.size - validListItems.size} list items with missing references.")
+                    }
+                 }
                 if (selectedData.legacyNotes.isNotEmpty()) {
                     legacyNoteDao.insertAll(selectedData.legacyNotes)
                     Log.d(IMPORT_TAG, "  - Upserted ${selectedData.legacyNotes.size} legacy notes.")
@@ -728,6 +766,32 @@ constructor(
                 if (selectedData.checklistItems.isNotEmpty()) {
                     checklistDao.insertItems(selectedData.checklistItems)
                     Log.d(IMPORT_TAG, "  - Upserted ${selectedData.checklistItems.size} checklist items.")
+                }
+                if (selectedData.projectAttachmentCrossRefs.isNotEmpty()) {
+                    // Get IDs of projects that were selected for import (from selectedData, not DB)
+                    // This ensures we don't import attachments linked to system projects that weren't selected
+                    val selectedProjectIds = selectedData.projects.map { it.id }.toSet()
+                    val validCrossRefs = selectedData.projectAttachmentCrossRefs.filter { it.projectId in selectedProjectIds }
+                    val validAttachmentIds = validCrossRefs.map { it.attachmentId }.toSet()
+                    
+                    // Only import attachments that have valid cross-refs to selected projects
+                    val validAttachments = selectedData.attachments.filter { it.id in validAttachmentIds }
+                    
+                    if (validAttachments.isNotEmpty()) {
+                        attachmentDao.insertAttachments(validAttachments)
+                        Log.d(IMPORT_TAG, "  - Upserted ${validAttachments.size} attachments (filtered from ${selectedData.attachments.size}).")
+                    }
+                    if (validCrossRefs.isNotEmpty()) {
+                        attachmentDao.insertProjectAttachmentLinks(validCrossRefs)
+                        Log.d(IMPORT_TAG, "  - Upserted ${validCrossRefs.size} project attachment cross-refs (filtered from ${selectedData.projectAttachmentCrossRefs.size}).")
+                    }
+                    if (validCrossRefs.size < selectedData.projectAttachmentCrossRefs.size) {
+                        Log.w(IMPORT_TAG, "  - Skipped ${selectedData.projectAttachmentCrossRefs.size - validCrossRefs.size} cross-refs pointing to non-existent or unselected projects.")
+                    }
+                } else if (selectedData.attachments.isNotEmpty()) {
+                    // If there are no cross-refs but attachments exist, just import the attachments
+                    attachmentDao.insertAttachments(selectedData.attachments)
+                    Log.d(IMPORT_TAG, "  - Upserted ${selectedData.attachments.size} attachments (no cross-refs).")
                 }
                 // Add other entities as needed
             }

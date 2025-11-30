@@ -114,7 +114,8 @@ fun MainScreenTopAppBar(
                             contentColor = MaterialTheme.colorScheme.onErrorContainer,
                         ) {
                             Text(
-                                text = if (com.romankozak.forwardappmobile.BuildConfig.IS_EXPERIMENTAL_BUILD) "Experimental" else "Debug",
+                                // Show "Debug" if DEBUG build, otherwise "Experimental" for exp release
+                                text = if (com.romankozak.forwardappmobile.BuildConfig.DEBUG) "Debug" else "Experimental",
                                 style = MaterialTheme.typography.labelSmall,
                             )
                         }

@@ -93,6 +93,19 @@ android {
     }
 
     signingConfigs {
+        getByName("debug") {
+            if (signingProps.isNotEmpty()) {
+                val storeFilePath = signingProps.getProperty("storeFile")
+                require(!storeFilePath.isNullOrBlank()) {
+                    "storeFile is missing in signing.properties"
+                }
+
+                storeFile = file(storeFilePath)
+                storePassword = signingProps.getProperty("storePassword")
+                keyAlias = signingProps.getProperty("keyAlias")
+                keyPassword = signingProps.getProperty("keyPassword")
+            }
+        }
         create("release") {
 
             if (signingProps.isNotEmpty()) {
@@ -111,8 +124,13 @@ android {
 
     buildTypes {
         getByName("debug") {
-            // DEBUG ALWAYS BUILDS
-            signingConfig = null
+            // Add .debug suffix to allow parallel installation with release
+            applicationIdSuffix = ".debug"
+            
+            // DEBUG USES SIGNING CONFIG IF AVAILABLE
+            if (signingProps.isNotEmpty()) {
+                signingConfig = signingConfigs.getByName("debug")
+            }
         }
 
         getByName("release") {
@@ -138,7 +156,7 @@ android {
         }
         create("exp") {
             dimension = "env"
-            // Використовуємо той самий applicationId, щоб не вимагати окремий google-services.json
+            // Використовуємо той самий applicationId як prod для google-services.json сумісності
             applicationId = "com.romankozak.forwardappmobile"
             versionNameSuffix = "-exp"
             buildConfigField("Boolean", "IS_EXPERIMENTAL_BUILD", "true")

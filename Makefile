@@ -83,41 +83,41 @@ logcat:
 
 # ============== DEBUG ЦИКЛ ==============
 
-# Зібрати debug APK
+# Зібрати debug APK (exp flavor з експериментальними можливостями)
 debug:
-	@echo "🚀  Збираю debug APK..."
-	@./gradlew :app:assembleDebug
+	@echo "🚀  Збираю exp debug APK..."
+	@./gradlew :app:assembleExpDebug
 
 check-compile:
 	@echo "🚀  Перевіряю через compileDebugKotlin..."
 	@./gradlew :app:compileDebugKotlin
 
-# Встановити debug APK
+# Встановити debug APK (exp flavor)
 install-debug: debug
-	@echo "🐞  Встановлюю debug APK (пріоритет ARM64)..."
-	@if [ -f app/build/outputs/apk/debug/app-arm64-v8a-debug.apk ]; then \
+	@echo "🐞  Встановлюю exp debug APK (пріоритет ARM64)..."
+	@if [ -f app/build/outputs/apk/exp/debug/app-exp-arm64-v8a-debug.apk ]; then \
 		echo "Знайдено ARM64 APK. Встановлюю..."; \
-		adb $(DEVICE_FLAG) install -r app/build/outputs/apk/debug/app-arm64-v8a-debug.apk; \
+		adb $(DEVICE_FLAG) install -r app/build/outputs/apk/exp/debug/app-exp-arm64-v8a-debug.apk; \
 	else \
 		echo "ARM64 APK не знайдено. Шукаю інший варіант..."; \
-		find app/build/outputs/apk/debug -type f -name "*-debug.apk" -print0 | xargs -0 -I {} adb $(DEVICE_FLAG) install -r {}; \
+		find app/build/outputs/apk/exp/debug -type f -name "*-debug.apk" -print0 | xargs -0 -I {} adb $(DEVICE_FLAG) install -r {}; \
 	fi
 	@echo "✅  Debug APK встановлено."
 
-# Запустити debug додаток
+# Запустити debug додаток (exp flavor - має .debug суфікс від buildType)
 start-debug:
-	@echo "▶️  Запускаю debug додаток ($(DEBUG_PACKAGE_NAME))..."
-	@adb $(DEVICE_FLAG) shell am start -n $(DEBUG_PACKAGE_NAME)/$(MAIN_ACTIVITY)
+	@echo "▶️  Запускаю exp debug додаток ($(PACKAGE_NAME).debug)..."
+	@adb $(DEVICE_FLAG) shell am start -n $(PACKAGE_NAME).debug/$(MAIN_ACTIVITY)
 
-# Зупинити debug додаток
+# Зупинити debug додаток (exp flavor)
 stop-debug:
-	@echo "🛑  Зупиняю debug додаток ($(DEBUG_PACKAGE_NAME))..."
-	@adb $(DEVICE_FLAG) shell am force-stop $(DEBUG_PACKAGE_NAME)
+	@echo "🛑  Зупиняю exp debug додаток ($(PACKAGE_NAME).debug)..."
+	@adb $(DEVICE_FLAG) shell am force-stop $(PACKAGE_NAME).debug
 
-# Показати логи для debug додатка
+# Показати логи для debug додатка (exp flavor)
 logcat-debug:
-	@echo "📋  Показую логи для debug: $(DEBUG_PACKAGE_NAME)..."
-	@adb $(DEVICE_FLAG) logcat $(DEBUG_PACKAGE_NAME):V *:S
+	@echo "📋  Показую логи для exp debug: $(PACKAGE_NAME).debug..."
+	@adb $(DEVICE_FLAG) logcat $(PACKAGE_NAME).debug:V *:S
 
 # ============== EXPERIMENTAL RELEASE ЦИКЛ ==============
 

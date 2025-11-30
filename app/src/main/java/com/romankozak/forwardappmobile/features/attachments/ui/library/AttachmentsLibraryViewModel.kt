@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.features.attachments.ui.library
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.util.Log
 import com.romankozak.forwardappmobile.config.FeatureFlag
 import com.romankozak.forwardappmobile.config.FeatureToggles
 import com.romankozak.forwardappmobile.data.dao.ProjectDao
@@ -49,6 +50,10 @@ class AttachmentsLibraryViewModel @Inject constructor(
                             val projects = array[2] as List<Project>
                             val query = array[3] as String
                             val filter = array[4] as AttachmentLibraryFilter
+                            
+                            Log.d("ATTACHMENTS_LIBRARY", "Query results: ${queryResults.size} items")
+                            Log.d("ATTACHMENTS_LIBRARY", "Links: ${links.size} cross-refs")
+                            Log.d("ATTACHMENTS_LIBRARY", "Projects: ${projects.size} projects")
                 
                             val projectRefs = projects.associateBy({ it.id }) { AttachmentProjectRef(it.id, it.name) }
                             val linksByAttachment = links.groupBy { it.attachmentId }
@@ -137,15 +142,21 @@ class AttachmentsLibraryViewModel @Inject constructor(
                                             (item.subtitle?.contains(query, ignoreCase = true) == true) ||
                                             item.projects.any { it.name.contains(query, ignoreCase = true) })
                                 }.sortedByDescending { it.updatedAt }
-                
+                            
+                            Log.d("ATTACHMENTS_LIBRARY", "Total items after mapping: ${items.size}")
+                            Log.d("ATTACHMENTS_LIBRARY", "Filtered items: ${filteredItems.size}")
+                            if (filteredItems.isEmpty()) {
+                                Log.w("ATTACHMENTS_LIBRARY", "No items found! Check if query results are empty or all filtered out")
+                            }
+                            
                             AttachmentsLibraryUiState(
                                 query = query,
                                 filter = filter,
-                items = filteredItems,
-                totalCount = items.size,
-                matchedCount = filteredItems.size,
-                isFeatureEnabled = FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary),
-            )
+                            items = filteredItems,
+                            totalCount = items.size,
+                            matchedCount = filteredItems.size,
+                            isFeatureEnabled = FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary),
+                            )
         }.stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5_000),

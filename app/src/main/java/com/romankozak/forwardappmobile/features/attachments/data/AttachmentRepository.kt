@@ -72,13 +72,18 @@ class AttachmentRepository @Inject constructor(
         createdAt: Long = System.currentTimeMillis(),
     ): AttachmentEntity {
         val attachment = ensureAttachmentForEntity(attachmentType, entityId, ownerProjectId, createdAt)
-        attachmentDao.insertProjectAttachmentLink(
-            ProjectAttachmentCrossRef(
-                projectId = projectId,
-                attachmentId = attachment.id,
-                attachmentOrder = -createdAt,
-            ),
-        )
+        
+        // Check if this link already exists to prevent duplicates
+        val existingLink = attachmentDao.getProjectAttachmentLink(projectId, attachment.id)
+        if (existingLink == null) {
+            attachmentDao.insertProjectAttachmentLink(
+                ProjectAttachmentCrossRef(
+                    projectId = projectId,
+                    attachmentId = attachment.id,
+                    attachmentOrder = -createdAt,
+                ),
+            )
+        }
         return attachment
     }
 

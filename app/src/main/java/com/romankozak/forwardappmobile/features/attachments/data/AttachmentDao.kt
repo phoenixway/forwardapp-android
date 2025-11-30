@@ -76,6 +76,18 @@ interface AttachmentDao {
 
     @Query(
         """
+        SELECT * FROM project_attachment_cross_ref
+        WHERE project_id = :projectId AND attachment_id = :attachmentId
+        LIMIT 1
+        """,
+    )
+    suspend fun getProjectAttachmentLink(
+        projectId: String,
+        attachmentId: String,
+    ): ProjectAttachmentCrossRef?
+
+    @Query(
+        """
         UPDATE project_attachment_cross_ref
         SET attachment_order = :order
         WHERE project_id = :projectId AND attachment_id = :attachmentId
