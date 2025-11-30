@@ -422,10 +422,15 @@ constructor(
       }
       is MainScreenEvent.FullImportConfirm -> {
         viewModelScope.launch {
-          val encodedUri = URLEncoder.encode(event.uri.toString(), "UTF-8")
-          val route = "selective_import_screen/$encodedUri"
+          val result = projectActionsUseCase.onFullImportConfirmed(event.uri)
           dialogUseCase.dismissDialog()
-          _uiEventChannel.send(ProjectUiEvent.Navigate(route))
+          _uiEventChannel.send(
+            if (result.isSuccess) {
+              ProjectUiEvent.ShowToast(result.getOrNull() ?: "Import successful")
+            } else {
+              ProjectUiEvent.ShowToast("Import error: ${result.exceptionOrNull()?.message}")
+            }
+          )
         }
       }
       is MainScreenEvent.ShowAboutDialog -> dialogUseCase.onShowAboutDialog()
