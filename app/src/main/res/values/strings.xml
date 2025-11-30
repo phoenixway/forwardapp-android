@@ -117,7 +117,8 @@
     <string name="menu_run_wifi_server">Запустити Wi‑Fi сервер</string>
     <string name="menu_import_wifi">Імпорт по Wi‑Fi</string>
     <string name="menu_export_to_file">Експорт у файл</string>
-    <string name="menu_import_from_file">Імпорт з файлу</string>
+    <string name="menu_full_import_from_file">Повний імпорт з файлу</string>
+    <string name="menu_selective_import_from_file">Вибірковий імпорт з файлу</string>
     <string name="menu_export_attachments">Експорт вкладень (JSON)</string>
     <string name="menu_import_attachments">Імпорт вкладень (JSON)</string>
 

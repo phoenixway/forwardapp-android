@@ -56,6 +56,7 @@ sealed interface MainScreenEvent {
     data object ShowAboutDialog : MainScreenEvent
 
     data class ImportFromFileRequest(val uri: Uri) : MainScreenEvent
+    data class SelectiveImportFromFileRequest(val uri: Uri) : MainScreenEvent
 
     
     data object HomeClick : MainScreenEvent

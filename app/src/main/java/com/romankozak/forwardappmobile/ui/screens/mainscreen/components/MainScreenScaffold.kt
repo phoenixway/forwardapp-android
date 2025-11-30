@@ -87,6 +87,11 @@ fun MainScreenScaffold(
             uri?.let { onEvent(MainScreenEvent.ImportAttachmentsFromFile(it)) }
         }
 
+    val selectiveImportLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
+            uri?.let { onEvent(MainScreenEvent.SelectiveImportFromFileRequest(it)) }
+        }
+
     val backHandlerEnabled by remember(uiState.subStateStack, uiState.currentBreadcrumbs, uiState.areAnyProjectsExpanded) {
         derivedStateOf {
             val enabled =
@@ -147,6 +152,7 @@ fun MainScreenScaffold(
                 onShowReminders = { onEvent(MainScreenEvent.GoToReminders) },
                 onShowAttachmentsLibrary = { onEvent(MainScreenEvent.OpenAttachmentsLibrary) },
                 onShowScriptsLibrary = { onEvent(MainScreenEvent.OpenScriptsLibrary) },
+                onSelectiveImportFromFile = { selectiveImportLauncher.launch("application/json") },
             )
         },
         bottomBar = {

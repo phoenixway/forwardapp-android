@@ -68,6 +68,7 @@ fun MainScreenTopAppBar(
     onShowReminders: () -> Unit,
     onShowAttachmentsLibrary: () -> Unit,
     onShowScriptsLibrary: () -> Unit,
+    onSelectiveImportFromFile: () -> Unit,
 ) {
     var swipeState by remember { mutableStateOf(0f) }
     TopAppBar(
@@ -225,13 +226,20 @@ fun MainScreenTopAppBar(
                                 importExportMenuExpanded = false
                             },
                         )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(id = com.romankozak.forwardappmobile.R.string.menu_import_from_file)) },
-                            onClick = {
-                                onImportFromFile()
-                                importExportMenuExpanded = false
-                            },
-                        )
+                                                                            DropdownMenuItem(
+                                                                                text = { Text(stringResource(id = com.romankozak.forwardappmobile.R.string.menu_full_import_from_file)) },
+                                                                                onClick = {
+                                                                                    onImportFromFile()
+                                                                                    importExportMenuExpanded = false
+                                                                                },
+                                                                            )
+                                                                            DropdownMenuItem(
+                                                                                text = { Text(stringResource(id = com.romankozak.forwardappmobile.R.string.menu_selective_import_from_file)) },
+                                                                                onClick = {
+                                                                                    onSelectiveImportFromFile()
+                                                                                    importExportMenuExpanded = false
+                                                                                },
+                                                                            )
                         DropdownMenuItem(
                             text = { Text(stringResource(id = com.romankozak.forwardappmobile.R.string.menu_export_attachments)) },
                             onClick = {
