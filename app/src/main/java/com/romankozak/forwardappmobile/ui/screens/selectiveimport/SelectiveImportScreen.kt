@@ -259,7 +259,7 @@ private fun BackupContentList(
             }
             items(content.listItems, key = { it.item.id }) { selectableItem ->
                 SelectableRow(
-                    label = selectableItem.item.content.text.ifBlank { "Без вмісту" },
+                    label = "ListItem: ${selectableItem.item.entityId}", // Temporary
                     isSelected = selectableItem.isSelected,
                     onToggle = { isSelected ->
                         viewModel.toggleListItemSelection(selectableItem.item.id, isSelected)
@@ -279,7 +279,7 @@ private fun BackupContentList(
             }
             items(content.documents, key = { it.item.id }) { selectableItem ->
                 SelectableRow(
-                    label = selectableItem.item.title.ifBlank { "Без назви" },
+                    label = selectableItem.item.name.ifBlank { "Без назви" },
                     isSelected = selectableItem.isSelected,
                     onToggle = { isSelected ->
                         viewModel.toggleDocumentSelection(selectableItem.item.id, isSelected)
@@ -299,7 +299,7 @@ private fun BackupContentList(
             }
             items(content.checklists, key = { it.item.id }) { selectableItem ->
                 SelectableRow(
-                    label = selectableItem.item.title.ifBlank { "Без назви" },
+                    label = selectableItem.item.name.ifBlank { "Без назви" },
                     isSelected = selectableItem.isSelected,
                     onToggle = { isSelected ->
                         viewModel.toggleChecklistSelection(selectableItem.item.id, isSelected)
@@ -319,7 +319,7 @@ private fun BackupContentList(
             }
             items(content.linkItems, key = { it.item.id }) { selectableItem ->
                 SelectableRow(
-                    label = selectableItem.item.link.ifBlank { "Без посилання" },
+                    label = (selectableItem.item.linkData.displayName ?: selectableItem.item.linkData.target).ifBlank { "Без назви" },
                     isSelected = selectableItem.isSelected,
                     onToggle = { isSelected ->
                         viewModel.toggleLinkItemSelection(selectableItem.item.id, isSelected)
@@ -359,7 +359,7 @@ private fun BackupContentList(
             }
             items(content.projectExecutionLogs, key = { it.item.id }) { selectableItem ->
                 SelectableRow(
-                    label = selectableItem.item.logMessage.ifBlank { "Без повідомлення" },
+                    label = selectableItem.item.description.ifBlank { "Без опису" },
                     isSelected = selectableItem.isSelected,
                     onToggle = { isSelected ->
                         viewModel.toggleProjectExecutionLogSelection(selectableItem.item.id, isSelected)
@@ -399,7 +399,7 @@ private fun BackupContentList(
             }
             items(content.attachments, key = { it.item.id }) { selectableItem ->
                 SelectableRow(
-                    label = selectableItem.item.originalFileName.ifBlank { "Без імені файлу" },
+                    label = "Attachment: ${selectableItem.item.entityId}", // Temporary
                     isSelected = selectableItem.isSelected,
                     onToggle = { isSelected ->
                         viewModel.toggleAttachmentSelection(selectableItem.item.id, isSelected)
