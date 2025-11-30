@@ -164,6 +164,9 @@ data class LinkItemEntity(
     @ColumnInfo(name = "link_data")
     val linkData: RelatedLink,
     val createdAt: Long,
+    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
+    @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0,
 )
 
 @Entity(tableName = "goals")
@@ -297,6 +300,9 @@ data class ProjectExecutionLog(
     @ColumnInfo(name = "type") val type: String,
     val description: String,
     val details: String? = null,
+    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
+    @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0,
 )
 
 @Entity(
@@ -316,6 +322,9 @@ data class InboxRecord(
     val text: String,
     val createdAt: Long,
     @ColumnInfo(name = "item_order") val order: Long,
+    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
+    @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0,
 )
 
 @Entity(

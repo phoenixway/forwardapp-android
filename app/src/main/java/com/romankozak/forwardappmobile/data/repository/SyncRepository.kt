@@ -372,8 +372,8 @@ constructor(
 
             val rawBackupVersion = backupData.backupSchemaVersion
             val normalizedBackupVersion = if (rawBackupVersion == 0) 1 else rawBackupVersion
-            if (normalizedBackupVersion != 1) {
-                val message = "Unsupported backup version: $rawBackupVersion. Expected version 1."
+            if (normalizedBackupVersion !in setOf(1, 2)) {
+                val message = "Unsupported backup version: $rawBackupVersion. Expected version 1 or 2."
                 Log.e(IMPORT_TAG, message)
                 return Result.failure(Exception(message))
             }
@@ -756,13 +756,37 @@ constructor(
     suspend fun importSelectedData(selectedData: DatabaseContent): Result<String> {
         val IMPORT_TAG = "SyncRepo_SelectiveImport"
         return try {
+            val local = loadLocalDatabaseContent()
+
+            fun <T> keepNewer(
+                incoming: List<T>,
+                localMap: Map<String, T>,
+                idSelector: (T) -> String,
+                versionSelector: (T) -> Long,
+                updatedAtSelector: (T) -> Long?
+            ): List<T> {
+                return incoming.filter { inc ->
+                    val localItem = localMap[idSelector(inc)]
+                    if (localItem == null) return@filter true
+                    val incVer = versionSelector(inc)
+                    val locVer = versionSelector(localItem)
+                    if (incVer > locVer) return@filter true
+                    if (incVer < locVer) return@filter false
+                    val incUpdated = updatedAtSelector(inc) ?: 0L
+                    val locUpdated = updatedAtSelector(localItem) ?: 0L
+                    incUpdated > locUpdated
+                }
+            }
+
             appDatabase.withTransaction {
-                Log.d(IMPORT_TAG, "Transaction: Inserting selected data.")
+                Log.d(IMPORT_TAG, "Transaction: Inserting selected data (LWW).")
 
                 if (selectedData.projects.isNotEmpty()) {
                     // Filter out system projects (those with systemKey) to prevent duplication
                     // System projects are managed by DatabaseInitializer.prePopulate()
-                    val regularProjects = selectedData.projects.filter { it.systemKey == null }
+                    val regularProjects = selectedData.projects
+                        .filter { it.systemKey == null }
+                        .let { keepNewer(it, local.projects.associateBy { p -> p.id }, { it.id }, { it.version }, { it.updatedAt }) }
                     if (regularProjects.isNotEmpty()) {
                         projectDao.insertProjects(regularProjects)
                         Log.d(IMPORT_TAG, "  - Upserted ${regularProjects.size} regular projects. Skipped ${selectedData.projects.size - regularProjects.size} system projects.")
@@ -771,8 +795,11 @@ constructor(
                     }
                 }
                 if (selectedData.goals.isNotEmpty()) {
-                    goalDao.insertGoals(selectedData.goals)
-                    Log.d(IMPORT_TAG, "  - Upserted ${selectedData.goals.size} goals.")
+                    val newerGoals = keepNewer(selectedData.goals, local.goals.associateBy { it.id }, { it.id }, { it.version }, { it.updatedAt })
+                    if (newerGoals.isNotEmpty()) {
+                        goalDao.insertGoals(newerGoals)
+                    }
+                    Log.d(IMPORT_TAG, "  - Upserted ${newerGoals.size} goals (filtered from ${selectedData.goals.size}).")
                 }
                 if (selectedData.listItems.isNotEmpty()) {
                     // Filter out list items that reference non-existent projects/goals
@@ -780,7 +807,7 @@ constructor(
                     val importedGoalIds = selectedData.goals.map { it.id }.toSet()
                     val validListItems = selectedData.listItems.filter { 
                         it.projectId in importedProjectIds || it.entityId in importedGoalIds
-                    }
+                    }.let { keepNewer(it, local.listItems.associateBy { li -> li.id }, { it.id }, { it.version }, { null }) }
                     if (validListItems.isNotEmpty()) {
                         listItemDao.insertItems(validListItems)
                         Log.d(IMPORT_TAG, "  - Upserted ${validListItems.size} list items (filtered from ${selectedData.listItems.size}).")
@@ -790,24 +817,39 @@ constructor(
                     }
                  }
                 if (selectedData.legacyNotes.isNotEmpty()) {
-                    legacyNoteDao.insertAll(selectedData.legacyNotes)
-                    Log.d(IMPORT_TAG, "  - Upserted ${selectedData.legacyNotes.size} legacy notes.")
+                    val newerNotes = keepNewer(selectedData.legacyNotes, local.legacyNotes.associateBy { it.id }, { it.id }, { it.version }, { it.updatedAt })
+                    if (newerNotes.isNotEmpty()) {
+                        legacyNoteDao.insertAll(newerNotes)
+                    }
+                    Log.d(IMPORT_TAG, "  - Upserted ${newerNotes.size} legacy notes (filtered from ${selectedData.legacyNotes.size}).")
                 }
                 if (selectedData.documents.isNotEmpty()) {
-                    noteDocumentDao.insertAllDocuments(selectedData.documents)
-                    Log.d(IMPORT_TAG, "  - Upserted ${selectedData.documents.size} documents.")
+                    val newerDocs = keepNewer(selectedData.documents, local.documents.associateBy { it.id }, { it.id }, { it.version }, { it.updatedAt })
+                    if (newerDocs.isNotEmpty()) {
+                        noteDocumentDao.insertAllDocuments(newerDocs)
+                    }
+                    Log.d(IMPORT_TAG, "  - Upserted ${newerDocs.size} documents (filtered from ${selectedData.documents.size}).")
                 }
                 if (selectedData.documentItems.isNotEmpty()) {
-                    noteDocumentDao.insertAllDocumentItems(selectedData.documentItems)
-                    Log.d(IMPORT_TAG, "  - Upserted ${selectedData.documentItems.size} document items.")
+                    val newerDocItems = keepNewer(selectedData.documentItems, local.documentItems.associateBy { it.id }, { it.id }, { it.version }, { it.updatedAt })
+                    if (newerDocItems.isNotEmpty()) {
+                        noteDocumentDao.insertAllDocumentItems(newerDocItems)
+                    }
+                    Log.d(IMPORT_TAG, "  - Upserted ${newerDocItems.size} document items (filtered from ${selectedData.documentItems.size}).")
                 }
                 if (selectedData.checklists.isNotEmpty()) {
-                    checklistDao.insertChecklists(selectedData.checklists)
-                    Log.d(IMPORT_TAG, "  - Upserted ${selectedData.checklists.size} checklists.")
+                    val newerChecklists = keepNewer(selectedData.checklists, local.checklists.associateBy { it.id }, { it.id }, { it.version }, { null })
+                    if (newerChecklists.isNotEmpty()) {
+                        checklistDao.insertChecklists(newerChecklists)
+                    }
+                    Log.d(IMPORT_TAG, "  - Upserted ${newerChecklists.size} checklists (filtered from ${selectedData.checklists.size}).")
                 }
                 if (selectedData.checklistItems.isNotEmpty()) {
-                    checklistDao.insertItems(selectedData.checklistItems)
-                    Log.d(IMPORT_TAG, "  - Upserted ${selectedData.checklistItems.size} checklist items.")
+                    val newerChecklistItems = keepNewer(selectedData.checklistItems, local.checklistItems.associateBy { it.id }, { it.id }, { it.version }, { null })
+                    if (newerChecklistItems.isNotEmpty()) {
+                        checklistDao.insertItems(newerChecklistItems)
+                    }
+                    Log.d(IMPORT_TAG, "  - Upserted ${newerChecklistItems.size} checklist items (filtered from ${selectedData.checklistItems.size}).")
                 }
                 if (selectedData.projectAttachmentCrossRefs.isNotEmpty()) {
                     // Get IDs of projects that were selected for import (from selectedData, not DB)
@@ -817,27 +859,42 @@ constructor(
                     val validAttachmentIds = validCrossRefs.map { it.attachmentId }.toSet()
                     
                     // Only import attachments that have valid cross-refs to selected projects
-                    val validAttachments = selectedData.attachments.filter { it.id in validAttachmentIds }
+                    val validAttachments = selectedData.attachments
+                        .filter { it.id in validAttachmentIds }
+                        .let { keepNewer(it, local.attachments.associateBy { at -> at.id }, { it.id }, { it.version }, { it.updatedAt }) }
                     
                     if (validAttachments.isNotEmpty()) {
                         attachmentDao.insertAttachments(validAttachments)
                         Log.d(IMPORT_TAG, "  - Upserted ${validAttachments.size} attachments (filtered from ${selectedData.attachments.size}).")
                     }
                     if (validCrossRefs.isNotEmpty()) {
-                        attachmentDao.insertProjectAttachmentLinks(validCrossRefs)
-                        Log.d(IMPORT_TAG, "  - Upserted ${validCrossRefs.size} project attachment cross-refs (filtered from ${selectedData.projectAttachmentCrossRefs.size}).")
+                        val newerCrossRefs = keepNewer(
+                            validCrossRefs,
+                            local.projectAttachmentCrossRefs.associateBy { "${it.projectId}-${it.attachmentId}" },
+                            { "${it.projectId}-${it.attachmentId}" },
+                            { it.version },
+                            { it.syncedAt }
+                        )
+                        if (newerCrossRefs.isNotEmpty()) {
+                            attachmentDao.insertProjectAttachmentLinks(newerCrossRefs)
+                        }
+                        Log.d(IMPORT_TAG, "  - Upserted ${newerCrossRefs.size} project attachment cross-refs (filtered from ${selectedData.projectAttachmentCrossRefs.size}).")
                     }
                     if (validCrossRefs.size < selectedData.projectAttachmentCrossRefs.size) {
                         Log.w(IMPORT_TAG, "  - Skipped ${selectedData.projectAttachmentCrossRefs.size - validCrossRefs.size} cross-refs pointing to non-existent or unselected projects.")
                     }
                 } else if (selectedData.attachments.isNotEmpty()) {
                     // If there are no cross-refs but attachments exist, just import the attachments
-                    attachmentDao.insertAttachments(selectedData.attachments)
-                    Log.d(IMPORT_TAG, "  - Upserted ${selectedData.attachments.size} attachments (no cross-refs).")
+                    val newerAttachments = keepNewer(selectedData.attachments, local.attachments.associateBy { it.id }, { it.id }, { it.version }, { it.updatedAt })
+                    if (newerAttachments.isNotEmpty()) {
+                        attachmentDao.insertAttachments(newerAttachments)
+                    }
+                    Log.d(IMPORT_TAG, "  - Upserted ${newerAttachments.size} attachments (no cross-refs).")
                 }
                 if (selectedData.scripts.isNotEmpty()) {
-                    selectedData.scripts.forEach { scriptDao.insert(it) }
-                    Log.d(IMPORT_TAG, "  - Upserted ${selectedData.scripts.size} scripts.")
+                    val newerScripts = keepNewer(selectedData.scripts, local.scripts.associateBy { it.id }, { it.id }, { it.version }, { it.updatedAt })
+                    newerScripts.forEach { scriptDao.insert(it) }
+                    Log.d(IMPORT_TAG, "  - Upserted ${newerScripts.size} scripts.")
                 }
                 // Add other entities as needed
             }

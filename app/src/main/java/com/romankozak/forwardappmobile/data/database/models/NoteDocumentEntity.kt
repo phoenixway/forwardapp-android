@@ -26,4 +26,7 @@ data class NoteDocumentEntity(
     var updatedAt: Long = System.currentTimeMillis(),
     val content: String? = null,
     @androidx.room.ColumnInfo(defaultValue = "0") val lastCursorPosition: Int = 0,
+    val syncedAt: Long? = null,
+    val isDeleted: Boolean = false,
+    val version: Long = 0,
 )

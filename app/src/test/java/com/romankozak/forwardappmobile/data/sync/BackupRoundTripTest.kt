@@ -32,7 +32,7 @@ class BackupRoundTripTest {
         )
 
         val original = FullAppBackup(
-            backupSchemaVersion = 1,
+            backupSchemaVersion = 2,
             database = DatabaseContent(
                 projects = listOf(project),
                 listItems = listOf(listItem)
@@ -148,7 +148,7 @@ class BackupRoundTripTest {
             recentProjectEntries = listOf(recentProjectEntry)
         )
         val original = FullAppBackup(
-            backupSchemaVersion = 1,
+            backupSchemaVersion = 2,
             database = originalDb
         )
 

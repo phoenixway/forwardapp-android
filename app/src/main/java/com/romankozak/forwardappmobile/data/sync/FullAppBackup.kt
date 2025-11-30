@@ -5,7 +5,7 @@ import com.romankozak.forwardappmobile.data.database.models.*
 
 data class FullAppBackup(
     @SerializedName(value = "backupSchemaVersion", alternate = ["a"])
-    val backupSchemaVersion: Int = 1,
+    val backupSchemaVersion: Int = 2,
     @SerializedName(value = "exportedAt", alternate = ["b"])
     val exportedAt: Long = System.currentTimeMillis(),
     @SerializedName(value = "database", alternate = ["c"])

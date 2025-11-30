@@ -671,3 +671,71 @@ val MIGRATION_67_68 = object : Migration(67, 68) {
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_scripts_name` ON `scripts` (`name`)")
     }
 }
+
+val MIGRATION_68_69 = object : Migration(68, 69) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `projects` ADD COLUMN `synced_at` INTEGER")
+        db.execSQL("ALTER TABLE `projects` ADD COLUMN `is_deleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `projects` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+
+        db.execSQL("ALTER TABLE `goals` ADD COLUMN `synced_at` INTEGER")
+        db.execSQL("ALTER TABLE `goals` ADD COLUMN `is_deleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `goals` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+
+        db.execSQL("ALTER TABLE `list_items` ADD COLUMN `synced_at` INTEGER")
+        db.execSQL("ALTER TABLE `list_items` ADD COLUMN `is_deleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `list_items` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
+val MIGRATION_69_70 = object : Migration(69, 70) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `notes` ADD COLUMN `syncedAt` INTEGER")
+        db.execSQL("ALTER TABLE `notes` ADD COLUMN `isDeleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `notes` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+
+        db.execSQL("ALTER TABLE `note_documents` ADD COLUMN `syncedAt` INTEGER")
+        db.execSQL("ALTER TABLE `note_documents` ADD COLUMN `isDeleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `note_documents` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+
+        db.execSQL("ALTER TABLE `note_document_items` ADD COLUMN `syncedAt` INTEGER")
+        db.execSQL("ALTER TABLE `note_document_items` ADD COLUMN `isDeleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `note_document_items` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+
+        db.execSQL("ALTER TABLE `checklists` ADD COLUMN `syncedAt` INTEGER")
+        db.execSQL("ALTER TABLE `checklists` ADD COLUMN `isDeleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `checklists` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+
+        db.execSQL("ALTER TABLE `checklist_items` ADD COLUMN `syncedAt` INTEGER")
+        db.execSQL("ALTER TABLE `checklist_items` ADD COLUMN `isDeleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `checklist_items` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+
+        db.execSQL("ALTER TABLE `activity_records` ADD COLUMN `syncedAt` INTEGER")
+        db.execSQL("ALTER TABLE `activity_records` ADD COLUMN `isDeleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `activity_records` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+
+        db.execSQL("ALTER TABLE `inbox_records` ADD COLUMN `synced_at` INTEGER")
+        db.execSQL("ALTER TABLE `inbox_records` ADD COLUMN `is_deleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `inbox_records` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+
+        db.execSQL("ALTER TABLE `link_items` ADD COLUMN `synced_at` INTEGER")
+        db.execSQL("ALTER TABLE `link_items` ADD COLUMN `is_deleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `link_items` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+
+        db.execSQL("ALTER TABLE `project_execution_logs` ADD COLUMN `synced_at` INTEGER")
+        db.execSQL("ALTER TABLE `project_execution_logs` ADD COLUMN `is_deleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `project_execution_logs` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+
+        db.execSQL("ALTER TABLE `attachments` ADD COLUMN `syncedAt` INTEGER")
+        db.execSQL("ALTER TABLE `attachments` ADD COLUMN `isDeleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `attachments` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+
+        db.execSQL("ALTER TABLE `project_attachment_cross_ref` ADD COLUMN `syncedAt` INTEGER")
+        db.execSQL("ALTER TABLE `project_attachment_cross_ref` ADD COLUMN `isDeleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `project_attachment_cross_ref` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+
+        db.execSQL("ALTER TABLE `scripts` ADD COLUMN `syncedAt` INTEGER")
+        db.execSQL("ALTER TABLE `scripts` ADD COLUMN `isDeleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `scripts` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+    }
+}

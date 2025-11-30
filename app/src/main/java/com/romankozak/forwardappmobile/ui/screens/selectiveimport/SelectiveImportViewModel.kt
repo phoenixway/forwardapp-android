@@ -52,8 +52,8 @@ class SelectiveImportViewModel @Inject constructor(
             syncRepository.parseBackupFile(fileUri)
                 .onSuccess { fullAppBackup ->
                     val version = (fullAppBackup.backupSchemaVersion.takeIf { it != 0 } ?: 1)
-                    if (version != 1) {
-                        val msg = "Unsupported backup version: $version. Expected 1."
+                    if (version !in listOf(1, 2)) {
+                        val msg = "Unsupported backup version: $version. Expected 1 or 2."
                         android.util.Log.e("IMPORT_SELECTIVE", msg)
                         _uiState.update { it.copy(isLoading = false, error = msg) }
                         return@onSuccess

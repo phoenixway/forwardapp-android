@@ -24,6 +24,9 @@ data class AttachmentEntity(
     @ColumnInfo(name = "owner_project_id") @SerializedName(value = "ownerProjectId", alternate = ["d"]) val ownerProjectId: String? = null,
     @SerializedName(value = "createdAt", alternate = ["e"]) val createdAt: Long = System.currentTimeMillis(),
     @SerializedName(value = "updatedAt", alternate = ["f"]) val updatedAt: Long = System.currentTimeMillis(),
+    val syncedAt: Long? = null,
+    val isDeleted: Boolean = false,
+    val version: Long = 0,
 )
 
 @Entity(
@@ -51,6 +54,9 @@ data class ProjectAttachmentCrossRef(
     @ColumnInfo(name = "project_id") @SerializedName(value = "projectId", alternate = ["a"]) val projectId: String,
     @ColumnInfo(name = "attachment_id") @SerializedName(value = "attachmentId", alternate = ["b"]) val attachmentId: String,
     @ColumnInfo(name = "attachment_order") @SerializedName(value = "attachmentOrder", alternate = ["c"]) val attachmentOrder: Long = -System.currentTimeMillis(),
+    val syncedAt: Long? = null,
+    val isDeleted: Boolean = false,
+    val version: Long = 0,
 )
 
 data class AttachmentWithProject(

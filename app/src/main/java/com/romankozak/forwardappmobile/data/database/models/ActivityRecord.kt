@@ -25,6 +25,9 @@ data class ActivityRecord(
     @SerializedName(value = "projectId", alternate = ["listId"])
     @ColumnInfo(name = "project_id", index = true)
     val projectId: String? = null,
+    val syncedAt: Long? = null,
+    val isDeleted: Boolean = false,
+    val version: Long = 0,
 ) {
     val isTimeless: Boolean
         get() = startTime == null && endTime == null
