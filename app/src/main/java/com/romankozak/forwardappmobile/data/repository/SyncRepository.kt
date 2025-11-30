@@ -105,7 +105,12 @@ constructor(
     private val systemAppDao: SystemAppDao,
 ) {
     private val TAG = "SyncRepository"
+import com.romankozak.forwardappmobile.data.sync.LongDeserializer
+
+// ...
+
     private val gson = GsonBuilder()
+        .registerTypeAdapter(Long::class.java, LongDeserializer())
         .registerTypeAdapter(com.romankozak.forwardappmobile.data.database.models.ReservedGroup::class.java, ReservedGroupAdapter())
         .create()
     private val client: HttpClient by lazy {
