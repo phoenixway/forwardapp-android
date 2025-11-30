@@ -81,8 +81,16 @@ class SelectiveImportViewModel @Inject constructor(
 
              val selectedProjects = contentToImport.projects.filter { it.isSelected }.map { it.item }
              val selectedGoals = contentToImport.goals.filter { it.isSelected }.map { it.item }
-             val selectedThoughts = contentToImport.thoughts.filter { it.isSelected }.map { it.item }
-             val selectedStats = contentToImport.stats.filter { it.isSelected }.map { it.item }
+             val selectedLegacyNotes = contentToImport.legacyNotes.filter { it.isSelected }.map { it.item }
+             val selectedActivityRecords = contentToImport.activityRecords.filter { it.isSelected }.map { it.item }
+             val selectedListItems = contentToImport.listItems.filter { it.isSelected }.map { it.item }
+             val selectedDocuments = contentToImport.documents.filter { it.isSelected }.map { it.item }
+             val selectedChecklists = contentToImport.checklists.filter { it.isSelected }.map { it.item }
+             val selectedLinkItems = contentToImport.linkItems.filter { it.isSelected }.map { it.item }
+             val selectedInboxRecords = contentToImport.inboxRecords.filter { it.isSelected }.map { it.item }
+             val selectedProjectExecutionLogs = contentToImport.projectExecutionLogs.filter { it.isSelected }.map { it.item }
+             val selectedScripts = contentToImport.scripts.filter { it.isSelected }.map { it.item }
+             val selectedAttachments = contentToImport.attachments.filter { it.isSelected }.map { it.item }
              
              android.util.Log.d("IMPORT_DEBUG", "Total projects selected: ${selectedProjects.size}")
              android.util.Log.d("IMPORT_DEBUG", "Projects with parents: ${selectedProjects.filter { it.parentId != null }.size}")
@@ -95,7 +103,6 @@ class SelectiveImportViewModel @Inject constructor(
              
              // Get all available projects from backup to check for parent references
              val allBackupProjects = contentToImport.projects.map { it.item }
-             val selectedProjectIds = selectedProjects.map { it.id }.toSet()
              val regularProjectIds = regularProjects.map { it.id }.toSet()
              
              // Build map of all projects by ID to check their system status
@@ -126,66 +133,63 @@ class SelectiveImportViewModel @Inject constructor(
                 return isParentValid
              }
              
-             val projectsWithValidParents = regularProjects.filter { project ->
+            val projectsWithValidParents = regularProjects.filter { project ->
                 isProjectValidForImport(project.id)
-             }
-             
-             // Don't import if nothing is selected
-             if (selectedProjects.isEmpty() && selectedGoals.isEmpty() && selectedThoughts.isEmpty() && selectedStats.isEmpty()) {
-                 _uiState.update { it.copy(error = "Нечого імпортувати. Виберіть проекти або цілі.") }
-                 return@launch
-             }
-
-            // Filter list items to only those linked to selected projects or goals
-             val selectedProjectIds = projectsWithValidParents.map { it.id }.toSet()
+            }
+            
+            val selectedProjectIds = projectsWithValidParents.map { it.id }.toSet()
             val selectedGoalIds = selectedGoals.map { it.id }.toSet()
-            val allListItems = currentState.backupContent?.allListItems ?: emptyList()
-            val filteredListItems = allListItems.filter { 
-                it.projectId in selectedProjectIds || it.entityId in selectedGoalIds 
+            val selectedLegacyNoteIds = selectedLegacyNotes.map { it.id }.toSet()
+            val selectedDocumentIds = selectedDocuments.map { it.id }.toSet()
+            val selectedChecklistIds = selectedChecklists.map { it.id }.toSet()
+            val selectedLinkItemIds = selectedLinkItems.map { it.id }.toSet()
+            val selectedInboxRecordIds = selectedInboxRecords.map { it.id }.toSet()
+            val selectedScriptIds = selectedScripts.map { it.id }.toSet()
+            val selectedAttachmentIds = selectedAttachments.map { it.id }.toSet()
+
+            // Filter list items to only those linked to selected projects, goals, documents, checklists, legacy notes, scripts, inbox records
+            val allListItems = currentState.backupContent?.listItems?.map { it.item } ?: emptyList()
+            val filteredListItems = allListItems.filter { listItem ->
+                listItem.projectId in selectedProjectIds ||
+                listItem.entityId in selectedGoalIds ||
+                listItem.entityId in selectedLegacyNoteIds ||
+                listItem.entityId in selectedDocumentIds ||
+                listItem.entityId in selectedChecklistIds ||
+                listItem.entityId in selectedScriptIds ||
+                listItem.entityId in selectedInboxRecordIds
             }
 
-            // Include all attachments and their cross-refs since they should be available in the attachments library
-            val allAttachments = currentState.backupContent?.allAttachments ?: emptyList()
+            // Filter document items to only those linked to selected documents
+            val allDocumentItems = currentState.backupContent?.documentItems ?: emptyList()
+            val filteredDocumentItems = allDocumentItems.filter { it.listId in selectedDocumentIds }
+            
+            // Filter checklist items to only those linked to selected checklists
+            val allChecklistItems = currentState.backupContent?.checklistItems ?: emptyList()
+            val filteredChecklistItems = allChecklistItems.filter { it.checklistId in selectedChecklistIds }
+            
+            // Filter project attachment cross-refs to only those linked to selected projects and selected attachments
             val allProjectAttachmentCrossRefs = currentState.backupContent?.allProjectAttachmentCrossRefs ?: emptyList()
-            val filteredCrossRefs = allProjectAttachmentCrossRefs.filter { 
-                it.projectId in selectedProjectIds 
+            val filteredCrossRefs = allProjectAttachmentCrossRefs.filter { crossRef ->
+                crossRef.projectId in selectedProjectIds && crossRef.attachmentId in selectedAttachmentIds
             }
-            
-
-
-            // Include documents and checklists only if they belong to selected projects
-            val allDocuments = currentState.backupContent?.allDocuments ?: emptyList()
-            val filteredDocuments = allDocuments.filter { it.projectId in selectedProjectIds }
-            
-            val allDocumentItems = currentState.backupContent?.allDocumentItems ?: emptyList()
-            val filteredDocumentIds = filteredDocuments.map { it.id }.toSet()
-            val filteredDocumentItems = allDocumentItems.filter { it.listId in filteredDocumentIds }
-            
-            val allChecklists = currentState.backupContent?.allChecklists ?: emptyList()
-            val filteredChecklists = allChecklists.filter { it.projectId in selectedProjectIds }
-            
-            val allChecklistItems = currentState.backupContent?.allChecklistItems ?: emptyList()
-            val filteredChecklistIds = filteredChecklists.map { it.id }.toSet()
-            val filteredChecklistItems = allChecklistItems.filter { it.checklistId in filteredChecklistIds }
-            
-            val allLinkItems = currentState.backupContent?.allLinkItems ?: emptyList()
 
             val databaseContent = DatabaseContent(
                 projects = projectsWithValidParents,
                 goals = selectedGoals,
-                legacyNotes = selectedThoughts,
-                activityRecords = selectedStats,
+                legacyNotes = selectedLegacyNotes,
+                activityRecords = selectedActivityRecords,
                 listItems = filteredListItems,
-                documents = filteredDocuments,
+                documents = selectedDocuments.map { it.item },
                 documentItems = filteredDocumentItems,
-                checklists = filteredChecklists,
+                checklists = selectedChecklists.map { it.item },
                 checklistItems = filteredChecklistItems,
-                linkItemEntities = allLinkItems,
-                inboxRecords = emptyList(),
-                projectExecutionLogs = emptyList(),
-                recentProjectEntries = emptyList(),
-                attachments = allAttachments,
-                projectAttachmentCrossRefs = filteredCrossRefs
+                linkItemEntities = selectedLinkItems.map { it.item },
+                inboxRecords = selectedInboxRecords.map { it.item },
+                projectExecutionLogs = selectedProjectExecutionLogs.map { it.item },
+                recentProjectEntries = emptyList(), // Not directly selectable, derived from projects
+                attachments = selectedAttachments.map { it.item },
+                projectAttachmentCrossRefs = filteredCrossRefs,
+                scripts = selectedScripts.map { it.item }
             )
 
             _uiState.update { it.copy(isLoading = true) }
@@ -219,6 +223,96 @@ class SelectiveImportViewModel @Inject constructor(
             currentState.copy(backupContent = currentState.backupContent?.copy(goals = updatedGoals ?: emptyList()))
         }
     }
+
+    fun toggleLegacyNoteSelection(noteId: String, isSelected: Boolean) {
+        _uiState.update { currentState ->
+            val updatedNotes = currentState.backupContent?.legacyNotes?.map {
+                if (it.item.id == noteId) it.copy(isSelected = isSelected) else it
+            }
+            currentState.copy(backupContent = currentState.backupContent?.copy(legacyNotes = updatedNotes ?: emptyList()))
+        }
+    }
+
+    fun toggleActivityRecordSelection(recordId: String, isSelected: Boolean) {
+        _uiState.update { currentState ->
+            val updatedRecords = currentState.backupContent?.activityRecords?.map {
+                if (it.item.id == recordId) it.copy(isSelected = isSelected) else it
+            }
+            currentState.copy(backupContent = currentState.backupContent?.copy(activityRecords = updatedRecords ?: emptyList()))
+        }
+    }
+
+    fun toggleListItemSelection(itemId: String, isSelected: Boolean) {
+        _uiState.update { currentState ->
+            val updatedItems = currentState.backupContent?.listItems?.map {
+                if (it.item.id == itemId) it.copy(isSelected = isSelected) else it
+            }
+            currentState.copy(backupContent = currentState.backupContent?.copy(listItems = updatedItems ?: emptyList()))
+        }
+    }
+
+    fun toggleDocumentSelection(documentId: String, isSelected: Boolean) {
+        _uiState.update { currentState ->
+            val updatedDocuments = currentState.backupContent?.documents?.map {
+                if (it.item.id == documentId) it.copy(isSelected = isSelected) else it
+            }
+            currentState.copy(backupContent = currentState.backupContent?.copy(documents = updatedDocuments ?: emptyList()))
+        }
+    }
+
+    fun toggleChecklistSelection(checklistId: String, isSelected: Boolean) {
+        _uiState.update { currentState ->
+            val updatedChecklists = currentState.backupContent?.checklists?.map {
+                if (it.item.id == checklistId) it.copy(isSelected = isSelected) else it
+            }
+            currentState.copy(backupContent = currentState.backupContent?.copy(checklists = updatedChecklists ?: emptyList()))
+        }
+    }
+
+    fun toggleLinkItemSelection(linkId: String, isSelected: Boolean) {
+        _uiState.update { currentState ->
+            val updatedLinks = currentState.backupContent?.linkItems?.map {
+                if (it.item.id == linkId) it.copy(isSelected = isSelected) else it
+            }
+            currentState.copy(backupContent = currentState.backupContent?.copy(linkItems = updatedLinks ?: emptyList()))
+        }
+    }
+
+    fun toggleInboxRecordSelection(recordId: String, isSelected: Boolean) {
+        _uiState.update { currentState ->
+            val updatedRecords = currentState.backupContent?.inboxRecords?.map {
+                if (it.item.id == recordId) it.copy(isSelected = isSelected) else it
+            }
+            currentState.copy(backupContent = currentState.backupContent?.copy(inboxRecords = updatedRecords ?: emptyList()))
+        }
+    }
+
+    fun toggleProjectExecutionLogSelection(logId: String, isSelected: Boolean) {
+        _uiState.update { currentState ->
+            val updatedLogs = currentState.backupContent?.projectExecutionLogs?.map {
+                if (it.item.id == logId) it.copy(isSelected = isSelected) else it
+            }
+            currentState.copy(backupContent = currentState.backupContent?.copy(projectExecutionLogs = updatedLogs ?: emptyList()))
+        }
+    }
+
+    fun toggleScriptSelection(scriptId: String, isSelected: Boolean) {
+        _uiState.update { currentState ->
+            val updatedScripts = currentState.backupContent?.scripts?.map {
+                if (it.item.id == scriptId) it.copy(isSelected = isSelected) else it
+            }
+            currentState.copy(backupContent = currentState.backupContent?.copy(scripts = updatedScripts ?: emptyList()))
+        }
+    }
+
+    fun toggleAttachmentSelection(attachmentId: String, isSelected: Boolean) {
+        _uiState.update { currentState ->
+            val updatedAttachments = currentState.backupContent?.attachments?.map {
+                if (it.item.id == attachmentId) it.copy(isSelected = isSelected) else it
+            }
+            currentState.copy(backupContent = currentState.backupContent?.copy(attachments = updatedAttachments ?: emptyList()))
+        }
+    }
     
     fun toggleAllSelection(entityType: EntityType, selectAll: Boolean) {
         _uiState.update { currentState ->
@@ -226,6 +320,16 @@ class SelectiveImportViewModel @Inject constructor(
             val updatedContent = when (entityType) {
                 EntityType.PROJECT -> content.copy(projects = content.projects.map { it.copy(isSelected = selectAll) })
                 EntityType.GOAL -> content.copy(goals = content.goals.map { it.copy(isSelected = selectAll) })
+                EntityType.LEGACY_NOTE -> content.copy(legacyNotes = content.legacyNotes.map { it.copy(isSelected = selectAll) })
+                EntityType.ACTIVITY_RECORD -> content.copy(activityRecords = content.activityRecords.map { it.copy(isSelected = selectAll) })
+                EntityType.LIST_ITEM -> content.copy(listItems = content.listItems.map { it.copy(isSelected = selectAll) })
+                EntityType.DOCUMENT -> content.copy(documents = content.documents.map { it.copy(isSelected = selectAll) })
+                EntityType.CHECKLIST -> content.copy(checklists = content.checklists.map { it.copy(isSelected = selectAll) })
+                EntityType.LINK_ITEM -> content.copy(linkItems = content.linkItems.map { it.copy(isSelected = selectAll) })
+                EntityType.INBOX_RECORD -> content.copy(inboxRecords = content.inboxRecords.map { it.copy(isSelected = selectAll) })
+                EntityType.PROJECT_EXECUTION_LOG -> content.copy(projectExecutionLogs = content.projectExecutionLogs.map { it.copy(isSelected = selectAll) })
+                EntityType.SCRIPT -> content.copy(scripts = content.scripts.map { it.copy(isSelected = selectAll) })
+                EntityType.ATTACHMENT -> content.copy(attachments = content.attachments.map { it.copy(isSelected = selectAll) })
             }
             currentState.copy(backupContent = updatedContent)
         }
@@ -234,7 +338,17 @@ class SelectiveImportViewModel @Inject constructor(
 
 enum class EntityType {
     PROJECT,
-    GOAL
+    GOAL,
+    LEGACY_NOTE,
+    ACTIVITY_RECORD,
+    LIST_ITEM,
+    DOCUMENT,
+    CHECKLIST,
+    LINK_ITEM,
+    INBOX_RECORD,
+    PROJECT_EXECUTION_LOG,
+    SCRIPT,
+    ATTACHMENT
 }
 
 sealed interface SelectiveImportEvent {

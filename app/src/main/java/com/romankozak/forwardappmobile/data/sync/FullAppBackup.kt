@@ -33,6 +33,8 @@ data class DatabaseContent(
     val checklistItems: List<ChecklistItemEntity> = emptyList(),
     @SerializedName(value = "activityRecords", alternate = ["i"])
     val activityRecords: List<ActivityRecord> = emptyList(),
+    @SerializedName(value = "scripts")
+    val scripts: List<ScriptEntity> = emptyList(),
     @SerializedName(value = "recentProjectEntries", alternate = ["recentListEntries"])
     val recentProjectEntries: List<RecentProjectEntry> = emptyList(),
     @SerializedName(value = "linkItemEntities", alternate = ["k"])
