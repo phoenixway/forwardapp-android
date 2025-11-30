@@ -20,6 +20,7 @@ import com.romankozak.forwardappmobile.data.dao.NoteDocumentDao
 import com.romankozak.forwardappmobile.data.dao.ProjectDao
 import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
 import com.romankozak.forwardappmobile.data.dao.RecentItemDao
+import com.romankozak.forwardappmobile.data.dao.ScriptDao
 import com.romankozak.forwardappmobile.data.dao.SystemAppDao
 import com.romankozak.forwardappmobile.data.database.AppDatabase
 import com.romankozak.forwardappmobile.data.database.models.Goal
@@ -32,12 +33,15 @@ import com.romankozak.forwardappmobile.data.database.models.ProjectType;
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.data.sync.DatabaseContent
-import com.romankozak.forwardappmobile.data.sync.DesktopBackupFile
 import com.romankozak.forwardappmobile.data.sync.FullAppBackup
 import com.romankozak.forwardappmobile.data.sync.AttachmentsBackup
 import com.romankozak.forwardappmobile.data.sync.ReservedGroupAdapter
 import com.romankozak.forwardappmobile.data.sync.toGoal
 import com.romankozak.forwardappmobile.data.sync.toProject
+import com.romankozak.forwardappmobile.data.sync.LongDeserializer
+import com.romankozak.forwardappmobile.data.sync.BackupDiff
+import com.romankozak.forwardappmobile.data.sync.DiffResult
+import com.romankozak.forwardappmobile.data.sync.UpdatedItem
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -100,14 +104,12 @@ constructor(
     private val noteDocumentDao: NoteDocumentDao,
     private val checklistDao: ChecklistDao,
     private val recentItemDao: RecentItemDao,
+    private val scriptDao: ScriptDao,
     private val attachmentRepository: AttachmentRepository,
     private val attachmentDao: AttachmentDao,
     private val systemAppDao: SystemAppDao,
 ) {
     private val TAG = "SyncRepository"
-import com.romankozak.forwardappmobile.data.sync.LongDeserializer
-
-// ...
 
     private val gson = GsonBuilder()
         .registerTypeAdapter(Long::class.java, LongDeserializer())
@@ -154,6 +156,7 @@ import com.romankozak.forwardappmobile.data.sync.LongDeserializer
                 timestamp = recentItem.lastAccessed
             )
         }
+        val scripts = scriptDao.getAll().first()
 
         val databaseContent =
             DatabaseContent(
@@ -169,7 +172,8 @@ import com.romankozak.forwardappmobile.data.sync.LongDeserializer
                 linkItemEntities = linkItemDao.getAllEntities(),
                 inboxRecords = inboxRecordDao.getAll(),
                 projectExecutionLogs = projectManagementDao.getAllLogs(),
-                recentProjectEntries = emptyList(),
+                recentProjectEntries = recentProjectEntries,
+                scripts = scripts,
                 attachments = attachmentDao.getAll(),
                 projectAttachmentCrossRefs = attachmentDao.getAllProjectAttachmentCrossRefs(),
             )
@@ -235,14 +239,7 @@ import com.romankozak.forwardappmobile.data.sync.LongDeserializer
                 Result.failure(Exception("Backup file is empty or could not be read."))
             } else {
                 Log.d(TAG, "parseBackupFile: JSON size=${jsonString.length}, first 500 chars: ${jsonString.take(500)}")
-                val backupData = gson.fromJson(jsonString, FullAppBackup::class.java)
-                Log.d(TAG, "parseBackupFile: Parsed FullAppBackup - database=${backupData.database}, backupVersion=${backupData.backupSchemaVersion}")
-                if (backupData.database != null) {
-                    Log.d(TAG, "parseBackupFile: Database projects=${backupData.database.projects.size}, goals=${backupData.database.goals.size}")
-                } else {
-                    Log.w(TAG, "parseBackupFile: Database is NULL!")
-                }
-                Result.success(backupData)
+                parseFullAppBackup(jsonString)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to parse backup file.", e)
@@ -477,6 +474,7 @@ import com.romankozak.forwardappmobile.data.sync.LongDeserializer
                 noteDocumentDao.deleteAllDocuments()
                 checklistDao.deleteAllChecklistItems()
                 checklistDao.deleteAllChecklists()
+                scriptDao.deleteAll()
                 recentItemDao.deleteAll()
                 attachmentDao.deleteAllProjectAttachmentLinks()
                 attachmentDao.deleteAll()
@@ -513,6 +511,8 @@ import com.romankozak.forwardappmobile.data.sync.LongDeserializer
                 Log.d(IMPORT_TAG, "  - Вставлено: ${backup.inboxRecords.size} inboxRecords.")
                 projectManagementDao.insertAllLogs(backup.projectExecutionLogs)
                 Log.d(IMPORT_TAG, "  - Вставлено: ${backup.projectExecutionLogs.size} projectLogs.")
+                backup.scripts.forEach { scriptDao.insert(it) }
+                Log.d(IMPORT_TAG, "  - Вставлено: ${backup.scripts.size} scripts.")
                 recentItemDao.insertAll(recentItemsToInsert)
                 Log.d(IMPORT_TAG, "  - Вставлено: ${recentItemsToInsert.size} recentItems.")
 
@@ -590,92 +590,114 @@ import com.romankozak.forwardappmobile.data.sync.LongDeserializer
         }
 
     suspend fun createSyncReport(jsonString: String): SyncReport {
-        val desktopData = gson.fromJson(jsonString, DesktopBackupFile::class.java).data ?: return SyncReport(emptyList())
+        val backup = gson.fromJson(jsonString, FullAppBackup::class.java)
+        val db = backup.database ?: return SyncReport(emptyList())
 
+        val localProjectsAll = projectDao.getAll()
+        val localProjects = localProjectsAll.filter { it.systemKey == null }.associateBy { it.id }
         val localGoals = goalDao.getAll().associateBy { it.id }
-        val localProjects = projectDao.getAll().associateBy { it.id }
+        val localListItems = listItemDao.getAll()
+            .filter { it.projectId == null || it.projectId in localProjects.keys }
+            .associateBy { it.id }
 
         val changes = mutableListOf<SyncChange>()
 
         // Goals
-        desktopData.goals?.forEach { (id, desktopGoal) ->
-            val localGoal = localGoals[id]
-            if (localGoal == null) {
-                changes.add(SyncChange(ChangeType.Add, "Ціль", id, "Нова ціль: ${desktopGoal.text}", entity = desktopGoal.toGoal()))
+        val incomingGoals = db.goals.map { normalizeGoal(it) }
+        incomingGoals.forEach { incoming ->
+            val local = localGoals[incoming.id]?.let { normalizeGoal(it) }
+            if (local == null) {
+                changes.add(SyncChange(ChangeType.Add, "Ціль", incoming.id, "Нова ціль: ${incoming.text}", entity = incoming))
             } else {
-                val desktopUpdatedAt = desktopGoal.updatedAt?.let { try { OffsetDateTime.parse(it, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toInstant().toEpochMilli() } catch (e: Exception) { 0L } } ?: 0L
-                if (desktopUpdatedAt > (localGoal.updatedAt ?: 0)) {
+                if ((incoming.updatedAt ?: 0) > (local.updatedAt ?: 0)) {
                     val updates = mutableListOf<String>()
-                    if (desktopGoal.text != localGoal.text) updates.add("text changed")
-                    if (desktopGoal.completed != localGoal.completed) updates.add("completion status changed")
-                    if (desktopGoal.description != localGoal.description) updates.add("description changed")
-                    if (desktopGoal.tags?.toSet() != localGoal.tags?.toSet()) updates.add("tags changed")
-                    if (desktopGoal.valueImportance != localGoal.valueImportance) updates.add("valueImportance changed")
-                    if (desktopGoal.valueImpact != localGoal.valueImpact) updates.add("valueImpact changed")
-                    if (desktopGoal.effort != localGoal.effort) updates.add("effort changed")
-                    if (desktopGoal.cost != localGoal.cost) updates.add("cost changed")
-                    if (desktopGoal.risk != localGoal.risk) updates.add("risk changed")
-                    if (desktopGoal.scoringStatus != localGoal.scoringStatus) updates.add("scoringStatus changed")
+                    if (incoming.text != local.text) updates.add("text changed")
+                    if (incoming.completed != local.completed) updates.add("completion status changed")
+                    if (incoming.description != local.description) updates.add("description changed")
+                    if (incoming.tags?.toSet() != local.tags?.toSet()) updates.add("tags changed")
+                    if (incoming.valueImportance != local.valueImportance) updates.add("valueImportance changed")
+                    if (incoming.valueImpact != local.valueImpact) updates.add("valueImpact changed")
+                    if (incoming.effort != local.effort) updates.add("effort changed")
+                    if (incoming.cost != local.cost) updates.add("cost changed")
+                    if (incoming.risk != local.risk) updates.add("risk changed")
+                    if (incoming.scoringStatus != local.scoringStatus) updates.add("scoringStatus changed")
 
                     if (updates.isNotEmpty()) {
                         changes.add(
                             SyncChange(
                                 ChangeType.Update,
                                 "Ціль",
-                                id,
-                                "Оновлено ціль: ${desktopGoal.text}",
+                                incoming.id,
+                                "Оновлено ціль: ${incoming.text}",
                                 longDescription = "Зміни: ${updates.joinToString()}",
-                                entity = desktopGoal.toGoal()
+                                entity = incoming
                             )
                         )
                     }
                 }
             }
         }
-        localGoals.keys.minus(desktopData.goals?.keys ?: emptySet()).forEach { id ->
+        localGoals.keys.minus(db.goals.map { it.id }.toSet()).forEach { id ->
             changes.add(SyncChange(ChangeType.Delete, "Ціль", id, "Видалено ціль: ${localGoals[id]?.text}", entity = localGoals[id]!!))
         }
 
         // Projects
-        desktopData.goalLists?.forEach { (id, desktopProject) ->
-            val localProject = localProjects[id]
-            if (localProject == null) {
-                changes.add(SyncChange(ChangeType.Add, "Список", id, "Новий список: ${desktopProject.name}", entity = desktopProject.toProject()))
+        val incomingProjects = db.projects.filter { it.systemKey == null }.map { normalizeProject(it) }
+        val incomingProjectIds = incomingProjects.map { it.id }.toSet()
+        incomingProjects.forEach { incoming ->
+            val local = localProjects[incoming.id]?.let { normalizeProject(it) }
+            if (local == null) {
+                changes.add(SyncChange(ChangeType.Add, "Список", incoming.id, "Новий список: ${incoming.name}", entity = incoming))
             } else {
-                val desktopUpdatedAt = desktopProject.updatedAt?.let { try { OffsetDateTime.parse(it, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toInstant().toEpochMilli() } catch (e: Exception) { 0L } } ?: 0L
-                if (desktopUpdatedAt > (localProject.updatedAt ?: 0)) {
+                if ((incoming.updatedAt ?: 0) > (local.updatedAt ?: 0)) {
                     val updates = mutableListOf<String>()
-                    if (desktopProject.name != localProject.name) updates.add("name to '${desktopProject.name}'")
-                    if (desktopProject.parentId != localProject.parentId) updates.add("parent changed")
-                    if (desktopProject.description != localProject.description) updates.add("description changed")
-                    if (desktopProject.isExpanded != localProject.isExpanded) updates.add("isExpanded changed to ${desktopProject.isExpanded}")
-                    if (desktopProject.order?.toLong() != localProject.order) updates.add("order changed")
-                    if (desktopProject.tags?.toSet() != localProject.tags?.toSet()) updates.add("tags changed")
-                    if (desktopProject.isCompleted != localProject.isCompleted) updates.add("completion status changed")
-                    if (desktopProject.valueImportance != localProject.valueImportance) updates.add("valueImportance changed")
-                    if (desktopProject.valueImpact != localProject.valueImpact) updates.add("valueImpact changed")
-                    if (desktopProject.effort != localProject.effort) updates.add("effort changed")
-                    if (desktopProject.cost != localProject.cost) updates.add("cost changed")
-                    if (desktopProject.risk != localProject.risk) updates.add("risk changed")
-                    if (desktopProject.scoringStatus != localProject.scoringStatus) updates.add("scoringStatus changed")
+                    if (incoming.name != local.name) updates.add("name to '${incoming.name}'")
+                    if (incoming.parentId != local.parentId) updates.add("parent changed")
+                    if (incoming.description != local.description) updates.add("description changed")
+                    if (incoming.isExpanded != local.isExpanded) updates.add("isExpanded changed to ${incoming.isExpanded}")
+                    if (incoming.order != local.order) updates.add("order changed")
+                    if (incoming.tags?.toSet() != local.tags?.toSet()) updates.add("tags changed")
+                    if (incoming.isCompleted != local.isCompleted) updates.add("completion status changed")
+                    if (incoming.valueImportance != local.valueImportance) updates.add("valueImportance changed")
+                    if (incoming.valueImpact != local.valueImpact) updates.add("valueImpact changed")
+                    if (incoming.effort != local.effort) updates.add("effort changed")
+                    if (incoming.cost != local.cost) updates.add("cost changed")
+                    if (incoming.risk != local.risk) updates.add("risk changed")
+                    if (incoming.scoringStatus != local.scoringStatus) updates.add("scoringStatus changed")
 
                     if (updates.isNotEmpty()) {
                         changes.add(
                             SyncChange(
                                 ChangeType.Update,
                                 "Список",
-                                id,
-                                "Оновлено список: ${desktopProject.name}",
+                                incoming.id,
+                                "Оновлено список: ${incoming.name}",
                                 longDescription = "Зміни: ${updates.joinToString()}",
-                                entity = desktopProject.toProject()
+                                entity = incoming
                             )
                         )
                     }
                 }
             }
         }
-        localProjects.keys.minus(desktopData.goalLists?.keys ?: emptySet()).forEach { id ->
+        localProjects.keys.minus(incomingProjectIds).forEach { id ->
             changes.add(SyncChange(ChangeType.Delete, "Список", id, "Видалено список: ${localProjects[id]?.name}", entity = localProjects[id]!!))
+        }
+
+        // List items
+        val incomingListItems = db.listItems
+            .filter { it.projectId == null || it.projectId in incomingProjectIds }
+            .associateBy { it.id }
+        incomingListItems.forEach { (id, incoming) ->
+            val local = localListItems[id]
+            if (local == null) {
+                changes.add(SyncChange(ChangeType.Add, "Привʼязка", id, "Нова привʼязка", entity = incoming))
+            } else if (incoming != local) {
+                changes.add(SyncChange(ChangeType.Move, "Привʼязка", id, "Оновлено привʼязку", entity = incoming))
+            }
+        }
+        localListItems.keys.minus(incomingListItems.keys).forEach { id ->
+            changes.add(SyncChange(ChangeType.Delete, "Привʼязка", id, "Видалено привʼязку", entity = localListItems[id]!!))
         }
 
         return SyncReport(changes)
@@ -798,6 +820,10 @@ import com.romankozak.forwardappmobile.data.sync.LongDeserializer
                     attachmentDao.insertAttachments(selectedData.attachments)
                     Log.d(IMPORT_TAG, "  - Upserted ${selectedData.attachments.size} attachments (no cross-refs).")
                 }
+                if (selectedData.scripts.isNotEmpty()) {
+                    selectedData.scripts.forEach { scriptDao.insert(it) }
+                    Log.d(IMPORT_TAG, "  - Upserted ${selectedData.scripts.size} scripts.")
+                }
                 // Add other entities as needed
             }
             Result.success("Selected items imported successfully!")
@@ -805,5 +831,211 @@ import com.romankozak.forwardappmobile.data.sync.LongDeserializer
             Log.e(IMPORT_TAG, "A critical error occurred during selective import.", e)
             Result.failure(e)
         }
+    }
+
+    private fun parseFullAppBackup(jsonString: String): Result<FullAppBackup> {
+        return try {
+            val backupData = gson.fromJson(jsonString, FullAppBackup::class.java)
+            Log.d(TAG, "parseFullAppBackup: Parsed FullAppBackup - database=${backupData.database}, backupVersion=${backupData.backupSchemaVersion}")
+            if (backupData.database != null) {
+                Log.d(TAG, "parseFullAppBackup: Database projects=${backupData.database.projects.size}, goals=${backupData.database.goals.size}")
+            } else {
+                Log.w(TAG, "parseFullAppBackup: Database is NULL!")
+            }
+            Result.success(backupData)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to parse FullAppBackup JSON.", e)
+            Result.failure(e)
+        }
+    }
+
+    private fun parseIsoOrNull(value: String): Long? {
+        return try {
+            OffsetDateTime.parse(value, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toInstant().toEpochMilli()
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to parse ISO timestamp: $value, using null", e)
+            null
+        }
+    }
+
+    private fun DatabaseContent.normalizeForDiff(): DatabaseContent {
+        val nonSystemProjects = projects.filter { it.systemKey == null }.map { normalizeProject(it) }
+        val nonSystemProjectIds = nonSystemProjects.map { it.id }.toSet()
+
+        val safeDocuments = documents
+            .filter { it.projectId in nonSystemProjectIds }
+            .map { it.copy(content = it.content ?: "", name = it.name, projectId = it.projectId, lastCursorPosition = it.lastCursorPosition) }
+        val safeDocumentIds = safeDocuments.map { it.id }.toSet()
+
+        val safeChecklists = checklists.filter { it.projectId in nonSystemProjectIds }
+        val safeChecklistIds = safeChecklists.map { it.id }.toSet()
+
+        val safeListItems = listItems.filter { it.projectId in nonSystemProjectIds }
+        val safeInboxRecords = inboxRecords.filter { it.projectId in nonSystemProjectIds }
+        val safeProjectLogs = projectExecutionLogs.filter { it.projectId in nonSystemProjectIds }
+
+        val safeProjectAttachmentCrossRefs = projectAttachmentCrossRefs.filter { it.projectId in nonSystemProjectIds }
+        val safeAttachmentIds = safeProjectAttachmentCrossRefs.map { it.attachmentId }.toSet()
+        val safeAttachments = attachments.filter { it.id in safeAttachmentIds || safeProjectAttachmentCrossRefs.isEmpty() }
+
+        val safeDocumentItems = documentItems.filter { it.listId in safeDocumentIds }
+        val safeChecklistItems = checklistItems.filter { it.checklistId in safeChecklistIds }
+
+        return copy(
+            projects = nonSystemProjects,
+            goals = goals.map { normalizeGoal(it) },
+            listItems = safeListItems,
+            legacyNotes = legacyNotes,
+            activityRecords = activityRecords,
+            documents = safeDocuments,
+            documentItems = safeDocumentItems,
+            checklists = safeChecklists,
+            checklistItems = safeChecklistItems,
+            linkItemEntities = linkItemEntities,
+            inboxRecords = safeInboxRecords,
+            projectExecutionLogs = safeProjectLogs,
+            scripts = scripts,
+            attachments = safeAttachments,
+            projectAttachmentCrossRefs = safeProjectAttachmentCrossRefs,
+        )
+    }
+
+    suspend fun createBackupDiff(backupContent: DatabaseContent): BackupDiff {
+        val local = loadLocalDatabaseContent().normalizeForDiff()
+        val incoming = backupContent.normalizeForDiff()
+        return BackupDiff(
+            projects = buildDiff(local.projects, incoming.projects) { it.id },
+            goals = buildDiff(local.goals, incoming.goals) { it.id },
+            listItems = buildDiff(local.listItems, incoming.listItems) { it.id },
+            legacyNotes = buildDiff(local.legacyNotes, incoming.legacyNotes) { it.id },
+            activityRecords = buildDiff(local.activityRecords, incoming.activityRecords) { it.id },
+            documents = buildDiff(local.documents, incoming.documents) { it.id },
+            documentItems = buildDiff(local.documentItems, incoming.documentItems) { it.id },
+            checklists = buildDiff(local.checklists, incoming.checklists) { it.id },
+            checklistItems = buildDiff(local.checklistItems, incoming.checklistItems) { it.id },
+            linkItems = buildDiff(local.linkItemEntities, incoming.linkItemEntities) { it.id },
+            inboxRecords = buildDiff(local.inboxRecords, incoming.inboxRecords) { it.id },
+            projectExecutionLogs = buildDiff(local.projectExecutionLogs, incoming.projectExecutionLogs) { it.id },
+            scripts = buildDiff(local.scripts, incoming.scripts) { it.id },
+            attachments = buildDiff(local.attachments, incoming.attachments) { it.id },
+            projectAttachmentCrossRefs = buildDiff(local.projectAttachmentCrossRefs, incoming.projectAttachmentCrossRefs) { "${it.projectId}-${it.attachmentId}" },
+        )
+    }
+
+    private fun <T> buildDiff(local: List<T>, incoming: List<T>, idSelector: (T) -> String): DiffResult<T> {
+        val localMap = local.associateBy(idSelector)
+        val incomingMap = incoming.associateBy(idSelector)
+
+        val added = incomingMap.filterKeys { it !in localMap }.values.toList()
+        val deleted = localMap.filterKeys { it !in incomingMap }.values.toList()
+
+        val updated = incomingMap.mapNotNull { (id, incomingItem) ->
+            val localItem = localMap[id]
+            if (localItem != null && localItem != incomingItem) {
+                UpdatedItem(local = localItem, incoming = incomingItem)
+            } else {
+                null
+            }
+        }
+
+        return DiffResult(
+            added = added,
+            updated = updated,
+            deleted = deleted,
+        )
+    }
+
+    private suspend fun loadLocalDatabaseContent(): DatabaseContent {
+        val systemApps = systemAppDao.getAll()
+        val systemNoteIds = systemApps.mapNotNull { it.noteDocumentId }.toSet()
+
+        val projects = projectDao.getAll()
+        val systemProjectIds = projects.filter { it.systemKey != null }.map { it.id }.toSet()
+        val goals = goalDao.getAll()
+        val listItems = listItemDao.getAll().filterNot { it.projectId in systemProjectIds }
+        val legacyNotes = legacyNoteDao.getAll()
+        val documents = noteDocumentDao.getAllDocuments()
+            .filterNot { it.id in systemNoteIds }
+            .filterNot { it.projectId in systemProjectIds }
+        val documentItems = noteDocumentDao.getAllDocumentItems().filterNot { it.listId in systemNoteIds }
+        val checklists = checklistDao.getAllChecklists().filterNot { it.projectId in systemProjectIds }
+        val checklistItems = checklistDao.getAllChecklistItems()
+        val linkItemEntities = linkItemDao.getAllEntities()
+        val inboxRecords = inboxRecordDao.getAll().filterNot { it.projectId in systemProjectIds }
+        val projectExecutionLogs = projectManagementDao.getAllLogs().filterNot { it.projectId in systemProjectIds }
+        val scripts = scriptDao.getAll().first()
+        val activityRecords = activityRecordDao.getAllRecordsStream().first()
+        val projectAttachmentCrossRefs = attachmentDao.getAllProjectAttachmentCrossRefs().filterNot { it.projectId in systemProjectIds }
+        val attachmentIds = projectAttachmentCrossRefs.map { it.attachmentId }.toSet()
+        val attachments = attachmentDao.getAll().filter { attachmentIds.isEmpty() || it.id in attachmentIds }
+
+        return DatabaseContent(
+            projects = projects,
+            goals = goals,
+            listItems = listItems,
+            legacyNotes = legacyNotes,
+            activityRecords = activityRecords,
+            documents = documents,
+            documentItems = documentItems,
+            checklists = checklists,
+            checklistItems = checklistItems,
+            linkItemEntities = linkItemEntities,
+            inboxRecords = inboxRecords,
+            projectExecutionLogs = projectExecutionLogs,
+            scripts = scripts,
+            attachments = attachments,
+            projectAttachmentCrossRefs = projectAttachmentCrossRefs,
+            recentProjectEntries = emptyList(),
+        )
+    }
+
+    private fun normalizeGoal(goal: Goal): Goal {
+        return goal.copy(
+            tags = goal.tags ?: emptyList(),
+            relatedLinks = goal.relatedLinks ?: emptyList(),
+            valueImportance = goal.valueImportance,
+            valueImpact = goal.valueImpact,
+            effort = goal.effort,
+            cost = goal.cost,
+            risk = goal.risk,
+            weightEffort = goal.weightEffort,
+            weightCost = goal.weightCost,
+            weightRisk = goal.weightRisk,
+            rawScore = goal.rawScore,
+            displayScore = goal.displayScore,
+            scoringStatus = goal.scoringStatus ?: ScoringStatusValues.NOT_ASSESSED,
+        )
+    }
+
+    private fun normalizeProject(project: Project): Project {
+        return project.copy(
+            tags = project.tags ?: emptyList(),
+            relatedLinks = project.relatedLinks ?: emptyList(),
+            isExpanded = project.isExpanded,
+            order = project.order,
+            isAttachmentsExpanded = project.isAttachmentsExpanded,
+            // Align with full-import cleaning to avoid false "updated" after re-importing same file
+            defaultViewModeName = project.defaultViewModeName ?: ProjectViewMode.BACKLOG.name,
+            isCompleted = project.isCompleted,
+            isProjectManagementEnabled = project.isProjectManagementEnabled ?: false,
+            projectStatus = project.projectStatus ?: ProjectStatusValues.NO_PLAN,
+            projectStatusText = project.projectStatusText ?: "",
+            projectLogLevel = project.projectLogLevel ?: ProjectLogLevelValues.NORMAL,
+            totalTimeSpentMinutes = project.totalTimeSpentMinutes ?: 0,
+            valueImportance = project.valueImportance,
+            valueImpact = project.valueImpact,
+            effort = project.effort,
+            cost = project.cost,
+            risk = project.risk,
+            weightEffort = project.weightEffort,
+            weightCost = project.weightCost,
+            weightRisk = project.weightRisk,
+            rawScore = project.rawScore,
+            displayScore = project.displayScore,
+            scoringStatus = project.scoringStatus ?: ScoringStatusValues.NOT_ASSESSED,
+            showCheckboxes = project.showCheckboxes,
+            projectType = project.projectType ?: ProjectType.DEFAULT,
+            reservedGroup = project.reservedGroup,
+        )
     }
 }

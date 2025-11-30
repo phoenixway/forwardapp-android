@@ -23,6 +23,9 @@ interface ScriptDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(script: ScriptEntity)
 
+    @Query("DELETE FROM scripts")
+    suspend fun deleteAll()
+
     @Update
     suspend fun update(script: ScriptEntity)
 
