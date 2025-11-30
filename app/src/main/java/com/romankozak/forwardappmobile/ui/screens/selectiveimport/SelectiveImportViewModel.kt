@@ -179,17 +179,17 @@ class SelectiveImportViewModel @Inject constructor(
                 legacyNotes = selectedLegacyNotes,
                 activityRecords = selectedActivityRecords,
                 listItems = filteredListItems,
-                documents = selectedDocuments.map { it.item },
+                documents = selectedDocuments,
                 documentItems = filteredDocumentItems,
-                checklists = selectedChecklists.map { it.item },
+                checklists = selectedChecklists,
                 checklistItems = filteredChecklistItems,
-                linkItemEntities = selectedLinkItems.map { it.item },
-                inboxRecords = selectedInboxRecords.map { it.item },
-                projectExecutionLogs = selectedProjectExecutionLogs.map { it.item },
+                linkItemEntities = selectedLinkItems,
+                inboxRecords = selectedInboxRecords,
+                projectExecutionLogs = selectedProjectExecutionLogs,
                 recentProjectEntries = emptyList(), // Not directly selectable, derived from projects
-                attachments = selectedAttachments.map { it.item },
+                attachments = selectedAttachments,
                 projectAttachmentCrossRefs = filteredCrossRefs,
-                scripts = selectedScripts.map { it.item }
+                scripts = selectedScripts
             )
 
             _uiState.update { it.copy(isLoading = true) }
