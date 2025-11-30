@@ -437,6 +437,13 @@ constructor(
       is MainScreenEvent.ImportFromFileRequest ->
         dialogUseCase.onImportFromFileRequested(event.uri)
 
+      is MainScreenEvent.SelectiveImportFromFileRequest -> {
+        viewModelScope.launch {
+          val encodedUri = URLEncoder.encode(event.uri.toString(), "UTF-8")
+          _uiEventChannel.send(ProjectUiEvent.Navigate("selective_import_screen/$encodedUri"))
+        }
+      }
+
       is MainScreenEvent.HomeClick -> onHomeClicked()
       is MainScreenEvent.BackClick -> handleBackNavigation()
       is MainScreenEvent.ForwardClick -> enhancedNavigationManager?.goForward()
