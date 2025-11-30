@@ -91,7 +91,7 @@ class SyncRepository
 @Inject
 constructor(
     private val appDatabase: AppDatabase,
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val goalDao: GoalDao,
     private val projectDao: ProjectDao,
     private val listItemDao: ListItemDao,
@@ -380,11 +380,6 @@ constructor(
             Log.d(IMPORT_TAG, "Версія бекапу підтримується: $rawBackupVersion (normalized=$normalizedBackupVersion).")
 
             val backup = backupData.database
-            if (backup == null) {
-                val message = "Backup database content is null. The backup file may be corrupted."
-                Log.e(IMPORT_TAG, message)
-                return Result.failure(Exception(message))
-            }
             Log.d(
                 IMPORT_TAG,
                 "Дані з бекапу: \n" +
@@ -407,9 +402,13 @@ constructor(
             val backupSettingsMap = backupData.settings?.settings ?: emptyMap()
 
             Log.d(IMPORT_TAG, "Починаємо очищення даних для сумісності...")
+            val existingSystemProjectsByKey = projectDao.getAll()
+                .filter { it.systemKey != null }
+                .associateBy { it.systemKey!! }
+
             val cleanedProjects =
                 backup.projects.map { projectFromBackup ->
-                    projectFromBackup.copy(
+                    val normalizedIncoming = projectFromBackup.copy(
                         projectType = projectFromBackup.projectType ?: ProjectType.DEFAULT,
                         reservedGroup = com.romankozak.forwardappmobile.data.database.models.ReservedGroup.fromString(projectFromBackup.reservedGroup?.groupName),
                         defaultViewModeName = projectFromBackup.defaultViewModeName ?: ProjectViewMode.BACKLOG.name,
@@ -430,6 +429,22 @@ constructor(
                         rawScore = projectFromBackup.rawScore,
                         displayScore = projectFromBackup.displayScore,
                     )
+
+                    val systemKey = normalizedIncoming.systemKey
+                    val existingSystemProject = systemKey?.let { existingSystemProjectsByKey[it] }
+                    if (existingSystemProject != null) {
+                        val incomingUpdated = normalizedIncoming.updatedAt ?: 0
+                        val existingUpdated = existingSystemProject.updatedAt ?: 0
+                        if (incomingUpdated > existingUpdated) {
+                            Log.d(IMPORT_TAG, "System project ${systemKey} will be updated from backup (incoming newer: $incomingUpdated > $existingUpdated)")
+                            normalizedIncoming
+                        } else {
+                            Log.d(IMPORT_TAG, "System project ${systemKey} kept from local DB (local newer or same: $existingUpdated >= $incomingUpdated)")
+                            existingSystemProject
+                        }
+                    } else {
+                        normalizedIncoming
+                    }
                 }
             Log.d(IMPORT_TAG, "Очищення даних Project завершено.")
 
@@ -837,11 +852,7 @@ constructor(
         return try {
             val backupData = gson.fromJson(jsonString, FullAppBackup::class.java)
             Log.d(TAG, "parseFullAppBackup: Parsed FullAppBackup - database=${backupData.database}, backupVersion=${backupData.backupSchemaVersion}")
-            if (backupData.database != null) {
-                Log.d(TAG, "parseFullAppBackup: Database projects=${backupData.database.projects.size}, goals=${backupData.database.goals.size}")
-            } else {
-                Log.w(TAG, "parseFullAppBackup: Database is NULL!")
-            }
+            Log.d(TAG, "parseFullAppBackup: Database projects=${backupData.database.projects.size}, goals=${backupData.database.goals.size}")
             Result.success(backupData)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to parse FullAppBackup JSON.", e)

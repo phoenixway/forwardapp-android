@@ -59,16 +59,12 @@ fun MainScreenTopAppBar(
     onShowHistory: () -> Unit,
     onShowWifiServer: () -> Unit,
     onShowWifiImport: () -> Unit,
-    onExportToFile: () -> Unit,
-    onImportFromFile: () -> Unit,
-    onExportAttachments: () -> Unit,
-    onImportAttachments: () -> Unit,
+    onShowImportExportSheet: () -> Unit,
     onShowSettings: () -> Unit,
     onShowAbout: () -> Unit,
     onShowReminders: () -> Unit,
     onShowAttachmentsLibrary: () -> Unit,
     onShowScriptsLibrary: () -> Unit,
-    onSelectiveImportFromFile: () -> Unit,
 ) {
     var swipeState by remember { mutableStateOf(0f) }
     TopAppBar(
@@ -142,16 +138,12 @@ fun MainScreenTopAppBar(
                         }
                     }
                     var menuExpanded by remember { mutableStateOf(false) }
-                    var importExportMenuExpanded by remember { mutableStateOf(false) }
                     IconButton(onClick = { menuExpanded = true }) {
                         Icon(Icons.Default.MoreVert, stringResource(id = com.romankozak.forwardappmobile.R.string.more_options))
                     }
                     DropdownMenu(
                         expanded = menuExpanded,
-                        onDismissRequest = {
-                            menuExpanded = false
-                            importExportMenuExpanded = false
-                        },
+                        onDismissRequest = { menuExpanded = false },
                         modifier = Modifier.background(MaterialTheme.colorScheme.surface),
                     ) {
                         val showAttachmentsLibrary = FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary)
@@ -196,7 +188,10 @@ fun MainScreenTopAppBar(
                         }
                         DropdownMenuItem(
                             text = { Text(stringResource(id = com.romankozak.forwardappmobile.R.string.menu_import_export)) },
-                            onClick = { importExportMenuExpanded = true; menuExpanded = false },
+                            onClick = {
+                                menuExpanded = false
+                                onShowImportExportSheet()
+                            },
                         )
                         HorizontalDivider()
                         DropdownMenuItem(
@@ -211,47 +206,6 @@ fun MainScreenTopAppBar(
                             onClick = {
                                 onShowAbout()
                                 menuExpanded = false
-                            },
-                        )
-                    }
-                    DropdownMenu(
-                        expanded = importExportMenuExpanded,
-                        onDismissRequest = { importExportMenuExpanded = false },
-                        modifier = Modifier.background(MaterialTheme.colorScheme.surface),
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(id = com.romankozak.forwardappmobile.R.string.menu_export_to_file)) },
-                            onClick = {
-                                onExportToFile()
-                                importExportMenuExpanded = false
-                            },
-                        )
-                                                                            DropdownMenuItem(
-                                                                                text = { Text(stringResource(id = com.romankozak.forwardappmobile.R.string.menu_full_import_from_file)) },
-                                                                                onClick = {
-                                                                                    onImportFromFile()
-                                                                                    importExportMenuExpanded = false
-                                                                                },
-                                                                            )
-                                                                            DropdownMenuItem(
-                                                                                text = { Text(stringResource(id = com.romankozak.forwardappmobile.R.string.menu_selective_import_from_file)) },
-                                                                                onClick = {
-                                                                                    onSelectiveImportFromFile()
-                                                                                    importExportMenuExpanded = false
-                                                                                },
-                                                                            )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(id = com.romankozak.forwardappmobile.R.string.menu_export_attachments)) },
-                            onClick = {
-                                onExportAttachments()
-                                importExportMenuExpanded = false
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(id = com.romankozak.forwardappmobile.R.string.menu_import_attachments)) },
-                            onClick = {
-                                onImportAttachments()
-                                importExportMenuExpanded = false
                             },
                         )
                     }

@@ -22,11 +22,15 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -109,6 +113,7 @@ fun MainScreenScaffold(
     }
 
     val indicatorState = remember { com.romankozak.forwardappmobile.ui.shared.InProgressIndicatorState(isInitiallyExpanded = false) }
+    var showImportExportSheet by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = Modifier.imePadding(),
@@ -143,16 +148,12 @@ fun MainScreenScaffold(
                 onShowHistory = { onEvent(MainScreenEvent.HistoryClick) },
                 onShowWifiServer = { onEvent(MainScreenEvent.ShowWifiServerDialog) },
                 onShowWifiImport = { onEvent(MainScreenEvent.ShowWifiImportDialog) },
-                onExportToFile = { onEvent(MainScreenEvent.ExportToFile) },
-                onImportFromFile = { importLauncher.launch("application/json") },
-                onExportAttachments = { onEvent(MainScreenEvent.ExportAttachments) },
-                onImportAttachments = { importAttachmentsLauncher.launch("application/json") },
+                onShowImportExportSheet = { showImportExportSheet = true },
                 onShowSettings = { onEvent(MainScreenEvent.GoToSettings) },
                 onShowAbout = { onEvent(MainScreenEvent.ShowAboutDialog) },
                 onShowReminders = { onEvent(MainScreenEvent.GoToReminders) },
                 onShowAttachmentsLibrary = { onEvent(MainScreenEvent.OpenAttachmentsLibrary) },
                 onShowScriptsLibrary = { onEvent(MainScreenEvent.OpenScriptsLibrary) },
-                onSelectiveImportFromFile = { selectiveImportLauncher.launch("application/json") },
             )
         },
         bottomBar = {
@@ -351,6 +352,63 @@ fun MainScreenScaffold(
         onPinClick = { onEvent(MainScreenEvent.RecentItemPinClick(it)) }
     )
 
+    if (showImportExportSheet) {
+        ModalBottomSheet(onDismissRequest = { showImportExportSheet = false }) {
+            Column(modifier = Modifier.padding(bottom = 24.dp)) {
+                Text(
+                    text = "Імпорт / Експорт",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+                )
+                ImportExportItem(
+                    icon = Icons.Default.CloudUpload,
+                    title = "Експорт повного бекапу",
+                    subtitle = "Зберегти JSON у файлі",
+                    onClick = {
+                        showImportExportSheet = false
+                        onEvent(MainScreenEvent.ExportToFile)
+                    }
+                )
+                ImportExportItem(
+                    icon = Icons.Default.CloudDownload,
+                    title = "Повний імпорт з файлу",
+                    subtitle = "Замінити поточні дані бекапом",
+                    onClick = {
+                        showImportExportSheet = false
+                        importLauncher.launch("application/json")
+                    }
+                )
+                ImportExportItem(
+                    icon = Icons.Default.FolderOpen,
+                    title = "Вибірковий імпорт",
+                    subtitle = "Обрати сутності для імпорту",
+                    onClick = {
+                        showImportExportSheet = false
+                        selectiveImportLauncher.launch("application/json")
+                    }
+                )
+                ImportExportItem(
+                    icon = Icons.Default.Description,
+                    title = "Експорт вкладень",
+                    subtitle = "Зберегти JSON вкладень",
+                    onClick = {
+                        showImportExportSheet = false
+                        onEvent(MainScreenEvent.ExportAttachments)
+                    }
+                )
+                ImportExportItem(
+                    icon = Icons.Default.FolderOpen,
+                    title = "Імпорт вкладень",
+                    subtitle = "Додати вкладення з файлу",
+                    onClick = {
+                        showImportExportSheet = false
+                        importAttachmentsLauncher.launch("application/json")
+                    }
+                )
+            }
+        }
+    }
+
     HandleDialogs(
         uiState = uiState,
         onEvent = onEvent,
@@ -366,4 +424,23 @@ fun MainScreenScaffold(
     }
 
     HoldMenu2Overlay(controller = holdMenuController)
+}
+
+@Composable
+private fun ImportExportItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    DropdownMenuItem(
+        leadingIcon = { Icon(icon, contentDescription = null) },
+        text = {
+            Column {
+                Text(text = title, style = MaterialTheme.typography.bodyLarge)
+                Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        },
+        onClick = onClick
+    )
 }

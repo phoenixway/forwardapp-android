@@ -51,21 +51,22 @@ class SelectiveImportViewModel @Inject constructor(
 
             syncRepository.parseBackupFile(fileUri)
                 .onSuccess { fullAppBackup ->
-                    android.util.Log.d("IMPORT_SELECTIVE", "Backup parsed. Database is null: ${fullAppBackup.database == null}")
-                    android.util.Log.d("IMPORT_SELECTIVE", "Database projects: ${fullAppBackup.database?.projects?.size ?: "N/A"}")
-                    android.util.Log.d("IMPORT_SELECTIVE", "Database attachments: ${fullAppBackup.database?.attachments?.size ?: "N/A"}")
-                    android.util.Log.d("IMPORT_SELECTIVE", "Database projectAttachmentCrossRefs: ${fullAppBackup.database?.projectAttachmentCrossRefs?.size ?: "N/A"}")
-                    val databaseContent = fullAppBackup.database
-                    if (databaseContent == null) {
-                        _uiState.update { it.copy(isLoading = false, error = "Backup does not contain database section") }
-                    } else {
-                        val diff = syncRepository.createBackupDiff(databaseContent)
-                        _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                backupContent = diff.toSelectable()
-                            )
-                        }
+                    val version = (fullAppBackup.backupSchemaVersion.takeIf { it != 0 } ?: 1)
+                    if (version != 1) {
+                        val msg = "Unsupported backup version: $version. Expected 1."
+                        android.util.Log.e("IMPORT_SELECTIVE", msg)
+                        _uiState.update { it.copy(isLoading = false, error = msg) }
+                        return@onSuccess
+                    }
+                    android.util.Log.d("IMPORT_SELECTIVE", "Database projects: ${fullAppBackup.database.projects.size}")
+                    android.util.Log.d("IMPORT_SELECTIVE", "Database attachments: ${fullAppBackup.database.attachments.size}")
+                    android.util.Log.d("IMPORT_SELECTIVE", "Database projectAttachmentCrossRefs: ${fullAppBackup.database.projectAttachmentCrossRefs.size}")
+                    val diff = syncRepository.createBackupDiff(fullAppBackup.database)
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            backupContent = diff.toSelectable()
+                        )
                     }
                 }
                 .onFailure { error ->
@@ -93,10 +94,10 @@ class SelectiveImportViewModel @Inject constructor(
              val selectedDocuments = contentToImport.documents.filter { it.isSelected && it.isSelectable }.map { it.item }
              val selectedChecklists = contentToImport.checklists.filter { it.isSelected && it.isSelectable }.map { it.item }
              val selectedLinkItems = contentToImport.linkItems.filter { it.isSelected && it.isSelectable }.map { it.item }
-             val selectedInboxRecords = contentToImport.inboxRecords.filter { it.isSelected && it.isSelectable }.map { it.item }
-             val selectedProjectExecutionLogs = contentToImport.projectExecutionLogs.filter { it.isSelected && it.isSelectable }.map { it.item }
-             val selectedScripts = contentToImport.scripts.filter { it.isSelected && it.isSelectable }.map { it.item }
-             val selectedAttachments = contentToImport.attachments.filter { it.isSelected && it.isSelectable }.map { it.item }
+            val selectedInboxRecords = contentToImport.inboxRecords.filter { it.isSelected && it.isSelectable }.map { it.item }
+            val selectedProjectExecutionLogs = contentToImport.projectExecutionLogs.filter { it.isSelected && it.isSelectable }.map { it.item }
+            val selectedScripts = contentToImport.scripts.filter { it.isSelected && it.isSelectable }.map { it.item }
+            val selectedAttachments = contentToImport.attachments.filter { it.isSelected && it.isSelectable }.map { it.item }
              
              android.util.Log.d("IMPORT_DEBUG", "Total projects selected: ${selectedProjects.size}")
              android.util.Log.d("IMPORT_DEBUG", "Projects with parents: ${selectedProjects.filter { it.parentId != null }.size}")
@@ -150,7 +151,7 @@ class SelectiveImportViewModel @Inject constructor(
             val selectedChecklistIds = selectedChecklists.map { it.id }.toSet()
             val selectedLinkItemIds = selectedLinkItems.map { it.id }.toSet()
             val selectedInboxRecordIds = selectedInboxRecords.map { it.id }.toSet()
-            val selectedScriptIds = selectedScripts.map { it.id }.toSet()
+           val selectedScriptIds = selectedScripts.map { it.id }.toSet()
             val selectedAttachmentIds = selectedAttachments.map { it.id }.toSet()
 
             // Filter list items to only those linked to selected projects, goals, documents, checklists, legacy notes, scripts, inbox records
@@ -179,6 +180,11 @@ class SelectiveImportViewModel @Inject constructor(
                 crossRef.projectId in selectedProjectIds && crossRef.attachmentId in selectedAttachmentIds
             }
 
+            // Filter scripts to those that are unassigned or belong to selected projects (to avoid FK issues)
+            val filteredScripts = selectedScripts.filter { script ->
+                script.projectId == null || script.projectId in selectedProjectIds
+            }
+
             val databaseContent = DatabaseContent(
                 projects = projectsWithValidParents,
                 goals = selectedGoals,
@@ -195,7 +201,7 @@ class SelectiveImportViewModel @Inject constructor(
                 recentProjectEntries = emptyList(), // Not directly selectable, derived from projects
                 attachments = selectedAttachments,
                 projectAttachmentCrossRefs = filteredCrossRefs,
-                scripts = selectedScripts
+                scripts = filteredScripts
             )
 
             _uiState.update { it.copy(isLoading = true) }

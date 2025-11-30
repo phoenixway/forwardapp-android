@@ -1,27 +1,31 @@
-# Masterplan: Selective JSON Import Feature
+  # Masterplan — Synapse Zero-Friction Sync (Android)
 
-This plan outlines the implementation of a selective import feature for the ForwardApp Android application. The goal is to allow users to import data from a JSON backup file and choose which specific items to synchronize.
+  1) Версіювання даних
+  - Додати/узгодити поля updated_at, version, is_deleted, synced_at у всіх сутностях.
+  - Тригери/репозиторії на будь-яку зміну: оновлюють updated_at та інкрементують version; видалення = is_deleted=1.
 
-## Key Stages:
+  2) Sync engine (Android)
+  - SyncRepository: збір unsynced (updated_at > synced_at або synced_at=null), застосування server changes.
+  - LWW: порівнюємо version, за рівності – updated_at; systemKey сутності зливаємо за ключем.
+  - Soft-delete підтримка, synced_at оновлюється після успішного застосування.
 
--   [x] **Stage 1: Foundation & UI Scaffolding**
-    -   [x] Create `Masterplan.md` and `Progress.md` to track the feature development.
-    -   [x] Create the basic file structure for the new selective import screen (`SelectiveImportScreen.kt`, `SelectiveImportViewModel.kt`).
-    -   [x] Define the data classes required to hold the state of the selectable items in the ViewModel.
+  3) Canonical backup baseline
+  - FullAppBackup v1 (існує) + чіткі статуси/помилки імпорту/експорту.
+  - Selective import з повною підтримкою сутностей (включно scripts/attachments/recent entries).
 
--   [x] **Stage 2: Data Loading and Display**
-    -   [x] Implement logic in `SelectiveImportViewModel.kt` to read a file URI, parse the JSON into `FullAppBackup` using Gson.
-    -   [x] Build the Jetpack Compose UI in `SelectiveImportScreen.kt` to display the parsed data (e.g., lists of projects, goals) with checkboxes.
+  4) Backend stub (Ktor або Wi‑Fi)
+  - REST pull/push diff, auth токен, збереження lastSyncTimestamp на клієнті.
+  - Мінімальна серверна логіка LWW для дзеркала даних.
 
--   [x] **Stage 3: Navigation**
-    -   [x] Create a new navigation route for the selective import screen.
-    -   [x] Modify `MainScreenViewModel.kt` and the navigation host to navigate to the new screen, passing the selected file's URI.
+  5) UI Synapse
+  - Екран налаштувань: статус (Synced/Syncing/Error/Offline), остання синхра, кількість pending, кнопка Force Sync, лог
+  останньої сесії.
+  - Індикатор на головному екрані (статус/анімація під час синхри).
 
--   [x] **Stage 4: Core Import Logic**
-    -   [x] Create a new function in `SyncRepository.kt` (e.g., `importSelectedData`) that accepts a subset of `DatabaseContent`.
-    -   [x] Implement the `upsert` logic within this function using the existing DAOs.
+  6) Background sync
+  - WorkManager з wifi/charging constraints, debounce, retries, нотифікація про фейл.
 
--   [x] **Stage 5: Integration and Finalization**
-    -   [x] Connect the "Import" button on `SelectiveImportScreen.kt` to trigger the `importSelectedData` function via the ViewModel.
-    -   [x] Handle post-import navigation (e.g., navigate back to the main screen).
-    -   [x] Thoroughly test the entire flow.
+  7) Тести/матриця
+  - Автотести LWW (конфлікти, soft delete), інтеграційні sync round-trip (pull/push).
+  - Тести selective import + attachments.
+  - Ручний чекліст: systemKey сутності, attachments/scripts/recent entries, full/partial імпорт.

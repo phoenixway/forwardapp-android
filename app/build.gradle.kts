@@ -136,6 +136,10 @@ android {
         getByName("release") {
             isMinifyEnabled = true
 	    isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
 
 
             // RELEASE ONLY SIGNED IF CONFIG EXISTS

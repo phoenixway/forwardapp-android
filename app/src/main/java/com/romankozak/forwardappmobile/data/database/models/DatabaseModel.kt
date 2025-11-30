@@ -174,6 +174,9 @@ data class Goal(
     val completed: Boolean,
     val createdAt: Long,
     val updatedAt: Long?,
+    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
+    @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0,
     val tags: List<String>? = null,
     val relatedLinks: List<RelatedLink>? = null,
     @ColumnInfo(defaultValue = "0.0") val valueImportance: Float = 0f,
@@ -245,6 +248,9 @@ data class Project(
     @ColumnInfo(name = "system_key") val systemKey: String? = null,
     val createdAt: Long,
     val updatedAt: Long?,
+    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
+    @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0,
     val tags: List<String>? = null,
     val relatedLinks: List<RelatedLink>? = null,
     @ColumnInfo(name = "is_expanded", defaultValue = "1") val isExpanded: Boolean = true,
@@ -331,6 +337,9 @@ data class ListItem(
     val itemType: String,
     val entityId: String,
     @ColumnInfo(name = "item_order") val order: Long,
+    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
+    @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0,
 )
 
 @Fts4(contentEntity = Goal::class)
