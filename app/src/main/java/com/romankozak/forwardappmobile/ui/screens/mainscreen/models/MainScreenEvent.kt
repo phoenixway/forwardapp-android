@@ -96,10 +96,11 @@ sealed interface MainScreenEvent {
 
     data object DismissSearchDialog : MainScreenEvent
 
-    
+
     data object ShowWifiServerDialog : MainScreenEvent
 
     data object ShowWifiImportDialog : MainScreenEvent
+    data class WifiPush(val address: String) : MainScreenEvent
 
     data object ExportToFile : MainScreenEvent
     data object ExportAttachments : MainScreenEvent

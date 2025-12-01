@@ -489,6 +489,11 @@ constructor(
 
       is MainScreenEvent.ShowWifiServerDialog -> if (FeatureToggles.isEnabled(FeatureFlag.WifiSync)) syncUseCase.onShowWifiServerDialog()
       is MainScreenEvent.ShowWifiImportDialog -> if (FeatureToggles.isEnabled(FeatureFlag.WifiSync)) syncUseCase.onShowWifiImportDialog()
+      is MainScreenEvent.WifiPush -> {
+        if (FeatureToggles.isEnabled(FeatureFlag.WifiSync)) {
+          syncUseCase.performWifiPush(event.address)
+        }
+      }
       is MainScreenEvent.ExportToFile ->
         viewModelScope.launch {
           val result = projectActionsUseCase.exportToFile()

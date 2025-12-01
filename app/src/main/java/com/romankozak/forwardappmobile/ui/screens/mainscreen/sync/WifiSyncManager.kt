@@ -96,4 +96,15 @@ class WifiSyncManager(
         .onFailure { uiEventChannel.send(ProjectUiEvent.ShowToast("Error: ${it.message}")) }
     }
   }
+
+  fun performWifiPush(address: String) {
+    viewModelScope.launch {
+      val result = syncRepository.pushUnsyncedToWifi(address)
+      if (result.isSuccess) {
+        uiEventChannel.send(ProjectUiEvent.ShowToast("Synced changes over Wi‑Fi"))
+      } else {
+        uiEventChannel.send(ProjectUiEvent.ShowToast("Wi‑Fi sync failed: ${result.exceptionOrNull()?.message}"))
+      }
+    }
+  }
 }

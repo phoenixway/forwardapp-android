@@ -23,15 +23,25 @@ import com.romankozak.forwardappmobile.data.dao.RecentItemDao
 import com.romankozak.forwardappmobile.data.dao.ScriptDao
 import com.romankozak.forwardappmobile.data.dao.SystemAppDao
 import com.romankozak.forwardappmobile.data.database.AppDatabase
+import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
+import com.romankozak.forwardappmobile.data.database.models.ChecklistEntity
+import com.romankozak.forwardappmobile.data.database.models.ChecklistItemEntity
 import com.romankozak.forwardappmobile.data.database.models.Goal
+import com.romankozak.forwardappmobile.data.database.models.InboxRecord
+import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.data.database.models.ListItem
+import com.romankozak.forwardappmobile.data.database.models.LinkItemEntity
+import com.romankozak.forwardappmobile.data.database.models.NoteDocumentEntity
+import com.romankozak.forwardappmobile.data.database.models.NoteDocumentItemEntity
 import com.romankozak.forwardappmobile.data.database.models.Project;
 import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues;
 import com.romankozak.forwardappmobile.data.database.models.ProjectLogLevelValues;
 import com.romankozak.forwardappmobile.data.database.models.ProjectStatusValues;
 import com.romankozak.forwardappmobile.data.database.models.ProjectType;
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
+import com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
+import com.romankozak.forwardappmobile.data.database.models.ScriptEntity
 import com.romankozak.forwardappmobile.data.sync.DatabaseContent
 import com.romankozak.forwardappmobile.data.sync.FullAppBackup
 import com.romankozak.forwardappmobile.data.sync.AttachmentsBackup
@@ -44,12 +54,16 @@ import com.romankozak.forwardappmobile.data.sync.DiffResult
 import com.romankozak.forwardappmobile.data.sync.UpdatedItem
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
+import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentEntity
+import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRef
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
 import io.ktor.serialization.gson.gson
 import kotlinx.coroutines.flow.first
 import java.text.SimpleDateFormat
@@ -604,6 +618,46 @@ constructor(
             Result.failure(e)
         }
 
+    suspend fun pushUnsyncedToWifi(address: String): Result<Unit> =
+        try {
+            val unsynced = getUnsyncedChanges()
+            val fullUrl = address.trim().let { raw ->
+                val normalized = if (raw.startsWith("http")) raw else "http://$raw"
+                val uri = normalized.toUri()
+                "http://${uri.host}:${if (uri.port != -1) uri.port else 8080}/import"
+            }
+            val payload = gson.toJson(FullAppBackup(database = unsynced))
+            client.post(fullUrl) {
+                setBody(payload)
+            }
+            markSyncedNow(unsynced)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error pushing unsynced data to WiFi", e)
+            Result.failure(e)
+        }
+
+    private suspend fun markSyncedNow(content: DatabaseContent) {
+        val ts = System.currentTimeMillis()
+        appDatabase.withTransaction {
+            projectDao.insertProjects(content.projects.map { it.copy(syncedAt = ts) })
+            goalDao.insertGoals(content.goals.map { it.copy(syncedAt = ts) })
+            listItemDao.insertItems(content.listItems.map { it.copy(syncedAt = ts) })
+            legacyNoteDao.insertAll(content.legacyNotes.map { it.copy(syncedAt = ts) })
+            noteDocumentDao.insertAllDocuments(content.documents.map { it.copy(syncedAt = ts) })
+            noteDocumentDao.insertAllDocumentItems(content.documentItems.map { it.copy(syncedAt = ts) })
+            checklistDao.insertChecklists(content.checklists.map { it.copy(syncedAt = ts) })
+            checklistDao.insertItems(content.checklistItems.map { it.copy(syncedAt = ts) })
+            activityRecordDao.insertAll(content.activityRecords.map { it.copy(syncedAt = ts) })
+            linkItemDao.insertAll(content.linkItemEntities.map { it.copy(syncedAt = ts) })
+            inboxRecordDao.insertAll(content.inboxRecords.map { it.copy(syncedAt = ts) })
+            projectManagementDao.insertAllLogs(content.projectExecutionLogs.map { it.copy(syncedAt = ts) })
+            content.scripts.forEach { scriptDao.insert(it.copy(syncedAt = ts)) }
+            attachmentDao.insertAttachments(content.attachments.map { it.copy(syncedAt = ts) })
+            attachmentDao.insertProjectAttachmentLinks(content.projectAttachmentCrossRefs.map { it.copy(syncedAt = ts) })
+        }
+    }
+
     suspend fun createSyncReport(jsonString: String): SyncReport {
         val backup = gson.fromJson(jsonString, FullAppBackup::class.java)
         val db = backup.database ?: return SyncReport(emptyList())
@@ -923,6 +977,238 @@ constructor(
         } catch (e: Exception) {
             Log.w(TAG, "Failed to parse ISO timestamp: $value, using null", e)
             null
+        }
+    }
+
+    private fun Project.updatedTs(): Long = this.updatedAt ?: this.createdAt
+    private fun Goal.updatedTs(): Long = this.updatedAt ?: this.createdAt
+    private fun NoteDocumentEntity.updatedTs(): Long = this.updatedAt
+    private fun NoteDocumentItemEntity.updatedTs(): Long = this.updatedAt
+    private fun LegacyNoteEntity.updatedTs(): Long = this.updatedAt
+    private fun ChecklistEntity.updatedTs(): Long = this.version
+    private fun ChecklistItemEntity.updatedTs(): Long = this.version
+    private fun ActivityRecord.updatedTs(): Long = this.version
+    private fun InboxRecord.updatedTs(): Long = this.version
+    private fun LinkItemEntity.updatedTs(): Long = this.version
+    private fun ProjectExecutionLog.updatedTs(): Long = this.version
+    private fun ScriptEntity.updatedTs(): Long = this.updatedAt
+    private fun AttachmentEntity.updatedTs(): Long = this.updatedAt
+    private fun ProjectAttachmentCrossRef.updatedTs(): Long = this.attachmentOrder.toLong()
+
+    private fun <T> isUnsynced(
+        item: T,
+        syncedAtSelector: (T) -> Long?,
+        updatedSelector: (T) -> Long,
+        isDeletedSelector: (T) -> Boolean,
+    ): Boolean {
+        val syncedAt = syncedAtSelector(item) ?: 0L
+        val updated = updatedSelector(item)
+        return isDeletedSelector(item) || syncedAt == 0L || updated > syncedAt
+    }
+
+    suspend fun getUnsyncedChanges(): DatabaseContent {
+        val local = loadLocalDatabaseContent()
+        return DatabaseContent(
+            projects = local.projects.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
+            goals = local.goals.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
+            listItems = local.listItems.filter { isUnsynced(it, { it.syncedAt }, { it.version }, { it.isDeleted }) },
+            legacyNotes = local.legacyNotes.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
+            documents = local.documents.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
+            documentItems = local.documentItems.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
+            checklists = local.checklists.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
+            checklistItems = local.checklistItems.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
+            activityRecords = local.activityRecords.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
+            linkItemEntities = local.linkItemEntities.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
+            inboxRecords = local.inboxRecords.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
+            projectExecutionLogs = local.projectExecutionLogs.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
+            scripts = local.scripts.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
+            attachments = local.attachments.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
+            projectAttachmentCrossRefs = local.projectAttachmentCrossRefs.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
+            recentProjectEntries = emptyList(),
+        )
+    }
+
+    suspend fun applyServerChanges(changes: DatabaseContent): Result<Unit> {
+        val ts = System.currentTimeMillis()
+        return try {
+            appDatabase.withTransaction {
+                val local = loadLocalDatabaseContent()
+
+                fun <T> mergeAndMark(
+                    incoming: List<T>,
+                    localMap: Map<String, T>,
+                    idSelector: (T) -> String,
+                    versionSelector: (T) -> Long,
+                    updatedSelector: (T) -> Long?,
+                    syncedSetter: (T, Long) -> T
+                ): List<T> {
+                    return incoming.filter { inc ->
+                        val localItem = localMap[idSelector(inc)]
+                        if (localItem == null) return@filter true
+                        val incVer = versionSelector(inc)
+                        val locVer = versionSelector(localItem)
+                        if (incVer > locVer) return@filter true
+                        if (incVer < locVer) return@filter false
+                        val incUpdated = updatedSelector(inc) ?: 0L
+                        val locUpdated = updatedSelector(localItem) ?: 0L
+                        incUpdated > locUpdated
+                    }.map { syncedSetter(it, ts) }
+                }
+
+                val incomingProjects = mergeAndMark(
+                    changes.projects,
+                    local.projects.associateBy { it.id },
+                    { it.id },
+                    { it.version },
+                    { it.updatedAt },
+                    { p, synced -> p.copy(syncedAt = synced) }
+                ).filterNot { it.systemKey != null && it.isDeleted }
+                if (incomingProjects.isNotEmpty()) projectDao.insertProjects(incomingProjects)
+
+                val incomingGoals = mergeAndMark(
+                    changes.goals,
+                    local.goals.associateBy { it.id },
+                    { it.id },
+                    { it.version },
+                    { it.updatedAt },
+                    { g, synced -> g.copy(syncedAt = synced) }
+                )
+                if (incomingGoals.isNotEmpty()) goalDao.insertGoals(incomingGoals)
+
+                val incomingListItems = mergeAndMark(
+                    changes.listItems,
+                    local.listItems.associateBy { it.id },
+                    { it.id },
+                    { it.version },
+                    { null },
+                    { li, synced -> li.copy(syncedAt = synced) }
+                )
+                if (incomingListItems.isNotEmpty()) listItemDao.insertItems(incomingListItems)
+
+                val incomingNotes = mergeAndMark(
+                    changes.legacyNotes,
+                    local.legacyNotes.associateBy { it.id },
+                    { it.id },
+                    { it.version },
+                    { it.updatedAt },
+                    { n, synced -> n.copy(syncedAt = synced) }
+                )
+                if (incomingNotes.isNotEmpty()) legacyNoteDao.insertAll(incomingNotes)
+
+                val incomingDocs = mergeAndMark(
+                    changes.documents,
+                    local.documents.associateBy { it.id },
+                    { it.id },
+                    { it.version },
+                    { it.updatedTs() },
+                    { d, synced -> d.copy(syncedAt = synced) }
+                )
+                if (incomingDocs.isNotEmpty()) noteDocumentDao.insertAllDocuments(incomingDocs)
+
+                val incomingDocItems = mergeAndMark(
+                    changes.documentItems,
+                    local.documentItems.associateBy { it.id },
+                    { it.id },
+                    { it.version },
+                    { it.updatedTs() },
+                    { di, synced -> di.copy(syncedAt = synced) }
+                )
+                if (incomingDocItems.isNotEmpty()) noteDocumentDao.insertAllDocumentItems(incomingDocItems)
+
+                val incomingChecklists = mergeAndMark(
+                    changes.checklists,
+                    local.checklists.associateBy { it.id },
+                    { it.id },
+                    { it.version },
+                    { null },
+                    { cl, synced -> cl.copy(syncedAt = synced) }
+                )
+                if (incomingChecklists.isNotEmpty()) checklistDao.insertChecklists(incomingChecklists)
+
+                val incomingChecklistItems = mergeAndMark(
+                    changes.checklistItems,
+                    local.checklistItems.associateBy { it.id },
+                    { it.id },
+                    { it.version },
+                    { null },
+                    { cli, synced -> cli.copy(syncedAt = synced) }
+                )
+                if (incomingChecklistItems.isNotEmpty()) checklistDao.insertItems(incomingChecklistItems)
+
+                val incomingActivities = mergeAndMark(
+                    changes.activityRecords,
+                    local.activityRecords.associateBy { it.id },
+                    { it.id },
+                    { it.version },
+                    { it.updatedTs() },
+                    { ar, synced -> ar.copy(syncedAt = synced) }
+                )
+                if (incomingActivities.isNotEmpty()) activityRecordDao.insertAll(incomingActivities)
+
+                val incomingLinks = mergeAndMark(
+                    changes.linkItemEntities,
+                    local.linkItemEntities.associateBy { it.id },
+                    { it.id },
+                    { it.version },
+                    { it.updatedTs() },
+                    { li, synced -> li.copy(syncedAt = synced) }
+                )
+                if (incomingLinks.isNotEmpty()) linkItemDao.insertAll(incomingLinks)
+
+                val incomingInbox = mergeAndMark(
+                    changes.inboxRecords,
+                    local.inboxRecords.associateBy { it.id },
+                    { it.id },
+                    { it.version },
+                    { it.updatedTs() },
+                    { ir, synced -> ir.copy(syncedAt = synced) }
+                )
+                if (incomingInbox.isNotEmpty()) inboxRecordDao.insertAll(incomingInbox)
+
+                val incomingLogs = mergeAndMark(
+                    changes.projectExecutionLogs,
+                    local.projectExecutionLogs.associateBy { it.id },
+                    { it.id },
+                    { it.version },
+                    { it.updatedTs() },
+                    { log, synced -> log.copy(syncedAt = synced) }
+                )
+                if (incomingLogs.isNotEmpty()) projectManagementDao.insertAllLogs(incomingLogs)
+
+                val incomingScripts = mergeAndMark(
+                    changes.scripts,
+                    local.scripts.associateBy { it.id },
+                    { it.id },
+                    { it.version },
+                    { it.updatedAt },
+                    { sc, synced -> sc.copy(syncedAt = synced) }
+                )
+                incomingScripts.forEach { scriptDao.insert(it) }
+
+                val incomingAttachments = mergeAndMark(
+                    changes.attachments,
+                    local.attachments.associateBy { it.id },
+                    { it.id },
+                    { it.version },
+                    { it.updatedAt },
+                    { at, synced -> at.copy(syncedAt = synced) }
+                )
+                if (incomingAttachments.isNotEmpty()) attachmentDao.insertAttachments(incomingAttachments)
+
+                val incomingCrossRefs = mergeAndMark(
+                    changes.projectAttachmentCrossRefs,
+                    local.projectAttachmentCrossRefs.associateBy { "${it.projectId}-${it.attachmentId}" },
+                    { "${it.projectId}-${it.attachmentId}" },
+                    { it.version },
+                    { it.updatedTs() },
+                    { cr, synced -> cr.copy(syncedAt = synced) }
+                )
+                if (incomingCrossRefs.isNotEmpty()) attachmentDao.insertProjectAttachmentLinks(incomingCrossRefs)
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to apply server changes", e)
+            Result.failure(e)
         }
     }
 

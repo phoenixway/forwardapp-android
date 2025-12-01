@@ -184,6 +184,13 @@ fun MainScreenTopAppBar(
                                     menuExpanded = false
                                 },
                             )
+                            DropdownMenuItem(
+                                text = { Text("Відправити зміни по Wi‑Fi") },
+                                onClick = {
+                                    onShowImportExportSheet()
+                                    menuExpanded = false
+                                },
+                            )
                             HorizontalDivider()
                         }
                         DropdownMenuItem(

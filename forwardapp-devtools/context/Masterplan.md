@@ -1,18 +1,22 @@
   # Masterplan — Synapse Zero-Friction Sync (Android)
 
-  1) Версіювання даних
-  - Додати/узгодити поля updated_at, version, is_deleted, synced_at у всіх сутностях.
-  - Тригери/репозиторії на будь-яку зміну: оновлюють updated_at та інкрементують version; видалення = is_deleted=1.
-
-  2) Sync engine (Android)
-  - SyncRepository: збір unsynced (updated_at > synced_at або synced_at=null), застосування server changes.
-  - LWW: порівнюємо version, за рівності – updated_at; systemKey сутності зливаємо за ключем.
-  - Soft-delete підтримка, synced_at оновлюється після успішного застосування.
-
-  3) Canonical backup baseline
-  - FullAppBackup v1 (існує) + чіткі статуси/помилки імпорту/експорту.
-  - Selective import з повною підтримкою сутностей (включно scripts/attachments/recent entries).
-
+   - LWW ядро:
+      - getUnsyncedChanges: збирає записи з syncedAt=null|старше або isDeleted=true.
+      - applyServerChanges: merge за version → updatedAt (де є), виставляє syncedAt.
+      - Soft delete: isDeleted=true, не видаляємо фізично.
+  - Wi‑Fi push/pull:
+      - Push: pushUnsyncedToWifi (є) викликається з UI, адресу з settings/вводу; після успіху ставимо syncedAt.
+      - Pull: fetchBackupFromWifi → applyServerChanges (LWW) замість навігації на sync screen, опційно лог/статус для
+        користувача.
+  - UI Synapse:
+      - Статус/force sync (settings + індикатор), лог останньої сесії; кнопка Wi‑Fi push/pull.
+  - Background sync: WorkManager із Wi‑Fi/charging constraints, debounce, retries.
+  - Тести:
+      - Unit: getUnsyncedChanges/applyServerChanges (конфлікти version/updatedAt, isDeleted, syncedAt).
+      - Integration: export/import round-trip v2, selective import з sync metadata.
+      - Smoke Wi‑Fi push/pull (можливо інструментальні або локальні fake server).
+  - Документи: оновити README/backup_schema (вже v2), додати опис LWW/Sync flow.
+  
   4) Backend stub (Ktor або Wi‑Fi)
   - REST pull/push diff, auth токен, збереження lastSyncTimestamp на клієнті.
   - Мінімальна серверна логіка LWW для дзеркала даних.

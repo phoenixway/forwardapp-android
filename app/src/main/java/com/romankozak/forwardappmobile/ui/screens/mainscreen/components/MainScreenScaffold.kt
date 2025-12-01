@@ -9,12 +9,16 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -24,6 +28,7 @@ import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -360,51 +365,80 @@ fun MainScreenScaffold(
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
                 )
-                ImportExportItem(
-                    icon = Icons.Default.CloudUpload,
-                    title = "Експорт повного бекапу",
-                    subtitle = "Зберегти JSON у файлі",
-                    onClick = {
-                        showImportExportSheet = false
-                        onEvent(MainScreenEvent.ExportToFile)
+                Spacer(modifier = Modifier.height(8.dp))
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(160.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                ) {
+                    item {
+                        ImportExportTile(
+                            icon = Icons.Default.CloudUpload,
+                            title = "Експорт бекапу",
+                            subtitle = "Зберегти JSON у файлі",
+                            onClick = {
+                                showImportExportSheet = false
+                                onEvent(MainScreenEvent.ExportToFile)
+                            }
+                        )
                     }
-                )
-                ImportExportItem(
-                    icon = Icons.Default.CloudDownload,
-                    title = "Повний імпорт з файлу",
-                    subtitle = "Замінити поточні дані бекапом",
-                    onClick = {
-                        showImportExportSheet = false
-                        importLauncher.launch("application/json")
+                    item {
+                        ImportExportTile(
+                            icon = Icons.Default.CloudDownload,
+                            title = "Повний імпорт",
+                            subtitle = "Замінити поточні дані",
+                            onClick = {
+                                showImportExportSheet = false
+                                importLauncher.launch("application/json")
+                            }
+                        )
                     }
-                )
-                ImportExportItem(
-                    icon = Icons.Default.FolderOpen,
-                    title = "Вибірковий імпорт",
-                    subtitle = "Обрати сутності для імпорту",
-                    onClick = {
-                        showImportExportSheet = false
-                        selectiveImportLauncher.launch("application/json")
+                    item {
+                        ImportExportTile(
+                            icon = Icons.Default.FolderOpen,
+                            title = "Вибірковий імпорт",
+                            subtitle = "Обрати сутності",
+                            onClick = {
+                                showImportExportSheet = false
+                                selectiveImportLauncher.launch("application/json")
+                            }
+                        )
                     }
-                )
-                ImportExportItem(
-                    icon = Icons.Default.Description,
-                    title = "Експорт вкладень",
-                    subtitle = "Зберегти JSON вкладень",
-                    onClick = {
-                        showImportExportSheet = false
-                        onEvent(MainScreenEvent.ExportAttachments)
+                    item {
+                        ImportExportTile(
+                            icon = Icons.Default.Description,
+                            title = "Експорт вкладень",
+                            subtitle = "JSON вкладень",
+                            onClick = {
+                                showImportExportSheet = false
+                                onEvent(MainScreenEvent.ExportAttachments)
+                            }
+                        )
                     }
-                )
-                ImportExportItem(
-                    icon = Icons.Default.FolderOpen,
-                    title = "Імпорт вкладень",
-                    subtitle = "Додати вкладення з файлу",
-                    onClick = {
-                        showImportExportSheet = false
-                        importAttachmentsLauncher.launch("application/json")
+                    item {
+                        ImportExportTile(
+                            icon = Icons.Default.FolderOpen,
+                            title = "Імпорт вкладень",
+                            subtitle = "Додати вкладення",
+                            onClick = {
+                                showImportExportSheet = false
+                                importAttachmentsLauncher.launch("application/json")
+                            }
+                        )
                     }
-                )
+                    item {
+                        ImportExportTile(
+                            icon = Icons.Default.CloudUpload,
+                            title = "Push змін по Wi‑Fi",
+                            subtitle = "Надіслати несинхронізоване",
+                            onClick = {
+                                showImportExportSheet = false
+                                onEvent(MainScreenEvent.WifiPush("localhost:8080"))
+                            }
+                        )
+                    }
+                }
             }
         }
     }
@@ -443,4 +477,30 @@ private fun ImportExportItem(
         },
         onClick = onClick
     )
+}
+
+@Composable
+private fun ImportExportTile(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        onClick = onClick
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = title, style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
 }

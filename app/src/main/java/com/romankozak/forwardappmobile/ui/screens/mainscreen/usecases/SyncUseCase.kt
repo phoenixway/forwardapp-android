@@ -85,4 +85,6 @@ class SyncUseCase @Inject constructor(
     fun onDesktopAddressChange(address: String) = manager().onDesktopAddressChange(address)
 
     fun performWifiImport(address: String) = manager().performWifiImport(address)
+
+    fun performWifiPush(address: String) = manager().performWifiPush(address)
 }
