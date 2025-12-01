@@ -65,6 +65,8 @@ import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.serialization.gson.gson
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
 import kotlinx.coroutines.flow.first
 import java.text.SimpleDateFormat
 import java.time.OffsetDateTime
@@ -628,6 +630,7 @@ constructor(
             }
             val payload = gson.toJson(FullAppBackup(database = unsynced))
             client.post(fullUrl) {
+                contentType(ContentType.Application.Json)
                 setBody(payload)
             }
             markSyncedNow(unsynced)

@@ -6,13 +6,17 @@ import android.net.NetworkCapabilities
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.util.Log
+import com.google.gson.Gson
 import com.romankozak.forwardappmobile.data.repository.SyncRepository
+import com.romankozak.forwardappmobile.data.sync.FullAppBackup
 import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.gson.*
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
 import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import java.net.Inet4Address
@@ -56,6 +60,23 @@ class WifiSyncServer(
                             } catch (e: Exception) {
                                 Log.e("WifiSyncServer", "Помилка при створенні бекапу", e)
                                 call.respondText("Помилка сервера: ${e.message}")
+                            }
+                        }
+                        post("/import") {
+                            Log.d("WifiSyncServer", "Запит на /import отримано.")
+                            try {
+                                val backup = runCatching { call.receive<FullAppBackup>() }
+                                    .getOrElse {
+                                        val body = call.receiveText()
+                                        Gson().fromJson(body, FullAppBackup::class.java)
+                                    }
+                                val db = backup.database ?: return@post call.respond(HttpStatusCode.BadRequest, "Database section is missing")
+
+                                syncRepository.applyServerChanges(db)
+                                call.respond(HttpStatusCode.OK, "Import applied")
+                            } catch (e: Exception) {
+                                Log.e("WifiSyncServer", "Помилка при імпорті", e)
+                                call.respond(HttpStatusCode.InternalServerError, "Помилка сервера: ${e.message}")
                             }
                         }
                     }
