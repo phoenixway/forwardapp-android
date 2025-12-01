@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.ui.screens.mainscreen.models
 import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.sync.WifiSyncStatus
 
 
 data class MainScreenUiState(
@@ -41,6 +42,7 @@ data class MainScreenUiState(
     val wifiServerAddress: String? = null,
     val showWifiImportDialog: Boolean = false,
     val desktopAddress: String = "",
+    val syncStatus: WifiSyncStatus = WifiSyncStatus.Disabled,
     val showSearchDialog: Boolean = false,
     val searchResults: List<SearchResult> = emptyList(),
     val recordForReminderDialog: com.romankozak.forwardappmobile.data.database.models.ActivityRecord? = null,

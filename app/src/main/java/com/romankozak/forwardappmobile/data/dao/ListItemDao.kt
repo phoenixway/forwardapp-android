@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ListItemDao {
-  @Query("SELECT * FROM list_items WHERE project_id = :projectId ORDER BY item_order ASC, id ASC")
+  @Query("SELECT * FROM list_items WHERE project_id = :projectId AND is_deleted = 0 ORDER BY item_order ASC, id ASC")
   fun getItemsForProjectStream(projectId: String): Flow<List<ListItem>>
 
   @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertItem(item: ListItem)
@@ -38,7 +38,7 @@ interface ListItemDao {
   @Query("UPDATE list_items SET project_id = :targetProjectId WHERE id IN (:itemIds)")
   suspend fun updateListItemProjectIds(itemIds: List<String>, targetProjectId: String)
 
-  @Query("SELECT * FROM list_items WHERE project_id = :projectId ORDER BY item_order ASC, id ASC")
+  @Query("SELECT * FROM list_items WHERE project_id = :projectId AND is_deleted = 0 ORDER BY item_order ASC, id ASC")
   suspend fun getItemsForProjectSyncForDebug(projectId: String): List<ListItem>
 
   @Query("DELETE FROM list_items") suspend fun deleteAll()
@@ -51,6 +51,9 @@ interface ListItemDao {
 
   @Query("SELECT * FROM list_items WHERE entityId = :entityId LIMIT 1")
   suspend fun getListItemByEntityId(entityId: String): ListItem?
+
+  @Query("SELECT * FROM list_items WHERE id IN (:ids)")
+  suspend fun getItemsByIds(ids: List<String>): List<ListItem>
 
   /**
    * Знаходить ID проєкту, до якого належить певна сутність (наприклад, ціль).

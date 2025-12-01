@@ -47,7 +47,9 @@ fun AnimatedTextField(
     onValueChange: (String) -> Unit,
     label: String,
     helper: String,
-    singleLine: Boolean = false
+    singleLine: Boolean = false,
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier,
 ) {
     OutlinedTextField(
         value = value,
@@ -55,6 +57,7 @@ fun AnimatedTextField(
         label = { Text(label) },
         supportingText = { Text(helper) },
         singleLine = singleLine,
-        modifier = Modifier.fillMaxWidth()
+        enabled = enabled,
+        modifier = modifier.fillMaxWidth()
     )
 }

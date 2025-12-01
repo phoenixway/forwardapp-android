@@ -89,7 +89,7 @@ interface DayTaskDao {
     @Query("SELECT MAX(`order`) FROM day_tasks WHERE dayPlanId = :dayPlanId")
     suspend fun getMaxOrderForDayPlan(dayPlanId: String): Long?
 
-    @Query("UPDATE day_tasks SET `order` = :newOrder, updatedAt = :updatedAt WHERE id = :taskId")
+    @Query("UPDATE day_tasks SET `order` = :newOrder, updatedAt = :updatedAt, version = version + 1, syncedAt = NULL WHERE id = :taskId")
     suspend fun updateTaskOrder(
         taskId: String,
         newOrder: Long,
@@ -102,14 +102,14 @@ interface DayTaskDao {
     @Query("SELECT * FROM day_tasks WHERE dayPlanId = :dayPlanId ORDER BY completed ASC, `order` ASC, title ASC")
     fun getTasksForDay(dayPlanId: String): Flow<List<DayTask>>
 
-    @Query("UPDATE day_tasks SET activityRecordId = :activityRecordId, updatedAt = :updatedAt WHERE id = :taskId")
+    @Query("UPDATE day_tasks SET activityRecordId = :activityRecordId, updatedAt = :updatedAt, version = version + 1, syncedAt = NULL WHERE id = :taskId")
     suspend fun linkTaskWithActivity(
         taskId: String,
         activityRecordId: String,
         updatedAt: Long,
     )
 
-    @Query("UPDATE day_tasks SET actualDurationMinutes = :durationMinutes, updatedAt = :updatedAt WHERE id = :taskId")
+    @Query("UPDATE day_tasks SET actualDurationMinutes = :durationMinutes, updatedAt = :updatedAt, version = version + 1, syncedAt = NULL WHERE id = :taskId")
     suspend fun updateTaskDuration(
         taskId: String,
         durationMinutes: Long,
@@ -122,7 +122,9 @@ interface DayTaskDao {
         completed = :completed, 
         status = :status, 
         completedAt = :completedAt, 
-        updatedAt = :updatedAt 
+        updatedAt = :updatedAt,
+        version = version + 1,
+        syncedAt = NULL
         WHERE id = :taskId
     """,
     )

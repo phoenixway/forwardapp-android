@@ -5,6 +5,8 @@ import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.data.database.models.ListItem
 import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.data.sync.bumpSync
+import com.romankozak.forwardappmobile.data.sync.softDelete
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -48,12 +50,28 @@ class ListItemRepository @Inject constructor(
     ) {
         if (itemIds.isNotEmpty()) {
             listItemDao.updateListItemProjectIds(itemIds, targetProjectId)
+            // bump updatedAt/version for moved items
+            val now = System.currentTimeMillis()
+            val items = listItemDao.getItemsByIds(itemIds)
+            if (items.isNotEmpty()) {
+                listItemDao.insertItems(
+                    items.map { it.copy(projectId = targetProjectId).bumpSync(now) },
+                )
+            }
         }
     }
 
     suspend fun deleteListItems(itemIds: List<String>) {
         if (itemIds.isNotEmpty()) {
-            listItemDao.deleteItemsByIds(itemIds)
+            val now = System.currentTimeMillis()
+            val items = listItemDao.getItemsByIds(itemIds)
+            if (items.isNotEmpty()) {
+                listItemDao.insertItems(
+                    items.map { it.softDelete(now) },
+                )
+            } else {
+                listItemDao.deleteItemsByIds(itemIds)
+            }
         }
     }
 
@@ -65,7 +83,10 @@ class ListItemRepository @Inject constructor(
 
     suspend fun updateListItemsOrder(items: List<ListItem>) {
         if (items.isNotEmpty()) {
-            listItemDao.updateItems(items)
+            val now = System.currentTimeMillis()
+            listItemDao.updateItems(
+                items.map { it.bumpSync(now) },
+            )
         }
     }
 

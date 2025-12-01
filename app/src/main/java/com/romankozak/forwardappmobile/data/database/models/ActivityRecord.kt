@@ -20,6 +20,7 @@ data class ActivityRecord(
     val targetId: String? = null,
     @ColumnInfo(name = "target_type")
     val targetType: String? = null,
+    val updatedAt: Long? = null,
     @ColumnInfo(name = "goal_id", index = true)
     val goalId: String? = null,
     @SerializedName(value = "projectId", alternate = ["listId"])

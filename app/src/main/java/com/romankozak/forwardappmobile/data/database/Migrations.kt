@@ -739,3 +739,64 @@ val MIGRATION_69_70 = object : Migration(69, 70) {
         db.execSQL("ALTER TABLE `scripts` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
     }
 }
+
+val MIGRATION_70_71 = object : Migration(70, 71) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `list_items` ADD COLUMN `updatedAt` INTEGER")
+        db.execSQL("UPDATE `list_items` SET `updatedAt` = (strftime('%s','now') * 1000)")
+
+        db.execSQL("ALTER TABLE `checklists` ADD COLUMN `updatedAt` INTEGER")
+        db.execSQL("UPDATE `checklists` SET `updatedAt` = (strftime('%s','now') * 1000)")
+
+        db.execSQL("ALTER TABLE `checklist_items` ADD COLUMN `updatedAt` INTEGER")
+        db.execSQL("UPDATE `checklist_items` SET `updatedAt` = (strftime('%s','now') * 1000)")
+
+        db.execSQL("ALTER TABLE `inbox_records` ADD COLUMN `updatedAt` INTEGER")
+        db.execSQL("UPDATE `inbox_records` SET `updatedAt` = `createdAt`")
+
+        db.execSQL("ALTER TABLE `activity_records` ADD COLUMN `updatedAt` INTEGER")
+        db.execSQL("UPDATE `activity_records` SET `updatedAt` = COALESCE(`endTime`, `startTime`, `createdAt`)")
+
+        db.execSQL("ALTER TABLE `link_items` ADD COLUMN `updatedAt` INTEGER")
+        db.execSQL("UPDATE `link_items` SET `updatedAt` = `createdAt`")
+
+        db.execSQL("ALTER TABLE `project_execution_logs` ADD COLUMN `updatedAt` INTEGER")
+        db.execSQL("UPDATE `project_execution_logs` SET `updatedAt` = `timestamp`")
+
+        db.execSQL("ALTER TABLE `project_attachment_cross_ref` ADD COLUMN `updatedAt` INTEGER")
+        db.execSQL("UPDATE `project_attachment_cross_ref` SET `updatedAt` = ABS(`attachment_order`)")
+    }
+}
+
+val MIGRATION_71_72 = object : Migration(71, 72) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        val now = System.currentTimeMillis()
+        // Day plans
+        db.execSQL("ALTER TABLE `day_plans` ADD COLUMN `syncedAt` INTEGER")
+        db.execSQL("ALTER TABLE `day_plans` ADD COLUMN `isDeleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `day_plans` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("UPDATE `day_plans` SET `version` = 1, `updatedAt` = COALESCE(`updatedAt`, `createdAt`, $now)")
+
+        // Day tasks
+        db.execSQL("ALTER TABLE `day_tasks` ADD COLUMN `syncedAt` INTEGER")
+        db.execSQL("ALTER TABLE `day_tasks` ADD COLUMN `isDeleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `day_tasks` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("UPDATE `day_tasks` SET `version` = 1 WHERE `version` = 0")
+        db.execSQL("UPDATE `day_tasks` SET `updatedAt` = COALESCE(`updatedAt`, `createdAt`, $now)")
+
+        // Daily metrics
+        db.execSQL("ALTER TABLE `daily_metrics` ADD COLUMN `syncedAt` INTEGER")
+        db.execSQL("ALTER TABLE `daily_metrics` ADD COLUMN `isDeleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `daily_metrics` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("UPDATE `daily_metrics` SET `version` = 1 WHERE `version` = 0")
+        db.execSQL("UPDATE `daily_metrics` SET `updatedAt` = COALESCE(`updatedAt`, `createdAt`, $now)")
+
+        // Reminders
+        db.execSQL("ALTER TABLE `reminders` ADD COLUMN `updatedAt` INTEGER")
+        db.execSQL("ALTER TABLE `reminders` ADD COLUMN `syncedAt` INTEGER")
+        db.execSQL("ALTER TABLE `reminders` ADD COLUMN `isDeleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `reminders` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("UPDATE `reminders` SET `updatedAt` = COALESCE(`updatedAt`, `creationTime`, $now)")
+        db.execSQL("UPDATE `reminders` SET `version` = 1 WHERE `version` = 0")
+    }
+}

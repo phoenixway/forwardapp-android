@@ -21,6 +21,8 @@ import javax.inject.Provider
 import com.romankozak.forwardappmobile.data.repository.SearchRepository
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentWithProject
+import com.romankozak.forwardappmobile.data.sync.bumpSync
+import com.romankozak.forwardappmobile.data.sync.softDelete
 import javax.inject.Singleton
 
 internal enum class ContextTextAction { ADD, REMOVE }
@@ -299,18 +301,31 @@ constructor(
     }
 
     suspend fun updateProject(project: Project) {
-        projectDao.update(project)
+        val now = System.currentTimeMillis()
+        val bumped =
+            project.bumpSync(now)
+        projectDao.update(bumped)
         recentItemsRepository.updateRecentItemDisplayName(project.id, project.name)
     }
 
-    suspend fun updateProjects(projects: List<Project>): Int = if (projects.isNotEmpty()) projectDao.update(projects) else 0
+    suspend fun updateProjects(projects: List<Project>): Int =
+        if (projects.isNotEmpty()) {
+            projectDao.update(projects.map { it.bumpSync() })
+        } else {
+            0
+        }
 
     @Transaction
     suspend fun deleteProjectsAndSubProjects(projectsToDelete: List<Project>) {
         if (projectsToDelete.isEmpty()) return
         val projectIds = projectsToDelete.map { it.id }
         listItemRepository.deleteItemsForProjects(projectIds)
-        projectsToDelete.forEach { projectDao.delete(it.id) }
+        val now = System.currentTimeMillis()
+        projectsToDelete.forEach { project ->
+            projectDao.insert(
+                project.softDelete(now),
+            )
+        }
     }
 
     suspend fun createProjectWithId(
@@ -318,14 +333,17 @@ constructor(
         name: String,
         parentId: String?,
     ) {
+        val now = System.currentTimeMillis()
         val newProject =
             Project(
                 id = id,
                 name = name,
                 parentId = parentId,
                 description = "",
-                createdAt = System.currentTimeMillis(),
-                updatedAt = System.currentTimeMillis(),
+                createdAt = now,
+                updatedAt = now,
+                syncedAt = null,
+                version = 1,
             )
         projectDao.insert(newProject)
         if (parentId != null) {
@@ -385,6 +403,9 @@ constructor(
             projectToMove.copy(
                 parentId = newParentId,
                 order = newSiblings.size.toLong(),
+                updatedAt = System.currentTimeMillis(),
+                syncedAt = null,
+                version = projectToMove.version + 1,
             )
         projectDao.update(finalProjectToMove)
     }

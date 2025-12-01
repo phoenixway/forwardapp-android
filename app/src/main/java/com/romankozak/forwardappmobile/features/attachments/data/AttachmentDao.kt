@@ -86,6 +86,9 @@ interface AttachmentDao {
         attachmentId: String,
     ): ProjectAttachmentCrossRef?
 
+    @Query("SELECT * FROM project_attachment_cross_ref WHERE attachment_id = :attachmentId")
+    suspend fun getProjectAttachmentLinksForAttachment(attachmentId: String): List<ProjectAttachmentCrossRef>
+
     @Query(
         """
         UPDATE project_attachment_cross_ref

@@ -4,6 +4,8 @@ import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 import com.romankozak.forwardappmobile.data.dao.GoalDao
 import com.romankozak.forwardappmobile.data.dao.ProjectDao
 import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
+import com.romankozak.forwardappmobile.data.sync.bumpSync
+import com.romankozak.forwardappmobile.data.sync.softDelete
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject
@@ -21,13 +23,17 @@ class ActivityRepository
 
         suspend fun addTimelessRecord(text: String) {
             if (text.isBlank()) return
+            val now = System.currentTimeMillis()
             val record =
                 ActivityRecord(
                     id = UUID.randomUUID().toString(),
                     text = text,
-                    createdAt = System.currentTimeMillis(),
+                    createdAt = now,
                     startTime = null,
                     endTime = null,
+                    updatedAt = now,
+                    syncedAt = null,
+                    version = 1,
                 )
             activityRecordDao.insert(record)
         }
@@ -37,13 +43,17 @@ class ActivityRepository
             startTime: Long,
         ): ActivityRecord {
             endLastActivity(startTime)
+            val now = System.currentTimeMillis()
             val newRecord =
                 ActivityRecord(
                     id = UUID.randomUUID().toString(),
                     text = text,
-                    createdAt = System.currentTimeMillis(),
+                    createdAt = now,
                     startTime = startTime,
                     endTime = null,
+                    updatedAt = now,
+                    syncedAt = null,
+                    version = 1,
                 )
             activityRecordDao.insert(newRecord)
             return newRecord
@@ -52,7 +62,12 @@ class ActivityRepository
         suspend fun endLastActivity(endTime: Long) {
             val ongoingActivity = activityRecordDao.findLastOngoingActivity()
             ongoingActivity?.let {
-                val finishedActivity = it.copy(endTime = endTime)
+                val finishedActivity = it.copy(
+                    endTime = endTime,
+                    updatedAt = endTime,
+                    syncedAt = null,
+                    version = it.version + 1,
+                )
                 activityRecordDao.update(finishedActivity)
             }
         }
@@ -66,6 +81,10 @@ class ActivityRepository
                     text = goal.text,
                     startTime = now,
                     goalId = goalId,
+                    createdAt = now,
+                    updatedAt = now,
+                    syncedAt = null,
+                    version = 1,
                 )
             activityRecordDao.insert(newRecord)
             return newRecord
@@ -74,7 +93,12 @@ class ActivityRepository
         suspend fun endGoalActivity(goalId: String) {
             val ongoingActivity = activityRecordDao.findLastOngoingActivityForGoal(goalId)
             ongoingActivity?.let {
-                val finishedActivity = it.copy(endTime = System.currentTimeMillis())
+                val finishedActivity = it.copy(
+                    endTime = System.currentTimeMillis(),
+                    updatedAt = System.currentTimeMillis(),
+                    syncedAt = null,
+                    version = it.version + 1,
+                )
                 activityRecordDao.update(finishedActivity)
             }
         }
@@ -88,6 +112,10 @@ class ActivityRepository
                     text = project.name,
                     startTime = now,
                     projectId = projectId,
+                    createdAt = now,
+                    updatedAt = now,
+                    syncedAt = null,
+                    version = 1,
                 )
             activityRecordDao.insert(newRecord)
             return newRecord
@@ -96,13 +124,19 @@ class ActivityRepository
         suspend fun endProjectActivity(projectId: String) {
             val ongoingActivity = activityRecordDao.findLastOngoingActivityForProject(projectId)
             ongoingActivity?.let {
-                val finishedActivity = it.copy(endTime = System.currentTimeMillis())
+                val now = System.currentTimeMillis()
+                val finishedActivity = it.copy(
+                    endTime = now,
+                    updatedAt = now,
+                    syncedAt = null,
+                    version = it.version + 1,
+                )
                 activityRecordDao.update(finishedActivity)
             }
         }
 
         suspend fun updateRecord(record: ActivityRecord) {
-            activityRecordDao.update(record)
+            activityRecordDao.update(record.bumpSync())
         }
 
         suspend fun clearLog() {
@@ -110,7 +144,7 @@ class ActivityRepository
         }
 
         suspend fun deleteRecord(record: ActivityRecord) {
-            activityRecordDao.delete(record)
+            activityRecordDao.insert(record.softDelete())
         }
 
         suspend fun searchActivities(query: String): List<ActivityRecord> = activityRecordDao.search(query)

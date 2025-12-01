@@ -24,7 +24,7 @@ DEVICE_FLAG=-s $(DEVICE_ID)
 
 # --- Цілі (Targets) ---
 
-.PHONY: work-end work-start all debug-cycle release install start stop logcat debug install-debug start-debug stop-debug logcat-debug clean help test
+.PHONY: work-end work-start all debug-cycle release install start stop logcat debug install-debug start-debug stop-debug logcat-debug clean help test sync-contract
 
 work-start:
 	@echo "▶ Starting agent workflow…"
@@ -155,6 +155,12 @@ clean:
 	@echo "🧹  Очищую проєкт..."
 	@./gradlew clean
 	@echo "✅  Проєкт очищено."
+
+# Контрактні тести синку (офлайн)
+sync-contract:
+	@echo "🔄  Запускаю локальні контрактні тести синхронізації..."
+	@./gradlew :app:syncContractTest
+	@echo "✅  SyncContractTest завершено."
 
 
 # ==============================================================================

@@ -54,6 +54,7 @@ data class ProjectAttachmentCrossRef(
     @ColumnInfo(name = "project_id") @SerializedName(value = "projectId", alternate = ["a"]) val projectId: String,
     @ColumnInfo(name = "attachment_id") @SerializedName(value = "attachmentId", alternate = ["b"]) val attachmentId: String,
     @ColumnInfo(name = "attachment_order") @SerializedName(value = "attachmentOrder", alternate = ["c"]) val attachmentOrder: Long = -System.currentTimeMillis(),
+    val updatedAt: Long? = null,
     val syncedAt: Long? = null,
     val isDeleted: Boolean = false,
     val version: Long = 0,

@@ -55,6 +55,7 @@ import com.romankozak.forwardappmobile.ui.screens.settings.components.RolesSetti
 import com.romankozak.forwardappmobile.ui.screens.settings.components.RingtoneSettingsCard
 import com.romankozak.forwardappmobile.ui.screens.settings.components.ServerSettingsCard
 import com.romankozak.forwardappmobile.ui.screens.settings.components.ThemeSettingsCard
+import com.romankozak.forwardappmobile.ui.screens.settings.components.WifiSyncSettingsCard
 import com.romankozak.forwardappmobile.ui.screens.settings.models.PlanningSettings
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -132,7 +133,9 @@ fun SettingsScreen(
                 uiState.ringtoneType != it.ringtoneType ||
                 uiState.ringtoneUris != it.ringtoneUris ||
                 uiState.ringtoneVolumes != it.ringtoneVolumes ||
-                uiState.reminderVibrationEnabled != it.reminderVibrationEnabled
+                uiState.reminderVibrationEnabled != it.reminderVibrationEnabled ||
+                uiState.wifiSyncServerEnabled != it.wifiSyncServerEnabled ||
+                uiState.desktopSyncAddress != it.desktopSyncAddress
             } ?: false
 
             planningIsDirty || viewModelIsDirty
@@ -320,6 +323,19 @@ fun SettingsScreen(
                         }
                     }
                     SettingsTab.Experiments -> {
+                        WifiSyncSettingsCard(
+                            serverEnabled = uiState.wifiSyncServerEnabled,
+                            wifiSyncPort = uiState.wifiSyncPort,
+                            desktopAddress = uiState.desktopSyncAddress,
+                            onServerEnabledChange = { enabled ->
+                                if (uiState.wifiSyncEnabled) {
+                                    viewModel.onWifiSyncServerEnabledToggle(enabled)
+                                }
+                            },
+                            onPortChange = viewModel::onWifiSyncPortChanged,
+                            onDesktopAddressChange = viewModel::onDesktopSyncAddressChanged,
+                            enabled = uiState.wifiSyncEnabled,
+                        )
                         SettingsCard(
                             title = "Experimental Features",
                             icon = Icons.Default.Build,

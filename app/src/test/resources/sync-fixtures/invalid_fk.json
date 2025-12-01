@@ -1,0 +1,25 @@
+{
+  "backupSchemaVersion": 2,
+  "exportedAt": 3000,
+  "settings": { "settings": {} },
+  "database": {
+    "projects": [],
+    "goals": [],
+    "listItems": [
+      { "id": "bad1", "projectId": "missing", "itemType": "GOAL", "entityId": "ghost", "order": 0, "version": 1, "updatedAt": 1, "syncedAt": null, "isDeleted": false }
+    ],
+    "legacyNotes": [],
+    "documents": [],
+    "documentItems": [],
+    "checklists": [],
+    "checklistItems": [],
+    "activityRecords": [],
+    "scripts": [],
+    "linkItemEntities": [],
+    "inboxRecords": [],
+    "projectExecutionLogs": [],
+    "recentProjectEntries": [],
+    "attachments": [],
+    "projectAttachmentCrossRefs": []
+  }
+}

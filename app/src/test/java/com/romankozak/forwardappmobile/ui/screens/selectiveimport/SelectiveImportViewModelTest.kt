@@ -18,23 +18,26 @@ import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
 import org.junit.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SelectiveImportViewModelTest {
 
     @Test
     fun `selective import filters scripts and attachments by selected projects`() = runTest {
-        val dispatcher = kotlinx.coroutines.test.StandardTestDispatcher(testScheduler)
+        val dispatcher = StandardTestDispatcher(testScheduler)
         Dispatchers.setMain(dispatcher)
         try {
-        val project1 = Project(id = "p1", name = "P1", createdAt = 1L, updatedAt = 2L)
-        val project2 = Project(id = "p2", name = "P2", createdAt = 1L, updatedAt = 2L)
+        val project1 = Project(id = "p1", name = "P1", description = null, parentId = null, createdAt = 1L, updatedAt = 2L)
+        val project2 = Project(id = "p2", name = "P2", description = null, parentId = null, createdAt = 1L, updatedAt = 2L)
         val attachment = AttachmentEntity(
             id = "att1",
             attachmentType = "NOTE_DOCUMENT",

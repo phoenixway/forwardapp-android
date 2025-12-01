@@ -68,6 +68,9 @@ interface ChecklistDao {
     @Update
     suspend fun updateItems(items: List<ChecklistItemEntity>)
 
+    @Query("SELECT * FROM checklist_items WHERE id = :itemId LIMIT 1")
+    suspend fun getItemById(itemId: String): ChecklistItemEntity?
+
     @Query("SELECT * FROM checklist_items WHERE checklistId = :checklistId ORDER BY itemOrder ASC, id ASC")
     fun getItemsForChecklist(checklistId: String): Flow<List<ChecklistItemEntity>>
 

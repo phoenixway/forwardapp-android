@@ -1,0 +1,27 @@
+{
+  "backupSchemaVersion": 2,
+  "exportedAt": 2000,
+  "settings": { "settings": {} },
+  "database": {
+    "projects": [],
+    "goals": [
+      { "id": "g2", "text": "New Remote Goal", "completed": false, "createdAt": 5, "version": 1, "updatedAt": 200, "syncedAt": null, "isDeleted": false }
+    ],
+    "listItems": [
+      { "id": "li2", "projectId": "p1", "itemType": "GOAL", "entityId": "g2", "order": 1, "version": 1, "updatedAt": 200, "syncedAt": null, "isDeleted": false }
+    ],
+    "legacyNotes": [],
+    "documents": [],
+    "documentItems": [],
+    "checklists": [],
+    "checklistItems": [],
+    "activityRecords": [],
+    "scripts": [],
+    "linkItemEntities": [],
+    "inboxRecords": [],
+    "projectExecutionLogs": [],
+    "recentProjectEntries": [],
+    "attachments": [],
+    "projectAttachmentCrossRefs": []
+  }
+}

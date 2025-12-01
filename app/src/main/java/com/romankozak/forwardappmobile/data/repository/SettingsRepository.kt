@@ -68,6 +68,8 @@ class SettingsRepository @Inject constructor(
     private val ringtoneModerateVolumeKey = floatPreferencesKey("ringtone_volume_moderate")
     private val ringtoneQuietVolumeKey = floatPreferencesKey("ringtone_volume_quiet")
     private val reminderVibrationEnabledKey = booleanPreferencesKey("reminder_vibration_enabled")
+    private val wifiSyncServerEnabledKey = booleanPreferencesKey("wifi_sync_server_enabled")
+    private val desktopSyncAddressKey = stringPreferencesKey("desktop_sync_address")
 
 
     val serverIpConfigurationModeFlow: Flow<String> = context.dataStore.data.map {
@@ -119,15 +121,47 @@ class SettingsRepository @Inject constructor(
     val ringtoneVolumesFlow: Flow<Map<RingtoneType, Float>> =
         context.dataStore.data.map { prefs ->
             mapOf(
-                RingtoneType.Energetic to (prefs[ringtoneEnergeticVolumeKey] ?: 1.0f),
-                RingtoneType.Moderate to (prefs[ringtoneModerateVolumeKey] ?: 0.8f),
-                RingtoneType.Quiet to (prefs[ringtoneQuietVolumeKey] ?: 0.5f),
+                RingtoneType.Energetic to prefs.safeFloat(ringtoneEnergeticVolumeKey, 1.0f),
+                RingtoneType.Moderate to prefs.safeFloat(ringtoneModerateVolumeKey, 0.8f),
+                RingtoneType.Quiet to prefs.safeFloat(ringtoneQuietVolumeKey, 0.5f),
             )
         }
 
     val reminderVibrationEnabledFlow: Flow<Boolean> =
         context.dataStore.data.map { prefs ->
-            prefs[reminderVibrationEnabledKey] ?: true
+            prefs.safeBoolean(reminderVibrationEnabledKey, true)
+        }
+
+    val wifiSyncServerEnabledFlow: Flow<Boolean> =
+        context.dataStore.data.map { prefs ->
+            prefs.safeBoolean(wifiSyncServerEnabledKey, false)
+        }
+
+    val desktopSyncAddressFlow: Flow<String> =
+        context.dataStore.data.map { prefs ->
+            prefs[desktopSyncAddressKey] ?: ""
+        }
+
+    private fun Preferences.safeFloat(
+        key: Preferences.Key<Float>,
+        defaultValue: Float,
+    ): Float =
+        try {
+            this[key] ?: defaultValue
+        } catch (e: ClassCastException) {
+            Log.w("SettingsRepository", "Value for ${key.name} stored as String, attempting to parse.", e)
+            this[stringPreferencesKey(key.name)]?.toFloatOrNull() ?: defaultValue
+        }
+
+    private fun Preferences.safeBoolean(
+        key: Preferences.Key<Boolean>,
+        defaultValue: Boolean,
+    ): Boolean =
+        try {
+            this[key] ?: defaultValue
+        } catch (e: ClassCastException) {
+            Log.w("SettingsRepository", "Value for ${key.name} stored as String, attempting to parse.", e)
+            this[stringPreferencesKey(key.name)]?.toBoolean() ?: defaultValue
         }
 
     private val featureToggleKeys: Map<FeatureFlag, androidx.datastore.preferences.core.Preferences.Key<Boolean>> =
@@ -216,6 +250,18 @@ class SettingsRepository @Inject constructor(
     suspend fun setReminderVibrationEnabled(enabled: Boolean) {
         context.dataStore.edit { prefs ->
             prefs[reminderVibrationEnabledKey] = enabled
+        }
+    }
+
+    suspend fun saveWifiSyncServerEnabled(enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[wifiSyncServerEnabledKey] = enabled
+        }
+    }
+
+    suspend fun saveDesktopSyncAddress(address: String) {
+        context.dataStore.edit { prefs ->
+            prefs[desktopSyncAddressKey] = address
         }
     }
 
@@ -639,6 +685,8 @@ class SettingsRepository @Inject constructor(
                 when (key) {
                     showPlanningModesKey.name,
                     isBottomNavExpandedKey.name,
+                    reminderVibrationEnabledKey.name,
+                    wifiSyncServerEnabledKey.name,
                     -> {
                         preferences[booleanPreferencesKey(key)] = value.toBoolean()
                     }

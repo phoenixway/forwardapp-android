@@ -3,6 +3,8 @@ package com.romankozak.forwardappmobile.data.repository
 import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
 import com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog
 import com.romankozak.forwardappmobile.data.database.models.ProjectLogEntryTypeValues
+import com.romankozak.forwardappmobile.data.sync.bumpSync
+import com.romankozak.forwardappmobile.data.sync.softDelete
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject
@@ -52,23 +54,27 @@ class ProjectLogRepository @Inject constructor(
         description: String,
         details: String? = null,
     ) {
+        val now = System.currentTimeMillis()
         val logEntry = 
             ProjectExecutionLog(
                 id = UUID.randomUUID().toString(),
                 projectId = projectId,
-                timestamp = System.currentTimeMillis(),
+                timestamp = now,
                 type = type,
                 description = description,
                 details = details,
+                updatedAt = now,
+                syncedAt = null,
+                version = 1,
             )
         projectManagementDao.insertLog(logEntry)
     }
 
     suspend fun updateProjectExecutionLog(log: ProjectExecutionLog) {
-        projectManagementDao.updateLog(log)
+        projectManagementDao.updateLog(log.bumpSync())
     }
 
     suspend fun deleteProjectExecutionLog(log: ProjectExecutionLog) {
-        projectManagementDao.deleteLog(log)
+        projectManagementDao.insertLog(log.softDelete())
     }
 }

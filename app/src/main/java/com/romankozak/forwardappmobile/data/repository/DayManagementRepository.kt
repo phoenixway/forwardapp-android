@@ -59,15 +59,22 @@ class DayManagementRepository
                         existingPlan.copy(
                             name = name ?: existingPlan.name,
                             updatedAt = System.currentTimeMillis(),
+                            syncedAt = null,
+                            version = existingPlan.version + 1,
                         )
                     dayPlanDao.update(updated)
                     updated
                 } else {
+                    val now = System.currentTimeMillis()
                     val newPlan =
                         DayPlan(
                             date = dayStart,
                             name = name,
                             status = DayStatus.PLANNED,
+                            createdAt = now,
+                            updatedAt = now,
+                            syncedAt = null,
+                            version = 1,
                         )
                     dayPlanDao.insert(newPlan)
                     newPlan
@@ -90,6 +97,8 @@ class DayManagementRepository
                 plan.copy(
                     reflection = reflection,
                     updatedAt = System.currentTimeMillis(),
+                    syncedAt = null,
+                    version = plan.version + 1,
                 ),
             )
         }
@@ -142,7 +151,9 @@ class DayManagementRepository
                 )
                 val dayTask = addTaskToDayPlan(taskParams).copy(
                     recurringTaskId = recurringTask.id,
-                    nextOccurrenceTime = if (recurrenceRule.frequency == RecurrenceFrequency.HOURLY) System.currentTimeMillis() else null
+                    nextOccurrenceTime = if (recurrenceRule.frequency == RecurrenceFrequency.HOURLY) System.currentTimeMillis() else null,
+                    syncedAt = null,
+                    version = 1,
                 )
                 dayTaskDao.update(dayTask)
             }
@@ -170,6 +181,8 @@ class DayManagementRepository
                     order = order,
                     taskType = params.taskType ?: ListItemTypeValues.GOAL,
                     points = params.points,
+                    syncedAt = null,
+                    version = 1,
                 )
             dayTaskDao.insert(task)
             task
@@ -249,9 +262,10 @@ class DayManagementRepository
                         estimatedDurationMinutes = taskToCopy.estimatedDurationMinutes,
                         taskType = taskToCopy.taskType,
                         order = null,
+                        points = taskToCopy.points,
                     )
 
-                
+
                 addTaskToDayPlan(newTaskParams)
             }
 
@@ -270,7 +284,9 @@ class DayManagementRepository
             val updatedTask = taskToMove.copy(
                 dayPlanId = tomorrowsPlan.id,
                 order = maxOrder + 1, // Set order to be the last in the new plan
-                updatedAt = System.currentTimeMillis()
+                updatedAt = System.currentTimeMillis(),
+                syncedAt = null,
+                version = taskToMove.version + 1,
             )
             dayTaskDao.update(updatedTask)
 
@@ -308,7 +324,11 @@ class DayManagementRepository
             reorderedTasks: List<DayTask>,
         ) = withContext(ioDispatcher) {
             reorderedTasks.forEach { task ->
-                dayTaskDao.updateTaskOrder(task.id, task.order, System.currentTimeMillis())
+                dayTaskDao.updateTaskOrder(
+                    task.id,
+                    task.order,
+                    System.currentTimeMillis(),
+                )
             }
             calculateAndSaveDailyMetrics(dayPlanId)
         }
@@ -351,6 +371,8 @@ class DayManagementRepository
                     estimatedDurationMinutes = duration,
                     points = points,
                     updatedAt = System.currentTimeMillis(),
+                    syncedAt = null,
+                    version = task.version + 1,
                 )
             dayTaskDao.update(updatedTask)
         }
@@ -501,6 +523,9 @@ class DayManagementRepository
                         totalPlannedTime = totalPlannedTime,
                         totalActiveTime = totalActiveTime,
                         completedPoints = completedPoints,
+                        updatedAt = System.currentTimeMillis(),
+                        syncedAt = null,
+                        version = 1,
                     )
 
                 dailyMetricDao.insert(metric)

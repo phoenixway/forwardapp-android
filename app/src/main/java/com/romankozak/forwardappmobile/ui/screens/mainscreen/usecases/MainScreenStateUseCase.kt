@@ -239,6 +239,7 @@ constructor(
             wifiServerAddress = syncState.wifiServerAddress,
             showWifiImportDialog = syncState.showWifiImportDialog,
             desktopAddress = syncState.desktopAddress,
+            syncStatus = syncState.syncStatus,
             showSearchDialog = dialogState.showSearchDialog,
             searchResults = searchResults,
             recordForReminderDialog = recordForReminder,

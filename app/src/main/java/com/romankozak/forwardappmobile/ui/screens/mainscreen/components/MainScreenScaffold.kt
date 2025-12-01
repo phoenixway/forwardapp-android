@@ -159,6 +159,8 @@ fun MainScreenScaffold(
                 onShowReminders = { onEvent(MainScreenEvent.GoToReminders) },
                 onShowAttachmentsLibrary = { onEvent(MainScreenEvent.OpenAttachmentsLibrary) },
                 onShowScriptsLibrary = { onEvent(MainScreenEvent.OpenScriptsLibrary) },
+                syncStatus = uiState.syncStatus,
+                onSyncIndicatorClick = { onEvent(MainScreenEvent.ShowWifiServerDialog) },
             )
         },
         bottomBar = {

@@ -1,0 +1,29 @@
+{
+  "backupSchemaVersion": 2,
+  "exportedAt": 1000,
+  "settings": { "settings": {} },
+  "database": {
+    "projects": [
+      { "id": "p1", "name": "Base Project", "order": 0, "createdAt": 1, "version": 1, "updatedAt": 10, "syncedAt": 10, "isDeleted": false }
+    ],
+    "goals": [
+      { "id": "g1", "text": "Base Goal", "completed": false, "createdAt": 1, "version": 1, "updatedAt": 10, "syncedAt": 10, "isDeleted": false }
+    ],
+    "listItems": [
+      { "id": "li1", "projectId": "p1", "itemType": "GOAL", "entityId": "g1", "order": 0, "version": 1, "updatedAt": 10, "syncedAt": 10, "isDeleted": false }
+    ],
+    "legacyNotes": [],
+    "documents": [],
+    "documentItems": [],
+    "checklists": [],
+    "checklistItems": [],
+    "activityRecords": [],
+    "scripts": [],
+    "linkItemEntities": [],
+    "inboxRecords": [],
+    "projectExecutionLogs": [],
+    "recentProjectEntries": [],
+    "attachments": [],
+    "projectAttachmentCrossRefs": []
+  }
+}

@@ -37,6 +37,8 @@ class ScriptRepository @Inject constructor(
                 content = content,
                 createdAt = timestamp,
                 updatedAt = timestamp,
+                syncedAt = null,
+                version = 1,
             )
         scriptDao.insert(script)
 
@@ -54,10 +56,25 @@ class ScriptRepository @Inject constructor(
     }
 
     suspend fun updateScript(script: ScriptEntity) {
-        scriptDao.update(script.copy(updatedAt = System.currentTimeMillis()))
+        val now = System.currentTimeMillis()
+        scriptDao.update(
+            script.copy(
+                updatedAt = now,
+                syncedAt = null,
+                version = script.version + 1,
+            ),
+        )
     }
 
     suspend fun deleteScript(script: ScriptEntity) {
-        scriptDao.delete(script)
+        val now = System.currentTimeMillis()
+        scriptDao.insert(
+            script.copy(
+                isDeleted = true,
+                updatedAt = now,
+                syncedAt = null,
+                version = script.version + 1,
+            ),
+        )
     }
 }

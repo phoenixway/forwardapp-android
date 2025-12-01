@@ -7,6 +7,7 @@ import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentEntity
 import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentWithProject
 import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRef
+import com.romankozak.forwardappmobile.data.sync.softDelete
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject
@@ -59,6 +60,8 @@ class AttachmentRepository @Inject constructor(
                 ownerProjectId = ownerProjectId,
                 createdAt = createdAt,
                 updatedAt = createdAt,
+                syncedAt = null,
+                version = 1,
             )
         attachmentDao.insertAttachment(attachment)
         return attachment
@@ -97,6 +100,9 @@ class AttachmentRepository @Inject constructor(
                 id = UUID.randomUUID().toString(),
                 linkData = link,
                 createdAt = timestamp,
+                updatedAt = timestamp,
+                syncedAt = null,
+                version = 1,
             )
         linkItemDao.insert(linkEntity)
 
@@ -108,6 +114,8 @@ class AttachmentRepository @Inject constructor(
                 ownerProjectId = projectId,
                 createdAt = timestamp,
                 updatedAt = timestamp,
+                syncedAt = null,
+                version = 1,
             )
         attachmentDao.insertAttachment(attachment)
         attachmentDao.insertProjectAttachmentLink(
@@ -115,6 +123,9 @@ class AttachmentRepository @Inject constructor(
                 projectId = projectId,
                 attachmentId = attachment.id,
                 attachmentOrder = -timestamp,
+                updatedAt = timestamp,
+                syncedAt = null,
+                version = 1,
             ),
         )
         return attachment
@@ -130,6 +141,9 @@ class AttachmentRepository @Inject constructor(
                 projectId = projectId,
                 attachmentId = attachmentId,
                 attachmentOrder = order,
+                updatedAt = System.currentTimeMillis(),
+                syncedAt = null,
+                version = 1,
             ),
         )
     }
@@ -139,11 +153,21 @@ class AttachmentRepository @Inject constructor(
         projectId: String,
     ): Boolean {
         val attachment = attachmentDao.getAttachmentById(attachmentId) ?: return false
-        attachmentDao.deleteProjectAttachmentLink(projectId, attachmentId)
+        val now = System.currentTimeMillis()
+        val link = attachmentDao.getProjectAttachmentLink(projectId, attachmentId)
+        if (link != null) {
+            attachmentDao.insertProjectAttachmentLink(
+                link.softDelete(now),
+            )
+        } else {
+            attachmentDao.deleteProjectAttachmentLink(projectId, attachmentId)
+        }
         val remainingLinks = attachmentDao.countLinksForAttachment(attachmentId)
         val noMoreLinks = remainingLinks <= 0
         if (noMoreLinks) {
-            attachmentDao.deleteAttachment(attachmentId)
+            attachmentDao.insertAttachment(
+                attachment.softDelete(now),
+            )
             if (attachment.attachmentType == ListItemTypeValues.LINK_ITEM) {
                 linkItemDao.deleteById(attachment.entityId)
             }
@@ -152,9 +176,23 @@ class AttachmentRepository @Inject constructor(
     }
 
     suspend fun deleteAttachment(attachmentId: String) {
+        val now = System.currentTimeMillis()
         val attachment = attachmentDao.getAttachmentById(attachmentId)
-        attachmentDao.deleteAllLinksForAttachment(attachmentId)
-        attachmentDao.deleteAttachment(attachmentId)
+        if (attachment != null) {
+            attachmentDao.insertAttachment(
+                attachment.softDelete(now),
+            )
+            // mark links deleted too
+            val links = attachmentDao.getProjectAttachmentLinksForAttachment(attachmentId)
+            links.forEach { link ->
+                attachmentDao.insertProjectAttachmentLink(
+                    link.softDelete(now),
+                )
+            }
+        } else {
+            attachmentDao.deleteAllLinksForAttachment(attachmentId)
+            attachmentDao.deleteAttachment(attachmentId)
+        }
         if (attachment != null && attachment.attachmentType == ListItemTypeValues.LINK_ITEM) {
             linkItemDao.deleteById(attachment.entityId)
         }
@@ -166,7 +204,20 @@ class AttachmentRepository @Inject constructor(
     ) {
         if (updates.isEmpty()) return
         updates.forEach { (attachmentId, order) ->
-            attachmentDao.updateAttachmentOrder(projectId, attachmentId, order)
+            val now = System.currentTimeMillis()
+            val existing = attachmentDao.getProjectAttachmentLink(projectId, attachmentId)
+            if (existing != null) {
+                attachmentDao.insertProjectAttachmentLink(
+                    existing.copy(
+                        attachmentOrder = order,
+                        updatedAt = now,
+                        syncedAt = null,
+                        version = existing.version + 1,
+                    ),
+                )
+            } else {
+                attachmentDao.updateAttachmentOrder(projectId, attachmentId, order)
+            }
         }
     }
 }

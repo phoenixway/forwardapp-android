@@ -29,6 +29,9 @@ See `docs/FEATURES2.md` for a feature/file map.
 
 # Tests (optional)
 ./gradlew :app:testDebugUnitTest
+
+# Sync contract tests (offline, shared fixtures from android-sync/)
+./gradlew :app:syncContractTest   # або make sync-contract
 ```
 
 ## Feature Toggles

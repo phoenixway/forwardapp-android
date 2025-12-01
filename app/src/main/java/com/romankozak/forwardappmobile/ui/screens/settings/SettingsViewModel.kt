@@ -65,6 +65,8 @@ data class SettingsUiState(
         RingtoneType.Quiet to 0.5f,
     ),
     val reminderVibrationEnabled: Boolean = true,
+    val wifiSyncServerEnabled: Boolean = false,
+    val desktopSyncAddress: String = "",
 )
 
 @HiltViewModel
@@ -106,6 +108,8 @@ class SettingsViewModel @Inject constructor(
                 settingsRepo.ringtoneUrisFlow,
                 settingsRepo.ringtoneVolumesFlow,
                 settingsRepo.reminderVibrationEnabledFlow,
+                settingsRepo.wifiSyncServerEnabledFlow,
+                settingsRepo.desktopSyncAddressFlow,
             )
             combine(settingsFlows) { values ->
                 val featureToggles = values[12] as Map<FeatureFlag, Boolean>
@@ -113,6 +117,8 @@ class SettingsViewModel @Inject constructor(
                 val ringtoneUris = values[14] as Map<RingtoneType, String>
                 val ringtoneVolumes = values[15] as Map<RingtoneType, Float>
                 val reminderVibrationEnabled = values[16] as Boolean
+                val wifiSyncServerEnabled = values[17] as Boolean
+                val desktopSyncAddress = values[18] as String
                 val attachmentsEnabled = featureToggles[FeatureFlag.AttachmentsLibrary] ?: FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary)
                 val scriptsEnabled = featureToggles[FeatureFlag.ScriptsLibrary] ?: FeatureToggles.isEnabled(FeatureFlag.ScriptsLibrary)
                 val allowSystemMoves = featureToggles[FeatureFlag.AllowSystemProjectMoves] ?: FeatureToggles.isEnabled(FeatureFlag.AllowSystemProjectMoves)
@@ -151,6 +157,8 @@ class SettingsViewModel @Inject constructor(
                         ringtoneUris = ringtoneUris,
                         ringtoneVolumes = ringtoneVolumes,
                         reminderVibrationEnabled = reminderVibrationEnabled,
+                        wifiSyncServerEnabled = wifiSyncServerEnabled,
+                        desktopSyncAddress = desktopSyncAddress,
                     )
                 }
             }.collect {
@@ -306,6 +314,18 @@ class SettingsViewModel @Inject constructor(
 
     fun onWifiSyncToggle(enabled: Boolean) {
         updateFeatureToggle(FeatureFlag.WifiSync, enabled)
+        if (!enabled) {
+            _uiState.update { it.copy(wifiSyncServerEnabled = false) }
+            viewModelScope.launch { settingsRepo.saveWifiSyncServerEnabled(false) }
+        }
+    }
+
+    fun onWifiSyncServerEnabledToggle(enabled: Boolean) {
+        _uiState.update { it.copy(wifiSyncServerEnabled = enabled) }
+    }
+
+    fun onDesktopSyncAddressChanged(address: String) {
+        _uiState.update { it.copy(desktopSyncAddress = address) }
     }
 
     fun onStrategicManagementToggle(enabled: Boolean) {
@@ -358,6 +378,8 @@ class SettingsViewModel @Inject constructor(
                 ollamaPort = currentState.ollamaPort,
                 fastApiPort = currentState.fastApiPort,
             )
+            settingsRepo.saveWifiSyncServerEnabled(currentState.wifiSyncServerEnabled)
+            settingsRepo.saveDesktopSyncAddress(currentState.desktopSyncAddress)
             settingsRepo.saveRingtoneType(currentState.ringtoneType)
             currentState.ringtoneUris.forEach { (type, uri) ->
                 settingsRepo.saveRingtoneUri(type, uri)

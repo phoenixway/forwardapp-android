@@ -182,6 +182,21 @@ tasks.withType<Test> {
     systemProperties.put("mockk.mock-maker-inline", "true")
 }
 
+tasks.withType<Test>().configureEach {
+    if (name == "testProdDebugUnitTest" || name == "testExpDebugUnitTest") {
+        filter {
+            includeTestsMatching("com.romankozak.forwardappmobile.data.sync.SyncRepositoryMergeTest")
+            includeTestsMatching("com.romankozak.forwardappmobile.data.sync.SyncContractFixturesTest")
+        }
+    }
+}
+
+tasks.register("syncContractTest") {
+    description = "Runs sync contract tests (Android<->Desktop roundtrip) via prodDebug unit tests"
+    group = "verification"
+    dependsOn("testProdDebugUnitTest")
+}
+
 dependencies {
     // AndroidX Core & Lifecycle
     implementation(libs.androidx.core.ktx)
@@ -260,6 +275,9 @@ dependencies {
     // Testing
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation("org.junit.vintage:junit-vintage-engine:5.10.2")
+    testImplementation("androidx.test:core:1.5.0")
+    testImplementation("org.robolectric:robolectric:4.11.1")
     androidTestImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

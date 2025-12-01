@@ -1,0 +1,98 @@
+{
+  "version": 4,
+  "exportedAt": "2025-12-01T21:20:59.038Z",
+  "data": {
+    "goals": {
+      "zKuh4ZCQn-TLHKumGrc9w": {
+        "id": "zKuh4ZCQn-TLHKumGrc9w",
+        "text": "g1",
+        "completed": false,
+        "createdAt": "2025-12-01T21:20:37.704Z",
+        "updatedAt": "2025-12-01T21:20:37.704Z",
+        "scoringStatus": "NOT_ASSESSED",
+        "associatedListIds": [],
+        "description": ""
+      },
+      "c6nq7OMo6CrSiZg8pKY5V": {
+        "id": "c6nq7OMo6CrSiZg8pKY5V",
+        "text": "g2",
+        "completed": false,
+        "createdAt": "2025-12-01T21:20:40.184Z",
+        "updatedAt": "2025-12-01T21:20:40.184Z",
+        "scoringStatus": "NOT_ASSESSED",
+        "associatedListIds": [],
+        "description": ""
+      },
+      "0Yu1hnG5Esdq5vFHe-rrq": {
+        "id": "0Yu1hnG5Esdq5vFHe-rrq",
+        "text": "g3",
+        "completed": false,
+        "createdAt": "2025-12-01T21:20:44.832Z",
+        "updatedAt": "2025-12-01T21:20:44.832Z",
+        "scoringStatus": "NOT_ASSESSED",
+        "associatedListIds": [],
+        "description": ""
+      },
+      "fLxM8eyTDE0KuFKOhPHYH": {
+        "id": "fLxM8eyTDE0KuFKOhPHYH",
+        "text": "g4",
+        "completed": false,
+        "createdAt": "2025-12-01T21:20:47.865Z",
+        "updatedAt": "2025-12-01T21:20:47.865Z",
+        "scoringStatus": "NOT_ASSESSED",
+        "associatedListIds": [],
+        "description": ""
+      }
+    },
+    "goalLists": {
+      "JcAtUp-apdBouMBtY4iCq": {
+        "id": "JcAtUp-apdBouMBtY4iCq",
+        "name": "proj1",
+        "parentId": null,
+        "createdAt": "2025-12-01T21:20:23.087Z",
+        "updatedAt": "2025-12-01T21:20:23.087Z",
+        "description": "",
+        "isExpanded": true,
+        "order": 0,
+        "tags": [],
+        "itemInstanceIds": [
+          "V2JZJlgfmxOsJnP9Xts4o",
+          "DKj1A1h9dF9OUpeAHkbcw"
+        ]
+      },
+      "c2SgmIQh75GJnpwL3k89b": {
+        "id": "c2SgmIQh75GJnpwL3k89b",
+        "name": "proj2",
+        "parentId": null,
+        "createdAt": "2025-12-01T21:20:28.831Z",
+        "updatedAt": "2025-12-01T21:20:28.831Z",
+        "description": "",
+        "isExpanded": true,
+        "order": 1,
+        "tags": [],
+        "itemInstanceIds": [
+          "Oot21BNuhT6q_3fkLNxrI",
+          "7iTWXdeaDj-vuAuyge2s4"
+        ]
+      }
+    },
+    "goalInstances": {
+      "DKj1A1h9dF9OUpeAHkbcw": {
+        "id": "DKj1A1h9dF9OUpeAHkbcw",
+        "goalId": "zKuh4ZCQn-TLHKumGrc9w"
+      },
+      "V2JZJlgfmxOsJnP9Xts4o": {
+        "id": "V2JZJlgfmxOsJnP9Xts4o",
+        "goalId": "c6nq7OMo6CrSiZg8pKY5V"
+      },
+      "7iTWXdeaDj-vuAuyge2s4": {
+        "id": "7iTWXdeaDj-vuAuyge2s4",
+        "goalId": "0Yu1hnG5Esdq5vFHe-rrq"
+      },
+      "Oot21BNuhT6q_3fkLNxrI": {
+        "id": "Oot21BNuhT6q_3fkLNxrI",
+        "goalId": "fLxM8eyTDE0KuFKOhPHYH"
+      }
+    }
+  }
+}

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
@@ -36,13 +37,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.tween
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.sync.WifiSyncStatus
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,6 +73,8 @@ fun MainScreenTopAppBar(
     onShowReminders: () -> Unit,
     onShowAttachmentsLibrary: () -> Unit,
     onShowScriptsLibrary: () -> Unit,
+    syncStatus: WifiSyncStatus,
+    onSyncIndicatorClick: () -> Unit,
 ) {
     var swipeState by remember { mutableStateOf(0f) }
     TopAppBar(
@@ -127,6 +137,12 @@ fun MainScreenTopAppBar(
                         Icon(Icons.Default.MoreVert, stringResource(id = com.romankozak.forwardappmobile.R.string.more_options))
                     }
                 } else {
+                    if (FeatureToggles.isEnabled(FeatureFlag.WifiSync)) {
+                        SyncStatusIndicator(
+                            status = syncStatus,
+                            onClick = onSyncIndicatorClick,
+                        )
+                    }
                     AnimatedVisibility(visible = false) {
                         IconButton(onClick = onGoBack) {
                             Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(id = com.romankozak.forwardappmobile.R.string.back))
@@ -244,6 +260,54 @@ fun MainScreenTopAppBar(
                 )
             }
     )
+}
+
+@Composable
+private fun SyncStatusIndicator(
+    status: WifiSyncStatus,
+    onClick: () -> Unit,
+) {
+    val baseColor =
+        when (status) {
+            WifiSyncStatus.Syncing -> MaterialTheme.colorScheme.primary
+            is WifiSyncStatus.Error -> MaterialTheme.colorScheme.error
+            WifiSyncStatus.Offline -> MaterialTheme.colorScheme.outline
+            is WifiSyncStatus.ServerRunning -> MaterialTheme.colorScheme.tertiary
+            WifiSyncStatus.Idle -> MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+            WifiSyncStatus.Disabled -> MaterialTheme.colorScheme.onSurfaceVariant
+        }
+    val infiniteTransition = rememberInfiniteTransition(label = "sync_indicator_transition")
+    val pulse =
+        if (status is WifiSyncStatus.Syncing) {
+            infiniteTransition.animateFloat(
+                initialValue = 0.85f,
+                targetValue = 1.15f,
+                animationSpec =
+                    infiniteRepeatable(
+                        animation = tween(durationMillis = 650),
+                        repeatMode = RepeatMode.Reverse,
+                    ),
+                label = "sync_indicator_pulse",
+            ).value
+        } else {
+            1f
+        }
+
+    Box(
+        modifier =
+            Modifier
+                .padding(end = 8.dp)
+                .size(18.dp)
+                .graphicsLayer(
+                    scaleX = pulse,
+                    scaleY = pulse,
+                )
+                .clip(CircleShape)
+                .background(baseColor)
+                .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) { }
 }
 
 @Composable

@@ -7,6 +7,8 @@ import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.ListItem
 import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
+import com.romankozak.forwardappmobile.data.sync.bumpSync
+import com.romankozak.forwardappmobile.data.sync.softDelete
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject
@@ -140,13 +142,28 @@ class GoalRepository @Inject constructor(
 
     @androidx.room.Transaction
     suspend fun deleteGoal(goalId: String) {
-        goalDao.deleteGoalById(goalId)
-        listItemDao.deleteItemByEntityId(goalId)
+        val now = System.currentTimeMillis()
+        goalDao.getGoalById(goalId)?.let { goal ->
+            goalDao.insertGoal(
+                goal.softDelete(now),
+            )
+        }
+        listItemDao.getListItemByEntityId(goalId)?.let { listItem ->
+            listItemDao.insertItem(
+                listItem.softDelete(now),
+            )
+        }
     }
 
-    suspend fun updateGoal(goal: Goal) = goalDao.updateGoal(goal)
+    suspend fun updateGoal(goal: Goal) {
+        goalDao.updateGoal(goal.bumpSync())
+    }
 
-    suspend fun updateGoals(goals: List<Goal>) = goalDao.updateGoals(goals)
+    suspend fun updateGoals(goals: List<Goal>) {
+        if (goals.isNotEmpty()) {
+            goalDao.updateGoals(goals.map { it.bumpSync() })
+        }
+    }
 
     fun getAllGoalsCountFlow(): Flow<Int> = goalDao.getAllGoalsCountFlow()
 
