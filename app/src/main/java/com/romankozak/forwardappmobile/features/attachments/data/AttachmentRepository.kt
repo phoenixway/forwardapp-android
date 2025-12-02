@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.features.attachments.data
 
+import android.util.Log
 import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.data.database.models.LinkItemEntity
@@ -12,6 +13,8 @@ import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+
+const val ATTACHMENT_LOG_TAG = "FWD_ATTACH"
 
 @Singleton
 class AttachmentRepository @Inject constructor(
@@ -49,6 +52,7 @@ class AttachmentRepository @Inject constructor(
     ): AttachmentEntity {
         val existing = attachmentDao.findAttachmentByEntity(attachmentType, entityId)
         if (existing != null) {
+            Log.d(ATTACHMENT_LOG_TAG, "[ensureAttachmentForEntity] Found existing attachment: id=${existing.id}, type=$attachmentType, entity=$entityId")
             return existing
         }
 
@@ -64,6 +68,7 @@ class AttachmentRepository @Inject constructor(
                 version = 1,
             )
         attachmentDao.insertAttachment(attachment)
+        Log.d(ATTACHMENT_LOG_TAG, "[ensureAttachmentForEntity] Created new attachment: id=${attachment.id}, type=$attachmentType, entity=$entityId, syncedAt=${attachment.syncedAt}")
         return attachment
     }
 
@@ -105,6 +110,7 @@ class AttachmentRepository @Inject constructor(
                 version = 1,
             )
         linkItemDao.insert(linkEntity)
+        Log.d(ATTACHMENT_LOG_TAG, "[createLinkAttachment] Created LinkItemEntity: id=${linkEntity.id}, syncedAt=${linkEntity.syncedAt}")
 
         val attachment =
             AttachmentEntity(
@@ -118,6 +124,8 @@ class AttachmentRepository @Inject constructor(
                 version = 1,
             )
         attachmentDao.insertAttachment(attachment)
+        Log.d(ATTACHMENT_LOG_TAG, "[createLinkAttachment] Created AttachmentEntity: id=${attachment.id}, linkId=${linkEntity.id}, project=$projectId, syncedAt=${attachment.syncedAt}")
+        
         attachmentDao.insertProjectAttachmentLink(
             ProjectAttachmentCrossRef(
                 projectId = projectId,
@@ -128,6 +136,7 @@ class AttachmentRepository @Inject constructor(
                 version = 1,
             ),
         )
+        Log.d(ATTACHMENT_LOG_TAG, "[createLinkAttachment] Created ProjectAttachmentCrossRef: project=$projectId, attachment=${attachment.id}")
         return attachment
     }
 
