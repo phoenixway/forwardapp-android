@@ -473,8 +473,20 @@ constructor(
                         normalizedIncoming
                     }
                 }
+            val cleanedProjectsWithParents =
+                cleanedProjects.map {
+                    val parentId = it.parentId
+                    if (parentId != null && cleanedProjects.none { p -> p.id == parentId }) {
+                        Log.w(IMPORT_TAG, "Project ${it.id} has missing parent $parentId. Resetting parentId to null.")
+                        it.copy(parentId = null)
+                    } else {
+                        it
+                    }
+                }
             Log.d(IMPORT_TAG, "Очищення даних Project завершено.")
 
+            val projectIds = cleanedProjectsWithParents.map { it.id }.toSet()
+            val goalIds = backup.goals.map { it.id }.toSet()
             val cleanedListItems =
                 backup.listItems.mapNotNull { item ->
                     if (item.id.isBlank() || item.projectId.isBlank() || item.entityId.isBlank()) {
@@ -483,6 +495,13 @@ constructor(
                     } else {
                         item
                     }
+                }.filter {
+                    val projectOk = it.projectId in projectIds
+                    val goalOk = it.itemType != ListItemTypeValues.GOAL || it.entityId in goalIds
+                    if (!projectOk || !goalOk) {
+                        Log.w(IMPORT_TAG, "Skipping ListItem due to missing references. projectOk=$projectOk goalOk=$goalOk item=$it")
+                    }
+                    projectOk && goalOk
                 }
             Log.d(IMPORT_TAG, "Очищення ListItem завершено. Original: ${backup.listItems.size}, Cleaned: ${cleanedListItems.size}")
 
@@ -522,19 +541,31 @@ constructor(
                 attachmentDao.deleteAll()
                 Log.d(IMPORT_TAG, "Всі таблиці очищено.")
 
-                Log.d(IMPORT_TAG, "Транзакція: вставка базових сутностей.")
-                goalDao.insertGoals(backup.goals)
-                projectDao.insertProjects(cleanedProjects)
-                listItemDao.insertItems(cleanedListItems)
-                Log.d(IMPORT_TAG, "  - Вставлено: ${backup.goals.size} goals, ${cleanedProjects.size} projects, ${cleanedListItems.size} listItems.")
+            Log.d(IMPORT_TAG, "Транзакція: вставка базових сутностей.")
+            goalDao.insertGoals(backup.goals)
+            projectDao.insertProjects(cleanedProjectsWithParents)
+            listItemDao.insertItems(cleanedListItems)
+            Log.d(IMPORT_TAG, "  - Вставлено: ${backup.goals.size} goals, ${cleanedProjectsWithParents.size} projects, ${cleanedListItems.size} listItems.")
 
                 legacyNoteDao.insertAll(backup.legacyNotes)
                 Log.d(IMPORT_TAG, "  - Вставлено: ${backup.legacyNotes.size} legacyNotes.")
 
-                noteDocumentDao.insertAllDocuments(backup.documents)
-                Log.d(IMPORT_TAG, "  - Вставлено: ${backup.documents.size} noteDocuments.")
-                noteDocumentDao.insertAllDocumentItems(backup.documentItems)
-                Log.d(IMPORT_TAG, "  - Вставлено: ${backup.documentItems.size} noteDocumentItems.")
+                val documentProjectIds = cleanedProjects.map { it.id }.toSet()
+                val validDocuments = backup.documents.filter { it.projectId in documentProjectIds }
+                val skippedDocuments = backup.documents.size - validDocuments.size
+                noteDocumentDao.insertAllDocuments(validDocuments)
+                Log.d(
+                    IMPORT_TAG,
+                    "  - Вставлено: ${validDocuments.size} noteDocuments. Skipped invalid project refs=$skippedDocuments"
+                )
+                val validDocumentIds = validDocuments.map { it.id }.toSet()
+                val validDocumentItems = backup.documentItems.filter { it.listId in validDocumentIds }
+                val skippedDocumentItems = backup.documentItems.size - validDocumentItems.size
+                noteDocumentDao.insertAllDocumentItems(validDocumentItems)
+                Log.d(
+                    IMPORT_TAG,
+                    "  - Вставлено: ${validDocumentItems.size} noteDocumentItems. Skipped invalid doc refs=$skippedDocumentItems"
+                )
 
                 if (backup.checklists.isNotEmpty()) {
                     checklistDao.insertChecklists(backup.checklists)
@@ -549,10 +580,20 @@ constructor(
                 Log.d(IMPORT_TAG, "  - Вставлено: ${backup.activityRecords.size} activityRecords.")
                 linkItemDao.insertAll(backup.linkItemEntities)
                 Log.d(IMPORT_TAG, "  - Вставлено: ${backup.linkItemEntities.size} linkItems.")
-                inboxRecordDao.insertAll(backup.inboxRecords)
-                Log.d(IMPORT_TAG, "  - Вставлено: ${backup.inboxRecords.size} inboxRecords.")
-                projectManagementDao.insertAllLogs(backup.projectExecutionLogs)
-                Log.d(IMPORT_TAG, "  - Вставлено: ${backup.projectExecutionLogs.size} projectLogs.")
+                val validInbox = backup.inboxRecords.filter { it.projectId in projectIds }
+                val skippedInbox = backup.inboxRecords.size - validInbox.size
+                inboxRecordDao.insertAll(validInbox)
+                Log.d(
+                    IMPORT_TAG,
+                    "  - Вставлено: ${validInbox.size} inboxRecords. Skipped invalid project refs=$skippedInbox"
+                )
+                val validLogs = backup.projectExecutionLogs.filter { it.projectId in projectIds }
+                val skippedLogs = backup.projectExecutionLogs.size - validLogs.size
+                projectManagementDao.insertAllLogs(validLogs)
+                Log.d(
+                    IMPORT_TAG,
+                    "  - Вставлено: ${validLogs.size} projectLogs. Skipped invalid project refs=$skippedLogs"
+                )
                 backup.scripts.forEach { scriptDao.insert(it) }
                 Log.d(IMPORT_TAG, "  - Вставлено: ${backup.scripts.size} scripts.")
                 recentItemDao.insertAll(recentItemsToInsert)
@@ -560,8 +601,14 @@ constructor(
 
                 attachmentDao.insertAttachments(backup.attachments)
                 Log.d(IMPORT_TAG, "  - Вставлено: ${backup.attachments.size} attachments.")
-                attachmentDao.insertProjectAttachmentLinks(backup.projectAttachmentCrossRefs)
-                Log.d(IMPORT_TAG, "  - Вставлено: ${backup.projectAttachmentCrossRefs.size} projectAttachmentCrossRefs.")
+                val attachmentIds = backup.attachments.map { it.id }.toSet()
+                val validCrossRefs = backup.projectAttachmentCrossRefs.filter { it.projectId in projectIds && it.attachmentId in attachmentIds }
+                val skippedCrossRefs = backup.projectAttachmentCrossRefs.size - validCrossRefs.size
+                attachmentDao.insertProjectAttachmentLinks(validCrossRefs)
+                Log.d(
+                    IMPORT_TAG,
+                    "  - Вставлено: ${validCrossRefs.size} projectAttachmentCrossRefs. Skipped invalid=$skippedCrossRefs"
+                )
 
                 Log.d(IMPORT_TAG, "Транзакція: відновлення settings. Entries=${backupSettingsMap.size}")
                 settingsRepository.restoreFromMap(backupSettingsMap)
@@ -695,7 +742,7 @@ constructor(
         val db = backup.database ?: return SyncReport(emptyList())
 
         val localProjectsAll = projectDao.getAll()
-        val localProjects = localProjectsAll.filter { it.systemKey == null }.associateBy { it.id }
+        val localProjects = localProjectsAll.associateBy { it.id }
         val localGoals = goalDao.getAll().associateBy { it.id }
         val localListItems = listItemDao.getAll()
             .filter { it.projectId == null || it.projectId in localProjects.keys }
@@ -868,16 +915,12 @@ constructor(
                 Log.d(IMPORT_TAG, "Transaction: Inserting selected data (LWW).")
 
                 if (selectedData.projects.isNotEmpty()) {
-                    // Filter out system projects (those with systemKey) to prevent duplication
-                    // System projects are managed by DatabaseInitializer.prePopulate()
+                    // System projects are managed by DatabaseInitializer.prePopulate(), but we need to update them
                     val regularProjects = selectedData.projects
-                        .filter { it.systemKey == null }
                         .let { keepNewer(it, local.projects.associateBy { p -> p.id }, { it.id }, { it.version }, { it.updatedAt }) }
                     if (regularProjects.isNotEmpty()) {
                         projectDao.insertProjects(regularProjects)
-                        Log.d(IMPORT_TAG, "  - Upserted ${regularProjects.size} regular projects. Skipped ${selectedData.projects.size - regularProjects.size} system projects.")
-                    } else {
-                        Log.d(IMPORT_TAG, "  - All ${selectedData.projects.size} projects are system projects, skipped.")
+                        Log.d(IMPORT_TAG, "  - Upserted ${regularProjects.size} projects.")
                     }
                 }
                 if (selectedData.goals.isNotEmpty()) {
