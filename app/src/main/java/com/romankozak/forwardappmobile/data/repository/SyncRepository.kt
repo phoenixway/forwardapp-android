@@ -1749,6 +1749,12 @@ constructor(
                 val projectIds = (local.projects.map { it.id } + incomingProjects.map { it.id }).toSet()
                 val goalIds = (local.goals.map { it.id } + incomingGoals.map { it.id }).toSet()
 
+                // ========== DEFECT #3 FIX: Use ALL local projects for attachment filtering ==========
+                // Attachments can belong to projects that weren't modified in this sync cycle
+                // Using only projectIds (delta projects) causes massive data loss (106 → 12)
+                // Instead, use ALL existing project IDs from local database
+                val allLocalProjectIds = local.projects.map { it.id }.toSet()
+                
                 val incomingListItems = mergeAndMark(
                     correctedChanges.listItems.filter { it.projectId in projectIds && (it.itemType != ListItemTypeValues.GOAL || it.entityId in goalIds) && (it.itemType != ListItemTypeValues.SUBLIST || it.entityId in projectIds) },
                     local.listItems.associateBy { it.id },
@@ -1833,20 +1839,18 @@ constructor(
                 )
                 incomingScripts.forEach { scriptDao.insert(it) }
 
-                Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Processing attachments. Total incoming: ${correctedChanges.attachments.size}, projects in scope: ${projectIds.size}")
+                Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Processing attachments. Total incoming: ${correctedChanges.attachments.size}, delta projects: ${projectIds.size}, all local projects: ${allLocalProjectIds.size}")
                 Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] IMPORTANT: Incoming attachments count: ${correctedChanges.attachments.size}. If 0, this indicates desktop didn't export them.")
                 
-                // ========== DEFECT #1 FIX: Handle attachments=0 from desktop ==========
-                // When desktop exports empty attachments list, we should:
-                // 1. NOT lose local attachments
-                // 2. Mark local unsynced attachments as synced anyway (they were sent to desktop even though it didn't re-export them)
-                // 3. Preserve orphaned local attachments as local
+                // ========== DEFECT #3 FIX: Use ALL local project IDs for filtering, not just delta projects ==========
+                // This prevents massive data loss when attachments belong to projects not in the current delta
+                // BEFORE (buggy): using projectIds only → 106 → 12 loss
+                // AFTER (fixed): using allLocalProjectIds → all attachments preserved
                 
-                // Log attachment filtering details
                 val attachmentsWithoutOwner = correctedChanges.attachments.count { it.ownerProjectId == null }
-                val attachmentsWithInvalidOwner = correctedChanges.attachments.count { it.ownerProjectId != null && it.ownerProjectId !in projectIds }
-                val attachmentsWithValidOwner = correctedChanges.attachments.count { it.ownerProjectId != null && it.ownerProjectId in projectIds }
-                Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Attachments breakdown: orphans=${attachmentsWithoutOwner}, invalid_owner=${attachmentsWithInvalidOwner}, valid_owner=${attachmentsWithValidOwner}")
+                val attachmentsWithInvalidOwner = correctedChanges.attachments.count { it.ownerProjectId != null && it.ownerProjectId !in allLocalProjectIds }
+                val attachmentsWithValidOwner = correctedChanges.attachments.count { it.ownerProjectId != null && it.ownerProjectId in allLocalProjectIds }
+                Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Attachments breakdown: orphans=${attachmentsWithoutOwner}, truly_invalid=${attachmentsWithInvalidOwner}, valid=${attachmentsWithValidOwner}")
                 
                 // Log local attachments state BEFORE processing
                 Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Local attachments BEFORE: total=${local.attachments.size}, synced=${local.attachments.count { it.syncedAt != null }}, unsynced=${local.attachments.count { it.syncedAt == null }}")
@@ -1855,14 +1859,14 @@ constructor(
                 }
                 
                 if (attachmentsWithInvalidOwner > 0) {
-                    correctedChanges.attachments.filter { it.ownerProjectId != null && it.ownerProjectId !in projectIds }.take(5).forEach {
-                        Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Filtered out attachment: id=${it.id}, type=${it.attachmentType}, entity=${it.entityId}, ownerProjectId=${it.ownerProjectId}")
+                    correctedChanges.attachments.filter { it.ownerProjectId != null && it.ownerProjectId !in allLocalProjectIds }.take(5).forEach {
+                        Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Filtered out attachment (truly orphaned): id=${it.id}, type=${it.attachmentType}, entity=${it.entityId}, ownerProjectId=${it.ownerProjectId}")
                     }
                 }
                 
-                // Process incoming attachments
+                // Process incoming attachments using ALL local projects (DEFECT #3 FIX)
                 val incomingAttachments = mergeAndMark(
-                    correctedChanges.attachments.filter { it.ownerProjectId == null || it.ownerProjectId in projectIds },
+                    correctedChanges.attachments.filter { it.ownerProjectId == null || it.ownerProjectId in allLocalProjectIds },
                     local.attachments.associateBy { it.id }, { it.id }, { it.version }, { it.updatedTs() }, { at, synced -> at.copy(syncedAt = synced, updatedAt = maxOf(at.updatedAt, synced)) },
                     ts
                 )
@@ -1871,7 +1875,7 @@ constructor(
                 // This prevents them from being stuck in "unsynced" state forever
                 val unsyncedLocalAttachments = if (correctedChanges.attachments.isEmpty()) {
                     local.attachments
-                        .filter { it.syncedAt == null && (it.ownerProjectId == null || it.ownerProjectId in projectIds) }
+                        .filter { it.syncedAt == null && (it.ownerProjectId == null || it.ownerProjectId in allLocalProjectIds) }
                         .map { it.copy(syncedAt = ts, updatedAt = maxOf(it.updatedAt, ts)) }
                 } else {
                     emptyList()
@@ -1893,17 +1897,17 @@ constructor(
                 }
 
                 val attachmentIds = (local.attachments.map { it.id } + incomingAttachments.map { it.id } + unsyncedLocalAttachments.map { it.id }).toSet()
-                Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Processing crossRefs. Total incoming: ${correctedChanges.projectAttachmentCrossRefs.size}, attachments in scope: ${attachmentIds.size}, projects in scope: ${projectIds.size}")
+                Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Processing crossRefs. Total incoming: ${correctedChanges.projectAttachmentCrossRefs.size}, attachments in scope: ${attachmentIds.size}, delta projects: ${projectIds.size}, all local projects: ${allLocalProjectIds.size}")
                 
-                // Log crossRef filtering details
-                val validCrossRefs = correctedChanges.projectAttachmentCrossRefs.filter { it.projectId in projectIds && it.attachmentId in attachmentIds }
-                val invalidProjectCrossRefs = correctedChanges.projectAttachmentCrossRefs.count { it.projectId !in projectIds }
-                val invalidAttachmentCrossRefs = correctedChanges.projectAttachmentCrossRefs.count { it.projectId in projectIds && it.attachmentId !in attachmentIds }
+                // Log crossRef filtering details (also use allLocalProjectIds for crossRefs - DEFECT #3 FIX)
+                val validCrossRefs = correctedChanges.projectAttachmentCrossRefs.filter { it.projectId in allLocalProjectIds && it.attachmentId in attachmentIds }
+                val invalidProjectCrossRefs = correctedChanges.projectAttachmentCrossRefs.count { it.projectId !in allLocalProjectIds }
+                val invalidAttachmentCrossRefs = correctedChanges.projectAttachmentCrossRefs.count { it.projectId in allLocalProjectIds && it.attachmentId !in attachmentIds }
                 Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] CrossRefs breakdown: valid=${validCrossRefs.size}, invalid_project=${invalidProjectCrossRefs}, invalid_attachment=${invalidAttachmentCrossRefs}")
                 
                 if (invalidProjectCrossRefs > 0 || invalidAttachmentCrossRefs > 0) {
-                    correctedChanges.projectAttachmentCrossRefs.filter { it.projectId !in projectIds || it.attachmentId !in attachmentIds }.take(5).forEach {
-                        Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Filtered out crossRef: projectId=${it.projectId} (valid=${it.projectId in projectIds}), attachmentId=${it.attachmentId} (valid=${it.attachmentId in attachmentIds})")
+                    correctedChanges.projectAttachmentCrossRefs.filter { it.projectId !in allLocalProjectIds || it.attachmentId !in attachmentIds }.take(5).forEach {
+                        Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Filtered out crossRef: projectId=${it.projectId} (valid=${it.projectId in allLocalProjectIds}), attachmentId=${it.attachmentId} (valid=${it.attachmentId in attachmentIds})")
                     }
                 }
                 
