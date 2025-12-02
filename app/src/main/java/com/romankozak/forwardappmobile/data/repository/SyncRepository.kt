@@ -1260,22 +1260,31 @@ constructor(
                         .map { syncedSetter(it, ts) }
                 }
 
-                val incomingProjects = mergeAndMark(
-                    normalized.projects,
-                    local.projects.associateBy { it.id },
-                    { it.id },
-                    { it.version },
-                    { it.updatedTs() },
+                // Handle system and regular projects separately
+                val localSystemProjects = local.projects.filter { it.systemKey != null }
+                val localRegularProjects = local.projects.filter { it.systemKey == null }
+                val incomingSystemProjects = normalized.projects.filter { it.systemKey != null }
+                val incomingRegularProjects = normalized.projects.filter { it.systemKey == null }
+
+                val mergedSystemProjects = mergeSystemProjects(localSystemProjects, incomingSystemProjects, ts)
+                val mergedRegularProjects = mergeAndMark(
+                    incomingRegularProjects,
+                    localRegularProjects.associateBy { it.id },
+                    { it.id }, { it.version }, { it.updatedTs() },
                     { p, synced -> normalizeProject(p).copy(syncedAt = synced) },
                     { it.isDeleted }
-                ).filterNot { it.systemKey != null && it.isDeleted }
-                if (incomingProjects.isNotEmpty()) {
-                    val existingIds = projectDao.getProjectsByIds(incomingProjects.map { it.id }).map { it.id }.toSet()
-                    val toUpdate = incomingProjects.filter { it.id in existingIds }
-                    val toInsert = incomingProjects.filterNot { it.id in existingIds }
+                )
+
+                val finalProjectsToUpsert = (mergedSystemProjects + mergedRegularProjects)
+                    .filterNot { it.systemKey != null && it.isDeleted }
+
+                if (finalProjectsToUpsert.isNotEmpty()) {
+                    val existingIds = projectDao.getProjectsByIds(finalProjectsToUpsert.map { it.id }).map { it.id }.toSet()
+                    val toUpdate = finalProjectsToUpsert.filter { it.id in existingIds }
+                    val toInsert = finalProjectsToUpsert.filterNot { it.id in existingIds }
                     Log.d(
                         WIFI_SYNC_LOG_TAG,
-                        "[applyServerChanges] projects incoming=${incomingProjects.size} update=${toUpdate.size} insert=${toInsert.size} sample=${incomingProjects.take(3).map { it.id }}",
+                        "[applyServerChanges] projects incoming=${finalProjectsToUpsert.size} update=${toUpdate.size} insert=${toInsert.size} sample=${finalProjectsToUpsert.take(3).map { it.id }}",
                     )
                     if (toUpdate.isNotEmpty()) projectDao.update(toUpdate)
                     if (toInsert.isNotEmpty()) projectDao.insertProjects(toInsert)
@@ -1301,7 +1310,7 @@ constructor(
                     goalDao.insertGoals(incomingGoals)
                 }
 
-                val projectIds = (local.projects + incomingProjects).map { it.id }.toSet()
+                val projectIds = (local.projects + finalProjectsToUpsert).map { it.id }.toSet()
                 val goalIds = (local.goals + incomingGoals).map { it.id }.toSet()
 
                 val incomingListItems = mergeAndMark(
@@ -1679,5 +1688,45 @@ constructor(
             projectType = project.projectType ?: ProjectType.DEFAULT,
             reservedGroup = project.reservedGroup,
         )
+    }
+
+    private fun mergeSystemProjects(
+        localSystem: List<Project>,
+        incomingSystem: List<Project>,
+        syncedAt: Long
+    ): List<Project> {
+        val localMap = localSystem.associateBy { it.systemKey!! }
+        val incomingMap = incomingSystem.associateBy { it.systemKey!! }
+
+        val allKeys = localMap.keys + incomingMap.keys
+
+        return allKeys.mapNotNull { key ->
+            val local = localMap[key]
+            val incoming = incomingMap[key]
+
+            when {
+                // New system project from incoming, should ideally not happen if prepopulate is correct
+                local == null && incoming != null -> incoming.copy(syncedAt = syncedAt)
+                // Local system project exists, but not in incoming. Keep local.
+                local != null && incoming == null -> null
+                // Both exist, merge them
+                local != null && incoming != null -> {
+                    val localVer = local.version
+                    val incomingVer = incoming.version
+                    val localUpdated = local.updatedAt ?: local.createdAt
+                    val incomingUpdated = incoming.updatedAt ?: incoming.createdAt
+
+                    // LWW logic
+                    val winner = if (incomingVer > localVer || (incomingVer == localVer && incomingUpdated > localUpdated)) {
+                        incoming
+                    } else {
+                        local
+                    }
+                    // Preserve local ID, take data from winner, set syncedAt
+                    winner.copy(id = local.id, syncedAt = syncedAt)
+                }
+                else -> null // Should not happen
+            }
+        }
     }
 }
