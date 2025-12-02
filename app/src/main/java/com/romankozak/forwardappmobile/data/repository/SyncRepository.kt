@@ -1287,6 +1287,20 @@ constructor(
          // For attachments: export if unsync'd (syncedAt=null) OR updated after 'since'
          val attachmentsUnsync = local.attachments.filter { it.syncedAt == null }
          val attachmentsUpdated = local.attachments.filter { (it.updatedTs() ?: 0L) > since && it.syncedAt != null }
+         
+         // ========== POTENTIAL DEFECT #3 FIX: Validate ownerProjectId ==========
+         // Attachments with non-existent ownerProjectId will be rejected by desktop
+         // We should warn about this or preserve them as orphans
+         val attachmentsWithInvalidOwner = (attachmentsUnsync + attachmentsUpdated).filter { 
+             it.ownerProjectId != null && it.ownerProjectId !in projectIds 
+         }
+         if (attachmentsWithInvalidOwner.isNotEmpty()) {
+             Log.w(WIFI_SYNC_LOG_TAG, "[getChangesSince] WARNING: ${attachmentsWithInvalidOwner.size} attachments have invalid ownerProjectId (will be rejected by desktop)")
+             attachmentsWithInvalidOwner.take(3).forEach {
+                 Log.d(WIFI_SYNC_LOG_TAG, "  ! Invalid owner: id=${it.id}, owner=${it.ownerProjectId} (not in projects)")
+             }
+         }
+         
          val attachmentsResult = attachmentsUnsync + attachmentsUpdated
          
          // For crossRefs: export if unsync'd (syncedAt=null) OR updated after 'since'
