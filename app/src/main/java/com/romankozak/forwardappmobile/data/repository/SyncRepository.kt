@@ -968,21 +968,24 @@ constructor(
         val projectIds = local.projects.map { it.id }.toSet()
         val goalIds = local.goals.map { it.id }.toSet()
 
-        val attachmentsResult = filterByUpdated(local.attachments) { it.updatedTs() }
-        val crossRefsResult = filterByUpdated(local.projectAttachmentCrossRefs) { it.updatedTs() }
+        // For attachments: export if unsync'd (syncedAt=null) OR updated after 'since'
+        val attachmentsResult = local.attachments.filter { att ->
+            att.syncedAt == null || (att.updatedTs() ?: 0L) > since
+        }
         
-        Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] since=$since, total attachments=${local.attachments.size}, filtered=${attachmentsResult.size}")
-        Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] All attachments: ")
+        // For crossRefs: export if unsync'd (syncedAt=null) OR updated after 'since'
+        val crossRefsResult = local.projectAttachmentCrossRefs.filter { ref ->
+            ref.syncedAt == null || (ref.updatedTs() ?: 0L) > since
+        }
+        
+        Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] since=$since")
+        Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] Attachments: total=${local.attachments.size}, unsync'd=${local.attachments.count { it.syncedAt == null }}, updated=${attachmentsResult.count { (it.updatedTs() ?: 0L) > since }}, result=${attachmentsResult.size}")
         local.attachments.take(5).forEach {
-            Log.d(WIFI_SYNC_LOG_TAG, "  - id=${it.id}, type=${it.attachmentType}, updatedAt=${it.updatedAt}, syncedAt=${it.syncedAt}, updatedTs()=${it.updatedTs()}, since=$since, passes=${(it.updatedTs() ?: 0L) > since}")
+            val isUnsync = it.syncedAt == null
+            val isUpdated = (it.updatedTs() ?: 0L) > since
+            Log.d(WIFI_SYNC_LOG_TAG, "  - id=${it.id}, type=${it.attachmentType}, unsync'd=$isUnsync, updated=$isUpdated, updatedAt=${it.updatedAt}, syncedAt=${it.syncedAt}")
         }
-        if (attachmentsResult.isNotEmpty()) {
-            Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] Filtered attachments: ")
-            attachmentsResult.take(3).forEach {
-                Log.d(WIFI_SYNC_LOG_TAG, "  - id=${it.id}, updatedAt=${it.updatedAt}, syncedAt=${it.syncedAt}")
-            }
-        }
-        Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] total crossRefs=${local.projectAttachmentCrossRefs.size}, filtered=${crossRefsResult.size}")
+        Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] CrossRefs: total=${local.projectAttachmentCrossRefs.size}, unsync'd=${local.projectAttachmentCrossRefs.count { it.syncedAt == null }}, updated=${crossRefsResult.count { (it.updatedTs() ?: 0L) > since }}, result=${crossRefsResult.size}")
 
         return DatabaseContent(
             projects = filterByUpdated(local.projects) { it.updatedTs() },
