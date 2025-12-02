@@ -483,6 +483,15 @@ constructor(
                         it
                     }
                 }
+            val orphanProjects = cleanedProjects.zip(cleanedProjectsWithParents)
+                .filter { (original, fixed) -> original.parentId != null && fixed.parentId == null }
+                .map { it.first }
+            if (orphanProjects.isNotEmpty()) {
+                val sample = orphanProjects.take(5).joinToString { "${it.name} (${it.id}) parent=${it.parentId}" }
+                Log.w(IMPORT_TAG, "Found ${orphanProjects.size} projects with missing parent; parentId reset to null. Sample: $sample")
+            } else {
+                Log.d(IMPORT_TAG, "No projects with missing parentId detected.")
+            }
             Log.d(IMPORT_TAG, "Очищення даних Project завершено.")
 
             val projectIds = cleanedProjectsWithParents.map { it.id }.toSet()
@@ -651,6 +660,7 @@ constructor(
                 Log.d(IMPORT_TAG, "Транзакція: вставка завершена.")
             }
 
+            Log.i(IMPORT_TAG, "Orphan projects after import (parentId cleared): ${orphanProjects.size}")
             runPostBackupMigration()
 
             Log.i(IMPORT_TAG, "Імпорт бекапу успішно завершено.")
