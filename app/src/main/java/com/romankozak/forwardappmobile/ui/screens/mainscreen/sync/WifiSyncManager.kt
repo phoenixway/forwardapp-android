@@ -145,7 +145,9 @@ class WifiSyncManager(
     viewModelScope.launch {
       _syncStatus.value = WifiSyncStatus.Syncing
       Log.d(SYNC_LOG_TAG, "[WifiSyncManager] Performing Wi‑Fi import from $address")
-      val result = syncRepository.fetchBackupFromWifi(address)
+      val lastSyncTime = syncRepository.getLastSyncTime()
+      Log.d(SYNC_LOG_TAG, "[WifiSyncManager] lastSyncTime=$lastSyncTime, requesting delta since then")
+      val result = syncRepository.fetchBackupFromWifi(address, lastSyncTime)
       result
         .onSuccess { jsonString ->
           _syncStatus.value = WifiSyncStatus.Idle

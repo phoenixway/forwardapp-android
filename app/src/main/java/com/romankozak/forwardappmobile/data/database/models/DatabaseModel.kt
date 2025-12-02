@@ -242,7 +242,12 @@ class ReservedGroupConverter {
     }
 }
 
-@Entity(tableName = "projects")
+@Entity(
+    tableName = "projects",
+    indices = [
+        Index("system_key", unique = true, name = "idx_projects_systemkey_unique")
+    ]
+)
 @TypeConverters(ProjectTypeConverter::class, ReservedGroupConverter::class)
 data class Project(
     @PrimaryKey val id: String,

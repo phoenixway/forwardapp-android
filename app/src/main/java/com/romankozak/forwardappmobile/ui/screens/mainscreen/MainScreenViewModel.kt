@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.ui.screens.mainscreen
 
 import android.app.Application
+import android.util.Log
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -518,8 +519,11 @@ constructor(
           }
       }
       is MainScreenEvent.ImportAttachmentsFromFile -> {
+          Log.d("SyncRepo_AttachmentsImport", "MainScreenViewModel received ImportAttachmentsFromFile event with uri=${event.uri}")
           viewModelScope.launch {
+              Log.d("SyncRepo_AttachmentsImport", "Starting attachment import coroutine")
               val result = projectActionsUseCase.importAttachments(event.uri)
+              Log.d("SyncRepo_AttachmentsImport", "Import completed with result: isSuccess=${result.isSuccess}, message=${result.getOrNull()}")
               dialogUseCase.dismissDialog()
               _uiEventChannel.send(
                   if (result.isSuccess) {

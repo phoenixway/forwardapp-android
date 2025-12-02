@@ -38,7 +38,8 @@ class SyncDataViewModel @Inject constructor(
             lastFetchedJson = null
 
             try {
-                val result = syncRepository.fetchBackupFromWifi(serverAddress)
+                val lastSyncTime = syncRepository.getLastSyncTime()
+                val result = syncRepository.fetchBackupFromWifi(serverAddress, lastSyncTime)
                 result.onSuccess { json ->
                     lastFetchedJson = json
                     val report = syncRepository.createSyncReport(json)
@@ -59,7 +60,8 @@ class SyncDataViewModel @Inject constructor(
             val jsonToImport = if (serverAddress == lastCheckedAddress && lastFetchedJson != null) {
                 lastFetchedJson
             } else {
-                val result = syncRepository.fetchBackupFromWifi(serverAddress)
+                val lastSyncTime = syncRepository.getLastSyncTime()
+                val result = syncRepository.fetchBackupFromWifi(serverAddress, lastSyncTime)
                 result.getOrNull()
             }
 

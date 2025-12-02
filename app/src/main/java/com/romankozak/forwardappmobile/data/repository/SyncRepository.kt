@@ -348,8 +348,13 @@ constructor(
                 Log.d(IMPORT_TAG, "  - Inserted ${backupData.linkItemEntities.size} link items.")
 
                 // Insert attachments themselves
-                attachmentDao.insertAttachments(backupData.attachments)
-                Log.d(IMPORT_TAG, "  - Inserted ${backupData.attachments.size} attachments.")
+                // Filter attachments: include only those with valid ownerProjectId or orphans (ownerProjectId == null)
+                val validAttachments = backupData.attachments.filter { att ->
+                    att.ownerProjectId == null || att.ownerProjectId in existingProjectIds
+                }
+                val orphanedAttachments = backupData.attachments.size - validAttachments.size
+                attachmentDao.insertAttachments(validAttachments)
+                Log.d(IMPORT_TAG, "  - Inserted ${validAttachments.size} attachments. $orphanedAttachments orphaned attachments (invalid ownerProjectId) were skipped.")
 
                 // Insert only the valid cross-references
                 attachmentDao.insertProjectAttachmentLinks(validCrossRefs)
@@ -368,6 +373,7 @@ constructor(
         val IMPORT_TAG = "SyncRepository_IMPORT"
 
         try {
+            Log.d(IMPORT_TAG, "========== STARTING FULL BACKUP IMPORT ==========")
             Log.d(IMPORT_TAG, "Починаємо імпорт з URI: $uri")
             val jsonString =
                 context.contentResolver
@@ -386,7 +392,6 @@ constructor(
             val backupData =
                 try {
                     val parsed = gson.fromJson(jsonString, FullAppBackup::class.java)
-                    Log.d(IMPORT_TAG, "Parsed FullAppBackup: database=${parsed.database}, backupVersion=${parsed.backupSchemaVersion}")
                     Log.d(IMPORT_TAG, "Database projects: ${parsed.database.projects.size}, goals: ${parsed.database.goals.size}")
                     parsed
                 } catch (parseError: Exception) {
@@ -429,80 +434,216 @@ constructor(
 
             val backupSettingsMap = backupData.settings?.settings ?: emptyMap()
 
-            Log.d(IMPORT_TAG, "Починаємо очищення даних для сумісності...")
-            val existingSystemProjectsByKey = projectDao.getAll()
-                .filter { it.systemKey != null }
-                .associateBy { it.systemKey!! }
-
-            // If local system project replaces incoming one (different id), remap children to the kept id
-            val projectIdMap = mutableMapOf<String, String>()
-            val cleanedProjects = 
-                backup.projects.map { projectFromBackup ->
-                    val normalizedIncoming = projectFromBackup.copy(
-                        projectType = projectFromBackup.projectType ?: ProjectType.DEFAULT,
-                        reservedGroup = com.romankozak.forwardappmobile.data.database.models.ReservedGroup.fromString(projectFromBackup.reservedGroup?.groupName),
-                        defaultViewModeName = projectFromBackup.defaultViewModeName ?: ProjectViewMode.BACKLOG.name,
-                        isProjectManagementEnabled = projectFromBackup.isProjectManagementEnabled ?: false,
-                        projectStatus = projectFromBackup.projectStatus ?: ProjectStatusValues.NO_PLAN,
-                        projectStatusText = projectFromBackup.projectStatusText ?: "",
-                        projectLogLevel = projectFromBackup.projectLogLevel ?: ProjectLogLevelValues.NORMAL,
-                        totalTimeSpentMinutes = projectFromBackup.totalTimeSpentMinutes ?: 0,
-                        scoringStatus = projectFromBackup.scoringStatus ?: ScoringStatusValues.NOT_ASSESSED,
-                        valueImportance = projectFromBackup.valueImportance,
-                        valueImpact = projectFromBackup.valueImpact,
-                        effort = projectFromBackup.effort,
-                        cost = projectFromBackup.cost,
-                        risk = projectFromBackup.risk,
-                        weightEffort = projectFromBackup.weightEffort,
-                        weightCost = projectFromBackup.weightCost,
-                        weightRisk = projectFromBackup.weightRisk,
-                        rawScore = projectFromBackup.rawScore,
-                        displayScore = projectFromBackup.displayScore,
-                    )
-
-                    val systemKey = normalizedIncoming.systemKey
-                    val existingSystemProject = systemKey?.let { existingSystemProjectsByKey[it] }
-                    if (existingSystemProject != null) {
-                        val incomingUpdated = normalizedIncoming.updatedAt ?: 0
-                        val existingUpdated = existingSystemProject.updatedAt ?: 0
-                        if (normalizedIncoming.id != existingSystemProject.id) {
-                            projectIdMap[normalizedIncoming.id] = existingSystemProject.id
-                        }
-                        if (incomingUpdated > existingUpdated) {
-                            Log.d(IMPORT_TAG, "System project ${systemKey} will be updated from backup (incoming newer: $incomingUpdated > $existingUpdated)")
-                            normalizedIncoming
-                        } else {
-                            Log.d(IMPORT_TAG, "System project ${systemKey} kept from local DB (local newer or same: $existingUpdated >= $incomingUpdated)")
-                            existingSystemProject
-                        }
-                    } else {
-                        normalizedIncoming
-                    }
-                }
-            val cleanedProjectsWithParents = 
-                cleanedProjects.map { 
-                    val mappedParent = it.parentId?.let { pid -> projectIdMap[pid] ?: pid }
-                    val parentId = mappedParent
-                    if (parentId != null && cleanedProjects.none { p -> p.id == parentId }) {
-                        Log.w(IMPORT_TAG, "Project ${it.id} has missing parent $parentId. Resetting parentId to null.")
-                        it.copy(parentId = null)
-                    } else {
-                        if (mappedParent != it.parentId) it.copy(parentId = mappedParent) else it
-                    }
-                }
-            val orphanProjects = cleanedProjects.zip(cleanedProjectsWithParents)
-                .filter { (original, fixed) -> original.parentId != null && fixed.parentId == null }
-                .map { it.first }
-            if (orphanProjects.isNotEmpty()) {
-                val sample = orphanProjects.take(5).joinToString { "${it.name} (${it.id}) parent=${it.parentId}" }
-                Log.w(IMPORT_TAG, "Found ${orphanProjects.size} projects with missing parent; parentId reset to null. Sample: $sample")
-            } else {
-                Log.d(IMPORT_TAG, "No projects with missing parentId detected.")
+            // ============================================================================
+            // КРОК 1: Перевірка цілісності БД ДО ІМПОРТУ
+            // ============================================================================
+            Log.d(IMPORT_TAG, "=== КРОК 1: Перевірка цілісності БД до імпорту ===")
+            val dbSystemProjects = projectDao.getAll().filter { it.systemKey != null }
+            val dbDuplicatesByKey = dbSystemProjects.groupBy { it.systemKey }
+            val dbDuplicateKeys = dbDuplicatesByKey.filter { it.value.size > 1 }.keys
+            
+            if (dbDuplicateKeys.isNotEmpty()) {
+                val message = "CRITICAL: Database already has duplicate system keys: $dbDuplicateKeys. " +
+                    "This violates system project invariants. Please reset database and reimport a clean backup."
+                Log.e(IMPORT_TAG, message)
+                return Result.failure(Exception(message))
             }
-            Log.d(IMPORT_TAG, "Очищення даних Project завершено.")
+            Log.d(IMPORT_TAG, "✅ DB системні проекти унікальні (${dbSystemProjects.size} проектів)")
 
+            // ============================================================================
+            // КРОК 2: Будування маппінгу системних проектів
+            // ============================================================================
+            Log.d(IMPORT_TAG, "=== КРОК 2: Будування маппінгу системних проектів ===")
+            
+            val existingSystemProjectsByKey = dbSystemProjects.associateBy { it.systemKey!! }
+            Log.d(IMPORT_TAG, "Знайдено ${existingSystemProjectsByKey.size} системних проектів у БД")
+            
+            // Перевірити дублі в бекапі
+            val backupSystemProjects = backup.projects.filter { it.systemKey != null }
+            val backupDuplicatesByKey = backupSystemProjects.groupBy { it.systemKey }
+            val backupDuplicateKeys = backupDuplicatesByKey.filter { it.value.size > 1 }.keys
+            
+            // Сніг-лист для очищення дублів у бекапі
+            var projectsToImport = backup.projects
+            
+            if (backupDuplicateKeys.isNotEmpty()) {
+                Log.w(IMPORT_TAG, "WARNING: Backup has duplicate system keys: $backupDuplicateKeys (обробляємо)")
+                // Вибираємо "правильну" версію для кожного дублювального ключа
+                val cleanedBackupSystem = mutableMapOf<String?, Project>()
+                backupDuplicateKeys.forEach { key ->
+                    val duplicates = backupDuplicatesByKey[key]!!
+                    val chosen = duplicates.maxByOrNull { it.updatedAt ?: 0 } ?: duplicates.first()
+                    cleanedBackupSystem[key] = chosen
+                    Log.d(IMPORT_TAG, "  System проект '$key': Вибрано ${chosen.name} (${chosen.id}), видалено ${duplicates.size - 1} дублів")
+                }
+                // Замінити дублі в бекапі на вибрані версії
+                projectsToImport = backup.projects.filter { proj ->
+                    if (proj.systemKey != null && proj.systemKey in backupDuplicateKeys) {
+                        proj.id == cleanedBackupSystem[proj.systemKey]?.id
+                    } else {
+                        true
+                    }
+                }
+            }
+            Log.d(IMPORT_TAG, "✅ Дублі в бекапі очищені")
+
+            // ============================================================================
+            // КРОК 3: Розрахунок ID-маппінгу для системних проектів
+            // ============================================================================
+            Log.d(IMPORT_TAG, "=== КРОК 3: Розрахунок ID-маппінгу системних проектів ===")
+            
+            // projectIdMap: backupId -> actualId
+            val projectIdMap = mutableMapOf<String, String>()
+            
+            val cleanedProjects = projectsToImport.map { projectFromBackup ->
+                val normalizedIncoming = projectFromBackup.copy(
+                    projectType = projectFromBackup.projectType ?: ProjectType.DEFAULT,
+                    reservedGroup = com.romankozak.forwardappmobile.data.database.models.ReservedGroup.fromString(projectFromBackup.reservedGroup?.groupName),
+                    defaultViewModeName = projectFromBackup.defaultViewModeName ?: ProjectViewMode.BACKLOG.name,
+                    isProjectManagementEnabled = projectFromBackup.isProjectManagementEnabled ?: false,
+                    projectStatus = projectFromBackup.projectStatus ?: ProjectStatusValues.NO_PLAN,
+                    projectStatusText = projectFromBackup.projectStatusText ?: "",
+                    projectLogLevel = projectFromBackup.projectLogLevel ?: ProjectLogLevelValues.NORMAL,
+                    totalTimeSpentMinutes = projectFromBackup.totalTimeSpentMinutes ?: 0,
+                    scoringStatus = projectFromBackup.scoringStatus ?: ScoringStatusValues.NOT_ASSESSED,
+                    valueImportance = projectFromBackup.valueImportance,
+                    valueImpact = projectFromBackup.valueImpact,
+                    effort = projectFromBackup.effort,
+                    cost = projectFromBackup.cost,
+                    risk = projectFromBackup.risk,
+                    weightEffort = projectFromBackup.weightEffort,
+                    weightCost = projectFromBackup.weightCost,
+                    weightRisk = projectFromBackup.weightRisk,
+                    rawScore = projectFromBackup.rawScore,
+                    displayScore = projectFromBackup.displayScore,
+                )
+
+                val systemKey = normalizedIncoming.systemKey
+                val existingSystemProject = systemKey?.let { existingSystemProjectsByKey[it] }
+                
+                if (existingSystemProject != null) {
+                    // Система проект: порівнюємо версії
+                    val incomingUpdated = normalizedIncoming.updatedAt ?: 0
+                    val existingUpdated = existingSystemProject.updatedAt ?: 0
+                    
+                    // Записуємо маппінг якщо ID різні
+                    if (normalizedIncoming.id != existingSystemProject.id) {
+                        projectIdMap[normalizedIncoming.id] = existingSystemProject.id
+                        Log.d(IMPORT_TAG, "  System '$systemKey': маппінг ${normalizedIncoming.id} -> ${existingSystemProject.id}")
+                    }
+                    
+                    // LWW (Last-Write-Wins) логіка
+                    if (incomingUpdated > existingUpdated) {
+                        Log.d(IMPORT_TAG, "  System '$systemKey': оновлюємо (incoming=$incomingUpdated > existing=$existingUpdated)")
+                        normalizedIncoming.copy(id = existingSystemProject.id)  // ← ВАЖЛИВО: зберігаємо існуючий ID!
+                    } else {
+                        Log.d(IMPORT_TAG, "  System '$systemKey': залишаємо локальну (existing=$existingUpdated >= incoming=$incomingUpdated)")
+                        existingSystemProject
+                    }
+                } else {
+                    // Новий проект (системний або звичайний)
+                    normalizedIncoming
+                }
+            }
+            Log.d(IMPORT_TAG, "✅ ID-маппінг розраховано: ${projectIdMap.size} переіндексацій")
+
+            // ============================================================================
+            // КРОК 4: Валідація та очищення parentId
+            // ============================================================================
+            Log.d(IMPORT_TAG, "=== КРОК 4: Валідація та очищення parentId ===")
+            
+            val projectIdsSet = cleanedProjects.map { it.id }.toSet()
+            Log.d(IMPORT_TAG, "Всього проектів після нормалізації: ${cleanedProjects.size}")
+            
+            // Будуємо маппу systemKey -> actualId для швидкого пошуку
+            val systemKeyToActualId = mutableMapOf<String, String>()
+            cleanedProjects.forEach { proj ->
+                if (proj.systemKey != null) {
+                    systemKeyToActualId[proj.systemKey!!] = proj.id
+                }
+            }
+            
+            // Функція для правильної переіндексації батьків системних проектів
+            val remapParentId: (String?) -> String? = { parentId ->
+                parentId?.let { pid ->
+                    when {
+                        // 1. Спочатку перевірити прямий маппінг ID
+                        pid in projectIdMap -> {
+                            val mappedId = projectIdMap[pid]!!
+                            // 2. Якщо помапнений проект є системним, отримати його актуальний ID
+                            val mappedProj = cleanedProjects.find { it.id == mappedId }
+                            if (mappedProj?.systemKey != null) {
+                                systemKeyToActualId[mappedProj.systemKey!!] ?: mappedId
+                            } else {
+                                mappedId
+                            }
+                        }
+                        // 3. Якщо ID є в наборі — залишити як є
+                        pid in projectIdsSet -> pid
+                        // 4. Інакше — null (батько не існує)
+                        else -> null
+                    }
+                }
+            }
+            
+            var projectsCleaned = 0
+            val cleanedProjectsWithParents = cleanedProjects.map { proj ->
+                val mappedParent = remapParentId(proj.parentId)
+                
+                if (mappedParent == null && proj.parentId != null) {
+                    projectsCleaned++
+                    Log.w(IMPORT_TAG, "  Очищення: ${proj.id} (${proj.name}) батько ${proj.parentId} не існує")
+                    proj.copy(parentId = null)
+                } else if (mappedParent != proj.parentId) {
+                    Log.d(IMPORT_TAG, "  Переіндексація: ${proj.id} батько ${proj.parentId} -> $mappedParent")
+                    proj.copy(parentId = mappedParent)
+                } else {
+                    proj
+                }
+            }
+            
+            Log.d(IMPORT_TAG, "✅ Очищено проектів: $projectsCleaned, всього батьків: ${cleanedProjectsWithParents.count { it.parentId != null }}")
+
+            // ============================================================================
+            // КРОК 5: ВАЛІДАЦІЯ ПЕРЕД ВСТАВКОЮ (КРИТИЧНЕ)
+            // ============================================================================
+            Log.d(IMPORT_TAG, "=== КРОК 5: Валідація цілісності перед вставкою ===")
+            
+            val finalProjectIds = cleanedProjectsWithParents.map { it.id }.toSet()
+            
+            // 5A. Перевірити що немає orphan projects
+            val orphans = cleanedProjectsWithParents.filter { 
+                it.parentId != null && it.parentId !in finalProjectIds 
+            }
+            if (orphans.isNotEmpty()) {
+                val message = "ABORT: Found ${orphans.size} projects with invalid parents after remapping: " +
+                    orphans.take(5).joinToString { "${it.name}(${it.id})->${it.parentId}" }
+                Log.e(IMPORT_TAG, message)
+                return Result.failure(Exception(message))
+            }
+            Log.d(IMPORT_TAG, "✅ Батьки: всі валідні (${cleanedProjectsWithParents.count { it.parentId != null }} з дітьми)")
+            
+            // 5B. Перевірити що системні проекти унікальні
+            val finalSystemProjects = cleanedProjectsWithParents.filter { it.systemKey != null }
+            val duplicateSystemKeys = finalSystemProjects.groupBy { it.systemKey }
+                .filter { it.value.size > 1 }
+                .keys
+            if (duplicateSystemKeys.isNotEmpty()) {
+                val message = "ABORT: Found duplicate systemKeys after processing: $duplicateSystemKeys"
+                Log.e(IMPORT_TAG, message)
+                return Result.failure(Exception(message))
+            }
+            Log.d(IMPORT_TAG, "✅ Системні проекти: унікальні (${finalSystemProjects.size} системних ключів)")
+
+            // ============================================================================
+            // КРОК 6: Переіндексація сутностей з projectId
+            // ============================================================================
+            Log.d(IMPORT_TAG, "=== КРОК 6: Переіндексація сутностей з projectId ===")
+            
             val projectIds = cleanedProjectsWithParents.map { it.id }.toSet()
             val goalIds = backup.goals.map { it.id }.toSet()
+            
+            // ListItems - переіндексація projectId
             val cleanedListItems = 
                 backup.listItems.mapNotNull { item ->
                     if (item.id.isBlank() || item.projectId.isBlank() || item.entityId.isBlank()) {
@@ -526,7 +667,63 @@ constructor(
                     }
                     projectOk && goalOk
                 }
-            Log.d(IMPORT_TAG, "Очищення ListItem завершено. Original: ${backup.listItems.size}, Cleaned: ${cleanedListItems.size}")
+            Log.d(IMPORT_TAG, "  ListItems: ${backup.listItems.size} -> ${cleanedListItems.size}")
+            
+            // NoteDocuments - переіндексація projectId
+            val cleanedDocuments = backup.documents.map { doc ->
+                doc.copy(projectId = projectIdMap[doc.projectId] ?: doc.projectId)
+            }.filter { it.projectId in projectIds }.also {
+                val skipped = backup.documents.size - it.size
+                if (skipped > 0) Log.w(IMPORT_TAG, "  NoteDocuments: пропущено $skipped з невалідними посиланнями")
+            }
+            Log.d(IMPORT_TAG, "  NoteDocuments: ${backup.documents.size} -> ${cleanedDocuments.size}")
+            
+            // Checklists - переіндексація projectId
+            val cleanedChecklists = backup.checklists.map { cl ->
+                cl.copy(projectId = projectIdMap[cl.projectId] ?: cl.projectId)
+            }.filter { it.projectId in projectIds }.also {
+                val skipped = backup.checklists.size - it.size
+                if (skipped > 0) Log.w(IMPORT_TAG, "  Checklists: пропущено $skipped з невалідними посиланнями")
+            }
+            Log.d(IMPORT_TAG, "  Checklists: ${backup.checklists.size} -> ${cleanedChecklists.size}")
+            
+            // InboxRecords - переіндексація projectId
+            val cleanedInboxRecords = backup.inboxRecords.map { rec ->
+                rec.copy(projectId = projectIdMap[rec.projectId] ?: rec.projectId)
+            }.filter { it.projectId in projectIds }.also {
+                val skipped = backup.inboxRecords.size - it.size
+                if (skipped > 0) Log.w(IMPORT_TAG, "  InboxRecords: пропущено $skipped з невалідними посиланнями")
+            }
+            Log.d(IMPORT_TAG, "  InboxRecords: ${backup.inboxRecords.size} -> ${cleanedInboxRecords.size}")
+            
+            // ProjectLogs - переіндексація projectId
+            val cleanedProjectLogs = backup.projectExecutionLogs.map { log ->
+                log.copy(projectId = projectIdMap[log.projectId] ?: log.projectId)
+            }.filter { it.projectId in projectIds }.also {
+                val skipped = backup.projectExecutionLogs.size - it.size
+                if (skipped > 0) Log.w(IMPORT_TAG, "  ProjectLogs: пропущено $skipped з невалідними посиланнями")
+            }
+            Log.d(IMPORT_TAG, "  ProjectLogs: ${backup.projectExecutionLogs.size} -> ${cleanedProjectLogs.size}")
+            
+            // Attachments - переіндексація ownerProjectId
+            val cleanedAttachments = backup.attachments.map { att ->
+                att.copy(ownerProjectId = att.ownerProjectId?.let { projectIdMap[it] ?: it })
+            }.filter { it.ownerProjectId == null || it.ownerProjectId in projectIds }.also {
+                val skipped = backup.attachments.size - it.size
+                if (skipped > 0) Log.w(IMPORT_TAG, "  Attachments: пропущено $skipped з невалідними посиланнями")
+            }
+            Log.d(IMPORT_TAG, "  Attachments: ${backup.attachments.size} -> ${cleanedAttachments.size}")
+            
+            // ProjectAttachmentCrossRefs - переіндексація projectId
+            val cleanedCrossRefs = backup.projectAttachmentCrossRefs.map { cr ->
+                cr.copy(projectId = projectIdMap[cr.projectId] ?: cr.projectId)
+            }.filter { it.projectId in projectIds }.also {
+                val skipped = backup.projectAttachmentCrossRefs.size - it.size
+                if (skipped > 0) Log.w(IMPORT_TAG, "  CrossRefs: пропущено $skipped з невалідними посиланнями")
+            }
+            Log.d(IMPORT_TAG, "  CrossRefs: ${backup.projectAttachmentCrossRefs.size} -> ${cleanedCrossRefs.size}")
+            
+            Log.d(IMPORT_TAG, "✅ Крок 6 завершен: всі сутності переіндексовані")
 
             val recentItemsToInsert = backup.recentProjectEntries.mapNotNull { entry ->
                 val targetId = projectIdMap[entry.projectId] ?: entry.projectId
@@ -565,111 +762,111 @@ constructor(
                 attachmentDao.deleteAll()
                 Log.d(IMPORT_TAG, "Всі таблиці очищено.")
 
+            // ============================================================================
+            // КРОК 7: Вставка в базу даних (з использованием cleaned даних)
+            // ============================================================================
+            Log.d(IMPORT_TAG, "=== КРОК 7: Вставка в базу даних ===")
+            
             Log.d(IMPORT_TAG, "Транзакція: вставка базових сутностей.")
             goalDao.insertGoals(backup.goals)
             projectDao.insertProjects(cleanedProjectsWithParents)
             listItemDao.insertItems(cleanedListItems)
             Log.d(IMPORT_TAG, "  - Вставлено: ${backup.goals.size} goals, ${cleanedProjectsWithParents.size} projects, ${cleanedListItems.size} listItems.")
 
-                legacyNoteDao.insertAll(backup.legacyNotes)
-                Log.d(IMPORT_TAG, "  - Вставлено: ${backup.legacyNotes.size} legacyNotes.")
+            legacyNoteDao.insertAll(backup.legacyNotes)
+            Log.d(IMPORT_TAG, "  - Вставлено: ${backup.legacyNotes.size} legacyNotes.")
 
-                val documentProjectIds = cleanedProjectsWithParents.map { it.id }.toSet()
-                val validDocuments = backup.documents
-                    .map { it.copy(projectId = projectIdMap[it.projectId] ?: it.projectId) }
-                    .filter { it.projectId in documentProjectIds }
-                val skippedDocuments = backup.documents.size - validDocuments.size
-                noteDocumentDao.insertAllDocuments(validDocuments)
-                Log.d(
-                    IMPORT_TAG,
-                    "  - Вставлено: ${validDocuments.size} noteDocuments. Skipped invalid project refs=$skippedDocuments"
-                )
-                val validDocumentIds = validDocuments.map { it.id }.toSet()
-                val validDocumentItems = backup.documentItems.filter { it.listId in validDocumentIds }
-                val skippedDocumentItems = backup.documentItems.size - validDocumentItems.size
-                noteDocumentDao.insertAllDocumentItems(validDocumentItems)
-                Log.d(
-                    IMPORT_TAG,
-                    "  - Вставлено: ${validDocumentItems.size} noteDocumentItems. Skipped invalid doc refs=$skippedDocumentItems"
-                )
+            // Використовуємо cleaned документи замість переобробки
+            val validDocumentIds = cleanedDocuments.map { it.id }.toSet()
+            noteDocumentDao.insertAllDocuments(cleanedDocuments)
+            Log.d(
+                IMPORT_TAG,
+                "  - Вставлено: ${cleanedDocuments.size} noteDocuments."
+            )
+            
+            val validDocumentItems = backup.documentItems.filter { it.listId in validDocumentIds }
+            val skippedDocumentItems = backup.documentItems.size - validDocumentItems.size
+            noteDocumentDao.insertAllDocumentItems(validDocumentItems)
+            Log.d(
+                IMPORT_TAG,
+                "  - Вставлено: ${validDocumentItems.size} noteDocumentItems. Skipped invalid doc refs=$skippedDocumentItems"
+            )
 
-                if (backup.checklists.isNotEmpty()) {
-                    val mappedChecklists = backup.checklists.map { it.copy(projectId = projectIdMap[it.projectId] ?: it.projectId) }
-                    val validChecklists = mappedChecklists.filter { it.projectId in projectIds }
-                    val skippedChecklists = mappedChecklists.size - validChecklists.size
-                    checklistDao.insertChecklists(validChecklists)
-                    Log.d(IMPORT_TAG, "  - Вставлено: ${validChecklists.size} checklists. Skipped invalid project refs=$skippedChecklists")
-                }
-                if (backup.checklistItems.isNotEmpty()) {
-                    val validChecklistIds = backup.checklists.map { it.id }.toSet()
-                    val mappedChecklistItems = backup.checklistItems.map {
-                        it.copy(checklistId = it.checklistId)
-                    }
-                    val validChecklistItems = mappedChecklistItems.filter { it.checklistId in validChecklistIds }
-                    val skippedChecklistItems = mappedChecklistItems.size - validChecklistItems.size
-                    checklistDao.insertItems(validChecklistItems)
-                    Log.d(IMPORT_TAG, "  - Вставлено: ${validChecklistItems.size} checklistItems. Skipped invalid checklist refs=$skippedChecklistItems")
-                }
+            // Використовуємо cleaned checklists
+            if (cleanedChecklists.isNotEmpty()) {
+                checklistDao.insertChecklists(cleanedChecklists)
+                Log.d(IMPORT_TAG, "  - Вставлено: ${cleanedChecklists.size} checklists.")
+            }
+            
+            if (backup.checklistItems.isNotEmpty()) {
+                val validChecklistIds = cleanedChecklists.map { it.id }.toSet()
+                val validChecklistItems = backup.checklistItems.filter { it.checklistId in validChecklistIds }
+                val skippedChecklistItems = backup.checklistItems.size - validChecklistItems.size
+                checklistDao.insertItems(validChecklistItems)
+                Log.d(IMPORT_TAG, "  - Вставлено: ${validChecklistItems.size} checklistItems. Skipped invalid checklist refs=$skippedChecklistItems")
+            }
 
-                activityRecordDao.insertAll(backup.activityRecords)
-                Log.d(IMPORT_TAG, "  - Вставлено: ${backup.activityRecords.size} activityRecords.")
-                linkItemDao.insertAll(backup.linkItemEntities)
-                Log.d(IMPORT_TAG, "  - Вставлено: ${backup.linkItemEntities.size} linkItems.")
-                val validInbox = backup.inboxRecords
-                    .map { it.copy(projectId = projectIdMap[it.projectId] ?: it.projectId) }
-                    .filter { it.projectId in projectIds }
-                val skippedInbox = backup.inboxRecords.size - validInbox.size
-                inboxRecordDao.insertAll(validInbox)
-                Log.d(
-                    IMPORT_TAG,
-                    "  - Вставлено: ${validInbox.size} inboxRecords. Skipped invalid project refs=$skippedInbox"
-                )
-                val validLogs = backup.projectExecutionLogs
-                    .map { it.copy(projectId = projectIdMap[it.projectId] ?: it.projectId) }
-                    .filter { it.projectId in projectIds }
-                val skippedLogs = backup.projectExecutionLogs.size - validLogs.size
-                projectManagementDao.insertAllLogs(validLogs)
-                Log.d(
-                    IMPORT_TAG,
-                    "  - Вставлено: ${validLogs.size} projectLogs. Skipped invalid project refs=$skippedLogs"
-                )
-                backup.scripts.forEach { scriptDao.insert(it) }
-                Log.d(IMPORT_TAG, "  - Вставлено: ${backup.scripts.size} scripts.")
-                recentItemDao.insertAll(recentItemsToInsert)
-                Log.d(IMPORT_TAG, "  - Вставлено: ${recentItemsToInsert.size} recentItems.")
+            activityRecordDao.insertAll(backup.activityRecords)
+            Log.d(IMPORT_TAG, "  - Вставлено: ${backup.activityRecords.size} activityRecords.")
+            linkItemDao.insertAll(backup.linkItemEntities)
+            Log.d(IMPORT_TAG, "  - Вставлено: ${backup.linkItemEntities.size} linkItems.")
+            
+            // Використовуємо cleaned inbox records
+            inboxRecordDao.insertAll(cleanedInboxRecords)
+            Log.d(
+                IMPORT_TAG,
+                "  - Вставлено: ${cleanedInboxRecords.size} inboxRecords."
+            )
+            
+            // Використовуємо cleaned project logs
+            projectManagementDao.insertAllLogs(cleanedProjectLogs)
+            Log.d(
+                IMPORT_TAG,
+                "  - Вставлено: ${cleanedProjectLogs.size} projectLogs."
+            )
+            
+            backup.scripts.forEach { scriptDao.insert(it) }
+            Log.d(IMPORT_TAG, "  - Вставлено: ${backup.scripts.size} scripts.")
+            recentItemDao.insertAll(recentItemsToInsert)
+            Log.d(IMPORT_TAG, "  - Вставлено: ${recentItemsToInsert.size} recentItems.")
 
-                val mappedAttachments = backup.attachments.map {
-                    it.copy(ownerProjectId = it.ownerProjectId?.let { pid -> projectIdMap[pid] ?: pid })
-                }
-                attachmentDao.insertAttachments(mappedAttachments)
-                Log.d(IMPORT_TAG, "  - Вставлено: ${mappedAttachments.size} attachments.")
-                val attachmentIds = mappedAttachments.map { it.id }.toSet()
-                val validCrossRefs = backup.projectAttachmentCrossRefs
-                    .map { it.copy(projectId = projectIdMap[it.projectId] ?: it.projectId) }
-                    .filter { it.projectId in projectIds && it.attachmentId in attachmentIds }
-                val skippedCrossRefs = backup.projectAttachmentCrossRefs.size - validCrossRefs.size
-                attachmentDao.insertProjectAttachmentLinks(validCrossRefs)
-                Log.d(
-                    IMPORT_TAG,
-                    "  - Вставлено: ${validCrossRefs.size} projectAttachmentCrossRefs. Skipped invalid=$skippedCrossRefs"
-                )
+            // Використовуємо cleaned attachments
+            attachmentDao.insertAttachments(cleanedAttachments)
+            Log.d(IMPORT_TAG, "  - Вставлено: ${cleanedAttachments.size} attachments.")
+            
+            // Verify actual count in DB after insert
+            val actualAttachmentCount = attachmentDao.getAll().size
+            Log.d(IMPORT_TAG, "  [VERIFY] Actual attachments in DB after insert: $actualAttachmentCount")
+            
+            // Використовуємо cleaned crossrefs
+            val attachmentIds = cleanedAttachments.map { it.id }.toSet()
+            val validCrossRefs = cleanedCrossRefs.filter { it.attachmentId in attachmentIds && it.projectId in projectIds }
+            attachmentDao.insertProjectAttachmentLinks(validCrossRefs)
+            Log.d(
+                IMPORT_TAG,
+                "  - Вставлено: ${validCrossRefs.size} projectAttachmentCrossRefs."
+            )
+            
+            // Verify actual count in DB after insert
+            val actualCrossRefCount = attachmentDao.getAllProjectAttachmentCrossRefs().size
+            Log.d(IMPORT_TAG, "  [VERIFY] Actual crossRefs in DB after insert: $actualCrossRefCount")
 
-                Log.d(IMPORT_TAG, "Транзакція: відновлення settings. Entries=${backupSettingsMap.size}")
-                settingsRepository.restoreFromMap(backupSettingsMap)
-                Log.d(IMPORT_TAG, "Транзакція: запуск DatabaseInitializer.prePopulate().")
-                val systemAppRepository = com.romankozak.forwardappmobile.data.repository.SystemAppRepository(
-                    systemAppDao = systemAppDao,
-                    projectDao = projectDao,
-                    noteDocumentDao = noteDocumentDao,
-                    attachmentRepository = attachmentRepository,
-                )
-                com.romankozak.forwardappmobile.data.database.DatabaseInitializer(projectDao, systemAppRepository).prePopulate()
+            Log.d(IMPORT_TAG, "Транзакція: відновлення settings. Entries=${backupSettingsMap.size}")
+            settingsRepository.restoreFromMap(backupSettingsMap)
+            Log.d(IMPORT_TAG, "Транзакція: запуск DatabaseInitializer.prePopulate().")
+            val systemAppRepository = com.romankozak.forwardappmobile.data.repository.SystemAppRepository(
+                systemAppDao = systemAppDao,
+                projectDao = projectDao,
+                noteDocumentDao = noteDocumentDao,
+                attachmentRepository = attachmentRepository,
+            )
+            com.romankozak.forwardappmobile.data.database.DatabaseInitializer(projectDao, systemAppRepository).prePopulate()
 
-                // Create attachment records for documents and checklists if they don't have attachments yet
-                // This ensures backward compatibility with older backup files
-                if (backup.attachments.isEmpty() && backup.projectAttachmentCrossRefs.isEmpty()) {
-                    Log.d(IMPORT_TAG, "Спроба створити відсутні записи вкладень для старих бекапів...")
-                    backup.documents.forEach {
+            // Create attachment records for documents and checklists if they don't have attachments yet
+            // This ensures backward compatibility with older backup files
+            if (backup.attachments.isEmpty() && backup.projectAttachmentCrossRefs.isEmpty()) {
+                Log.d(IMPORT_TAG, "Спроба створити відсутні записи вкладень для старих бекапів...")
+                cleanedDocuments.forEach {
                         attachmentRepository.ensureAttachmentLinkedToProject(
                             attachmentType = ListItemTypeValues.NOTE_DOCUMENT,
                             entityId = it.id,
@@ -678,7 +875,7 @@ constructor(
                             createdAt = it.createdAt,
                         )
                     }
-                    backup.checklists.forEach {
+                    cleanedChecklists.forEach {
                         attachmentRepository.ensureAttachmentLinkedToProject(
                             attachmentType = ListItemTypeValues.CHECKLIST,
                             entityId = it.id,
@@ -688,14 +885,14 @@ constructor(
                         )
                     }
                     Log.d(IMPORT_TAG, "Створення відсутніх записів вкладень завершено.")
-                } else {
-                    Log.d(IMPORT_TAG, "Attachments уже присутні в бекапі, пропускаємо автоматичне створення. attachments=${backup.attachments.size}, crossRefs=${backup.projectAttachmentCrossRefs.size}")
-                }
+                    } else {
+                    Log.d(IMPORT_TAG, "Attachments уже присутні в бекапі, пропускаємо автоматичне створення. attachments=${cleanedAttachments.size}, crossRefs=${validCrossRefs.size}")
+                    }
 
-                Log.d(IMPORT_TAG, "Транзакція: вставка завершена.")
-            }
+                    Log.d(IMPORT_TAG, "✅ Крок 7 завершен: вставка в базу даних закончена.")
+                    }
 
-            Log.i(IMPORT_TAG, "Orphan projects after import (parentId cleared): ${orphanProjects.size}")
+                    Log.i(IMPORT_TAG, "Orphan projects after import (parentId cleared): 0")
             runPostBackupMigration()
 
             Log.i(IMPORT_TAG, "Імпорт бекапу успішно завершено.")
@@ -706,7 +903,7 @@ constructor(
         }
     }
 
-    suspend fun fetchBackupFromWifi(address: String): Result<String> = 
+    suspend fun fetchBackupFromWifi(address: String, deltaSince: Long? = null): Result<String> = 
         try {
             var cleanAddress = address.trim()
             if (!cleanAddress.startsWith("http://") && !cleanAddress.startsWith("https://")) {
@@ -715,8 +912,12 @@ constructor(
             val uri = cleanAddress.toUri()
             val port = if (uri.port != -1) uri.port else settingsRepository.wifiSyncPortFlow.first()
             val hostAndPort = "${uri.host}:$port"
-            val fullUrl = "http://$hostAndPort/export"
-            Log.d(WIFI_SYNC_LOG_TAG, "[fetchBackupFromWifi] GET $fullUrl")
+            val fullUrl = if (deltaSince != null) {
+                "http://$hostAndPort/export?deltaSince=$deltaSince"
+            } else {
+                "http://$hostAndPort/export"
+            }
+            Log.d(WIFI_SYNC_LOG_TAG, "[fetchBackupFromWifi] GET $fullUrl (deltaSince=$deltaSince)")
             val response: String = client.get(fullUrl).body()
             Log.d(WIFI_SYNC_LOG_TAG, "[fetchBackupFromWifi] Success, bytes=${response.length}")
             Result.success(response)
@@ -780,6 +981,19 @@ constructor(
             attachmentDao.insertAttachments(content.attachments.map { it.copy(syncedAt = ts) })
             attachmentDao.insertProjectAttachmentLinks(content.projectAttachmentCrossRefs.map { it.copy(syncedAt = ts) })
         }
+    }
+
+    suspend fun getLastSyncTime(): Long? {
+        val local = loadLocalDatabaseContent()
+        // Find the earliest syncedAt time (oldest sync) to use as deltaSince for next sync
+        val allSyncedTimes = listOfNotNull(
+            local.projects.mapNotNull { it.syncedAt }.minOrNull(),
+            local.goals.mapNotNull { it.syncedAt }.minOrNull(),
+            local.documents.mapNotNull { it.syncedAt }.minOrNull(),
+            local.attachments.mapNotNull { it.syncedAt }.minOrNull(),
+            local.projectAttachmentCrossRefs.mapNotNull { it.syncedAt }.minOrNull(),
+        )
+        return allSyncedTimes.minOrNull()
     }
 
     suspend fun createSyncReport(jsonString: String): SyncReport {
@@ -969,23 +1183,27 @@ constructor(
         val goalIds = local.goals.map { it.id }.toSet()
 
         // For attachments: export if unsync'd (syncedAt=null) OR updated after 'since'
-        val attachmentsResult = local.attachments.filter { att ->
-            att.syncedAt == null || (att.updatedTs() ?: 0L) > since
-        }
+        val attachmentsUnsync = local.attachments.filter { it.syncedAt == null }
+        val attachmentsUpdated = local.attachments.filter { (it.updatedTs() ?: 0L) > since && it.syncedAt != null }
+        val attachmentsResult = attachmentsUnsync + attachmentsUpdated
         
         // For crossRefs: export if unsync'd (syncedAt=null) OR updated after 'since'
-        val crossRefsResult = local.projectAttachmentCrossRefs.filter { ref ->
-            ref.syncedAt == null || (ref.updatedTs() ?: 0L) > since
-        }
+        val crossRefsUnsync = local.projectAttachmentCrossRefs.filter { it.syncedAt == null }
+        val crossRefsUpdated = local.projectAttachmentCrossRefs.filter { (it.updatedTs() ?: 0L) > since && it.syncedAt != null }
+        val crossRefsResult = crossRefsUnsync + crossRefsUpdated
         
         Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] since=$since")
-        Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] Attachments: total=${local.attachments.size}, unsync'd=${local.attachments.count { it.syncedAt == null }}, updated=${attachmentsResult.count { (it.updatedTs() ?: 0L) > since }}, result=${attachmentsResult.size}")
-        local.attachments.take(5).forEach {
-            val isUnsync = it.syncedAt == null
-            val isUpdated = (it.updatedTs() ?: 0L) > since
-            Log.d(WIFI_SYNC_LOG_TAG, "  - id=${it.id}, type=${it.attachmentType}, unsync'd=$isUnsync, updated=$isUpdated, updatedAt=${it.updatedAt}, syncedAt=${it.syncedAt}")
+        Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] Attachments: total=${local.attachments.size}, unsync'd=${attachmentsUnsync.size}, updated=${attachmentsUpdated.size}, result=${attachmentsResult.size}")
+        
+        if (attachmentsResult.isNotEmpty()) {
+            attachmentsResult.take(5).forEach {
+                val isUnsync = it.syncedAt == null
+                val isUpdated = (it.updatedTs() ?: 0L) > since
+                Log.d(WIFI_SYNC_LOG_TAG, "  [EXPORT] Attachment: id=${it.id}, type=${it.attachmentType}, entity=${it.entityId}, owner=${it.ownerProjectId}, unsync'd=$isUnsync, updated=$isUpdated, updatedAt=${it.updatedAt}, syncedAt=${it.syncedAt}, version=${it.version}")
+            }
         }
-        Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] CrossRefs: total=${local.projectAttachmentCrossRefs.size}, unsync'd=${local.projectAttachmentCrossRefs.count { it.syncedAt == null }}, updated=${crossRefsResult.count { (it.updatedTs() ?: 0L) > since }}, result=${crossRefsResult.size}")
+        
+        Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] CrossRefs: total=${local.projectAttachmentCrossRefs.size}, unsync'd=${crossRefsUnsync.size}, updated=${crossRefsUpdated.size}, result=${crossRefsResult.size}")
 
         return DatabaseContent(
             projects = filterByUpdated(local.projects) { it.updatedTs() },
@@ -1483,6 +1701,19 @@ constructor(
                 incomingScripts.forEach { scriptDao.insert(it) }
 
                 Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Processing attachments. Total incoming: ${correctedChanges.attachments.size}, projects in scope: ${projectIds.size}")
+                
+                // Log attachment filtering details
+                val attachmentsWithoutOwner = correctedChanges.attachments.count { it.ownerProjectId == null }
+                val attachmentsWithInvalidOwner = correctedChanges.attachments.count { it.ownerProjectId != null && it.ownerProjectId !in projectIds }
+                val attachmentsWithValidOwner = correctedChanges.attachments.count { it.ownerProjectId != null && it.ownerProjectId in projectIds }
+                Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Attachments breakdown: orphans=${attachmentsWithoutOwner}, invalid_owner=${attachmentsWithInvalidOwner}, valid_owner=${attachmentsWithValidOwner}")
+                
+                if (attachmentsWithInvalidOwner > 0) {
+                    correctedChanges.attachments.filter { it.ownerProjectId != null && it.ownerProjectId !in projectIds }.take(5).forEach {
+                        Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Filtered out attachment: id=${it.id}, type=${it.attachmentType}, entity=${it.entityId}, ownerProjectId=${it.ownerProjectId}")
+                    }
+                }
+                
                 val incomingAttachments = mergeAndMark(
                     correctedChanges.attachments.filter { it.ownerProjectId == null || it.ownerProjectId in projectIds },
                     local.attachments.associateBy { it.id }, { it.id }, { it.version }, { it.updatedTs() }, { at, synced -> at.copy(syncedAt = synced, updatedAt = maxOf(at.updatedAt, synced)) },
@@ -1491,15 +1722,28 @@ constructor(
                 Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] After merge: ${incomingAttachments.size} attachments to insert")
                 if (incomingAttachments.isNotEmpty()) {
                     incomingAttachments.take(3).forEach {
-                        Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Attachment to insert: id=${it.id}, type=${it.attachmentType}, entity=${it.entityId}, syncedAt=${it.syncedAt}")
+                        Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Attachment to insert: id=${it.id}, type=${it.attachmentType}, entity=${it.entityId}, syncedAt=${it.syncedAt}, ownerProjectId=${it.ownerProjectId}")
                     }
                     attachmentDao.insertAttachments(incomingAttachments)
                 }
 
                 val attachmentIds = (local.attachments.map { it.id } + incomingAttachments.map { it.id }).toSet()
-                Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Processing crossRefs. Total incoming: ${correctedChanges.projectAttachmentCrossRefs.size}, attachments in scope: ${attachmentIds.size}")
+                Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Processing crossRefs. Total incoming: ${correctedChanges.projectAttachmentCrossRefs.size}, attachments in scope: ${attachmentIds.size}, projects in scope: ${projectIds.size}")
+                
+                // Log crossRef filtering details
+                val validCrossRefs = correctedChanges.projectAttachmentCrossRefs.filter { it.projectId in projectIds && it.attachmentId in attachmentIds }
+                val invalidProjectCrossRefs = correctedChanges.projectAttachmentCrossRefs.count { it.projectId !in projectIds }
+                val invalidAttachmentCrossRefs = correctedChanges.projectAttachmentCrossRefs.count { it.projectId in projectIds && it.attachmentId !in attachmentIds }
+                Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] CrossRefs breakdown: valid=${validCrossRefs.size}, invalid_project=${invalidProjectCrossRefs}, invalid_attachment=${invalidAttachmentCrossRefs}")
+                
+                if (invalidProjectCrossRefs > 0 || invalidAttachmentCrossRefs > 0) {
+                    correctedChanges.projectAttachmentCrossRefs.filter { it.projectId !in projectIds || it.attachmentId !in attachmentIds }.take(5).forEach {
+                        Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Filtered out crossRef: projectId=${it.projectId} (valid=${it.projectId in projectIds}), attachmentId=${it.attachmentId} (valid=${it.attachmentId in attachmentIds})")
+                    }
+                }
+                
                 val incomingCrossRefs = mergeAndMark(
-                    correctedChanges.projectAttachmentCrossRefs.filter { it.projectId in projectIds && it.attachmentId in attachmentIds },
+                    validCrossRefs,
                     local.projectAttachmentCrossRefs.associateBy { "${it.projectId}-${it.attachmentId}" },
                     { "${it.projectId}-${it.attachmentId}" }, { it.version }, { it.updatedTs() }, { cr, synced -> cr.copy(syncedAt = synced, updatedAt = maxOf(cr.updatedAt ?: 0L, synced)) },
                     ts

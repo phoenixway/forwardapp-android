@@ -193,8 +193,13 @@ class ProjectActionsUseCase @Inject constructor(
         return withContext(ioDispatcher) { syncRepository.importFullBackupFromFile(uri) }
     }
 
-    suspend fun importAttachments(uri: Uri) =
-        withContext(ioDispatcher) { syncRepository.importAttachmentsFromFile(uri) }
+    suspend fun importAttachments(uri: Uri): Result<String> {
+        Log.d("SyncRepo_AttachmentsImport", "ProjectActionsUseCase.importAttachments called with uri=$uri")
+        return withContext(ioDispatcher) { 
+            Log.d("SyncRepo_AttachmentsImport", "About to call syncRepository.importAttachmentsFromFile")
+            syncRepository.importAttachmentsFromFile(uri) 
+        }
+    }
 
     suspend fun onBottomNavExpandedChange(expanded: Boolean) =
         withContext(ioDispatcher) { settingsRepository.saveBottomNavExpanded(expanded) }

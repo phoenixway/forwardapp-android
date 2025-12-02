@@ -133,17 +133,21 @@ class WifiSyncServer(
                         Log.d(DEBUG_TAG, "[WifiSyncServer] /export from $remote")
                         try {
                             val deltaSinceParam = call.request.queryParameters["deltaSince"] ?: call.request.queryParameters["since"]
+                            Log.d(DEBUG_TAG, "[WifiSyncServer] /export deltaSinceParam=$deltaSinceParam")
                             val backupJson =
                                 if (deltaSinceParam != null) {
                                     val since = deltaSinceParam.toLongOrNull()
                                     if (since != null) {
-                                        Log.d(DEBUG_TAG, "[WifiSyncServer] Serving delta since=$since")
-                                        syncRepository.createDeltaBackupJsonString(since)
+                                        Log.d(DEBUG_TAG, "[WifiSyncServer] Serving DELTA since=$since")
+                                        val deltaJson = syncRepository.createDeltaBackupJsonString(since)
+                                        Log.d(DEBUG_TAG, "[WifiSyncServer] Delta JSON size=${deltaJson.length}")
+                                        deltaJson
                                     } else {
                                         Log.w(DEBUG_TAG, "[WifiSyncServer] Invalid deltaSince param: $deltaSinceParam, falling back to full export")
                                         syncRepository.createFullBackupJsonString()
                                     }
                                 } else {
+                                    Log.d(DEBUG_TAG, "[WifiSyncServer] No deltaSince param, serving FULL export")
                                     syncRepository.createFullBackupJsonString()
                                 }
                             dumpToFile("export", backupJson)
