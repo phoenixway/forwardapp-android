@@ -1018,22 +1018,45 @@ constructor(
 
     private suspend fun markSyncedNow(content: DatabaseContent) {
         val ts = System.currentTimeMillis()
+        Log.d(WIFI_SYNC_LOG_TAG, "[markSyncedNow] START: ts=$ts, projects=${content.projects.size}, docs=${content.documents.size}, attachs=${content.attachments.size}, crossRefs=${content.projectAttachmentCrossRefs.size}")
         appDatabase.withTransaction {
+            Log.d(WIFI_SYNC_LOG_TAG, "[markSyncedNow] Marking ${content.projects.size} projects synced")
             projectDao.insertProjects(content.projects.map { it.copy(syncedAt = ts) })
+            
+            Log.d(WIFI_SYNC_LOG_TAG, "[markSyncedNow] Marking ${content.goals.size} goals synced")
             goalDao.insertGoals(content.goals.map { it.copy(syncedAt = ts) })
+            
+            Log.d(WIFI_SYNC_LOG_TAG, "[markSyncedNow] Marking ${content.listItems.size} listItems synced")
             listItemDao.insertItems(content.listItems.map { it.copy(syncedAt = ts) })
+            
             legacyNoteDao.insertAll(content.legacyNotes.map { it.copy(syncedAt = ts) })
+            
+            Log.d(WIFI_SYNC_LOG_TAG, "[markSyncedNow] Marking ${content.documents.size} note documents synced")
             noteDocumentDao.insertAllDocuments(content.documents.map { it.copy(syncedAt = ts) })
+            
             noteDocumentDao.insertAllDocumentItems(content.documentItems.map { it.copy(syncedAt = ts) })
+            
+            Log.d(WIFI_SYNC_LOG_TAG, "[markSyncedNow] Marking ${content.checklists.size} checklists synced")
             checklistDao.insertChecklists(content.checklists.map { it.copy(syncedAt = ts) })
             checklistDao.insertItems(content.checklistItems.map { it.copy(syncedAt = ts) })
+            
+            Log.d(WIFI_SYNC_LOG_TAG, "[markSyncedNow] Marking ${content.activityRecords.size} activity records synced")
             activityRecordDao.insertAll(content.activityRecords.map { it.copy(syncedAt = ts) })
+            
+            Log.d(WIFI_SYNC_LOG_TAG, "[markSyncedNow] Marking ${content.linkItemEntities.size} link items synced")
             linkItemDao.insertAll(content.linkItemEntities.map { it.copy(syncedAt = ts) })
+            
             inboxRecordDao.insertAll(content.inboxRecords.map { it.copy(syncedAt = ts) })
             projectManagementDao.insertAllLogs(content.projectExecutionLogs.map { it.copy(syncedAt = ts) })
             content.scripts.forEach { scriptDao.insert(it.copy(syncedAt = ts)) }
+            
+            Log.d(WIFI_SYNC_LOG_TAG, "[markSyncedNow] Marking ${content.attachments.size} attachments synced")
             attachmentDao.insertAttachments(content.attachments.map { it.copy(syncedAt = ts) })
+            
+            Log.d(WIFI_SYNC_LOG_TAG, "[markSyncedNow] Marking ${content.projectAttachmentCrossRefs.size} attachment cross-refs synced")
             attachmentDao.insertProjectAttachmentLinks(content.projectAttachmentCrossRefs.map { it.copy(syncedAt = ts) })
+            
+            Log.d(WIFI_SYNC_LOG_TAG, "[markSyncedNow] DONE")
         }
     }
 
@@ -1550,7 +1573,7 @@ constructor(
             val sample = items.take(5).joinToString { "${idSel(it)} upd=${updSel(it)} sync=${syncSel(it)} del=${delSel(it)}" }
             Log.d(WIFI_SYNC_LOG_TAG, "[getUnsynced] $tag count=${items.size} sample=$sample")
         }
-        return DatabaseContent(
+        val unsynced = DatabaseContent(
             projects = local.projects.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) }
                 .also { logUnsynced("projects", it, { it.id }, { it.updatedTs() }, { it.syncedAt }, { it.isDeleted }) },
             goals = local.goals.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) }
@@ -1564,14 +1587,19 @@ constructor(
             checklists = local.checklists.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
             checklistItems = local.checklistItems.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
             activityRecords = local.activityRecords.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
-            linkItemEntities = local.linkItemEntities.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
+            linkItemEntities = local.linkItemEntities.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) }
+                .also { logUnsynced("linkItems", it, { it.id }, { it.updatedTs() }, { it.syncedAt }, { it.isDeleted }) },
             inboxRecords = local.inboxRecords.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
             projectExecutionLogs = local.projectExecutionLogs.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
             scripts = local.scripts.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
-            attachments = local.attachments.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
-            projectAttachmentCrossRefs = local.projectAttachmentCrossRefs.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
+            attachments = local.attachments.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) }
+                .also { logUnsynced("attachments", it, { it.id }, { it.updatedTs() }, { it.syncedAt }, { it.isDeleted }) },
+            projectAttachmentCrossRefs = local.projectAttachmentCrossRefs.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) }
+                .also { logUnsynced("crossRefs", it, { "${it.projectId}:${it.attachmentId}" }, { it.updatedTs() }, { it.syncedAt }, { it.isDeleted }) },
             recentProjectEntries = emptyList(),
         )
+        Log.d(WIFI_SYNC_LOG_TAG, "[getUnsyncedChanges] SUMMARY: docs=${unsynced.documents.size} docItems=${unsynced.documentItems.size} attachs=${unsynced.attachments.size} crossRefs=${unsynced.projectAttachmentCrossRefs.size}")
+        return unsynced
     }
 
 
