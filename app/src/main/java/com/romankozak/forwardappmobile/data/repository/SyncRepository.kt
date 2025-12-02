@@ -1099,32 +1099,39 @@ constructor(
                     updatedSelector: (T) -> Long?,
                     syncedSetter: (T, Long) -> T,
                     isDeletedSelector: (T) -> Boolean = { false },
+                    logConsumer: ((T, T) -> Unit)? = null
                 ): List<T> {
                     val candidates = incoming.filter { inc ->
                         val id = idSelector(inc)
                         val localItem = localMap[id]
                         if (localItem == null) return@filter true
+
+                        logConsumer?.invoke(localItem, inc)
+
                         val incVer = versionSelector(inc)
                         val locVer = versionSelector(localItem)
                         val incUpdated = updatedSelector(inc) ?: 0L
                         val locUpdated = updatedSelector(localItem) ?: 0L
-                        if (incVer > locVer) return@filter true
-                        if (incVer < locVer) return@filter false
-                        if (incUpdated > locUpdated) return@filter true
                         val incDeleted = isDeletedSelector(inc)
                         val locDeleted = isDeletedSelector(localItem)
-                        if (locDeleted && !incDeleted && locUpdated >= incUpdated) {
+
+                        if (locDeleted && !incDeleted) {
                             Log.d(
                                 WIFI_SYNC_LOG_TAG,
-                                "[applyServerChanges][tombstone-protect] id=$id incVer=$incVer locVer=$locVer incUpd=$incUpdated locUpd=$locUpdated -> skip resurrect",
+                                "[applyServerChanges][tombstone-protect] Stricter protection. id=$id -> skip resurrect. Local: $localItem, Incoming: $inc",
                             )
                             return@filter false
                         }
+
+                        if (incVer > locVer) return@filter true
+                        if (incVer < locVer) return@filter false
+                        if (incUpdated > locUpdated) return@filter true
+
                         if (incUpdated == locUpdated) {
                             if (incDeleted && !locDeleted) {
                                 Log.d(
                                     WIFI_SYNC_LOG_TAG,
-                                    "[applyServerChanges][tombstone] id=$id incDel=$incDeleted incVer=$incVer incUpd=$incUpdated locDel=$locDeleted locVer=$locVer locUpd=$locUpdated -> take incoming",
+                                    "[applyServerChanges][tombstone] id=$id -> take incoming. Local: $localItem, Incoming: $inc",
                                 )
                                 return@filter true
                             }
@@ -1132,7 +1139,7 @@ constructor(
                         if (incDeleted || locDeleted) {
                             Log.d(
                                 WIFI_SYNC_LOG_TAG,
-                                "[applyServerChanges][tombstone] id=$id incDel=$incDeleted incVer=$incVer incUpd=$incUpdated locDel=$locDeleted locVer=$locVer locUpd=$locUpdated -> keep local",
+                                "[applyServerChanges][tombstone] id=$id -> keep local. Local: $localItem, Incoming: $inc",
                             )
                         }
                         false
@@ -1194,7 +1201,10 @@ constructor(
                     { it.version },
                     { it.updatedTs() },
                     { g, synced -> normalizeGoal(g).copy(syncedAt = synced) },
-                    { it.isDeleted }
+                    { it.isDeleted },
+                    logConsumer = { local, incoming ->
+                        Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges][GoalMergeCheck] Local: $local, Incoming: $incoming")
+                    }
                 )
                 if (incomingGoals.isNotEmpty()) {
                     Log.d(

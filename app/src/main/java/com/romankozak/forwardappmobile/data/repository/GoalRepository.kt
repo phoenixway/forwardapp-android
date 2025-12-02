@@ -14,6 +14,9 @@ import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Provider
 import javax.inject.Singleton
+import android.util.Log
+
+private const val SYNC_LOG_TAG = "FWD_SYNC_TEST"
 
 @Singleton
 class GoalRepository @Inject constructor(
@@ -144,14 +147,16 @@ class GoalRepository @Inject constructor(
     suspend fun deleteGoal(goalId: String) {
         val now = System.currentTimeMillis()
         goalDao.getGoalById(goalId)?.let { goal ->
-            goalDao.insertGoal(
-                goal.softDelete(now),
-            )
+            Log.d(SYNC_LOG_TAG, "[GoalRepo] Deleting Goal. Original: $goal")
+            val tombstone = goal.softDelete(now)
+            Log.d(SYNC_LOG_TAG, "[GoalRepo] Deleting Goal. Tombstone: $tombstone")
+            goalDao.insertGoal(tombstone)
         }
         listItemDao.getListItemByEntityId(goalId)?.let { listItem ->
-            listItemDao.insertItem(
-                listItem.softDelete(now),
-            )
+            Log.d(SYNC_LOG_TAG, "[GoalRepo] Deleting ListItem. Original: $listItem")
+            val tombstone = listItem.softDelete(now)
+            Log.d(SYNC_LOG_TAG, "[GoalRepo] Deleting ListItem. Tombstone: $tombstone")
+            listItemDao.insertItem(tombstone)
         }
     }
 
@@ -167,7 +172,7 @@ class GoalRepository @Inject constructor(
 
     fun getAllGoalsCountFlow(): Flow<Int> = goalDao.getAllGoalsCountFlow()
 
-    fun getAllGoalsFlow(): Flow<List<Goal>> = goalDao.getAllGoalsFlow()
+    fun getAllGoalsFlow(): Flow<List<Goal>> = goalDao.getAllVisibleGoalsFlow()
 
     suspend fun getAllGoals(): List<Goal> = goalDao.getAll()
 
