@@ -1864,12 +1864,30 @@ constructor(
                     }
                 }
                 
+                // ========== DEFECT #4 FIX: Handle attachments that are already synced ==========
+                // When Desktop re-sends attachments that were already synced, mergeAndMark() skips them
+                // because version hasn't changed. We need to ensure synced attachments stay marked as synced.
+                // Track which attachments are already synced locally
+                val alreadySyncedLocalAttachments = local.attachments.filter { it.syncedAt != null }.associateBy { it.id }
+                
                 // Process incoming attachments using ALL local projects (DEFECT #3 FIX)
                 val incomingAttachments = mergeAndMark(
                     correctedChanges.attachments.filter { it.ownerProjectId == null || it.ownerProjectId in allLocalProjectIds },
                     local.attachments.associateBy { it.id }, { it.id }, { it.version }, { it.updatedTs() }, { at, synced -> at.copy(syncedAt = synced, updatedAt = maxOf(at.updatedAt, synced)) },
                     ts
                 )
+                
+                // DEFECT #4 FIX: Re-include attachments that were already synced but filtered by mergeAndMark
+                // This prevents losing sync state when Desktop re-sends the same attachments
+                val alreadySyncedReincluded = correctedChanges.attachments
+                    .filter { it.ownerProjectId == null || it.ownerProjectId in allLocalProjectIds }
+                    .filter { it.id in alreadySyncedLocalAttachments }
+                    .map { it.copy(syncedAt = ts, updatedAt = maxOf(it.updatedAt, ts)) }
+                
+                Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] DEFECT #4 INFO: ${alreadySyncedReincluded.size} already-synced attachments re-included to maintain sync state")
+                
+                val allIncomingAttachments = incomingAttachments + alreadySyncedReincluded
+                val uniqueIncomingAttachments = allIncomingAttachments.distinctBy { it.id }
                 
                 // DEFECT #1 FIX: When desktop sends 0 attachments, mark unsynced local attachments as synced
                 // This prevents them from being stuck in "unsynced" state forever
@@ -1885,10 +1903,10 @@ constructor(
                     Log.w(WIFI_SYNC_LOG_TAG, "[applyServerChanges] DEFECT #1 HANDLED: Desktop sent 0 attachments but marking ${unsyncedLocalAttachments.size} local unsynced attachments as synced to prevent limbo state")
                 }
                 
-                Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] After merge: ${incomingAttachments.size} attachments from incoming, ${unsyncedLocalAttachments.size} marked as synced from local")
+                Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] After merge: ${incomingAttachments.size} from mergeAndMark, ${alreadySyncedReincluded.size} re-included, ${unsyncedLocalAttachments.size} from DEFECT #1")
                 
-                // Combine incoming and locally-synced attachments
-                val allAttachmentsToInsert = incomingAttachments + unsyncedLocalAttachments
+                // Combine all attachment sources: incoming (new/updated), already-synced (re-included), and DEFECT #1 (local unsynced)
+                val allAttachmentsToInsert = uniqueIncomingAttachments + unsyncedLocalAttachments
                 if (allAttachmentsToInsert.isNotEmpty()) {
                     allAttachmentsToInsert.take(3).forEach {
                         Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Attachment to insert: id=${it.id}, type=${it.attachmentType}, entity=${it.entityId}, syncedAt=${it.syncedAt}, ownerProjectId=${it.ownerProjectId}, version=${it.version}")
@@ -1896,7 +1914,7 @@ constructor(
                     attachmentDao.insertAttachments(allAttachmentsToInsert)
                 }
 
-                val attachmentIds = (local.attachments.map { it.id } + incomingAttachments.map { it.id } + unsyncedLocalAttachments.map { it.id }).toSet()
+                val attachmentIds = (local.attachments.map { it.id } + uniqueIncomingAttachments.map { it.id } + unsyncedLocalAttachments.map { it.id }).toSet()
                 Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Processing crossRefs. Total incoming: ${correctedChanges.projectAttachmentCrossRefs.size}, attachments in scope: ${attachmentIds.size}, delta projects: ${projectIds.size}, all local projects: ${allLocalProjectIds.size}")
                 
                 // Log crossRef filtering details (also use allLocalProjectIds for crossRefs - DEFECT #3 FIX)
