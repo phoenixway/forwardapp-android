@@ -636,6 +636,14 @@ constructor(
     suspend fun pushUnsyncedToWifi(address: String): Result<Unit> =
         try {
             val unsynced = getUnsyncedChanges()
+            Log.d(
+                WIFI_SYNC_LOG_TAG,
+                "[pushUnsyncedToWifi] unsynced goals=${unsynced.goals.size}",
+            )
+            Log.d(
+                WIFI_SYNC_LOG_TAG,
+                "[pushUnsyncedToWifi] unsynced listItems=${unsynced.listItems.size}",
+            )
             val fullUrl = address.trim().let { raw ->
                 val normalized = if (raw.startsWith("http")) raw else "http://$raw"
                 val uri = normalized.toUri()
@@ -1037,10 +1045,17 @@ constructor(
 
     suspend fun getUnsyncedChanges(): DatabaseContent {
         val local = loadLocalDatabaseContent()
+        fun <T> logUnsynced(tag: String, items: List<T>, idSel: (T) -> String, updSel: (T) -> Long?, syncSel: (T) -> Long?, delSel: (T) -> Boolean) {
+            val sample = items.take(5).joinToString { "${idSel(it)} upd=${updSel(it)} sync=${syncSel(it)} del=${delSel(it)}" }
+            Log.d(WIFI_SYNC_LOG_TAG, "[getUnsynced] $tag count=${items.size} sample=$sample")
+        }
         return DatabaseContent(
-            projects = local.projects.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
-            goals = local.goals.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
-            listItems = local.listItems.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
+            projects = local.projects.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) }
+                .also { logUnsynced("projects", it, { it.id }, { it.updatedTs() }, { it.syncedAt }, { it.isDeleted }) },
+            goals = local.goals.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) }
+                .also { logUnsynced("goals", it, { it.id }, { it.updatedTs() }, { it.syncedAt }, { it.isDeleted }) },
+            listItems = local.listItems.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) }
+                .also { logUnsynced("listItems", it, { it.id }, { it.updatedTs() }, { it.syncedAt }, { it.isDeleted }) },
             legacyNotes = local.legacyNotes.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
             documents = local.documents.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
             documentItems = local.documentItems.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
@@ -1082,29 +1097,71 @@ constructor(
                     idSelector: (T) -> String,
                     versionSelector: (T) -> Long,
                     updatedSelector: (T) -> Long?,
-                    syncedSetter: (T, Long) -> T
+                    syncedSetter: (T, Long) -> T,
+                    isDeletedSelector: (T) -> Boolean = { false },
                 ): List<T> {
                     val candidates = incoming.filter { inc ->
-                        val localItem = localMap[idSelector(inc)]
+                        val id = idSelector(inc)
+                        val localItem = localMap[id]
                         if (localItem == null) return@filter true
                         val incVer = versionSelector(inc)
                         val locVer = versionSelector(localItem)
-                        if (incVer > locVer) return@filter true
-                        if (incVer < locVer) return@filter false
                         val incUpdated = updatedSelector(inc) ?: 0L
                         val locUpdated = updatedSelector(localItem) ?: 0L
-                        incUpdated > locUpdated
+                        if (incVer > locVer) return@filter true
+                        if (incVer < locVer) return@filter false
+                        if (incUpdated > locUpdated) return@filter true
+                        val incDeleted = isDeletedSelector(inc)
+                        val locDeleted = isDeletedSelector(localItem)
+                        if (locDeleted && !incDeleted && locUpdated >= incUpdated) {
+                            Log.d(
+                                WIFI_SYNC_LOG_TAG,
+                                "[applyServerChanges][tombstone-protect] id=$id incVer=$incVer locVer=$locVer incUpd=$incUpdated locUpd=$locUpdated -> skip resurrect",
+                            )
+                            return@filter false
+                        }
+                        if (incUpdated == locUpdated) {
+                            if (incDeleted && !locDeleted) {
+                                Log.d(
+                                    WIFI_SYNC_LOG_TAG,
+                                    "[applyServerChanges][tombstone] id=$id incDel=$incDeleted incVer=$incVer incUpd=$incUpdated locDel=$locDeleted locVer=$locVer locUpd=$locUpdated -> take incoming",
+                                )
+                                return@filter true
+                            }
+                        }
+                        if (incDeleted || locDeleted) {
+                            Log.d(
+                                WIFI_SYNC_LOG_TAG,
+                                "[applyServerChanges][tombstone] id=$id incDel=$incDeleted incVer=$incVer incUpd=$incUpdated locDel=$locDeleted locVer=$locVer locUpd=$locUpdated -> keep local",
+                            )
+                        }
+                        false
                     }
                     return candidates
                         .groupBy { idSelector(it) }
                         .values
                         .map { variants ->
-                            variants.maxWith(
+                            val newest = variants.maxWith(
                                 compareBy(
                                     versionSelector,
                                     { updatedSelector(it) ?: 0L },
                                 ),
                             )
+                            val tombstone = variants
+                                .filter { isDeletedSelector(it) }
+                                .maxWithOrNull(
+                                    compareBy(
+                                        versionSelector,
+                                        { updatedSelector(it) ?: 0L },
+                                    ),
+                                )
+                            if (tombstone != null) {
+                                val tombstoneUpdated = updatedSelector(tombstone) ?: 0L
+                                val newestUpdated = updatedSelector(newest) ?: 0L
+                                if (tombstoneUpdated >= newestUpdated) tombstone else newest
+                            } else {
+                                newest
+                            }
                         }
                         .map { syncedSetter(it, ts) }
                 }
@@ -1115,7 +1172,8 @@ constructor(
                     { it.id },
                     { it.version },
                     { it.updatedTs() },
-                    { p, synced -> normalizeProject(p).copy(syncedAt = synced) }
+                    { p, synced -> normalizeProject(p).copy(syncedAt = synced) },
+                    { it.isDeleted }
                 ).filterNot { it.systemKey != null && it.isDeleted }
                 if (incomingProjects.isNotEmpty()) {
                     val existingIds = projectDao.getProjectsByIds(incomingProjects.map { it.id }).map { it.id }.toSet()
@@ -1135,7 +1193,8 @@ constructor(
                     { it.id },
                     { it.version },
                     { it.updatedTs() },
-                    { g, synced -> normalizeGoal(g).copy(syncedAt = synced) }
+                    { g, synced -> normalizeGoal(g).copy(syncedAt = synced) },
+                    { it.isDeleted }
                 )
                 if (incomingGoals.isNotEmpty()) {
                     Log.d(
@@ -1154,7 +1213,8 @@ constructor(
                     { it.id },
                     { it.version },
                     { it.updatedTs() },
-                    { li, synced -> li.copy(syncedAt = synced) }
+                    { li, synced -> li.copy(syncedAt = synced) },
+                    { it.isDeleted }
                 )
                 if (incomingListItems.isNotEmpty()) {
                     Log.d(

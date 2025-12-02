@@ -103,4 +103,6 @@
 ## 8. Після цього
 
 --- 
+codex resume 019adab2-2e46-7cc1-9be5-b7214f2f9e50
 
+codex resume 019adaa2-b18b-74a1-b6d3-5e293026bb51

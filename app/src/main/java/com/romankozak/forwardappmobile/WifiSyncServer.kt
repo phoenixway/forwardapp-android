@@ -27,6 +27,8 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import java.net.Inet4Address
+import java.net.InetSocketAddress
+import java.net.ServerSocket
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
@@ -80,6 +82,13 @@ class WifiSyncServer(
             Log.d(DEBUG_TAG, "[WifiSyncServer] Starting on $ipAddress:$port")
 
             Log.d(TAG, "Server Start: Attempting to start Ktor server on $ipAddress:$port")
+
+            if (!isPortFree(port)) {
+                val msg = "Port $port is already in use. Stop other sync server or pick another port."
+                val exception = java.net.BindException(msg)
+                Log.e(DEBUG_TAG, "[WifiSyncServer] Port check failed: $msg", exception)
+                return Result.failure(exception)
+            }
 
             val engine = embeddedServer(CIO, port = port, host = "0.0.0.0") {
                 install(ContentNegotiation) {
@@ -236,5 +245,18 @@ class WifiSyncServer(
             )
         }
         return null
+    }
+
+    private fun isPortFree(port: Int): Boolean {
+        return runCatching {
+            ServerSocket().use { socket ->
+                socket.reuseAddress = true
+                socket.bind(InetSocketAddress("0.0.0.0", port))
+                true
+            }
+        }.getOrElse { throwable ->
+            Log.w(DEBUG_TAG, "[WifiSyncServer] Port $port busy: ${throwable.message}")
+            false
+        }
     }
 }

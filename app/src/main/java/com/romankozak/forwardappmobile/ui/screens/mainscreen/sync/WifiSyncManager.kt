@@ -28,6 +28,7 @@ class WifiSyncManager(
 ) {
   private val wifiSyncServer = WifiSyncServer(syncRepository, application)
   private var isServerRunning = false
+  private var isServerStarting = false
 
   private val _showWifiServerDialog = MutableStateFlow(false)
   val showWifiServerDialog: StateFlow<Boolean> = _showWifiServerDialog.asStateFlow()
@@ -82,10 +83,11 @@ class WifiSyncManager(
 
   private fun startWifiServer() {
     viewModelScope.launch {
-      if (isServerRunning) {
+      if (isServerRunning || isServerStarting) {
         _syncStatus.value = WifiSyncStatus.ServerRunning(_wifiServerAddress.value)
         return@launch
       }
+      isServerStarting = true
       _syncStatus.value = WifiSyncStatus.Syncing
       val port = settingsRepository.wifiSyncPortFlow.first()
       Log.d(SYNC_LOG_TAG, "[WifiSyncManager] Starting Wi‑Fi server on port $port")
@@ -104,6 +106,7 @@ class WifiSyncManager(
           _syncStatus.value = WifiSyncStatus.Error(message)
           Log.e(SYNC_LOG_TAG, "[WifiSyncManager] Failed to start server: $message", exception)
         }
+      isServerStarting = false
     }
   }
 
