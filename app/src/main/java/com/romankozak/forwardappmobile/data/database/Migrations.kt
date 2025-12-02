@@ -800,3 +800,82 @@ val MIGRATION_71_72 = object : Migration(71, 72) {
         db.execSQL("UPDATE `reminders` SET `version` = 1 WHERE `version` = 0")
     }
 }
+
+val MIGRATION_72_73 = object : Migration(72, 73) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Delete duplicate system_key entries (keep the first one)
+        db.execSQL(
+            """
+            DELETE FROM `projects`
+            WHERE `id` NOT IN (
+                SELECT MIN(`id`) FROM `projects`
+                WHERE `system_key` IS NOT NULL
+                GROUP BY `system_key`
+            )
+            AND `system_key` IS NOT NULL
+            """.trimIndent()
+        )
+
+        // Create new projects table with unique constraint on system_key
+        db.execSQL(
+            """
+            CREATE TABLE `projects_new` (
+                `id` TEXT NOT NULL,
+                `title` TEXT NOT NULL,
+                `description` TEXT,
+                `icon_name` TEXT,
+                `color` INTEGER,
+                `created_at` INTEGER NOT NULL DEFAULT 0,
+                `updated_at` INTEGER,
+                `is_favorite` INTEGER NOT NULL DEFAULT 0,
+                `parent_project_id` TEXT,
+                `is_archived` INTEGER NOT NULL DEFAULT 0,
+                `view_type` TEXT NOT NULL DEFAULT 'LIST',
+                `sort_type` TEXT NOT NULL DEFAULT 'DEFAULT',
+                `group_by` TEXT NOT NULL DEFAULT 'NONE',
+                `show_completed_tasks` INTEGER NOT NULL DEFAULT 1,
+                `notifications_enabled` INTEGER NOT NULL DEFAULT 1,
+                `last_opened_at` INTEGER,
+                `custom_fields` TEXT,
+                `status` TEXT NOT NULL DEFAULT 'IN_PROGRESS',
+                `deadline` INTEGER,
+                `tags` TEXT,
+                `owner_id` TEXT,
+                `members` TEXT,
+                `permissions` TEXT,
+                `default_task_list_id` TEXT,
+                `completed_at` INTEGER,
+                `progress` INTEGER NOT NULL DEFAULT 0,
+                `budget` REAL,
+                `spent` REAL,
+                `is_private` INTEGER NOT NULL DEFAULT 0,
+                `is_template` INTEGER NOT NULL DEFAULT 0,
+                `template_id` TEXT,
+                `relatedLinks` TEXT,
+                `system_key` TEXT UNIQUE,
+                `synced_at` INTEGER,
+                `is_deleted` INTEGER NOT NULL DEFAULT 0,
+                `version` INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY(`id`)
+            )
+            """.trimIndent()
+        )
+
+        // Copy data from old table to new table
+        db.execSQL(
+            """
+            INSERT INTO `projects_new` SELECT * FROM `projects`
+            """.trimIndent()
+        )
+
+        // Drop old table
+        db.execSQL("DROP TABLE `projects`")
+
+        // Rename new table
+        db.execSQL("ALTER TABLE `projects_new` RENAME TO `projects`")
+
+        // Create indices
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_projects_parent_project_id` ON `projects` (`parent_project_id`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `idx_projects_systemkey_unique` ON `projects` (`system_key`)")
+    }
+}

@@ -99,6 +99,7 @@ import com.romankozak.forwardappmobile.data.database.MIGRATION_68_69
 import com.romankozak.forwardappmobile.data.database.MIGRATION_69_70
 import com.romankozak.forwardappmobile.data.database.MIGRATION_70_71
 import com.romankozak.forwardappmobile.data.database.MIGRATION_71_72
+import com.romankozak.forwardappmobile.data.database.MIGRATION_72_73
 import com.romankozak.forwardappmobile.data.repository.SystemAppRepository
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 
@@ -193,6 +194,7 @@ object DatabaseModule {
             MIGRATION_69_70,
             MIGRATION_70_71,
             MIGRATION_71_72,
+            MIGRATION_72_73,
         ).addCallback(callback).build()
         return db
     }
