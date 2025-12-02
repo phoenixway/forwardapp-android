@@ -80,6 +80,80 @@ import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
+private fun <T> mergeAndMark(
+    incoming: List<T>,
+    localMap: Map<String, T>,
+    idSelector: (T) -> String,
+    versionSelector: (T) -> Long,
+    updatedSelector: (T) -> Long?,
+    syncedSetter: (T, Long) -> T,
+    ts: Long,
+    isDeletedSelector: (T) -> Boolean = { false },
+    logConsumer: ((T, T) -> Unit)? = null
+): List<T> {
+    val candidates = incoming.filter { inc ->
+        val id = idSelector(inc)
+        val localItem = localMap[id]
+        if (localItem == null) return@filter true
+
+        logConsumer?.invoke(localItem, inc)
+
+        val incVer = versionSelector(inc)
+        val locVer = versionSelector(localItem)
+        val incUpdated = updatedSelector(inc) ?: 0L
+        val locUpdated = updatedSelector(localItem) ?: 0L
+        val incDeleted = isDeletedSelector(inc)
+        val locDeleted = isDeletedSelector(localItem)
+
+        if (locDeleted && !incDeleted) {
+            Log.d("FWD_SYNC_TEST", "[applyServerChanges][tombstone-protect] Stricter protection. id=$id -> skip resurrect. Local: $localItem, Incoming: $inc")
+            return@filter false
+        }
+
+        if (incVer > locVer) return@filter true
+        if (incVer < locVer) return@filter false
+        if (incUpdated > locUpdated) return@filter true
+
+        if (incUpdated == locUpdated) {
+            if (incDeleted && !locDeleted) {
+                Log.d("FWD_SYNC_TEST", "[applyServerChanges][tombstone] id=$id -> take incoming. Local: $localItem, Incoming: $inc")
+                return@filter true
+            }
+        }
+        if (incDeleted || locDeleted) {
+            Log.d("FWD_SYNC_TEST", "[applyServerChanges][tombstone] id=$id -> keep local. Local: $localItem, Incoming: $inc")
+        }
+        false
+    }
+    return candidates
+        .groupBy { idSelector(it) }
+        .values
+        .map { variants ->
+            val newest = variants.maxWith(
+                compareBy(
+                    versionSelector,
+                    { updatedSelector(it) ?: 0L },
+                ),
+            )
+            val tombstone = variants
+                .filter { isDeletedSelector(it) }
+                .maxWithOrNull(
+                    compareBy(
+                        versionSelector,
+                        { updatedSelector(it) ?: 0L },
+                    ),
+                )
+            if (tombstone != null) {
+                val tombstoneUpdated = updatedSelector(tombstone) ?: 0L
+                val newestUpdated = updatedSelector(newest) ?: 0L
+                if (tombstoneUpdated >= newestUpdated) tombstone else newest
+            } else {
+                newest
+            }
+        }
+        .map { syncedSetter(it, ts) }
+}
+
 enum class ChangeType {
     Add,
     Update,
@@ -1159,188 +1233,200 @@ constructor(
         )
     }
 
-    suspend fun applyServerChanges(changes: DatabaseContent): Result<Unit> {
-        val ts = System.currentTimeMillis()
-        return try {
+
+suspend fun applyServerChanges(changes: DatabaseContent): Result<Unit> {
+    val ts = System.currentTimeMillis()
+    return try {
+        Log.d(
+            WIFI_SYNC_LOG_TAG,
+            "[applyServerChanges] Incoming projects=${changes.projects.size}, goals=${changes.goals.size}, " +
+                "listItems=${changes.listItems.size}, attachments=${changes.attachments.size}",
+        )
+        appDatabase.withTransaction {
+            val normalized = changes.copy(
+                projects = changes.projects.map { normalizeProject(it) },
+                goals = changes.goals.map { normalizeGoal(it) },
+            )
             Log.d(
                 WIFI_SYNC_LOG_TAG,
-                "[applyServerChanges] Incoming projects=${changes.projects.size}, goals=${changes.goals.size}, " +
-                    "listItems=${changes.listItems.size}, attachments=${changes.attachments.size}",
+                "[applyServerChanges] normalized counts projects=${normalized.projects.size} goals=${normalized.goals.size} listItems=${normalized.listItems.size}",
             )
-            appDatabase.withTransaction {
-                val normalized = changes.copy(
-                    projects = changes.projects.map { normalizeProject(it) },
-                    goals = changes.goals.map { normalizeGoal(it) },
-                )
-                Log.d(
-                    WIFI_SYNC_LOG_TAG,
-                    "[applyServerChanges] normalized counts projects=${normalized.projects.size} goals=${normalized.goals.size} listItems=${normalized.listItems.size}",
-                )
-                val local = loadLocalDatabaseContent()
+            val local = loadLocalDatabaseContent()
 
-                // 1. Align System Project IDs and create a redirect map
-                val localSystemProjects = local.projects.filter { it.systemKey != null }.associateBy { it.systemKey!! }
-                val idRedirects = mutableMapOf<String, String>()
-                val correctedIncomingProjects = normalized.projects.map { incomingProject ->
-                    incomingProject.systemKey?.let { key ->
-                        localSystemProjects[key]?.let { localSystemProject ->
-                            if (localSystemProject.id != incomingProject.id) {
-                                Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Aligning system project. Key: $key, Old ID: ${incomingProject.id}, New ID: ${localSystemProject.id}")
-                                idRedirects[incomingProject.id] = localSystemProject.id
-                                return@map incomingProject.copy(id = localSystemProject.id)
-                            }
+            // 1. Align System Project IDs and create a redirect map
+            val localSystemProjects = local.projects.filter { it.systemKey != null }.associateBy { it.systemKey!! }
+            val idRedirects = mutableMapOf<String, String>()
+            val correctedIncomingProjects = normalized.projects.map { incomingProject ->
+                incomingProject.systemKey?.let { key ->
+                    localSystemProjects[key]?.let { localSystemProject ->
+                        if (localSystemProject.id != incomingProject.id) {
+                            Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Aligning system project. Key: $key, Old ID: ${incomingProject.id}, New ID: ${localSystemProject.id}")
+                            idRedirects[incomingProject.id] = localSystemProject.id
+                            return@map incomingProject.copy(id = localSystemProject.id)
                         }
                     }
-                    incomingProject
                 }
-
-                // 2. Apply ID redirects to all related entities
-                val correctedChanges = normalized.copy(
-                    projects = correctedIncomingProjects.map { proj ->
-                        idRedirects[proj.parentId]?.let { proj.copy(parentId = it) } ?: proj
-                    },
-                    listItems = normalized.listItems.map { li ->
-                        val newProjectId = idRedirects[li.projectId]
-                        val newEntityId = if (li.itemType == ListItemTypeValues.SUBLIST) idRedirects[li.entityId] else null
-                        li.copy(
-                            projectId = newProjectId ?: li.projectId,
-                            entityId = newEntityId ?: li.entityId
-                        )
-                    },
-                    documents = normalized.documents.map { doc ->
-                        idRedirects[doc.projectId]?.let { doc.copy(projectId = it) } ?: doc
-                    },
-                    checklists = normalized.checklists.map { cl ->
-                        idRedirects[cl.projectId]?.let { cl.copy(projectId = it) } ?: cl
-                    },
-                    projectAttachmentCrossRefs = normalized.projectAttachmentCrossRefs.map { crossRef ->
-                        idRedirects[crossRef.projectId]?.let { crossRef.copy(projectId = it) } ?: crossRef
-                    },
-                    inboxRecords = normalized.inboxRecords.map { r ->
-                        idRedirects[r.projectId]?.let { r.copy(projectId = it) } ?: r
-                    },
-                    projectExecutionLogs = normalized.projectExecutionLogs.map { log ->
-                        idRedirects[log.projectId]?.let { log.copy(projectId = it) } ?: log
-                    },
-                     attachments = normalized.attachments.map { at ->
-                        at.copy(ownerProjectId = at.ownerProjectId?.let { pid -> idRedirects[pid] ?: pid })
-                    }
-                )
-
-                // 3. Merge entities
-                val incomingProjects = mergeAndMark(
-                    correctedChanges.projects,
-                    local.projects.associateBy { it.id },
-                    { it.id }, { it.version }, { it.updatedTs() },
-                    { p, synced -> normalizeProject(p).copy(syncedAt = synced) },
-                    { it.isDeleted }
-                ).filterNot { it.systemKey != null && it.isDeleted }
-
-                if (incomingProjects.isNotEmpty()) projectDao.insertProjects(incomingProjects)
-
-                val incomingGoals = mergeAndMark(
-                    correctedChanges.goals,
-                    local.goals.associateBy { it.id },
-                    { it.id }, { it.version }, { it.updatedTs() },
-                    { g, synced -> normalizeGoal(g).copy(syncedAt = synced) }
-                )
-                if (incomingGoals.isNotEmpty()) goalDao.insertGoals(incomingGoals)
-
-                val projectIds = (local.projects.map { it.id } + incomingProjects.map { it.id }).toSet()
-                val goalIds = (local.goals.map { it.id } + incomingGoals.map { it.id }).toSet()
-
-                val incomingListItems = mergeAndMark(
-                    correctedChanges.listItems.filter { it.projectId in projectIds && (it.itemType != ListItemTypeValues.GOAL || it.entityId in goalIds) && (it.itemType != ListItemTypeValues.SUBLIST || it.entityId in projectIds) },
-                    local.listItems.associateBy { it.id },
-                    { it.id }, { it.version }, { it.updatedTs() },
-                    { li, synced -> li.copy(syncedAt = synced) },
-                    { it.isDeleted }
-                )
-                if (incomingListItems.isNotEmpty()) listItemDao.insertItems(incomingListItems)
-                
-                val incomingNotes = mergeAndMark(
-                    correctedChanges.legacyNotes, local.legacyNotes.associateBy { it.id },
-                    { it.id }, { it.version }, { it.updatedAt }, { n, synced -> n.copy(syncedAt = synced) }
-                )
-                if (incomingNotes.isNotEmpty()) legacyNoteDao.insertAll(incomingNotes)
-
-                val incomingDocs = mergeAndMark(
-                    correctedChanges.documents, local.documents.associateBy { it.id },
-                    { it.id }, { it.version }, { it.updatedTs() }, { d, synced -> d.copy(syncedAt = synced) }
-                )
-                if (incomingDocs.isNotEmpty()) noteDocumentDao.insertAllDocuments(incomingDocs)
-
-                val incomingDocItems = mergeAndMark(
-                    correctedChanges.documentItems, local.documentItems.associateBy { it.id },
-                    { it.id }, { it.version }, { it.updatedTs() }, { di, synced -> di.copy(syncedAt = synced) }
-                )
-                if (incomingDocItems.isNotEmpty()) noteDocumentDao.insertAllDocumentItems(incomingDocItems)
-
-                val incomingChecklists = mergeAndMark(
-                    correctedChanges.checklists, local.checklists.associateBy { it.id },
-                    { it.id }, { it.version }, { it.updatedAt }, { cl, synced -> cl.copy(syncedAt = synced) }
-                )
-                if (incomingChecklists.isNotEmpty()) checklistDao.insertChecklists(incomingChecklists)
-
-                val checklistIds = (local.checklists.map { it.id } + incomingChecklists.map { it.id }).toSet()
-                val incomingChecklistItems = mergeAndMark(
-                    correctedChanges.checklistItems.filter { it.checklistId in checklistIds },
-                    local.checklistItems.associateBy { it.id },
-                    { it.id }, { it.version }, { it.updatedAt }, { cli, synced -> cli.copy(syncedAt = synced) }
-                )
-                if (incomingChecklistItems.isNotEmpty()) checklistDao.insertItems(incomingChecklistItems)
-
-                val incomingActivities = mergeAndMark(
-                    correctedChanges.activityRecords, local.activityRecords.associateBy { it.id },
-                    { it.id }, { it.version }, { it.updatedTs() }, { ar, synced -> ar.copy(syncedAt = synced) }
-                )
-                if (incomingActivities.isNotEmpty()) activityRecordDao.insertAll(incomingActivities)
-
-                val incomingLinks = mergeAndMark(
-                    correctedChanges.linkItemEntities, local.linkItemEntities.associateBy { it.id },
-                    { it.id }, { it.version }, { it.updatedTs() }, { li, synced -> li.copy(syncedAt = synced) }
-                )
-                if (incomingLinks.isNotEmpty()) linkItemDao.insertAll(incomingLinks)
-
-                val incomingInbox = mergeAndMark(
-                    correctedChanges.inboxRecords, local.inboxRecords.associateBy { it.id },
-                    { it.id }, { it.version }, { it.updatedTs() }, { ir, synced -> ir.copy(syncedAt = synced) }
-                )
-                if (incomingInbox.isNotEmpty()) inboxRecordDao.insertAll(incomingInbox)
-
-                val incomingLogs = mergeAndMark(
-                    correctedChanges.projectExecutionLogs, local.projectExecutionLogs.associateBy { it.id },
-                    { it.id }, { it.version }, { it.updatedTs() }, { log, synced -> log.copy(syncedAt = synced) }
-                )
-                if (incomingLogs.isNotEmpty()) projectManagementDao.insertAllLogs(incomingLogs)
-
-                val incomingScripts = mergeAndMark(
-                    correctedChanges.scripts, local.scripts.associateBy { it.id },
-                    { it.id }, { it.version }, { it.updatedAt }, { sc, synced -> sc.copy(syncedAt = synced) }
-                )
-                incomingScripts.forEach { scriptDao.insert(it) }
-
-                val incomingAttachments = mergeAndMark(
-                    correctedChanges.attachments.filter { it.ownerProjectId == null || it.ownerProjectId in projectIds },
-                    local.attachments.associateBy { it.id }, { it.id }, { it.version }, { it.updatedTs() }, { at, synced -> at.copy(syncedAt = synced) }
-                )
-                if (incomingAttachments.isNotEmpty()) attachmentDao.insertAttachments(incomingAttachments)
-
-                val attachmentIds = (local.attachments.map { it.id } + incomingAttachments.map { it.id }).toSet()
-                val incomingCrossRefs = mergeAndMark(
-                    correctedChanges.projectAttachmentCrossRefs.filter { it.projectId in projectIds && it.attachmentId in attachmentIds },
-                    local.projectAttachmentCrossRefs.associateBy { "${it.projectId}-${it.attachmentId}" },
-                    { "${it.projectId}-${it.attachmentId}" }, { it.version }, { it.updatedTs() }, { cr, synced -> cr.copy(syncedAt = synced) }
-                )
-                if (incomingCrossRefs.isNotEmpty()) attachmentDao.insertProjectAttachmentLinks(incomingCrossRefs)
+                incomingProject
             }
-            Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Applied at $ts")
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to apply server changes", e)
-            Result.failure(e)
+
+            // 2. Apply ID redirects to all related entities
+            val correctedChanges = normalized.copy(
+                projects = correctedIncomingProjects.map { proj ->
+                    idRedirects[proj.parentId]?.let { proj.copy(parentId = it) } ?: proj
+                },
+                listItems = normalized.listItems.map { li ->
+                    val newProjectId = idRedirects[li.projectId] ?: li.projectId
+                    val newEntityId = if (li.itemType == ListItemTypeValues.SUBLIST) idRedirects[li.entityId] ?: li.entityId else li.entityId
+                    li.copy(projectId = newProjectId, entityId = newEntityId)
+                },
+                documents = normalized.documents.map { doc ->
+                    idRedirects[doc.projectId]?.let { doc.copy(projectId = it) } ?: doc
+                },
+                checklists = normalized.checklists.map { cl ->
+                    idRedirects[cl.projectId]?.let { cl.copy(projectId = it) } ?: cl
+                },
+                projectAttachmentCrossRefs = normalized.projectAttachmentCrossRefs.map { crossRef ->
+                    idRedirects[crossRef.projectId]?.let { crossRef.copy(projectId = it) } ?: crossRef
+                },
+                inboxRecords = normalized.inboxRecords.map { r ->
+                    idRedirects[r.projectId]?.let { r.copy(projectId = it) } ?: r
+                },
+                projectExecutionLogs = normalized.projectExecutionLogs.map { log ->
+                    idRedirects[log.projectId]?.let { log.copy(projectId = it) } ?: log
+                },
+                 attachments = normalized.attachments.map { at ->
+                    at.copy(ownerProjectId = at.ownerProjectId?.let { pid -> idRedirects[pid] ?: pid })
+                }
+            )
+
+            // 3. Merge entities
+            val incomingProjects = mergeAndMark(
+                correctedChanges.projects,
+                local.projects.associateBy { it.id },
+                { it.id }, { it.version }, { it.updatedTs() },
+                { p, synced -> normalizeProject(p).copy(syncedAt = synced) },
+                ts, { it.isDeleted }
+            ).filterNot { it.systemKey != null && it.isDeleted }
+
+            if (incomingProjects.isNotEmpty()) projectDao.insertProjects(incomingProjects)
+
+            val incomingGoals = mergeAndMark(
+                correctedChanges.goals,
+                local.goals.associateBy { it.id },
+                { it.id }, { it.version }, { it.updatedTs() },
+                { g, synced -> normalizeGoal(g).copy(syncedAt = synced) },
+                ts, { it.isDeleted }
+            )
+            if (incomingGoals.isNotEmpty()) goalDao.insertGoals(incomingGoals)
+
+            val projectIds = (local.projects.map { it.id } + incomingProjects.map { it.id }).toSet()
+            val goalIds = (local.goals.map { it.id } + incomingGoals.map { it.id }).toSet()
+
+            val incomingListItems = mergeAndMark(
+                correctedChanges.listItems.filter { it.projectId in projectIds && (it.itemType != ListItemTypeValues.GOAL || it.entityId in goalIds) && (it.itemType != ListItemTypeValues.SUBLIST || it.entityId in projectIds) },
+                local.listItems.associateBy { it.id },
+                { it.id }, { it.version }, { it.updatedTs() },
+                { li, synced -> li.copy(syncedAt = synced) },
+                ts, { it.isDeleted }
+            )
+            if (incomingListItems.isNotEmpty()) listItemDao.insertItems(incomingListItems)
+            
+            val incomingNotes = mergeAndMark(
+                correctedChanges.legacyNotes, local.legacyNotes.associateBy { it.id },
+                { it.id }, { it.version }, { it.updatedAt }, { n, synced -> n.copy(syncedAt = synced) },
+                ts
+            )
+            if (incomingNotes.isNotEmpty()) legacyNoteDao.insertAll(incomingNotes)
+
+            val incomingDocs = mergeAndMark(
+                correctedChanges.documents, local.documents.associateBy { it.id },
+                { it.id }, { it.version }, { it.updatedTs() }, { d, synced -> d.copy(syncedAt = synced) },
+                ts
+            )
+            if (incomingDocs.isNotEmpty()) noteDocumentDao.insertAllDocuments(incomingDocs)
+
+            val incomingDocItems = mergeAndMark(
+                correctedChanges.documentItems, local.documentItems.associateBy { it.id },
+                { it.id }, { it.version }, { it.updatedTs() }, { di, synced -> di.copy(syncedAt = synced) },
+                ts
+            )
+            if (incomingDocItems.isNotEmpty()) noteDocumentDao.insertAllDocumentItems(incomingDocItems)
+
+            val incomingChecklists = mergeAndMark(
+                correctedChanges.checklists, local.checklists.associateBy { it.id },
+                { it.id }, { it.version }, { it.updatedAt }, { cl, synced -> cl.copy(syncedAt = synced) },
+                ts
+            )
+            if (incomingChecklists.isNotEmpty()) checklistDao.insertChecklists(incomingChecklists)
+
+            val checklistIds = (local.checklists.map { it.id } + incomingChecklists.map { it.id }).toSet()
+            val incomingChecklistItems = mergeAndMark(
+                correctedChanges.checklistItems.filter { it.checklistId in checklistIds },
+                local.checklistItems.associateBy { it.id },
+                { it.id }, { it.version }, { it.updatedAt }, { cli, synced -> cli.copy(syncedAt = synced) },
+                ts
+            )
+            if (incomingChecklistItems.isNotEmpty()) checklistDao.insertItems(incomingChecklistItems)
+
+            val incomingActivities = mergeAndMark(
+                correctedChanges.activityRecords, local.activityRecords.associateBy { it.id },
+                { it.id }, { it.version }, { it.updatedTs() }, { ar, synced -> ar.copy(syncedAt = synced) },
+                ts
+            )
+            if (incomingActivities.isNotEmpty()) activityRecordDao.insertAll(incomingActivities)
+
+            val incomingLinks = mergeAndMark(
+                correctedChanges.linkItemEntities, local.linkItemEntities.associateBy { it.id },
+                { it.id }, { it.version }, { it.updatedTs() }, { li, synced -> li.copy(syncedAt = synced) },
+                ts
+            )
+            if (incomingLinks.isNotEmpty()) linkItemDao.insertAll(incomingLinks)
+
+            val incomingInbox = mergeAndMark(
+                correctedChanges.inboxRecords, local.inboxRecords.associateBy { it.id },
+                { it.id }, { it.version }, { it.updatedTs() }, { ir, synced -> ir.copy(syncedAt = synced) },
+                ts
+            )
+            if (incomingInbox.isNotEmpty()) inboxRecordDao.insertAll(incomingInbox)
+
+            val incomingLogs = mergeAndMark(
+                correctedChanges.projectExecutionLogs, local.projectExecutionLogs.associateBy { it.id },
+                { it.id }, { it.version }, { it.updatedTs() }, { log, synced -> log.copy(syncedAt = synced) },
+                ts
+            )
+            if (incomingLogs.isNotEmpty()) projectManagementDao.insertAllLogs(incomingLogs)
+
+            val incomingScripts = mergeAndMark(
+                correctedChanges.scripts, local.scripts.associateBy { it.id },
+                { it.id }, { it.version }, { it.updatedAt }, { sc, synced -> sc.copy(syncedAt = synced) },
+                ts
+            )
+            incomingScripts.forEach { scriptDao.insert(it) }
+
+            val incomingAttachments = mergeAndMark(
+                correctedChanges.attachments.filter { it.ownerProjectId == null || it.ownerProjectId in projectIds },
+                local.attachments.associateBy { it.id }, { it.id }, { it.version }, { it.updatedTs() }, { at, synced -> at.copy(syncedAt = synced) },
+                ts
+            )
+            if (incomingAttachments.isNotEmpty()) attachmentDao.insertAttachments(incomingAttachments)
+
+            val attachmentIds = (local.attachments.map { it.id } + incomingAttachments.map { it.id }).toSet()
+            val incomingCrossRefs = mergeAndMark(
+                correctedChanges.projectAttachmentCrossRefs.filter { it.projectId in projectIds && it.attachmentId in attachmentIds },
+                local.projectAttachmentCrossRefs.associateBy { "${it.projectId}-${it.attachmentId}" },
+                { "${it.projectId}-${it.attachmentId}" }, { it.version }, { it.updatedTs() }, { cr, synced -> cr.copy(syncedAt = synced) },
+                ts
+            )
+            if (incomingCrossRefs.isNotEmpty()) attachmentDao.insertProjectAttachmentLinks(incomingCrossRefs)
         }
+        Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Applied at $ts")
+        Result.success(Unit)
+    } catch (e: Exception) {
+        Log.e(TAG, "Failed to apply server changes", e)
+        Result.failure(e)
     }
+}
+
 
     private fun DatabaseContent.normalizeForDiff(): DatabaseContent {
         val nonSystemProjects = projects.filter { it.systemKey == null }.map { normalizeProject(it) }
@@ -1569,5 +1655,40 @@ constructor(
             projectType = project.projectType ?: ProjectType.DEFAULT,
             reservedGroup = project.reservedGroup,
         )
+    }
+
+    private fun mergeSystemProjects(
+        localSystem: List<Project>,
+        incomingSystem: List<Project>,
+        syncedAt: Long
+    ): List<Project> {
+        val localMap = localSystem.associateBy { it.systemKey!! }
+        val incomingMap = incomingSystem.associateBy { it.systemKey!! }
+
+        val allKeys = localMap.keys + incomingMap.keys
+
+        return allKeys.mapNotNull { key ->
+            val local = localMap[key]
+            val incoming = incomingMap[key]
+
+            when {
+                local == null && incoming != null -> incoming.copy(syncedAt = syncedAt)
+                local != null && incoming == null -> null
+                local != null && incoming != null -> {
+                    val localVer = local.version
+                    val incomingVer = incoming.version
+                    val localUpdated = local.updatedAt ?: local.createdAt
+                    val incomingUpdated = incoming.updatedAt ?: incoming.createdAt
+
+                    val winner = if (incomingVer > localVer || (incomingVer == localVer && incomingUpdated > localUpdated)) {
+                        incoming
+                    } else {
+                        local
+                    }
+                    winner.copy(id = local.id, syncedAt = syncedAt)
+                }
+                else -> null
+            }
+        }
     }
 }
