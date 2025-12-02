@@ -152,6 +152,7 @@ class WifiSyncServer(
                                 }
                             dumpToFile("export", backupJson)
                             Log.d(DEBUG_TAG, "[WifiSyncServer] /export dump head=${backupJson.take(400)}")
+                            Log.d(DEBUG_TAG, "[WifiSyncServer] /export COMPLETE, JSON size=${backupJson.length} bytes")
                             call.respondText(backupJson, ContentType.Application.Json)
                         } catch (e: Exception) {
                             Log.e("WifiSyncServer", "Помилка при створенні бекапу", e)
