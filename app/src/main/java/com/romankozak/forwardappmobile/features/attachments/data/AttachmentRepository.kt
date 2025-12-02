@@ -101,52 +101,52 @@ class AttachmentRepository @Inject constructor(
     }
 
     suspend fun createLinkAttachment(
-        projectId: String,
-        link: RelatedLink,
-    ): AttachmentEntity {
-        val timestamp = System.currentTimeMillis()
-        Log.d(ATTACHMENT_LOG_TAG, "[createLinkAttachment] START: project=$projectId, link=$link, ts=$timestamp")
-        
-        val linkEntity =
-            LinkItemEntity(
-                id = UUID.randomUUID().toString(),
-                linkData = link,
-                createdAt = timestamp,
-                updatedAt = timestamp,
-                syncedAt = null,
-                version = 1,
-            )
-        linkItemDao.insert(linkEntity)
-        Log.d(ATTACHMENT_LOG_TAG, "[createLinkAttachment] STEP1: LinkItemEntity created: id=${linkEntity.id}, version=1, syncedAt=null")
+         projectId: String,
+         link: RelatedLink,
+     ): AttachmentEntity {
+         val timestamp = System.currentTimeMillis()
+         Log.d(ATTACHMENT_LOG_TAG, "[createLinkAttachment] START: project=$projectId, link=${link.displayName ?: link.target}, ts=$timestamp")
+         
+         val linkEntity =
+             LinkItemEntity(
+                 id = UUID.randomUUID().toString(),
+                 linkData = link,
+                 createdAt = timestamp,
+                 updatedAt = timestamp,
+                 syncedAt = null,
+                 version = 1,
+             )
+         linkItemDao.insert(linkEntity)
+         Log.d(ATTACHMENT_LOG_TAG, "[createLinkAttachment] STEP1: LinkItemEntity created: id=${linkEntity.id}, version=1, syncedAt=null (NEW - WILL NEED SYNC)")
 
-        val attachment =
-            AttachmentEntity(
-                id = UUID.randomUUID().toString(),
-                attachmentType = ListItemTypeValues.LINK_ITEM,
-                entityId = linkEntity.id,
-                ownerProjectId = projectId,
-                createdAt = timestamp,
-                updatedAt = timestamp,
-                syncedAt = null,
-                version = 1,
-            )
-        attachmentDao.insertAttachment(attachment)
-        Log.d(ATTACHMENT_LOG_TAG, "[createLinkAttachment] STEP2: AttachmentEntity created: id=${attachment.id}, linkId=${linkEntity.id}, version=1, syncedAt=null")
-        
-        attachmentDao.insertProjectAttachmentLink(
-            ProjectAttachmentCrossRef(
-                projectId = projectId,
-                attachmentId = attachment.id,
-                attachmentOrder = -timestamp,
-                updatedAt = timestamp,
-                syncedAt = null,
-                version = 1,
-            ),
-        )
-        Log.d(ATTACHMENT_LOG_TAG, "[createLinkAttachment] STEP3: ProjectAttachmentCrossRef created: project=$projectId, attachment=${attachment.id}, version=1, syncedAt=null")
-        Log.d(ATTACHMENT_LOG_TAG, "[createLinkAttachment] DONE: attachment=${attachment.id}")
-        return attachment
-    }
+         val attachment =
+             AttachmentEntity(
+                 id = UUID.randomUUID().toString(),
+                 attachmentType = ListItemTypeValues.LINK_ITEM,
+                 entityId = linkEntity.id,
+                 ownerProjectId = projectId,
+                 createdAt = timestamp,
+                 updatedAt = timestamp,
+                 syncedAt = null,
+                 version = 1,
+             )
+         attachmentDao.insertAttachment(attachment)
+         Log.d(ATTACHMENT_LOG_TAG, "[createLinkAttachment] STEP2: AttachmentEntity created: id=${attachment.id}, linkId=${linkEntity.id}, owner=$projectId, version=1, syncedAt=null (NEW - WILL NEED SYNC)")
+         
+         attachmentDao.insertProjectAttachmentLink(
+             ProjectAttachmentCrossRef(
+                 projectId = projectId,
+                 attachmentId = attachment.id,
+                 attachmentOrder = -timestamp,
+                 updatedAt = timestamp,
+                 syncedAt = null,
+                 version = 1,
+             ),
+         )
+         Log.d(ATTACHMENT_LOG_TAG, "[createLinkAttachment] STEP3: ProjectAttachmentCrossRef created: project=$projectId, attachment=${attachment.id}, version=1, syncedAt=null (NEW - WILL NEED SYNC)")
+         Log.d(ATTACHMENT_LOG_TAG, "[createLinkAttachment] DONE: attachment=${attachment.id}, this attachment is NEW and unsync'd (syncedAt=null), it will be exported on next sync")
+         return attachment
+     }
 
     suspend fun linkAttachmentToProject(
         attachmentId: String,

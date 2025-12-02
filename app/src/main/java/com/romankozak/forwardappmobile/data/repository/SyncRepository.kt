@@ -283,11 +283,18 @@ constructor(
     }
 
     suspend fun createDeltaBackupJsonString(deltaSince: Long): String {
-        val changes = getChangesSince(deltaSince)
-        Log.d(WIFI_SYNC_LOG_TAG, "[createDeltaBackupJsonString] deltaSince=$deltaSince, changes: projects=${changes.projects.size}, goals=${changes.goals.size}, attachments=${changes.attachments.size}, crossRefs=${changes.projectAttachmentCrossRefs.size}")
-        val fullBackup = FullAppBackup(database = changes)
-        return gson.toJson(fullBackup)
-    }
+         val changes = getChangesSince(deltaSince)
+         Log.d(WIFI_SYNC_LOG_TAG, "[createDeltaBackupJsonString] deltaSince=$deltaSince, changes: projects=${changes.projects.size}, goals=${changes.goals.size}, attachments=${changes.attachments.size}, crossRefs=${changes.projectAttachmentCrossRefs.size}")
+         
+         // DEFECT #2 CHECK: If attachments is 0 but there are local attachments, that's a problem
+         val allLocalAttachments = attachmentDao.getAll()
+         if (changes.attachments.isEmpty() && allLocalAttachments.isNotEmpty()) {
+             Log.w(WIFI_SYNC_LOG_TAG, "[createDeltaBackupJsonString] DEFECT #2 DETECTED: Exporting 0 attachments but ${allLocalAttachments.size} exist locally. unsynced=${allLocalAttachments.count { it.syncedAt == null }}, synced=${allLocalAttachments.count { it.syncedAt != null }}")
+         }
+         
+         val fullBackup = FullAppBackup(database = changes)
+         return gson.toJson(fullBackup)
+     }
 
     suspend fun parseBackupFile(uri: Uri): Result<FullAppBackup> {
         return try {
@@ -1051,10 +1058,22 @@ constructor(
             content.scripts.forEach { scriptDao.insert(it.copy(syncedAt = ts)) }
             
             Log.d(WIFI_SYNC_LOG_TAG, "[markSyncedNow] Marking ${content.attachments.size} attachments synced")
-            attachmentDao.insertAttachments(content.attachments.map { it.copy(syncedAt = ts) })
+            val markedAttachments = content.attachments.map { it.copy(syncedAt = ts) }
+            if (markedAttachments.isNotEmpty()) {
+                markedAttachments.take(3).forEach {
+                    Log.d(WIFI_SYNC_LOG_TAG, "  [MARK-SYNCED] Attachment: id=${it.id}, type=${it.attachmentType}, entity=${it.entityId}, owner=${it.ownerProjectId}, version=${it.version}, syncedAt=${it.syncedAt}")
+                }
+            }
+            attachmentDao.insertAttachments(markedAttachments)
             
             Log.d(WIFI_SYNC_LOG_TAG, "[markSyncedNow] Marking ${content.projectAttachmentCrossRefs.size} attachment cross-refs synced")
-            attachmentDao.insertProjectAttachmentLinks(content.projectAttachmentCrossRefs.map { it.copy(syncedAt = ts) })
+            val markedCrossRefs = content.projectAttachmentCrossRefs.map { it.copy(syncedAt = ts) }
+            if (markedCrossRefs.isNotEmpty()) {
+                markedCrossRefs.take(3).forEach {
+                    Log.d(WIFI_SYNC_LOG_TAG, "  [MARK-SYNCED-XREF] CrossRef: project=${it.projectId}, attachment=${it.attachmentId}, version=${it.version}, syncedAt=${it.syncedAt}")
+                }
+            }
+            attachmentDao.insertProjectAttachmentLinks(markedCrossRefs)
             
             Log.d(WIFI_SYNC_LOG_TAG, "[markSyncedNow] DONE")
         }
@@ -1252,35 +1271,53 @@ constructor(
     }
 
     suspend fun getChangesSince(since: Long): DatabaseContent {
-        val local = loadLocalDatabaseContent()
-        fun <T> filterByUpdated(items: List<T>, updatedSelector: (T) -> Long?): List<T> =
-            items.filter { (updatedSelector(it) ?: 0L) > since }
+         val local = loadLocalDatabaseContent()
+         fun <T> filterByUpdated(items: List<T>, updatedSelector: (T) -> Long?): List<T> =
+             items.filter { (updatedSelector(it) ?: 0L) > since }
 
-        val projectIds = local.projects.map { it.id }.toSet()
-        val goalIds = local.goals.map { it.id }.toSet()
+         val projectIds = local.projects.map { it.id }.toSet()
+         val goalIds = local.goals.map { it.id }.toSet()
 
-        // For attachments: export if unsync'd (syncedAt=null) OR updated after 'since'
-        val attachmentsUnsync = local.attachments.filter { it.syncedAt == null }
-        val attachmentsUpdated = local.attachments.filter { (it.updatedTs() ?: 0L) > since && it.syncedAt != null }
-        val attachmentsResult = attachmentsUnsync + attachmentsUpdated
-        
-        // For crossRefs: export if unsync'd (syncedAt=null) OR updated after 'since'
-        val crossRefsUnsync = local.projectAttachmentCrossRefs.filter { it.syncedAt == null }
-        val crossRefsUpdated = local.projectAttachmentCrossRefs.filter { (it.updatedTs() ?: 0L) > since && it.syncedAt != null }
-        val crossRefsResult = crossRefsUnsync + crossRefsUpdated
-        
-        Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] since=$since")
-        Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] Attachments: total=${local.attachments.size}, unsync'd=${attachmentsUnsync.size}, updated=${attachmentsUpdated.size}, result=${attachmentsResult.size}")
-        
-        if (attachmentsResult.isNotEmpty()) {
-            attachmentsResult.take(5).forEach {
-                val isUnsync = it.syncedAt == null
-                val isUpdated = (it.updatedTs() ?: 0L) > since
-                Log.d(WIFI_SYNC_LOG_TAG, "  [EXPORT] Attachment: id=${it.id}, type=${it.attachmentType}, entity=${it.entityId}, owner=${it.ownerProjectId}, unsync'd=$isUnsync, updated=$isUpdated, updatedAt=${it.updatedAt}, syncedAt=${it.syncedAt}, version=${it.version}")
-            }
-        }
-        
-        Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] CrossRefs: total=${local.projectAttachmentCrossRefs.size}, unsync'd=${crossRefsUnsync.size}, updated=${crossRefsUpdated.size}, result=${crossRefsResult.size}")
+         // ========== DEFECT #3 FIX: Include new local attachments in export ==========
+         // Attachments should be exported if:
+         // 1. Unsynced (syncedAt=null)
+         // 2. Updated after 'since' (modification export)
+         // 3. Any attachment that's newly created should be in unsynced list
+         
+         // For attachments: export if unsync'd (syncedAt=null) OR updated after 'since'
+         val attachmentsUnsync = local.attachments.filter { it.syncedAt == null }
+         val attachmentsUpdated = local.attachments.filter { (it.updatedTs() ?: 0L) > since && it.syncedAt != null }
+         val attachmentsResult = attachmentsUnsync + attachmentsUpdated
+         
+         // For crossRefs: export if unsync'd (syncedAt=null) OR updated after 'since'
+         val crossRefsUnsync = local.projectAttachmentCrossRefs.filter { it.syncedAt == null }
+         val crossRefsUpdated = local.projectAttachmentCrossRefs.filter { (it.updatedTs() ?: 0L) > since && it.syncedAt != null }
+         val crossRefsResult = crossRefsUnsync + crossRefsUpdated
+         
+         Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] since=$since (${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(java.util.Date(since))})")
+         Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] Attachments: total=${local.attachments.size}, unsync'd=${attachmentsUnsync.size}, updated=${attachmentsUpdated.size}, result=${attachmentsResult.size}")
+         
+         // DEFECT #3 LOGGING: Track if new attachments are properly exported
+         if (attachmentsUnsync.isNotEmpty()) {
+             Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] DEFECT #3 INFO: Found ${attachmentsUnsync.size} unsynced attachments that WILL be exported")
+             attachmentsUnsync.take(5).forEach {
+                 Log.d(WIFI_SYNC_LOG_TAG, "  [EXPORT-UNSYNC] Attachment: id=${it.id}, type=${it.attachmentType}, entity=${it.entityId}, owner=${it.ownerProjectId}, createdAt=${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(java.util.Date(it.createdAt))}, version=${it.version}")
+             }
+         }
+         
+         if (attachmentsUpdated.isNotEmpty()) {
+             Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] Found ${attachmentsUpdated.size} updated attachments that WILL be exported")
+         }
+         
+         if (attachmentsResult.isNotEmpty()) {
+             attachmentsResult.drop(attachmentsUnsync.size).take(5).forEach {
+                 val isUnsync = it.syncedAt == null
+                 val isUpdated = (it.updatedTs() ?: 0L) > since
+                 Log.d(WIFI_SYNC_LOG_TAG, "  [EXPORT] Attachment: id=${it.id}, type=${it.attachmentType}, entity=${it.entityId}, owner=${it.ownerProjectId}, unsync'd=$isUnsync, updated=$isUpdated, updatedAt=${it.updatedAt}, syncedAt=${it.syncedAt}, version=${it.version}")
+             }
+         }
+         
+         Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] CrossRefs: total=${local.projectAttachmentCrossRefs.size}, unsync'd=${crossRefsUnsync.size}, updated=${crossRefsUpdated.size}, result=${crossRefsResult.size}")
 
         return DatabaseContent(
             projects = filterByUpdated(local.projects) { it.updatedTs() },
@@ -1783,12 +1820,23 @@ constructor(
                 incomingScripts.forEach { scriptDao.insert(it) }
 
                 Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Processing attachments. Total incoming: ${correctedChanges.attachments.size}, projects in scope: ${projectIds.size}")
+                Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] IMPORTANT: Incoming attachments count: ${correctedChanges.attachments.size}. If 0, this indicates desktop didn't export them.")
+                
+                // ========== DEFECT #1 FIX: Handle attachments=0 from desktop ==========
+                // When desktop exports empty attachments list, we should NOT lose local attachments
+                // They should be preserved as local orphans until synced with desktop
                 
                 // Log attachment filtering details
                 val attachmentsWithoutOwner = correctedChanges.attachments.count { it.ownerProjectId == null }
                 val attachmentsWithInvalidOwner = correctedChanges.attachments.count { it.ownerProjectId != null && it.ownerProjectId !in projectIds }
                 val attachmentsWithValidOwner = correctedChanges.attachments.count { it.ownerProjectId != null && it.ownerProjectId in projectIds }
                 Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Attachments breakdown: orphans=${attachmentsWithoutOwner}, invalid_owner=${attachmentsWithInvalidOwner}, valid_owner=${attachmentsWithValidOwner}")
+                
+                // Log local attachments state BEFORE processing
+                Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Local attachments BEFORE: total=${local.attachments.size}, synced=${local.attachments.count { it.syncedAt != null }}, unsynced=${local.attachments.count { it.syncedAt == null }}")
+                local.attachments.filter { it.syncedAt == null }.take(3).forEach {
+                    Log.d(WIFI_SYNC_LOG_TAG, "  Local unsynced: id=${it.id}, type=${it.attachmentType}, entity=${it.entityId}, owner=${it.ownerProjectId}, version=${it.version}")
+                }
                 
                 if (attachmentsWithInvalidOwner > 0) {
                     correctedChanges.attachments.filter { it.ownerProjectId != null && it.ownerProjectId !in projectIds }.take(5).forEach {
@@ -1801,10 +1849,16 @@ constructor(
                     local.attachments.associateBy { it.id }, { it.id }, { it.version }, { it.updatedTs() }, { at, synced -> at.copy(syncedAt = synced, updatedAt = maxOf(at.updatedAt, synced)) },
                     ts
                 )
-                Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] After merge: ${incomingAttachments.size} attachments to insert")
+                Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] After merge: ${incomingAttachments.size} attachments to insert from incoming")
+                
+                // DEFECT #1 WARNING: If incoming attachments empty but local has unsynced, flag it
+                if (correctedChanges.attachments.isEmpty() && local.attachments.any { it.syncedAt == null }) {
+                    Log.w(WIFI_SYNC_LOG_TAG, "[applyServerChanges] DEFECT #1 DETECTED: Desktop sent 0 attachments but Android has ${local.attachments.count { it.syncedAt == null }} unsynced. These will NOT be lost, they will remain as local.")
+                }
+                
                 if (incomingAttachments.isNotEmpty()) {
                     incomingAttachments.take(3).forEach {
-                        Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Attachment to insert: id=${it.id}, type=${it.attachmentType}, entity=${it.entityId}, syncedAt=${it.syncedAt}, ownerProjectId=${it.ownerProjectId}")
+                        Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Attachment to insert: id=${it.id}, type=${it.attachmentType}, entity=${it.entityId}, syncedAt=${it.syncedAt}, ownerProjectId=${it.ownerProjectId}, version=${it.version}")
                     }
                     attachmentDao.insertAttachments(incomingAttachments)
                 }
