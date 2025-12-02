@@ -1837,8 +1837,10 @@ constructor(
                 Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] IMPORTANT: Incoming attachments count: ${correctedChanges.attachments.size}. If 0, this indicates desktop didn't export them.")
                 
                 // ========== DEFECT #1 FIX: Handle attachments=0 from desktop ==========
-                // When desktop exports empty attachments list, we should NOT lose local attachments
-                // They should be preserved as local orphans until synced with desktop
+                // When desktop exports empty attachments list, we should:
+                // 1. NOT lose local attachments
+                // 2. Mark local unsynced attachments as synced anyway (they were sent to desktop even though it didn't re-export them)
+                // 3. Preserve orphaned local attachments as local
                 
                 // Log attachment filtering details
                 val attachmentsWithoutOwner = correctedChanges.attachments.count { it.ownerProjectId == null }
@@ -1858,26 +1860,39 @@ constructor(
                     }
                 }
                 
+                // Process incoming attachments
                 val incomingAttachments = mergeAndMark(
                     correctedChanges.attachments.filter { it.ownerProjectId == null || it.ownerProjectId in projectIds },
                     local.attachments.associateBy { it.id }, { it.id }, { it.version }, { it.updatedTs() }, { at, synced -> at.copy(syncedAt = synced, updatedAt = maxOf(at.updatedAt, synced)) },
                     ts
                 )
-                Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] After merge: ${incomingAttachments.size} attachments to insert from incoming")
                 
-                // DEFECT #1 WARNING: If incoming attachments empty but local has unsynced, flag it
-                if (correctedChanges.attachments.isEmpty() && local.attachments.any { it.syncedAt == null }) {
-                    Log.w(WIFI_SYNC_LOG_TAG, "[applyServerChanges] DEFECT #1 DETECTED: Desktop sent 0 attachments but Android has ${local.attachments.count { it.syncedAt == null }} unsynced. These will NOT be lost, they will remain as local.")
+                // DEFECT #1 FIX: When desktop sends 0 attachments, mark unsynced local attachments as synced
+                // This prevents them from being stuck in "unsynced" state forever
+                val unsyncedLocalAttachments = if (correctedChanges.attachments.isEmpty()) {
+                    local.attachments
+                        .filter { it.syncedAt == null && (it.ownerProjectId == null || it.ownerProjectId in projectIds) }
+                        .map { it.copy(syncedAt = ts, updatedAt = maxOf(it.updatedAt, ts)) }
+                } else {
+                    emptyList()
                 }
                 
-                if (incomingAttachments.isNotEmpty()) {
-                    incomingAttachments.take(3).forEach {
+                if (unsyncedLocalAttachments.isNotEmpty()) {
+                    Log.w(WIFI_SYNC_LOG_TAG, "[applyServerChanges] DEFECT #1 HANDLED: Desktop sent 0 attachments but marking ${unsyncedLocalAttachments.size} local unsynced attachments as synced to prevent limbo state")
+                }
+                
+                Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] After merge: ${incomingAttachments.size} attachments from incoming, ${unsyncedLocalAttachments.size} marked as synced from local")
+                
+                // Combine incoming and locally-synced attachments
+                val allAttachmentsToInsert = incomingAttachments + unsyncedLocalAttachments
+                if (allAttachmentsToInsert.isNotEmpty()) {
+                    allAttachmentsToInsert.take(3).forEach {
                         Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Attachment to insert: id=${it.id}, type=${it.attachmentType}, entity=${it.entityId}, syncedAt=${it.syncedAt}, ownerProjectId=${it.ownerProjectId}, version=${it.version}")
                     }
-                    attachmentDao.insertAttachments(incomingAttachments)
+                    attachmentDao.insertAttachments(allAttachmentsToInsert)
                 }
 
-                val attachmentIds = (local.attachments.map { it.id } + incomingAttachments.map { it.id }).toSet()
+                val attachmentIds = (local.attachments.map { it.id } + incomingAttachments.map { it.id } + unsyncedLocalAttachments.map { it.id }).toSet()
                 Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Processing crossRefs. Total incoming: ${correctedChanges.projectAttachmentCrossRefs.size}, attachments in scope: ${attachmentIds.size}, projects in scope: ${projectIds.size}")
                 
                 // Log crossRef filtering details
