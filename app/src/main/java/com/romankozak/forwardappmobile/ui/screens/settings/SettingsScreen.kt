@@ -69,6 +69,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.TabRowDefaults
 import com.romankozak.forwardappmobile.BuildConfig
+import kotlinx.coroutines.flow.first
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -89,10 +90,10 @@ fun SettingsScreen(
     var tempLongTag by remember(planningSettings.longTag) { mutableStateOf(planningSettings.longTag) }
     var tempVaultName by remember(initialVaultName) { mutableStateOf(initialVaultName) }
 
-    var initialViewModelState by remember { mutableStateOf<SettingsUiState?>(null) }
-    LaunchedEffect(uiState) {
-        if (initialViewModelState == null && uiState != SettingsUiState()) {
-            initialViewModelState = uiState
+    val initialViewModelState = remember { mutableStateOf<SettingsUiState?>(null) }
+    LaunchedEffect(Unit) {
+        viewModel.uiState.first { it != SettingsUiState() }.let {
+            initialViewModelState.value = it
         }
     }
 
@@ -109,7 +110,7 @@ fun SettingsScreen(
     var selectedTabName by rememberSaveable { mutableStateOf(SettingsTab.General.name) }
     val selectedTab = tabs.firstOrNull { it.name == selectedTabName } ?: SettingsTab.General
 
-    val isDirty by remember(uiState, tempShowModes, tempDailyTag, tempMediumTag, tempLongTag, tempVaultName) {
+    val isDirty by remember(uiState, tempShowModes, tempDailyTag, tempMediumTag, tempLongTag, tempVaultName, initialViewModelState.value) {
         derivedStateOf {
             val planningIsDirty = tempShowModes != planningSettings.showModes ||
                     tempDailyTag != planningSettings.dailyTag ||
@@ -117,25 +118,34 @@ fun SettingsScreen(
                     tempLongTag != planningSettings.longTag ||
                     tempVaultName != initialVaultName
 
-            val viewModelIsDirty = initialViewModelState?.let {
-                uiState.serverIpConfigurationMode != it.serverIpConfigurationMode ||
-                uiState.manualServerIp != it.manualServerIp ||
-                uiState.wifiSyncPort != it.wifiSyncPort ||
-                uiState.ollamaPort != it.ollamaPort ||
-                uiState.fastApiPort != it.fastApiPort ||
-                uiState.fastModel != it.fastModel ||
-                uiState.smartModel != it.smartModel ||
-                uiState.nerModelUri != it.nerModelUri ||
-                uiState.nerTokenizerUri != it.nerTokenizerUri ||
-                uiState.nerLabelsUri != it.nerLabelsUri ||
-                uiState.rolesFolderUri != it.rolesFolderUri ||
-                uiState.themeSettings != it.themeSettings ||
-                uiState.ringtoneType != it.ringtoneType ||
-                uiState.ringtoneUris != it.ringtoneUris ||
-                uiState.ringtoneVolumes != it.ringtoneVolumes ||
-                uiState.reminderVibrationEnabled != it.reminderVibrationEnabled ||
-                uiState.wifiSyncServerEnabled != it.wifiSyncServerEnabled ||
-                uiState.desktopSyncAddress != it.desktopSyncAddress
+            val viewModelIsDirty = initialViewModelState.value?.let { initial ->
+                uiState.serverIpConfigurationMode != initial.serverIpConfigurationMode ||
+                uiState.manualServerIp != initial.manualServerIp ||
+                uiState.wifiSyncPort != initial.wifiSyncPort ||
+                uiState.ollamaPort != initial.ollamaPort ||
+                uiState.fastApiPort != initial.fastApiPort ||
+                uiState.fastModel != initial.fastModel ||
+                uiState.smartModel != initial.smartModel ||
+                uiState.nerModelUri != initial.nerModelUri ||
+                uiState.nerTokenizerUri != initial.nerTokenizerUri ||
+                uiState.nerLabelsUri != initial.nerLabelsUri ||
+                uiState.rolesFolderUri != initial.rolesFolderUri ||
+                uiState.themeSettings != initial.themeSettings ||
+                uiState.ringtoneType != initial.ringtoneType ||
+                uiState.ringtoneUris != initial.ringtoneUris ||
+                uiState.ringtoneVolumes != initial.ringtoneVolumes ||
+                uiState.reminderVibrationEnabled != initial.reminderVibrationEnabled ||
+                uiState.wifiSyncServerEnabled != initial.wifiSyncServerEnabled ||
+                uiState.desktopSyncAddress != initial.desktopSyncAddress ||
+                uiState.attachmentsLibraryEnabled != initial.attachmentsLibraryEnabled ||
+                uiState.scriptsLibraryEnabled != initial.scriptsLibraryEnabled ||
+                uiState.allowSystemProjectMoves != initial.allowSystemProjectMoves ||
+                uiState.planningModesEnabled != initial.planningModesEnabled ||
+                uiState.wifiSyncEnabled != initial.wifiSyncEnabled ||
+                uiState.strategicManagementEnabled != initial.strategicManagementEnabled ||
+                uiState.aiChatEnabled != initial.aiChatEnabled ||
+                uiState.aiInsightsEnabled != initial.aiInsightsEnabled ||
+                uiState.aiLifeManagementEnabled != initial.aiLifeManagementEnabled
             } ?: false
 
             planningIsDirty || viewModelIsDirty
@@ -188,7 +198,7 @@ fun SettingsScreen(
         },
     ) { padding ->
         Column(
-            modifier = Modifier.padding(padding).imePadding(),
+            modifier = Modifier.padding(padding),
         ) {
             ScrollableTabRow(
                 selectedTabIndex = tabs.indexOf(selectedTab),
@@ -288,6 +298,19 @@ fun SettingsScreen(
                                 singleLine = true,
                             )
                         }
+                        WifiSyncSettingsCard(
+                            serverEnabled = uiState.wifiSyncServerEnabled,
+                            wifiSyncPort = uiState.wifiSyncPort,
+                            desktopAddress = uiState.desktopSyncAddress,
+                            onServerEnabledChange = { enabled ->
+                                if (uiState.wifiSyncEnabled) {
+                                    viewModel.onWifiSyncServerEnabledToggle(enabled)
+                                }
+                            },
+                            onPortChange = viewModel::onWifiSyncPortChanged,
+                            onDesktopAddressChange = viewModel::onDesktopSyncAddressChanged,
+                            enabled = uiState.wifiSyncEnabled,
+                        )
                     }
                     SettingsTab.Ai -> {
                         val aiEnabled =
@@ -323,19 +346,6 @@ fun SettingsScreen(
                         }
                     }
                     SettingsTab.Experiments -> {
-                        WifiSyncSettingsCard(
-                            serverEnabled = uiState.wifiSyncServerEnabled,
-                            wifiSyncPort = uiState.wifiSyncPort,
-                            desktopAddress = uiState.desktopSyncAddress,
-                            onServerEnabledChange = { enabled ->
-                                if (uiState.wifiSyncEnabled) {
-                                    viewModel.onWifiSyncServerEnabledToggle(enabled)
-                                }
-                            },
-                            onPortChange = viewModel::onWifiSyncPortChanged,
-                            onDesktopAddressChange = viewModel::onDesktopSyncAddressChanged,
-                            enabled = uiState.wifiSyncEnabled,
-                        )
                         SettingsCard(
                             title = "Experimental Features",
                             icon = Icons.Default.Build,

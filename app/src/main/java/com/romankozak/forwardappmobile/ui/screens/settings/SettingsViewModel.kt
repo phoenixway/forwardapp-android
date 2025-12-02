@@ -293,7 +293,6 @@ class SettingsViewModel @Inject constructor(
             )
         }
         FeatureToggles.update(flag, enabled)
-        viewModelScope.launch { settingsRepo.saveFeatureToggle(flag, enabled) }
     }
 
     fun onAttachmentsLibraryToggle(enabled: Boolean) {
@@ -316,7 +315,6 @@ class SettingsViewModel @Inject constructor(
         updateFeatureToggle(FeatureFlag.WifiSync, enabled)
         if (!enabled) {
             _uiState.update { it.copy(wifiSyncServerEnabled = false) }
-            viewModelScope.launch { settingsRepo.saveWifiSyncServerEnabled(false) }
         }
     }
 

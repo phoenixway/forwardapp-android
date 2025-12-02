@@ -161,6 +161,7 @@ fun MainScreenScaffold(
                 onShowScriptsLibrary = { onEvent(MainScreenEvent.OpenScriptsLibrary) },
                 syncStatus = uiState.syncStatus,
                 onSyncIndicatorClick = { onEvent(MainScreenEvent.ShowWifiServerDialog) },
+                featureToggles = uiState.featureToggles,
             )
         },
         bottomBar = {
@@ -192,17 +193,17 @@ fun MainScreenScaffold(
                         },
                         onGlobalSearchClick = { onEvent(MainScreenEvent.ShowSearchDialog) },
                         currentMode = uiState.planningMode,
-                        planningModesEnabled = com.romankozak.forwardappmobile.config.FeatureToggles.isEnabled(com.romankozak.forwardappmobile.config.FeatureFlag.PlanningModes),
+                        planningModesEnabled = uiState.featureToggles[com.romankozak.forwardappmobile.config.FeatureFlag.PlanningModes] == true,
                         onPlanningModeChange = { onEvent(MainScreenEvent.PlanningModeChange(it)) },
                         onContextsClick = { showContextSheet = true },
                         onRecentsClick = { onEvent(MainScreenEvent.ShowRecentLists) },
                         onDayPlanClick = { onEvent(MainScreenEvent.DayPlanClick) },
                         onHomeClick = { onEvent(MainScreenEvent.HomeClick) },
                         onStrManagementClick = { onEvent(MainScreenEvent.NavigateToStrategicManagement) },
-                        strategicManagementEnabled = com.romankozak.forwardappmobile.config.FeatureToggles.isEnabled(com.romankozak.forwardappmobile.config.FeatureFlag.StrategicManagement),
-                        aiChatEnabled = com.romankozak.forwardappmobile.config.FeatureToggles.isEnabled(com.romankozak.forwardappmobile.config.FeatureFlag.AiChat),
-                        aiInsightsEnabled = com.romankozak.forwardappmobile.config.FeatureToggles.isEnabled(com.romankozak.forwardappmobile.config.FeatureFlag.AiInsights),
-                        aiLifeManagementEnabled = com.romankozak.forwardappmobile.config.FeatureToggles.isEnabled(com.romankozak.forwardappmobile.config.FeatureFlag.AiLifeManagement),
+                        strategicManagementEnabled = uiState.featureToggles[com.romankozak.forwardappmobile.config.FeatureFlag.StrategicManagement] == true,
+                        aiChatEnabled = uiState.featureToggles[com.romankozak.forwardappmobile.config.FeatureFlag.AiChat] == true,
+                        aiInsightsEnabled = uiState.featureToggles[com.romankozak.forwardappmobile.config.FeatureFlag.AiInsights] == true,
+                        aiLifeManagementEnabled = uiState.featureToggles[com.romankozak.forwardappmobile.config.FeatureFlag.AiLifeManagement] == true,
                         isExpanded = uiState.isBottomNavExpanded,
                         onExpandedChange = { onEvent(MainScreenEvent.BottomNavExpandedChange(it)) },
                         onAiChatClick = { onEvent(MainScreenEvent.NavigateToChat) },
@@ -220,7 +221,7 @@ fun MainScreenScaffold(
             var showAddMenu by remember { mutableStateOf(false) }
 
             AnimatedVisibility(visible = !isSearchActiveFab) {
-                val scriptsEnabled = FeatureToggles.isEnabled(FeatureFlag.ScriptsLibrary)
+                val scriptsEnabled = uiState.featureToggles[FeatureFlag.ScriptsLibrary] == true
                 val menuItems =
                     buildList {
                         add(

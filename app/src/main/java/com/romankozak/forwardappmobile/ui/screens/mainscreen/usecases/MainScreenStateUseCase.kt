@@ -196,6 +196,7 @@ constructor(
           obsidianVaultNameFlow,
           navigationSnapshot,
           contextHandler.contextMarkerToEmojiMap,
+          com.romankozak.forwardappmobile.config.FeatureToggles.overrides,
         ) { values ->
           val coreState = values[0] as CoreUiState
           val dialogState = values[1] as DialogUiState
@@ -212,6 +213,8 @@ constructor(
           val navSnapshot = values[11] as NavigationSnapshot
           @Suppress("UNCHECKED_CAST")
           val contextMarkerToEmojiMap = values[12] as Map<String, String>
+          @Suppress("UNCHECKED_CAST")
+          val featureToggles = values[13] as Map<com.romankozak.forwardappmobile.config.FeatureFlag, Boolean>
 
           MainScreenUiState(
             subStateStack = coreState.subStateStack,
@@ -244,6 +247,7 @@ constructor(
             searchResults = searchResults,
             recordForReminderDialog = recordForReminder,
             contextMarkerToEmojiMap = contextMarkerToEmojiMap,
+            featureToggles = featureToggles,
           )
         }
         .stateIn(scope, SharingStarted.Eagerly, MainScreenUiState())

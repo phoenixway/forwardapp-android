@@ -96,13 +96,13 @@ fun HandleDialogs(
     }
 
     
-    if (uiState.showWifiServerDialog && com.romankozak.forwardappmobile.config.FeatureToggles.isEnabled(com.romankozak.forwardappmobile.config.FeatureFlag.WifiSync)) {
+    if (uiState.showWifiServerDialog && uiState.featureToggles[com.romankozak.forwardappmobile.config.FeatureFlag.WifiSync] == true) {
         WifiServerDialog(
             address = uiState.wifiServerAddress,
             onDismiss = { onEvent(MainScreenEvent.DismissWifiServerDialog) },
         )
     }
-    if (uiState.showWifiImportDialog && com.romankozak.forwardappmobile.config.FeatureToggles.isEnabled(com.romankozak.forwardappmobile.config.FeatureFlag.WifiSync)) {
+    if (uiState.showWifiImportDialog && uiState.featureToggles[com.romankozak.forwardappmobile.config.FeatureFlag.WifiSync] == true) {
         WifiImportDialog(
             desktopAddress = uiState.desktopAddress,
             onAddressChange = { onEvent(MainScreenEvent.DesktopAddressChange(it)) },

@@ -358,7 +358,7 @@ constructor(
       is MainScreenEvent.ClearBreadcrumbNavigation -> searchUseCase.clearNavigation()
 
       is MainScreenEvent.PlanningModeChange -> {
-        if (FeatureToggles.isEnabled(FeatureFlag.PlanningModes)) {
+        if (uiState.value.featureToggles[FeatureFlag.PlanningModes] == true) {
           planningUseCase.onPlanningModeChange(event.mode)
         }
       }
@@ -487,10 +487,10 @@ constructor(
       is MainScreenEvent.ShowSearchDialog -> _showSearchDialog.value = true
       is MainScreenEvent.DismissSearchDialog -> _showSearchDialog.value = false
 
-      is MainScreenEvent.ShowWifiServerDialog -> if (FeatureToggles.isEnabled(FeatureFlag.WifiSync)) syncUseCase.onShowWifiServerDialog()
-      is MainScreenEvent.ShowWifiImportDialog -> if (FeatureToggles.isEnabled(FeatureFlag.WifiSync)) syncUseCase.onShowWifiImportDialog()
+      is MainScreenEvent.ShowWifiServerDialog -> if (uiState.value.featureToggles[FeatureFlag.WifiSync] == true) syncUseCase.onShowWifiServerDialog()
+      is MainScreenEvent.ShowWifiImportDialog -> if (uiState.value.featureToggles[FeatureFlag.WifiSync] == true) syncUseCase.onShowWifiImportDialog()
       is MainScreenEvent.WifiPush -> {
-        if (FeatureToggles.isEnabled(FeatureFlag.WifiSync)) {
+        if (uiState.value.featureToggles[FeatureFlag.WifiSync] == true) {
           syncUseCase.performWifiPush(event.address)
         }
       }
@@ -531,7 +531,7 @@ constructor(
           }
       }
       is MainScreenEvent.NavigateToChat -> {
-        if (FeatureToggles.isEnabled(FeatureFlag.AiChat)) {
+        if (uiState.value.featureToggles[FeatureFlag.AiChat] == true) {
           viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate(CHAT_ROUTE)) }
         }
       }
@@ -542,14 +542,14 @@ constructor(
       }
       
       is MainScreenEvent.NavigateToAiInsights -> {
-        if (FeatureToggles.isEnabled(FeatureFlag.AiInsights)) {
+        if (uiState.value.featureToggles[FeatureFlag.AiInsights] == true) {
           viewModelScope.launch {
             _uiEventChannel.send(ProjectUiEvent.Navigate("ai_insights_screen"))
           }
         }
       }
       is MainScreenEvent.NavigateToLifeState -> {
-        if (FeatureToggles.isEnabled(FeatureFlag.AiLifeManagement)) {
+        if (uiState.value.featureToggles[FeatureFlag.AiLifeManagement] == true) {
           viewModelScope.launch {
             _uiEventChannel.send(ProjectUiEvent.Navigate(LIFE_STATE_ROUTE))
           }
@@ -557,7 +557,7 @@ constructor(
       }
 
       is MainScreenEvent.NavigateToStrategicManagement -> {
-        if (FeatureToggles.isEnabled(FeatureFlag.StrategicManagement)) {
+        if (uiState.value.featureToggles[FeatureFlag.StrategicManagement] == true) {
           viewModelScope.launch {
             _uiEventChannel.send(ProjectUiEvent.NavigateToStrategicManagement)
           }
@@ -570,11 +570,11 @@ constructor(
       is MainScreenEvent.SaveAllContexts -> {
         settingsUseCase.saveAllContexts(viewModelScope, event.updatedContexts)
       }
-      is MainScreenEvent.DismissWifiServerDialog -> if (FeatureToggles.isEnabled(FeatureFlag.WifiSync)) syncUseCase.onDismissWifiServerDialog()
-      is MainScreenEvent.DismissWifiImportDialog -> if (FeatureToggles.isEnabled(FeatureFlag.WifiSync)) syncUseCase.onDismissWifiImportDialog()
+      is MainScreenEvent.DismissWifiServerDialog -> if (uiState.value.featureToggles[FeatureFlag.WifiSync] == true) syncUseCase.onDismissWifiServerDialog()
+      is MainScreenEvent.DismissWifiImportDialog -> if (uiState.value.featureToggles[FeatureFlag.WifiSync] == true) syncUseCase.onDismissWifiImportDialog()
       is MainScreenEvent.DesktopAddressChange ->
         syncUseCase.onDesktopAddressChange(event.address)
-      is MainScreenEvent.PerformWifiImport -> if (FeatureToggles.isEnabled(FeatureFlag.WifiSync)) syncUseCase.performWifiImport(event.address)
+      is MainScreenEvent.PerformWifiImport -> if (uiState.value.featureToggles[FeatureFlag.WifiSync] == true) syncUseCase.performWifiImport(event.address)
       is MainScreenEvent.AddProjectConfirm -> {
         viewModelScope.launch {
           projectActionsUseCase.addNewProject(
@@ -596,17 +596,17 @@ constructor(
         viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate("reminders_screen")) }
       }
       is MainScreenEvent.OpenAttachmentsLibrary -> {
-        if (FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary)) {
+        if (uiState.value.featureToggles[FeatureFlag.AttachmentsLibrary] == true) {
           viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate("attachments_library_screen")) }
         }
       }
       is MainScreenEvent.AddScriptRequest -> {
-        if (FeatureToggles.isEnabled(FeatureFlag.ScriptsLibrary)) {
+        if (uiState.value.featureToggles[FeatureFlag.ScriptsLibrary] == true) {
           viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate("script_editor_screen")) }
         }
       }
       is MainScreenEvent.OpenScriptsLibrary -> {
-        if (FeatureToggles.isEnabled(FeatureFlag.ScriptsLibrary)) {
+        if (uiState.value.featureToggles[FeatureFlag.ScriptsLibrary] == true) {
           viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate("scripts_library_screen")) }
         }
       }

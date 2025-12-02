@@ -1,6 +1,8 @@
 package com.romankozak.forwardappmobile.config
 
 import com.romankozak.forwardappmobile.BuildConfig
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 object FeatureToggles {
     private val experimentalFlags = setOf(
@@ -26,21 +28,21 @@ object FeatureToggles {
         FeatureFlag.AiLifeManagement to BuildConfig.IS_EXPERIMENTAL_BUILD,
     )
 
-    @Volatile
-    private var overrides: Map<FeatureFlag, Boolean> = defaults
+    private val _overrides = MutableStateFlow(defaults)
+    val overrides: StateFlow<Map<FeatureFlag, Boolean>> = _overrides
 
     fun isEnabled(flag: FeatureFlag): Boolean {
         if (!BuildConfig.IS_EXPERIMENTAL_BUILD && experimentalFlags.contains(flag)) {
             return false
         }
-        return overrides[flag] ?: defaults[flag] ?: false
+        return _overrides.value[flag] ?: defaults[flag] ?: false
     }
 
     fun update(flag: FeatureFlag, enabled: Boolean) {
-        overrides = overrides + (flag to enabled)
+        _overrides.value = _overrides.value + (flag to enabled)
     }
 
     fun updateAll(flags: Map<FeatureFlag, Boolean>) {
-        overrides = defaults + flags
+        _overrides.value = defaults + flags
     }
 }

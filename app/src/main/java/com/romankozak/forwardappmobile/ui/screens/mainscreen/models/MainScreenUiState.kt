@@ -47,6 +47,7 @@ data class MainScreenUiState(
     val searchResults: List<SearchResult> = emptyList(),
     val recordForReminderDialog: com.romankozak.forwardappmobile.data.database.models.ActivityRecord? = null,
     val contextMarkerToEmojiMap: Map<String, String> = emptyMap(),
+    val featureToggles: Map<com.romankozak.forwardappmobile.config.FeatureFlag, Boolean> = emptyMap(),
 ) {
     val currentSubState: MainSubState
         get() = subStateStack.last()

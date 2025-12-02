@@ -31,7 +31,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.ui.res.stringResource
 import com.romankozak.forwardappmobile.config.FeatureFlag
-import com.romankozak.forwardappmobile.config.FeatureToggles
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -75,6 +74,7 @@ fun MainScreenTopAppBar(
     onShowScriptsLibrary: () -> Unit,
     syncStatus: WifiSyncStatus,
     onSyncIndicatorClick: () -> Unit,
+    featureToggles: Map<FeatureFlag, Boolean>,
 ) {
     var swipeState by remember { mutableStateOf(0f) }
     TopAppBar(
@@ -137,7 +137,7 @@ fun MainScreenTopAppBar(
                         Icon(Icons.Default.MoreVert, stringResource(id = com.romankozak.forwardappmobile.R.string.more_options))
                     }
                 } else {
-                    if (FeatureToggles.isEnabled(FeatureFlag.WifiSync)) {
+                    if (featureToggles[FeatureFlag.WifiSync] == true) {
                         SyncStatusIndicator(
                             status = syncStatus,
                             onClick = onSyncIndicatorClick,
@@ -162,8 +162,8 @@ fun MainScreenTopAppBar(
                         onDismissRequest = { menuExpanded = false },
                         modifier = Modifier.background(MaterialTheme.colorScheme.surface),
                     ) {
-                        val showAttachmentsLibrary = FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary)
-                        val showScriptsLibrary = FeatureToggles.isEnabled(FeatureFlag.ScriptsLibrary)
+                        val showAttachmentsLibrary = featureToggles[FeatureFlag.AttachmentsLibrary] == true
+                        val showScriptsLibrary = featureToggles[FeatureFlag.ScriptsLibrary] == true
                         if (showAttachmentsLibrary || showScriptsLibrary) {
                             if (showAttachmentsLibrary) {
                                 DropdownMenuItem(
@@ -185,7 +185,7 @@ fun MainScreenTopAppBar(
                             }
                             HorizontalDivider()
                         }
-                        if (FeatureToggles.isEnabled(FeatureFlag.WifiSync)) {
+                        if (featureToggles[FeatureFlag.WifiSync] == true) {
                             DropdownMenuItem(
                                 text = { Text(stringResource(id = com.romankozak.forwardappmobile.R.string.menu_run_wifi_server)) },
                                 onClick = {
