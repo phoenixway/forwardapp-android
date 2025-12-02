@@ -235,16 +235,50 @@ constructor(
         }
 
     suspend fun createAttachmentsBackupJsonString(): String {
+        val EXPORT_TAG = "SyncRepo_AttachmentsExport"
+        Log.d(EXPORT_TAG, "=== ATTACHMENTS EXPORT START ===")
+        
+        val documents = noteDocumentDao.getAllDocuments()
+        Log.d(EXPORT_TAG, "Exporting ${documents.size} note documents")
+        
+        val documentItems = noteDocumentDao.getAllDocumentItems()
+        Log.d(EXPORT_TAG, "Exporting ${documentItems.size} note document items")
+        
+        val checklists = checklistDao.getAllChecklists()
+        Log.d(EXPORT_TAG, "Exporting ${checklists.size} checklists")
+        
+        val checklistItems = checklistDao.getAllChecklistItems()
+        Log.d(EXPORT_TAG, "Exporting ${checklistItems.size} checklist items")
+        
+        val linkItems = linkItemDao.getAllEntities()
+        Log.d(EXPORT_TAG, "Exporting ${linkItems.size} link items")
+        val linkItemsWithDetails = linkItems.groupBy { it.syncedAt }.let {
+            val synced = it[null]?.size ?: 0
+            val notSynced = it.filterKeys { k -> k != null }.values.sumOf { it.size }
+            "total=$synced synced, $notSynced not synced"
+        }
+        Log.d(EXPORT_TAG, "  LinkItems details: $linkItemsWithDetails")
+        
+        val attachments = attachmentDao.getAll()
+        Log.d(EXPORT_TAG, "Exporting ${attachments.size} attachments")
+        val attachmentsByStatus = attachments.groupBy { it.syncedAt }
+        Log.d(EXPORT_TAG, "  Attachments status: unsynced=${(attachmentsByStatus[null]?.size ?: 0)}, synced=${attachmentsByStatus.filterKeys { it != null }.values.sumOf { it.size }}")
+        
+        val crossRefs = attachmentDao.getAllProjectAttachmentCrossRefs()
+        Log.d(EXPORT_TAG, "Exporting ${crossRefs.size} attachment cross-refs")
+        
         val attachmentsBackup =
             AttachmentsBackup(
-                documents = noteDocumentDao.getAllDocuments(),
-                documentItems = noteDocumentDao.getAllDocumentItems(),
-                checklists = checklistDao.getAllChecklists(),
-                checklistItems = checklistDao.getAllChecklistItems(),
-                linkItemEntities = linkItemDao.getAllEntities(),
-                attachments = attachmentDao.getAll(),
-                projectAttachmentCrossRefs = attachmentDao.getAllProjectAttachmentCrossRefs(),
+                documents = documents,
+                documentItems = documentItems,
+                checklists = checklists,
+                checklistItems = checklistItems,
+                linkItemEntities = linkItems,
+                attachments = attachments,
+                projectAttachmentCrossRefs = crossRefs,
             )
+        
+        Log.d(EXPORT_TAG, "=== ATTACHMENTS EXPORT DONE ===")
         return gson.toJson(attachmentsBackup)
     }
 
@@ -334,31 +368,51 @@ constructor(
             }
 
             appDatabase.withTransaction {
-                Log.d(IMPORT_TAG, "Transaction: Inserting attachments data.")
+                Log.d(IMPORT_TAG, "=== ATTACHMENTS IMPORT TRANSACTION START ===")
                 // Insert content entities first
+                Log.d(IMPORT_TAG, "STEP1: Inserting ${validDocuments.size} note documents...")
                 noteDocumentDao.insertAllDocuments(validDocuments)
-                Log.d(IMPORT_TAG, "  - Inserted ${validDocuments.size} note documents.")
+                Log.d(IMPORT_TAG, "  ✓ Inserted ${validDocuments.size} note documents.")
+                
+                Log.d(IMPORT_TAG, "STEP2: Inserting ${validDocumentItems.size} note document items...")
                 noteDocumentDao.insertAllDocumentItems(validDocumentItems)
-                Log.d(IMPORT_TAG, "  - Inserted ${validDocumentItems.size} note document items.")
+                Log.d(IMPORT_TAG, "  ✓ Inserted ${validDocumentItems.size} note document items.")
+                
+                Log.d(IMPORT_TAG, "STEP3: Inserting ${validChecklists.size} checklists...")
                 checklistDao.insertChecklists(validChecklists)
-                Log.d(IMPORT_TAG, "  - Inserted ${validChecklists.size} checklists.")
+                Log.d(IMPORT_TAG, "  ✓ Inserted ${validChecklists.size} checklists.")
+                
+                Log.d(IMPORT_TAG, "STEP4: Inserting ${validChecklistItems.size} checklist items...")
                 checklistDao.insertItems(validChecklistItems)
-                Log.d(IMPORT_TAG, "  - Inserted ${validChecklistItems.size} checklist items.")
+                Log.d(IMPORT_TAG, "  ✓ Inserted ${validChecklistItems.size} checklist items.")
+                
+                Log.d(IMPORT_TAG, "STEP5: Inserting ${backupData.linkItemEntities.size} link items...")
                 linkItemDao.insertAll(backupData.linkItemEntities)
-                Log.d(IMPORT_TAG, "  - Inserted ${backupData.linkItemEntities.size} link items.")
+                Log.d(IMPORT_TAG, "  ✓ Inserted ${backupData.linkItemEntities.size} link items.")
 
                 // Insert attachments themselves
                 // Filter attachments: include only those with valid ownerProjectId or orphans (ownerProjectId == null)
+                Log.d(IMPORT_TAG, "STEP6: Processing ${backupData.attachments.size} attachments...")
                 val validAttachments = backupData.attachments.filter { att ->
-                    att.ownerProjectId == null || att.ownerProjectId in existingProjectIds
+                    val isValid = att.ownerProjectId == null || att.ownerProjectId in existingProjectIds
+                    if (!isValid) Log.w(IMPORT_TAG, "  ! Skipping orphaned attachment: id=${att.id}, ownerProject=${att.ownerProjectId}")
+                    isValid
                 }
                 val orphanedAttachments = backupData.attachments.size - validAttachments.size
+                Log.d(IMPORT_TAG, "  - Valid attachments: ${validAttachments.size}, orphaned: $orphanedAttachments")
                 attachmentDao.insertAttachments(validAttachments)
-                Log.d(IMPORT_TAG, "  - Inserted ${validAttachments.size} attachments. $orphanedAttachments orphaned attachments (invalid ownerProjectId) were skipped.")
+                Log.d(IMPORT_TAG, "  ✓ Inserted ${validAttachments.size} attachments.")
 
                 // Insert only the valid cross-references
+                Log.d(IMPORT_TAG, "STEP7: Processing ${validCrossRefs.size} attachment cross-refs...")
+                val crossRefsByAttachment = validCrossRefs.groupBy { it.attachmentId }
+                Log.d(IMPORT_TAG, "  - Cross-refs distribution: ${crossRefsByAttachment.size} unique attachments")
+                crossRefsByAttachment.forEach { (attId, refs) ->
+                    Log.d(IMPORT_TAG, "    - Attachment $attId: ${refs.size} projects")
+                }
                 attachmentDao.insertProjectAttachmentLinks(validCrossRefs)
-                Log.d(IMPORT_TAG, "  - Inserted ${validCrossRefs.size} valid attachment cross-refs.")
+                Log.d(IMPORT_TAG, "  ✓ Inserted ${validCrossRefs.size} attachment cross-refs.")
+                Log.d(IMPORT_TAG, "=== ATTACHMENTS IMPORT TRANSACTION END ===")
             }
 
             Log.i(IMPORT_TAG, "Attachments import completed successfully. $orphanedCrossRefsCount attachments were imported as orphans.")

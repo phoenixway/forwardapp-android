@@ -50,9 +50,10 @@ class AttachmentRepository @Inject constructor(
         ownerProjectId: String?,
         createdAt: Long = System.currentTimeMillis(),
     ): AttachmentEntity {
+        Log.d(ATTACHMENT_LOG_TAG, "[ensureAttachmentForEntity] START: type=$attachmentType, entity=$entityId, owner=$ownerProjectId, createdAt=$createdAt")
         val existing = attachmentDao.findAttachmentByEntity(attachmentType, entityId)
         if (existing != null) {
-            Log.d(ATTACHMENT_LOG_TAG, "[ensureAttachmentForEntity] Found existing attachment: id=${existing.id}, type=$attachmentType, entity=$entityId")
+            Log.d(ATTACHMENT_LOG_TAG, "[ensureAttachmentForEntity] FOUND existing: id=${existing.id}, syncedAt=${existing.syncedAt}, version=${existing.version}")
             return existing
         }
 
@@ -68,7 +69,7 @@ class AttachmentRepository @Inject constructor(
                 version = 1,
             )
         attachmentDao.insertAttachment(attachment)
-        Log.d(ATTACHMENT_LOG_TAG, "[ensureAttachmentForEntity] Created new attachment: id=${attachment.id}, type=$attachmentType, entity=$entityId, syncedAt=${attachment.syncedAt}")
+        Log.d(ATTACHMENT_LOG_TAG, "[ensureAttachmentForEntity] CREATED: id=${attachment.id}, type=$attachmentType, entity=$entityId, version=1, syncedAt=null")
         return attachment
     }
 
@@ -79,6 +80,7 @@ class AttachmentRepository @Inject constructor(
         ownerProjectId: String? = null,
         createdAt: Long = System.currentTimeMillis(),
     ): AttachmentEntity {
+        Log.d(ATTACHMENT_LOG_TAG, "[ensureAttachmentLinkedToProject] START: type=$attachmentType, entity=$entityId, project=$projectId")
         val attachment = ensureAttachmentForEntity(attachmentType, entityId, ownerProjectId, createdAt)
         
         // Check if this link already exists to prevent duplicates
@@ -91,6 +93,9 @@ class AttachmentRepository @Inject constructor(
                     attachmentOrder = -createdAt,
                 ),
             )
+            Log.d(ATTACHMENT_LOG_TAG, "[ensureAttachmentLinkedToProject] LINKED: attachment=${attachment.id} -> project=$projectId")
+        } else {
+            Log.d(ATTACHMENT_LOG_TAG, "[ensureAttachmentLinkedToProject] ALREADY LINKED: attachment=${attachment.id} -> project=$projectId")
         }
         return attachment
     }
@@ -100,6 +105,8 @@ class AttachmentRepository @Inject constructor(
         link: RelatedLink,
     ): AttachmentEntity {
         val timestamp = System.currentTimeMillis()
+        Log.d(ATTACHMENT_LOG_TAG, "[createLinkAttachment] START: project=$projectId, link=$link, ts=$timestamp")
+        
         val linkEntity =
             LinkItemEntity(
                 id = UUID.randomUUID().toString(),
@@ -110,7 +117,7 @@ class AttachmentRepository @Inject constructor(
                 version = 1,
             )
         linkItemDao.insert(linkEntity)
-        Log.d(ATTACHMENT_LOG_TAG, "[createLinkAttachment] Created LinkItemEntity: id=${linkEntity.id}, syncedAt=${linkEntity.syncedAt}")
+        Log.d(ATTACHMENT_LOG_TAG, "[createLinkAttachment] STEP1: LinkItemEntity created: id=${linkEntity.id}, version=1, syncedAt=null")
 
         val attachment =
             AttachmentEntity(
@@ -124,7 +131,7 @@ class AttachmentRepository @Inject constructor(
                 version = 1,
             )
         attachmentDao.insertAttachment(attachment)
-        Log.d(ATTACHMENT_LOG_TAG, "[createLinkAttachment] Created AttachmentEntity: id=${attachment.id}, linkId=${linkEntity.id}, project=$projectId, syncedAt=${attachment.syncedAt}")
+        Log.d(ATTACHMENT_LOG_TAG, "[createLinkAttachment] STEP2: AttachmentEntity created: id=${attachment.id}, linkId=${linkEntity.id}, version=1, syncedAt=null")
         
         attachmentDao.insertProjectAttachmentLink(
             ProjectAttachmentCrossRef(
@@ -136,7 +143,8 @@ class AttachmentRepository @Inject constructor(
                 version = 1,
             ),
         )
-        Log.d(ATTACHMENT_LOG_TAG, "[createLinkAttachment] Created ProjectAttachmentCrossRef: project=$projectId, attachment=${attachment.id}")
+        Log.d(ATTACHMENT_LOG_TAG, "[createLinkAttachment] STEP3: ProjectAttachmentCrossRef created: project=$projectId, attachment=${attachment.id}, version=1, syncedAt=null")
+        Log.d(ATTACHMENT_LOG_TAG, "[createLinkAttachment] DONE: attachment=${attachment.id}")
         return attachment
     }
 
