@@ -250,6 +250,7 @@ constructor(
 
     suspend fun createDeltaBackupJsonString(deltaSince: Long): String {
         val changes = getChangesSince(deltaSince)
+        Log.d(WIFI_SYNC_LOG_TAG, "[createDeltaBackupJsonString] deltaSince=$deltaSince, changes: projects=${changes.projects.size}, goals=${changes.goals.size}, attachments=${changes.attachments.size}, crossRefs=${changes.projectAttachmentCrossRefs.size}")
         val fullBackup = FullAppBackup(database = changes)
         return gson.toJson(fullBackup)
     }
@@ -971,9 +972,14 @@ constructor(
         val crossRefsResult = filterByUpdated(local.projectAttachmentCrossRefs) { it.updatedTs() }
         
         Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] since=$since, total attachments=${local.attachments.size}, filtered=${attachmentsResult.size}")
+        Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] All attachments: ")
+        local.attachments.take(5).forEach {
+            Log.d(WIFI_SYNC_LOG_TAG, "  - id=${it.id}, type=${it.attachmentType}, updatedAt=${it.updatedAt}, syncedAt=${it.syncedAt}, updatedTs()=${it.updatedTs()}, since=$since, passes=${(it.updatedTs() ?: 0L) > since}")
+        }
         if (attachmentsResult.isNotEmpty()) {
+            Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] Filtered attachments: ")
             attachmentsResult.take(3).forEach {
-                Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] Attachment: id=${it.id}, updatedAt=${it.updatedAt}, syncedAt=${it.syncedAt}")
+                Log.d(WIFI_SYNC_LOG_TAG, "  - id=${it.id}, updatedAt=${it.updatedAt}, syncedAt=${it.syncedAt}")
             }
         }
         Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] total crossRefs=${local.projectAttachmentCrossRefs.size}, filtered=${crossRefsResult.size}")
@@ -1330,6 +1336,15 @@ constructor(
                 }
 
                 // 2. Apply ID redirects to all related entities
+                val attachmentsBeforeRedirect = normalized.attachments
+                val attachmentsAfterRedirect = normalized.attachments.map {
+                    val newOwnerId = it.ownerProjectId?.let { pid -> idRedirects[pid] ?: pid }
+                    if (newOwnerId != it.ownerProjectId) {
+                        Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Redirecting attachment ownerProjectId: id=${it.id}, old=${it.ownerProjectId}, new=$newOwnerId")
+                    }
+                    it.copy(ownerProjectId = newOwnerId)
+                }
+                
                 val correctedChanges = normalized.copy(
                     projects = correctedIncomingProjects.map { proj ->
                         idRedirects[proj.parentId]?.let { proj.copy(parentId = it) } ?: proj
@@ -1354,9 +1369,7 @@ constructor(
                     projectExecutionLogs = normalized.projectExecutionLogs.map { log ->
                         idRedirects[log.projectId]?.let { log.copy(projectId = it) } ?: log
                     },
-                     attachments = normalized.attachments.map {
-                        it.copy(ownerProjectId = it.ownerProjectId?.let { pid -> idRedirects[pid] ?: pid })
-                    }
+                     attachments = attachmentsAfterRedirect
                 )
 
                 // 3. Merge entities
@@ -1469,7 +1482,7 @@ constructor(
                 Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Processing attachments. Total incoming: ${correctedChanges.attachments.size}, projects in scope: ${projectIds.size}")
                 val incomingAttachments = mergeAndMark(
                     correctedChanges.attachments.filter { it.ownerProjectId == null || it.ownerProjectId in projectIds },
-                    local.attachments.associateBy { it.id }, { it.id }, { it.version }, { it.updatedTs() }, { at, synced -> at.copy(syncedAt = synced) },
+                    local.attachments.associateBy { it.id }, { it.id }, { it.version }, { it.updatedTs() }, { at, synced -> at.copy(syncedAt = synced, updatedAt = maxOf(at.updatedAt, synced)) },
                     ts
                 )
                 Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] After merge: ${incomingAttachments.size} attachments to insert")
@@ -1485,7 +1498,7 @@ constructor(
                 val incomingCrossRefs = mergeAndMark(
                     correctedChanges.projectAttachmentCrossRefs.filter { it.projectId in projectIds && it.attachmentId in attachmentIds },
                     local.projectAttachmentCrossRefs.associateBy { "${it.projectId}-${it.attachmentId}" },
-                    { "${it.projectId}-${it.attachmentId}" }, { it.version }, { it.updatedTs() }, { cr, synced -> cr.copy(syncedAt = synced) },
+                    { "${it.projectId}-${it.attachmentId}" }, { it.version }, { it.updatedTs() }, { cr, synced -> cr.copy(syncedAt = synced, updatedAt = maxOf(cr.updatedAt ?: 0L, synced)) },
                     ts
                 )
                 Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] After merge: ${incomingCrossRefs.size} crossRefs to insert")
