@@ -1869,6 +1869,7 @@ constructor(
                 // because version hasn't changed. We need to ensure synced attachments stay marked as synced.
                 // Track which attachments are already synced locally
                 val alreadySyncedLocalAttachments = local.attachments.filter { it.syncedAt != null }.associateBy { it.id }
+                Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] DEFECT #4: Found ${alreadySyncedLocalAttachments.size} already-synced local attachments")
                 
                 // Process incoming attachments using ALL local projects (DEFECT #3 FIX)
                 val incomingAttachments = mergeAndMark(
@@ -1879,12 +1880,22 @@ constructor(
                 
                 // DEFECT #4 FIX: Re-include attachments that were already synced but filtered by mergeAndMark
                 // This prevents losing sync state when Desktop re-sends the same attachments
-                val alreadySyncedReincluded = correctedChanges.attachments
+                val validIncomingIds = correctedChanges.attachments
                     .filter { it.ownerProjectId == null || it.ownerProjectId in allLocalProjectIds }
-                    .filter { it.id in alreadySyncedLocalAttachments }
+                    .map { it.id }
+                    .toSet()
+                Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] DEFECT #4: Incoming valid attachment IDs: ${validIncomingIds.size}")
+                
+                val alreadySyncedReincluded = correctedChanges.attachments
+                    .filter { it.id in validIncomingIds && it.id in alreadySyncedLocalAttachments }
                     .map { it.copy(syncedAt = ts, updatedAt = maxOf(it.updatedAt, ts)) }
                 
-                Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] DEFECT #4 INFO: ${alreadySyncedReincluded.size} already-synced attachments re-included to maintain sync state")
+                Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] DEFECT #4: Re-including ${alreadySyncedReincluded.size} already-synced attachments to maintain sync state")
+                if (alreadySyncedReincluded.isNotEmpty()) {
+                    alreadySyncedReincluded.take(3).forEach {
+                        Log.d(WIFI_SYNC_LOG_TAG, "  [DEFECT #4] Re-included: id=${it.id}, syncedAt=${it.syncedAt}")
+                    }
+                }
                 
                 val allIncomingAttachments = incomingAttachments + alreadySyncedReincluded
                 val uniqueIncomingAttachments = allIncomingAttachments.distinctBy { it.id }
