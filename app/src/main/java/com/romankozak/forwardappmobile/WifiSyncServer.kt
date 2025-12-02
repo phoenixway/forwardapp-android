@@ -150,6 +150,20 @@ class WifiSyncServer(
                                     Log.d(DEBUG_TAG, "[WifiSyncServer] No deltaSince param, serving FULL export")
                                     syncRepository.createFullBackupJsonString()
                                 }
+                            
+                            // ========== DEFECT #2 DEBUG: Log attachments in export ==========
+                            try {
+                                val backup = gson.fromJson(backupJson, FullAppBackup::class.java)
+                                val attachmentsCount = backup.database?.attachments?.size ?: 0
+                                val crossRefsCount = backup.database?.projectAttachmentCrossRefs?.size ?: 0
+                                Log.d(DEBUG_TAG, "[WifiSyncServer] /export CONTENT CHECK: attachments=$attachmentsCount, crossRefs=$crossRefsCount")
+                                if (attachmentsCount == 0) {
+                                    Log.w(DEBUG_TAG, "[WifiSyncServer] WARNING: Exporting 0 attachments to desktop!")
+                                }
+                            } catch (e: Exception) {
+                                Log.e(DEBUG_TAG, "[WifiSyncServer] Failed to analyze export content", e)
+                            }
+                            
                             dumpToFile("export", backupJson)
                             Log.d(DEBUG_TAG, "[WifiSyncServer] /export dump head=${backupJson.take(400)}")
                             Log.d(DEBUG_TAG, "[WifiSyncServer] /export COMPLETE, JSON size=${backupJson.length} bytes")
