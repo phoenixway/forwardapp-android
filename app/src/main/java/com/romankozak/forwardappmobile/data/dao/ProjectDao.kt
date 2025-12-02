@@ -15,6 +15,9 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface ProjectDao {
     @Query("SELECT * FROM projects ORDER BY goal_order ASC")
+    fun getAllProjectsForSync(): Flow<List<Project>>
+
+    @Query("SELECT * FROM projects WHERE is_deleted = 0 ORDER BY goal_order ASC")
     fun getAllProjects(): Flow<List<Project>>
 
     @Query("SELECT * FROM projects")
