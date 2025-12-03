@@ -6,10 +6,12 @@
     "projects": [],
     "goals": [],
     "listItems": [
-      { "id": "bad1", "projectId": "missing", "itemType": "GOAL", "entityId": "ghost", "order": 0, "version": 1, "updatedAt": 1, "syncedAt": null, "isDeleted": false }
+      { "id": "li_bad", "projectId": "missing", "itemType": "GOAL", "entityId": "ghost", "order": 0, "updatedAt": 1, "syncedAt": null, "isDeleted": false, "version": 1 }
     ],
     "legacyNotes": [],
-    "documents": [],
+    "documents": [
+      { "id": "d_bad", "projectId": "missing", "name": "Orphan Doc", "createdAt": 1, "updatedAt": 1, "syncedAt": null, "isDeleted": false, "version": 1, "content": null, "lastCursorPosition": 0 }
+    ],
     "documentItems": [],
     "checklists": [],
     "checklistItems": [],
@@ -19,7 +21,11 @@
     "inboxRecords": [],
     "projectExecutionLogs": [],
     "recentProjectEntries": [],
-    "attachments": [],
-    "projectAttachmentCrossRefs": []
+    "attachments": [
+      { "id": "a_bad", "attachmentType": "NOTE_DOCUMENT", "entityId": "d_bad", "ownerProjectId": "missing", "createdAt": 1, "updatedAt": 1, "syncedAt": null, "isDeleted": false, "version": 1 }
+    ],
+    "projectAttachmentCrossRefs": [
+      { "projectId": "missing", "attachmentId": "a_bad", "attachmentOrder": 0, "updatedAt": 1, "syncedAt": null, "isDeleted": false, "version": 1 }
+    ]
   }
 }

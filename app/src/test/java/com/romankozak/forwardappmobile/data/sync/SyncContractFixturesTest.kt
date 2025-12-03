@@ -89,40 +89,58 @@ class SyncContractFixturesTest {
         val projects = db.projectDao().getAll()
         val goals = db.goalDao().getAll()
         val listItems = db.listItemDao().getAll()
+        val docs = db.noteDocumentDao().getAllDocuments()
+        val attachments = db.attachmentDao().getAll()
+        val crossRefs = db.attachmentDao().getAllProjectAttachmentCrossRefs()
         assertEquals(setOf("p1"), projects.map { it.id }.toSet())
         assertEquals(setOf("g1"), goals.map { it.id }.toSet())
         assertEquals(setOf("li1"), listItems.map { it.id }.toSet())
+        assertEquals(setOf("d1"), docs.map { it.id }.toSet())
+        assertEquals(setOf("a1"), attachments.map { it.id }.toSet())
+        assertEquals(setOf("p1-a1"), crossRefs.map { "${it.projectId}-${it.attachmentId}" }.toSet())
         assertTrue(projects.all { (it.syncedAt ?: 0) > 0 })
+        assertTrue(attachments.all { (it.syncedAt ?: 0) > 0 })
     }
 
     @Test
     fun applyDeltaAddsNewEntities() = runTest {
         // seed base
-        repo.applyServerChanges(loadBackup("full_base.json").database)
+        assertSuccess(repo.applyServerChanges(loadBackup("full_base.json").database))
         val res = repo.applyServerChanges(loadBackup("delta_added.json").database)
         assertSuccess(res)
         assertEquals(setOf("g1", "g2"), db.goalDao().getAll().map { it.id }.toSet())
         assertEquals(setOf("li1", "li2"), db.listItemDao().getAll().map { it.id }.toSet())
+        assertEquals(setOf("d1", "d2"), db.noteDocumentDao().getAllDocuments().map { it.id }.toSet())
+        assertEquals(setOf("a1", "a2"), db.attachmentDao().getAll().map { it.id }.toSet())
+        assertEquals(setOf("p1-a1", "p1-a2"), db.attachmentDao().getAllProjectAttachmentCrossRefs().map { "${it.projectId}-${it.attachmentId}" }.toSet())
         assertTrue(db.goalDao().getGoalById("g2")!!.syncedAt != null)
+        assertTrue(db.attachmentDao().getAttachmentById("a2")!!.syncedAt != null)
     }
 
     @Test
     fun exportDelta_returnsOnlyNewerThanSince() = runTest {
-        repo.applyServerChanges(loadBackup("full_base.json").database)
-        repo.applyServerChanges(loadBackup("delta_added.json").database)
+        assertSuccess(repo.applyServerChanges(loadBackup("full_base.json").database))
+        assertSuccess(repo.applyServerChanges(loadBackup("delta_added.json").database))
         val json = repo.createDeltaBackupJsonString(100)
         val parsed = gson.fromJson(json, FullAppBackup::class.java)
         assertEquals(setOf("g2"), parsed.database.goals.map { it.id }.toSet())
         assertEquals(setOf("li2"), parsed.database.listItems.map { it.id }.toSet())
+        assertEquals(setOf("d2"), parsed.database.documents.map { it.id }.toSet())
+        assertEquals(setOf("a2"), parsed.database.attachments.map { it.id }.toSet())
+        assertEquals(setOf("p1-a2"), parsed.database.projectAttachmentCrossRefs.map { "${it.projectId}-${it.attachmentId}" }.toSet())
     }
 
     @Test
     fun import_invalidFk_skipsBadListItems() = runTest {
-        repo.applyServerChanges(loadBackup("full_base.json").database)
+        assertSuccess(repo.applyServerChanges(loadBackup("full_base.json").database))
         val res = repo.applyServerChanges(loadBackup("invalid_fk.json").database)
         assertSuccess(res)
         val listItems = db.listItemDao().getAll()
+        val attachments = db.attachmentDao().getAll()
+        val docs = db.noteDocumentDao().getAllDocuments()
         assertEquals(setOf("li1"), listItems.map { it.id }.toSet()) // no li-bad
+        assertEquals(setOf("a1"), attachments.map { it.id }.toSet()) // no a_bad
+        assertEquals(setOf("d1"), docs.map { it.id }.toSet()) // no d_bad
     }
 
     @Test

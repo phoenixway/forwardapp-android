@@ -182,6 +182,11 @@ constructor(
         val allAttachments = attachmentDao.getAll()
         val allCrossRefs = attachmentDao.getAllProjectAttachmentCrossRefs()
 
+        val synthesizedCrossRefs = synthesizeMissingCrossRefs(
+            attachments = allAttachments,
+            existingCrossRefs = allCrossRefs,
+            logPrefix = "[createFullBackupJsonString]",
+        )
         val databaseContent =
             DatabaseContent(
                 goals = goalDao.getAll(),
@@ -199,11 +204,7 @@ constructor(
                 recentProjectEntries = recentProjectEntries,
                 scripts = scripts,
                 attachments = allAttachments,
-                projectAttachmentCrossRefs = synthesizeMissingCrossRefs(
-                    attachments = allAttachments,
-                    existingCrossRefs = allCrossRefs,
-                    logPrefix = "[createFullBackupJsonString]",
-                ),
+                projectAttachmentCrossRefs = synthesizedCrossRefs,
             )
         val settingsMap = settingsRepository.getPreferencesSnapshot().asMap().mapKeys { it.key.name }
             .mapValues { it.value.toString() }
@@ -274,6 +275,13 @@ constructor(
         val crossRefs = attachmentDao.getAllProjectAttachmentCrossRefs()
         Log.d(EXPORT_TAG, "Exporting ${crossRefs.size} attachment cross-refs")
         
+        val synthesizedCrossRefs = synthesizeMissingCrossRefs(
+            attachments = attachments,
+            existingCrossRefs = crossRefs,
+            logPrefix = "[createAttachmentsBackupJsonString]",
+            persistToDb = true,
+        )
+
         val attachmentsBackup =
             AttachmentsBackup(
                 documents = documents,
@@ -282,7 +290,7 @@ constructor(
                 checklistItems = checklistItems,
                 linkItemEntities = linkItems,
                 attachments = attachments,
-                projectAttachmentCrossRefs = crossRefs,
+                projectAttachmentCrossRefs = synthesizedCrossRefs,
             )
         
         Log.d(EXPORT_TAG, "=== ATTACHMENTS EXPORT DONE ===")
@@ -295,6 +303,7 @@ constructor(
              attachments = changes.attachments,
              existingCrossRefs = changes.projectAttachmentCrossRefs,
              logPrefix = "[createDeltaBackupJsonString]",
+             persistToDb = true,
          )
          val changesWithCrossRefs = changes.copy(projectAttachmentCrossRefs = enrichedCrossRefs)
          Log.d(WIFI_SYNC_LOG_TAG, "[createDeltaBackupJsonString] deltaSince=$deltaSince, changes: projects=${changesWithCrossRefs.projects.size}, goals=${changesWithCrossRefs.goals.size}, attachments=${changesWithCrossRefs.attachments.size}, crossRefs=${changesWithCrossRefs.projectAttachmentCrossRefs.size}")
@@ -573,7 +582,8 @@ constructor(
                 val normalizedIncoming = projectFromBackup.copy(
                     projectType = projectFromBackup.projectType ?: ProjectType.DEFAULT,
                     reservedGroup = com.romankozak.forwardappmobile.data.database.models.ReservedGroup.fromString(projectFromBackup.reservedGroup?.groupName),
-                    defaultViewModeName = projectFromBackup.defaultViewModeName ?: ProjectViewMode.BACKLOG.name,
+                    // Do NOT force BACKLOG; keep incoming view mode
+                    defaultViewModeName = projectFromBackup.defaultViewModeName,
                     isProjectManagementEnabled = projectFromBackup.isProjectManagementEnabled ?: false,
                     projectStatus = projectFromBackup.projectStatus ?: ProjectStatusValues.NO_PLAN,
                     projectStatusText = projectFromBackup.projectStatusText ?: "",
@@ -595,25 +605,27 @@ constructor(
                 val systemKey = normalizedIncoming.systemKey
                 val existingSystemProject = systemKey?.let { existingSystemProjectsByKey[it] }
                 
-                if (existingSystemProject != null) {
-                    // Система проект: порівнюємо версії
-                    val incomingUpdated = normalizedIncoming.updatedAt ?: 0
-                    val existingUpdated = existingSystemProject.updatedAt ?: 0
+                    if (existingSystemProject != null) {
+                        // Система проект: порівнюємо версії
+                        val incomingUpdated = normalizedIncoming.updatedAt ?: 0
+                        val existingUpdated = existingSystemProject.updatedAt ?: 0
+                        val incomingView = normalizedIncoming.defaultViewModeName ?: existingSystemProject.defaultViewModeName
                     
-                    // Записуємо маппінг якщо ID різні
-                    if (normalizedIncoming.id != existingSystemProject.id) {
-                        projectIdMap[normalizedIncoming.id] = existingSystemProject.id
-                        Log.d(IMPORT_TAG, "  System '$systemKey': маппінг ${normalizedIncoming.id} -> ${existingSystemProject.id}")
+                        // Записуємо маппінг якщо ID різні
+                        if (normalizedIncoming.id != existingSystemProject.id) {
+                            projectIdMap[normalizedIncoming.id] = existingSystemProject.id
+                            Log.d(IMPORT_TAG, "  System '$systemKey': маппінг ${normalizedIncoming.id} -> ${existingSystemProject.id}")
                     }
                     
                     // LWW (Last-Write-Wins) логіка
-                    if (incomingUpdated > existingUpdated) {
-                        Log.d(IMPORT_TAG, "  System '$systemKey': оновлюємо (incoming=$incomingUpdated > existing=$existingUpdated)")
-                        normalizedIncoming.copy(id = existingSystemProject.id)  // ← ВАЖЛИВО: зберігаємо існуючий ID!
-                    } else {
-                        Log.d(IMPORT_TAG, "  System '$systemKey': залишаємо локальну (existing=$existingUpdated >= incoming=$incomingUpdated)")
-                        existingSystemProject
-                    }
+                        val candidate = normalizedIncoming.copy(id = existingSystemProject.id, defaultViewModeName = incomingView)
+                        if (incomingUpdated > existingUpdated) {
+                            Log.d(IMPORT_TAG, "  System '$systemKey': оновлюємо (incoming=$incomingUpdated > existing=$existingUpdated)")
+                            candidate  // ← ВАЖЛИВО: зберігаємо існуючий ID!
+                        } else {
+                            Log.d(IMPORT_TAG, "  System '$systemKey': залишаємо локальну (existing=$existingUpdated >= incoming=$incomingUpdated)")
+                            existingSystemProject
+                        }
                 } else {
                     // Новий проект (системний або звичайний)
                     normalizedIncoming
@@ -1113,7 +1125,7 @@ constructor(
         val localProjects = localProjectsAll.associateBy { it.id }
         val localGoals = goalDao.getAll().associateBy { it.id }
         val localListItems = listItemDao.getAll()
-            .filter { it.projectId == null || it.projectId in localProjects.keys }
+            .filter { it.projectId in localProjects.keys }
             .associateBy { it.id }
 
         val changes = mutableListOf<SyncChange>()
@@ -1202,7 +1214,7 @@ constructor(
 
         // List items
         val incomingListItems = db.listItems
-            .filter { it.projectId == null || it.projectId in incomingProjectIds }
+            .filter { it.projectId in incomingProjectIds }
             .associateBy { it.id }
         incomingListItems.forEach { (id, incoming) ->
             val local = localListItems[id]
@@ -1300,7 +1312,8 @@ constructor(
 
          val projectIds = local.projects.map { it.id }.toSet()
          val goalIds = local.goals.map { it.id }.toSet()
-         val allChecklistIds = local.checklists.map { it.id }.toSet()
+         val existingDocIds = local.documents.map { it.id }.toSet()
+         val checklistIds = local.checklists.map { it.id }.toSet()
 
          // ========== DEFECT #3 FIX: Include new local attachments in export ==========
          // Attachments should be exported if:
@@ -1334,22 +1347,29 @@ constructor(
 
          // Documents: export unsynced OR updated (avoid sending attachments without documents)
          val (documentsUnsync, documentsUpdated) = unsyncedAndUpdated(local.documents, { it.syncedAt }, { it.updatedTs() })
-         val documentsResult = documentsUnsync + documentsUpdated
+         val documentsResult = (documentsUnsync + documentsUpdated).filter { it.projectId in projectIds }
+         val docIds = documentsResult.map { it.id }.toSet().ifEmpty { existingDocIds }
 
          // Document items: export unsynced OR updated
          val (documentItemsUnsync, documentItemsUpdated) = unsyncedAndUpdated(local.documentItems, { it.syncedAt }, { it.updatedTs() })
-         val documentItemsResult = documentItemsUnsync + documentItemsUpdated
+         // Include items for exported documents even if items themselves were not updated after 'since'
+         val rawDocumentItems = documentItemsUnsync + documentItemsUpdated +
+             local.documentItems.filter { it.listId in docIds }
+         val documentItemsResult = rawDocumentItems.filter { it.listId in docIds }
 
          // Checklists: export unsynced OR updated
          val (checklistsUnsync, checklistsUpdated) = unsyncedAndUpdated(local.checklists, { it.syncedAt }, { it.updatedTs() })
          val rawChecklistsResult = checklistsUnsync + checklistsUpdated
          val checklistsResult = rawChecklistsResult.filter { it.projectId in projectIds }
+         val checklistIdsForExport = checklistsResult.map { it.id }.toSet()
          val skippedChecklists = rawChecklistsResult.size - checklistsResult.size
 
          // Checklist items: export unsynced OR updated
          val (checklistItemsUnsync, checklistItemsUpdated) = unsyncedAndUpdated(local.checklistItems, { it.syncedAt }, { it.updatedTs() })
-         val rawChecklistItemsResult = checklistItemsUnsync + checklistItemsUpdated
-         val checklistItemsResult = rawChecklistItemsResult.filter { it.checklistId in allChecklistIds }
+         // Include items for exported checklists even if items themselves were not updated after 'since'
+         val rawChecklistItemsResult = checklistItemsUnsync + checklistItemsUpdated +
+             local.checklistItems.filter { it.checklistId in checklistIdsForExport }
+         val checklistItemsResult = rawChecklistItemsResult.filter { it.checklistId in checklistIds }
          val skippedChecklistItems = rawChecklistItemsResult.size - checklistItemsResult.size
 
          // Links: export unsynced OR updated
@@ -1380,8 +1400,20 @@ constructor(
          }
          
          Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] CrossRefs: total=${local.projectAttachmentCrossRefs.size}, unsync'd=${crossRefsUnsync.size}, updated=${crossRefsUpdated.size}, result=${crossRefsResult.size}")
-         Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] Documents: total=${local.documents.size}, unsync'd=${documentsUnsync.size}, updated=${documentsUpdated.size}, result=${documentsResult.size}")
-         Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] DocumentItems: total=${local.documentItems.size}, unsync'd=${documentItemsUnsync.size}, updated=${documentItemsUpdated.size}, result=${documentItemsResult.size}")
+         Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] Documents: total=${local.documents.size}, unsync'd=${documentsUnsync.size}, updated=${documentsUpdated.size}, result=${documentsResult.size} (skipped_invalid_project=${documentsUnsync.size + documentsUpdated.size - documentsResult.size})")
+         if (documentsResult.size < documentsUnsync.size + documentsUpdated.size) {
+             (documentsUnsync + documentsUpdated)
+                 .filter { it.projectId !in projectIds }
+                 .take(3)
+                 .forEach { Log.w(WIFI_SYNC_LOG_TAG, "[getChangesSince] Skipping document with invalid projectId=${it.projectId}, id=${it.id}") }
+         }
+         Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] DocumentItems: total=${local.documentItems.size}, unsync'd=${documentItemsUnsync.size}, updated=${documentItemsUpdated.size}, result=${documentItemsResult.size} (skipped_invalid_doc=${rawDocumentItems.size - documentItemsResult.size})")
+         if (documentItemsResult.size < rawDocumentItems.size) {
+             rawDocumentItems
+                 .filter { it.listId !in docIds }
+                 .take(3)
+                 .forEach { Log.w(WIFI_SYNC_LOG_TAG, "[getChangesSince] Skipping documentItem with invalid docId=${it.listId}, id=${it.id}") }
+         }
          Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] Checklists: total=${local.checklists.size}, unsync'd=${checklistsUnsync.size}, updated=${checklistsUpdated.size}, result=${checklistsResult.size} (skipped_invalid_project=$skippedChecklists)")
          if (skippedChecklists > 0) {
              rawChecklistsResult.filter { it.projectId !in projectIds }.take(3).forEach {
@@ -1391,7 +1423,7 @@ constructor(
 
          Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] ChecklistItems: total=${local.checklistItems.size}, unsync'd=${checklistItemsUnsync.size}, updated=${checklistItemsUpdated.size}, result=${checklistItemsResult.size} (skipped_invalid_checklist=$skippedChecklistItems)")
          if (skippedChecklistItems > 0) {
-             rawChecklistItemsResult.filter { it.checklistId !in allChecklistIds }.take(3).forEach {
+             rawChecklistItemsResult.filter { it.checklistId !in checklistIds }.take(3).forEach {
                  Log.w(WIFI_SYNC_LOG_TAG, "[getChangesSince] Skipping checklistItem with invalid checklistId=${it.checklistId}, id=${it.id}")
              }
          }
@@ -1502,12 +1534,13 @@ constructor(
                 Log.d(IMPORT_TAG, "Transaction: Inserting selected data (LWW).")
 
                 if (selectedData.projects.isNotEmpty()) {
-                    // System projects are managed by DatabaseInitializer.prePopulate(), but we need to update them
-                    val regularProjects = selectedData.projects
+                    // Skip systemKey projects; they are prepopulated locally
+                    val incomingRegular = selectedData.projects.filter { it.systemKey == null }
+                    val regularProjects = incomingRegular
                         .let { keepNewer(it, local.projects.associateBy { p -> p.id }, { it.id }, { it.version }, { it.updatedAt }) }
                     if (regularProjects.isNotEmpty()) {
                         projectDao.insertProjects(regularProjects)
-                        Log.d(IMPORT_TAG, "  - Upserted ${regularProjects.size} projects.")
+                        Log.d(IMPORT_TAG, "  - Upserted ${regularProjects.size} projects (systemKey skipped=${selectedData.projects.size - incomingRegular.size}).")
                     }
                 }
                 if (selectedData.goals.isNotEmpty()) {
@@ -1810,7 +1843,11 @@ constructor(
 
                 // 2. Apply ID redirects to all related entities
                 val attachmentsBeforeRedirect = normalized.attachments
-                val attachmentsAfterRedirect = normalized.attachments.map {
+                val attachmentsAfterRedirect = normalized.attachments.mapNotNull {
+                    if (it.attachmentType == null) {
+                        Log.w(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Skipping attachment with null type id=${it.id} entity=${it.entityId} owner=${it.ownerProjectId}")
+                        return@mapNotNull null
+                    }
                     val newOwnerId = it.ownerProjectId?.let { pid -> idRedirects[pid] ?: pid }
                     if (newOwnerId != it.ownerProjectId) {
                         Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Redirecting attachment ownerProjectId: id=${it.id}, old=${it.ownerProjectId}, new=$newOwnerId")
@@ -1845,9 +1882,19 @@ constructor(
                      attachments = attachmentsAfterRedirect
                 )
 
+                // Preserve local view mode if incoming does not specify one
+                val incomingProjectsWithViewMode = correctedChanges.projects.map { inc ->
+                    val localProj = local.projects.find { it.id == inc.id }
+                    val viewMode = inc.defaultViewModeName ?: localProj?.defaultViewModeName
+                    if (inc.defaultViewModeName == null && viewMode != null) {
+                        Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Keeping local view mode for project ${inc.id}: $viewMode")
+                    }
+                    inc.copy(defaultViewModeName = viewMode)
+                }
+
                 // 3. Merge entities
                 val incomingProjects = mergeAndMark(
-                    correctedChanges.projects,
+                    incomingProjectsWithViewMode,
                     local.projects.associateBy { it.id },
                     { it.id }, { it.version }, { it.updatedTs() },
                     { p, synced -> normalizeProject(p).copy(syncedAt = synced) },
@@ -1867,12 +1914,8 @@ constructor(
 
                 val projectIds = (local.projects.map { it.id } + incomingProjects.map { it.id }).toSet()
                 val goalIds = (local.goals.map { it.id } + incomingGoals.map { it.id }).toSet()
-
-                // ========== DEFECT #3 FIX: Use ALL local projects for attachment filtering ==========
-                // Attachments can belong to projects that weren't modified in this sync cycle
-                // Using only projectIds (delta projects) causes massive data loss (106 → 12)
-                // Instead, use ALL existing project IDs from local database
-                val allLocalProjectIds = local.projects.map { it.id }.toSet()
+                // Use every known project (local + incoming) for FK validation of docs/attachments/crossRefs
+                val allProjectIds = projectIds
                 
                 val incomingListItems = mergeAndMark(
                     correctedChanges.listItems.filter { it.projectId in projectIds && (it.itemType != ListItemTypeValues.GOAL || it.entityId in goalIds) && (it.itemType != ListItemTypeValues.SUBLIST || it.entityId in projectIds) },
@@ -1891,7 +1934,7 @@ constructor(
                 if (incomingNotes.isNotEmpty()) legacyNoteDao.insertAll(incomingNotes)
 
                 val incomingDocs = mergeAndMark(
-                    correctedChanges.documents, local.documents.associateBy { it.id },
+                    correctedChanges.documents.filter { it.projectId in allProjectIds }, local.documents.associateBy { it.id },
                     { it.id }, { it.version }, { it.updatedTs() }, { d, synced -> d.copy(syncedAt = synced) },
                     ts,
                     logConsumer = { local, incoming ->
@@ -1900,15 +1943,17 @@ constructor(
                 )
                 if (incomingDocs.isNotEmpty()) noteDocumentDao.insertAllDocuments(incomingDocs)
 
+                val docIds = (local.documents.map { it.id } + incomingDocs.map { it.id }).toSet()
+
                 val incomingDocItems = mergeAndMark(
-                    correctedChanges.documentItems, local.documentItems.associateBy { it.id },
+                    correctedChanges.documentItems.filter { it.listId in docIds }, local.documentItems.associateBy { it.id },
                     { it.id }, { it.version }, { it.updatedTs() }, { di, synced -> di.copy(syncedAt = synced) },
                     ts
                 )
                 if (incomingDocItems.isNotEmpty()) noteDocumentDao.insertAllDocumentItems(incomingDocItems)
 
                 val incomingChecklists = mergeAndMark(
-                    correctedChanges.checklists, local.checklists.associateBy { it.id },
+                    correctedChanges.checklists.filter { it.projectId in allProjectIds }, local.checklists.associateBy { it.id },
                     { it.id }, { it.version }, { it.updatedTs() }, { cl, synced -> cl.copy(syncedAt = synced) },
                     ts
                 )
@@ -1958,7 +2003,7 @@ constructor(
                 )
                 incomingScripts.forEach { scriptDao.insert(it) }
 
-                Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Processing attachments. Total incoming: ${correctedChanges.attachments.size}, delta projects: ${projectIds.size}, all local projects: ${allLocalProjectIds.size}")
+                Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Processing attachments. Total incoming: ${correctedChanges.attachments.size}, delta projects: ${projectIds.size}, all local projects: ${allProjectIds.size}")
                 Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] IMPORTANT: Incoming attachments count: ${correctedChanges.attachments.size}. If 0, this indicates desktop didn't export them.")
                 
                 // ========== DEFECT #3 FIX: Use ALL local project IDs for filtering, not just delta projects ==========
@@ -1967,8 +2012,8 @@ constructor(
                 // AFTER (fixed): using allLocalProjectIds → all attachments preserved
                 
                 val attachmentsWithoutOwner = correctedChanges.attachments.count { it.ownerProjectId == null }
-                val attachmentsWithInvalidOwner = correctedChanges.attachments.count { it.ownerProjectId != null && it.ownerProjectId !in allLocalProjectIds }
-                val attachmentsWithValidOwner = correctedChanges.attachments.count { it.ownerProjectId != null && it.ownerProjectId in allLocalProjectIds }
+                val attachmentsWithInvalidOwner = correctedChanges.attachments.count { it.ownerProjectId != null && it.ownerProjectId !in allProjectIds }
+                val attachmentsWithValidOwner = correctedChanges.attachments.count { it.ownerProjectId != null && it.ownerProjectId in allProjectIds }
                 Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Attachments breakdown: orphans=${attachmentsWithoutOwner}, truly_invalid=${attachmentsWithInvalidOwner}, valid=${attachmentsWithValidOwner}")
                 
                 // Log local attachments state BEFORE processing
@@ -1978,7 +2023,7 @@ constructor(
                 }
                 
                 if (attachmentsWithInvalidOwner > 0) {
-                    correctedChanges.attachments.filter { it.ownerProjectId != null && it.ownerProjectId !in allLocalProjectIds }.take(5).forEach {
+                    correctedChanges.attachments.filter { it.ownerProjectId != null && it.ownerProjectId !in allProjectIds }.take(5).forEach {
                         Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Filtered out attachment (truly orphaned): id=${it.id}, type=${it.attachmentType}, entity=${it.entityId}, ownerProjectId=${it.ownerProjectId}")
                     }
                 }
@@ -1992,17 +2037,17 @@ constructor(
                 
                 // Process incoming attachments using ALL local projects (DEFECT #3 FIX)
                 val incomingAttachments = mergeAndMark(
-                    correctedChanges.attachments.filter { it.ownerProjectId == null || it.ownerProjectId in allLocalProjectIds },
-                    local.attachments.associateBy { it.id }, { it.id }, { it.version }, { it.updatedTs() }, { at, synced -> at.copy(syncedAt = synced, updatedAt = maxOf(at.updatedAt, synced)) },
+                    correctedChanges.attachments.filter { it.ownerProjectId == null || it.ownerProjectId in allProjectIds },
+                    local.attachments.associateBy { it.id }, { it.id }, { it.version }, { it.updatedTs() }, { at, synced -> at.copy(syncedAt = synced) },
                     ts
                 )
                 // DEFECT #5: If incoming attachments match local by id/version but are not newer, they won't be returned by mergeAndMark.
                 // We still need to mark local copies as synced to avoid them staying unsynced and "disappearing" from UI.
                 val matchedExistingAttachments = correctedChanges.attachments
-                    .filter { it.ownerProjectId == null || it.ownerProjectId in allLocalProjectIds }
+                    .filter { it.ownerProjectId == null || it.ownerProjectId in allProjectIds }
                     .mapNotNull { inc -> local.attachments.find { it.id == inc.id } }
                     .filter { it.syncedAt == null } // only those still unsynced locally
-                    .map { it.copy(syncedAt = ts, updatedAt = maxOf(it.updatedAt, ts)) }
+                    .map { it.copy(syncedAt = ts) }
                 if (matchedExistingAttachments.isNotEmpty()) {
                     Log.d(
                         WIFI_SYNC_LOG_TAG,
@@ -2016,14 +2061,14 @@ constructor(
                 // DEFECT #4 FIX: Re-include attachments that were already synced but filtered by mergeAndMark
                 // This prevents losing sync state when Desktop re-sends the same attachments
                 val validIncomingIds = correctedChanges.attachments
-                    .filter { it.ownerProjectId == null || it.ownerProjectId in allLocalProjectIds }
+                    .filter { it.ownerProjectId == null || it.ownerProjectId in allProjectIds }
                     .map { it.id }
                     .toSet()
                 Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] DEFECT #4: Incoming valid attachment IDs: ${validIncomingIds.size}")
                 
                 val alreadySyncedReincluded = correctedChanges.attachments
                     .filter { it.id in validIncomingIds && it.id in alreadySyncedLocalAttachments }
-                    .map { it.copy(syncedAt = ts, updatedAt = maxOf(it.updatedAt, ts)) }
+                    .map { it.copy(syncedAt = ts) }
                 
                 Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] DEFECT #4: Re-including ${alreadySyncedReincluded.size} already-synced attachments to maintain sync state")
                 if (alreadySyncedReincluded.isNotEmpty()) {
@@ -2039,8 +2084,8 @@ constructor(
                 // This prevents them from being stuck in "unsynced" state forever
                 val unsyncedLocalAttachments = if (correctedChanges.attachments.isEmpty()) {
                     local.attachments
-                        .filter { it.syncedAt == null && (it.ownerProjectId == null || it.ownerProjectId in allLocalProjectIds) }
-                        .map { it.copy(syncedAt = ts, updatedAt = maxOf(it.updatedAt, ts)) }
+                        .filter { it.syncedAt == null && (it.ownerProjectId == null || it.ownerProjectId in allProjectIds) }
+                        .map { it.copy(syncedAt = ts) }
                 } else {
                     emptyList()
                 }
@@ -2068,24 +2113,24 @@ constructor(
                     logPrefix = "[applyServerChanges]",
                     persistToDb = false, // defer actual insert to mergeAndMark below to respect FK order
                 )
-                Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Processing crossRefs. Total incoming: ${synthesizedCrossRefs.size}, attachments in scope: ${attachmentIds.size}, delta projects: ${projectIds.size}, all local projects: ${allLocalProjectIds.size}")
+                Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Processing crossRefs. Total incoming: ${synthesizedCrossRefs.size}, attachments in scope: ${attachmentIds.size}, delta projects: ${projectIds.size}, all local projects: ${allProjectIds.size}")
                 
                 // Log crossRef filtering details (also use allLocalProjectIds for crossRefs - DEFECT #3 FIX)
-                val validCrossRefs = synthesizedCrossRefs.filter { it.projectId in allLocalProjectIds && it.attachmentId in attachmentIds }
-                val invalidProjectCrossRefs = synthesizedCrossRefs.count { it.projectId !in allLocalProjectIds }
-                val invalidAttachmentCrossRefs = synthesizedCrossRefs.count { it.projectId in allLocalProjectIds && it.attachmentId !in attachmentIds }
+                val validCrossRefs = synthesizedCrossRefs.filter { it.projectId in allProjectIds && it.attachmentId in attachmentIds }
+                val invalidProjectCrossRefs = synthesizedCrossRefs.count { it.projectId !in allProjectIds }
+                val invalidAttachmentCrossRefs = synthesizedCrossRefs.count { it.projectId in allProjectIds && it.attachmentId !in attachmentIds }
                 Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] CrossRefs breakdown: valid=${validCrossRefs.size}, invalid_project=${invalidProjectCrossRefs}, invalid_attachment=${invalidAttachmentCrossRefs}")
                 
                 if (invalidProjectCrossRefs > 0 || invalidAttachmentCrossRefs > 0) {
-                    synthesizedCrossRefs.filter { it.projectId !in allLocalProjectIds || it.attachmentId !in attachmentIds }.take(5).forEach {
-                        Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Filtered out crossRef: projectId=${it.projectId} (valid=${it.projectId in allLocalProjectIds}), attachmentId=${it.attachmentId} (valid=${it.attachmentId in attachmentIds})")
+                    synthesizedCrossRefs.filter { it.projectId !in allProjectIds || it.attachmentId !in attachmentIds }.take(5).forEach {
+                        Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Filtered out crossRef: projectId=${it.projectId} (valid=${it.projectId in allProjectIds}), attachmentId=${it.attachmentId} (valid=${it.attachmentId in attachmentIds})")
                     }
                 }
                 
                 val incomingCrossRefs = mergeAndMark(
                     validCrossRefs,
                     local.projectAttachmentCrossRefs.associateBy { "${it.projectId}-${it.attachmentId}" },
-                    { "${it.projectId}-${it.attachmentId}" }, { it.version }, { it.updatedTs() }, { cr, synced -> cr.copy(syncedAt = synced, updatedAt = maxOf(cr.updatedAt ?: 0L, synced)) },
+                    { "${it.projectId}-${it.attachmentId}" }, { it.version }, { it.updatedTs() }, { cr, synced -> cr.copy(syncedAt = synced) },
                     ts
                 )
                 Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] After merge: ${incomingCrossRefs.size} crossRefs to insert")
@@ -2120,7 +2165,18 @@ constructor(
         crossinline isDeletedSelector: (T) -> Boolean = { false },
         noinline logConsumer: ((T, T) -> Unit)? = null,
     ): List<T> {
-        return incoming.mapNotNull { inc ->
+        // Deduplicate incoming by id with LWW priority: version → updatedAt → tombstone flag
+        val bestIncomingById = incoming
+            .groupBy { idSelector(it) }
+            .mapValues { entry ->
+                entry.value.maxWithOrNull(
+                    compareBy<T> { versionSelector(it) }
+                        .thenBy { updatedSelector(it) }
+                        .thenBy { if (isDeletedSelector(it)) 1 else 0 },
+                )!!
+            }
+
+        return bestIncomingById.values.mapNotNull { inc ->
             val id = idSelector(inc)
             val local = localMap[id]
             if (local != null) logConsumer?.invoke(local, inc)
@@ -2130,13 +2186,14 @@ constructor(
             val incUpdated = updatedSelector(inc)
             val localUpdated = local?.let { updatedSelector(it) } ?: Long.MIN_VALUE
 
+            // LWW: higher version, then newer updatedAt, then remote wins on tie
             val shouldTakeIncoming = when {
                 local == null -> true
                 incVersion > localVersion -> true
                 incVersion < localVersion -> false
                 incUpdated > localUpdated -> true
                 incUpdated < localUpdated -> false
-                else -> isDeletedSelector(inc)
+                else -> true
             }
 
             if (shouldTakeIncoming) markSynced(inc, syncedAt) else null
@@ -2168,8 +2225,8 @@ private fun normalizeProject(project: Project): Project {
         isExpanded = project.isExpanded,
         order = project.order,
         isAttachmentsExpanded = project.isAttachmentsExpanded,
-        // Align with full-import cleaning to avoid false "updated" after re-importing same file
-        defaultViewModeName = project.defaultViewModeName ?: ProjectViewMode.BACKLOG.name,
+        // Keep incoming view mode as-is, do not force BACKLOG on sync
+        defaultViewModeName = project.defaultViewModeName,
         isCompleted = project.isCompleted,
         isProjectManagementEnabled = project.isProjectManagementEnabled ?: false,
         projectStatus = project.projectStatus ?: ProjectStatusValues.NO_PLAN,
