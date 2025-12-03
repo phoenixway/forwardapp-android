@@ -17,5 +17,50 @@
 
 amp threads continue T-2a06fdc3-5ca6-4a64-adfc-6605c0accf82
 
+192.168.0.175:8080
 
+ відкриваю вкладення проекту на андр. 6 з 8
+  тих які є на десктопі. проходить кілька
+  секунд - 0 вкладень. ще час проходить - 3
+  вкладення. ще час прозодить - 0. створюю
+  нотатку - при синку пропадає з усіма
+  іншими. наступний синк - 3 вкл але не та
+  яку я стврив. на десктопі 9 включаючи
+  новостворену
 
+   Оновив SyncRepository.applyServerChanges:
+  після валідації crossRef тепер є safety
+  net — якщо mergeAndMark не вставив валідні
+  crossRef (через однакові версії/updatedAt),
+  ми примусово додаємо відсутні зв’язки з
+  актуальним syncedAt. Також зібрано повний
+  набір attachmentIds (локальні + нові + re-
+  included + mark-synced), щоб жоден crossRef
+  не відсіявся. Док звіт оновлено: docs/
+  ATTACHMENT_CROSSREF_FILTER_BUG.md.
+
+  Що зробити зараз:
+
+  1. Перезібрати/поставити новий expDebug APK
+     і повторити синк.
+  2. Після синку знову зняти БД та перевірити:
+
+  adb exec-out run-as
+  com.romankozak.forwardappmobile.debug
+  cat /data/user/0/
+  com.romankozak.forwardappmobile.debug/
+  databases/forward_app_database > /tmp/
+  forward_app.db
+  sqlite3 /tmp/forward_app.db "SELECT COUNT(*)
+  FROM attachments; SELECT COUNT(*) FROM
+  project_attachment_cross_ref;"
+  sqlite3 /tmp/forward_app.db "SELECT
+  a.id FROM attachments a LEFT JOIN
+  project_attachment_cross_ref c ON
+  a.id=c.attachment_id WHERE c.attachment_id
+  IS NULL;"
+
+  Очікування: кількість crossRef ≥
+  attachments, список “без crossRef” —
+  порожній. Якщо ні — скинь результати, будемо
+  копати далі.
