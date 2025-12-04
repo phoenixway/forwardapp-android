@@ -825,3 +825,49 @@ val MIGRATION_72_73 = object : Migration(72, 73) {
         )
     }
 }
+
+val MIGRATION_73_74 = object : Migration(73, 74) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Re-run special projects reconciliation to ensure system_key and reserved_group are present.
+        migrateSpecialProjects(db)
+    }
+}
+
+val MIGRATION_74_75 = object : Migration(74, 75) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        migrateSpecialProjects(db)
+        // Hard-set system_key/reserved_group/parentId for all reserved projects to ensure consistency.
+        val updates = listOf(
+            Triple("personal-management", null, "personal-management"),
+            Triple("strategic", "personal-management", "strategic_group"),
+            Triple("strategic-beacons", "strategic", "main_beacons_group"),
+            Triple("week", "personal-management", "strategic"),
+            Triple("today", "personal-management", "inbox"),
+            Triple("main-beacons", "personal-management", "main_beacons"),
+            Triple("mission", "strategic-beacons", "main_beacons"),
+            Triple("long-term-strategy", "strategic-beacons", "strategic"),
+            Triple("strategic-programs", "strategic-beacons", "strategic"),
+            Triple("medium-term-strategy", "personal-management", "strategic"),
+            Triple("active-quests", "week", "strategic"),
+            Triple("strategic-inbox", "strategic", "strategic"),
+            Triple("strategic-review", "strategic", "strategic"),
+            Triple("inbox", "today", "inbox"),
+        )
+        updates.forEach { (key, parentName, reservedGroup) ->
+            val parentIdClause = if (parentName != null) {
+                "parentId = (SELECT id FROM projects WHERE name = '$parentName' LIMIT 1)"
+            } else {
+                "parentId IS NULL"
+            }
+            db.execSQL(
+                """
+                UPDATE projects
+                   SET system_key = '$key',
+                       reserved_group = '$reservedGroup'
+                 WHERE name = '$key'
+                   AND $parentIdClause
+                """.trimIndent()
+            )
+        }
+    }
+}

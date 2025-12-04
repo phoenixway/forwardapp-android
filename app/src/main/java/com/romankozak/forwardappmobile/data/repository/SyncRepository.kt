@@ -42,6 +42,8 @@ import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.data.database.models.ScriptEntity
+import com.romankozak.forwardappmobile.data.database.models.ReservedGroup
+import com.romankozak.forwardappmobile.data.database.models.ReservedProjectKeys
 import com.romankozak.forwardappmobile.data.sync.DatabaseContent
 import com.romankozak.forwardappmobile.data.sync.FullAppBackup
 import com.romankozak.forwardappmobile.data.sync.AttachmentsBackup
@@ -72,6 +74,9 @@ import io.ktor.serialization.gson.gson
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.io.File
 import java.text.SimpleDateFormat
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
@@ -131,6 +136,9 @@ constructor(
 ) {
     private val TAG = "SyncRepository"
     private val WIFI_SYNC_LOG_TAG = "FWD_SYNC_TEST"
+    private val debugDumpDir: File? = context.getExternalFilesDir("forwardapp-backup-dump")
+    private val dumpDateFormat = SimpleDateFormat("yyyy-MM-dd---HH-mm-ss", Locale.US)
+    private val maxDumpBytes = 20 * 1024 * 1024L
 
     private val gson = GsonBuilder()
         .registerTypeAdapter(Long::class.java, LongDeserializer())
@@ -991,6 +999,7 @@ constructor(
 
     suspend fun fetchBackupFromWifi(address: String, deltaSince: Long? = null): Result<String> = 
         try {
+            Log.d(WIFI_SYNC_LOG_TAG, "[fetchBackupFromWifi] DEBUG_ENTER address=$address deltaSince=$deltaSince")
             var cleanAddress = address.trim()
             if (!cleanAddress.startsWith("http://") && !cleanAddress.startsWith("https://")) {
                 cleanAddress = "http://$cleanAddress"
@@ -1006,6 +1015,8 @@ constructor(
             Log.d(WIFI_SYNC_LOG_TAG, "[fetchBackupFromWifi] GET $fullUrl (deltaSince=$deltaSince)")
             val response: String = client.get(fullUrl).body()
             Log.d(WIFI_SYNC_LOG_TAG, "[fetchBackupFromWifi] Success, bytes=${response.length}")
+            Log.d(WIFI_SYNC_LOG_TAG, "[fetchBackupFromWifi] DEBUG_MARK: reached after HTTP GET")
+            writeDebugDump("import", response)
             Result.success(response)
         } catch (e: Exception) {
             Log.e(WIFI_SYNC_LOG_TAG, "Error fetching from Wi‑Fi", e)
@@ -1014,6 +1025,7 @@ constructor(
 
     suspend fun pushUnsyncedToWifi(address: String): Result<Unit> = 
         try {
+            Log.d(WIFI_SYNC_LOG_TAG, "[pushUnsyncedToWifi] DEBUG_ENTER address=$address")
             val unsynced = getUnsyncedChanges()
             Log.d(
                 WIFI_SYNC_LOG_TAG,
@@ -1036,6 +1048,7 @@ constructor(
                     "listItems=${unsynced.listItems.size} attachments=${unsynced.attachments.size}",
             )
             val payload = gson.toJson(FullAppBackup(database = unsynced))
+            writeDebugDump("export", payload)
             client.post(fullUrl) {
                 contentType(ContentType.Application.Json)
                 setBody(payload)
@@ -2289,5 +2302,45 @@ private fun mergeSystemProjects(
         }
     }
 }
+
+    private suspend fun writeDebugDump(kind: String, payload: String) {
+        withContext(Dispatchers.IO) {
+            try {
+                val dir = debugDumpDir
+                if (dir == null) {
+                    Log.w(WIFI_SYNC_LOG_TAG, "[debugDump] Dump dir is null, skip")
+                    return@withContext
+                }
+                if (!dir.exists()) {
+                    val created = dir.mkdirs()
+                    Log.d(WIFI_SYNC_LOG_TAG, "[debugDump] mkdirs ${dir.absolutePath} created=$created")
+                }
+                val stamp = dumpDateFormat.format(Date())
+                val file = File(dir, "$kind---$stamp.json")
+                file.writeText(payload)
+                trimDebugDumpsIfNeeded()
+                Log.d(WIFI_SYNC_LOG_TAG, "[debugDump] wrote ${file.name} bytes=${payload.length} at ${file.absolutePath}")
+            } catch (e: Exception) {
+                Log.w(WIFI_SYNC_LOG_TAG, "[debugDump] Failed to write dump", e)
+            }
+        }
+    }
+
+    private fun trimDebugDumpsIfNeeded() {
+        val dir = debugDumpDir ?: run {
+            Log.w(WIFI_SYNC_LOG_TAG, "[debugDump] trim skipped: dir is null")
+            return
+        }
+        val files = dir.listFiles()?.filter { it.extension == "json" }?.sortedBy { it.lastModified() } ?: return
+        var total = files.sumOf { it.length() }
+        if (total <= maxDumpBytes) return
+        for (f in files) {
+            if (total <= maxDumpBytes) break
+            val len = f.length()
+            if (f.delete()) {
+                total -= len
+            }
+        }
+    }
 
 }

@@ -164,6 +164,7 @@ class WifiSyncServer(
                                 Log.e(DEBUG_TAG, "[WifiSyncServer] Failed to analyze export content", e)
                             }
                             
+                            Log.d(DEBUG_TAG, "[WifiSyncServer] DEBUG_MARK_EXPORT_READY len=${backupJson.length}")
                             dumpToFile("export", backupJson)
                             Log.d(DEBUG_TAG, "[WifiSyncServer] /export dump head=${backupJson.take(400)}")
                             Log.d(DEBUG_TAG, "[WifiSyncServer] /export COMPLETE, JSON size=${backupJson.length} bytes")
@@ -180,6 +181,7 @@ class WifiSyncServer(
                         Log.d(DEBUG_TAG, "[WifiSyncServer] /import from $remote")
                         try {
                             val body = call.receiveText()
+                            Log.d(DEBUG_TAG, "[WifiSyncServer] DEBUG_MARK_RECEIVED_IMPORT len=${body.length}")
                             dumpToFile("import", body)
                             Log.d(DEBUG_TAG, "[WifiSyncServer] /import dump head=${body.take(400)}")
                             val backup = gson.fromJson(body, FullAppBackup::class.java)

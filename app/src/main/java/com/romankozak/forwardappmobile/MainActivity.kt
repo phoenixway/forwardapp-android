@@ -80,6 +80,7 @@ class MainActivity : ComponentActivity() {
 
 
         Log.d(tag, "MainActivity: onCreate called")
+        Log.w(tag, "WE HERE, UPDATED BUILD HERE!!!")
         handleReminderIntent(intent)
         checkAndLogMissedDays()
 

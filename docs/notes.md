@@ -62,3 +62,7 @@ amp threads continue T-2a06fdc3-5ca6-4a64-adfc-6605c0accf82
 
 Можливо навіть написати інтеграційні тести щоб бачити автоматично чи конвеєр працює нормально, але це складно і об'ємно
 Можна проміжний варіант. Тестова БД в пам'яті. Перевіряємо як наш конвеєр обробляє її тестові дані . Чи генерує нормальний експорт. Чи нормально обробляє імпорт
+
+adb shell run-as com.romankozak.forwardappmobile.debug ls -l /data/user/0/com.romankozak.forwardappmobile.debug/files/sync-dumps
+
+adb exec-out run-as com.romankozak.forwardappmobile.debug sh -c 'rm -f /data/user/0/com.romankozak.forwardappmobile.debug/files/sync-dumps/*'
