@@ -134,12 +134,12 @@ class SettingsRepository @Inject constructor(
 
     val wifiSyncServerEnabledFlow: Flow<Boolean> =
         context.dataStore.data.map { prefs ->
-            prefs.safeBoolean(wifiSyncServerEnabledKey, false)
+            prefs.safeBoolean(wifiSyncServerEnabledKey, true)
         }
 
     val desktopSyncAddressFlow: Flow<String> =
         context.dataStore.data.map { prefs ->
-            prefs[desktopSyncAddressKey] ?: ""
+            prefs[desktopSyncAddressKey] ?: "192.168.0.106"
         }
 
     private fun Preferences.safeFloat(

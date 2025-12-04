@@ -65,7 +65,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAt
         LegacyNoteFts::class,
         RecurringTaskFts::class,
     ],
-    version = 75,
+    version = 76,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class, ProjectTypeConverter::class)

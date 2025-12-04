@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.di
 
 import android.content.Context
+import android.util.Log
 import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
@@ -102,6 +103,7 @@ import com.romankozak.forwardappmobile.data.database.MIGRATION_71_72
 import com.romankozak.forwardappmobile.data.database.MIGRATION_72_73
 import com.romankozak.forwardappmobile.data.database.MIGRATION_73_74
 import com.romankozak.forwardappmobile.data.database.MIGRATION_74_75
+import com.romankozak.forwardappmobile.data.database.MIGRATION_75_76
 import com.romankozak.forwardappmobile.data.repository.SystemAppRepository
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 
@@ -126,6 +128,17 @@ object DatabaseModule {
                     val databaseInitializer = com.romankozak.forwardappmobile.data.database.DatabaseInitializer(db.projectDao(), systemAppRepository)
                     databaseInitializer.prePopulate()
                     migrateSpecialProjects(dbSupport)
+                    runCatching {
+                        val projects = db.projectDao().getAll()
+                        val missingSystemKey = projects.count { it.systemKey == null }
+                        val missingReserved = projects.count { it.reservedGroup == null }
+                        Log.d(
+                            "DB_INIT",
+                            "After prePopulate/migrate: total=${projects.size}, missingSystemKey=$missingSystemKey, missingReserved=$missingReserved, dbVersion=${db.openHelper.readableDatabase.version}"
+                        )
+                    }.onFailure {
+                        Log.w("DB_INIT", "Failed to log systemKey state", it)
+                    }
                 }
             }
         }
@@ -199,6 +212,7 @@ object DatabaseModule {
             MIGRATION_72_73,
             MIGRATION_73_74,
             MIGRATION_74_75,
+            MIGRATION_75_76,
         ).addCallback(callback).build()
         return db
     }

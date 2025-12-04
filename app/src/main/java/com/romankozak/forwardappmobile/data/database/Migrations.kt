@@ -871,3 +871,41 @@ val MIGRATION_74_75 = object : Migration(74, 75) {
         }
     }
 }
+
+val MIGRATION_75_76 = object : Migration(75, 76) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        migrateSpecialProjects(db)
+        // Force set system_key/reserved_group even if names differ: use ReservedProjectKeys mapping.
+        val mapping = mapOf(
+            "personal-management" to Triple(null, "personal-management", "SYSTEM"),
+            "strategic" to Triple("personal-management", "strategic_group", "RESERVED"),
+            "strategic-beacons" to Triple("strategic", "main_beacons_group", "RESERVED"),
+            "week" to Triple("personal-management", "strategic", "RESERVED"),
+            "today" to Triple("personal-management", "inbox", "RESERVED"),
+            "main-beacons" to Triple("personal-management", "main_beacons", "RESERVED"),
+            "mission" to Triple("strategic-beacons", "main_beacons", "RESERVED"),
+            "long-term-strategy" to Triple("strategic-beacons", "strategic", "RESERVED"),
+            "strategic-programs" to Triple("strategic-beacons", "strategic", "RESERVED"),
+            "medium-term-strategy" to Triple("personal-management", "strategic", "RESERVED"),
+            "active-quests" to Triple("week", "strategic", "RESERVED"),
+            "strategic-inbox" to Triple("strategic", "strategic", "RESERVED"),
+            "strategic-review" to Triple("strategic", "strategic", "RESERVED"),
+            "inbox" to Triple("today", "inbox", "RESERVED"),
+        )
+        mapping.forEach { (key, triple) ->
+            val (parentName, reservedGroup, projectType) = triple
+            val parentClause = if (parentName == null) "parentId IS NULL" else "parentId = (SELECT id FROM projects WHERE system_key = '$parentName' OR name = '$parentName' LIMIT 1)"
+            db.execSQL(
+                """
+                UPDATE projects
+                   SET system_key = '$key',
+                       reserved_group = '$reservedGroup',
+                       project_type = '$projectType'
+                 WHERE (system_key IS NULL OR system_key != '$key')
+                   AND name = '$key'
+                   AND $parentClause
+                """.trimIndent()
+            )
+        }
+    }
+}

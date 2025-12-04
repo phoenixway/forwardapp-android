@@ -134,11 +134,19 @@ class WifiSyncServer(
                         try {
                             val deltaSinceParam = call.request.queryParameters["deltaSince"] ?: call.request.queryParameters["since"]
                             Log.d(DEBUG_TAG, "[WifiSyncServer] /export deltaSinceParam=$deltaSinceParam")
+                            val systemKeyStats = runCatching {
+                                val projects = syncRepository.createFullBackupJsonString().let { json ->
+                                    gson.fromJson(json, FullAppBackup::class.java).database?.projects ?: emptyList()
+                                }
+                                val missing = projects.count { it.systemKey == null }
+                                val total = projects.size
+                                "systemKeys=${total - missing}/$total"
+                            }.getOrElse { "systemKeys=error:${it.message}" }
                             val backupJson =
                                 if (deltaSinceParam != null) {
                                     val since = deltaSinceParam.toLongOrNull()
                                     if (since != null) {
-                                        Log.d(DEBUG_TAG, "[WifiSyncServer] Serving DELTA since=$since")
+                                        Log.d(DEBUG_TAG, "[WifiSyncServer] Serving DELTA since=$since $systemKeyStats")
                                         val deltaJson = syncRepository.createDeltaBackupJsonString(since)
                                         Log.d(DEBUG_TAG, "[WifiSyncServer] Delta JSON size=${deltaJson.length}")
                                         deltaJson
@@ -147,7 +155,7 @@ class WifiSyncServer(
                                         syncRepository.createFullBackupJsonString()
                                     }
                                 } else {
-                                    Log.d(DEBUG_TAG, "[WifiSyncServer] No deltaSince param, serving FULL export")
+                                    Log.d(DEBUG_TAG, "[WifiSyncServer] No deltaSince param, serving FULL export $systemKeyStats")
                                     syncRepository.createFullBackupJsonString()
                                 }
                             
