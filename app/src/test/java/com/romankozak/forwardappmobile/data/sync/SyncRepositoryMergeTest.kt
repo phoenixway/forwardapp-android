@@ -445,8 +445,8 @@ class SyncRepositoryMergeTest {
 
     @Test
     fun `createDeltaBackupJsonString filters by updatedAt`() = runTest {
-        val projectOld = sampleProject("p1", version = 1, updatedAt = 10)
-        val projectNew = sampleProject("p2", version = 1, updatedAt = 50)
+        val projectOld = sampleProject("p1", version = 1, updatedAt = 10).copy(syncedAt = 1)
+        val projectNew = sampleProject("p2", version = 1, updatedAt = 50).copy(syncedAt = 1)
         projectDao.insertProjects(listOf(projectOld, projectNew))
 
         val json = syncRepository.createDeltaBackupJsonString(deltaSince = 20)
@@ -455,9 +455,24 @@ class SyncRepositoryMergeTest {
     }
 
     @Test
+    fun `getChangesSince exports unsynced list items regardless of since`() = runTest {
+        val project = sampleProject("p1", version = 1, updatedAt = 5).copy(syncedAt = 5)
+        val goal = sampleGoal("g1", version = 1, updatedAt = 5).copy(syncedAt = 5)
+        projectDao.insertProjects(listOf(project))
+        goalDao.insertGoals(listOf(goal))
+        val listItem = sampleListItem("li1", projectId = "p1", version = 1, updatedAt = 10).copy(order = 7)
+        listItemDao.insertItem(listItem)
+
+        val delta = syncRepository.getChangesSince(20)
+
+        assertEquals(listOf("li1"), delta.listItems.map { it.id })
+        assertEquals(7, delta.listItems.first().order)
+    }
+
+    @Test
     fun `WifiSyncServer export uses deltaSince when provided`() = runTest {
-        val projectOld = sampleProject("p1", version = 1, updatedAt = 10)
-        val projectNew = sampleProject("p2", version = 1, updatedAt = 50)
+        val projectOld = sampleProject("p1", version = 1, updatedAt = 10).copy(syncedAt = 1)
+        val projectNew = sampleProject("p2", version = 1, updatedAt = 50).copy(syncedAt = 1)
         projectDao.insertProjects(listOf(projectOld, projectNew))
 
         val deltaJson = syncRepository.createDeltaBackupJsonString(20)

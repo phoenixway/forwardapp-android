@@ -1323,8 +1323,14 @@ constructor(
              return unsynced to updated
          }
 
-         val projectIds = local.projects.map { it.id }.toSet()
-         val goalIds = local.goals.map { it.id }.toSet()
+        val (projectsUnsync, projectsUpdated) = unsyncedAndUpdated(local.projects, { it.syncedAt }, { it.updatedTs() })
+        val projectsResult = projectsUnsync + projectsUpdated
+
+        val (goalsUnsync, goalsUpdated) = unsyncedAndUpdated(local.goals, { it.syncedAt }, { it.updatedTs() })
+        val goalsResult = goalsUnsync + goalsUpdated
+
+        val projectIds = local.projects.map { it.id }.toSet()
+        val goalIds = local.goals.map { it.id }.toSet()
          val existingDocIds = local.documents.map { it.id }.toSet()
          val checklistIds = local.checklists.map { it.id }.toSet()
 
@@ -1385,6 +1391,12 @@ constructor(
          val checklistItemsResult = rawChecklistItemsResult.filter { it.checklistId in checklistIds }
          val skippedChecklistItems = rawChecklistItemsResult.size - checklistItemsResult.size
 
+         // List items: export unsynced OR updated
+         val (listItemsUnsync, listItemsUpdated) = unsyncedAndUpdated(local.listItems, { it.syncedAt }, { it.updatedTs() })
+         val rawListItemsResult = listItemsUnsync + listItemsUpdated
+         val listItemsResult = rawListItemsResult
+             .filter { it.projectId in projectIds || it.entityId in goalIds }
+
          // Links: export unsynced OR updated
          val (linkItemsUnsync, linkItemsUpdated) = unsyncedAndUpdated(local.linkItemEntities, { it.syncedAt }, { it.updatedTs() })
          val linkItemsResult = linkItemsUnsync + linkItemsUpdated
@@ -1443,10 +1455,9 @@ constructor(
          Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] LinkItems: total=${local.linkItemEntities.size}, unsync'd=${linkItemsUnsync.size}, updated=${linkItemsUpdated.size}, result=${linkItemsResult.size}")
 
         return DatabaseContent(
-            projects = filterByUpdated(local.projects) { it.updatedTs() },
-            goals = filterByUpdated(local.goals) { it.updatedTs() },
-            listItems = filterByUpdated(local.listItems) { it.updatedTs() }
-                .filter { it.projectId in projectIds || it.entityId in goalIds },
+            projects = projectsResult,
+            goals = goalsResult,
+            listItems = listItemsResult,
             legacyNotes = filterByUpdated(local.legacyNotes) { it.updatedTs() },
             documents = documentsResult,
             documentItems = documentItemsResult,
