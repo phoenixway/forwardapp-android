@@ -49,6 +49,8 @@ import com.romankozak.forwardappmobile.data.database.models.ReservedProjectKeys
 import com.romankozak.forwardappmobile.data.sync.DatabaseContent
 import com.romankozak.forwardappmobile.data.sync.FullAppBackup
 import com.romankozak.forwardappmobile.data.sync.AttachmentsBackup
+import com.romankozak.forwardappmobile.data.sync.BacklogOrderUtils
+import com.romankozak.forwardappmobile.data.sync.NormalizedBacklogOrderResult
 import com.romankozak.forwardappmobile.data.sync.ReservedGroupAdapter
 import com.romankozak.forwardappmobile.data.sync.toGoal
 import com.romankozak.forwardappmobile.data.sync.toProject
@@ -1841,36 +1843,18 @@ constructor(
             }
 
     private fun dedupBacklogOrders(items: List<BacklogOrder>): List<BacklogOrder> =
-        items.groupBy { it.listId to it.itemId }
-            .mapNotNull { (_, candidates) ->
-                candidates.maxWithOrNull(
-                    compareBy<BacklogOrder> { it.orderVersion }
-                        .thenBy { it.updatedTs() ?: 0L }
-                        .thenBy { if (it.isDeleted) 1 else 0 },
-                )
-            }
+        BacklogOrderUtils.dedupBacklogOrders(items)
 
     private suspend fun ensureBacklogOrdersSeeded(listItems: List<ListItem>): List<BacklogOrder> {
         val existing = backlogOrderDao.getAll()
         val existingIds = existing.associateBy { it.id }
         val missing = listItems.filter { it.id !in existingIds }
-            .map {
-                BacklogOrder(
-                    id = it.id,
-                    listId = it.projectId,
-                    itemId = it.entityId,
-                    order = it.order,
-                    orderVersion = it.version,
-                    updatedAt = it.updatedAt ?: it.version,
-                    syncedAt = it.syncedAt,
-                    isDeleted = it.isDeleted,
-                )
-            }
+            .map { BacklogOrderUtils.listItemToBacklogOrder(it) }
         if (missing.isNotEmpty()) {
             Log.w(WIFI_SYNC_LOG_TAG, "[SeedBacklogOrder] Seeding ${missing.size} missing orders from listItems")
             backlogOrderDao.insertOrders(missing)
         }
-        return existing + missing
+        return dedupBacklogOrders(existing + missing)
     }
 
     private suspend fun cleanupListItemDuplicates(
@@ -2066,22 +2050,47 @@ constructor(
                 val allProjectIds = projectIds
                 val backlogValidIds = goalIds + allProjectIds
                 
-                val dedupedIncomingBacklogOrders = dedupBacklogOrders(
+                val incomingOrderKeys = correctedChanges.backlogOrders
+                    .filter { it.listId in projectIds && it.itemId in backlogValidIds }
+                    .map { it.listId to it.itemId }
+                    .toSet()
+                val localOrderByKey = local.backlogOrders.associateBy { it.listId to it.itemId }
+
+                val incomingListItemsPrepared = correctedChanges.listItems
+                    .filter { it.projectId in projectIds && (it.itemType != ListItemTypeValues.GOAL || it.entityId in goalIds) && (it.itemType != ListItemTypeValues.SUBLIST || it.entityId in projectIds) }
+                    .map { li ->
+                        val key = li.projectId to li.entityId
+                        val localOrder = localOrderByKey[key]
+                        val hasIncomingOrder = key in incomingOrderKeys
+                        if (localOrder != null && !hasIncomingOrder) {
+                            val updatedAt = maxOf(li.updatedAt ?: 0L, localOrder.updatedAt ?: 0L, localOrder.orderVersion)
+                            val version = maxOf(li.version, localOrder.orderVersion, updatedAt)
+                            li.copy(
+                                order = localOrder.order,
+                                version = version,
+                                updatedAt = updatedAt,
+                            )
+                        } else {
+                            li
+                        }
+                    }
+
+                val incomingOrdersNormalized: NormalizedBacklogOrderResult = BacklogOrderUtils.normalizeBacklogOrderSets(
+                    incomingListItemsPrepared,
                     correctedChanges.backlogOrders.filter { it.listId in projectIds && it.itemId in backlogValidIds },
                 )
-                val orderOverrideMap = dedupBacklogOrders(local.backlogOrders + dedupedIncomingBacklogOrders)
+                val orderOverrideMap = dedupBacklogOrders(local.backlogOrders + incomingOrdersNormalized.backlogOrders)
                     .associateBy { it.listId to it.itemId }
 
                 val dedupedIncomingListItems = dedupListItems(
-                    correctedChanges.listItems
-                        .filter { it.projectId in projectIds && (it.itemType != ListItemTypeValues.GOAL || it.entityId in goalIds) && (it.itemType != ListItemTypeValues.SUBLIST || it.entityId in projectIds) }
+                    incomingOrdersNormalized.listItems
                         .map { li ->
                             val override = orderOverrideMap[li.projectId to li.entityId]
                             if (override != null && !override.isDeleted) {
                                 li.copy(
                                     order = override.order,
                                     version = maxOf(li.version, override.orderVersion),
-                                    updatedAt = maxOf(li.updatedAt ?: 0L, override.updatedAt ?: 0L),
+                                    updatedAt = maxOf(li.updatedAt ?: 0L, override.updatedAt ?: 0L, override.orderVersion),
                                 )
                             } else {
                                 li
@@ -2098,7 +2107,7 @@ constructor(
                 if (incomingListItems.isNotEmpty()) listItemDao.insertItems(incomingListItems)
 
                 val incomingBacklogOrders = mergeAndMark(
-                    dedupedIncomingBacklogOrders,
+                    dedupBacklogOrders(incomingOrdersNormalized.backlogOrders + dedupedIncomingListItems.map { BacklogOrderUtils.listItemToBacklogOrder(it) }),
                     local.backlogOrders.associateBy { it.id },
                     { it.id }, { it.orderVersion }, { it.updatedTs() },
                     { bo, synced -> bo.copy(syncedAt = synced) },
