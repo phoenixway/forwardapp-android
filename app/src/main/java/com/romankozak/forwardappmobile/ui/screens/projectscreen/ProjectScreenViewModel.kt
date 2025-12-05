@@ -1029,6 +1029,9 @@ constructor(
         val movedItem = currentContent.removeAt(fromIndex)
         currentContent.add(toIndex, movedItem)
         val reorderedContent = currentContent.withCompletedAtEnd()
+        Log.d(TAG, "onMove before save: " + reorderedContent.mapIndexed { idx, item ->
+            "[$idx:${item.listItem.id} order=${item.listItem.order} v=${item.listItem.version} syncedAt=${item.listItem.syncedAt}]"
+        }.joinToString(","))
         _listContent.value = reorderedContent
         saveListOrder(reorderedContent)
     }
@@ -1057,7 +1060,10 @@ constructor(
                 attachmentOrders += content.listItem.id to order
                 null
               }
-              else -> content.listItem.copy(order = order)
+              else -> {
+                Log.d(TAG, "[saveListOrder] prepare id=${content.listItem.id} orderOld=${content.listItem.order} orderNew=$order v=${content.listItem.version} syncedAt=${content.listItem.syncedAt}")
+                content.listItem.copy(order = order)
+              }
             }
           }
         if (updatedItems.isNotEmpty()) {
@@ -1066,7 +1072,10 @@ constructor(
         if (attachmentOrders.isNotEmpty()) {
           projectRepository.updateAttachmentOrders(projectIdFlow.value, attachmentOrders)
         }
-        Log.d(TAG, "[saveListOrder] Successfully saved new order to the database.")
+        Log.d(
+          TAG,
+          "[saveListOrder] Successfully saved new order to the database. updatedItems=${updatedItems.size} attachments=${attachmentOrders.size}"
+        )
       } catch (e: Exception) {
         Log.e(TAG, "[saveListOrder] Failed to save list order", e)
       }

@@ -23,7 +23,9 @@ import com.romankozak.forwardappmobile.data.dao.RecentItemDao
 import com.romankozak.forwardappmobile.data.dao.ScriptDao
 import com.romankozak.forwardappmobile.data.dao.SystemAppDao
 import com.romankozak.forwardappmobile.data.database.AppDatabase
+import com.romankozak.forwardappmobile.data.dao.BacklogOrderDao
 import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
+import com.romankozak.forwardappmobile.data.database.models.BacklogOrder
 import com.romankozak.forwardappmobile.data.database.models.ChecklistEntity
 import com.romankozak.forwardappmobile.data.database.models.ChecklistItemEntity
 import com.romankozak.forwardappmobile.data.database.models.Goal
@@ -129,6 +131,7 @@ constructor(
     private val noteDocumentDao: NoteDocumentDao,
     private val checklistDao: ChecklistDao,
     private val recentItemDao: RecentItemDao,
+    private val backlogOrderDao: BacklogOrderDao,
     private val scriptDao: ScriptDao,
     private val attachmentRepository: AttachmentRepository,
     private val attachmentDao: AttachmentDao,
@@ -189,6 +192,8 @@ constructor(
 
         val allAttachments = attachmentDao.getAll()
         val allCrossRefs = attachmentDao.getAllProjectAttachmentCrossRefs()
+        val listItems = listItemDao.getAll()
+        val backlogOrders = ensureBacklogOrdersSeeded(listItems)
 
         val synthesizedCrossRefs = synthesizeMissingCrossRefs(
             attachments = allAttachments,
@@ -199,7 +204,8 @@ constructor(
             DatabaseContent(
                 goals = goalDao.getAll(),
                 projects = projectDao.getAll(),
-                listItems = listItemDao.getAll(),
+                listItems = listItems,
+                backlogOrders = backlogOrders,
                 legacyNotes = legacyNoteDao.getAll(),
                 documents = noteDocumentDao.getAllDocuments(),
                 documentItems = noteDocumentDao.getAllDocumentItems(),
@@ -1074,6 +1080,11 @@ constructor(
             Log.d(WIFI_SYNC_LOG_TAG, "[markSyncedNow] Marking ${content.listItems.size} listItems synced")
             listItemDao.insertItems(content.listItems.map { it.copy(syncedAt = ts) })
             
+            if (content.backlogOrders.isNotEmpty()) {
+                Log.d(WIFI_SYNC_LOG_TAG, "[markSyncedNow] Marking ${content.backlogOrders.size} backlog orders synced")
+                backlogOrderDao.insertOrders(content.backlogOrders.map { it.copy(syncedAt = ts) })
+            }
+            
             legacyNoteDao.insertAll(content.legacyNotes.map { it.copy(syncedAt = ts) })
             
             Log.d(WIFI_SYNC_LOG_TAG, "[markSyncedNow] Marking ${content.documents.size} note documents synced")
@@ -1126,6 +1137,7 @@ constructor(
             local.documents.mapNotNull { it.syncedAt }.minOrNull(),
             local.attachments.mapNotNull { it.syncedAt }.minOrNull(),
             local.projectAttachmentCrossRefs.mapNotNull { it.syncedAt }.minOrNull(),
+            local.backlogOrders.mapNotNull { it.syncedAt }.minOrNull(),
         )
         return allSyncedTimes.minOrNull()
     }
@@ -1287,11 +1299,14 @@ constructor(
             )
         }
         val scripts = scriptDao.getAll().first()
+        val listItems = listItemDao.getAll()
+        val backlogOrders = ensureBacklogOrdersSeeded(listItems)
 
         return DatabaseContent(
             goals = goalDao.getAll(),
             projects = projectDao.getAll(),
-            listItems = listItemDao.getAll(),
+            listItems = listItems,
+            backlogOrders = backlogOrders,
             legacyNotes = legacyNoteDao.getAll(),
             documents = noteDocumentDao.getAllDocuments(),
             documentItems = noteDocumentDao.getAllDocumentItems(),
@@ -1392,10 +1407,17 @@ constructor(
          val skippedChecklistItems = rawChecklistItemsResult.size - checklistItemsResult.size
 
          // List items: export unsynced OR updated
-         val (listItemsUnsync, listItemsUpdated) = unsyncedAndUpdated(local.listItems, { it.syncedAt }, { it.updatedTs() })
+         val dedupedLocalListItems = dedupListItems(local.listItems)
+         val (listItemsUnsync, listItemsUpdated) = unsyncedAndUpdated(dedupedLocalListItems, { it.syncedAt }, { it.updatedTs() })
          val rawListItemsResult = listItemsUnsync + listItemsUpdated
          val listItemsResult = rawListItemsResult
              .filter { it.projectId in projectIds || it.entityId in goalIds }
+
+         val dedupedLocalBacklogOrders = dedupBacklogOrders(local.backlogOrders)
+         val (backlogOrdersUnsync, backlogOrdersUpdated) = unsyncedAndUpdated(dedupedLocalBacklogOrders, { it.syncedAt }, { it.updatedTs() })
+         val rawBacklogOrders = backlogOrdersUnsync + backlogOrdersUpdated
+         val backlogOrdersResult = rawBacklogOrders
+             .filter { it.listId in projectIds && it.itemId in (projectIds + goalIds) }
 
          // Links: export unsynced OR updated
          val (linkItemsUnsync, linkItemsUpdated) = unsyncedAndUpdated(local.linkItemEntities, { it.syncedAt }, { it.updatedTs() })
@@ -1452,12 +1474,13 @@ constructor(
                  Log.w(WIFI_SYNC_LOG_TAG, "[getChangesSince] Skipping checklistItem with invalid checklistId=${it.checklistId}, id=${it.id}")
              }
          }
-         Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] LinkItems: total=${local.linkItemEntities.size}, unsync'd=${linkItemsUnsync.size}, updated=${linkItemsUpdated.size}, result=${linkItemsResult.size}")
+        Log.d(WIFI_SYNC_LOG_TAG, "[getChangesSince] LinkItems: total=${local.linkItemEntities.size}, unsync'd=${linkItemsUnsync.size}, updated=${linkItemsUpdated.size}, result=${linkItemsResult.size}")
 
         return DatabaseContent(
             projects = projectsResult,
             goals = goalsResult,
             listItems = listItemsResult,
+            backlogOrders = backlogOrdersResult,
             legacyNotes = filterByUpdated(local.legacyNotes) { it.updatedTs() },
             documents = documentsResult,
             documentItems = documentItemsResult,
@@ -1588,7 +1611,29 @@ constructor(
                     if (validListItems.size < selectedData.listItems.size) {
                         Log.w(IMPORT_TAG, "  - Skipped ${selectedData.listItems.size - validListItems.size} list items with missing references.")
                     }
-                 }
+                }
+                if (selectedData.backlogOrders.isNotEmpty()) {
+                    val importedProjectIds = selectedData.projects.map { it.id }.toSet()
+                    val importedGoalIds = selectedData.goals.map { it.id }.toSet()
+                    val validBacklogOrders = selectedData.backlogOrders.filter {
+                        it.listId in importedProjectIds && it.itemId in (importedGoalIds + importedProjectIds)
+                    }.let {
+                        keepNewer(
+                            it,
+                            local.backlogOrders.associateBy { bo -> bo.id },
+                            { it.id },
+                            { it.orderVersion },
+                            { it.updatedAt ?: it.orderVersion }
+                        )
+                    }
+                    if (validBacklogOrders.isNotEmpty()) {
+                        backlogOrderDao.insertOrders(validBacklogOrders)
+                        Log.d(IMPORT_TAG, "  - Upserted ${validBacklogOrders.size} backlog orders (filtered from ${selectedData.backlogOrders.size}).")
+                    }
+                    if (validBacklogOrders.size < selectedData.backlogOrders.size) {
+                        Log.w(IMPORT_TAG, "  - Skipped ${selectedData.backlogOrders.size - validBacklogOrders.size} backlog orders with missing references.")
+                    }
+                }
                 if (selectedData.legacyNotes.isNotEmpty()) {
                     val newerNotes = keepNewer(selectedData.legacyNotes, local.legacyNotes.associateBy { it.id }, { it.id }, { it.version }, { it.updatedAt })
                     if (newerNotes.isNotEmpty()) {
@@ -1720,6 +1765,7 @@ constructor(
             projects = diffEntities(normalizedProjects, local.projects, { it.id }, { it.version }, { it.updatedTs() }, { it.isDeleted }),
             goals = diffEntities(normalizedGoals, local.goals, { it.id }, { it.version }, { it.updatedTs() }, { it.isDeleted }),
             listItems = diffEntities(incoming.listItems, local.listItems, { it.id }, { it.version }, { it.updatedTs() }, { it.isDeleted }),
+            backlogOrders = diffEntities(incoming.backlogOrders, local.backlogOrders, { it.id }, { it.orderVersion }, { it.updatedTs() }, { it.isDeleted }),
             legacyNotes = diffEntities(incoming.legacyNotes, local.legacyNotes, { it.id }, { it.version }, { it.updatedTs() }, { it.isDeleted }),
             documents = diffEntities(incoming.documents, local.documents, { it.id }, { it.version }, { it.updatedTs() }, { it.isDeleted }),
             documentItems = diffEntities(incoming.documentItems, local.documentItems, { it.id }, { it.version }, { it.updatedTs() }, { it.isDeleted }),
@@ -1774,6 +1820,7 @@ constructor(
     private fun InboxRecord.updatedTs(): Long = this.updatedAt ?: this.createdAt
     private fun LinkItemEntity.updatedTs(): Long = this.updatedAt ?: this.createdAt
     private fun ListItem.updatedTs(): Long = this.updatedAt ?: this.version
+    private fun BacklogOrder.updatedTs(): Long = this.updatedAt ?: this.orderVersion
     private fun ProjectExecutionLog.updatedTs(): Long = this.updatedAt ?: this.timestamp
     private fun ScriptEntity.updatedTs(): Long = this.updatedAt
     private fun AttachmentEntity.updatedTs(): Long = this.updatedAt
@@ -1782,6 +1829,76 @@ constructor(
     private fun DayTask.updatedTs(): Long = this.updatedAt ?: this.createdAt
     private fun DailyMetric.updatedTs(): Long = this.updatedAt ?: this.createdAt
     private fun Reminder.updatedTs(): Long = this.updatedAt ?: this.creationTime
+
+    private fun dedupListItems(items: List<ListItem>): List<ListItem> =
+        items.groupBy { Triple(it.projectId, it.entityId, it.itemType) }
+            .mapNotNull { (_, candidates) ->
+                candidates.maxWithOrNull(
+                    compareBy<ListItem> { it.version }
+                        .thenBy { it.updatedTs() }
+                        .thenBy { if (it.isDeleted) 1 else 0 },
+                )
+            }
+
+    private fun dedupBacklogOrders(items: List<BacklogOrder>): List<BacklogOrder> =
+        items.groupBy { it.listId to it.itemId }
+            .mapNotNull { (_, candidates) ->
+                candidates.maxWithOrNull(
+                    compareBy<BacklogOrder> { it.orderVersion }
+                        .thenBy { it.updatedTs() ?: 0L }
+                        .thenBy { if (it.isDeleted) 1 else 0 },
+                )
+            }
+
+    private suspend fun ensureBacklogOrdersSeeded(listItems: List<ListItem>): List<BacklogOrder> {
+        val existing = backlogOrderDao.getAll()
+        val existingIds = existing.associateBy { it.id }
+        val missing = listItems.filter { it.id !in existingIds }
+            .map {
+                BacklogOrder(
+                    id = it.id,
+                    listId = it.projectId,
+                    itemId = it.entityId,
+                    order = it.order,
+                    orderVersion = it.version,
+                    updatedAt = it.updatedAt ?: it.version,
+                    syncedAt = it.syncedAt,
+                    isDeleted = it.isDeleted,
+                )
+            }
+        if (missing.isNotEmpty()) {
+            Log.w(WIFI_SYNC_LOG_TAG, "[SeedBacklogOrder] Seeding ${missing.size} missing orders from listItems")
+            backlogOrderDao.insertOrders(missing)
+        }
+        return existing + missing
+    }
+
+    private suspend fun cleanupListItemDuplicates(
+        projectIds: Set<String>,
+        goalIds: Set<String>,
+        backlogValidIds: Set<String>,
+    ) {
+        val all = listItemDao.getAll()
+        val valid = dedupListItems(
+            all.filter { it.projectId in projectIds && (it.itemType != ListItemTypeValues.GOAL || it.entityId in goalIds) && (it.itemType != ListItemTypeValues.SUBLIST || it.entityId in projectIds) },
+        )
+        val keepIds = valid.map { it.id }.toSet()
+        val toDelete = all.map { it.id }.filterNot { it in keepIds }
+        if (toDelete.isNotEmpty()) {
+            Log.w(WIFI_SYNC_LOG_TAG, "[applyServerChanges][DedupListItems] Removing ${toDelete.size} duplicate listItems (keep=${keepIds.size})")
+            listItemDao.deleteItemsByIds(toDelete)
+            backlogOrderDao.deleteOrders(toDelete)
+        }
+
+        val allOrders = backlogOrderDao.getAll()
+        val validOrders = dedupBacklogOrders(allOrders.filter { it.listId in projectIds && it.itemId in backlogValidIds })
+        val keepOrderIds = validOrders.map { it.id }.toSet()
+        val orderDeletes = allOrders.map { it.id }.filterNot { it in keepOrderIds }
+        if (orderDeletes.isNotEmpty()) {
+            Log.w(WIFI_SYNC_LOG_TAG, "[applyServerChanges][DedupBacklogOrders] Removing ${orderDeletes.size} duplicate backlogOrders (keep=${keepOrderIds.size})")
+            backlogOrderDao.deleteOrders(orderDeletes)
+        }
+    }
 
     private fun <T> isUnsynced(
         item: T,
@@ -1805,8 +1922,10 @@ constructor(
                 .also { logUnsynced("projects", it, { it.id }, { it.updatedTs() }, { it.syncedAt }, { it.isDeleted }) },
             goals = local.goals.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) }
                 .also { logUnsynced("goals", it, { it.id }, { it.updatedTs() }, { it.syncedAt }, { it.isDeleted }) },
-            listItems = local.listItems.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) }
+            listItems = dedupListItems(local.listItems).filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) }
                 .also { logUnsynced("listItems", it, { it.id }, { it.updatedTs() }, { it.syncedAt }, { it.isDeleted }) },
+            backlogOrders = dedupBacklogOrders(local.backlogOrders).filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) }
+                .also { logUnsynced("backlogOrders", it, { it.id }, { it.updatedTs() }, { it.syncedAt }, { it.isDeleted }) },
             legacyNotes = local.legacyNotes.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
             documents = local.documents.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) }
                 .also { logUnsynced("documents", it, { it.id }, { it.updatedTs() }, { it.syncedAt }, { it.isDeleted }) },
@@ -1888,6 +2007,11 @@ constructor(
                         val newEntityId = if (li.itemType == ListItemTypeValues.SUBLIST) idRedirects[li.entityId] ?: li.entityId else li.entityId
                         li.copy(projectId = newProjectId, entityId = newEntityId)
                     },
+                    backlogOrders = normalized.backlogOrders.map { bo ->
+                        val newListId = idRedirects[bo.listId] ?: bo.listId
+                        val newItemId = idRedirects[bo.itemId] ?: bo.itemId
+                        bo.copy(listId = newListId, itemId = newItemId)
+                    },
                     documents = normalized.documents.map { doc ->
                         idRedirects[doc.projectId]?.let { doc.copy(projectId = it) } ?: doc
                     },
@@ -1940,15 +2064,49 @@ constructor(
                 val goalIds = (local.goals.map { it.id } + incomingGoals.map { it.id }).toSet()
                 // Use every known project (local + incoming) for FK validation of docs/attachments/crossRefs
                 val allProjectIds = projectIds
+                val backlogValidIds = goalIds + allProjectIds
                 
+                val dedupedIncomingBacklogOrders = dedupBacklogOrders(
+                    correctedChanges.backlogOrders.filter { it.listId in projectIds && it.itemId in backlogValidIds },
+                )
+                val orderOverrideMap = dedupBacklogOrders(local.backlogOrders + dedupedIncomingBacklogOrders)
+                    .associateBy { it.listId to it.itemId }
+
+                val dedupedIncomingListItems = dedupListItems(
+                    correctedChanges.listItems
+                        .filter { it.projectId in projectIds && (it.itemType != ListItemTypeValues.GOAL || it.entityId in goalIds) && (it.itemType != ListItemTypeValues.SUBLIST || it.entityId in projectIds) }
+                        .map { li ->
+                            val override = orderOverrideMap[li.projectId to li.entityId]
+                            if (override != null && !override.isDeleted) {
+                                li.copy(
+                                    order = override.order,
+                                    version = maxOf(li.version, override.orderVersion),
+                                    updatedAt = maxOf(li.updatedAt ?: 0L, override.updatedAt ?: 0L),
+                                )
+                            } else {
+                                li
+                            }
+                        },
+                )
                 val incomingListItems = mergeAndMark(
-                    correctedChanges.listItems.filter { it.projectId in projectIds && (it.itemType != ListItemTypeValues.GOAL || it.entityId in goalIds) && (it.itemType != ListItemTypeValues.SUBLIST || it.entityId in projectIds) },
+                    dedupedIncomingListItems,
                     local.listItems.associateBy { it.id },
                     { it.id }, { it.version }, { it.updatedTs() },
                     { li, synced -> li.copy(syncedAt = synced) },
                     ts, { it.isDeleted }
                 )
                 if (incomingListItems.isNotEmpty()) listItemDao.insertItems(incomingListItems)
+
+                val incomingBacklogOrders = mergeAndMark(
+                    dedupedIncomingBacklogOrders,
+                    local.backlogOrders.associateBy { it.id },
+                    { it.id }, { it.orderVersion }, { it.updatedTs() },
+                    { bo, synced -> bo.copy(syncedAt = synced) },
+                    ts, { it.isDeleted }
+                )
+                if (incomingBacklogOrders.isNotEmpty()) backlogOrderDao.insertOrders(incomingBacklogOrders)
+                cleanupListItemDuplicates(projectIds, goalIds, backlogValidIds)
+                ensureBacklogOrdersSeeded(listItemDao.getAll())
                 
                 val incomingNotes = mergeAndMark(
                     correctedChanges.legacyNotes, local.legacyNotes.associateBy { it.id },

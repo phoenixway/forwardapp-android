@@ -127,6 +127,36 @@ object ListItemTypeValues {
     const val SCRIPT = "SCRIPT"
 }
 
+@Entity(
+    tableName = "backlog_orders",
+    indices = [
+        Index("list_id"),
+        Index(value = ["list_id", "item_id"], unique = true),
+    ],
+    foreignKeys = [
+        ForeignKey(
+            entity = Project::class,
+            parentColumns = ["id"],
+            childColumns = ["list_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+)
+data class BacklogOrder(
+    @PrimaryKey val id: String,
+    @SerializedName("listId")
+    @ColumnInfo(name = "list_id")
+    val listId: String,
+    @SerializedName("itemId")
+    @ColumnInfo(name = "item_id")
+    val itemId: String,
+    @ColumnInfo(name = "item_order") val order: Long,
+    @ColumnInfo(name = "order_version", defaultValue = "0") val orderVersion: Long = 0,
+    val updatedAt: Long? = null,
+    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
+)
+
 
 
 enum class ProjectViewMode { BACKLOG, INBOX, ADVANCED, ATTACHMENTS }

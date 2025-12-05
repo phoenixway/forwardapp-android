@@ -91,6 +91,7 @@ class SelectiveImportViewModel @Inject constructor(
              val selectedLegacyNotes = contentToImport.legacyNotes.filter { it.isSelected && it.isSelectable }.map { it.item }
              val selectedActivityRecords = contentToImport.activityRecords.filter { it.isSelected && it.isSelectable }.map { it.item }
              val selectedListItems = contentToImport.listItems.filter { it.isSelected && it.isSelectable }.map { it.item }
+             val selectedBacklogOrders = contentToImport.backlogOrders.filter { it.isSelected && it.isSelectable }.map { it.item }
              val selectedDocuments = contentToImport.documents.filter { it.isSelected && it.isSelectable }.map { it.item }
              val selectedChecklists = contentToImport.checklists.filter { it.isSelected && it.isSelectable }.map { it.item }
              val selectedLinkItems = contentToImport.linkItems.filter { it.isSelected && it.isSelectable }.map { it.item }
@@ -153,6 +154,9 @@ class SelectiveImportViewModel @Inject constructor(
             val selectedInboxRecordIds = selectedInboxRecords.map { it.id }.toSet()
            val selectedScriptIds = selectedScripts.map { it.id }.toSet()
             val selectedAttachmentIds = selectedAttachments.map { it.id }.toSet()
+            val selectedBacklogOrdersFiltered = selectedBacklogOrders.filter { order ->
+                order.listId in selectedProjectIds && order.itemId in (selectedProjectIds + selectedGoalIds)
+            }
 
             // Filter list items to only those linked to selected projects, goals, documents, checklists, legacy notes, scripts, inbox records
             val allListItems = currentState.backupContent?.listItems?.map { it.item } ?: emptyList()
@@ -191,6 +195,7 @@ class SelectiveImportViewModel @Inject constructor(
                 legacyNotes = selectedLegacyNotes,
                 activityRecords = selectedActivityRecords,
                 listItems = filteredListItems,
+                backlogOrders = selectedBacklogOrdersFiltered,
                 documents = selectedDocuments,
                 documentItems = filteredDocumentItems,
                 checklists = selectedChecklists,

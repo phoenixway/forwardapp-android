@@ -909,3 +909,41 @@ val MIGRATION_75_76 = object : Migration(75, 76) {
         }
     }
 }
+
+val MIGRATION_76_77 = object : Migration(76, 77) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `backlog_orders` (
+                `id` TEXT NOT NULL,
+                `list_id` TEXT NOT NULL,
+                `item_id` TEXT NOT NULL,
+                `item_order` INTEGER NOT NULL,
+                `order_version` INTEGER NOT NULL DEFAULT 0,
+                `updatedAt` INTEGER,
+                `synced_at` INTEGER,
+                `is_deleted` INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY(`id`),
+                FOREIGN KEY(`list_id`) REFERENCES `projects`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_backlog_orders_list_id` ON `backlog_orders` (`list_id`)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_backlog_orders_list_item` ON `backlog_orders` (`list_id`, `item_id`)")
+        // Seed from existing list_items to preserve current order
+        db.execSQL(
+            """
+            INSERT OR REPLACE INTO backlog_orders (id, list_id, item_id, item_order, order_version, updatedAt, synced_at, is_deleted)
+            SELECT li.id,
+                   li.project_id,
+                   li.entityId,
+                   li.item_order,
+                   COALESCE(li.version, li.updatedAt, 0),
+                   li.updatedAt,
+                   li.synced_at,
+                   li.is_deleted
+              FROM list_items li
+            """.trimIndent()
+        )
+    }
+}

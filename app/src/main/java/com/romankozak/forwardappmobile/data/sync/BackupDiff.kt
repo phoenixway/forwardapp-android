@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.data.sync
 
 import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
+import com.romankozak.forwardappmobile.data.database.models.BacklogOrder
 import com.romankozak.forwardappmobile.data.database.models.ChecklistEntity
 import com.romankozak.forwardappmobile.data.database.models.ChecklistItemEntity
 import com.romankozak.forwardappmobile.data.database.models.Goal
@@ -30,6 +31,7 @@ data class BackupDiff(
     val projects: DiffResult<Project> = DiffResult(),
     val goals: DiffResult<Goal> = DiffResult(),
     val listItems: DiffResult<ListItem> = DiffResult(),
+    val backlogOrders: DiffResult<BacklogOrder> = DiffResult(),
     val legacyNotes: DiffResult<LegacyNoteEntity> = DiffResult(),
     val activityRecords: DiffResult<ActivityRecord> = DiffResult(),
     val documents: DiffResult<NoteDocumentEntity> = DiffResult(),

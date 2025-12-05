@@ -48,6 +48,7 @@ constructor(
     private val projectTimeTrackingRepository: ProjectTimeTrackingRepository,
     private val projectArtifactRepository: ProjectArtifactRepository,
     private val listItemRepository: ListItemRepository,
+    private val backlogOrderRepository: BacklogOrderRepository,
 ) {
     private val contextHandler: ContextHandler by lazy { contextHandlerProvider.get() }
     private val TAG = "NOTE_DOCUMENT_DEBUG"
@@ -101,6 +102,7 @@ constructor(
     fun getProjectContentStream(projectId: String): Flow<List<ListItemContent>> {
         return combine(
             listItemRepository.getItemsForProjectStream(projectId),
+            backlogOrderRepository.observeAll(),
             reminderRepository.getAllReminders(),
             goalRepository.getAllGoalsFlow(),
             projectDao.getAllProjects(),
@@ -113,24 +115,27 @@ constructor(
             @Suppress("UNCHECKED_CAST")
             val items = array[0] as List<ListItem>
             @Suppress("UNCHECKED_CAST")
-            val reminders = array[1] as List<Reminder>
+            val backlogOrders = array[1] as List<com.romankozak.forwardappmobile.data.database.models.BacklogOrder>
             @Suppress("UNCHECKED_CAST")
-            val goals = array[2] as List<Goal>
+            val reminders = array[2] as List<Reminder>
             @Suppress("UNCHECKED_CAST")
-            val projects = array[3] as List<Project>
+            val goals = array[3] as List<Goal>
             @Suppress("UNCHECKED_CAST")
-            val links = array[4] as List<LinkItemEntity>
+            val projects = array[4] as List<Project>
             @Suppress("UNCHECKED_CAST")
-            val notes = array[5] as List<LegacyNoteEntity>
+            val links = array[5] as List<LinkItemEntity>
             @Suppress("UNCHECKED_CAST")
-            val noteDocuments = array[6] as List<NoteDocumentEntity>
+            val notes = array[6] as List<LegacyNoteEntity>
             @Suppress("UNCHECKED_CAST")
-            val checklists = array[7] as List<ChecklistEntity>
+            val noteDocuments = array[7] as List<NoteDocumentEntity>
             @Suppress("UNCHECKED_CAST")
-            val attachments = array[8] as List<AttachmentWithProject>
+            val checklists = array[8] as List<ChecklistEntity>
+            @Suppress("UNCHECKED_CAST")
+            val attachments = array[9] as List<AttachmentWithProject>
             mapToListItemContent(
                 projectId = projectId,
                 items = items,
+                backlogOrders = backlogOrders,
                 attachments = attachments,
                 reminders = reminders,
                 goals = goals,
@@ -146,6 +151,7 @@ constructor(
     private fun mapToListItemContent(
         projectId: String,
         items: List<ListItem>,
+        backlogOrders: List<BacklogOrder>,
         attachments: List<AttachmentWithProject>,
         reminders: List<Reminder>,
         goals: List<Goal>,
@@ -166,10 +172,18 @@ constructor(
                     order = order,
                 )
             }
-        val combinedItems =
-            (items + attachmentListItems).sortedWith(
-                compareBy<ListItem> { it.order }.thenBy { it.id },
-            )
+        val orderOverrideMap = backlogOrders.associateBy { it.itemId to it.listId }
+
+        val combinedItems = (items + attachmentListItems).sortedWith(
+            Comparator<ListItem> { a, b ->
+                val keyA = orderOverrideMap[a.entityId to a.projectId]
+                val keyB = orderOverrideMap[b.entityId to b.projectId]
+                val orderA = keyA?.order ?: a.order
+                val orderB = keyB?.order ?: b.order
+                if (orderA != orderB) return@Comparator orderA.compareTo(orderB)
+                return@Comparator a.id.compareTo(b.id)
+            }
+        )
         val remindersMap = reminders.groupBy { it.entityId }
         val goalsMap = goals.associateBy { it.id }
         val projectsMap = projects.associateBy { it.id }

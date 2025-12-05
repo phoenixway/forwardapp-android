@@ -10,6 +10,7 @@ import com.romankozak.forwardappmobile.data.database.models.ListItem
 import com.romankozak.forwardappmobile.data.database.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.data.database.models.NoteDocumentItemEntity
 import com.romankozak.forwardappmobile.data.database.models.Project
+import com.romankozak.forwardappmobile.data.database.models.BacklogOrder
 import com.romankozak.forwardappmobile.data.database.models.ScriptEntity
 import com.romankozak.forwardappmobile.data.database.models.InboxRecord
 import com.romankozak.forwardappmobile.data.sync.BackupDiff
@@ -29,6 +30,7 @@ data class SelectableDatabaseContent(
     val legacyNotes: List<SelectableDiffItem<LegacyNoteEntity>> = emptyList(),
     val activityRecords: List<SelectableDiffItem<ActivityRecord>> = emptyList(),
     val listItems: List<SelectableDiffItem<ListItem>> = emptyList(),
+    val backlogOrders: List<SelectableDiffItem<BacklogOrder>> = emptyList(),
     val documents: List<SelectableDiffItem<NoteDocumentEntity>> = emptyList(),
     val documentItems: List<SelectableDiffItem<NoteDocumentItemEntity>> = emptyList(), // Dependent, not directly selectable
     val checklists: List<SelectableDiffItem<ChecklistEntity>> = emptyList(),
@@ -101,6 +103,7 @@ fun BackupDiff.toSelectable(): SelectableDatabaseContent {
         projectExecutionLogs = mapDiff(this.projectExecutionLogs),
         scripts = mapDiff(this.scripts),
         attachments = mapDiff(this.attachments),
+        backlogOrders = mapDiff(this.backlogOrders),
         allProjectAttachmentCrossRefs = this.projectAttachmentCrossRefs.added + this.projectAttachmentCrossRefs.updated.map { it.incoming }
     )
 }

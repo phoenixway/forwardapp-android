@@ -36,6 +36,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAt
         Goal::class,
         Project::class,
         ListItem::class,
+        BacklogOrder::class,
         ActivityRecord::class,
         LinkItemEntity::class,
         AttachmentEntity::class,
@@ -65,7 +66,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAt
         LegacyNoteFts::class,
         RecurringTaskFts::class,
     ],
-    version = 76,
+    version = 77,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class, ProjectTypeConverter::class)
@@ -75,6 +76,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun goalDao(): GoalDao
 
     abstract fun listItemDao(): ListItemDao
+    abstract fun backlogOrderDao(): com.romankozak.forwardappmobile.data.dao.BacklogOrderDao
 
     abstract fun activityRecordDao(): ActivityRecordDao
 

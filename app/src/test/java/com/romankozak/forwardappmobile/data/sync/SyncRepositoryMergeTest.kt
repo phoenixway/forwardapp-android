@@ -43,6 +43,7 @@ class SyncRepositoryMergeTest {
     private lateinit var projectLogDao: ProjectManagementDao
     private lateinit var scriptDao: ScriptDao
     private lateinit var attachmentDao: AttachmentDao
+    private lateinit var backlogOrderDao: BacklogOrderDao
     private lateinit var recentItemDao: RecentItemDao
     private lateinit var projectManagementDao: ProjectManagementDao
     private lateinit var systemAppDao: SystemAppDao
@@ -73,6 +74,7 @@ class SyncRepositoryMergeTest {
         projectLogDao = db.projectManagementDao()
         scriptDao = db.scriptDao()
         attachmentDao = db.attachmentDao()
+        backlogOrderDao = db.backlogOrderDao()
         recentItemDao = db.recentItemDao()
         projectManagementDao = db.projectManagementDao()
         systemAppDao = db.systemAppDao()
@@ -93,6 +95,7 @@ class SyncRepositoryMergeTest {
                 noteDocumentDao = noteDocumentDao,
                 checklistDao = checklistDao,
                 recentItemDao = recentItemDao,
+                backlogOrderDao = backlogOrderDao,
                 scriptDao = scriptDao,
                 attachmentRepository = attachmentRepository,
                 attachmentDao = attachmentDao,
@@ -467,6 +470,59 @@ class SyncRepositoryMergeTest {
 
         assertEquals(listOf("li1"), delta.listItems.map { it.id })
         assertEquals(7, delta.listItems.first().order)
+    }
+
+    @Test
+    fun `android backlog order is preserved when desktop sends duplicates without backlogOrders`() = runTest {
+        val parent = sampleProject("p-parent", version = 1, updatedAt = 10).copy(syncedAt = 5)
+        val child = sampleProject("p-child", version = 1, updatedAt = 10).copy(syncedAt = 5)
+        projectDao.insertProjects(listOf(parent, child))
+
+        val localListItem = ListItem(
+            id = "li-android",
+            projectId = parent.id,
+            itemType = ListItemTypeValues.SUBLIST,
+            entityId = child.id,
+            order = 1,
+            updatedAt = 100,
+            version = 100,
+            syncedAt = 50,
+        )
+        listItemDao.insertItem(localListItem)
+        backlogOrderDao.insertOrders(
+            listOf(
+                BacklogOrder(
+                    id = localListItem.id,
+                    listId = parent.id,
+                    itemId = child.id,
+                    order = 1,
+                    orderVersion = 100,
+                    updatedAt = 100,
+                    syncedAt = 50,
+                ),
+            ),
+        )
+
+        val incomingDup1 = localListItem.copy(id = "li-desktop-1", order = 2, syncedAt = null, version = 200, updatedAt = 200)
+        val incomingDup2 = localListItem.copy(id = "li-desktop-2", order = 3, syncedAt = null, version = 200, updatedAt = 200)
+        val incomingProjects = listOf(parent, child).map { it.copy(syncedAt = null) }
+
+        val res = syncRepository.applyServerChanges(
+            DatabaseContent(
+                projects = incomingProjects,
+                listItems = listOf(incomingDup1, incomingDup2),
+                backlogOrders = emptyList(),
+            ),
+        )
+        assertTrue(res.isSuccess)
+
+        val finalItems = listItemDao.getAll().filter { it.projectId == parent.id && it.entityId == child.id }
+        assertEquals("finalItems=$finalItems", 1, finalItems.size)
+        assertEquals("finalItems=$finalItems", 1, finalItems.first().order)
+
+        val finalOrders = backlogOrderDao.getAll().filter { it.listId == parent.id && it.itemId == child.id }
+        assertEquals("finalOrders=$finalOrders", 1, finalOrders.size)
+        assertEquals("finalOrders=$finalOrders", 1, finalOrders.first().order)
     }
 
     @Test

@@ -60,6 +60,7 @@ class SyncContractFixturesTest {
             noteDocumentDao = db.noteDocumentDao(),
             checklistDao = db.checklistDao(),
             recentItemDao = db.recentItemDao(),
+            backlogOrderDao = db.backlogOrderDao(),
             scriptDao = db.scriptDao(),
             attachmentRepository = attachmentRepository,
             attachmentDao = db.attachmentDao(),

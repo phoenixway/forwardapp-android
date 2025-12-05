@@ -21,6 +21,8 @@ data class DatabaseContent(
     val projects: List<Project> = emptyList(),
     @SerializedName(value = "listItems", alternate = ["c"])
     val listItems: List<ListItem> = emptyList(),
+    @SerializedName(value = "backlogOrders", alternate = ["order"])
+    val backlogOrders: List<BacklogOrder> = emptyList(),
     @SerializedName(value = "legacyNotes", alternate = ["notes"])
     val legacyNotes: List<LegacyNoteEntity> = emptyList(),
     @SerializedName(value = "documents", alternate = ["customLists"])
