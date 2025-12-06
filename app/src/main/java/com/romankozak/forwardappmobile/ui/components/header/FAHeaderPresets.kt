@@ -9,23 +9,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.romankozak.forwardappmobile.data.database.models.DayPlan
-import com.romankozak.forwardappmobile.ui.components.header.DayPlanHeaderContent
+
 
 /**
  * TodayHeader:
@@ -33,60 +17,23 @@ import com.romankozak.forwardappmobile.ui.components.header.DayPlanHeaderContent
  *  - низ (праворуч): навігація по днях + "енергетичний" кружок
  */
 @Composable
-fun TodayHeader(
-    dayPlan: DayPlan?,
-    totalPointsEarned: Int,
-    totalPointsAvailable: Int,
-    bestCompletedPoints: Int,
-    completedTasks: Int,
-    totalTasks: Int,
-    onNavigateToPreviousDay: () -> Unit,
-    onNavigateToNextDay: () -> Unit,
-    isNextDayNavigationEnabled: Boolean,
-): HeaderLayout {
+fun TodayHeader(): HeaderLayout {
 
-    val primary = MaterialTheme.colorScheme.primary
-    val onSurface = MaterialTheme.colorScheme.onSurface
-
-    val dateText = dayPlan?.dateFormatted ?: "Unknown date"
-
-    val statusColor = onSurface.copy(alpha = 0.65f)
+    val primaryColor = MaterialTheme.colorScheme.primary // Use primaryColor consistently
 
     return FreeFormHeaderLayout(
-
         // ----------------------
         // 💜 TOP LEFT: TODAY
         // ----------------------
         topLeft = {
-            Column {
+            Column(horizontalAlignment = Alignment.Start) {
                 Text(
                     "Today",
                     style = MaterialTheme.typography.titleLarge.copy(
-                        color = onSurface,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold
                     )
                 )
-
-                Spacer(Modifier.height(2.dp))
-
-                // ------- compact status row -------
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(
-                        text = dateText,
-                        fontSize = 11.sp,
-                        color = statusColor
-                    )
-                    Text(
-                        text = "Tasks: $completedTasks / $totalTasks",
-                        fontSize = 11.sp,
-                        color = statusColor
-                    )
-                    Text(
-                        text = "Points: $totalPointsEarned / $totalPointsAvailable",
-                        fontSize = 11.sp,
-                        color = statusColor
-                    )
-                }
             }
         },
 
@@ -101,14 +48,14 @@ fun TodayHeader(
                     .background(
                         Brush.radialGradient(
                             listOf(
-                                primary.copy(alpha = 0.25f),
-                                primary.copy(alpha = 0.08f)
+                                primaryColor.copy(alpha = 0.25f),
+                                primaryColor.copy(alpha = 0.08f)
                             )
                         )
                     )
                     .border(
                         width = 1.2.dp,
-                        color = primary.copy(alpha = 0.4f),
+                        color = primaryColor.copy(alpha = 0.4f),
                         shape = CircleShape
                     ),
                 contentAlignment = Alignment.Center
@@ -116,42 +63,16 @@ fun TodayHeader(
                 Text(
                     "⌁",
                     fontSize = 22.sp,
-                    color = primary,
+                    color = primaryColor,
                     fontWeight = FontWeight.Bold
                 )
             }
         },
 
         // ----------------------
-        // 💙 BOTTOM CENTER: NAVIGATION
+        // 💙 BOTTOM CENTER: Removed navigation
         // ----------------------
-        bottomCenter = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(28.dp)
-            ) {
-                IconButton(onClick = onNavigateToPreviousDay) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Previous day"
-                    )
-                }
-
-                IconButton(
-                    onClick = onNavigateToNextDay,
-                    enabled = isNextDayNavigationEnabled
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = "Next day",
-                        tint = if (isNextDayNavigationEnabled)
-                            primary
-                        else
-                            primary.copy(alpha = 0.4f)
-                    )
-                }
-            }
-        }
+        bottomCenter = null // Explicitly set to null if no content
     )
 }
 
