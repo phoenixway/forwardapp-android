@@ -44,60 +44,96 @@ fun TodayHeader(
     onNavigateToNextDay: () -> Unit,
     isNextDayNavigationEnabled: Boolean,
 ): HeaderLayout {
-    val primaryColor = MaterialTheme.colorScheme.primary
+
+    val primary = MaterialTheme.colorScheme.primary
+    val onSurface = MaterialTheme.colorScheme.onSurface
+
+    val dateText = dayPlan?.dateFormatted ?: "Unknown date"
+
+    val statusColor = onSurface.copy(alpha = 0.65f)
 
     return FreeFormHeaderLayout(
+
+        // ----------------------
+        // 💜 TOP LEFT: TODAY
+        // ----------------------
         topLeft = {
-            Column(horizontalAlignment = Alignment.Start) {
+            Column {
                 Text(
                     "Today",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        color = onSurface,
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+
+                Spacer(Modifier.height(2.dp))
+
+                // ------- compact status row -------
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = dateText,
+                        fontSize = 11.sp,
+                        color = statusColor
+                    )
+                    Text(
+                        text = "Tasks: $completedTasks / $totalTasks",
+                        fontSize = 11.sp,
+                        color = statusColor
+                    )
+                    Text(
+                        text = "Points: $totalPointsEarned / $totalPointsAvailable",
+                        fontSize = 11.sp,
+                        color = statusColor
+                    )
+                }
+            }
+        },
+
+        // ----------------------
+        // 💛 TOP RIGHT: ENERGY ICON
+        // ----------------------
+        topRight = {
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            listOf(
+                                primary.copy(alpha = 0.25f),
+                                primary.copy(alpha = 0.08f)
+                            )
+                        )
+                    )
+                    .border(
+                        width = 1.2.dp,
+                        color = primary.copy(alpha = 0.4f),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "⌁",
+                    fontSize = 22.sp,
+                    color = primary,
+                    fontWeight = FontWeight.Bold
                 )
             }
         },
-        topCenter = {
-            DayPlanHeaderContent(
-                dayPlan = dayPlan,
-                totalPointsEarned = totalPointsEarned,
-                totalPointsAvailable = totalPointsAvailable,
-                bestCompletedPoints = bestCompletedPoints,
-                completedTasks = completedTasks,
-                totalTasks = totalTasks
-            )
-        },
-        bottomRight = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+
+        // ----------------------
+        // 💙 BOTTOM CENTER: NAVIGATION
+        // ----------------------
+        bottomCenter = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(28.dp)
+            ) {
                 IconButton(onClick = onNavigateToPreviousDay) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Попередній день",
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .size(34.dp)
-                        .clip(CircleShape)
-                        .background(
-                            Brush.radialGradient(
-                                colors = listOf(
-                                    primaryColor.copy(alpha = 0.25f),
-                                    primaryColor.copy(alpha = 0.08f)
-                                )
-                            )
-                        )
-                        .border(
-                            width = 1.2.dp,
-                            color = primaryColor.copy(alpha = 0.4f),
-                            shape = CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "⌁",
-                        fontSize = 22.sp,
-                        color = primaryColor,
-                        fontWeight = FontWeight.Bold
+                        contentDescription = "Previous day"
                     )
                 }
 
@@ -107,18 +143,18 @@ fun TodayHeader(
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = "Наступний день",
-                        tint = if (isNextDayNavigationEnabled) {
-                            primaryColor
-                        } else {
-                            primaryColor.copy(alpha = 0.4f)
-                        },
+                        contentDescription = "Next day",
+                        tint = if (isNextDayNavigationEnabled)
+                            primary
+                        else
+                            primary.copy(alpha = 0.4f)
                     )
                 }
             }
         }
     )
 }
+
 
 /**
  * StrategyHeader: простий Left + (опис) + Right-іконка.
