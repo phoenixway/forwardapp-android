@@ -130,6 +130,9 @@ private fun NavGraphBuilder.mainGraph(
             onNavigateToStrategicManagement = {
                 navController.navigateToStrategicManagement()
             },
+            onNavigateToTacticalManagement = {
+                navController.navigate("tactical_management_screen")
+            },
             onNavigateToGlobalSearch = {
                 navController.navigate("global_search")
             },
