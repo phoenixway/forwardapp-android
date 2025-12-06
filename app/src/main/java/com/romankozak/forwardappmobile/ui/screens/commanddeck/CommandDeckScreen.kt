@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.ui.screens.commanddeck
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -9,7 +10,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,25 +28,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.drawRect
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
-import androidx.compose.ui.geometry.Offset
 
 // -----------------------------------------------
-// ENUM
+// ENUM TABS
 // -----------------------------------------------
 enum class CommandDeckTab(
     val title: String,
     val symbol: String,
 ) {
-    Dashboard("Dashboard", "⌗"),
+    Dashboard("Command Deck", "⌗"),
     Core("Core", "⌘"),
     Strategy("Strategy", "⌖"),
     StrategicArc("Strategic Arc", "⟲"),
@@ -67,7 +66,7 @@ fun CommandDeckHeader() {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
-            text = "Command Deck",
+            text = "ForwardApp",
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 0.5.sp,
@@ -83,6 +82,7 @@ fun CommandDeckHeader() {
         )
     }
 }
+
 // -----------------------------------------------
 // MAIN SCREEN
 // -----------------------------------------------
@@ -104,7 +104,7 @@ fun CommandDeckScreen(
     onNavigateToAttachments: () -> Unit,
     onNavigateToScripts: () -> Unit,
 ) {
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    var selectedTabIndex by remember { mutableStateOf(0) }
     val tabs = CommandDeckTab.entries.toList()
 
     Column(
@@ -122,7 +122,7 @@ fun CommandDeckScreen(
     ) {
         CommandDeckHeader()
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(4.dp))
 
         CommandDeckTabRow(
             tabs = tabs,
@@ -152,9 +152,8 @@ fun CommandDeckScreen(
             },
             label = "command_deck_content"
         ) { tabIndex ->
-
-            when (tabs[tabIndex]) {
-
+            val tab = tabs[tabIndex]
+            when (tab) {
                 CommandDeckTab.Dashboard -> {
                     Column(
                         modifier = Modifier
@@ -209,7 +208,7 @@ fun CommandDeckScreen(
                 CommandDeckTab.StrategicArc -> {
                     DeckModuleCard(
                         title = "Strategic Arc",
-                        subtitle = "Plan for April: Expansion Arc",
+                        subtitle = "Plan for this month: Expansion Arc",
                         progress = 62,
                         accentColor = Color(0xFF9575CD),
                         modifier = Modifier.padding(horizontal = 16.dp)
@@ -240,7 +239,6 @@ fun CommandDeckScreen(
     }
 }
 
-
 // ------------------------------------------------------
 // TAB ROW WITH AUTO–CENTERING
 // ------------------------------------------------------
@@ -252,13 +250,12 @@ private fun CommandDeckTabRow(
     onTabSelected: (Int) -> Unit,
 ) {
     val scrollState = rememberScrollState()
-    val coroutine = rememberCoroutineScope()
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(selectedTabIndex) {
         val tabWidth = 130f
         val target = (selectedTabIndex * tabWidth) - (scrollState.maxValue / 2f) + tabWidth / 2
-
-        coroutine.launch {
+        coroutineScope.launch {
             scrollState.animateScrollTo(target.toInt().coerceAtLeast(0))
         }
     }
@@ -266,8 +263,8 @@ private fun CommandDeckTabRow(
     Row(
         modifier = Modifier
             .horizontalScroll(scrollState)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(horizontal = 12.dp, vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         tabs.forEachIndexed { index, tab ->
             CommandDeckTabItem(
@@ -278,6 +275,7 @@ private fun CommandDeckTabRow(
         }
     }
 }
+
 // ------------------------------------------------------
 // TAB COLORS
 // ------------------------------------------------------
@@ -289,10 +287,9 @@ fun tabAccentColor(tab: CommandDeckTab): Color {
         CommandDeckTab.StrategicArc -> Color(0xFF9575CD)
         CommandDeckTab.Tactics -> Color(0xFF26A69A)
         CommandDeckTab.Today -> Color(0xFFFFB74D)
-        CommandDeckTab.Dashboard -> MaterialTheme.colorScheme.primary
+        CommandDeckTab.Dashboard -> Color(0xFF6200EE)
     }
 }
-
 
 // ------------------------------------------------------
 // TAB ITEM (GLOW + SHIMMER + SCALE)
@@ -306,11 +303,13 @@ fun CommandDeckTabItem(
     modifier: Modifier = Modifier
 ) {
     val accent = tabAccentColor(tab)
+    val coroutineScope = rememberCoroutineScope()
 
-    // Glow animation (macOS smooth aura)
+    // Glow animation (macOS-style aura)
     val glowAlpha by animateFloatAsState(
         targetValue = if (isSelected) 0.32f else 0f,
-        animationSpec = tween(600)
+        animationSpec = tween(600),
+        label = "glow"
     )
 
     // Shimmer wave animation
@@ -318,18 +317,21 @@ fun CommandDeckTabItem(
 
     LaunchedEffect(isSelected) {
         if (isSelected) {
-            shimmer.animateTo(
-                1f,
-                animationSpec = tween(durationMillis = 1100)
-            )
-            shimmer.snapTo(0f)
+            coroutineScope.launch {
+                shimmer.animateTo(
+                    1f,
+                    animationSpec = tween(durationMillis = 1100)
+                )
+                shimmer.snapTo(0f)
+            }
         }
     }
 
     // Scale when selected
     val scale by animateFloatAsState(
         targetValue = if (isSelected) 1.10f else 1f,
-        animationSpec = spring(dampingRatio = 0.60f, stiffness = 300f)
+        animationSpec = spring(dampingRatio = 0.60f, stiffness = 300f),
+        label = "scale"
     )
 
     // Shimmer wave brush
@@ -357,36 +359,42 @@ fun CommandDeckTabItem(
                 )
             )
             .drawBehind {
-                if (isSelected) drawRect(waveBrush, alpha = 0.85f)
+                if (isSelected) {
+                    drawRect(
+                        brush = waveBrush,
+                        size = size,
+                        alpha = 0.85f
+                    )
+                }
             }
             .border(
                 width = if (isSelected) 1.8.dp else 1.dp,
-                color = if (isSelected) accent else MaterialTheme.colorScheme.outlineVariant,
+                color = if (isSelected) accent else Color(0xFF444444),
                 shape = RoundedCornerShape(38.dp)
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 18.dp, vertical = 12.dp),
+            .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Symbol (Core, Strategy, etc.)
         Text(
             text = tab.symbol,
-            fontSize = 22.sp,
+            fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
-            color = if (isSelected) accent else MaterialTheme.colorScheme.onSurfaceVariant
+            color = if (isSelected) accent else Color(0xFFAAAAAA)
         )
 
         if (isSelected) {
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(6.dp))
             Text(
                 text = tab.title,
-                fontSize = 12.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = accent
             )
         }
     }
 }
+
 // ------------------------------------------------------
 // MODULE CARD
 // ------------------------------------------------------
@@ -402,7 +410,7 @@ fun DeckModuleCard(
     Card(
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.22f)
+            containerColor = Color(0xFF1E1E1E).copy(alpha = 0.22f)
         ),
         modifier = modifier
             .fillMaxWidth()
@@ -412,26 +420,22 @@ fun DeckModuleCard(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-
-            // Title
             Text(
                 text = title,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = Color.White
             )
 
-            // Subtitle
             Text(
                 text = subtitle,
                 fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = Color(0xFFCCCCCC)
             )
 
-            // Optional progress
             if (progress != null) {
                 LinearProgressIndicator(
-                    progress = progress / 100f,
+                    progress = { progress / 100f },
                     color = accentColor,
                     trackColor = accentColor.copy(alpha = 0.15f),
                     modifier = Modifier
@@ -443,8 +447,9 @@ fun DeckModuleCard(
         }
     }
 }
+
 // ------------------------------------------------------
-// CORE QUICK ACTIONS SECTION
+// CORE QUICK ACTIONS
 // ------------------------------------------------------
 
 @Composable
@@ -464,7 +469,6 @@ private fun CoreQuickActions(
     Column(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-
         QuickActionCard("Inbox", "View inbox", Icons.Outlined.Inbox, onNavigateToInbox)
         QuickActionCard("Tracker", "Track activity", Icons.Outlined.Analytics, onNavigateToTracker)
         QuickActionCard("Reminders", "See reminders", Icons.Outlined.Notifications, onNavigateToReminders)
@@ -478,7 +482,6 @@ private fun CoreQuickActions(
         QuickActionCard("Налаштування", "App settings", Icons.Outlined.Settings, onNavigateToSettings)
     }
 }
-
 
 // ------------------------------------------------------
 // QUICK ACTION CARD
@@ -495,7 +498,7 @@ private fun QuickActionCard(
         onClick = onClick,
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.18f)
+            containerColor = Color(0xFF1E1E1E).copy(alpha = 0.18f)
         ),
         modifier = Modifier
             .fillMaxWidth()
@@ -506,18 +509,17 @@ private fun QuickActionCard(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-
             Box(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
+                    .background(Color(0xFF6200EE).copy(alpha = 0.18f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     icon,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = Color(0xFF6200EE)
                 )
             }
 
@@ -528,16 +530,15 @@ private fun QuickActionCard(
                     text = title,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = Color.White
                 )
 
                 Text(
                     text = subtitle,
                     fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = Color(0xFFCCCCCC)
                 )
             }
         }
     }
 }
-
