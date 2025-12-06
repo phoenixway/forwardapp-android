@@ -142,9 +142,27 @@ private fun NavGraphBuilder.mainGraph(
             onNavigateToInbox = {
                 navController.navigate("inbox_editor_screen")
             },
-            onNavigateToAIChat = {
+            onNavigateToTracker = {
+                navController.navigate("activity_tracker_screen")
+            },
+            onNavigateToReminders = {
+                navController.navigate("reminders_screen")
+            },
+            onNavigateToAiChat = {
                 navController.navigate(AI_INSIGHTS_ROUTE)
-            }
+            },
+            onNavigateToAiLifeManagement = {
+                navController.navigate(LIFE_STATE_ROUTE)
+            },
+            onNavigateToImportExport = {
+                navController.navigate(SELECTIVE_IMPORT_ROUTE.replace("/{fileUri}", "")) // Navigate to the base route without fileUri
+            },
+            onNavigateToAttachments = {
+                navController.navigate("attachments_library_screen")
+            },
+            onNavigateToScripts = {
+                navController.navigate("scripts_library_screen")
+            },
         )
     }
 

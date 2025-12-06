@@ -11,7 +11,7 @@
 
 ## 5. Значимі файли і модулі (IMPORTANT FILES / MODULES)
 - app/src/main/java/com/romankozak/forwardappmobile/routes/AppNavigation.kt
-- ui/screens/commanddeck/CommandDeckScreen.kt (already updated)
+- ui/screens/commanddeck/CommandDeckScreen.kt
 - ui/screens/inbox/InboxEditorScreen.kt
 - ui/screens/insights/AiInsightsScreen.kt
 
