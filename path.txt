@@ -1,5 +1,2 @@
-app/src/main/java/com/romankozak/forwardappmobile/features/missions/data/model/TacticalMissionModels.kt
-app/src/main/java/com/romankozak/forwardappmobile/data/database/AppDatabase.kt
-app/src/main/java/com/romankozak/forwardappmobile/features/missions/data/TacticalMissionDao.kt
-app/src/main/java/com/romankozak/forwardappmobile/features/missions/domain/model/MissionEnums.kt
-app/src/main/java/com/romankozak/forwardappmobile/data/database/models/DatabaseModel.kt
+app/src/main/java/com/romankozak/forwardappmobile/ui/screens/daymanagement/dayplan/tasklist/TaskList.kt
+app/src/main/java/com/romankozak/forwardappmobile/ui/screens/daymanagement/dayplan/DayPlanScreen.kt

@@ -2,13 +2,17 @@ package com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan
 
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist.TaskList
 import android.util.Log
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.AnimatedVisibility
+
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.FlowRow
@@ -72,10 +76,11 @@ import kotlinx.coroutines.delay
 import sh.calvin.reorderable.ReorderableLazyListState
 import kotlin.math.roundToInt
 import kotlin.math.max
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 
 val TAG = "NAV_DEBUG" // Тег для логування
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalAnimationApi::class)
 @Composable
 private fun ErrorState(error: String, onRetry: () -> Unit, modifier: Modifier = Modifier) {
   Column(
@@ -120,6 +125,9 @@ fun CompactDayPlanHeader(
     onNavigateToPreviousDay: () -> Unit,
     onNavigateToNextDay: () -> Unit,
     isNextDayNavigationEnabled: Boolean,
+    onSettingsClick: () -> Unit,  // ADD THIS LINE
+    onAddTaskClick: () -> Unit,   // ADD THIS LINE
+
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val primaryColor = colorScheme.primary
@@ -402,7 +410,7 @@ fun DayPlanScreen(
       Box(
         modifier =
           Modifier.fillMaxSize().pointerInput(Unit) {
-            detectHorizontalDragGestures { _, dragAmount ->
+            detectHorizontalDragGestures { _, dragAmount: Float ->
               when {
                 dragAmount < -50 && !uiState.isToday -> viewModel.navigateToNextDay()
                 dragAmount > 50 -> viewModel.navigateToPreviousDay()

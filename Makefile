@@ -90,8 +90,7 @@ debug:
 
 check-compile:
 	@echo "🚀  Перевіряю через compileDebugKotlin..."
-	@./gradlew :app:compileDebugKotlin
-
+	        @./gradlew :app:compileExpDebugKotlin
 # Встановити debug APK (exp flavor)
 install-debug: debug
 	@echo "🐞  Встановлюю exp debug APK (пріоритет ARM64)..."
