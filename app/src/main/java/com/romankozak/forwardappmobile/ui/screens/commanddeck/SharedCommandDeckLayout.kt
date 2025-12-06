@@ -64,6 +64,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.offset // Corrected import
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -87,6 +88,7 @@ import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanV
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanUiState
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.DayManagementViewModel // Import DayManagementViewModel
+import com.romankozak.forwardappmobile.ui.components.header.FAHeaderBackground
 
 import kotlinx.coroutines.launch
 
@@ -95,6 +97,7 @@ const val COMMAND_DECK_CORE_ROUTE = "command_deck_core"
 const val COMMAND_DECK_STRATEGIC_ARC_ROUTE = "command_deck_strategic_arc"
 const val COMMAND_DECK_TACTICS_ROUTE = "command_deck_tactics"
 const val COMMAND_DECK_TODAY_ROUTE = "command_deck_today"
+
 
 @Composable
 fun SharedCommandDeckLayout(
@@ -130,9 +133,11 @@ fun SharedCommandDeckLayout(
         }.coerceAtLeast(0)
     }
 
-    val dayPlanViewModel: DayPlanViewModel? = if (currentRoute == COMMAND_DECK_TODAY_ROUTE) hiltViewModel() else null
+    val dayPlanViewModel: DayPlanViewModel? =
+        if (currentRoute == COMMAND_DECK_TODAY_ROUTE) hiltViewModel() else null
     val dayPlanUiState by dayPlanViewModel?.uiState?.collectAsState() ?: mutableStateOf(DayPlanUiState())
-    val dayManagementViewModel: com.romankozak.forwardappmobile.ui.screens.daymanagement.DayManagementViewModel = hiltViewModel()
+    val dayManagementViewModel: com.romankozak.forwardappmobile.ui.screens.daymanagement.DayManagementViewModel =
+        hiltViewModel()
     val dayManagementUiState by dayManagementViewModel.uiState.collectAsState()
 
     Column(
@@ -149,7 +154,11 @@ fun SharedCommandDeckLayout(
             )
     ) {
         when (currentRoute) {
-            COMMAND_DECK_DASHBOARD_ROUTE -> FAHeader(config = CommandDeckHeaderPreset())
+            COMMAND_DECK_DASHBOARD_ROUTE -> FAHeader(
+                layout = CommandDeckHeaderPreset(),
+                backgroundStyle = FAHeaderBackground.CommandDeck
+            )
+
             COMMAND_DECK_TODAY_ROUTE -> {
                 LaunchedEffect(dayManagementUiState.dayPlanId) {
                     dayManagementUiState.dayPlanId?.let { planId ->
@@ -157,22 +166,38 @@ fun SharedCommandDeckLayout(
                     }
                 }
                 FAHeader(
-                    config = TodayHeader(
+                    layout = TodayHeader(
                         dayPlan = dayPlanUiState.dayPlan,
-                        totalPointsEarned = dayPlanUiState.tasks.filter { it.dayTask.completed }.sumOf { it.dayTask.points.coerceAtLeast(0) },
-                        totalPointsAvailable = dayPlanUiState.tasks.sumOf { it.dayTask.points.coerceAtLeast(0) },
+                        totalPointsEarned = dayPlanUiState.tasks
+                            .filter { it.dayTask.completed }
+                            .sumOf { it.dayTask.points.coerceAtLeast(0) },
+                        totalPointsAvailable = dayPlanUiState.tasks
+                            .sumOf { it.dayTask.points.coerceAtLeast(0) },
                         bestCompletedPoints = dayPlanUiState.bestCompletedPoints,
                         completedTasks = dayPlanUiState.tasks.count { it.dayTask.completed },
                         totalTasks = dayPlanUiState.tasks.size,
                         onNavigateToPreviousDay = { dayPlanViewModel?.navigateToPreviousDay() },
                         onNavigateToNextDay = { dayPlanViewModel?.navigateToNextDay() },
                         isNextDayNavigationEnabled = !dayPlanUiState.isToday,
-                    )
+                    ),
+                    backgroundStyle = FAHeaderBackground.CommandDeck
                 )
             }
-            STRATEGIC_MANAGEMENT_ROUTE -> FAHeader(config = StrategyHeader(onModeClick = {}))
-            COMMAND_DECK_STRATEGIC_ARC_ROUTE -> FAHeader(config = StrategicArcHeader(onModeClick = {}))
-            else -> FAHeader(config = CommandDeckHeaderPreset())
+
+            STRATEGIC_MANAGEMENT_ROUTE -> FAHeader(
+                layout = StrategyHeader(onModeClick = {}),
+                backgroundStyle = FAHeaderBackground.CommandDeck
+            )
+
+            COMMAND_DECK_STRATEGIC_ARC_ROUTE -> FAHeader(
+                layout = StrategicArcHeader(onModeClick = {}),
+                backgroundStyle = FAHeaderBackground.CommandDeck
+            )
+
+            else -> FAHeader(
+                layout = CommandDeckHeaderPreset(),
+                backgroundStyle = FAHeaderBackground.CommandDeck
+            )
         }
 
         Spacer(Modifier.height(12.dp))
@@ -201,12 +226,14 @@ fun SharedCommandDeckLayout(
             }
         )
 
-
         Spacer(Modifier.height(12.dp))
 
-        NavHost(navController = innerNavController, startDestination = COMMAND_DECK_DASHBOARD_ROUTE) {
+        NavHost(
+            navController = innerNavController,
+            startDestination = COMMAND_DECK_DASHBOARD_ROUTE
+        ) {
             composable(COMMAND_DECK_DASHBOARD_ROUTE) {
-                 DashboardContent(
+                DashboardContent(
                     onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
                     onNavigateToGlobalSearch = onNavigateToGlobalSearch,
                     onNavigateToSettings = onNavigateToSettings,
@@ -218,7 +245,7 @@ fun SharedCommandDeckLayout(
                     onNavigateToImportExport = onNavigateToImportExport,
                     onNavigateToAttachments = onNavigateToAttachments,
                     onNavigateToScripts = onNavigateToScripts
-                 )
+                )
             }
             composable(STRATEGIC_MANAGEMENT_ROUTE) {
                 StrategicManagementScreen(navController = navController)
@@ -252,12 +279,17 @@ fun SharedCommandDeckLayout(
                 TacticalManagementScreen()
             }
             composable(COMMAND_DECK_TODAY_ROUTE) { backStackEntry ->
-                val dayPlanViewModel: com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanViewModel = hiltViewModel(backStackEntry)
-                DayManagementScreen(mainNavController = navController, startTab = "PLAN", dayPlanViewModel = dayPlanViewModel)
+                val dayPlanViewModelScoped: DayPlanViewModel = hiltViewModel(backStackEntry)
+                DayManagementScreen(
+                    mainNavController = navController,
+                    startTab = "PLAN",
+                    dayPlanViewModel = dayPlanViewModelScoped
+                )
             }
         }
     }
 }
+
 
 @Composable
 fun DashboardContent(
@@ -326,7 +358,7 @@ private fun CommandDeckTabRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.Center,
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
         contentPadding = PaddingValues(horizontal = 12.dp)
     ) {
         itemsIndexed(tabs) { index, tab ->
@@ -374,6 +406,10 @@ fun CommandDeckTabItem(
         label = "scale"
     )
 
+    val isSpecialTab = tab == CommandDeckTab.StrategicArc || tab == CommandDeckTab.Tactics || tab == CommandDeckTab.Today
+    val symbolFontSize = if (isSpecialTab) 22.sp else 18.sp // Even larger font size
+    val circleSize = if (isSpecialTab) 32.dp else 28.dp // Even larger circle for special tabs
+
     Row(
         modifier = modifier
             .scale(scale)
@@ -400,16 +436,21 @@ fun CommandDeckTabItem(
         // ------------------------
         Box(
             modifier = Modifier
-                .size(24.dp)            // <-- ВСІ ІКОНКИ У ЄДИНОМУ КРУЗІ
+                .size(circleSize) // Use dynamic size
                 .clip(CircleShape)
                 .background(accent.copy(alpha = if (isSelected) 0.22f else 0.12f)),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = tab.symbol,
-                fontSize = 14.sp,
+                fontSize = symbolFontSize, // Use dynamic font size
                 fontWeight = FontWeight.Bold,
-                color = if (isSelected) accent else Color(0xFFBBBBBB)
+                color = if (isSelected) accent else Color(0xFFBBBBBB),
+                modifier = if (tab == CommandDeckTab.Tactics || tab == CommandDeckTab.StrategicArc) {
+                    Modifier.offset(y = (-2).dp) // Apply a small upward offset
+                } else {
+                    Modifier
+                }
             )
         }
 

@@ -101,15 +101,23 @@ fun FAHeader(
                         shape = RoundedCornerShape(20.dp)
                     )
                     .padding(horizontal = 20.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                // Left slot
                 Box(
                     modifier = Modifier.weight(1f),
                     contentAlignment = Alignment.CenterStart
                 ) { config.left?.invoke() }
 
+                // Center slot
                 Box(
+                    modifier = Modifier.weight(3f), // Give more weight to the center
+                    contentAlignment = Alignment.Center
+                ) { config.center?.invoke() }
+
+                // Right slot
+                Box(
+                    modifier = Modifier.weight(1f),
                     contentAlignment = Alignment.CenterEnd
                 ) { config.right?.invoke() }
             }
@@ -133,6 +141,7 @@ import androidx.compose.runtime.Composable
 
 data class FAHeaderConfig(
     val left: ( @Composable () -> Unit)? = null,
+    val center: ( @Composable () -> Unit)? = null, // Added center slot
     val right: ( @Composable () -> Unit)? = null,
     val backgroundStyle: FAHeaderBackground = FAHeaderBackground.Default
 )
@@ -174,49 +183,90 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+import com.romankozak.forwardappmobile.data.database.models.DayPlan
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import com.romankozak.forwardappmobile.ui.components.header.DayPlanHeaderContent // Import DayPlanHeaderContent
+import androidx.compose.material.icons.Icons // Add this import
+
 @Composable
-fun TodayHeader(): FAHeaderConfig {
+fun TodayHeader(
+    dayPlan: DayPlan?,
+    totalPointsEarned: Int,
+    totalPointsAvailable: Int,
+    bestCompletedPoints: Int,
+    completedTasks: Int,
+    totalTasks: Int,
+    onNavigateToPreviousDay: () -> Unit,
+    onNavigateToNextDay: () -> Unit,
+    isNextDayNavigationEnabled: Boolean,
+) : FAHeaderConfig {
     val primaryColor = MaterialTheme.colorScheme.primary
     return FAHeaderConfig(
         backgroundStyle = FAHeaderBackground.CommandDeck,
         left = {
-            Column(horizontalAlignment = Alignment.Start, modifier = Modifier.padding(vertical = 8.dp)) {
+            Column(horizontalAlignment = Alignment.Start) {
                 Text("Today", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
-                Text(
-                    text = "Operative Mode • ${FAHeaderUtils.currentDate()}",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Medium,
-                    letterSpacing = 0.3.sp,
-                    color = primaryColor.copy(alpha = 0.7f)
-                )
             }
         },
+        center = {
+            DayPlanHeaderContent(
+                dayPlan = dayPlan,
+                totalPointsEarned = totalPointsEarned,
+                totalPointsAvailable = totalPointsAvailable,
+                bestCompletedPoints = bestCompletedPoints,
+                completedTasks = completedTasks,
+                totalTasks = totalTasks
+            )
+        },
         right = {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                primaryColor.copy(alpha = 0.25f),
-                                primaryColor.copy(alpha = 0.08f)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onNavigateToPreviousDay) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Попередній день",
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.radialGradient(
+                                colors = listOf(
+                                    primaryColor.copy(alpha = 0.25f),
+                                    primaryColor.copy(alpha = 0.08f)
+                                )
                             )
                         )
+                        .border(
+                            width = 1.5.dp,
+                            color = primaryColor.copy(alpha = 0.4f),
+                            shape = CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "⌁",
+                        fontSize = 28.sp,
+                        color = primaryColor,
+                        fontWeight = FontWeight.Bold
                     )
-                    .border(
-                        width = 1.5.dp,
-                        color = primaryColor.copy(alpha = 0.4f),
-                        shape = CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "⌁",
-                    fontSize = 28.sp,
-                    color = primaryColor,
-                    fontWeight = FontWeight.Bold
-                )
+                }
+                IconButton(onClick = onNavigateToNextDay, enabled = isNextDayNavigationEnabled) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = "Наступний день",
+                        tint =
+                        if (isNextDayNavigationEnabled) {
+                            primaryColor
+                        } else {
+                            primaryColor.copy(alpha = 0.4f)
+                        },
+                    )
+                }
             }
         }
     )
@@ -520,6 +570,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.offset // Corrected import
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -534,6 +585,16 @@ import com.romankozak.forwardappmobile.ui.components.header.TodayHeader
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.DayManagementScreen
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
 import com.romankozak.forwardappmobile.ui.screens.strategicmanagement.StrategicManagementScreen
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.layout.PaddingValues
+
+import androidx.compose.runtime.collectAsState
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanViewModel
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanUiState
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.DayManagementViewModel // Import DayManagementViewModel
+
 import kotlinx.coroutines.launch
 
 const val COMMAND_DECK_DASHBOARD_ROUTE = "command_deck_dashboard"
@@ -576,6 +637,11 @@ fun SharedCommandDeckLayout(
         }.coerceAtLeast(0)
     }
 
+    val dayPlanViewModel: DayPlanViewModel? = if (currentRoute == COMMAND_DECK_TODAY_ROUTE) hiltViewModel() else null
+    val dayPlanUiState by dayPlanViewModel?.uiState?.collectAsState() ?: mutableStateOf(DayPlanUiState())
+    val dayManagementViewModel: com.romankozak.forwardappmobile.ui.screens.daymanagement.DayManagementViewModel = hiltViewModel()
+    val dayManagementUiState by dayManagementViewModel.uiState.collectAsState()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -591,7 +657,26 @@ fun SharedCommandDeckLayout(
     ) {
         when (currentRoute) {
             COMMAND_DECK_DASHBOARD_ROUTE -> FAHeader(config = CommandDeckHeaderPreset())
-            COMMAND_DECK_TODAY_ROUTE -> FAHeader(config = TodayHeader())
+            COMMAND_DECK_TODAY_ROUTE -> {
+                LaunchedEffect(dayManagementUiState.dayPlanId) {
+                    dayManagementUiState.dayPlanId?.let { planId ->
+                        dayPlanViewModel?.loadDataForPlan(planId)
+                    }
+                }
+                FAHeader(
+                    config = TodayHeader(
+                        dayPlan = dayPlanUiState.dayPlan,
+                        totalPointsEarned = dayPlanUiState.tasks.filter { it.dayTask.completed }.sumOf { it.dayTask.points.coerceAtLeast(0) },
+                        totalPointsAvailable = dayPlanUiState.tasks.sumOf { it.dayTask.points.coerceAtLeast(0) },
+                        bestCompletedPoints = dayPlanUiState.bestCompletedPoints,
+                        completedTasks = dayPlanUiState.tasks.count { it.dayTask.completed },
+                        totalTasks = dayPlanUiState.tasks.size,
+                        onNavigateToPreviousDay = { dayPlanViewModel?.navigateToPreviousDay() },
+                        onNavigateToNextDay = { dayPlanViewModel?.navigateToNextDay() },
+                        isNextDayNavigationEnabled = !dayPlanUiState.isToday,
+                    )
+                )
+            }
             STRATEGIC_MANAGEMENT_ROUTE -> FAHeader(config = StrategyHeader(onModeClick = {}))
             COMMAND_DECK_STRATEGIC_ARC_ROUTE -> FAHeader(config = StrategicArcHeader(onModeClick = {}))
             else -> FAHeader(config = CommandDeckHeaderPreset())
@@ -673,8 +758,9 @@ fun SharedCommandDeckLayout(
             composable(COMMAND_DECK_TACTICS_ROUTE) {
                 TacticalManagementScreen()
             }
-            composable(COMMAND_DECK_TODAY_ROUTE) {
-                DayManagementScreen(mainNavController = navController, startTab = "PLAN")
+            composable(COMMAND_DECK_TODAY_ROUTE) { backStackEntry ->
+                val dayPlanViewModel: com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanViewModel = hiltViewModel(backStackEntry)
+                DayManagementScreen(mainNavController = navController, startTab = "PLAN", dayPlanViewModel = dayPlanViewModel)
             }
         }
     }
@@ -743,24 +829,14 @@ private fun CommandDeckTabRow(
     selectedTabIndex: Int,
     onTabSelected: (Int) -> Unit,
 ) {
-    val scrollState = rememberScrollState()
-    val coroutineScope = rememberCoroutineScope()
-
-    LaunchedEffect(selectedTabIndex) {
-        val tabWidth = 130f
-        val target = (selectedTabIndex * tabWidth) - (scrollState.maxValue / 2f) + tabWidth / 2
-        coroutineScope.launch {
-            scrollState.animateScrollTo(target.toInt().coerceAtLeast(0))
-        }
-    }
-
-    Row(
+    LazyRow(
         modifier = Modifier
-            .horizontalScroll(scrollState)
-            .padding(horizontal = 12.dp, vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+        contentPadding = PaddingValues(horizontal = 12.dp)
     ) {
-        tabs.forEachIndexed { index, tab ->
+        itemsIndexed(tabs) { index, tab ->
             CommandDeckTabItem(
                 tab = tab,
                 isSelected = index == selectedTabIndex,
@@ -769,6 +845,7 @@ private fun CommandDeckTabRow(
         }
     }
 }
+
 
 // TAB COLORS
 fun tabAccentColor(tab: CommandDeckTab): Color {
@@ -791,93 +868,80 @@ fun CommandDeckTabItem(
     modifier: Modifier = Modifier
 ) {
     val accent = tabAccentColor(tab)
-    val coroutineScope = rememberCoroutineScope()
 
     val glowAlpha by animateFloatAsState(
-        targetValue = if (isSelected) 0.32f else 0f,
-        animationSpec = tween(600),
+        targetValue = if (isSelected) 0.18f else 0f,
+        animationSpec = tween(450),
         label = "glow"
     )
 
-    val shimmer = remember { Animatable(0f) }
-
-    LaunchedEffect(isSelected) {
-        if (isSelected) {
-            coroutineScope.launch {
-                shimmer.animateTo(
-                    1f,
-                    animationSpec = tween(durationMillis = 1100)
-                )
-                shimmer.snapTo(0f)
-            }
-        }
-    }
-
     val scale by animateFloatAsState(
-        targetValue = if (isSelected) 1.10f else 1f,
-        animationSpec = spring(dampingRatio = 0.60f, stiffness = 300f),
+        targetValue = if (isSelected) 1.05f else 1f,
+        animationSpec = spring(dampingRatio = 0.75f, stiffness = 320f),
         label = "scale"
     )
 
-    val waveBrush = Brush.linearGradient(
-        colors = listOf(
-            Color.Transparent,
-            accent.copy(alpha = 0.40f),
-            Color.Transparent
-        ),
-        start = Offset(x = -220f + shimmer.value * 440f, y = 0f),
-        end = Offset(x = shimmer.value * 440f, y = 0f)
-    )
+    val isSpecialTab = tab == CommandDeckTab.StrategicArc || tab == CommandDeckTab.Tactics || tab == CommandDeckTab.Today
+    val symbolFontSize = if (isSpecialTab) 22.sp else 18.sp // Even larger font size
+    val circleSize = if (isSpecialTab) 32.dp else 28.dp // Even larger circle for special tabs
 
     Row(
         modifier = modifier
             .scale(scale)
-            .clip(RoundedCornerShape(38.dp))
+            .clip(RoundedCornerShape(26.dp))
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        accent.copy(alpha = 0.12f + glowAlpha),
-                        accent.copy(alpha = 0.04f * glowAlpha),
-                        Color.Transparent
+                        accent.copy(alpha = 0.10f + glowAlpha),
+                        accent.copy(alpha = 0.03f)
                     )
                 )
             )
-            .drawBehind {
-                if (isSelected) {
-                    drawRect(
-                        brush = waveBrush,
-                        size = size,
-                        alpha = 0.85f
-                    )
-                }
-            }
             .border(
-                width = if (isSelected) 1.8.dp else 1.dp,
-                color = if (isSelected) accent else Color(0xFF444444),
-                shape = RoundedCornerShape(38.dp)
+                width = if (isSelected) 1.4.dp else 0.8.dp,
+                color = accent.copy(alpha = if (isSelected) 0.9f else 0.45f),
+                shape = RoundedCornerShape(26.dp)
             )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 8.dp),
+            .clickable { onClick() }
+            .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = tab.symbol,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            color = if (isSelected) accent else Color(0xFFAAAAAA)
-        )
+        // ------------------------
+        // UNIFIED CIRCLE ICON AREA
+        // ------------------------
+        Box(
+            modifier = Modifier
+                .size(circleSize) // Use dynamic size
+                .clip(CircleShape)
+                .background(accent.copy(alpha = if (isSelected) 0.22f else 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = tab.symbol,
+                fontSize = symbolFontSize, // Use dynamic font size
+                fontWeight = FontWeight.Bold,
+                color = if (isSelected) accent else Color(0xFFBBBBBB),
+                modifier = if (tab == CommandDeckTab.Tactics || tab == CommandDeckTab.StrategicArc) {
+                    Modifier.offset(y = (-2).dp) // Apply a small upward offset
+                } else {
+                    Modifier
+                }
+            )
+        }
 
         if (isSelected) {
             Spacer(Modifier.width(6.dp))
             Text(
                 text = tab.title,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Medium,
                 color = accent
             )
         }
     }
 }
+
+
 
 // MODULE CARD
 @Composable

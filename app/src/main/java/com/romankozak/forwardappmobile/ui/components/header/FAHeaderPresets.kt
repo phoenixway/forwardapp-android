@@ -2,9 +2,17 @@ package com.romankozak.forwardappmobile.ui.components.header
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -16,15 +24,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
 import com.romankozak.forwardappmobile.data.database.models.DayPlan
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import com.romankozak.forwardappmobile.ui.components.header.DayPlanHeaderContent // Import DayPlanHeaderContent
-import androidx.compose.material.icons.Icons // Add this import
+import com.romankozak.forwardappmobile.ui.components.header.DayPlanHeaderContent
 
+/**
+ * TodayHeader:
+ *  - верх: ліворуч "Today", по центру DayPlanHeaderContent
+ *  - низ (праворуч): навігація по днях + "енергетичний" кружок
+ */
 @Composable
 fun TodayHeader(
     dayPlan: DayPlan?,
@@ -36,16 +43,19 @@ fun TodayHeader(
     onNavigateToPreviousDay: () -> Unit,
     onNavigateToNextDay: () -> Unit,
     isNextDayNavigationEnabled: Boolean,
-) : FAHeaderConfig {
+): HeaderLayout {
     val primaryColor = MaterialTheme.colorScheme.primary
-    return FAHeaderConfig(
-        backgroundStyle = FAHeaderBackground.CommandDeck,
-        left = {
+
+    return FreeFormHeaderLayout(
+        topLeft = {
             Column(horizontalAlignment = Alignment.Start) {
-                Text("Today", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+                Text(
+                    "Today",
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                )
             }
         },
-        center = {
+        topCenter = {
             DayPlanHeaderContent(
                 dayPlan = dayPlan,
                 totalPointsEarned = totalPointsEarned,
@@ -55,7 +65,7 @@ fun TodayHeader(
                 totalTasks = totalTasks
             )
         },
-        right = {
+        bottomRight = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onNavigateToPreviousDay) {
                     Icon(
@@ -63,9 +73,10 @@ fun TodayHeader(
                         contentDescription = "Попередній день",
                     )
                 }
+
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(34.dp)
                         .clip(CircleShape)
                         .background(
                             Brush.radialGradient(
@@ -76,7 +87,7 @@ fun TodayHeader(
                             )
                         )
                         .border(
-                            width = 1.5.dp,
+                            width = 1.2.dp,
                             color = primaryColor.copy(alpha = 0.4f),
                             shape = CircleShape
                         ),
@@ -84,17 +95,20 @@ fun TodayHeader(
                 ) {
                     Text(
                         text = "⌁",
-                        fontSize = 28.sp,
+                        fontSize = 22.sp,
                         color = primaryColor,
                         fontWeight = FontWeight.Bold
                     )
                 }
-                IconButton(onClick = onNavigateToNextDay, enabled = isNextDayNavigationEnabled) {
+
+                IconButton(
+                    onClick = onNavigateToNextDay,
+                    enabled = isNextDayNavigationEnabled
+                ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                         contentDescription = "Наступний день",
-                        tint =
-                        if (isNextDayNavigationEnabled) {
+                        tint = if (isNextDayNavigationEnabled) {
                             primaryColor
                         } else {
                             primaryColor.copy(alpha = 0.4f)
@@ -106,14 +120,20 @@ fun TodayHeader(
     )
 }
 
+/**
+ * StrategyHeader: простий Left + (опис) + Right-іконка.
+ */
 @Composable
-fun StrategyHeader(onModeClick: () -> Unit): FAHeaderConfig {
+fun StrategyHeader(onModeClick: () -> Unit): HeaderLayout {
     val primaryColor = MaterialTheme.colorScheme.primary
-    return FAHeaderConfig(
-        backgroundStyle = FAHeaderBackground.CommandDeck,
+
+    return LeftCenterCombinedHeaderLayout(
         left = {
             Column(horizontalAlignment = Alignment.Start) {
-                Text("Strategy", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+                Text(
+                    "Strategy",
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                )
                 Text(
                     text = "Long-term planning mode",
                     fontSize = 10.sp,
@@ -126,7 +146,7 @@ fun StrategyHeader(onModeClick: () -> Unit): FAHeaderConfig {
         right = {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(34.dp)
                     .clip(CircleShape)
                     .background(
                         Brush.radialGradient(
@@ -137,7 +157,7 @@ fun StrategyHeader(onModeClick: () -> Unit): FAHeaderConfig {
                         )
                     )
                     .border(
-                        width = 1.5.dp,
+                        width = 1.2.dp,
                         color = primaryColor.copy(alpha = 0.4f),
                         shape = CircleShape
                     ),
@@ -145,7 +165,7 @@ fun StrategyHeader(onModeClick: () -> Unit): FAHeaderConfig {
             ) {
                 Text(
                     text = "⌁",
-                    fontSize = 28.sp,
+                    fontSize = 22.sp,
                     color = primaryColor,
                     fontWeight = FontWeight.Bold
                 )
@@ -154,14 +174,20 @@ fun StrategyHeader(onModeClick: () -> Unit): FAHeaderConfig {
     )
 }
 
+/**
+ * Strategic Arc header.
+ */
 @Composable
-fun StrategicArcHeader(onModeClick: () -> Unit): FAHeaderConfig {
+fun StrategicArcHeader(onModeClick: () -> Unit): HeaderLayout {
     val primaryColor = MaterialTheme.colorScheme.primary
-    return FAHeaderConfig(
-        backgroundStyle = FAHeaderBackground.CommandDeck,
+
+    return LeftCenterCombinedHeaderLayout(
         left = {
             Column(horizontalAlignment = Alignment.Start) {
-                Text("Strategic Arc", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+                Text(
+                    "Strategic Arc",
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                )
                 Text(
                     text = "April • Expansion Arc",
                     fontSize = 10.sp,
@@ -174,7 +200,7 @@ fun StrategicArcHeader(onModeClick: () -> Unit): FAHeaderConfig {
         right = {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(34.dp)
                     .clip(CircleShape)
                     .background(
                         Brush.radialGradient(
@@ -185,7 +211,7 @@ fun StrategicArcHeader(onModeClick: () -> Unit): FAHeaderConfig {
                         )
                     )
                     .border(
-                        width = 1.5.dp,
+                        width = 1.2.dp,
                         color = primaryColor.copy(alpha = 0.4f),
                         shape = CircleShape
                     ),
@@ -193,7 +219,7 @@ fun StrategicArcHeader(onModeClick: () -> Unit): FAHeaderConfig {
             ) {
                 Text(
                     text = "⌁",
-                    fontSize = 28.sp,
+                    fontSize = 22.sp,
                     color = primaryColor,
                     fontWeight = FontWeight.Bold
                 )
@@ -202,11 +228,14 @@ fun StrategicArcHeader(onModeClick: () -> Unit): FAHeaderConfig {
     )
 }
 
+/**
+ * Command Deck / Dashboard header.
+ */
 @Composable
-fun CommandDeckHeaderPreset(): FAHeaderConfig {
+fun CommandDeckHeaderPreset(): HeaderLayout {
     val primaryColor = MaterialTheme.colorScheme.primary
-    return FAHeaderConfig(
-        backgroundStyle = FAHeaderBackground.CommandDeck,
+
+    return LeftCenterCombinedHeaderLayout(
         left = {
             Column {
                 Text(
@@ -228,7 +257,7 @@ fun CommandDeckHeaderPreset(): FAHeaderConfig {
         right = {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(34.dp)
                     .clip(CircleShape)
                     .background(
                         Brush.radialGradient(
@@ -239,7 +268,7 @@ fun CommandDeckHeaderPreset(): FAHeaderConfig {
                         )
                     )
                     .border(
-                        width = 1.5.dp,
+                        width = 1.2.dp,
                         color = primaryColor.copy(alpha = 0.4f),
                         shape = CircleShape
                     ),
@@ -247,7 +276,7 @@ fun CommandDeckHeaderPreset(): FAHeaderConfig {
             ) {
                 Text(
                     text = "⌬",
-                    fontSize = 28.sp,
+                    fontSize = 22.sp,
                     color = primaryColor,
                     fontWeight = FontWeight.Bold
                 )
