@@ -111,143 +111,154 @@ private fun ErrorState(error: String, onRetry: () -> Unit, modifier: Modifier = 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CompactDayPlanHeader(
-  dayPlan: DayPlan?,
-  totalPointsEarned: Int,
-  totalPointsAvailable: Int,
-  bestCompletedPoints: Int,
-  completedTasks: Int,
-  totalTasks: Int,
-  onNavigateToPreviousDay: () -> Unit,
-  onNavigateToNextDay: () -> Unit,
-  isNextDayNavigationEnabled: Boolean,
-  onSettingsClick: () -> Unit,
-  onAddTaskClick: () -> Unit,
-  modifier: Modifier = Modifier,
+    dayPlan: DayPlan?,
+    totalPointsEarned: Int,
+    totalPointsAvailable: Int,
+    bestCompletedPoints: Int,
+    completedTasks: Int,
+    totalTasks: Int,
+    onNavigateToPreviousDay: () -> Unit,
+    onNavigateToNextDay: () -> Unit,
+    isNextDayNavigationEnabled: Boolean,
 ) {
-  val colorScheme = MaterialTheme.colorScheme
-  val formattedDate =
-    remember(dayPlan?.date) {
-      dayPlan?.date?.let { dateMillis ->
-        val formatter = DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale.forLanguageTag("uk"))
-        Instant.ofEpochMilli(dateMillis).atZone(ZoneId.systemDefault()).format(formatter)
-      } ?: "План дня"
-    }
-  val progress =
-    remember(totalPointsEarned, totalPointsAvailable) {
-      if (totalPointsAvailable > 0) {
-        (totalPointsEarned.toFloat() / totalPointsAvailable.toFloat()).coerceIn(0f, 1f)
-      } else {
-        0f
-      }
-    }
-  val pointsLabel =
-    buildString {
-      val bestDayPoints = max(bestCompletedPoints, totalPointsEarned)
-      append(totalPointsEarned)
-      append(" / ")
-      append(totalPointsAvailable)
-      append(" / ")
-      append(bestDayPoints)
-      append(" балів")
-    }
-  val tasksLabel =
-    if (totalTasks > 0) {
-      "$completedTasks / $totalTasks задач"
-    } else {
-      "Завдань поки немає"
-    }
-  val progressLabel =
-    remember(progress) {
-      if (totalPointsAvailable > 0) {
-        "${(progress * 100).roundToInt()}%"
-      } else {
-        null
-      }
-    }
+    val colorScheme = MaterialTheme.colorScheme
+    val primaryColor = colorScheme.primary
+    val glowAlpha by animateFloatAsState(
+        targetValue = 0.15f,
+        animationSpec = tween(2000),
+        label = "header_glow"
+    )
+    val formattedDate =
+        remember(dayPlan?.date) {
+            dayPlan?.date?.let { dateMillis ->
+                val formatter = DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale.forLanguageTag("uk"))
+                Instant.ofEpochMilli(dateMillis).atZone(ZoneId.systemDefault()).format(formatter)
+            } ?: "План дня"
+        }
+    val progress =
+        remember(totalPointsEarned, totalPointsAvailable) {
+            if (totalPointsAvailable > 0) {
+                (totalPointsEarned.toFloat() / totalPointsAvailable.toFloat()).coerceIn(0f, 1f)
+            } else {
+                0f
+            }
+        }
+    val pointsLabel =
+        buildString {
+            val bestDayPoints = max(bestCompletedPoints, totalPointsEarned)
+            append(totalPointsEarned)
+            append(" / ")
+            append(totalPointsAvailable)
+            append(" / ")
+            append(bestDayPoints)
+            append(" балів")
+        }
+    val tasksLabel =
+        if (totalTasks > 0) {
+            "$completedTasks / $totalTasks задач"
+        } else {
+            "Завдань поки немає"
+        }
 
-  Surface(
-    modifier =
-      modifier
-        .fillMaxWidth()
-        .padding(horizontal = 16.dp, vertical = 12.dp),
-    shape = MaterialTheme.shapes.large,
-    tonalElevation = 4.dp,
-    color = colorScheme.surfaceColorAtElevation(2.dp),
-  ) {
-    Column(
-      modifier =
-        Modifier
-          .fillMaxWidth()
-          .padding(horizontal = 16.dp, vertical = 12.dp),
-      verticalArrangement = Arrangement.spacedBy(12.dp),
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 12.dp,
+                start = 16.dp,
+                end = 16.dp,
+                bottom = 4.dp
+            )
     ) {
-      Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-      ) {
-        IconButton(onClick = onNavigateToPreviousDay) {
-          Icon(
-            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-            contentDescription = "Попередній день",
-          )
-        }
-        Column(
-          modifier = Modifier.weight(1f),
-          horizontalAlignment = Alignment.CenterHorizontally,
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(20.dp))
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            primaryColor.copy(alpha = 0.08f + glowAlpha),
+                            primaryColor.copy(alpha = 0.03f),
+                            primaryColor.copy(alpha = 0.08f + glowAlpha)
+                        )
+                    )
+                )
+                .border(
+                    width = 1.dp,
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(
+                            primaryColor.copy(alpha = 0.3f),
+                            primaryColor.copy(alpha = 0.1f),
+                            primaryColor.copy(alpha = 0.3f)
+                        )
+                    ),
+                    shape = RoundedCornerShape(20.dp)
+                )
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-          Text(
-            text =
-              formattedDate.replaceFirstChar {
-                if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString()
-              },
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            textAlign = TextAlign.Center,
-            color = colorScheme.onSurface,
-          )
-        }
-        IconButton(onClick = onNavigateToNextDay, enabled = isNextDayNavigationEnabled) {
-          Icon(
-            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-            contentDescription = "Наступний день",
-            tint =
-              if (isNextDayNavigationEnabled) {
-                colorScheme.onSurface
-              } else {
-                colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-              },
-          )
-        }
-      }
+            IconButton(onClick = onNavigateToPreviousDay) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Попередній день",
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text =
+                    formattedDate.replaceFirstChar {
+                        if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString()
+                    },
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center,
+                    color = colorScheme.onSurface,
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    HeaderInfoChip(
+                        icon = Icons.Filled.CheckCircle,
+                        text = pointsLabel,
+                        contentColor = colorScheme.primary,
+                    )
+                    HeaderInfoChip(
+                        icon = Icons.Outlined.Checklist,
+                        text = tasksLabel,
+                        contentColor = colorScheme.onSurface,
+                    )
+                }
 
-      FlowRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.Center,
-      ) {
-        HeaderInfoChip(
-          icon = Icons.Filled.CheckCircle,
-          text = pointsLabel,
-          contentColor = colorScheme.primary,
-        )
-        HeaderInfoChip(
-          icon = Icons.Outlined.Checklist,
-          text = tasksLabel,
-          contentColor = colorScheme.onSurface,
-        )
-      }
-
-      if (totalPointsAvailable > 0) {
-        LinearProgressIndicator(
-          progress = { progress },
-          modifier = Modifier.fillMaxWidth(),
-          trackColor = colorScheme.surfaceVariant,
-          color = colorScheme.primary,
-        )
-      }
+                if (totalPointsAvailable > 0) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
+                        trackColor = colorScheme.surfaceVariant,
+                        color = colorScheme.primary,
+                    )
+                }
+            }
+            IconButton(onClick = onNavigateToNextDay, enabled = isNextDayNavigationEnabled) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = "Наступний день",
+                    tint =
+                    if (isNextDayNavigationEnabled) {
+                        colorScheme.onSurface
+                    } else {
+                        colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                    },
+                )
+            }
+        }
     }
-  }
 }
 
 @Composable

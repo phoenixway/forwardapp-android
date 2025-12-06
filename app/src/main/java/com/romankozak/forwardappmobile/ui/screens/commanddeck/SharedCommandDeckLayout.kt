@@ -1,5 +1,9 @@
 package com.romankozak.forwardappmobile.ui.screens.commanddeck
 
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.asPaddingValues
+
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -126,7 +130,7 @@ fun SharedCommandDeckLayout(
     ) {
         CommandDeckHeader()
 
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(12.dp))
 
         CommandDeckTabRow(
             tabs = tabs,
@@ -202,7 +206,7 @@ fun SharedCommandDeckLayout(
                 TacticalManagementScreen()
             }
             composable(COMMAND_DECK_TODAY_ROUTE) {
-                DayManagementScreen(mainNavController = navController)
+                DayManagementScreen(mainNavController = navController, startTab = "PLAN")
             }
         }
     }
@@ -265,28 +269,95 @@ enum class CommandDeckTab(
 // HEADER
 @Composable
 fun CommandDeckHeader() {
-    Row(
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val glowAlpha by animateFloatAsState(
+        targetValue = 0.15f,
+        animationSpec = tween(2000),
+        label = "header_glow"
+    )
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 26.dp, start = 20.dp, end = 20.dp, bottom = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+            .padding(
+                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 12.dp,
+                start = 16.dp,
+                end = 16.dp,
+                bottom = 4.dp // Reduced bottom padding
+            )
     ) {
-        Text(
-            text = "ForwardApp",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 0.5.sp,
-            color = MaterialTheme.colorScheme.onSurface
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(20.dp)) // Slightly smaller corner radius
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            primaryColor.copy(alpha = 0.08f + glowAlpha),
+                            primaryColor.copy(alpha = 0.03f),
+                            primaryColor.copy(alpha = 0.08f + glowAlpha)
+                        )
+                    )
+                )
+                .border(
+                    width = 1.dp,
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(
+                            primaryColor.copy(alpha = 0.3f),
+                            primaryColor.copy(alpha = 0.1f),
+                            primaryColor.copy(alpha = 0.3f)
+                        )
+                    ),
+                    shape = RoundedCornerShape(20.dp) // Match corner radius
+                )
+                .padding(horizontal = 16.dp, vertical = 10.dp), // Reduced vertical padding
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text(
+                    text = "ForwardApp",
+                    fontSize = 22.sp, // Reduced font size
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.8.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Command & Control",
+                    fontSize = 10.sp, // Reduced font size
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 0.3.sp,
+                    color = primaryColor.copy(alpha = 0.7f)
+                )
+            }
 
-        Text(
-            text = "⌬",
-            fontSize = 40.sp,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(end = 16.dp)
-        )
+            Box(
+                modifier = Modifier
+                    .size(40.dp) // Reduced size
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                primaryColor.copy(alpha = 0.25f),
+                                primaryColor.copy(alpha = 0.08f)
+                            )
+                        )
+                    )
+                    .border(
+                        width = 1.5.dp,
+                        color = primaryColor.copy(alpha = 0.4f),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "⌬",
+                    fontSize = 28.sp, // Reduced font size
+                    color = primaryColor,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
     }
 }
 
