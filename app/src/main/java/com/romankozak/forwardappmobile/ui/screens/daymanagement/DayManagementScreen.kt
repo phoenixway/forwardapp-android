@@ -36,7 +36,10 @@ import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.componen
 import kotlinx.coroutines.launch
 
 import androidx.compose.material.icons.filled.Inbox
-import com.romankozak.forwardappmobile.ui.screens.inbox.InboxScreen
+import com.romankozak.forwardappmobile.ui.components.header.FAHeader
+import com.romankozak.forwardappmobile.ui.components.header.TodayHeader
+
+import androidx.compose.foundation.layout.Column
 
 enum class DayManagementTab(val title: String, val icon: ImageVector, val description: String) {
   TRACK("Трекер", Icons.Outlined.Timeline, "Відстежувати активність"),
@@ -114,8 +117,10 @@ fun DayManagementScreen(
       }
     },
   ) { innerPadding ->
-    Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-      when {
+    Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+      FAHeader(config = TodayHeader())
+      Box(modifier = Modifier.fillMaxSize()) {
+        when {
         uiState.isLoading -> {
           LoadingContent()
         }
@@ -173,11 +178,12 @@ fun DayManagementScreen(
         )
       }
     }
+      }
   }
 }
 
 @Composable
-private fun NeonTitle(
+fun NeonTitle(
   text: String,
   modifier: Modifier = Modifier,
   color: Color = MaterialTheme.colorScheme.primary,
@@ -203,7 +209,7 @@ private fun NeonTitle(
 }
 
 @Composable
-private fun LoadingContent(modifier: Modifier = Modifier) {
+fun LoadingContent(modifier: Modifier = Modifier) {
   Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
     Column(
       horizontalAlignment = Alignment.CenterHorizontally,
@@ -225,7 +231,7 @@ private fun LoadingContent(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun ErrorContent(error: String, onRetry: () -> Unit, modifier: Modifier = Modifier) {
+fun ErrorContent(error: String, onRetry: () -> Unit, modifier: Modifier = Modifier) {
   Column(
     modifier = modifier.fillMaxSize().padding(24.dp),
     horizontalAlignment = Alignment.CenterHorizontally,

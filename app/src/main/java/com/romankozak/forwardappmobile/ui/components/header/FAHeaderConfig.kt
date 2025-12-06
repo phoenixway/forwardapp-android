@@ -4,7 +4,6 @@ import androidx.compose.runtime.Composable
 
 data class FAHeaderConfig(
     val left: ( @Composable () -> Unit)? = null,
-    val center: ( @Composable () -> Unit)? = null,
     val right: ( @Composable () -> Unit)? = null,
     val backgroundStyle: FAHeaderBackground = FAHeaderBackground.Default
 )
@@ -13,5 +12,6 @@ enum class FAHeaderBackground {
     Default,
     Transparent,
     Elevated,
-    Gradient
+    Gradient,
+    CommandDeck
 }

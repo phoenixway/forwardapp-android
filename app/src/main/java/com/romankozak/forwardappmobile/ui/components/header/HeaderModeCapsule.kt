@@ -11,7 +11,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.romankozak.forwardappmobile.ui.theme.Shapes
 
  @Composable
 fun ModeCapsule(
@@ -21,7 +20,7 @@ fun ModeCapsule(
 ) {
     Box(
         modifier = Modifier
-            .clip(Shapes.large)
+            .clip(MaterialTheme.shapes.large)
             .background(color.copy(alpha = 0.12f))
             .clickable { onClick() }
             .padding(horizontal = 16.dp, vertical = 8.dp)
