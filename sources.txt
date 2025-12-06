@@ -1,1598 +1,816 @@
 TABLE OF CONTENTS
 ================================================================================
 
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/mainscreen/hierarchy/FocusedProjectView.kt](##<<FILE_1>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/mainscreen/hierarchy/HierarchyComponents.kt](##<<FILE_2>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/mainscreen/hierarchy/ProjectHierarchyView.kt](##<<FILE_3>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/mainscreen/usecases/MainScreenStateUseCase.kt](##<<FILE_4>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/mainscreen/utils/ProjectUtils.kt](##<<FILE_5>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/data/database/AppDatabase.kt](##<<FILE_1>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/data/database/models/DatabaseModel.kt](##<<FILE_2>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/missions/data/TacticalMissionDao.kt](##<<FILE_3>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/missions/data/model/TacticalMissionModels.kt](##<<FILE_4>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/missions/domain/model/MissionEnums.kt](##<<FILE_5>>)
 
 ================================================================================
 
 ## <<FILE_1>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/mainscreen/hierarchy/FocusedProjectView.kt (ID: FILE_1)
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/data/database/AppDatabase.kt (ID: FILE_1)
 ================================================================================
 
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy
+package com.romankozak.forwardappmobile.data.database
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Inbox
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import com.mohamedrejeb.compose.dnd.DragAndDropState
-import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
-import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbItem
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DropPosition
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.HierarchyDisplaySettings
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenEvent
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.flattenHierarchyWithLevels
+import androidx.room.AutoMigration
+import androidx.room.Database
+import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
+import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
+import com.romankozak.forwardappmobile.data.dao.ChatDao
+import com.romankozak.forwardappmobile.data.dao.ConversationFolderDao
+import com.romankozak.forwardappmobile.data.dao.ChecklistDao
+import com.romankozak.forwardappmobile.data.dao.DailyMetricDao
+import com.romankozak.forwardappmobile.data.dao.DayPlanDao
+import com.romankozak.forwardappmobile.data.dao.DayTaskDao
+import com.romankozak.forwardappmobile.data.dao.GoalDao
+import com.romankozak.forwardappmobile.data.dao.InboxRecordDao
+import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
+import com.romankozak.forwardappmobile.data.dao.LinkItemDao
+import com.romankozak.forwardappmobile.data.dao.ListItemDao
+import com.romankozak.forwardappmobile.data.dao.NoteDocumentDao
+import com.romankozak.forwardappmobile.data.dao.ProjectArtifactDao
+import com.romankozak.forwardappmobile.data.dao.ProjectDao
+import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
+import com.romankozak.forwardappmobile.data.dao.RecentItemDao
+import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
+import com.romankozak.forwardappmobile.data.dao.ReminderDao
+import com.romankozak.forwardappmobile.data.dao.ScriptDao
+import com.romankozak.forwardappmobile.data.dao.SystemAppDao
+import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
+import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
+import com.romankozak.forwardappmobile.data.database.models.*
+import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentEntity
+import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRef
+import com.romankozak.forwardappmobile.features.missions.data.model.TacticalMission
+import com.romankozak.forwardappmobile.features.missions.data.model.TacticalMissionAttachmentCrossRef
 
-import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionScope
+@Database(
+    entities = [
+        ConversationEntity::class,
+        Goal::class,
+        Project::class,
+        ListItem::class,
+        BacklogOrder::class,
+        ActivityRecord::class,
+        LinkItemEntity::class,
+        AttachmentEntity::class,
+        InboxRecord::class,
+        ChatMessageEntity::class,
+        ProjectExecutionLog::class,
+        DayPlan::class,
+        DayTask::class,
+        DailyMetric::class,
+        LegacyNoteEntity::class,
+        NoteDocumentEntity::class,
+        NoteDocumentItemEntity::class,
+        ChecklistEntity::class,
+        ChecklistItemEntity::class,
+        ScriptEntity::class,
+        RecentItem::class,
+        ConversationFolderEntity::class,
+        RecurringTask::class,
+        Reminder::class,
+        ProjectArtifact::class,
+        ProjectAttachmentCrossRef::class,
+        SystemAppEntity::class,
+        TacticalMission::class,
+        TacticalMissionAttachmentCrossRef::class,
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
-@Composable
-fun FocusedProjectView(
-  focusedProjectId: String,
-  hierarchy: ListHierarchyData,
-  breadcrumbs: List<BreadcrumbItem>,
-  dragAndDropState: DragAndDropState<Project>,
-  isSearchActive: Boolean,
-  planningMode: PlanningMode,
-  highlightedProjectId: String?,
-  settings: HierarchyDisplaySettings,
-  searchQuery: String,
-  longDescendantsMap: Map<String, Boolean>,
-  onEvent: (MainScreenEvent) -> Unit,
-  onFocusProject: (Project) -> Unit,
-  onAddSubproject: (Project) -> Unit,
-  onDeleteProject: (Project) -> Unit,
-  onEditProject: (Project) -> Unit,
-  onProjectClick: (String) -> Unit,
-  onToggleExpanded: (Project) -> Unit,
-  onMenuRequested: (Project) -> Unit,
-  onProjectReorder: (fromId: String, toId: String, position: DropPosition) -> Unit,
-  sharedTransitionScope: SharedTransitionScope,
-  animatedVisibilityScope: AnimatedVisibilityScope,
+        GoalFts::class,
+        ProjectFts::class,
+        ActivityRecordFts::class,
+        LegacyNoteFts::class,
+        RecurringTaskFts::class,
+    ],
+    version = 79,
+    exportSchema = true,
+)
+@TypeConverters(Converters::class, DailyPlanConverters::class, ProjectTypeConverter::class)
+abstract class AppDatabase : RoomDatabase() {
+    abstract fun projectDao(): ProjectDao
 
-  ) {
-  val focusedProject = hierarchy.allProjects.find { it.id == focusedProjectId }
-  val children = (hierarchy.childMap[focusedProjectId] ?: emptyList()).sortedBy { it.order }
+    abstract fun goalDao(): GoalDao
 
-  if (focusedProject != null) {
-    LazyColumn(modifier = Modifier.fillMaxSize()) {
-      stickyHeader(key = "focused-project-header") {
-        Box(Modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
-          BreadcrumbNavigation(
-            breadcrumbs = breadcrumbs,
-            onNavigate = { onEvent(MainScreenEvent.BreadcrumbNavigation(it)) },
-            onClearNavigation = { onEvent(MainScreenEvent.ClearBreadcrumbNavigation) },
-            onFocusedListMenuClick = { projectId ->
-              hierarchy.allProjects
-                .find { it.id == projectId }
-                ?.let { onEvent(MainScreenEvent.ProjectMenuRequest(it)) }
-            },
-          )
-        }
-      }
+    abstract fun listItemDao(): ListItemDao
+    abstract fun backlogOrderDao(): com.romankozak.forwardappmobile.data.dao.BacklogOrderDao
 
-      if (children.isNotEmpty()) {
-        val flattenedChildren =
-          remember(children, hierarchy.childMap) {
-            flattenHierarchyWithLevels(children, hierarchy.childMap)
-          }
-        val visibleItems =
-          remember(flattenedChildren, longDescendantsMap, hierarchy.childMap) {
-            buildVisibleHierarchy(flattenedChildren, hierarchy.childMap, longDescendantsMap)
-          }
-        items(visibleItems, key = { it.project.id }) { item ->
-          HierarchyListItem(
-            item = item,
-            childMap = hierarchy.childMap,
-            dragAndDropState = dragAndDropState,
-            isSearchActive = isSearchActive,
-            planningMode = planningMode,
-            highlightedProjectId = highlightedProjectId,
-            settings = settings,
-            searchQuery = searchQuery,
-            focusedProjectId = focusedProjectId,
-            longDescendantsMap = longDescendantsMap,
-            onProjectClick = onProjectClick,
-            onToggleExpanded = onToggleExpanded,
-            onMenuRequested = onMenuRequested,
-            onProjectReorder = onProjectReorder,
-            onFocusProject = onFocusProject,
-            onAddSubproject = onAddSubproject,
-            onDeleteProject = onDeleteProject,
-            onEditProject = onEditProject,
-            sharedTransitionScope =  sharedTransitionScope,
-            animatedVisibilityScope = animatedVisibilityScope,
-          )
-        }
-      } else {
-        item(key = "empty_state") {
-          Box(
-            modifier = Modifier.fillParentMaxSize().padding(16.dp),
-            contentAlignment = Alignment.Center,
-          ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-              Icon(
-                imageVector = Icons.Outlined.Inbox,
-                contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-              )
-              Spacer(modifier = Modifier.height(8.dp))
-              Text(
-                text = "No subprojects",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-              )
-            }
-          }
-        }
-      }
+    abstract fun activityRecordDao(): ActivityRecordDao
+
+    abstract fun linkItemDao(): LinkItemDao
+
+    abstract fun inboxRecordDao(): InboxRecordDao
+
+    abstract fun chatDao(): ChatDao
+
+    abstract fun attachmentDao(): AttachmentDao
+
+    abstract fun conversationFolderDao(): ConversationFolderDao
+
+    abstract fun projectManagementDao(): ProjectManagementDao
+
+    abstract fun dayPlanDao(): DayPlanDao
+
+    abstract fun dayTaskDao(): DayTaskDao
+
+
+
+    abstract fun dailyMetricDao(): DailyMetricDao
+
+    abstract fun legacyNoteDao(): LegacyNoteDao
+
+    abstract fun noteDocumentDao(): NoteDocumentDao
+
+    abstract fun checklistDao(): ChecklistDao
+
+    abstract fun recentItemDao(): RecentItemDao
+
+    abstract fun projectArtifactDao(): ProjectArtifactDao
+
+    abstract fun systemAppDao(): SystemAppDao
+
+    abstract fun recurringTaskDao(): RecurringTaskDao
+
+    abstract fun reminderDao(): ReminderDao
+
+    abstract fun scriptDao(): ScriptDao
+
+    abstract fun tacticalMissionDao(): TacticalMissionDao
     }
-  } else {
-
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-      Text("Focused project not found.")
-    }
-  }
-}
 
 
 ================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/mainscreen/hierarchy/FocusedProjectView.kt
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/data/database/AppDatabase.kt
 ================================================================================
 
 ## <<FILE_2>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/mainscreen/hierarchy/HierarchyComponents.kt (ID: FILE_2)
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/data/database/models/DatabaseModel.kt (ID: FILE_2)
 ================================================================================
 
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy
+package com.romankozak.forwardappmobile.data.database.models
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animate
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.FilterCenterFocus
-import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.outlined.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.dp
-import com.google.android.material.transition.platform.MaterialContainerTransform
-import com.mohamedrejeb.compose.dnd.DragAndDropState
-import com.mohamedrejeb.compose.dnd.drag.DraggableItem
-import com.mohamedrejeb.compose.dnd.drop.dropTarget
-import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbItem
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DropPosition
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.FlatHierarchyItem
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.HierarchyDisplaySettings
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
-import kotlin.math.roundToInt
-import kotlinx.coroutines.launch
-
-// Remove SharedTransition imports for now - they seem to be causing issues
-// import androidx.compose.animation.ExperimentalSharedTransitionApi
-// import androidx.compose.animation.SharedTransitionScope
-// import androidx.compose.animation.rememberSharedContentState
-// import androidx.compose.runtime.staticCompositionLocalOf
-// import androidx.compose.animation.LocalSharedTransitionScope
-// import androidx.compose.animation.LocalAnimatedVisibilityScope
+import androidx.room.ColumnInfo
+import androidx.room.Embedded
+import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Fts4
+import androidx.room.Index
+import androidx.room.PrimaryKey
+import androidx.room.TypeConverter
+import androidx.room.TypeConverters
+import com.google.gson.Gson
+import com.google.gson.annotations.SerializedName
+import com.google.gson.reflect.TypeToken
+import com.romankozak.forwardappmobile.features.missions.domain.model.MissionPriority
+import com.romankozak.forwardappmobile.features.missions.domain.model.MissionStatus
 
 
-private fun fuzzyMatchAndGetIndices(
-    query: String,
-    text: String,
-): List<Int>? {
-    if (query.isBlank()) return emptyList()
-    if (text.isBlank()) return null
-    val lowerQuery = query.lowercase()
-    val lowerText = text.lowercase()
-    val matchedIndices = mutableListOf<Int>()
-    var queryIndex = 0
-    var textIndex = 0
-    while (queryIndex < lowerQuery.length && textIndex < lowerText.length) {
-        if (lowerQuery[queryIndex] == lowerText[textIndex]) {
-            matchedIndices.add(textIndex)
-            queryIndex++
-        }
-        textIndex++
+
+class PathSegmentsConverter {
+    private val pathSeparator = " / "
+
+    @TypeConverter
+    fun fromPathSegments(pathSegments: List<String>?): String? {
+        return pathSegments?.joinToString(pathSeparator)
     }
-    return if (queryIndex == lowerQuery.length) matchedIndices else null
+
+    @TypeConverter
+    fun fromStringToPathSegments(data: String?): List<String>? {
+        return data?.split(pathSeparator)?.map { it.trim() }
+    }
 }
 
-@Composable
-internal fun highlightFuzzy(
-    text: String,
-    query: String,
-): AnnotatedString {
-    if (query.isBlank()) return AnnotatedString(text)
-    val matchedIndices = remember(query, text) { fuzzyMatchAndGetIndices(query, text) }
-    if (matchedIndices == null) return AnnotatedString(text)
 
-    return buildAnnotatedString {
-        val indicesSet = matchedIndices.toSet()
-        text.forEachIndexed { index, char ->
-            if (index in indicesSet) {
-                withStyle(
-                    style =
-                        SpanStyle(
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            background = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                        ),
-                ) { append(char) }
-            } else {
-                append(char)
-            }
+
+@TypeConverters(Converters::class)
+class Converters {
+    private val gson = Gson()
+    private val pathSeparator = " / "
+
+    @TypeConverter
+    fun fromString(value: String?): List<String>? {
+        return value?.split(pathSeparator)?.map { it.trim() }
+    }
+
+    @TypeConverter
+    fun fromList(list: List<String>?): String? {
+        return list?.joinToString(pathSeparator)
+    }
+
+    @TypeConverter
+    fun fromRelatedLinkList(value: List<RelatedLink>?): String? {
+        return gson.toJson(value)
+    }
+
+    @TypeConverter
+    fun toRelatedLinkList(value: String?): List<RelatedLink>? {
+        if (value.isNullOrEmpty()) {
+            return null
+        }
+        val listType = object : TypeToken<List<RelatedLink>>() {}.type
+        return gson.fromJson(value, listType)
+    }
+
+    @TypeConverter
+    fun fromRelatedLink(value: RelatedLink?): String? {
+        return gson.toJson(value)
+    }
+
+    @TypeConverter
+    fun toRelatedLink(value: String?): RelatedLink? {
+        if (value.isNullOrEmpty()) {
+            return null
+        }
+        val objectType = object : TypeToken<RelatedLink>() {}.type
+        return gson.fromJson(value, objectType)
+    }
+
+    @TypeConverter
+    fun fromMissionStatus(status: MissionStatus?): String? {
+        return status?.name
+    }
+
+    @TypeConverter
+    fun toMissionStatus(status: String?): MissionStatus? {
+        return status?.let { MissionStatus.valueOf(it) }
+    }
+
+    @TypeConverter
+    fun fromMissionPriority(priority: MissionPriority?): String? {
+        return priority?.name
+    }
+
+    @TypeConverter
+    fun toMissionPriority(priority: String?): MissionPriority? {
+        return priority?.let { MissionPriority.valueOf(it) }
+    }
+}
+
+object ProjectStatusValues {
+    const val NO_PLAN = "NO_PLAN"
+    const val PLANNING = "PLANNING"
+    const val IN_PROGRESS = "IN_PROGRESS"
+    const val COMPLETED = "COMPLETED"
+    const val ON_HOLD = "ON_HOLD"
+    const val PAUSED = "PAUSED"
+    
+    fun getDisplayName(status: String?): String {
+        return when (status) {
+            NO_PLAN -> "Без плану"
+            PLANNING -> "Планується"
+            IN_PROGRESS -> "В реалізації"
+            COMPLETED -> "Завершено"
+            ON_HOLD -> "Відкладено"
+            PAUSED -> "На паузі"
+            else -> "Без плану"
         }
     }
 }
 
-@Composable
-internal fun highlightSubstring(
-    text: String,
-    query: String,
-): AnnotatedString {
-    if (query.isBlank()) return AnnotatedString(text)
-    val startIdx = text.indexOf(query, ignoreCase = true)
-    if (startIdx == -1) return AnnotatedString(text)
-
-    return buildAnnotatedString {
-        append(text.substring(0, startIdx))
-        withStyle(
-            style =
-                SpanStyle(
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    background = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                ),
-        ) {
-            append(text.substring(startIdx, startIdx + query.length))
-        }
-        append(text.substring(startIdx + query.length))
-    }
+object ScoringStatusValues {
+    const val NOT_ASSESSED = "NOT_ASSESSED"
+    const val IMPOSSIBLE_TO_ASSESS = "IMPOSSIBLE_TO_ASSESS"
+    const val ASSESSED = "ASSESSED"
 }
 
-@Composable
-fun ProjectRow(
-    project: Project,
-    level: Int,
-    hasChildren: Boolean,
-    onProjectClick: (String) -> Unit,
-    onToggleExpanded: (project: Project) -> Unit,
-    onMenuRequested: (project: Project) -> Unit,
-    isCurrentlyDragging: Boolean,
-    isHovered: Boolean,
-    isDraggingDown: Boolean,
-    isHighlighted: Boolean,
-    showFocusButton: Boolean,
-    onFocusRequested: (project: Project) -> Unit,
-    modifier: Modifier = Modifier,
-    displayName: AnnotatedString? = null,
-    isFocused: Boolean = false,
-) {
-    val backgroundColor by animateColorAsState(
-        targetValue =
-            when {
-                isHighlighted -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
-                isFocused -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
-                else -> Color.Transparent
-            },
-        animationSpec = tween(durationMillis = 500),
-        label = "Background Animation",
-    )
+object ProjectLogLevelValues {
+    const val DETAILED = "DETAILED"
+    const val NORMAL = "NORMAL"
+}
 
-    val indentation = (level * 24).dp
+object ProjectLogEntryTypeValues {
+    const val STATUS_CHANGE = "STATUS_CHANGE"
+    const val COMMENT = "COMMENT"
+    const val AUTOMATIC = "AUTOMATIC"
+    const val INSIGHT = "INSIGHT"
+    const val MILESTONE = "MILESTONE"
+}
 
-    Column(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .clip(MaterialTheme.shapes.medium)
-                .background(backgroundColor),
-    ) {
-        if (isHovered && !isDraggingDown && !isCurrentlyDragging) {
-            HorizontalDivider(
-                thickness = 2.dp,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = indentation),
-            )
-        }
 
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .clickable { onProjectClick(project.id) }
-                    .alpha(if (isCurrentlyDragging) 0.6f else 1f)
-                    .padding(start = indentation)
-                    .padding(vertical = 8.dp, horizontal = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(modifier = Modifier.size(40.dp), contentAlignment = Alignment.Center) {
-                if (hasChildren && !showFocusButton) {
-                    IconButton(
-                        onClick = { onToggleExpanded(project) },
-                        modifier = Modifier.size(32.dp),
-                    ) {
-                        Icon(
-                            imageVector = if (project.isExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
-                            contentDescription = "Згорнути/Розгорнути",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                } else {
-                    Spacer(modifier = Modifier.size(32.dp))
-                }
-            }
 
-            Text(
-                text = displayName ?: AnnotatedString(project.name),
-                modifier =
-                    Modifier
-                        .weight(1f)
-                        .padding(start = 8.dp),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                style =
-                    MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = if (isFocused) FontWeight.Bold else FontWeight.Normal,
-                    ),
-                color =
-                    if (isFocused) {
-                        MaterialTheme.colorScheme.onSecondaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.onBackground
-                    },
-            )
+object ListItemTypeValues {
+    const val GOAL = "GOAL"
+    const val SUBLIST = "SUBLIST"
+    const val LINK_ITEM = "LINK_ITEM"
+    const val NOTE = "NOTE"
+    const val NOTE_DOCUMENT = "NOTE_DOCUMENT"
+    const val CHECKLIST = "CHECKLIST"
+    const val SCRIPT = "SCRIPT"
+}
 
-            AnimatedVisibility(
-                visible = showFocusButton,
-                enter = fadeIn(),
-                exit = fadeOut(),
-            ) {
-                IconButton(
-                    onClick = { onFocusRequested(project) },
-                    modifier = Modifier.size(36.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.MoreHoriz,
-                        contentDescription = if (isFocused) "Вийти з фокусу" else "Сфокусуватися",
-                        tint =
-                            if (isFocused) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                    )
-                }
-            }
+@Entity(
+    tableName = "backlog_orders",
+    indices = [
+        Index("list_id"),
+        Index(value = ["list_id", "item_id"], unique = true),
+    ],
+    foreignKeys = [
+        ForeignKey(
+            entity = Project::class,
+            parentColumns = ["id"],
+            childColumns = ["list_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+)
+data class BacklogOrder(
+    @PrimaryKey val id: String,
+    @SerializedName("listId")
+    @ColumnInfo(name = "list_id")
+    val listId: String,
+    @SerializedName("itemId")
+    @ColumnInfo(name = "item_id")
+    val itemId: String,
+    @ColumnInfo(name = "item_order") val order: Long,
+    @ColumnInfo(name = "order_version", defaultValue = "0") val orderVersion: Long = 0,
+    val updatedAt: Long? = null,
+    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
+)
 
-            IconButton(
-                onClick = { onMenuRequested(project) },
-                modifier = Modifier.size(36.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "Дії з проектом",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
 
-        if (isHovered && isDraggingDown && !isCurrentlyDragging) {
-            HorizontalDivider(
-                thickness = 2.dp,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = indentation),
-            )
+
+enum class ProjectViewMode { BACKLOG, INBOX, ADVANCED, ATTACHMENTS }
+
+enum class LinkType { PROJECT, URL, OBSIDIAN }
+
+enum class DayStatus { PLANNED, IN_PROGRESS, COMPLETED, MISSED, ARCHIVED }
+
+enum class TaskPriority { LOW, MEDIUM, HIGH, CRITICAL, NONE;
+
+    fun getDisplayName(): String {
+        return when (this) {
+            LOW -> "Низький"
+            MEDIUM -> "Середній"
+            HIGH -> "Високий"
+            CRITICAL -> "Критичний"
+            NONE -> "Немає"
         }
     }
 }
 
-@Composable
-fun SwipeableProjectRow(
-    project: Project,
-    level: Int,
-    hasChildren: Boolean,
-    onProjectClick: (String) -> Unit,
-    onToggleExpanded: (project: Project) -> Unit,
-    onMenuRequested: (project: Project) -> Unit,
-    isCurrentlyDragging: Boolean,
-    isHovered: Boolean,
-    isDraggingDown: Boolean,
-    isHighlighted: Boolean,
-    showFocusButton: Boolean,
-    onFocusRequested: (project: Project) -> Unit,
-    onAddSubproject: (project: Project) -> Unit,
-    onDelete: (project: Project) -> Unit,
-    onEdit: (project: Project) -> Unit,
-    modifier: Modifier = Modifier,
-    displayName: AnnotatedString? = null,
-    isFocused: Boolean = false,
-) {
-    val density = LocalDensity.current
-    val coroutineScope = rememberCoroutineScope()
-    val startActionWidth = 120.dp
-    val endActionWidth = 120.dp
-    val startActionWidthPx = with(density) { startActionWidth.toPx() }
-    val endActionWidthPx = with(density) { endActionWidth.toPx() }
+enum class TaskStatus { NOT_STARTED, IN_PROGRESS, COMPLETED, CANCELLED, DEFERRED }
 
-    var offsetX by remember { mutableFloatStateOf(0f) }
 
-    val startProgress by remember {
-        derivedStateOf { (offsetX / startActionWidthPx).coerceIn(0f, 1f) }
-    }
-    val endProgress by remember {
-        derivedStateOf { (-offsetX / endActionWidthPx).coerceIn(0f, 1f) }
-    }
 
-    val draggableState = rememberDraggableState { delta ->
-        offsetX = (offsetX + delta).coerceIn(-endActionWidthPx, startActionWidthPx)
-    }
+data class RelatedLink(
+    val type: LinkType?,
+    val target: String,
+    val displayName: String? = null,
+)
 
-    fun animateTo(target: Float) {
-        coroutineScope.launch {
-            animate(initialValue = offsetX, targetValue = target) { value, _ ->
-                offsetX = value
-            }
-        }
-    }
+@Entity(tableName = "link_items")
+data class LinkItemEntity(
+    @PrimaryKey val id: String,
+    @ColumnInfo(name = "link_data")
+    val linkData: RelatedLink,
+    val createdAt: Long,
+    val updatedAt: Long? = null,
+    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
+    @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0,
+)
 
-    Box(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .draggable(
-                    orientation = Orientation.Horizontal,
-                    state = draggableState,
-                    onDragStopped = { velocity ->
-                        val velocityThreshold = 300f
-                        val startThreshold = startActionWidthPx * 0.12f
-                        val endThreshold = endActionWidthPx * 0.12f
-                        when {
-                            offsetX > 0f && velocity < -velocityThreshold -> animateTo(0f)
-                            offsetX < 0f && velocity > velocityThreshold -> animateTo(0f)
-                            offsetX >= 0f && velocity > velocityThreshold -> animateTo(startActionWidthPx)
-                            offsetX <= 0f && velocity < -velocityThreshold -> animateTo(-endActionWidthPx)
-                            offsetX > startThreshold -> animateTo(startActionWidthPx)
-                            offsetX < -endThreshold -> animateTo(-endActionWidthPx)
-                            else -> animateTo(0f)
-                        }
-                    },
-                ),
-    ) {
-        fun resetSwipe() = animateTo(0f)
+@Entity(tableName = "goals")
+data class Goal(
+    @PrimaryKey val id: String,
+    val text: String,
+    val description: String? = null,
+    val completed: Boolean,
+    val createdAt: Long,
+    val updatedAt: Long?,
+    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
+    @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0,
+    val tags: List<String>? = null,
+    val relatedLinks: List<RelatedLink>? = null,
+    @ColumnInfo(defaultValue = "0.0") val valueImportance: Float = 0f,
+    @ColumnInfo(defaultValue = "0.0") val valueImpact: Float = 0f,
+    @ColumnInfo(defaultValue = "0.0") val effort: Float = 0f,
+    @ColumnInfo(defaultValue = "0.0") val cost: Float = 0f,
+    @ColumnInfo(defaultValue = "0.0") val risk: Float = 0f,
+    @ColumnInfo(defaultValue = "1.0") val weightEffort: Float = 1f,
+    @ColumnInfo(defaultValue = "1.0") val weightCost: Float = 1f,
+    @ColumnInfo(defaultValue = "1.0") val weightRisk: Float = 1f,
+    @ColumnInfo(defaultValue = "0.0") val rawScore: Float = 0f,
+    @ColumnInfo(defaultValue = "0") val displayScore: Int = 0,
+    @ColumnInfo(name = "scoring_status") val scoringStatus: String = ScoringStatusValues.NOT_ASSESSED,
+    @ColumnInfo(defaultValue = "0.0") val parentValueImportance: Float? = null,
+    @ColumnInfo(defaultValue = "0.0") val impactOnParentGoal: Float? = null,
+    @ColumnInfo(defaultValue = "0.0") val timeCost: Float? = null,
+    @ColumnInfo(defaultValue = "0.0") val financialCost: Float? = null,
+)
 
-        if (startProgress > 0.02f) {
-            val startBg = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f)
-            Surface(
-                modifier =
-                    Modifier
-                        .width(startActionWidth)
-                        .align(Alignment.CenterStart)
-                        .padding(start = 14.dp, end = 6.dp)
-                        .alpha(startProgress),
-                tonalElevation = 2.dp,
-                shape = RoundedCornerShape(14.dp),
-                color = startBg,
-            ) {
-                Row(
-                    modifier = Modifier
-                        .padding(horizontal = 6.dp, vertical = 4.dp)
-                        .alpha(startProgress),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    ProjectSwipeActionButton(
-                        icon = Icons.Default.FilterCenterFocus,
-                        contentDescription = "Фокус",
-                        color = MaterialTheme.colorScheme.primary,
-                    ) {
-                        onFocusRequested(project)
-                        resetSwipe()
-                    }
-                    ProjectSwipeActionButton(
-                        icon = Icons.Default.Add,
-                        contentDescription = "Додати підпроєкт",
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                    ) {
-                        onAddSubproject(project)
-                        resetSwipe()
-                    }
-                }
-            }
-        }
 
-        if (endProgress > 0.02f) {
-            val endBg = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.9f)
-            Surface(
-                modifier =
-                    Modifier
-                        .width(endActionWidth)
-                        .align(Alignment.CenterEnd)
-                        .padding(end = 14.dp, start = 6.dp)
-                        .alpha(endProgress),
-                tonalElevation = 2.dp,
-                shape = RoundedCornerShape(14.dp),
-                color = endBg,
-            ) {
-                Row(
-                    modifier = Modifier
-                        .padding(horizontal = 6.dp, vertical = 4.dp)
-                        .alpha(endProgress),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    ProjectSwipeActionButton(
-                        icon = Icons.Default.Delete,
-                        contentDescription = "Видалити проєкт",
-                        color = MaterialTheme.colorScheme.error,
-                    ) {
-                        onDelete(project)
-                        resetSwipe()
-                    }
-                    ProjectSwipeActionButton(
-                        icon = Icons.Default.Edit,
-                        contentDescription = "Редагувати проєкт",
-                        color = MaterialTheme.colorScheme.primary,
-                    ) {
-                        onEdit(project)
-                        resetSwipe()
-                    }
-                }
-            }
-        }
 
-        ProjectRow(
-            project = project,
-            level = level,
-            hasChildren = hasChildren,
-            onProjectClick = onProjectClick,
-            onToggleExpanded = onToggleExpanded,
-            onMenuRequested = onMenuRequested,
-            isCurrentlyDragging = isCurrentlyDragging,
-            isHovered = isHovered,
-            isDraggingDown = isDraggingDown,
-            isHighlighted = isHighlighted,
-            showFocusButton = showFocusButton,
-            onFocusRequested = onFocusRequested,
-            modifier = Modifier.offset { IntOffset(offsetX.roundToInt(), 0) },
-            displayName = displayName,
-            isFocused = isFocused,
-        )
-    }
-}
+enum class ProjectType {
+    DEFAULT,
+    RESERVED,
+    SYSTEM;
 
-@Composable
-private fun ProjectSwipeActionButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    contentDescription: String,
-    color: Color,
-    onClick: () -> Unit,
-) {
-    Surface(
-        modifier = Modifier.size(44.dp),
-        shape = RoundedCornerShape(12.dp),
-        color = color.copy(alpha = 0.92f),
-        tonalElevation = 0.dp,
-        onClick = onClick,
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = icon,
-                contentDescription = contentDescription,
-                tint = Color.White,
-                modifier = Modifier.size(22.dp),
-            )
-        }
-    }
-}
-
-@Composable
-fun BreadcrumbNavigation(
-    breadcrumbs: List<BreadcrumbItem>,
-    onNavigate: (BreadcrumbItem) -> Unit,
-    onClearNavigation: () -> Unit,
-    onFocusedListMenuClick: (String) -> Unit,
-    onOpenAsProject: ((String) -> Unit)? = null,
-    modifier: Modifier = Modifier,
-) {
-    if (breadcrumbs.isEmpty()) return
-
-    val lazyRowState = rememberLazyListState()
-
-    LaunchedEffect(breadcrumbs) {
-        if (breadcrumbs.isNotEmpty()) {
-            lazyRowState.animateScrollToItem(breadcrumbs.size - 1)
-        }
-    }
-
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        tonalElevation = 1.dp,
-    ) {
-        LazyRow(
-            state = lazyRowState,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            item {
-                Row(
-                    Modifier.clickable(onClick = onClearNavigation),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Home,
-                        contentDescription = "Home",
-                        modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "All",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-                Icon(
-                    imageVector = Icons.Outlined.ChevronRight,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp).padding(start = 4.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            itemsIndexed(breadcrumbs) { index, item ->
-                val isLast = index == breadcrumbs.size - 1
-
-                Surface(
-                    modifier = Modifier.clickable { if (!isLast) onNavigate(item) },
-                    shape = RoundedCornerShape(16.dp),
-                    color = if (isLast) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier =
-                            Modifier.padding(
-                                horizontal = 12.dp,
-                                vertical = 4.dp,
-                            ),
-                    ) {
-                        Text(
-                            text = item.name,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (isLast) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-
-                if (!isLast) {
-                    Icon(
-                        imageVector = Icons.Outlined.ChevronRight,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp).padding(horizontal = 4.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+    companion object {
+        fun fromString(value: String?): ProjectType {
+            return try {
+                if (value == null) ProjectType.DEFAULT else valueOf(value)
+            } catch (e: IllegalArgumentException) {
+                ProjectType.DEFAULT
             }
         }
     }
 }
 
-internal fun buildVisibleHierarchy(
-    flattenedHierarchy: List<FlatHierarchyItem>,
-    childMap: Map<String, List<Project>>,
-    longDescendantsMap: Map<String, Boolean>,
-): List<FlatHierarchyItem> {
-    val visibleItems = mutableListOf<FlatHierarchyItem>()
-    var skipLevel: Int? = null
-
-    flattenedHierarchy.forEach { item ->
-        if (skipLevel != null) {
-            if (item.level > skipLevel!!) return@forEach
-            skipLevel = null
-        }
-
-        val hasChildren = childMap[item.project.id]?.isNotEmpty() == true
-        val hasLongDescendants = longDescendantsMap[item.project.id] ?: false
-        val isDeeplyNested = hasChildren && item.level >= 3
-        val shouldShowFocusButton = hasLongDescendants || isDeeplyNested
-
-        if (shouldShowFocusButton) {
-            skipLevel = item.level
-        }
-
-        visibleItems.add(item)
+class ProjectTypeConverter {
+    @TypeConverter
+    fun fromProjectType(projectType: ProjectType?): String {
+        return (projectType ?: ProjectType.DEFAULT).name
     }
 
-    return visibleItems
+    @TypeConverter
+    fun toProjectType(value: String?): ProjectType {
+        return ProjectType.fromString(value)
+    }
 }
 
-@Suppress("UNUSED_PARAMETER")
-@OptIn(ExperimentalSharedTransitionApi::class)
-@Composable
-fun HierarchyListItem(
-    item: FlatHierarchyItem,
-    childMap: Map<String, List<Project>>,
-    dragAndDropState: DragAndDropState<Project>,
-    isSearchActive: Boolean,
-    planningMode: PlanningMode,
-    highlightedProjectId: String?,
-    settings: HierarchyDisplaySettings,
-    searchQuery: String,
-    focusedProjectId: String?,
-    longDescendantsMap: Map<String, Boolean>,
-    onProjectClick: (String) -> Unit,
-    onToggleExpanded: (Project) -> Unit,
-    onMenuRequested: (Project) -> Unit,
-    onProjectReorder: (fromId: String, toId: String, position: DropPosition) -> Unit,
-    onFocusProject: (Project) -> Unit,
-    onAddSubproject: (Project) -> Unit,
-    onDeleteProject: (Project) -> Unit,
-    onEditProject: (Project) -> Unit,
-    sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope,
-) {
-    val project = item.project
-    val children = childMap[project.id].orEmpty()
-    val hasChildren = children.isNotEmpty()
+class ReservedGroupConverter {
+    @TypeConverter
+    fun fromReservedGroup(reservedGroup: ReservedGroup?): String? {
+        return reservedGroup?.groupName
+    }
 
-    val displayName =
-        if (isSearchActive && searchQuery.isNotEmpty()) {
-            if (searchQuery.length > 3) {
-                highlightFuzzy(text = project.name, query = searchQuery)
-            } else {
-                highlightSubstring(text = project.name, query = searchQuery)
-            }
-        } else {
-            AnnotatedString(project.name)
-        }
+    @TypeConverter
+    fun toReservedGroup(groupName: String?): ReservedGroup? {
+        return ReservedGroup.fromString(groupName)
+    }
+}
 
-    val hasLongDescendants = longDescendantsMap[project.id] ?: false
-    val isDeeplyNested = hasChildren && item.level >= 3
-    val shouldShowFocusButton = hasLongDescendants || isDeeplyNested
-    val isFocused = project.id == focusedProjectId
+@Entity(
+    tableName = "projects",
+    indices = [
+        Index("system_key", unique = true, name = "idx_projects_systemkey_unique")
+    ]
+)
+@TypeConverters(ProjectTypeConverter::class, ReservedGroupConverter::class)
+data class Project(
+    @PrimaryKey val id: String,
+    val name: String,
+    val description: String?,
+    val parentId: String?,
+    @ColumnInfo(name = "system_key") val systemKey: String? = null,
+    val createdAt: Long,
+    val updatedAt: Long?,
+    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
+    @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0,
+    val tags: List<String>? = null,
+    val relatedLinks: List<RelatedLink>? = null,
+    @ColumnInfo(name = "is_expanded", defaultValue = "1") val isExpanded: Boolean = true,
+    @ColumnInfo(name = "goal_order", defaultValue = "0") val order: Long = 0,
+    @ColumnInfo(name = "is_attachments_expanded", defaultValue = "0") val isAttachmentsExpanded: Boolean = false,
+    @ColumnInfo(name = "default_view_mode") val defaultViewModeName: String? = null,
+    @ColumnInfo(name = "is_completed", defaultValue = "0") val isCompleted: Boolean = false,
+    @ColumnInfo(name = "is_project_management_enabled") val isProjectManagementEnabled: Boolean? = false,
+    @ColumnInfo(name = "project_status") val projectStatus: String? = ProjectStatusValues.NO_PLAN,
+    @ColumnInfo(name = "project_status_text") val projectStatusText: String? = null,
+    @ColumnInfo(name = "project_log_level") val projectLogLevel: String? = ProjectLogLevelValues.NORMAL,
+    @ColumnInfo(name = "total_time_spent_minutes") val totalTimeSpentMinutes: Long? = 0,
+    @ColumnInfo(defaultValue = "0.0") val valueImportance: Float = 0f,
+    @ColumnInfo(defaultValue = "0.0") val valueImpact: Float = 0f,
+    @ColumnInfo(defaultValue = "0.0") val effort: Float = 0f,
+    @ColumnInfo(defaultValue = "0.0") val cost: Float = 0f,
+    @ColumnInfo(defaultValue = "0.0") val risk: Float = 0f,
+    @ColumnInfo(defaultValue = "1.0") val weightEffort: Float = 1f,
+    @ColumnInfo(defaultValue = "1.0") val weightCost: Float = 1f,
+    @ColumnInfo(defaultValue = "1.0") val weightRisk: Float = 1f,
+    @ColumnInfo(defaultValue = "0.0") val rawScore: Float = 0f,
+    @ColumnInfo(defaultValue = "0") val displayScore: Int = 0,
+    @ColumnInfo(name = "scoring_status") val scoringStatus: String = ScoringStatusValues.NOT_ASSESSED,
+    @ColumnInfo(name = "show_checkboxes", defaultValue = "0") val showCheckboxes: Boolean = false,
+    @ColumnInfo(name = "project_type", defaultValue = "'DEFAULT'") val projectType: ProjectType = ProjectType.DEFAULT,
+    @ColumnInfo(name = "reserved_group") val reservedGroup: ReservedGroup? = null
+)
 
-    with(sharedTransitionScope) {
-        DraggableItem(
-            state = dragAndDropState,
-            key = project.id,
-            data = project,
-            dragAfterLongPress = true,
-        ) {
-            val draggedItemData = dragAndDropState.draggedItem?.data
-            val isDropAllowed =
-                remember(draggedItemData, project) {
-                    draggedItemData == null || draggedItemData.id != project.id
-                }
+@Entity(
+    tableName = "project_execution_logs",
+    foreignKeys = [
+        ForeignKey(
+            entity = Project::class,
+            parentColumns = ["id"],
+            childColumns = ["projectId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+)
+data class ProjectExecutionLog(
+    @PrimaryKey val id: String,
+    @ColumnInfo(index = true) val projectId: String,
+    val timestamp: Long,
+    @ColumnInfo(name = "type") val type: String,
+    val description: String,
+    val details: String? = null,
+    val updatedAt: Long? = null,
+    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
+    @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0,
+)
 
-            val hoveredDropTargetKey = dragAndDropState.hoveredDropTargetKey
-            val isHovered =
-                remember(hoveredDropTargetKey, project.id) {
-                    isDropAllowed && (hoveredDropTargetKey == "before-${project.id}" || hoveredDropTargetKey == "after-${project.id}")
-                }
-            val isDraggingDown =
-                remember(hoveredDropTargetKey, project.id) {
-                    isDropAllowed && hoveredDropTargetKey == "after-${project.id}"
-                }
+@Entity(
+    tableName = "inbox_records",
+    foreignKeys = [
+        ForeignKey(
+            entity = Project::class,
+            parentColumns = ["id"],
+            childColumns = ["projectId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+)
+data class InboxRecord(
+    @PrimaryKey val id: String,
+    @ColumnInfo(index = true) val projectId: String,
+    val text: String,
+    val createdAt: Long,
+    @ColumnInfo(name = "item_order") val order: Long,
+    val updatedAt: Long? = null,
+    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
+    @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0,
+)
 
-            Box(modifier = Modifier.fillMaxWidth()) {
-                SwipeableProjectRow(
-                    project = project,
-                    level = item.level,
-                    hasChildren = hasChildren,
-                    onProjectClick = onProjectClick,
-                    onToggleExpanded = onToggleExpanded,
-                    onMenuRequested = onMenuRequested,
-                    isCurrentlyDragging = isDragging,
-                    isHovered = isHovered,
-                    isDraggingDown = isDraggingDown,
-                    isHighlighted = project.id == highlightedProjectId,
-                    displayName = displayName,
-                    showFocusButton = shouldShowFocusButton,
-                    onFocusRequested = onFocusProject,
-                    onAddSubproject = onAddSubproject,
-                    onDelete = onDeleteProject,
-                    onEdit = onEditProject,
-                    isFocused = isFocused,
-                )
+@Entity(
+    tableName = "list_items",
+    foreignKeys = [
+        ForeignKey(
+            entity = Project::class,
+            parentColumns = ["id"],
+            childColumns = ["project_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+)
+data class ListItem(
+    @PrimaryKey val id: String,
+    @SerializedName(value = "projectId", alternate = ["listId"])
+    @ColumnInfo(name = "project_id", index = true)
+    val projectId: String,
+    val itemType: String,
+    val entityId: String,
+    @ColumnInfo(name = "item_order") val order: Long,
+    val updatedAt: Long? = null,
+    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
+    @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0,
+)
 
-                if (!isDragging) {
-                    Column(modifier = Modifier.matchParentSize()) {
-                        val dropModifier = { position: DropPosition ->
-                            Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
-                                .then(
-                                    if (isDropAllowed) {
-                                        Modifier.dropTarget(state = dragAndDropState, key = "$position-${project.id}") {
-                                            onProjectReorder(it.data.id, project.id, position)
-                                        }
-                                    } else {
-                                        Modifier
-                                    },
-                                )
-                        }
-                        Box(modifier = dropModifier(DropPosition.BEFORE))
-                        Box(modifier = dropModifier(DropPosition.AFTER))
-                    }
-                }
-            }
-        }
+@Fts4(contentEntity = Goal::class)
+@Entity(tableName = "goals_fts")
+data class GoalFts(
+    val text: String,
+    val description: String?,
+)
+
+@Fts4(contentEntity = Project::class)
+@Entity(tableName = "projects_fts")
+data class ProjectFts(
+    val name: String,
+    val description: String?,
+)
+
+data class GlobalGoalSearchResult(
+    @Embedded
+    val goal: Goal,
+    val projectId: String,
+    val projectName: String,
+    @TypeConverters(PathSegmentsConverter::class)
+    val pathSegments: List<String>,
+)
+
+data class GlobalLinkSearchResult(
+    @Embedded
+    val link: LinkItemEntity,
+    val projectId: String,
+    val projectName: String,
+    val listItemId: String,
+    @TypeConverters(PathSegmentsConverter::class)
+    val pathSegments: List<String>,
+)
+
+data class GlobalSubprojectSearchResult(
+    @Embedded
+    val subproject: Project,
+    val parentProjectId: String,
+    val parentProjectName: String,
+    @TypeConverters(PathSegmentsConverter::class)
+    val pathSegments: List<String>,
+)
+
+data class GlobalProjectSearchResult(
+    @Embedded
+    val project: Project,
+    @TypeConverters(PathSegmentsConverter::class)
+    val pathSegments: List<String>,
+)
+
+
+
+sealed class GlobalSearchResultItem {
+    abstract val timestamp: Long
+    abstract val uniqueId: String
+
+    data class GoalItem(
+        val goal: Goal,
+        val listItem: ListItem,
+        val projectName: String,
+        val pathSegments: List<String>
+    ) : GlobalSearchResultItem() {
+        override val timestamp: Long get() = goal.updatedAt ?: goal.createdAt
+        override val uniqueId: String get() = "goal_${goal.id}_${listItem.projectId}"
+    }
+
+    data class LinkItem(val searchResult: GlobalLinkSearchResult) : GlobalSearchResultItem() {
+        override val timestamp: Long get() = searchResult.link.createdAt
+        override val uniqueId: String get() = "link_${searchResult.link.id}_${searchResult.projectId}"
+    }
+
+    data class SublistItem(val searchResult: GlobalSubprojectSearchResult) : GlobalSearchResultItem() {
+        override val timestamp: Long get() = searchResult.subproject.updatedAt ?: searchResult.subproject.createdAt
+        override val uniqueId: String get() = "sublist_${searchResult.subproject.id}_${searchResult.parentProjectId}"
+    }
+
+    data class ProjectItem(
+        val searchResult: GlobalProjectSearchResult,
+    ) : GlobalSearchResultItem() {
+        override val timestamp: Long get() = searchResult.project.updatedAt ?: searchResult.project.createdAt
+        override val uniqueId: String get() = "project_${searchResult.project.id}"
+    }
+
+    data class ActivityItem(val record: ActivityRecord) : GlobalSearchResultItem() {
+        override val timestamp: Long get() = record.startTime ?: record.createdAt
+        override val uniqueId: String get() = "activity_${record.id}"
+    }
+
+    data class InboxItem(val record: InboxRecord) : GlobalSearchResultItem() {
+        override val timestamp: Long get() = record.createdAt
+        override val uniqueId: String get() = "inbox_${record.id}"
     }
 }
 
 
 ================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/mainscreen/hierarchy/HierarchyComponents.kt
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/data/database/models/DatabaseModel.kt
 ================================================================================
 
 ## <<FILE_3>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/mainscreen/hierarchy/ProjectHierarchyView.kt (ID: FILE_3)
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/missions/data/TacticalMissionDao.kt (ID: FILE_3)
 ================================================================================
 
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy
+package com.romankozak.forwardappmobile.features.missions.data
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
-import com.mohamedrejeb.compose.dnd.DragAndDropContainer
-import com.mohamedrejeb.compose.dnd.rememberDragAndDropState
-import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
-import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbItem
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DropPosition
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.FlatHierarchyItem
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.HierarchyDisplaySettings
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenEvent
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import androidx.room.Transaction
+import androidx.room.Update
+import com.romankozak.forwardappmobile.features.missions.data.model.TacticalMission
+import com.romankozak.forwardappmobile.features.missions.data.model.TacticalMissionAttachmentCrossRef
+import kotlinx.coroutines.flow.Flow
 
-import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionScope
+@Dao
+interface TacticalMissionDao {
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
-@Composable
-fun ProjectHierarchyView(
-    modifier: Modifier = Modifier,
-    hierarchy: ListHierarchyData,
-    flattenedHierarchy: List<FlatHierarchyItem>,
-    breadcrumbs: List<BreadcrumbItem>,
-    focusedProjectId: String?,
-    highlightedProjectId: String?,
-    searchQuery: String,
-    isSearchActive: Boolean,
-    planningMode: PlanningMode,
-    hierarchySettings: HierarchyDisplaySettings,
-    listState: LazyListState,
-    longDescendantsMap: Map<String, Boolean>,
-    onEvent: (MainScreenEvent) -> Unit,
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertMission(mission: TacticalMission): Long
+
+    @Update
+    suspend fun updateMission(mission: TacticalMission)
+
+    @Query("DELETE FROM tactical_missions WHERE id = :missionId")
+    suspend fun deleteMissionById(missionId: Long)
+
+    @Query("SELECT * FROM tactical_missions WHERE projectId = :projectId ORDER BY deadline DESC")
+    fun getMissionsForProject(projectId: String): Flow<List<TacticalMission>>
     
-    onProjectClicked: (String) -> Unit,
-    onToggleExpanded: (Project) -> Unit,
-    onMenuRequested: (Project) -> Unit,
-    onProjectReorder: (fromId: String, toId: String, position: DropPosition) -> Unit,
-    onFocusProject: (Project) -> Unit,
-    onAddSubproject: (Project) -> Unit,
-    onDeleteProject: (Project) -> Unit,
-    onEditProject: (Project) -> Unit,
-    sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope,
-) {
-    val dragAndDropState = rememberDragAndDropState<Project>()
+    @Query("SELECT * FROM tactical_missions ORDER BY deadline DESC")
+    fun getAllMissions(): Flow<List<TacticalMission>>
 
-    DragAndDropContainer(
-        state = dragAndDropState,
-        enabled = !isSearchActive,
-        modifier = modifier,
-    ) {
-        if (focusedProjectId != null) {
-            FocusedProjectView(
-                focusedProjectId = focusedProjectId,
-                hierarchy = hierarchy,
-                breadcrumbs = breadcrumbs,
-                dragAndDropState = dragAndDropState,
-                isSearchActive = isSearchActive,
-                planningMode = planningMode,
-                highlightedProjectId = highlightedProjectId,
-                settings = hierarchySettings,
-                searchQuery = searchQuery,
-                longDescendantsMap = longDescendantsMap,
-                onEvent = onEvent,
-                onProjectClick = onProjectClicked,
-                onToggleExpanded = onToggleExpanded,
-                onMenuRequested = onMenuRequested,
-                onProjectReorder = onProjectReorder,
-                onFocusProject = onFocusProject,
-                onAddSubproject = onAddSubproject,
-                onDeleteProject = onDeleteProject,
-                onEditProject = onEditProject,
-                sharedTransitionScope = sharedTransitionScope,
-                animatedVisibilityScope = animatedVisibilityScope,
-            )
-        } else {
-            val visibleItems =
-                remember(flattenedHierarchy, longDescendantsMap, hierarchy.childMap) {
-                    buildVisibleHierarchy(flattenedHierarchy, hierarchy.childMap, longDescendantsMap)
-                }
+    @Query("SELECT * FROM tactical_missions WHERE id = :missionId")
+    suspend fun getMissionById(missionId: Long): TacticalMission?
+    
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertMissionAttachmentCrossRef(crossRef: TacticalMissionAttachmentCrossRef)
 
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                items(visibleItems, key = { it.project.id }) { item ->
-                    HierarchyListItem(
-                        item = item,
-                        childMap = hierarchy.childMap,
-                        dragAndDropState = dragAndDropState,
-                        isSearchActive = isSearchActive,
-                        planningMode = planningMode,
-                        highlightedProjectId = highlightedProjectId,
-                        settings = hierarchySettings,
-                        searchQuery = searchQuery,
-                        focusedProjectId = focusedProjectId,
-                        longDescendantsMap = longDescendantsMap,
-                        onProjectClick = onProjectClicked,
-                        onToggleExpanded = onToggleExpanded,
-                        onMenuRequested = onMenuRequested,
-                        onProjectReorder = onProjectReorder,
-                        onFocusProject = onFocusProject,
-                        onAddSubproject = onAddSubproject,
-                        onDeleteProject = onDeleteProject,
-                        onEditProject = onEditProject,
-                        sharedTransitionScope = sharedTransitionScope,
-                        animatedVisibilityScope = animatedVisibilityScope,
-                    )
-                }
-            }
-        }
-    }
+    @Query("DELETE FROM tactical_mission_attachment_cross_ref WHERE missionId = :missionId AND attachmentId = :attachmentId")
+    suspend fun deleteMissionAttachmentCrossRef(missionId: Long, attachmentId: String)
 }
 
 
 ================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/mainscreen/hierarchy/ProjectHierarchyView.kt
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/missions/data/TacticalMissionDao.kt
 ================================================================================
 
 ## <<FILE_4>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/mainscreen/usecases/MainScreenStateUseCase.kt (ID: FILE_4)
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/missions/data/model/TacticalMissionModels.kt (ID: FILE_4)
 ================================================================================
 
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
+package com.romankozak.forwardappmobile.features.missions.data.model
 
-import androidx.compose.ui.text.input.TextFieldValue
-import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
-import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.data.database.models.RecentItem
-import com.romankozak.forwardappmobile.data.logic.ContextHandler
-import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
-import com.romankozak.forwardappmobile.data.repository.SettingsRepository
-import com.romankozak.forwardappmobile.ui.dialogs.UiContext
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.AppStatistics
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbItem
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DialogState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.FilterState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.FlatHierarchyItem
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenUiState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainSubState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningSettingsState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.SearchResult
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.flattenHierarchyWithLevels
-import dagger.hilt.android.scopes.ViewModelScoped
-import javax.inject.Inject
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
+import androidx.room.ColumnInfo
+import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Index
+import androidx.room.PrimaryKey
+import com.romankozak.forwardappmobile.data.database.models.Converters
+import com.romankozak.forwardappmobile.features.missions.domain.model.MissionPriority
+import com.romankozak.forwardappmobile.features.missions.domain.model.MissionStatus
 
-@ViewModelScoped
-class MainScreenStateUseCase
-@Inject
-constructor(
-  private val searchUseCase: SearchUseCase,
-  private val planningUseCase: PlanningUseCase,
-  private val hierarchyUseCase: HierarchyUseCase,
-  private val dialogUseCase: DialogUseCase,
-  private val syncUseCase: SyncUseCase,
-  private val navigationUseCase: NavigationUseCase,
-  private val settingsRepository: SettingsRepository,
-  private val contextHandler: ContextHandler,
-  private val recentItemsRepository: RecentItemsRepository,
-) {
-
-  data class NavigationSnapshot(
-    val canGoBack: Boolean = false,
-    val canGoForward: Boolean = false,
-    val showNavigationMenu: Boolean = false,
-  )
-
-  private val defaultUiState = MutableStateFlow(MainScreenUiState())
-  private val defaultHierarchy = MutableStateFlow(ListHierarchyData())
-  private val defaultSearchResults = MutableStateFlow(emptyList<SearchResult>())
-
-  private var uiStateInternal: StateFlow<MainScreenUiState> = defaultUiState
-  private var projectHierarchyInternal: StateFlow<ListHierarchyData> = defaultHierarchy
-  private var searchResultsInternal: StateFlow<List<SearchResult>> = defaultSearchResults
-
-  private var isInitialized = false
-
-  fun initialize(
-    scope: CoroutineScope,
-    allProjectsFlat: StateFlow<List<Project>>,
-    showRecentListsSheet: StateFlow<Boolean>,
-    isBottomNavExpanded: StateFlow<Boolean>,
-    showSearchDialog: StateFlow<Boolean>,
-    navigationSnapshot: StateFlow<NavigationSnapshot>,
-  ) {
-    if (isInitialized) return
-
-    val obsidianVaultNameFlow =
-      settingsRepository
-        .obsidianVaultNameFlow
-        .stateIn(scope, SharingStarted.WhileSubscribed(5_000), "")
-
-    val expansionState =
-      combine(
-          planningUseCase.planningModeManager.expandedInDailyMode,
-          planningUseCase.planningModeManager.expandedInMediumMode,
-          planningUseCase.planningModeManager.expandedInLongMode,
-        ) { expandedDaily, expandedMedium, expandedLong ->
-          ExpansionState(
-            expandedDaily = expandedDaily,
-            expandedMedium = expandedMedium,
-            expandedLong = expandedLong,
-          )
-        }
-        .stateIn(
-          scope,
-          SharingStarted.Eagerly,
-          ExpansionState(emptySet(), emptySet(), emptySet()),
+@Entity(
+    tableName = "tactical_missions",
+    foreignKeys = [
+        ForeignKey(
+            entity = Project::class,
+            parentColumns = ["id"],
+            childColumns = ["projectId"],
+            onDelete = ForeignKey.SET_NULL // Set to null if project is deleted
         )
+    ],
+    indices = [Index(value = ["projectId"])]
+)
+@TypeConverters(Converters::class)
+data class TacticalMission(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    val title: String,
+    val description: String?,
+    val startTime: Long? = null, // Unix timestamp
+    val deadline: Long, // Unix timestamp
+    val status: MissionStatus = MissionStatus.PENDING,
+    val priority: MissionPriority = MissionPriority.MEDIUM,
+    val projectId: String?
+)
 
-    val hierarchyState =
-      HierarchyStateBuilder(hierarchyUseCase)
-        .buildHierarchyState(
-          scope = scope,
-          filterStates = planningUseCase.filterStateFlow,
-          expansionStates = expansionState,
+@Entity(
+    tableName = "tactical_mission_attachment_cross_ref",
+    primaryKeys = ["missionId", "attachmentId"],
+    foreignKeys = [
+        ForeignKey(
+            entity = TacticalMission::class,
+            parentColumns = ["id"],
+            childColumns = ["missionId"],
+            onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["attachmentId"],
+            onDelete = ForeignKey.CASCADE
         )
-
-    scope.launch {
-      hierarchyState.collect { hierarchy ->
-        HierarchyDebugLogger.d {
-          "coreHierarchyFlow emit -> topLevel=${hierarchy.topLevelProjects.size}, childParents=${hierarchy.childMap.size}"
-        }
-      }
-    }
-    scope.launch {
-      planningUseCase.filterStateFlow.collect { state ->
-        HierarchyDebugLogger.d {
-          "filterState observed in MainScreenStateUseCase flat=${state.flatList.size} mode=${state.mode} ready=${state.isReady}"
-        }
-      }
-    }
-
-    val searchResultsFlow =
-      combine(planningUseCase.filterStateFlow, hierarchyState) { filterState, hierarchy ->
-        if (!filterState.isReady) {
-          emptyList()
-        } else {
-          hierarchyUseCase.createSearchResults(filterState, hierarchy)
-        }
-      }
-        .stateIn(scope, SharingStarted.Lazily, emptyList())
-
-    val expensiveCalculationsFlow =
-      combine(
-          allProjectsFlat,
-          recentItemsRepository.getRecentItems(),
-          contextHandler.allContextsFlow,
-        ) { allProjects, recentItems, contexts ->
-          ExpensiveCalculations(
-            areAnyProjectsExpanded = allProjects.any { it.isExpanded },
-            recentItems = recentItems,
-            allContexts = contexts,
-          )
-        }
-        .stateIn(scope, SharingStarted.Lazily, ExpensiveCalculations())
-
-    val coreUiStateFlow =
-      combine(
-          searchUseCase.subStateStack,
-          searchUseCase.searchQuery,
-          hierarchyState,
-          searchUseCase.currentBreadcrumbs,
-          planningUseCase.planningMode,
-        ) { subStateStack, searchQuery, hierarchy, breadcrumbs, planningMode ->
-          CoreUiState(
-            subStateStack = subStateStack,
-            searchQuery = searchQuery,
-            projectHierarchy = hierarchy,
-            currentBreadcrumbs = breadcrumbs,
-            planningMode = planningMode,
-            flattenedHierarchy =
-              flattenHierarchyWithLevels(
-                hierarchy.topLevelProjects,
-                hierarchy.childMap,
-              ),
-          )
-        }
-
-    val dialogUiStateFlow =
-      combine(
-          dialogUseCase.dialogState,
-          showRecentListsSheet,
-          isBottomNavExpanded,
-          showSearchDialog,
-        ) { dialogState, showRecentLists, bottomNavExpanded, displaySearchDialog ->
-          DialogUiState(
-            dialogState = dialogState,
-            showRecentListsSheet = showRecentLists,
-            isBottomNavExpanded = bottomNavExpanded,
-            showSearchDialog = displaySearchDialog,
-          )
-        }
-
-    uiStateInternal =
-      combine(
-          coreUiStateFlow,
-          dialogUiStateFlow,
-          expensiveCalculationsFlow,
-          searchResultsFlow,
-          searchUseCase.searchHistory,
-          planningUseCase.planningSettingsState,
-          syncUseCase.syncUiState,
-          navigationUseCase.isProcessingReveal,
-          planningUseCase.isReadyForFiltering,
-          dialogUseCase.recordForReminderDialog,
-          obsidianVaultNameFlow,
-          navigationSnapshot,
-          contextHandler.contextMarkerToEmojiMap,
-        ) { values ->
-          val coreState = values[0] as CoreUiState
-          val dialogState = values[1] as DialogUiState
-          val expensiveCalcs = values[2] as ExpensiveCalculations
-          @Suppress("UNCHECKED_CAST") val searchResults = values[3] as List<SearchResult>
-          @Suppress("UNCHECKED_CAST") val searchHistory = values[4] as List<String>
-          val planningSettings = values[5] as PlanningSettingsState
-          val syncState = values[6] as SyncUseCase.SyncUiState
-          val isProcessingRevealValue = values[7] as Boolean
-          val isReadyForFiltering = values[8] as Boolean
-          val recordForReminder =
-            values[9] as com.romankozak.forwardappmobile.data.database.models.ActivityRecord?
-          val obsidianVaultName = values[10] as String
-          val navSnapshot = values[11] as NavigationSnapshot
-          @Suppress("UNCHECKED_CAST")
-          val contextMarkerToEmojiMap = values[12] as Map<String, String>
-
-          MainScreenUiState(
-            subStateStack = coreState.subStateStack,
-            searchQuery = coreState.searchQuery,
-            searchHistory = searchHistory,
-            projectHierarchy = coreState.projectHierarchy,
-            flattenedHierarchy = coreState.flattenedHierarchy,
-            currentBreadcrumbs = coreState.currentBreadcrumbs,
-            areAnyProjectsExpanded = expensiveCalcs.areAnyProjectsExpanded,
-            planningMode = coreState.planningMode,
-            planningSettings = planningSettings,
-            dialogState = dialogState.dialogState,
-            showRecentListsSheet = dialogState.showRecentListsSheet,
-            isBottomNavExpanded = dialogState.isBottomNavExpanded,
-            recentItems = expensiveCalcs.recentItems,
-            allContexts = expensiveCalcs.allContexts,
-            canGoBack = navSnapshot.canGoBack,
-            canGoForward = navSnapshot.canGoForward,
-            showNavigationMenu = navSnapshot.showNavigationMenu,
-            isProcessingReveal = isProcessingRevealValue,
-            isReadyForFiltering = isReadyForFiltering,
-            obsidianVaultName = obsidianVaultName,
-            appStatistics = AppStatistics(),
-            showWifiServerDialog = syncState.showWifiServerDialog,
-            wifiServerAddress = syncState.wifiServerAddress,
-            showWifiImportDialog = syncState.showWifiImportDialog,
-            desktopAddress = syncState.desktopAddress,
-            showSearchDialog = dialogState.showSearchDialog,
-            searchResults = searchResults,
-            recordForReminderDialog = recordForReminder,
-            contextMarkerToEmojiMap = contextMarkerToEmojiMap,
-          )
-        }
-        .stateIn(scope, SharingStarted.Eagerly, MainScreenUiState())
-
-    projectHierarchyInternal = hierarchyState
-    searchResultsInternal = searchResultsFlow
-
-    isInitialized = true
-  }
-
-  val uiState: StateFlow<MainScreenUiState>
-    get() = uiStateInternal
-
-  val projectHierarchy: StateFlow<ListHierarchyData>
-    get() = projectHierarchyInternal
-
-  val searchResults: StateFlow<List<SearchResult>>
-    get() = searchResultsInternal
-
-  internal data class ExpansionState(
-    val expandedDaily: Set<String>,
-    val expandedMedium: Set<String>,
-    val expandedLong: Set<String>,
-  )
-
-  private data class CoreUiState(
-    val subStateStack: List<MainSubState>,
-    val searchQuery: TextFieldValue,
-    val projectHierarchy: ListHierarchyData,
-    val currentBreadcrumbs: List<BreadcrumbItem>,
-    val planningMode: PlanningMode,
-    val flattenedHierarchy: List<FlatHierarchyItem>,
-  )
-
-  private data class DialogUiState(
-    val dialogState: DialogState,
-    val showRecentListsSheet: Boolean,
-    val isBottomNavExpanded: Boolean,
-    val showSearchDialog: Boolean,
-  )
-
-  private data class ExpensiveCalculations(
-    val areAnyProjectsExpanded: Boolean = false,
-    val recentItems: List<RecentItem> = emptyList(),
-    val allContexts: List<UiContext> = emptyList(),
-  )
-}
-
-/**
- * Координує побудову ієрархії для головного екрану, кешуючи останній валідний snapshot.
- *
- * Зберігає:
- * - [lastNonEmptyFlatList] — використовується, коли `PlanningUseCase` переходить у ready-стан із порожнім flatList;
- * - [lastNonEmptyHierarchy] — дозволяє повертати останню згенеровану ієрархію, поки стан ще не готовий.
- *
- * Логи `HierarchyDebug` залишено без змін, аби не втратити діагностику, якою користується команда.
- */
-internal class HierarchyStateBuilder(
-  private val hierarchyUseCase: HierarchyUseCase,
-) {
-  private var lastNonEmptyFlatList: List<Project> = emptyList()
-  private var lastNonEmptyHierarchy: ListHierarchyData? = null
-
-  fun buildHierarchyState(
-    scope: CoroutineScope,
-    filterStates: StateFlow<FilterState>,
-    expansionStates: StateFlow<MainScreenStateUseCase.ExpansionState>,
-  ): StateFlow<ListHierarchyData> {
-    val readyFilterState = prepareReadyFilterState(filterStates)
-
-    return combine(readyFilterState, expansionStates) { filterState, expansion ->
-        HierarchyDebugLogger.d {
-          "coreHierarchyFlow combine triggered: flat=${filterState.flatList.size}, mode=${filterState.mode}, ready=${filterState.isReady}"
-        }
-        val hierarchy =
-          hierarchyUseCase.createProjectHierarchy(
-            filterState,
-            expansion.expandedDaily,
-            expansion.expandedMedium,
-            expansion.expandedLong,
-          )
-        if (
-          hierarchy.topLevelProjects.isEmpty() &&
-            hierarchy.childMap.isEmpty()
-        ) {
-          val fallback = lastNonEmptyHierarchy ?: hierarchy
-          HierarchyDebugLogger.d {
-            "coreHierarchyFlow produced empty hierarchy, fallback topLevel=${fallback.topLevelProjects.size}"
-          }
-          fallback
-        } else {
-          lastNonEmptyHierarchy = hierarchy
-          HierarchyDebugLogger.d {
-            "coreHierarchyFlow updated hierarchy topLevel=${hierarchy.topLevelProjects.size} childParents=${hierarchy.childMap.size}"
-          }
-          hierarchy
-        }
-      }
-      .stateIn(scope, SharingStarted.Eagerly, ListHierarchyData())
-  }
-
-  internal fun prepareReadyFilterState(
-    filterStates: StateFlow<FilterState>,
-  ) =
-    filterStates
-      .onEach { state ->
-        HierarchyDebugLogger.d {
-          "readyFilterState input flat=${state.flatList.size} ready=${state.isReady}"
-        }
-      }
-      .filter { state ->
-        HierarchyDebugLogger.d {
-          "readyFilterState filter evaluating flat=${state.flatList.size} ready=${state.isReady}"
-        }
-        val ready = state.isReady
-        if (!ready) {
-          HierarchyDebugLogger.d {
-            "coreHierarchyFlow filter not ready -> returning cached hierarchy topLevel=${lastNonEmptyHierarchy?.topLevelProjects?.size ?: 0}"
-          }
-        }
-        ready
-      }
-      .map { state ->
-        HierarchyDebugLogger.d {
-          "readyFilterState accepted flat=${state.flatList.size} ready=${state.isReady}"
-        }
-        val normalizedFlatList =
-          when {
-            state.flatList.isNotEmpty() -> {
-              lastNonEmptyFlatList = state.flatList
-              state.flatList
-            }
-            lastNonEmptyFlatList.isNotEmpty() &&
-              !state.searchActive &&
-              state.mode == PlanningMode.All -> {
-              HierarchyDebugLogger.d {
-                "coreHierarchyFlow using cached flat list size=${lastNonEmptyFlatList.size}"
-              }
-              lastNonEmptyFlatList
-            }
-            else -> state.flatList
-          }
-        HierarchyDebugLogger.d {
-          "readyFilterState normalized flat=${normalizedFlatList.size}"
-        }
-        if (normalizedFlatList === state.flatList) {
-          state
-        } else {
-          state.copy(flatList = normalizedFlatList)
-        }
-      }
-}
+    ],
+    indices = [
+        Index(value = ["missionId"]),
+        Index(value = ["attachmentId"])
+    ]
+)
+data class TacticalMissionAttachmentCrossRef(
+    val missionId: Long,
+    @ColumnInfo(name = "attachmentId")
+    val attachmentId: String
+)
 
 
 ================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/mainscreen/usecases/MainScreenStateUseCase.kt
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/missions/data/model/TacticalMissionModels.kt
 ================================================================================
 
 ## <<FILE_5>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/mainscreen/utils/ProjectUtils.kt (ID: FILE_5)
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/missions/domain/model/MissionEnums.kt (ID: FILE_5)
 ================================================================================
 
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.utils
+package com.romankozak.forwardappmobile.features.missions.domain.model
 
-import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
-import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbItem
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.FlatHierarchyItem
-
-private const val TAG = "SendDebug"
-
-
-fun fuzzyMatch(
-    query: String,
-    text: String,
-): Boolean {
-    if (query.isBlank()) return true
-    if (text.isBlank()) return false
-    val lowerQuery = query.lowercase()
-    val lowerText = text.lowercase()
-    var queryIndex = 0
-    var textIndex = 0
-    while (queryIndex < lowerQuery.length && textIndex < lowerText.length) {
-        if (lowerQuery[queryIndex] == lowerText[textIndex]) {
-            queryIndex++
-        }
-        textIndex++
-    }
-    return queryIndex == lowerQuery.length
+enum class MissionStatus {
+    PENDING,
+    IN_PROGRESS,
+    COMPLETED,
+    OVERDUE
 }
 
-
-fun findAncestorsRecursive(
-    projectId: String?,
-    projectLookup: Map<String, Project>,
-    ids: MutableSet<String>,
-    visited: MutableSet<String>,
-) {
-    var currentId = projectId
-    while (currentId != null && visited.add(currentId)) {
-        ids.add(currentId)
-        currentId = projectLookup[currentId]?.parentId
-    }
-}
-
-
-fun findDescendantsForDeletion(
-    projectId: String,
-    childMap: Map<String, List<Project>>,
-    visited: MutableSet<String> = mutableSetOf(),
-): List<Project> {
-    if (!visited.add(projectId)) return emptyList()
-    val children = childMap[projectId] ?: emptyList()
-    return children + children.flatMap { findDescendantsForDeletion(it.id, childMap, visited) }
-}
-
-
-fun getDescendantIds(
-    projectId: String,
-    childMap: Map<String, List<Project>>,
-): Set<String> {
-    val descendants = mutableSetOf<String>()
-    val queue = ArrayDeque<String>()
-    queue.add(projectId)
-    while (queue.isNotEmpty()) {
-        val currentId = queue.removeFirst()
-        childMap[currentId]?.forEach { child ->
-            descendants.add(child.id)
-            queue.add(child.id)
-        }
-    }
-    return descendants
-}
-
-
-fun buildPathToProject(
-    targetId: String,
-    hierarchy: ListHierarchyData,
-): List<BreadcrumbItem> {
-    val path = mutableListOf<BreadcrumbItem>()
-
-    fun findPath(
-        projects: List<Project>,
-        level: Int,
-    ): Boolean {
-        val sortedProjects = projects.sortedBy { it.order }
-        for (project in sortedProjects) {
-            path.add(BreadcrumbItem(project.id, project.name, level))
-            if (project.id == targetId) return true
-            val children = hierarchy.childMap[project.id] ?: emptyList()
-            if (findPath(children, level + 1)) return true
-            path.removeLastOrNull()
-        }
-        return false
-    }
-
-    findPath(hierarchy.topLevelProjects, 0)
-    return path.toList()
-}
-
-
-fun flattenHierarchy(
-    currentProjects: List<Project>,
-    projectMap: Map<String, List<Project>>,
-): List<Project> {
-    val result = mutableListOf<Project>()
-    for (project in currentProjects) {
-        result.add(project)
-        if (project.isExpanded) {
-            val children = projectMap[project.id]?.sortedBy { it.order } ?: emptyList()
-            if (children.isNotEmpty()) {
-                result.addAll(flattenHierarchy(children, projectMap))
-            }
-        }
-    }
-    return result
-}
-
-fun flattenHierarchyWithLevels(
-    projects: List<Project>,
-    childMap: Map<String, List<Project>>,
-    expandedIds: Set<String>? = null,
-    level: Int = 0,
-): List<FlatHierarchyItem> {
-    val result = mutableListOf<FlatHierarchyItem>()
-
-    fun traverse(
-        current: List<Project>,
-        currentLevel: Int,
-    ) {
-        val sortedProjects = current.sortedBy { it.order }
-        for (project in sortedProjects) {
-            result.add(FlatHierarchyItem(project = project, level = currentLevel))
-            val isExpanded = expandedIds?.contains(project.id) ?: project.isExpanded
-            if (isExpanded) {
-                val children = childMap[project.id].orEmpty()
-                if (children.isNotEmpty()) {
-                    traverse(children, currentLevel + 1)
-                }
-            }
-        }
-    }
-
-    traverse(projects, level)
-    return result
+enum class MissionPriority {
+    LOW,
+    MEDIUM,
+    HIGH,
+    CRITICAL
 }
 
 
 ================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/mainscreen/utils/ProjectUtils.kt
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/missions/domain/model/MissionEnums.kt
 ================================================================================
 

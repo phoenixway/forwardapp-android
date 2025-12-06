@@ -7,6 +7,7 @@ import com.romankozak.forwardappmobile.features.missions.domain.usecase.AddTacti
 import com.romankozak.forwardappmobile.features.missions.domain.usecase.DeleteTacticalMissionUseCase
 import com.romankozak.forwardappmobile.features.missions.domain.usecase.GetTacticalMissionsUseCase
 import com.romankozak.forwardappmobile.features.missions.domain.usecase.UpdateTacticalMissionUseCase
+import com.romankozak.forwardappmobile.features.missions.domain.model.MissionStatus // Added import
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -58,7 +59,12 @@ class TacticalMissionViewModel @Inject constructor(
     }
 
     fun toggleMissionCompleted(mission: TacticalMission) {
-        val updatedMission = mission.copy(isCompleted = !mission.isCompleted)
+        val updatedStatus = if (mission.status == MissionStatus.COMPLETED) {
+            MissionStatus.PENDING
+        } else {
+            MissionStatus.COMPLETED
+        }
+        val updatedMission = mission.copy(status = updatedStatus)
         updateMission(updatedMission)
     }
 }

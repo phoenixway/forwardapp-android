@@ -12,6 +12,8 @@ import androidx.room.TypeConverters
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
+import com.romankozak.forwardappmobile.features.missions.domain.model.MissionPriority
+import com.romankozak.forwardappmobile.features.missions.domain.model.MissionStatus
 
 
 
@@ -72,6 +74,26 @@ class Converters {
         }
         val objectType = object : TypeToken<RelatedLink>() {}.type
         return gson.fromJson(value, objectType)
+    }
+
+    @TypeConverter
+    fun fromMissionStatus(status: MissionStatus?): String? {
+        return status?.name
+    }
+
+    @TypeConverter
+    fun toMissionStatus(status: String?): MissionStatus? {
+        return status?.let { MissionStatus.valueOf(it) }
+    }
+
+    @TypeConverter
+    fun fromMissionPriority(priority: MissionPriority?): String? {
+        return priority?.name
+    }
+
+    @TypeConverter
+    fun toMissionPriority(priority: String?): MissionPriority? {
+        return priority?.let { MissionPriority.valueOf(it) }
     }
 }
 

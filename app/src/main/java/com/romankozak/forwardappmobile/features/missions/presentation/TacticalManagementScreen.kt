@@ -15,6 +15,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.romankozak.forwardappmobile.features.missions.data.model.TacticalMission
+import com.romankozak.forwardappmobile.features.missions.domain.model.MissionStatus
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -71,7 +72,7 @@ fun TacticalMissionItem(
     onMissionToggled: () -> Unit,
     onMissionDeleted: () -> Unit
 ) {
-    val isOverdue = System.currentTimeMillis() > mission.deadline && !mission.isCompleted
+    val isOverdue = System.currentTimeMillis() > mission.deadline && mission.status != MissionStatus.COMPLETED
     val itemColor = if (isOverdue) Color.Red.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface
 
     Card(
@@ -85,7 +86,7 @@ fun TacticalMissionItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Checkbox(
-                checked = mission.isCompleted,
+                checked = mission.status == MissionStatus.COMPLETED,
                 onCheckedChange = { onMissionToggled() }
             )
             Spacer(modifier = Modifier.width(16.dp))
@@ -93,13 +94,13 @@ fun TacticalMissionItem(
                 Text(
                     text = mission.title,
                     style = MaterialTheme.typography.headlineSmall,
-                    textDecoration = if (mission.isCompleted) TextDecoration.LineThrough else null
+                    textDecoration = if (mission.status == MissionStatus.COMPLETED) TextDecoration.LineThrough else null
                 )
                 mission.description?.let {
                     Text(
                         text = it,
                         style = MaterialTheme.typography.bodyMedium,
-                        textDecoration = if (mission.isCompleted) TextDecoration.LineThrough else null
+                        textDecoration = if (mission.status == MissionStatus.COMPLETED) TextDecoration.LineThrough else null
                     )
                 }
                 Text(
