@@ -40,6 +40,16 @@ class TacticalMissionViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
+    fun addMission(title: String, description: String, deadline: Long) {
+        val newMission = TacticalMission(
+            title = title,
+            description = description,
+            deadline = deadline,
+            projectId = null
+        )
+        addMission(newMission)
+    }
+
     fun addMission(mission: TacticalMission) {
         viewModelScope.launch {
             addTacticalMissionUseCase(mission)

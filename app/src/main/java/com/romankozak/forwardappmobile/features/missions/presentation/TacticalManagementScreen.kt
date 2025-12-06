@@ -25,6 +25,7 @@ fun TacticalManagementScreen(
     viewModel: TacticalMissionViewModel = hiltViewModel()
 ) {
     val missions by viewModel.missions.collectAsState()
+    var showDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -33,7 +34,7 @@ fun TacticalManagementScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { /* TODO: Show add mission dialog */ }) {
+            FloatingActionButton(onClick = { showDialog = true }) {
                 Icon(Icons.Default.Add, contentDescription = "Add Mission")
             }
         }
@@ -44,7 +45,70 @@ fun TacticalManagementScreen(
             onMissionDeleted = { viewModel.deleteMission(it.id) },
             modifier = Modifier.padding(padding)
         )
+
+        if (showDialog) {
+            AddMissionDialog(
+                onDismiss = { showDialog = false },
+                onConfirm = { title, description, deadline ->
+                    viewModel.addMission(
+                        title = title,
+                        description = description,
+                        deadline = deadline
+                    )
+                    showDialog = false
+                }
+            )
+        }
     }
+}
+
+@Composable
+fun AddMissionDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String, String, Long) -> Unit
+) {
+    var title by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var deadline by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add Mission") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Title") }
+                )
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Description") }
+                )
+                OutlinedTextField(
+                    value = deadline,
+                    onValueChange = { deadline = it },
+                    label = { Text("Deadline (timestamp)") }
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val deadlineLong = deadline.toLongOrNull() ?: System.currentTimeMillis()
+                    onConfirm(title, description, deadlineLong)
+                }
+            ) {
+                Text("Add")
+            }
+        },
+        dismissButton = {
+            Button(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
 @Composable
