@@ -147,4 +147,5 @@ sealed interface MainScreenEvent {
     object OpenAttachmentsLibrary : MainScreenEvent
     object OpenScriptsLibrary : MainScreenEvent
     object AddScriptRequest : MainScreenEvent
+    object NavigateToTacticsScreen : MainScreenEvent
 }

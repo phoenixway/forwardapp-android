@@ -211,6 +211,7 @@ fun MainScreenScaffold(
                         onInsightsClick = { onEvent(MainScreenEvent.NavigateToAiInsights) },
                         onShowReminders = { onEvent(MainScreenEvent.GoToReminders) },
                         onLifeStateClick = { onEvent(MainScreenEvent.NavigateToLifeState) },
+                        onTacticsClick = { onEvent(MainScreenEvent.NavigateToTacticsScreen) },
                         onEvent = onEvent,
                     )
                 }

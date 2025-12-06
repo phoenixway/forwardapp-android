@@ -214,6 +214,7 @@ internal fun OptimizedExpandingBottomNav(
     onInsightsClick: () -> Unit,
     onShowReminders: () -> Unit,
     onLifeStateClick: () -> Unit,
+    onTacticsClick: () -> Unit,
     onEvent: (MainScreenEvent) -> Unit,
 ) {
     
@@ -246,6 +247,7 @@ internal fun OptimizedExpandingBottomNav(
         onInsightsClick = onInsightsClick,
         onShowReminders = onShowReminders,
         onLifeStateClick = onLifeStateClick,
+        onTacticsClick = onTacticsClick,
         onEvent = onEvent,
     )
 }

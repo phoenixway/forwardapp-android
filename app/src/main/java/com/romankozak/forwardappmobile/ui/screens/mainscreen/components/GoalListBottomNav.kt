@@ -151,6 +151,7 @@ internal fun MoreActionsBottomNavButton(
     onShowReminders: () -> Unit,
     onAiChatClick: () -> Unit,
     onLifeStateClick: () -> Unit,
+    onTacticsClick: () -> Unit, // Added
     aiChatEnabled: Boolean,
     aiInsightsEnabled: Boolean,
     aiLifeManagementEnabled: Boolean,
@@ -187,6 +188,14 @@ internal fun MoreActionsBottomNavButton(
             onDismissRequest = { showMenu = false },
             offset = DpOffset(0.dp, (-50).dp) // Adjust offset to position above the button
         ) {
+            DropdownMenuItem(
+                text = { Text("Tactics") },
+                leadingIcon = { Icon(Icons.Outlined.MilitaryTech, contentDescription = "Tactics") },
+                onClick = {
+                    onTacticsClick()
+                    showMenu = false
+                }
+            )
             if (aiLifeManagementEnabled) {
                 DropdownMenuItem(
                     text = { Text("AI Life-Management") },
@@ -253,6 +262,7 @@ internal fun ExpandingBottomNav(
     onInsightsClick: () -> Unit,
     onShowReminders: () -> Unit,
     onLifeStateClick: () -> Unit,
+    onTacticsClick: () -> Unit, // Added
     onEvent: (MainScreenEvent) -> Unit,
 ) {
     var showMoreMenu by remember { mutableStateOf(false) }
@@ -309,6 +319,7 @@ internal fun ExpandingBottomNav(
                         onShowReminders = onShowReminders,
                         onAiChatClick = onAiChatClick,
                         onLifeStateClick = onLifeStateClick,
+                        onTacticsClick = onTacticsClick, // Added
                         aiChatEnabled = aiChatEnabled,
                         aiInsightsEnabled = aiInsightsEnabled,
                         aiLifeManagementEnabled = aiLifeManagementEnabled,
@@ -343,6 +354,7 @@ internal fun ExpandingBottomNav(
                     )
                 }
             }
+
 
             
             Row(

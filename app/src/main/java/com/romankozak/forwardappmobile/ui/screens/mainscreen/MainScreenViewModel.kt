@@ -560,6 +560,12 @@ constructor(
         }
       }
 
+      is MainScreenEvent.NavigateToTacticsScreen -> {
+        viewModelScope.launch {
+          _uiEventChannel.send(ProjectUiEvent.Navigate("tactical_management_screen"))
+        }
+      }
+
       is MainScreenEvent.NavigateToStrategicManagement -> {
         if (uiState.value.featureToggles[FeatureFlag.StrategicManagement] == true) {
           viewModelScope.launch {

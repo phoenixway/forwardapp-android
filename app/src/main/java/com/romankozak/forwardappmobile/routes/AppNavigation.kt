@@ -50,6 +50,7 @@ import com.romankozak.forwardappmobile.ui.screens.sync.SyncScreen
 import com.romankozak.forwardappmobile.ui.screens.lifestate.LifeStateScreen
 import com.romankozak.forwardappmobile.ui.reminders.list.RemindersScreen
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
+import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
 import java.net.URLDecoder
 
 
@@ -443,6 +444,10 @@ private fun NavGraphBuilder.mainGraph(
     dayManagementGraph(navController)
     dayManagementScreen(navController)
     strategicManagementScreen(navController)
+
+    composable("tactical_management_screen") {
+        TacticalManagementScreen()
+    }
 
 
 
