@@ -124,12 +124,6 @@ private fun NavGraphBuilder.mainGraph(
             onNavigateToProjectHierarchy = {
                 navController.navigate(GOAL_LISTS_ROUTE)
             },
-            onNavigateToDayManagement = {
-                navController.navigateToDayManagement(date = System.currentTimeMillis())
-            },
-            onNavigateToTacticalManagement = {
-                navController.navigate("tactical_management_screen")
-            },
             onNavigateToGlobalSearch = {
                 navController.navigate("global_search")
             },
@@ -488,14 +482,6 @@ private fun NavGraphBuilder.mainGraph(
         )
     }
     chatScreen(navController)
-    dayManagementGraph(navController)
-    dayManagementScreen(navController)
-
-    composable("tactical_management_screen") {
-        TacticalManagementScreen()
-    }
-
-
 
     composable(AI_INSIGHTS_ROUTE) {
         AiInsightsScreen(navController = navController)

@@ -66,6 +66,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.romankozak.forwardappmobile.routes.STRATEGIC_MANAGEMENT_ROUTE
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.DayManagementScreen
+import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
 import com.romankozak.forwardappmobile.ui.screens.strategicmanagement.StrategicManagementScreen
 import kotlinx.coroutines.launch
 
@@ -79,8 +81,6 @@ const val COMMAND_DECK_TODAY_ROUTE = "command_deck_today"
 fun SharedCommandDeckLayout(
     navController: NavController,
     onNavigateToProjectHierarchy: () -> Unit,
-    onNavigateToDayManagement: () -> Unit,
-    onNavigateToTacticalManagement: () -> Unit,
     onNavigateToGlobalSearch: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToInbox: () -> Unit,
@@ -199,22 +199,10 @@ fun SharedCommandDeckLayout(
                 )
             }
             composable(COMMAND_DECK_TACTICS_ROUTE) {
-                DeckModuleCard(
-                    title = "Tactical Missions",
-                    subtitle = "Active missions: 5 (1 critical)",
-                    progress = 35,
-                    accentColor = Color(0xFF26A69A),
-                    modifier = Modifier.padding(horizontal = 16.dp).clickable { onNavigateToTacticalManagement() }
-                )
+                TacticalManagementScreen()
             }
             composable(COMMAND_DECK_TODAY_ROUTE) {
-                DeckModuleCard(
-                    title = "Today",
-                    subtitle = "3 actions planned",
-                    progress = null,
-                    accentColor = Color(0xFFFFB74D),
-                    modifier = Modifier.padding(horizontal = 16.dp).clickable { onNavigateToDayManagement() }
-                )
+                DayManagementScreen(mainNavController = navController)
             }
         }
     }
