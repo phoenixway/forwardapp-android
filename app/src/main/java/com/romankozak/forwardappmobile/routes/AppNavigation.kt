@@ -35,6 +35,7 @@ import com.romankozak.forwardappmobile.ui.screens.script.ScriptsLibraryScreen
 import com.romankozak.forwardappmobile.ui.screens.projectsettings.ProjectSettingsScreen
 import com.romankozak.forwardappmobile.ui.screens.insights.AiInsightsScreen
 import com.romankozak.forwardappmobile.ui.screens.inbox.InboxEditorScreen
+import com.romankozak.forwardappmobile.ui.screens.commanddeck.CommandDeckScreen
 import com.romankozak.forwardappmobile.ui.screens.listchooser.FilterableListChooserScreen
 import com.romankozak.forwardappmobile.ui.screens.listchooser.FilterableListChooserViewModel
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.ProjectHierarchyScreen
@@ -55,6 +56,7 @@ import java.net.URLDecoder
 
 
 const val MAIN_GRAPH_ROUTE = "main_graph"
+const val COMMAND_DECK_ROUTE = "command_deck_screen"
 const val GOAL_LISTS_ROUTE = "goal_lists_screen"
 const val AI_INSIGHTS_ROUTE = "ai_insights_screen"
 const val LIFE_STATE_ROUTE = "life_state_screen"
@@ -94,7 +96,7 @@ fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
         ) {
             // Єдиний граф верхнього рівня, як у вашій структурі
             navigation(
-                startDestination = GOAL_LISTS_ROUTE,
+                startDestination = COMMAND_DECK_ROUTE,
                 route = MAIN_GRAPH_ROUTE,
             ) {
                 mainGraph(
@@ -116,6 +118,27 @@ private fun NavGraphBuilder.mainGraph(
     appNavigationViewModel: AppNavigationViewModel,
     sharedTransitionScope: SharedTransitionScope,
 ) {
+    composable(COMMAND_DECK_ROUTE) {
+        CommandDeckScreen(
+            navController = navController,
+            onNavigateToProjectHierarchy = {
+                navController.navigate(GOAL_LISTS_ROUTE)
+            },
+            onNavigateToDayManagement = {
+                navController.navigateToDayManagement(date = System.currentTimeMillis())
+            },
+            onNavigateToStrategicManagement = {
+                navController.navigateToStrategicManagement()
+            },
+            onNavigateToGlobalSearch = {
+                navController.navigate("global_search")
+            },
+            onNavigateToSettings = {
+                navController.navigate("settings_screen")
+            }
+        )
+    }
+
     composable(GOAL_LISTS_ROUTE) { backStackEntry ->
 
         val parentEntry =
