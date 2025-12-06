@@ -35,7 +35,7 @@ import com.romankozak.forwardappmobile.ui.screens.script.ScriptsLibraryScreen
 import com.romankozak.forwardappmobile.ui.screens.projectsettings.ProjectSettingsScreen
 import com.romankozak.forwardappmobile.ui.screens.insights.AiInsightsScreen
 import com.romankozak.forwardappmobile.ui.screens.inbox.InboxEditorScreen
-import com.romankozak.forwardappmobile.ui.screens.commanddeck.CommandDeckScreen
+import com.romankozak.forwardappmobile.ui.screens.commanddeck.SharedCommandDeckLayout
 import com.romankozak.forwardappmobile.ui.screens.listchooser.FilterableListChooserScreen
 import com.romankozak.forwardappmobile.ui.screens.listchooser.FilterableListChooserViewModel
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.ProjectHierarchyScreen
@@ -119,16 +119,13 @@ private fun NavGraphBuilder.mainGraph(
     sharedTransitionScope: SharedTransitionScope,
 ) {
     composable(COMMAND_DECK_ROUTE) {
-        CommandDeckScreen(
+        SharedCommandDeckLayout(
             navController = navController,
             onNavigateToProjectHierarchy = {
                 navController.navigate(GOAL_LISTS_ROUTE)
             },
             onNavigateToDayManagement = {
                 navController.navigateToDayManagement(date = System.currentTimeMillis())
-            },
-            onNavigateToStrategicManagement = {
-                navController.navigateToStrategicManagement()
             },
             onNavigateToTacticalManagement = {
                 navController.navigate("tactical_management_screen")
@@ -493,7 +490,6 @@ private fun NavGraphBuilder.mainGraph(
     chatScreen(navController)
     dayManagementGraph(navController)
     dayManagementScreen(navController)
-    strategicManagementScreen(navController)
 
     composable("tactical_management_screen") {
         TacticalManagementScreen()

@@ -1,28 +1,53 @@
 package com.romankozak.forwardappmobile.ui.screens.commanddeck
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.outlined.AccountTree
+import androidx.compose.material.icons.outlined.Analytics
+import androidx.compose.material.icons.outlined.AttachFile
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Chat
+import androidx.compose.material.icons.outlined.Code
+import androidx.compose.material.icons.outlined.ImportExport
+import androidx.compose.material.icons.outlined.Inbox
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,11 +61,207 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import com.romankozak.forwardappmobile.routes.STRATEGIC_MANAGEMENT_ROUTE
+import com.romankozak.forwardappmobile.ui.screens.strategicmanagement.StrategicManagementScreen
 import kotlinx.coroutines.launch
 
+const val COMMAND_DECK_DASHBOARD_ROUTE = "command_deck_dashboard"
+const val COMMAND_DECK_CORE_ROUTE = "command_deck_core"
+const val COMMAND_DECK_STRATEGIC_ARC_ROUTE = "command_deck_strategic_arc"
+const val COMMAND_DECK_TACTICS_ROUTE = "command_deck_tactics"
+const val COMMAND_DECK_TODAY_ROUTE = "command_deck_today"
+
+@Composable
+fun SharedCommandDeckLayout(
+    navController: NavController,
+    onNavigateToProjectHierarchy: () -> Unit,
+    onNavigateToDayManagement: () -> Unit,
+    onNavigateToTacticalManagement: () -> Unit,
+    onNavigateToGlobalSearch: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onNavigateToInbox: () -> Unit,
+    onNavigateToTracker: () -> Unit,
+    onNavigateToReminders: () -> Unit,
+    onNavigateToAiChat: () -> Unit,
+    onNavigateToAiLifeManagement: () -> Unit,
+    onNavigateToImportExport: () -> Unit,
+    onNavigateToAttachments: () -> Unit,
+    onNavigateToScripts: () -> Unit,
+) {
+    val tabs = CommandDeckTab.entries.toList()
+    val innerNavController = rememberNavController()
+
+    val navBackStackEntry by innerNavController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
+    val selectedTabIndex = remember(currentRoute) {
+        tabs.indexOfFirst { tab ->
+            when (tab) {
+                CommandDeckTab.Dashboard -> currentRoute == COMMAND_DECK_DASHBOARD_ROUTE
+                CommandDeckTab.Core -> currentRoute == COMMAND_DECK_CORE_ROUTE
+                CommandDeckTab.Strategy -> currentRoute == STRATEGIC_MANAGEMENT_ROUTE
+                CommandDeckTab.StrategicArc -> currentRoute == COMMAND_DECK_STRATEGIC_ARC_ROUTE
+                CommandDeckTab.Tactics -> currentRoute == COMMAND_DECK_TACTICS_ROUTE
+                CommandDeckTab.Today -> currentRoute == COMMAND_DECK_TODAY_ROUTE
+            }
+        }.coerceAtLeast(0)
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                    )
+                )
+            )
+    ) {
+        CommandDeckHeader()
+
+        Spacer(Modifier.height(4.dp))
+
+        CommandDeckTabRow(
+            tabs = tabs,
+            selectedTabIndex = selectedTabIndex,
+            onTabSelected = { index ->
+                val newRoute = when (tabs[index]) {
+                    CommandDeckTab.Dashboard -> COMMAND_DECK_DASHBOARD_ROUTE
+                    CommandDeckTab.Core -> COMMAND_DECK_CORE_ROUTE
+                    CommandDeckTab.Strategy -> STRATEGIC_MANAGEMENT_ROUTE
+                    CommandDeckTab.StrategicArc -> COMMAND_DECK_STRATEGIC_ARC_ROUTE
+                    CommandDeckTab.Tactics -> COMMAND_DECK_TACTICS_ROUTE
+                    CommandDeckTab.Today -> COMMAND_DECK_TODAY_ROUTE
+                }
+                if (newRoute != currentRoute) {
+                    innerNavController.navigate(newRoute) {
+                        popUpTo(innerNavController.graph.startDestinationId) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            }
+        )
+
+        Spacer(Modifier.height(12.dp))
+
+        NavHost(navController = innerNavController, startDestination = COMMAND_DECK_DASHBOARD_ROUTE) {
+            composable(COMMAND_DECK_DASHBOARD_ROUTE) {
+                 DashboardContent(
+                    onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                    onNavigateToGlobalSearch = onNavigateToGlobalSearch,
+                    onNavigateToSettings = onNavigateToSettings,
+                    onNavigateToInbox = onNavigateToInbox,
+                    onNavigateToTracker = onNavigateToTracker,
+                    onNavigateToReminders = onNavigateToReminders,
+                    onNavigateToAiChat = onNavigateToAiChat,
+                    onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
+                    onNavigateToImportExport = onNavigateToImportExport,
+                    onNavigateToAttachments = onNavigateToAttachments,
+                    onNavigateToScripts = onNavigateToScripts
+                 )
+            }
+            composable(STRATEGIC_MANAGEMENT_ROUTE) {
+                StrategicManagementScreen(navController = navController)
+            }
+            composable(COMMAND_DECK_CORE_ROUTE) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    DeckModuleCard(
+                        title = "Core Beacons",
+                        subtitle = "Foundational principles active: 3",
+                        progress = 72,
+                        accentColor = Color(0xFFBB86FC)
+                    )
+                }
+            }
+            composable(COMMAND_DECK_STRATEGIC_ARC_ROUTE) {
+                DeckModuleCard(
+                    title = "Strategic Arc",
+                    subtitle = "Plan for this month: Expansion Arc",
+                    progress = 62,
+                    accentColor = Color(0xFF9575CD),
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+            }
+            composable(COMMAND_DECK_TACTICS_ROUTE) {
+                DeckModuleCard(
+                    title = "Tactical Missions",
+                    subtitle = "Active missions: 5 (1 critical)",
+                    progress = 35,
+                    accentColor = Color(0xFF26A69A),
+                    modifier = Modifier.padding(horizontal = 16.dp).clickable { onNavigateToTacticalManagement() }
+                )
+            }
+            composable(COMMAND_DECK_TODAY_ROUTE) {
+                DeckModuleCard(
+                    title = "Today",
+                    subtitle = "3 actions planned",
+                    progress = null,
+                    accentColor = Color(0xFFFFB74D),
+                    modifier = Modifier.padding(horizontal = 16.dp).clickable { onNavigateToDayManagement() }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun DashboardContent(
+    onNavigateToProjectHierarchy: () -> Unit,
+    onNavigateToGlobalSearch: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onNavigateToInbox: () -> Unit,
+    onNavigateToTracker: () -> Unit,
+    onNavigateToReminders: () -> Unit,
+    onNavigateToAiChat: () -> Unit,
+    onNavigateToAiLifeManagement: () -> Unit,
+    onNavigateToImportExport: () -> Unit,
+    onNavigateToAttachments: () -> Unit,
+    onNavigateToScripts: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        CoreQuickActions(
+            onNavigateToProjectHierarchy,
+            onNavigateToGlobalSearch,
+            onNavigateToSettings,
+            onNavigateToInbox,
+            onNavigateToTracker,
+            onNavigateToReminders,
+            onNavigateToAiChat,
+            onNavigateToAiLifeManagement,
+            onNavigateToImportExport,
+            onNavigateToAttachments,
+            onNavigateToScripts
+        )
+    }
+}
+
 // -----------------------------------------------
+// ALL THE COMPOSABLES FROM CommandDeckScreen.kt
+// -----------------------------------------------
+
 // ENUM TABS
-// -----------------------------------------------
 enum class CommandDeckTab(
     val title: String,
     val symbol: String,
@@ -53,9 +274,7 @@ enum class CommandDeckTab(
     Today("Today", "⌁"),
 }
 
-// -----------------------------------------------
 // HEADER
-// -----------------------------------------------
 @Composable
 fun CommandDeckHeader() {
     Row(
@@ -83,166 +302,7 @@ fun CommandDeckHeader() {
     }
 }
 
-// -----------------------------------------------
-// MAIN SCREEN
-// -----------------------------------------------
-@Composable
-fun CommandDeckScreen(
-    navController: NavController,
-    onNavigateToProjectHierarchy: () -> Unit,
-    onNavigateToDayManagement: () -> Unit,
-    onNavigateToStrategicManagement: () -> Unit,
-    onNavigateToTacticalManagement: () -> Unit,
-    onNavigateToGlobalSearch: () -> Unit,
-    onNavigateToSettings: () -> Unit,
-    onNavigateToInbox: () -> Unit,
-    onNavigateToTracker: () -> Unit,
-    onNavigateToReminders: () -> Unit,
-    onNavigateToAiChat: () -> Unit,
-    onNavigateToAiLifeManagement: () -> Unit,
-    onNavigateToImportExport: () -> Unit,
-    onNavigateToAttachments: () -> Unit,
-    onNavigateToScripts: () -> Unit,
-) {
-    var selectedTabIndex by remember { mutableStateOf(0) }
-    val tabs = CommandDeckTab.entries.toList()
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                    )
-                )
-            )
-    ) {
-        CommandDeckHeader()
-
-        Spacer(Modifier.height(4.dp))
-
-        CommandDeckTabRow(
-            tabs = tabs,
-            selectedTabIndex = selectedTabIndex,
-            onTabSelected = { index ->
-                selectedTabIndex = index
-                when (tabs[index]) {
-                    CommandDeckTab.Dashboard -> {}
-                    CommandDeckTab.Core -> {}
-                    CommandDeckTab.Strategy -> onNavigateToStrategicManagement()
-                    CommandDeckTab.StrategicArc -> {}
-                    CommandDeckTab.Tactics -> onNavigateToTacticalManagement()
-                    CommandDeckTab.Today -> onNavigateToDayManagement()
-                }
-            }
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        AnimatedContent(
-            targetState = selectedTabIndex,
-            transitionSpec = {
-                (fadeIn(tween(400)) + slideInVertically(tween(400)) { it / 8 })
-                    .togetherWith(
-                        fadeOut(tween(200)) + slideOutVertically(tween(200)) { -it / 8 }
-                    )
-            },
-            label = "command_deck_content"
-        ) { tabIndex ->
-            val tab = tabs[tabIndex]
-            when (tab) {
-                CommandDeckTab.Dashboard -> {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                            .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        CoreQuickActions(
-                            onNavigateToProjectHierarchy,
-                            onNavigateToGlobalSearch,
-                            onNavigateToSettings,
-                            onNavigateToInbox,
-                            onNavigateToTracker,
-                            onNavigateToReminders,
-                            onNavigateToAiChat,
-                            onNavigateToAiLifeManagement,
-                            onNavigateToImportExport,
-                            onNavigateToAttachments,
-                            onNavigateToScripts
-                        )
-                    }
-                }
-
-                CommandDeckTab.Core -> {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                            .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        DeckModuleCard(
-                            title = "Core Beacons",
-                            subtitle = "Foundational principles active: 3",
-                            progress = 72,
-                            accentColor = Color(0xFFBB86FC)
-                        )
-                    }
-                }
-
-                CommandDeckTab.Strategy -> {
-                    DeckModuleCard(
-                        title = "Strategy",
-                        subtitle = "Current Strategic Epoch: Growth Q1",
-                        progress = 48,
-                        accentColor = Color(0xFF4FC3F7),
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
-                }
-
-                CommandDeckTab.StrategicArc -> {
-                    DeckModuleCard(
-                        title = "Strategic Arc",
-                        subtitle = "Plan for this month: Expansion Arc",
-                        progress = 62,
-                        accentColor = Color(0xFF9575CD),
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
-                }
-
-                CommandDeckTab.Tactics -> {
-                    DeckModuleCard(
-                        title = "Tactical Missions",
-                        subtitle = "Active missions: 5 (1 critical)",
-                        progress = 35,
-                        accentColor = Color(0xFF26A69A),
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
-                }
-
-                CommandDeckTab.Today -> {
-                    DeckModuleCard(
-                        title = "Today",
-                        subtitle = "3 actions planned",
-                        progress = null,
-                        accentColor = Color(0xFFFFB74D),
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
-                }
-            }
-        }
-    }
-}
-
-// ------------------------------------------------------
-// TAB ROW WITH AUTO–CENTERING
-// ------------------------------------------------------
-
+// TAB ROW
 @Composable
 private fun CommandDeckTabRow(
     tabs: List<CommandDeckTab>,
@@ -276,10 +336,7 @@ private fun CommandDeckTabRow(
     }
 }
 
-// ------------------------------------------------------
 // TAB COLORS
-// ------------------------------------------------------
-
 fun tabAccentColor(tab: CommandDeckTab): Color {
     return when (tab) {
         CommandDeckTab.Core -> Color(0xFFBB86FC)
@@ -291,10 +348,7 @@ fun tabAccentColor(tab: CommandDeckTab): Color {
     }
 }
 
-// ------------------------------------------------------
-// TAB ITEM (GLOW + SHIMMER + SCALE)
-// ------------------------------------------------------
-
+// TAB ITEM
 @Composable
 fun CommandDeckTabItem(
     tab: CommandDeckTab,
@@ -305,14 +359,12 @@ fun CommandDeckTabItem(
     val accent = tabAccentColor(tab)
     val coroutineScope = rememberCoroutineScope()
 
-    // Glow animation (macOS-style aura)
     val glowAlpha by animateFloatAsState(
         targetValue = if (isSelected) 0.32f else 0f,
         animationSpec = tween(600),
         label = "glow"
     )
 
-    // Shimmer wave animation
     val shimmer = remember { Animatable(0f) }
 
     LaunchedEffect(isSelected) {
@@ -327,14 +379,12 @@ fun CommandDeckTabItem(
         }
     }
 
-    // Scale when selected
     val scale by animateFloatAsState(
         targetValue = if (isSelected) 1.10f else 1f,
         animationSpec = spring(dampingRatio = 0.60f, stiffness = 300f),
         label = "scale"
     )
 
-    // Shimmer wave brush
     val waveBrush = Brush.linearGradient(
         colors = listOf(
             Color.Transparent,
@@ -395,10 +445,7 @@ fun CommandDeckTabItem(
     }
 }
 
-// ------------------------------------------------------
 // MODULE CARD
-// ------------------------------------------------------
-
 @Composable
 fun DeckModuleCard(
     title: String,
@@ -448,10 +495,7 @@ fun DeckModuleCard(
     }
 }
 
-// ------------------------------------------------------
 // CORE QUICK ACTIONS
-// ------------------------------------------------------
-
 @Composable
 private fun CoreQuickActions(
     onNavigateToProjectHierarchy: () -> Unit,
@@ -483,10 +527,7 @@ private fun CoreQuickActions(
     }
 }
 
-// ------------------------------------------------------
 // QUICK ACTION CARD
-// ------------------------------------------------------
-
 @Composable
 private fun QuickActionCard(
     title: String,
