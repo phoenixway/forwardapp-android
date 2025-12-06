@@ -1,19 +1,12 @@
 ## 1. Поточне завдання (CURRENT TASK)
-- Implement navigation to Inbox and AI Chat from Command Deck.
-- Fix compilation errors in AppNavigation.kt due to missing parameters for CommandDeckScreen.
+
 
 ## 3. План дій
-- Update AppNavigation.kt to include navigation lambdas for Inbox and AI Chat in CommandDeckScreen.
-- Ensure correct routing for "inbox_editor_screen" and "ai_insights_screen".
+зроби щоб порядок елементів беклогу зберігався і оновлювався при синхронізації
 
 ## 4. Невирішені проблеми / Блокери (PROBLEMS)
-- None.
 
 ## 5. Значимі файли і модулі (IMPORTANT FILES / MODULES)
-- app/src/main/java/com/romankozak/forwardappmobile/routes/AppNavigation.kt
-- ui/screens/commanddeck/CommandDeckScreen.kt
-- ui/screens/inbox/InboxEditorScreen.kt
-- ui/screens/insights/AiInsightsScreen.kt
 
 ## 6. Інструкції та вимоги до стилю (INSTRUCTIONS)
 
