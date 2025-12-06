@@ -41,7 +41,7 @@ class NavigationHistoryManager(
         
         
         if (savedHistory.isEmpty()) {
-            savedHistory = listOf(NavigationEntry.createMainScreen())
+            savedHistory = listOf(NavigationEntry.createProjectHierarchyScreen())
             savedIndex = 0
             Log.w(TAG, "INIT: Історія була порожньою. Створено базовий запис для головного екрана.")
         }
@@ -151,7 +151,7 @@ class NavigationHistoryManager(
 
     fun clearHistory() {
         Log.w(TAG, "[clearHistory] Історію повністю очищено.")
-        _history.value = listOf(NavigationEntry.createMainScreen())
+        _history.value = listOf(NavigationEntry.createProjectHierarchyScreen())
         _currentIndex.value = 0
         updateStates("clearHistory")
     }

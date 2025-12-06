@@ -62,9 +62,20 @@ import com.romankozak.forwardappmobile.routes.navigateToStrategicManagement
 import com.romankozak.forwardappmobile.ui.components.NewRecentListsSheet
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 import com.romankozak.forwardappmobile.ui.navigation.NavigationHistoryMenu
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.ExpandingBottomNav
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.*
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.HandleDialogs
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.OptimizedExpandingProjectHierarchyBottomNav
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenEvent
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenUiState
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenSubState
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectUiEvent
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.HierarchyDisplaySettings
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.FlatHierarchyItem
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbItem
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DropPosition
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.SearchResult
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningSettingsState
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.AppStatistics
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.HandleProjectHierarchyDialogs
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import com.romankozak.forwardappmobile.ui.reminders.dialogs.ReminderPropertiesDialog
 import kotlinx.coroutines.flow.collectLatest
@@ -73,16 +84,16 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.core.net.toUri
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.MainScreenScaffold
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.ProjectHierarchyScreenScaffold
 
-private const val UI_TAG = "MainScreenUI_DEBUG"
+private const val UI_TAG = "ProjectHierarchyScreenUI_DEBUG"
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun MainScreen(
+fun ProjectHierarchyScreen(
     navController: NavController,
     syncDataViewModel: SyncDataViewModel,
-    viewModel: MainScreenViewModel = hiltViewModel(),
+    viewModel: ProjectHierarchyScreenViewModel = hiltViewModel(),
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
@@ -129,12 +140,12 @@ fun MainScreen(
         val observer =
             LifecycleEventObserver { _, event ->
                 if (event == Lifecycle.Event.ON_RESUME) {
-                    android.util.Log.d("ProjectRevealDebug", "MainScreen ON_RESUME")
+                    android.util.Log.d("ProjectRevealDebug", "ProjectHierarchyScreen ON_RESUME")
                     navController.currentBackStackEntry
                         ?.savedStateHandle
                         ?.remove<String?>("list_chooser_result")
                         ?.let { result ->
-                            viewModel.onEvent(MainScreenEvent.ListChooserResult(result))
+                            viewModel.onEvent(ProjectHierarchyScreenEvent.ListChooserResult(result))
                         }
 
                     navController.currentBackStackEntry
@@ -143,7 +154,7 @@ fun MainScreen(
                         ?.let { projectId ->
                             android.util.Log.d("ProjectRevealDebug", "Retrieved and removed projectIdToReveal: $projectId")
                             android.util.Log.d("ProjectRevealDebug", "Calling RevealProjectInHierarchy event")
-                            viewModel.onEvent(MainScreenEvent.RevealProjectInHierarchy(projectId))
+                            viewModel.onEvent(ProjectHierarchyScreenEvent.RevealProjectInHierarchy(projectId))
                         }
                 }
             }
@@ -152,7 +163,7 @@ fun MainScreen(
     }
 
     viewModel.enhancedNavigationManager?.let { navManager ->
-        MainScreenScaffold(
+        ProjectHierarchyScreenScaffold(
             uiState = uiState,
             onEvent = viewModel::onEvent,
             enhancedNavigationManager = navManager,

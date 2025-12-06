@@ -51,8 +51,8 @@ class EnhancedNavigationManager(
         sendNavigationCommand(NavigationCommand.Navigate(route))
     }
 
-    fun navigateToMainScreen(isInitial: Boolean = false) {
-        val entry = NavigationEntry.createMainScreen()
+    fun navigateToProjectHierarchyScreen(isInitial: Boolean = false) {
+        val entry = NavigationEntry.createProjectHierarchyScreen()
         historyManager.addEntry(entry)
         if (!isInitial) {
             
@@ -174,7 +174,7 @@ class EnhancedNavigationManager(
 
         val command =
             when (entry.type) {
-                NavigationType.MAIN_SCREEN ->
+                NavigationType.PROJECT_HIERARCHY_SCREEN ->
                     NavigationCommand.Navigate("goal_lists_screen") {
                         
                         popUpTo("goal_lists_screen") { inclusive = false }
@@ -206,7 +206,7 @@ class EnhancedNavigationManager(
 
         
         historyManager.clearHistory()
-        val homeEntry = NavigationEntry.createMainScreen()
+        val homeEntry = NavigationEntry.createProjectHierarchyScreen()
         historyManager.addEntry(homeEntry)
         sendNavigationCommand(
             NavigationCommand.Navigate("goal_lists_screen") {

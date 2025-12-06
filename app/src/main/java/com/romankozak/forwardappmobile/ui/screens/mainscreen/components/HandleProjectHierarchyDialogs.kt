@@ -9,14 +9,14 @@ import com.romankozak.forwardappmobile.ui.dialogs.WifiImportDialog
 import com.romankozak.forwardappmobile.ui.dialogs.WifiServerDialog
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.dialogs.ContextMenuDialog
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DialogState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenEvent
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenUiState
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenEvent
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenUiState
 
 
 @Composable
-fun HandleDialogs(
-    uiState: MainScreenUiState,
-    onEvent: (MainScreenEvent) -> Unit,
+fun HandleProjectHierarchyDialogs(
+    uiState: ProjectHierarchyScreenUiState,
+    onEvent: (ProjectHierarchyScreenEvent) -> Unit,
 ) {
     
     when (val state = uiState.dialogState) {
@@ -24,10 +24,10 @@ fun HandleDialogs(
         is DialogState.AddProject -> {
             AddProjectDialog(
                 title = if (state.parentId == null) "Створити новий проект" else "Створити підпроект",
-                onDismiss = { onEvent(MainScreenEvent.DismissDialog) },
+                onDismiss = { onEvent(ProjectHierarchyScreenEvent.DismissDialog) },
                 
                 onConfirm = { name ->
-                    onEvent(MainScreenEvent.AddProjectConfirm(name, state.parentId))
+                    onEvent(ProjectHierarchyScreenEvent.AddProjectConfirm(name, state.parentId))
                 },
             )
         }
@@ -35,40 +35,44 @@ fun HandleDialogs(
         is DialogState.ProjectMenu -> {
             ContextMenuDialog(
                 project = state.project,
-                onDismissRequest = { onEvent(MainScreenEvent.DismissDialog) },
-                onMoveRequest = { onEvent(MainScreenEvent.MoveRequest(it)) },
-                onAddSubprojectRequest = { onEvent(MainScreenEvent.AddSubprojectRequest(it)) },
-                onDeleteRequest = { onEvent(MainScreenEvent.DeleteRequest(it)) },
-                onEditRequest = { onEvent(MainScreenEvent.EditRequest(it)) },
-                onAddToDayPlanRequest = { onEvent(MainScreenEvent.AddToDayPlanRequest(it)) },
-                onSetReminderRequest = { onEvent(MainScreenEvent.SetReminderRequest(it)) },
-                onFocusRequest = { onEvent(MainScreenEvent.FocusProject(it)) },
+                onDismissRequest = { onEvent(ProjectHierarchyScreenEvent.DismissDialog) },
+                onMoveRequest = { project -> onEvent(ProjectHierarchyScreenEvent.MoveRequest(project)) },
+                onAddSubprojectRequest = { project -> onEvent(ProjectHierarchyScreenEvent.AddSubprojectRequest(project)) },
+                onDeleteRequest = { project -> onEvent(ProjectHierarchyScreenEvent.DeleteRequest(project)) },
+                onEditRequest = { project -> onEvent(ProjectHierarchyScreenEvent.EditRequest(project)) },
+                onAddToDayPlanRequest = { project -> onEvent(ProjectHierarchyScreenEvent.AddToDayPlanRequest(project)) },
+                onSetReminderRequest = { project -> onEvent(ProjectHierarchyScreenEvent.SetReminderRequest(project)) },
+                onFocusRequest = { project -> onEvent(ProjectHierarchyScreenEvent.FocusProject(project)) },
             )
         }
         is DialogState.ConfirmDelete -> {
             AlertDialog(
-                onDismissRequest = { onEvent(MainScreenEvent.DismissDialog) },
+                onDismissRequest = { onEvent(ProjectHierarchyScreenEvent.DismissDialog) },
                 title = { Text("Delete project?") },
                 text = {
                     Text(
                         "Are you sure you want to delete '${state.project.name}' and all its contents? This action cannot be undone.",
                     )
                 },
-                confirmButton = { Button(onClick = { onEvent(MainScreenEvent.DeleteConfirm(state.project)) }) { Text("Delete") } },
-                dismissButton = { TextButton(onClick = { onEvent(MainScreenEvent.DismissDialog) }) { Text("Cancel") } },
+                confirmButton = {
+                    TextButton(onClick = { onEvent(ProjectHierarchyScreenEvent.DeleteConfirm(state.project)) }) {
+                        Text("Delete")
+                    }
+                },
+                dismissButton = { TextButton(onClick = { onEvent(ProjectHierarchyScreenEvent.DismissDialog) }) { Text("Cancel") } },
             )
         }
         
         is DialogState.About -> {
             AboutAppDialog(
                 stats = uiState.appStatistics,
-                onDismiss = { onEvent(MainScreenEvent.DismissDialog) },
+                onDismiss = { onEvent(ProjectHierarchyScreenEvent.DismissDialog) },
             )
         }
         
         is DialogState.ConfirmImport -> {
             AlertDialog(
-                onDismissRequest = { onEvent(MainScreenEvent.DismissDialog) },
+                onDismissRequest = { onEvent(ProjectHierarchyScreenEvent.DismissDialog) },
                 title = { Text("Restore from backup?") },
                 text = {
                     Text(
@@ -78,18 +82,18 @@ fun HandleDialogs(
                 confirmButton = {
                     Button(
                         
-                        onClick = { onEvent(MainScreenEvent.FullImportConfirm(state.uri)) },
+                        onClick = { onEvent(ProjectHierarchyScreenEvent.FullImportConfirm(state.uri)) },
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                     ) { Text("Delete and Restore") }
                 },
-                dismissButton = { TextButton(onClick = { onEvent(MainScreenEvent.DismissDialog) }) { Text("Cancel") } },
+                dismissButton = { TextButton(onClick = { onEvent(ProjectHierarchyScreenEvent.DismissDialog) }) { Text("Cancel") } },
             )
         }
         
         is DialogState.EditProject -> {
             
             
-            onEvent(MainScreenEvent.DismissDialog)
+            onEvent(ProjectHierarchyScreenEvent.DismissDialog)
         }
         is DialogState.WifiImport -> { }
         is DialogState.WifiServer -> { }
@@ -99,21 +103,21 @@ fun HandleDialogs(
     if (uiState.showWifiServerDialog && uiState.featureToggles[com.romankozak.forwardappmobile.config.FeatureFlag.WifiSync] == true) {
         WifiServerDialog(
             address = uiState.wifiServerAddress,
-            onDismiss = { onEvent(MainScreenEvent.DismissWifiServerDialog) },
+            onDismiss = { onEvent(ProjectHierarchyScreenEvent.DismissWifiServerDialog) },
         )
     }
     if (uiState.showWifiImportDialog && uiState.featureToggles[com.romankozak.forwardappmobile.config.FeatureFlag.WifiSync] == true) {
         WifiImportDialog(
             desktopAddress = uiState.desktopAddress,
-            onAddressChange = { onEvent(MainScreenEvent.DesktopAddressChange(it)) },
-            onDismiss = { onEvent(MainScreenEvent.DismissWifiImportDialog) },
-            onConfirm = { onEvent(MainScreenEvent.PerformWifiImport(it)) },
+            onAddressChange = { onEvent(ProjectHierarchyScreenEvent.DesktopAddressChange(it)) },
+            onDismiss = { onEvent(ProjectHierarchyScreenEvent.DismissWifiImportDialog) },
+            onConfirm = { onEvent(ProjectHierarchyScreenEvent.PerformWifiImport(it)) },
         )
     }
     if (uiState.showSearchDialog) {
         GlobalSearchDialog(
-            onDismiss = { onEvent(MainScreenEvent.DismissSearchDialog) },
-            onConfirm = { onEvent(MainScreenEvent.GlobalSearchPerform(it)) },
+            onDismiss = { onEvent(ProjectHierarchyScreenEvent.DismissSearchDialog) },
+            onConfirm = { onEvent(ProjectHierarchyScreenEvent.GlobalSearchPerform(it)) },
         )
     }
 }

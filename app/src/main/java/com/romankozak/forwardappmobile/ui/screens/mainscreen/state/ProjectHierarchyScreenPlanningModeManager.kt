@@ -4,6 +4,7 @@ package com.romankozak.forwardappmobile.ui.screens.mainscreen.state
 
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenPlanningMode
 import dagger.hilt.android.scopes.ViewModelScoped
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -11,11 +12,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 
 
+typealias PlanningModeManager = ProjectHierarchyScreenPlanningModeManager
+
 @ViewModelScoped
-class PlanningModeManager
+class ProjectHierarchyScreenPlanningModeManager
     @Inject
     constructor() {
-        private val _planningMode = MutableStateFlow<PlanningMode>(PlanningMode.All)
+        private val _planningMode = MutableStateFlow<ProjectHierarchyScreenPlanningMode>(ProjectHierarchyScreenPlanningMode.All)
         val planningMode: StateFlow<PlanningMode> = _planningMode.asStateFlow()
 
         private val _expandedInDailyMode = MutableStateFlow<Set<String>>(emptySet())

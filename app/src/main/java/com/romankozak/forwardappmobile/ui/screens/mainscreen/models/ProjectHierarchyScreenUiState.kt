@@ -6,9 +6,11 @@ import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.sync.WifiSyncStatus
 
 
-data class MainScreenUiState(
+typealias MainScreenUiState = ProjectHierarchyScreenUiState
+
+data class ProjectHierarchyScreenUiState(
     
-    val subStateStack: List<MainSubState> = listOf(MainSubState.Hierarchy),
+    val subStateStack: List<MainSubState> = listOf(ProjectHierarchyScreenSubState.Hierarchy),
     
     val searchQuery: TextFieldValue = TextFieldValue(""),
     val searchHistory: List<String> = emptyList(),

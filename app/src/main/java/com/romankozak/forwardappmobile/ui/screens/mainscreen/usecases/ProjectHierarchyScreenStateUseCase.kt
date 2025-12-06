@@ -16,6 +16,9 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.FlatHierarch
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenUiState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainSubState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenPlanningMode
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenSubState
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenUiState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningSettingsState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.SearchResult
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.flattenHierarchyWithLevels
@@ -34,7 +37,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 @ViewModelScoped
-class MainScreenStateUseCase
+class ProjectHierarchyScreenStateUseCase
 @Inject
 constructor(
   private val searchUseCase: SearchUseCase,
@@ -54,11 +57,11 @@ constructor(
     val showNavigationMenu: Boolean = false,
   )
 
-  private val defaultUiState = MutableStateFlow(MainScreenUiState())
+  private val defaultUiState = MutableStateFlow(ProjectHierarchyScreenUiState())
   private val defaultHierarchy = MutableStateFlow(ListHierarchyData())
   private val defaultSearchResults = MutableStateFlow(emptyList<SearchResult>())
 
-  private var uiStateInternal: StateFlow<MainScreenUiState> = defaultUiState
+  private var uiStateInternal: StateFlow<ProjectHierarchyScreenUiState> = defaultUiState
   private var projectHierarchyInternal: StateFlow<ListHierarchyData> = defaultHierarchy
   private var searchResultsInternal: StateFlow<List<SearchResult>> = defaultSearchResults
 
@@ -216,7 +219,7 @@ constructor(
           @Suppress("UNCHECKED_CAST")
           val featureToggles = values[13] as Map<com.romankozak.forwardappmobile.config.FeatureFlag, Boolean>
 
-          MainScreenUiState(
+          ProjectHierarchyScreenUiState(
             subStateStack = coreState.subStateStack,
             searchQuery = coreState.searchQuery,
             searchHistory = searchHistory,
@@ -258,7 +261,7 @@ constructor(
     isInitialized = true
   }
 
-  val uiState: StateFlow<MainScreenUiState>
+  val uiState: StateFlow<ProjectHierarchyScreenUiState>
     get() = uiStateInternal
 
   val projectHierarchy: StateFlow<ListHierarchyData>
@@ -274,7 +277,7 @@ constructor(
   )
 
   private data class CoreUiState(
-    val subStateStack: List<MainSubState>,
+    val subStateStack: List<ProjectHierarchyScreenSubState>,
     val searchQuery: TextFieldValue,
     val projectHierarchy: ListHierarchyData,
     val currentBreadcrumbs: List<BreadcrumbItem>,
@@ -314,7 +317,7 @@ internal class HierarchyStateBuilder(
   fun buildHierarchyState(
     scope: CoroutineScope,
     filterStates: StateFlow<FilterState>,
-    expansionStates: StateFlow<MainScreenStateUseCase.ExpansionState>,
+    expansionStates: StateFlow<ProjectHierarchyScreenStateUseCase.ExpansionState>,
   ): StateFlow<ListHierarchyData> {
     val readyFilterState = prepareReadyFilterState(filterStates)
 
@@ -382,7 +385,7 @@ internal class HierarchyStateBuilder(
             }
             lastNonEmptyFlatList.isNotEmpty() &&
               !state.searchActive &&
-              state.mode == PlanningMode.All -> {
+              state.mode == ProjectHierarchyScreenPlanningMode.All -> {
               HierarchyDebugLogger.d {
                 "coreHierarchyFlow using cached flat list size=${lastNonEmptyFlatList.size}"
               }

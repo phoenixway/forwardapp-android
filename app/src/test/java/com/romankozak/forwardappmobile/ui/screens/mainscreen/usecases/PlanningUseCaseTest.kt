@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
 import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainSubState
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenSubState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.state.PlanningModeManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -95,7 +96,7 @@ class PlanningUseCaseTest {
 
     private class FakeSearchAdapter : PlanningSearchAdapter {
         private val queryFlow = MutableStateFlow(TextFieldValue(""))
-        private val subStateFlow = MutableStateFlow<List<MainSubState>>(listOf(MainSubState.Hierarchy))
+        private val subStateFlow = MutableStateFlow<List<MainSubState>>(listOf(ProjectHierarchyScreenSubState.Hierarchy))
         private var active = false
 
         override val searchQuery: StateFlow<TextFieldValue> = queryFlow.asStateFlow()
@@ -105,13 +106,13 @@ class PlanningUseCaseTest {
 
         override fun popToSubState(targetState: MainSubState) {
             subStateFlow.value = listOf(targetState)
-            active = targetState is MainSubState.LocalSearch
+            active = targetState is ProjectHierarchyScreenSubState.LocalSearch
         }
 
         override fun onToggleSearch(isActive: Boolean) {
             active = isActive
             if (!isActive) {
-                subStateFlow.value = listOf(MainSubState.Hierarchy)
+                subStateFlow.value = listOf(ProjectHierarchyScreenSubState.Hierarchy)
             }
         }
     }

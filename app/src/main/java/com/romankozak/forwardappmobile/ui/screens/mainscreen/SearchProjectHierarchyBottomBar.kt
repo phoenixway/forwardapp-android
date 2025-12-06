@@ -42,7 +42,7 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.SearchTextField
 
 @Composable
-fun SearchBottomBar(
+fun SearchProjectHierarchyBottomBar(
     searchQuery: TextFieldValue,
     onQueryChange: (TextFieldValue) -> Unit,
     onCloseSearch: () -> Unit,

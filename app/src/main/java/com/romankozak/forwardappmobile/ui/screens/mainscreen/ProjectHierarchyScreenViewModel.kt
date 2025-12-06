@@ -22,8 +22,18 @@ import com.romankozak.forwardappmobile.routes.SELECTIVE_IMPORT_ROUTE
 import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
 import java.net.URLEncoder
 
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.*
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenEvent
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenUiState
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenSubState
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectUiEvent
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.HierarchyDisplaySettings
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.FlatHierarchyItem
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbItem
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DropPosition
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.SearchResult
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningSettingsState
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.AppStatistics
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.navigation.RevealResult
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.flattenHierarchy
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -50,10 +60,10 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.ThemingUse
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.NavigationUseCase
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SettingsUseCase
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.HierarchyDebugLogger
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.MainScreenStateUseCase
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.ProjectHierarchyScreenStateUseCase
 
 @HiltViewModel
-class MainScreenViewModel
+class ProjectHierarchyScreenViewModel
 @Inject
 constructor(
   private val projectRepository: ProjectRepository,
@@ -77,11 +87,11 @@ constructor(
   private val navigationUseCase: NavigationUseCase,
   private val themingUseCase: ThemingUseCase,
   private val settingsUseCase: SettingsUseCase,
-  private val mainScreenStateUseCase: MainScreenStateUseCase,
+  private val projectHierarchyScreenStateUseCase: ProjectHierarchyScreenStateUseCase,
 ) : ViewModel() {
   companion object {
     private const val PROJECT_BEING_MOVED_ID_KEY = "projectBeingMovedId"
-    private const val TAG = "MainScreenVM_DEBUG"
+    private const val TAG = "ProjectHierarchyScreenVM_DEBUG"
   }
 
   private sealed class PendingChooserAction {
@@ -95,7 +105,7 @@ constructor(
       field?.let {
         navigationStateJob?.cancel()
         navigationResultJob?.cancel()
-        navigationSnapshot.value = MainScreenStateUseCase.NavigationSnapshot()
+        navigationSnapshot.value = ProjectHierarchyScreenStateUseCase.NavigationSnapshot()
         navigationUseCase.detach()
       }
 
@@ -112,12 +122,12 @@ constructor(
     }
 
   private val navigationSnapshot =
-    MutableStateFlow(MainScreenStateUseCase.NavigationSnapshot())
+    MutableStateFlow(ProjectHierarchyScreenStateUseCase.NavigationSnapshot())
 
   val contextMarkerToEmojiMap: StateFlow<Map<String, String>> = contextHandler.contextMarkerToEmojiMap
 
-  val uiState: StateFlow<MainScreenUiState>
-    get() = mainScreenStateUseCase.uiState
+  val uiState: StateFlow<ProjectHierarchyScreenUiState>
+    get() = projectHierarchyScreenStateUseCase.uiState
 
   val lastOngoingActivity: StateFlow<com.romankozak.forwardappmobile.data.database.models.ActivityRecord?> =
       activityRepository
@@ -161,7 +171,7 @@ constructor(
       application = application,
       uiEventChannel = _uiEventChannel,
     )
-    mainScreenStateUseCase.initialize(
+    projectHierarchyScreenStateUseCase.initialize(
       scope = viewModelScope,
       allProjectsFlat = _allProjectsFlat,
       showRecentListsSheet = _showRecentListsSheet,
@@ -183,7 +193,7 @@ constructor(
       }
     }
     viewModelScope.launch {
-      mainScreenStateUseCase.projectHierarchy.collect { hierarchy ->
+      projectHierarchyScreenStateUseCase.projectHierarchy.collect { hierarchy ->
         HierarchyDebugLogger.d {
           "projectHierarchy flow emit: topLevel=${hierarchy.topLevelProjects.size}, childParents=${hierarchy.childMap.size}"
         }
@@ -195,7 +205,7 @@ constructor(
       val filterSize = filterState.flatList.size
       HierarchyDebugLogger.d { "Delayed check: filterState flat=$filterSize" }
       HierarchyDebugLogger.d {
-        "Delayed check: hierarchyState topLevel=${mainScreenStateUseCase.projectHierarchy.value.topLevelProjects.size}"
+        "Delayed check: hierarchyState topLevel=${projectHierarchyScreenStateUseCase.projectHierarchy.value.topLevelProjects.size}"
       }
     }
   }
@@ -230,7 +240,7 @@ constructor(
     when (val result = searchUseCase.revealProjectInHierarchy(projectId)) {
       is RevealResult.Success -> {
         android.util.Log.d("ProjectRevealDebug", "revealProjectInHierarchy result: Success, shouldFocus=${result.shouldFocus}")
-        searchUseCase.pushSubState(MainSubState.ProjectFocused(result.projectId))
+        searchUseCase.pushSubState(ProjectHierarchyScreenSubState.ProjectFocused(result.projectId))
         if (result.shouldFocus) {
           android.util.Log.d("ProjectRevealDebug", "Calling navigateToProject for ${result.projectId}")
           searchUseCase.navigateToProject(
@@ -241,7 +251,7 @@ constructor(
           android.util.Log.d("ProjectRevealDebug", "Setting projectToRevealAndScroll to ${result.projectId}")
           projectToRevealAndScroll = result.projectId
           if (searchUseCase.isSearchActive()) {
-            searchUseCase.popToSubState(MainSubState.Hierarchy)
+            searchUseCase.popToSubState(ProjectHierarchyScreenSubState.Hierarchy)
           }
         }
       }
@@ -307,7 +317,7 @@ constructor(
 
     viewModelScope.launch {
       combine(
-          mainScreenStateUseCase.projectHierarchy,
+          projectHierarchyScreenStateUseCase.projectHierarchy,
           planningUseCase.filterStateFlow,
           navigationUseCase.isProcessingReveal,
         ) { hierarchy, filterState, processingReveal ->
@@ -333,17 +343,17 @@ constructor(
         }
     }
   }
-  fun onEvent(event: MainScreenEvent) {
+  fun onEvent(event: ProjectHierarchyScreenEvent) {
     when (event) {
-      is MainScreenEvent.SearchQueryChanged -> searchUseCase.onSearchQueryChanged(event.query)
-      is MainScreenEvent.SearchFromHistory -> searchUseCase.onSearchQueryFromHistory(event.query)
-      is MainScreenEvent.GlobalSearchPerform -> searchUseCase.onPerformGlobalSearch(event.query)
-      is MainScreenEvent.SearchResultClick -> searchUseCase.onSearchResultClick(event.projectId, uiState.value.projectHierarchy)
+      is ProjectHierarchyScreenEvent.SearchQueryChanged -> searchUseCase.onSearchQueryChanged(event.query)
+      is ProjectHierarchyScreenEvent.SearchFromHistory -> searchUseCase.onSearchQueryFromHistory(event.query)
+      is ProjectHierarchyScreenEvent.GlobalSearchPerform -> searchUseCase.onPerformGlobalSearch(event.query)
+      is ProjectHierarchyScreenEvent.SearchResultClick -> searchUseCase.onSearchResultClick(event.projectId, uiState.value.projectHierarchy)
 
-      is MainScreenEvent.ProjectClick -> onProjectClicked(event.projectId)
-      is MainScreenEvent.ProjectMenuRequest -> dialogUseCase.onMenuRequested(event.project)
-      is MainScreenEvent.ToggleProjectExpanded -> onToggleExpanded(event.project)
-      is MainScreenEvent.ProjectReorder -> {
+      is ProjectHierarchyScreenEvent.ProjectClick -> onProjectClicked(event.projectId)
+      is ProjectHierarchyScreenEvent.ProjectMenuRequest -> dialogUseCase.onMenuRequested(event.project)
+      is ProjectHierarchyScreenEvent.ToggleProjectExpanded -> onToggleExpanded(event.project)
+      is ProjectHierarchyScreenEvent.ProjectReorder -> {
         viewModelScope.launch {
           projectActionsUseCase.onProjectReorder(
             fromId = event.fromId,
@@ -355,19 +365,19 @@ constructor(
         }
       }
 
-      is MainScreenEvent.BreadcrumbNavigation -> searchUseCase.navigateToBreadcrumb(event.breadcrumb)
-      is MainScreenEvent.ClearBreadcrumbNavigation -> searchUseCase.clearNavigation()
+      is ProjectHierarchyScreenEvent.BreadcrumbNavigation -> searchUseCase.navigateToBreadcrumb(event.breadcrumb)
+      is ProjectHierarchyScreenEvent.ClearBreadcrumbNavigation -> searchUseCase.clearNavigation()
 
-      is MainScreenEvent.PlanningModeChange -> {
+      is ProjectHierarchyScreenEvent.PlanningModeChange -> {
         if (uiState.value.featureToggles[FeatureFlag.PlanningModes] == true) {
           planningUseCase.onPlanningModeChange(event.mode)
         }
       }
 
-      is MainScreenEvent.DismissDialog -> dialogUseCase.dismissDialog()
-      is MainScreenEvent.AddNewProjectRequest -> {
+      is ProjectHierarchyScreenEvent.DismissDialog -> dialogUseCase.dismissDialog()
+      is ProjectHierarchyScreenEvent.AddNewProjectRequest -> {
 
-        val focusedState = uiState.value.currentSubState as? MainSubState.ProjectFocused
+        val focusedState = uiState.value.currentSubState as? ProjectHierarchyScreenSubState.ProjectFocused
         if (focusedState != null) {
 
           val parentProject = _allProjectsFlat.value.find { it.id == focusedState.projectId }
@@ -383,11 +393,11 @@ constructor(
           dialogUseCase.onAddNewProjectRequest()
         }
       }
-      is MainScreenEvent.AddNoteDocumentRequest -> createNoteInInbox()
-      is MainScreenEvent.AddChecklistRequest -> {
+      is ProjectHierarchyScreenEvent.AddNoteDocumentRequest -> createNoteInInbox()
+      is ProjectHierarchyScreenEvent.AddChecklistRequest -> {
         createChecklistInInbox()
       }
-      is MainScreenEvent.ListChooserResult -> {
+      is ProjectHierarchyScreenEvent.ListChooserResult -> {
         val targetProjectId = event.projectId?.takeUnless { it.isBlank() || it == "root" }
         when (val action = pendingChooserAction.value) {
           PendingChooserAction.MoveProject -> handleMoveConfirm(event.projectId)
@@ -397,10 +407,10 @@ constructor(
         }
         pendingChooserAction.value = null
       }
-      is MainScreenEvent.AddSubprojectRequest ->
+      is ProjectHierarchyScreenEvent.AddSubprojectRequest ->
         dialogUseCase.onAddSubprojectRequest(event.parentProject)
-      is MainScreenEvent.DeleteRequest -> dialogUseCase.onDeleteRequest(event.project)
-      is MainScreenEvent.MoveRequest -> {
+      is ProjectHierarchyScreenEvent.DeleteRequest -> dialogUseCase.onDeleteRequest(event.project)
+      is ProjectHierarchyScreenEvent.MoveRequest -> {
         viewModelScope.launch {
           val route = projectActionsUseCase.getMoveProjectRoute(event.project, _allProjectsFlat.value)
           savedStateHandle[PROJECT_BEING_MOVED_ID_KEY] = event.project.id
@@ -409,7 +419,7 @@ constructor(
           _uiEventChannel.send(ProjectUiEvent.Navigate(route))
         }
       }
-      is MainScreenEvent.DeleteConfirm -> {
+      is ProjectHierarchyScreenEvent.DeleteConfirm -> {
         viewModelScope.launch {
           projectActionsUseCase.onDeleteProjectConfirmed(
             event.project,
@@ -418,10 +428,10 @@ constructor(
           dialogUseCase.dismissDialog()
         }
       }
-      is MainScreenEvent.MoveConfirm -> {
+      is ProjectHierarchyScreenEvent.MoveConfirm -> {
         handleMoveConfirm(event.newParentId)
       }
-      is MainScreenEvent.FullImportConfirm -> {
+      is ProjectHierarchyScreenEvent.FullImportConfirm -> {
         viewModelScope.launch {
           val result = projectActionsUseCase.onFullImportConfirmed(event.uri)
           dialogUseCase.dismissDialog()
@@ -434,37 +444,37 @@ constructor(
           )
         }
       }
-      is MainScreenEvent.ShowAboutDialog -> dialogUseCase.onShowAboutDialog()
-      is MainScreenEvent.ImportFromFileRequest ->
+      is ProjectHierarchyScreenEvent.ShowAboutDialog -> dialogUseCase.onShowAboutDialog()
+      is ProjectHierarchyScreenEvent.ImportFromFileRequest ->
         dialogUseCase.onImportFromFileRequested(event.uri)
 
-      is MainScreenEvent.SelectiveImportFromFileRequest -> {
+      is ProjectHierarchyScreenEvent.SelectiveImportFromFileRequest -> {
         viewModelScope.launch {
           val encodedUri = URLEncoder.encode(event.uri.toString(), "UTF-8")
           _uiEventChannel.send(ProjectUiEvent.Navigate("selective_import_screen/$encodedUri"))
         }
       }
 
-      is MainScreenEvent.HomeClick -> onHomeClicked()
-      is MainScreenEvent.BackClick -> handleBackNavigation()
-      is MainScreenEvent.ForwardClick -> enhancedNavigationManager?.goForward()
-      is MainScreenEvent.HistoryClick -> enhancedNavigationManager?.showNavigationMenu()
-      is MainScreenEvent.HideHistory -> enhancedNavigationManager?.hideNavigationMenu()
+      is ProjectHierarchyScreenEvent.HomeClick -> onHomeClicked()
+      is ProjectHierarchyScreenEvent.BackClick -> handleBackNavigation()
+      is ProjectHierarchyScreenEvent.ForwardClick -> enhancedNavigationManager?.goForward()
+      is ProjectHierarchyScreenEvent.HistoryClick -> enhancedNavigationManager?.showNavigationMenu()
+      is ProjectHierarchyScreenEvent.HideHistory -> enhancedNavigationManager?.hideNavigationMenu()
 
-      is MainScreenEvent.BottomNavExpandedChange -> onBottomNavExpandedChange(event.isExpanded)
-      is MainScreenEvent.ShowRecentLists -> _showRecentListsSheet.value = true
-      is MainScreenEvent.DismissRecentLists -> _showRecentListsSheet.value = false
-      is MainScreenEvent.RecentItemSelected -> onRecentItemSelected(event.item)
-      is MainScreenEvent.RecentItemPinClick -> toggleRecentItemPin(event.item)
-      is MainScreenEvent.DayPlanClick -> onDayPlanClicked()
-      is MainScreenEvent.ContextSelected -> onContextSelected(event.name)
+      is ProjectHierarchyScreenEvent.BottomNavExpandedChange -> onBottomNavExpandedChange(event.isExpanded)
+      is ProjectHierarchyScreenEvent.ShowRecentLists -> _showRecentListsSheet.value = true
+      is ProjectHierarchyScreenEvent.DismissRecentLists -> _showRecentListsSheet.value = false
+      is ProjectHierarchyScreenEvent.RecentItemSelected -> onRecentItemSelected(event.item)
+      is ProjectHierarchyScreenEvent.RecentItemPinClick -> toggleRecentItemPin(event.item)
+      is ProjectHierarchyScreenEvent.DayPlanClick -> onDayPlanClicked()
+      is ProjectHierarchyScreenEvent.ContextSelected -> onContextSelected(event.name)
 
-      is MainScreenEvent.EditRequest -> {
+      is ProjectHierarchyScreenEvent.EditRequest -> {
         viewModelScope.launch {
           _uiEventChannel.send(ProjectUiEvent.NavigateToEditProjectScreen(event.project.id))
         }
       }
-      is MainScreenEvent.AddToDayPlanRequest -> {
+      is ProjectHierarchyScreenEvent.AddToDayPlanRequest -> {
         viewModelScope.launch {
           val today = System.currentTimeMillis()
           val dayPlan = dayManagementRepository.createOrUpdateDayPlan(today)
@@ -472,30 +482,30 @@ constructor(
           _uiEventChannel.send(ProjectUiEvent.ShowToast("Проект додано до плану дня"))
         }
       }
-      is MainScreenEvent.SetReminderRequest -> {
+      is ProjectHierarchyScreenEvent.SetReminderRequest -> {
         dialogUseCase.onSetReminderForProject(viewModelScope, event.project)
       }
-      is MainScreenEvent.FocusProject -> {
+      is ProjectHierarchyScreenEvent.FocusProject -> {
         viewModelScope.launch {
           searchUseCase.navigateToProject(event.project.id, uiState.value.projectHierarchy)
-          searchUseCase.pushSubState(MainSubState.ProjectFocused(event.project.id))
+          searchUseCase.pushSubState(ProjectHierarchyScreenSubState.ProjectFocused(event.project.id))
           dialogUseCase.dismissDialog()
         }
       }
-      is MainScreenEvent.GoToSettings -> {
+      is ProjectHierarchyScreenEvent.GoToSettings -> {
         viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.NavigateToSettings) }
       }
-      is MainScreenEvent.ShowSearchDialog -> _showSearchDialog.value = true
-      is MainScreenEvent.DismissSearchDialog -> _showSearchDialog.value = false
+      is ProjectHierarchyScreenEvent.ShowSearchDialog -> _showSearchDialog.value = true
+      is ProjectHierarchyScreenEvent.DismissSearchDialog -> _showSearchDialog.value = false
 
-      is MainScreenEvent.ShowWifiServerDialog -> if (uiState.value.featureToggles[FeatureFlag.WifiSync] == true) syncUseCase.onShowWifiServerDialog()
-      is MainScreenEvent.ShowWifiImportDialog -> if (uiState.value.featureToggles[FeatureFlag.WifiSync] == true) syncUseCase.onShowWifiImportDialog()
-      is MainScreenEvent.WifiPush -> {
+      is ProjectHierarchyScreenEvent.ShowWifiServerDialog -> if (uiState.value.featureToggles[FeatureFlag.WifiSync] == true) syncUseCase.onShowWifiServerDialog()
+      is ProjectHierarchyScreenEvent.ShowWifiImportDialog -> if (uiState.value.featureToggles[FeatureFlag.WifiSync] == true) syncUseCase.onShowWifiImportDialog()
+      is ProjectHierarchyScreenEvent.WifiPush -> {
         if (uiState.value.featureToggles[FeatureFlag.WifiSync] == true) {
           syncUseCase.performWifiPush(event.address)
         }
       }
-      is MainScreenEvent.ExportToFile ->
+      is ProjectHierarchyScreenEvent.ExportToFile ->
         viewModelScope.launch {
           val result = projectActionsUseCase.exportToFile()
           _uiEventChannel.send(
@@ -506,7 +516,7 @@ constructor(
             }
           )
         }
-      is MainScreenEvent.ExportAttachments -> {
+      is ProjectHierarchyScreenEvent.ExportAttachments -> {
           viewModelScope.launch {
               val result = projectActionsUseCase.exportAttachments()
               _uiEventChannel.send(
@@ -518,7 +528,7 @@ constructor(
               )
           }
       }
-      is MainScreenEvent.ImportAttachmentsFromFile -> {
+      is ProjectHierarchyScreenEvent.ImportAttachmentsFromFile -> {
           Log.d("SyncRepo_AttachmentsImport", "MainScreenViewModel received ImportAttachmentsFromFile event with uri=${event.uri}")
           viewModelScope.launch {
               Log.d("SyncRepo_AttachmentsImport", "Starting attachment import coroutine")
@@ -534,25 +544,25 @@ constructor(
               )
           }
       }
-      is MainScreenEvent.NavigateToChat -> {
+      is ProjectHierarchyScreenEvent.NavigateToChat -> {
         if (uiState.value.featureToggles[FeatureFlag.AiChat] == true) {
           viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate(CHAT_ROUTE)) }
         }
       }
-      is MainScreenEvent.NavigateToActivityTrackerScreen -> {
+      is ProjectHierarchyScreenEvent.NavigateToActivityTrackerScreen -> {
         viewModelScope.launch {
           _uiEventChannel.send(ProjectUiEvent.Navigate("activity_tracker_screen"))
         }
       }
       
-      is MainScreenEvent.NavigateToAiInsights -> {
+      is ProjectHierarchyScreenEvent.NavigateToAiInsights -> {
         if (uiState.value.featureToggles[FeatureFlag.AiInsights] == true) {
           viewModelScope.launch {
             _uiEventChannel.send(ProjectUiEvent.Navigate("ai_insights_screen"))
           }
         }
       }
-      is MainScreenEvent.NavigateToLifeState -> {
+      is ProjectHierarchyScreenEvent.NavigateToLifeState -> {
         if (uiState.value.featureToggles[FeatureFlag.AiLifeManagement] == true) {
           viewModelScope.launch {
             _uiEventChannel.send(ProjectUiEvent.Navigate(LIFE_STATE_ROUTE))
@@ -560,13 +570,13 @@ constructor(
         }
       }
 
-      is MainScreenEvent.NavigateToTacticsScreen -> {
+      is ProjectHierarchyScreenEvent.NavigateToTacticsScreen -> {
         viewModelScope.launch {
           _uiEventChannel.send(ProjectUiEvent.Navigate("tactical_management_screen"))
         }
       }
 
-      is MainScreenEvent.NavigateToStrategicManagement -> {
+      is ProjectHierarchyScreenEvent.NavigateToStrategicManagement -> {
         if (uiState.value.featureToggles[FeatureFlag.StrategicManagement] == true) {
           viewModelScope.launch {
             _uiEventChannel.send(ProjectUiEvent.NavigateToStrategicManagement)
@@ -574,18 +584,18 @@ constructor(
         }
       }
 
-      is MainScreenEvent.SaveSettings -> {
+      is ProjectHierarchyScreenEvent.SaveSettings -> {
         settingsUseCase.saveSettings(viewModelScope, event.settings)
       }
-      is MainScreenEvent.SaveAllContexts -> {
+      is ProjectHierarchyScreenEvent.SaveAllContexts -> {
         settingsUseCase.saveAllContexts(viewModelScope, event.updatedContexts)
       }
-      is MainScreenEvent.DismissWifiServerDialog -> if (uiState.value.featureToggles[FeatureFlag.WifiSync] == true) syncUseCase.onDismissWifiServerDialog()
-      is MainScreenEvent.DismissWifiImportDialog -> if (uiState.value.featureToggles[FeatureFlag.WifiSync] == true) syncUseCase.onDismissWifiImportDialog()
-      is MainScreenEvent.DesktopAddressChange ->
+      is ProjectHierarchyScreenEvent.DismissWifiServerDialog -> if (uiState.value.featureToggles[FeatureFlag.WifiSync] == true) syncUseCase.onDismissWifiServerDialog()
+      is ProjectHierarchyScreenEvent.DismissWifiImportDialog -> if (uiState.value.featureToggles[FeatureFlag.WifiSync] == true) syncUseCase.onDismissWifiImportDialog()
+      is ProjectHierarchyScreenEvent.DesktopAddressChange ->
         syncUseCase.onDesktopAddressChange(event.address)
-      is MainScreenEvent.PerformWifiImport -> if (uiState.value.featureToggles[FeatureFlag.WifiSync] == true) syncUseCase.performWifiImport(event.address)
-      is MainScreenEvent.AddProjectConfirm -> {
+      is ProjectHierarchyScreenEvent.PerformWifiImport -> if (uiState.value.featureToggles[FeatureFlag.WifiSync] == true) syncUseCase.performWifiImport(event.address)
+      is ProjectHierarchyScreenEvent.AddProjectConfirm -> {
         viewModelScope.launch {
           projectActionsUseCase.addNewProject(
             id = UUID.randomUUID().toString(),
@@ -596,34 +606,34 @@ constructor(
         }
         dialogUseCase.dismissDialog()
       }
-      is MainScreenEvent.CloseSearch -> searchUseCase.onCloseSearch()
-      is MainScreenEvent.NavigateToProject -> navigationUseCase.onNavigateToProject(viewModelScope, event.projectId)
-      is MainScreenEvent.CollapseAll -> navigationUseCase.onCollapseAll(viewModelScope)
-      is MainScreenEvent.UpdateLightTheme -> themingUseCase.updateLightTheme(viewModelScope, event.themeName)
-      is MainScreenEvent.UpdateDarkTheme -> themingUseCase.updateDarkTheme(viewModelScope, event.themeName)
-      is MainScreenEvent.UpdateThemeMode -> themingUseCase.updateThemeMode(viewModelScope, event.themeMode)
-      is MainScreenEvent.GoToReminders -> {
+      is ProjectHierarchyScreenEvent.CloseSearch -> searchUseCase.onCloseSearch()
+      is ProjectHierarchyScreenEvent.NavigateToProject -> navigationUseCase.onNavigateToProject(viewModelScope, event.projectId)
+      is ProjectHierarchyScreenEvent.CollapseAll -> navigationUseCase.onCollapseAll(viewModelScope)
+      is ProjectHierarchyScreenEvent.UpdateLightTheme -> themingUseCase.updateLightTheme(viewModelScope, event.themeName)
+      is ProjectHierarchyScreenEvent.UpdateDarkTheme -> themingUseCase.updateDarkTheme(viewModelScope, event.themeName)
+      is ProjectHierarchyScreenEvent.UpdateThemeMode -> themingUseCase.updateThemeMode(viewModelScope, event.themeMode)
+      is ProjectHierarchyScreenEvent.GoToReminders -> {
         viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate("reminders_screen")) }
       }
-      is MainScreenEvent.OpenAttachmentsLibrary -> {
+      is ProjectHierarchyScreenEvent.OpenAttachmentsLibrary -> {
         if (uiState.value.featureToggles[FeatureFlag.AttachmentsLibrary] == true) {
           viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate("attachments_library_screen")) }
         }
       }
-      is MainScreenEvent.AddScriptRequest -> {
+      is ProjectHierarchyScreenEvent.AddScriptRequest -> {
         if (uiState.value.featureToggles[FeatureFlag.ScriptsLibrary] == true) {
           viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate("script_editor_screen")) }
         }
       }
-      is MainScreenEvent.OpenScriptsLibrary -> {
+      is ProjectHierarchyScreenEvent.OpenScriptsLibrary -> {
         if (uiState.value.featureToggles[FeatureFlag.ScriptsLibrary] == true) {
           viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate("scripts_library_screen")) }
         }
       }
-      is MainScreenEvent.RevealProjectInHierarchy -> {
+      is ProjectHierarchyScreenEvent.RevealProjectInHierarchy -> {
         viewModelScope.launch { revealProject(event.projectId) }
       }
-      is MainScreenEvent.OpenInboxProject -> {
+      is ProjectHierarchyScreenEvent.OpenInboxProject -> {
         viewModelScope.launch {
           val inboxProject =
               _allProjectsFlat.value.firstOrNull { it.systemKey == ReservedProjectKeys.INBOX }
@@ -691,7 +701,7 @@ constructor(
                 projectRepository.getProjectById(item.target)?.let { recentItemsRepository.logProjectAccess(it) }
                 val project = _allProjectsFlat.value.find { it.id == item.target }
                 if (project != null) {
-                    searchUseCase.popToSubState(MainSubState.Hierarchy)
+                    searchUseCase.popToSubState(ProjectHierarchyScreenSubState.Hierarchy)
                     enhancedNavigationManager?.navigateToProject(item.target, project.name)
                 }
             }

@@ -16,7 +16,7 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbIt
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DropPosition
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.FlatHierarchyItem
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.HierarchyDisplaySettings
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenEvent
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenEvent
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
 
 import androidx.compose.animation.AnimatedVisibilityScope
@@ -38,7 +38,7 @@ fun ProjectHierarchyView(
     hierarchySettings: HierarchyDisplaySettings,
     listState: LazyListState,
     longDescendantsMap: Map<String, Boolean>,
-    onEvent: (MainScreenEvent) -> Unit,
+    onEvent: (ProjectHierarchyScreenEvent) -> Unit,
     
     onProjectClicked: (String) -> Unit,
     onToggleExpanded: (Project) -> Unit,

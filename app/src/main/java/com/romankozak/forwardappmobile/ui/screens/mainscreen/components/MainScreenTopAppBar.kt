@@ -53,7 +53,7 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.sync.WifiSyncStatus
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreenTopAppBar(
+fun ProjectHierarchyScreenTopAppBar(
     isSearchActive: Boolean,
     isFocusMode: Boolean,
     focusedProjectTitle: String?,

@@ -28,6 +28,7 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainSubState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenSubState
 
 @ViewModelScoped
 class SearchUseCase @Inject constructor(
@@ -76,7 +77,7 @@ class SearchUseCase @Inject constructor(
     val searchHistory: StateFlow<List<String>> =
         savedStateHandle.getStateFlow(SEARCH_HISTORY_KEY, emptyList())
 
-    private val _subStateStack = MutableStateFlow<List<MainSubState>>(listOf(MainSubState.Hierarchy))
+    private val _subStateStack = MutableStateFlow<List<MainSubState>>(listOf(ProjectHierarchyScreenSubState.Hierarchy))
     override val subStateStack = _subStateStack.asStateFlow()
 
     private fun initializeSearchState() {
@@ -112,14 +113,14 @@ class SearchUseCase @Inject constructor(
         savedStateHandle[ACTIVE_SEARCH_QUERY_TEXT_KEY] = query.text
         _searchQuery.value = query
         if (!isSearchActive()) {
-          pushSubState(MainSubState.LocalSearch(query.text))
+          pushSubState(ProjectHierarchyScreenSubState.LocalSearch(query.text))
         } else {
-          replaceCurrentSubState(MainSubState.LocalSearch(query.text))
+          replaceCurrentSubState(ProjectHierarchyScreenSubState.LocalSearch(query.text))
         }
     }
 
     fun onSearchQueryFromHistory(query: String) {
-        pushSubState(MainSubState.LocalSearch(query))
+        pushSubState(ProjectHierarchyScreenSubState.LocalSearch(query))
         onSearchQueryChanged(TextFieldValue(query, TextRange(query.length)))
         onToggleSearch(true)
     }
@@ -190,13 +191,13 @@ class SearchUseCase @Inject constructor(
     fun navigateToBreadcrumb(breadcrumbItem: BreadcrumbItem) {
         currentBreadcrumbs.update { it.take(breadcrumbItem.level + 1) }
         focusedProjectId.value = breadcrumbItem.id
-        replaceCurrentSubState(MainSubState.ProjectFocused(breadcrumbItem.id))
+        replaceCurrentSubState(ProjectHierarchyScreenSubState.ProjectFocused(breadcrumbItem.id))
     }
 
     fun clearNavigation() {
         focusedProjectId.value = null
         currentBreadcrumbs.value = emptyList()
-        popToSubState(MainSubState.Hierarchy)
+        popToSubState(ProjectHierarchyScreenSubState.Hierarchy)
     }
 
     private fun addSearchQueryToHistory(query: String) {
@@ -217,7 +218,7 @@ class SearchUseCase @Inject constructor(
 
     fun onCloseSearch() {
         onToggleSearch(false)
-        popToSubState(MainSubState.Hierarchy)
+        popToSubState(ProjectHierarchyScreenSubState.Hierarchy)
         clearNavigation()
         scope.launch { uiEventChannel.send(ProjectUiEvent.HideKeyboard) }
     }
@@ -283,17 +284,17 @@ class SearchUseCase @Inject constructor(
     }
 
     override fun isSearchActive(): Boolean {
-        return _subStateStack.value.any { it is MainSubState.LocalSearch }
+        return _subStateStack.value.any { it is ProjectHierarchyScreenSubState.LocalSearch }
     }
 
     fun handleBackNavigation(areAnyProjectsExpanded: Boolean, collapseAllProjects: () -> Unit, goBack: () -> Unit) {
         val currentStack = _subStateStack.value
         when {
-            currentStack.lastOrNull() is MainSubState.ProjectFocused -> {
+            currentStack.lastOrNull() is ProjectHierarchyScreenSubState.ProjectFocused -> {
                 popSubState()
                 clearNavigation()
             }
-            currentStack.lastOrNull() is MainSubState.LocalSearch -> {
+            currentStack.lastOrNull() is ProjectHierarchyScreenSubState.LocalSearch -> {
                 onCloseSearch()
             }
             currentBreadcrumbs.value.isNotEmpty() -> {
@@ -316,7 +317,7 @@ class SearchUseCase @Inject constructor(
 
                     when (val result = revealProjectInHierarchy(value)) {
                         is RevealResult.Success -> {
-                            pushSubState(MainSubState.ProjectFocused(value))
+                            pushSubState(ProjectHierarchyScreenSubState.ProjectFocused(value))
                             if (result.shouldFocus) {
                                 navigateToProject(
                                     result.projectId,
@@ -325,7 +326,7 @@ class SearchUseCase @Inject constructor(
                             } else {
                                 onProjectToReveal(result.projectId)
                                 if (isSearchActive()) {
-                                    popToSubState(MainSubState.Hierarchy)
+                                    popToSubState(ProjectHierarchyScreenSubState.Hierarchy)
                                 }
                             }
                         }
@@ -338,3 +339,5 @@ class SearchUseCase @Inject constructor(
         }
     }
 }
+
+typealias ProjectHierarchyScreenSearchUseCase = SearchUseCase

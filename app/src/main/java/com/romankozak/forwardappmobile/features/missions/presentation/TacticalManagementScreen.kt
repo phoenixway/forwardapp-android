@@ -7,6 +7,7 @@ import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,7 +26,8 @@ fun TacticalManagementScreen(
     viewModel: TacticalMissionViewModel = hiltViewModel()
 ) {
     val missions by viewModel.missions.collectAsState()
-    var showDialog by remember { mutableStateOf(false) }
+    var showAddDialog by remember { mutableStateOf(false) }
+    var editingMission by remember { mutableStateOf<TacticalMission?>(null) } // State for editing
 
     Scaffold(
         topBar = {
@@ -34,7 +36,7 @@ fun TacticalManagementScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { showDialog = true }) {
+            FloatingActionButton(onClick = { showAddDialog = true }) {
                 Icon(Icons.Default.Add, contentDescription = "Add Mission")
             }
         }
@@ -43,19 +45,36 @@ fun TacticalManagementScreen(
             missions = missions,
             onMissionToggled = { viewModel.toggleMissionCompleted(it) },
             onMissionDeleted = { viewModel.deleteMission(it.id) },
+            onMissionEdited = { mission -> editingMission = mission }, // Pass editing lambda
             modifier = Modifier.padding(padding)
         )
 
-        if (showDialog) {
+        if (showAddDialog) {
             AddMissionDialog(
-                onDismiss = { showDialog = false },
+                onDismiss = { showAddDialog = false },
                 onConfirm = { title, description, deadline ->
                     viewModel.addMission(
                         title = title,
                         description = description,
                         deadline = deadline
                     )
-                    showDialog = false
+                    showAddDialog = false
+                }
+            )
+        }
+
+        editingMission?.let { mission ->
+            EditMissionDialog(
+                mission = mission,
+                onDismiss = { editingMission = null },
+                onConfirm = { updatedTitle, updatedDescription, updatedDeadline ->
+                    viewModel.updateMission(
+                        id = mission.id,
+                        title = updatedTitle,
+                        description = updatedDescription,
+                        deadline = updatedDeadline
+                    )
+                    editingMission = null
                 }
             )
         }
@@ -69,7 +88,7 @@ fun AddMissionDialog(
 ) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var deadline by remember { mutableStateOf("") }
+    var deadline by remember { mutableStateOf(System.currentTimeMillis().toString()) } // Default to current time
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -79,17 +98,22 @@ fun AddMissionDialog(
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Title") }
+                    label = { Text("Title") },
+                    modifier = Modifier.fillMaxWidth()
                 )
+                Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Description") }
+                    label = { Text("Description") },
+                    modifier = Modifier.fillMaxWidth()
                 )
+                Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = deadline,
                     onValueChange = { deadline = it },
-                    label = { Text("Deadline (timestamp)") }
+                    label = { Text("Deadline (timestamp)") },
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         },
@@ -98,9 +122,66 @@ fun AddMissionDialog(
                 onClick = {
                     val deadlineLong = deadline.toLongOrNull() ?: System.currentTimeMillis()
                     onConfirm(title, description, deadlineLong)
-                }
+                },
+                enabled = title.isNotBlank()
             ) {
                 Text("Add")
+            }
+        },
+        dismissButton = {
+            Button(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+fun EditMissionDialog(
+    mission: TacticalMission,
+    onDismiss: () -> Unit,
+    onConfirm: (String, String, Long) -> Unit
+) {
+    var title by remember { mutableStateOf(mission.title) }
+    var description by remember { mutableStateOf(mission.description ?: "") }
+    var deadline by remember { mutableStateOf(mission.deadline.toString()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Mission") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Title") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Description") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = deadline,
+                    onValueChange = { deadline = it },
+                    label = { Text("Deadline (timestamp)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val deadlineLong = deadline.toLongOrNull() ?: System.currentTimeMillis()
+                    onConfirm(title, description, deadlineLong)
+                },
+                enabled = title.isNotBlank()
+            ) {
+                Text("Save")
             }
         },
         dismissButton = {
@@ -116,6 +197,7 @@ fun TacticalMissionList(
     missions: List<TacticalMission>,
     onMissionToggled: (TacticalMission) -> Unit,
     onMissionDeleted: (TacticalMission) -> Unit,
+    onMissionEdited: (TacticalMission) -> Unit, // New parameter
     modifier: Modifier = Modifier
 ) {
     LazyColumn(modifier = modifier.padding(8.dp)) {
@@ -123,7 +205,8 @@ fun TacticalMissionList(
             TacticalMissionItem(
                 mission = mission,
                 onMissionToggled = { onMissionToggled(mission) },
-                onMissionDeleted = { onMissionDeleted(mission) }
+                onMissionDeleted = { onMissionDeleted(mission) },
+                onMissionEdited = { onMissionEdited(mission) } // Pass through
             )
             HorizontalDivider()
         }
@@ -134,7 +217,8 @@ fun TacticalMissionList(
 fun TacticalMissionItem(
     mission: TacticalMission,
     onMissionToggled: () -> Unit,
-    onMissionDeleted: () -> Unit
+    onMissionDeleted: () -> Unit,
+    onMissionEdited: () -> Unit // New parameter
 ) {
     val isOverdue = System.currentTimeMillis() > mission.deadline && mission.status != MissionStatus.COMPLETED
     val itemColor = if (isOverdue) Color.Red.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface
@@ -173,8 +257,13 @@ fun TacticalMissionItem(
                     color = if (isOverdue) Color.Red else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
             }
-            IconButton(onClick = onMissionDeleted) {
-                Icon(Icons.Default.Delete, contentDescription = "Delete Mission")
+            Row { // Use a Row for multiple action icons
+                IconButton(onClick = onMissionEdited) { // Edit button
+                    Icon(Icons.Default.Edit, contentDescription = "Edit Mission")
+                }
+                IconButton(onClick = onMissionDeleted) { // Delete button
+                    Icon(Icons.Default.Delete, contentDescription = "Delete Mission")
+                }
             }
         }
     }

@@ -24,15 +24,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.ExpandingBottomNav
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.ExpandingProjectHierarchyBottomNav
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.ModernBottomNavButton
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.SearchResultsView
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy.BreadcrumbNavigation
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy.ProjectHierarchyView
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.HierarchyDisplaySettings
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenEvent
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenUiState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainSubState
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenEvent
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenUiState
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenSubState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
 
 
@@ -45,10 +45,10 @@ import androidx.compose.animation.SharedTransitionScope
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
-fun MainScreenContent(
+fun ProjectHierarchyScreenContent(
     modifier: Modifier = Modifier,
-    uiState: MainScreenUiState,
-    onEvent: (MainScreenEvent) -> Unit,
+    uiState: ProjectHierarchyScreenUiState,
+    onEvent: (ProjectHierarchyScreenEvent) -> Unit,
     listState: LazyListState,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
@@ -58,10 +58,12 @@ fun MainScreenContent(
         remember(uiState.subStateStack) {
             uiState.currentSubState
         }
+    
     val isSearchActive =
         remember(currentSubState) {
-            currentSubState is MainSubState.LocalSearch
+            currentSubState is ProjectHierarchyScreenSubState.LocalSearch
         }
+    
     val searchQuery =
         remember(uiState.searchQuery) {
             uiState.searchQuery.text
@@ -77,8 +79,8 @@ fun MainScreenContent(
             
             SearchResultsView(
                 results = uiState.searchResults,
-                onRevealClick = { onEvent(MainScreenEvent.SearchResultClick(it)) },
-                onOpenClick = { onEvent(MainScreenEvent.ProjectClick(it)) },
+                onRevealClick = { onEvent(ProjectHierarchyScreenEvent.SearchResultClick(it)) },
+                onOpenClick = { onEvent(ProjectHierarchyScreenEvent.ProjectClick(it)) },
             )
         } else {
             
@@ -94,11 +96,11 @@ fun MainScreenContent(
             ) {
                 BreadcrumbNavigation(
                     breadcrumbs = uiState.currentBreadcrumbs,
-                    onNavigate = { onEvent(MainScreenEvent.BreadcrumbNavigation(it)) },
-                    onClearNavigation = { onEvent(MainScreenEvent.ClearBreadcrumbNavigation) },
+                    onNavigate = { onEvent(ProjectHierarchyScreenEvent.BreadcrumbNavigation(it)) },
+                    onClearNavigation = { onEvent(ProjectHierarchyScreenEvent.ClearBreadcrumbNavigation) },
                     onFocusedListMenuClick = { projectId ->
                         uiState.projectHierarchy.allProjects.find { it.id == projectId }
-                            ?.let { onEvent(MainScreenEvent.ProjectMenuRequest(it)) }
+                            ?.let { onEvent(ProjectHierarchyScreenEvent.ProjectMenuRequest(it)) }
                     },
                 )
             }
@@ -144,7 +146,7 @@ fun MainScreenContent(
                     breadcrumbs = uiState.currentBreadcrumbs,
                     focusedProjectId =
                         when (currentSubState) {
-                            is MainSubState.ProjectFocused -> currentSubState.projectId
+                            is ProjectHierarchyScreenSubState.ProjectFocused -> currentSubState.projectId
                             else -> null
                         },
                     highlightedProjectId = null,
@@ -157,16 +159,16 @@ fun MainScreenContent(
                     onEvent = onEvent,
                     sharedTransitionScope = sharedTransitionScope,
                     animatedVisibilityScope = animatedVisibilityScope,
-                    onProjectClicked = { onEvent(MainScreenEvent.ProjectClick(it)) },
-                    onToggleExpanded = { onEvent(MainScreenEvent.ToggleProjectExpanded(it)) },
-                    onMenuRequested = { onEvent(MainScreenEvent.ProjectMenuRequest(it)) },
+                    onProjectClicked = { onEvent(ProjectHierarchyScreenEvent.ProjectClick(it)) },
+                    onToggleExpanded = { onEvent(ProjectHierarchyScreenEvent.ToggleProjectExpanded(it)) },
+                    onMenuRequested = { onEvent(ProjectHierarchyScreenEvent.ProjectMenuRequest(it)) },
                     onProjectReorder = { from, to, pos ->
-                        onEvent(MainScreenEvent.ProjectReorder(from, to, pos))
+                        onEvent(ProjectHierarchyScreenEvent.ProjectReorder(from, to, pos))
                     },
-                    onFocusProject = { onEvent(MainScreenEvent.FocusProject(it)) },
-                    onAddSubproject = { onEvent(MainScreenEvent.AddSubprojectRequest(it)) },
-                    onDeleteProject = { onEvent(MainScreenEvent.DeleteRequest(it)) },
-                    onEditProject = { onEvent(MainScreenEvent.EditRequest(it)) },
+                    onFocusProject = { onEvent(ProjectHierarchyScreenEvent.FocusProject(it)) },
+                    onAddSubproject = { onEvent(ProjectHierarchyScreenEvent.AddSubprojectRequest(it)) },
+                    onDeleteProject = { onEvent(ProjectHierarchyScreenEvent.DeleteRequest(it)) },
+                    onEditProject = { onEvent(ProjectHierarchyScreenEvent.EditRequest(it)) },
                 )
             }
         }
@@ -192,7 +194,7 @@ private fun StableHomeButton(
 
 
 @Composable
-internal fun OptimizedExpandingBottomNav(
+internal fun OptimizedExpandingProjectHierarchyBottomNav(
     onToggleSearch: (Boolean) -> Unit,
     onGlobalSearchClick: () -> Unit,
     currentMode: PlanningMode,
@@ -215,7 +217,7 @@ internal fun OptimizedExpandingBottomNav(
     onShowReminders: () -> Unit,
     onLifeStateClick: () -> Unit,
     onTacticsClick: () -> Unit,
-    onEvent: (MainScreenEvent) -> Unit,
+    onEvent: (ProjectHierarchyScreenEvent) -> Unit,
 ) {
     
     val stableOnHomeClick = remember { { onHomeClick() } }
@@ -225,7 +227,7 @@ internal fun OptimizedExpandingBottomNav(
     val stableOnActivityTrackerClick = remember { { onActivityTrackerClick() } }
 
     
-    ExpandingBottomNav(
+    ExpandingProjectHierarchyBottomNav(
         onToggleSearch = stableOnToggleSearch,
         onGlobalSearchClick = onGlobalSearchClick,
         currentMode = currentMode,

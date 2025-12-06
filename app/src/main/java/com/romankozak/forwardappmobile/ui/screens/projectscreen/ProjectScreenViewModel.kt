@@ -1683,10 +1683,10 @@ constructor(
       subStateStack =
         MutableStateFlow(
           listOf(
-            com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainSubState.Hierarchy
-          )
+            com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenSubState.Hierarchy,
+          ),
         ),
-      searchUseCase = searchUseCase, // This will be injected
+      searchUseCase = searchUseCase,
       planningModeManager =
         com.romankozak.forwardappmobile.ui.screens.mainscreen.state.PlanningModeManager(),
       enhancedNavigationManager = enhancedNavigationManager,

@@ -28,7 +28,7 @@ import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DropPosition
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.HierarchyDisplaySettings
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenEvent
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenEvent
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.flattenHierarchyWithLevels
 
@@ -49,7 +49,7 @@ fun FocusedProjectView(
     settings: HierarchyDisplaySettings,
     searchQuery: String,
     longDescendantsMap: Map<String, Boolean>,
-    onEvent: (MainScreenEvent) -> Unit,
+    onEvent: (ProjectHierarchyScreenEvent) -> Unit,
     onFocusProject: (Project) -> Unit,
     onAddSubproject: (Project) -> Unit,
     onDeleteProject: (Project) -> Unit,
@@ -79,12 +79,12 @@ fun FocusedProjectView(
                 Column(Modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
                     BreadcrumbNavigation(
                         breadcrumbs = breadcrumbs,
-                        onNavigate = { onEvent(MainScreenEvent.BreadcrumbNavigation(it)) },
-                        onClearNavigation = { onEvent(MainScreenEvent.ClearBreadcrumbNavigation) },
+                        onNavigate = { onEvent(ProjectHierarchyScreenEvent.BreadcrumbNavigation(it)) },
+                        onClearNavigation = { onEvent(ProjectHierarchyScreenEvent.ClearBreadcrumbNavigation) },
                         onFocusedListMenuClick = { projectId ->
                             hierarchy.allProjects
                                 .find { it.id == projectId }
-                                ?.let { onEvent(MainScreenEvent.ProjectMenuRequest(it)) }
+                                ?.let { onEvent(ProjectHierarchyScreenEvent.ProjectMenuRequest(it)) }
                         },
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))

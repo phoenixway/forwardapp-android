@@ -22,7 +22,7 @@ class AppNavigationViewModel
                 navigationManager = EnhancedNavigationManager(savedStateHandle, viewModelScope)
                 
                 
-                navigationManager.navigateToMainScreen(isInitial = true)
+                navigationManager.navigateToProjectHierarchyScreen(isInitial = true)
             }
         }
     }

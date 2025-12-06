@@ -28,3 +28,5 @@ sealed interface ProjectUiEvent {
     data class ScrollToIndex(val index: Int) : ProjectUiEvent
     data object NavigateToStrategicManagement : ProjectUiEvent
 }
+
+typealias ProjectHierarchyScreenProjectUiEvent = ProjectUiEvent

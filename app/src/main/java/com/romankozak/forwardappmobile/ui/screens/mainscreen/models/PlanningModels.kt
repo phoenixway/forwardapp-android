@@ -1,11 +1,13 @@
 package com.romankozak.forwardappmobile.ui.screens.mainscreen.models
 
-enum class PlanningMode {
+enum class ProjectHierarchyScreenPlanningMode {
     All,
     Today,
     Medium,
     Long
 }
+
+typealias PlanningMode = ProjectHierarchyScreenPlanningMode
 
 data class PlanningSettingsState(
     val showModes: Boolean = false,

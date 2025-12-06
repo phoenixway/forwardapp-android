@@ -65,7 +65,7 @@ fun NavigationHistoryMenu(
                         supportingContent = {
                             Text(
                                 when (entry.type) {
-                                    NavigationType.MAIN_SCREEN -> "Головний екран"
+                                    NavigationType.PROJECT_HIERARCHY_SCREEN -> "Головний екран"
                                     NavigationType.PROJECT_SCREEN -> "Проект"
                                     NavigationType.GLOBAL_SEARCH -> "Пошук"
                                     else -> entry.type.name
@@ -76,7 +76,7 @@ fun NavigationHistoryMenu(
                             Icon(
                                 imageVector =
                                     when (entry.type) {
-                                        NavigationType.MAIN_SCREEN -> Icons.Outlined.Home
+                                        NavigationType.PROJECT_HIERARCHY_SCREEN -> Icons.Outlined.Home
                                         NavigationType.PROJECT_SCREEN -> Icons.Outlined.Folder
                                         NavigationType.GLOBAL_SEARCH -> Icons.Outlined.Search
                                         else -> Icons.Outlined.Info

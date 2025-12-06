@@ -4,11 +4,11 @@ import android.util.Log
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.di.IoDispatcher
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainSubState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenSubState
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenPlanningMode
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectUiEvent
 
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.state.PlanningModeManager
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.state.ProjectHierarchyScreenPlanningModeManager
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -39,10 +39,10 @@ sealed class ClearResult {
 
 data class ClearExecutionContext(
     val currentProjects: List<Project>,
-    val subStateStack: StateFlow<List<MainSubState>>,
-    val searchUseCase: com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SearchUseCase,
-    val planningUseCase: com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.PlanningUseCase?,
-    val planningModeManager: com.romankozak.forwardappmobile.ui.screens.mainscreen.state.PlanningModeManager?,
+    val subStateStack: StateFlow<List<ProjectHierarchyScreenSubState>>,
+    val searchUseCase: com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.ProjectHierarchyScreenSearchUseCase,
+    val planningUseCase: com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.ProjectHierarchyScreenPlanningUseCase?,
+    val planningModeManager: com.romankozak.forwardappmobile.ui.screens.mainscreen.state.ProjectHierarchyScreenPlanningModeManager?,
     val enhancedNavigationManager: EnhancedNavigationManager?,
     val uiEventChannel: Channel<ProjectUiEvent>,
 )
@@ -120,7 +120,7 @@ class ClearAndNavigateHomeUseCase
         private suspend fun clearUIStateToHome(context: ClearExecutionContext) {
             withContext(Dispatchers.Main.immediate) {
                 Log.d(TAG, "Clearing UI state to home")
-                context.searchUseCase.popToSubState(MainSubState.Hierarchy)
+                context.searchUseCase.popToSubState(ProjectHierarchyScreenSubState.Hierarchy)
                 context.searchUseCase.clearAllSearchState()
                 context.searchUseCase.clearNavigation()
             }
@@ -136,7 +136,7 @@ class ClearAndNavigateHomeUseCase
 
         private suspend fun resetSubStateToHierarchy(context: ClearExecutionContext) {
             withContext(Dispatchers.Main.immediate) {
-                context.searchUseCase.popToSubState(MainSubState.Hierarchy)
+                context.searchUseCase.popToSubState(ProjectHierarchyScreenSubState.Hierarchy)
             }
         }
 
@@ -157,10 +157,10 @@ class ClearAndNavigateHomeUseCase
             withContext(Dispatchers.Main.immediate) {
                 Log.d(TAG, "Resetting planning mode to default")
                 context.planningUseCase?.let {
-                    it.onPlanningModeChange(PlanningMode.All)
+                    it.onPlanningModeChange(ProjectHierarchyScreenPlanningMode.All)
                     it.planningModeManager.resetExpansionStates()
                 } ?: context.planningModeManager?.let {
-                    it.changeMode(PlanningMode.All)
+                    it.changeMode(ProjectHierarchyScreenPlanningMode.All)
                     it.resetExpansionStates()
                 }
             }
@@ -220,10 +220,10 @@ class ClearAndNavigateHomeUseCase
 
 fun createClearExecutionContext(
     currentProjects: List<Project>,
-    subStateStack: StateFlow<List<MainSubState>>,
-    searchUseCase: com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SearchUseCase,
-    planningUseCase: com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.PlanningUseCase? = null,
-    planningModeManager: com.romankozak.forwardappmobile.ui.screens.mainscreen.state.PlanningModeManager? = null,
+    subStateStack: StateFlow<List<ProjectHierarchyScreenSubState>>,
+    searchUseCase: com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.ProjectHierarchyScreenSearchUseCase,
+    planningUseCase: com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.ProjectHierarchyScreenPlanningUseCase? = null,
+    planningModeManager: com.romankozak.forwardappmobile.ui.screens.mainscreen.state.ProjectHierarchyScreenPlanningModeManager? = null,
     enhancedNavigationManager: EnhancedNavigationManager?,
     uiEventChannel: Channel<ProjectUiEvent>,
 ): ClearExecutionContext =

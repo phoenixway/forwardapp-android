@@ -41,7 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenEvent
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenEvent
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
 
 @Composable
@@ -239,7 +239,7 @@ internal fun MoreActionsBottomNavButton(
 }
 
 @Composable
-internal fun ExpandingBottomNav(
+internal fun ExpandingProjectHierarchyBottomNav(
     onToggleSearch: (Boolean) -> Unit,
     onGlobalSearchClick: () -> Unit,
     currentMode: PlanningMode,
@@ -263,7 +263,7 @@ internal fun ExpandingBottomNav(
     onShowReminders: () -> Unit,
     onLifeStateClick: () -> Unit,
     onTacticsClick: () -> Unit, // Added
-    onEvent: (MainScreenEvent) -> Unit,
+    onEvent: (ProjectHierarchyScreenEvent) -> Unit,
 ) {
     var showMoreMenu by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
@@ -302,7 +302,7 @@ internal fun ExpandingBottomNav(
                     SmallBottomNavButton(
                         text = "Inbox",
                         icon = Icons.Outlined.Inbox,
-                        onClick = { onEvent(MainScreenEvent.OpenInboxProject) },
+                        onClick = { onEvent(ProjectHierarchyScreenEvent.OpenInboxProject) },
                     )
                     SmallBottomNavButton(
                         text = "Contexts",
@@ -312,7 +312,7 @@ internal fun ExpandingBottomNav(
                     SmallBottomNavButton(
                         text = "Tracker",
                         icon = Icons.Outlined.TrackChanges,
-                        onClick = { onEvent(MainScreenEvent.NavigateToActivityTrackerScreen) },
+                        onClick = { onEvent(ProjectHierarchyScreenEvent.NavigateToActivityTrackerScreen) },
                     )
                     MoreActionsBottomNavButton(
                         onInsightsClick = onInsightsClick,

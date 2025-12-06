@@ -8,19 +8,21 @@ import kotlinx.parcelize.Parcelize
 
 
 @Parcelize
-sealed class MainSubState : Parcelable {
+sealed class ProjectHierarchyScreenSubState : Parcelable {
     
     @Parcelize
-    data object Hierarchy : MainSubState()
+    data object Hierarchy : ProjectHierarchyScreenSubState()
 
     
     @Parcelize
-    data class LocalSearch(val query: String) : MainSubState()
+    data class LocalSearch(val query: String) : ProjectHierarchyScreenSubState()
 
     
     @Parcelize
-    data class ProjectFocused(val projectId: String) : MainSubState()
+    data class ProjectFocused(val projectId: String) : ProjectHierarchyScreenSubState()
 }
+
+typealias MainSubState = ProjectHierarchyScreenSubState
 
 
 data class AppStatistics2(
@@ -60,6 +62,7 @@ sealed class DialogState {
     data class WifiImport(val currentAddress: String) : DialogState()
 }
 
+typealias ProjectHierarchyScreenDialogState = DialogState
 
 enum class DropPosition2 {
     ABOVE,

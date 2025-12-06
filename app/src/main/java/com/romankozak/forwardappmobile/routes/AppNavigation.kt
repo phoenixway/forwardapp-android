@@ -37,9 +37,9 @@ import com.romankozak.forwardappmobile.ui.screens.insights.AiInsightsScreen
 import com.romankozak.forwardappmobile.ui.screens.inbox.InboxEditorScreen
 import com.romankozak.forwardappmobile.ui.screens.listchooser.FilterableListChooserScreen
 import com.romankozak.forwardappmobile.ui.screens.listchooser.FilterableListChooserViewModel
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.MainScreen
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.MainScreenViewModel
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenEvent
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.ProjectHierarchyScreen
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.ProjectHierarchyScreenViewModel
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenEvent
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.EditTaskScreen
 import com.romankozak.forwardappmobile.ui.screens.note.NoteEditorScreen
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
@@ -122,13 +122,13 @@ private fun NavGraphBuilder.mainGraph(
             remember(backStackEntry) {
                 navController.getBackStackEntry(MAIN_GRAPH_ROUTE)
             }
-        val viewModel: MainScreenViewModel = hiltViewModel(parentEntry)
+        val viewModel: ProjectHierarchyScreenViewModel = hiltViewModel(parentEntry)
 
         viewModel.enhancedNavigationManager = appNavigationViewModel.navigationManager
 
 
 
-        MainScreen(
+        ProjectHierarchyScreen(
             navController = navController,
             syncDataViewModel = syncDataViewModel,
             viewModel = viewModel,
@@ -210,7 +210,7 @@ private fun NavGraphBuilder.mainGraph(
             remember(backStackEntry) {
                 navController.getBackStackEntry(MAIN_GRAPH_ROUTE)
             }
-        val goalListViewModel: MainScreenViewModel = hiltViewModel(parentEntry)
+        val goalListViewModel: ProjectHierarchyScreenViewModel = hiltViewModel(parentEntry)
 
         val uiState by goalListViewModel.uiState.collectAsStateWithLifecycle()
         val reservedContextCount = uiState.allContexts.count { it.isReserved }
@@ -225,7 +225,7 @@ private fun NavGraphBuilder.mainGraph(
             onBack = { navController.popBackStack() },
             onSave = { settings ->
                 goalListViewModel.onEvent(
-                    MainScreenEvent.SaveSettings(settings)
+                    ProjectHierarchyScreenEvent.SaveSettings(settings)
                 )
             },
         )
@@ -236,7 +236,7 @@ private fun NavGraphBuilder.mainGraph(
             remember(backStackEntry) {
                 navController.getBackStackEntry(MAIN_GRAPH_ROUTE)
             }
-        val goalListViewModel: MainScreenViewModel = hiltViewModel(parentEntry)
+        val goalListViewModel: ProjectHierarchyScreenViewModel = hiltViewModel(parentEntry)
 
         val uiState by goalListViewModel.uiState.collectAsStateWithLifecycle()
 
@@ -244,7 +244,7 @@ private fun NavGraphBuilder.mainGraph(
             initialContexts = uiState.allContexts,
             onBack = { navController.popBackStack() },
             onSave = { updatedContexts ->
-                goalListViewModel.onEvent(MainScreenEvent.SaveAllContexts(updatedContexts))
+                goalListViewModel.onEvent(ProjectHierarchyScreenEvent.SaveAllContexts(updatedContexts))
                 navController.popBackStack()
             },
         )

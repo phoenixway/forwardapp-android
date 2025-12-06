@@ -56,6 +56,20 @@ class TacticalMissionViewModel @Inject constructor(
         }
     }
 
+    fun updateMission(id: Long, title: String, description: String?, deadline: Long) {
+        viewModelScope.launch {
+            val existingMission = _missions.value.find { it.id == id }
+            if (existingMission != null) {
+                val updatedMission = existingMission.copy(
+                    title = title,
+                    description = description,
+                    deadline = deadline
+                )
+                updateTacticalMissionUseCase(updatedMission)
+            }
+        }
+    }
+
     fun updateMission(mission: TacticalMission) {
         viewModelScope.launch {
             updateTacticalMissionUseCase(mission)
