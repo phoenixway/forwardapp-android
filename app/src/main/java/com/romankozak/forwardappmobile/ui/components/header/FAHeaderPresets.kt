@@ -45,6 +45,13 @@ fun TodayHeader(): HeaderLayout {
                         fontWeight = FontWeight.Bold
                     )
                 )
+                Text(
+                    text = "Action Mode",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 0.3.sp,
+                    color = primaryColor.copy(alpha = 0.7f)
+                )
             }
         },
 

@@ -168,6 +168,8 @@ fun SharedCommandDeckLayout(
             )
         }
 
+        Spacer(Modifier.height(8.dp))
+
         CommandDeckTabRow(
             tabs = tabs,
             selectedTabIndex = selectedTabIndex,
@@ -191,6 +193,8 @@ fun SharedCommandDeckLayout(
                 }
             }
         )
+
+        Spacer(Modifier.height(16.dp))
 
         NavHost(
             navController = innerNavController,
@@ -316,7 +320,7 @@ private fun CommandDeckTabRow(
     LazyRow(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 4.dp),
+            .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
         contentPadding = PaddingValues(horizontal = 12.dp)
     ) {
@@ -404,7 +408,7 @@ fun CommandDeckTabItem(
                 text = tab.symbol,
                 fontSize = symbolFontSize, // Use dynamic font size
                 fontWeight = FontWeight.Bold,
-                color = if (isSelected) accent else Color(0xFFBBBBBB),
+                color = if (isSelected) accent else MaterialTheme.colorScheme.onSurface,
                 modifier = if (tab == CommandDeckTab.Tactics || tab == CommandDeckTab.StrategicArc) {
                     Modifier.offset(y = (-2).dp) // Apply a small upward offset
                 } else {
@@ -419,7 +423,7 @@ fun CommandDeckTabItem(
                 text = tab.title,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Medium,
-                color = accent
+                color = MaterialTheme.colorScheme.primary
             )
         }
     }

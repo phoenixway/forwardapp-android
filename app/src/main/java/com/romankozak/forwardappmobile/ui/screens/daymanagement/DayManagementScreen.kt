@@ -104,7 +104,7 @@ fun DayManagementScreen(
     contentWindowInsets = WindowInsets(0, 0, 0, 0),
     snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
     bottomBar = {
-      if (uiState.dayPlanId != null) {
+      if (uiState.dayPlanId != null && tabs[pagerState.currentPage] != DayManagementTab.PLAN) {
         DayManagementBottomNav(
           currentTab = tabs[pagerState.currentPage],
           onTabSelected = { tab ->

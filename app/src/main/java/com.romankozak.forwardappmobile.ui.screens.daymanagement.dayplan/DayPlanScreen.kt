@@ -240,52 +240,54 @@ fun DayPlanScreen(
             ErrorState(error = uiState.error!!, onRetry = { viewModel.loadDataForPlan(dayPlanId) })
           }
           else -> {
-            val tasks = uiState.tasks
-            val totalPointsEarned = tasks.filter { it.dayTask.completed }.sumOf { it.dayTask.points.coerceAtLeast(0) }
-            val totalPointsAvailable = tasks.sumOf { it.dayTask.points.coerceAtLeast(0) }
-            val completedTasksCount = tasks.count { it.dayTask.completed }
-            val totalTasksCount = tasks.size
+            Column(modifier = Modifier.fillMaxSize()) {
+                val tasks = uiState.tasks
+                val totalPointsEarned = tasks.filter { it.dayTask.completed }.sumOf { it.dayTask.points.coerceAtLeast(0) }
+                val totalPointsAvailable = tasks.sumOf { it.dayTask.points.coerceAtLeast(0) }
+                val completedTasksCount = tasks.count { it.dayTask.completed }
+                val totalTasksCount = tasks.size
 
-            CompactDayPlanHeader(
-                dayPlan = uiState.dayPlan,
-                totalPointsEarned = totalPointsEarned,
-                totalPointsAvailable = totalPointsAvailable,
-                bestCompletedPoints = uiState.bestCompletedPoints,
-                completedTasks = completedTasksCount,
-                totalTasks = totalTasksCount,
-                onNavigateToPreviousDay = { viewModel.navigateToPreviousDay() },
-                onNavigateToNextDay = { viewModel.navigateToNextDay() },
-                isNextDayNavigationEnabled = !uiState.isToday,
-                onSettingsClick = onNavigateToSettings,
-                onAddTaskClick = { viewModel.openAddTaskDialog() },
-            )
+                CompactDayPlanHeader(
+                    dayPlan = uiState.dayPlan,
+                    totalPointsEarned = totalPointsEarned,
+                    totalPointsAvailable = totalPointsAvailable,
+                    bestCompletedPoints = uiState.bestCompletedPoints,
+                    completedTasks = completedTasksCount,
+                    totalTasks = totalTasksCount,
+                    onNavigateToPreviousDay = { viewModel.navigateToPreviousDay() },
+                    onNavigateToNextDay = { viewModel.navigateToNextDay() },
+                    isNextDayNavigationEnabled = !uiState.isToday,
+                    onSettingsClick = onNavigateToSettings,
+                    onAddTaskClick = { viewModel.openAddTaskDialog() },
+                )
 
-            TaskList(
-              tasks = tasks,
-              onTaskLongPress = { taskWithReminder -> viewModel.onTaskLongPressed(taskWithReminder) },
-              onTasksReordered = { reorderedList ->
-                uiState.dayPlan?.let { dayPlan ->
-                  viewModel.updateTasksOrder(dayPlan.id, reorderedList)
-                }
-              },
-              onToggleTask = { taskId -> viewModel.toggleTaskCompletion(taskId) },
-              onSublistClick = onNavigateToProject,
-              modifier = Modifier.fillMaxSize(),
-              onParentInfoClick = { parentInfo ->
-                  when (parentInfo.type) {
-                      ParentType.PROJECT -> {
-                          navController.navigate("goal_detail_screen/${parentInfo.id}")
-                      }
-                      ParentType.GOAL -> {
-                          parentInfo.projectId?.let { listId ->
-                              navController.navigate("goal_detail_screen/${listId}?goalId=${parentInfo.id}")
-                          } ?: run {
-                              Log.e(TAG, "Goal parentInfo has null projectId for goalId: ${parentInfo.id}")
+                TaskList(
+                  tasks = tasks,
+                  onTaskLongPress = { taskWithReminder -> viewModel.onTaskLongPressed(taskWithReminder) },
+                  onTasksReordered = { reorderedList ->
+                    uiState.dayPlan?.let { dayPlan ->
+                      viewModel.updateTasksOrder(dayPlan.id, reorderedList)
+                    }
+                  },
+                  onToggleTask = { taskId -> viewModel.toggleTaskCompletion(taskId) },
+                  onSublistClick = onNavigateToProject,
+                  modifier = Modifier.fillMaxSize(),
+                  onParentInfoClick = { parentInfo ->
+                      when (parentInfo.type) {
+                          ParentType.PROJECT -> {
+                              navController.navigate("goal_detail_screen/${parentInfo.id}")
+                          }
+                          ParentType.GOAL -> {
+                              parentInfo.projectId?.let { listId ->
+                                  navController.navigate("goal_detail_screen/${listId}?goalId=${parentInfo.id}")
+                              } ?: run {
+                                  Log.e(TAG, "Goal parentInfo has null projectId for goalId: ${parentInfo.id}")
+                              }
                           }
                       }
-                  }
-              },
-            )
+                  },
+                )
+            }
           }
         }
 
