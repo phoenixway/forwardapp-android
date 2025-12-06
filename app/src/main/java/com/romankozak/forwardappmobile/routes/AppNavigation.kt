@@ -138,6 +138,12 @@ private fun NavGraphBuilder.mainGraph(
             },
             onNavigateToSettings = {
                 navController.navigate("settings_screen")
+            },
+            onNavigateToInbox = {
+                navController.navigate("inbox_editor_screen")
+            },
+            onNavigateToAIChat = {
+                navController.navigate(AI_INSIGHTS_ROUTE)
             }
         )
     }

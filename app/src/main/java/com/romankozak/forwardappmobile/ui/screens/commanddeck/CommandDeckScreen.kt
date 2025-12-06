@@ -48,6 +48,14 @@ fun CommandDeckScreen(
     onNavigateToTacticalManagement: () -> Unit,
     onNavigateToGlobalSearch: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToInbox: () -> Unit,
+    onNavigateToTracker: () -> Unit,
+    onNavigateToReminders: () -> Unit,
+    onNavigateToAiChat: () -> Unit,
+    onNavigateToAiLifeManagement: () -> Unit,
+    onNavigateToImportExport: () -> Unit,
+    onNavigateToAttachments: () -> Unit,
+    onNavigateToScripts: () -> Unit,
 ) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabs = CommandDeckTab.entries
@@ -115,7 +123,15 @@ fun CommandDeckScreen(
                     CommandDeckTab.Core -> CoreTabContent(
                         onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
                         onNavigateToGlobalSearch = onNavigateToGlobalSearch,
-                        onNavigateToSettings = onNavigateToSettings
+                        onNavigateToSettings = onNavigateToSettings,
+                        onNavigateToInbox = onNavigateToInbox,
+                        onNavigateToTracker = onNavigateToTracker,
+                        onNavigateToReminders = onNavigateToReminders,
+                        onNavigateToAiChat = onNavigateToAiChat,
+                        onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
+                        onNavigateToImportExport = onNavigateToImportExport,
+                        onNavigateToAttachments = onNavigateToAttachments,
+                        onNavigateToScripts = onNavigateToScripts,
                     )
                     CommandDeckTab.Strategy -> PlaceholderContent("Strategy")
                     CommandDeckTab.Tactics -> PlaceholderContent("Tactics")
@@ -131,18 +147,82 @@ private fun CoreTabContent(
     onNavigateToProjectHierarchy: () -> Unit,
     onNavigateToGlobalSearch: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToInbox: () -> Unit,
+    onNavigateToTracker: () -> Unit,
+    onNavigateToReminders: () -> Unit,
+    onNavigateToAiChat: () -> Unit,
+    onNavigateToAiLifeManagement: () -> Unit,
+    onNavigateToImportExport: () -> Unit,
+    onNavigateToAttachments: () -> Unit,
+    onNavigateToScripts: () -> Unit,
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
             text = "Quick Actions",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        CommandDeckActionCard(
+            title = "Inbox",
+            subtitle = "View your inbox",
+            icon = Icons.Outlined.Inbox,
+            onClick = onNavigateToInbox
+        )
+
+        CommandDeckActionCard(
+            title = "Tracker",
+            subtitle = "Track your activities",
+            icon = Icons.Outlined.Analytics,
+            onClick = onNavigateToTracker
+        )
+
+        CommandDeckActionCard(
+            title = "Reminders",
+            subtitle = "View your reminders",
+            icon = Icons.Outlined.Notifications,
+            onClick = onNavigateToReminders
+        )
+
+        CommandDeckActionCard(
+            title = "AI Chat",
+            subtitle = "Chat with AI",
+            icon = Icons.Outlined.Chat,
+            onClick = onNavigateToAiChat
+        )
+
+        CommandDeckActionCard(
+            title = "AI Life Management",
+            subtitle = "Manage your life with AI",
+            icon = Icons.Outlined.AutoAwesome,
+            onClick = onNavigateToAiLifeManagement
+        )
+
+        CommandDeckActionCard(
+            title = "Import/Export",
+            subtitle = "Import or export data",
+            icon = Icons.Outlined.ImportExport,
+            onClick = onNavigateToImportExport
+        )
+
+        CommandDeckActionCard(
+            title = "Attachments",
+            subtitle = "View your attachments",
+            icon = Icons.Outlined.AttachFile,
+            onClick = onNavigateToAttachments
+        )
+
+        CommandDeckActionCard(
+            title = "Scripts",
+            subtitle = "Run your scripts",
+            icon = Icons.Outlined.Code,
+            onClick = onNavigateToScripts
         )
 
         CommandDeckActionCard(
@@ -191,7 +271,7 @@ private fun CommandDeckActionCard(
             Icon(
                 imageVector = icon,
                 contentDescription = title,
-                modifier = Modifier.size(32.dp),
+                modifier = Modifier.size(28.dp),
                 tint = MaterialTheme.colorScheme.primary
             )
             Column(modifier = Modifier.weight(1f)) {
@@ -238,7 +318,7 @@ private fun CommandDeckTabRow(
             .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
             .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         tabs.forEachIndexed { index, tab ->
             val isSelected = selectedTabIndex == index
@@ -282,7 +362,7 @@ private fun CommandDeckTabItem(
                        else MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (isSelected) {
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = tab.title,
                     style = MaterialTheme.typography.labelLarge,
