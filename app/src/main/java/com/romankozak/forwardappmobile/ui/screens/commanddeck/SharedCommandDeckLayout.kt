@@ -47,11 +47,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+
+import androidx.compose.foundation.layout.PaddingValues
+
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanViewModel
+
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -82,8 +90,6 @@ import com.romankozak.forwardappmobile.features.missions.presentation.TacticalMa
 import com.romankozak.forwardappmobile.ui.screens.strategicmanagement.StrategicManagementScreen
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.layout.PaddingValues
-
 import androidx.hilt.navigation.compose.hiltViewModel
 
 import kotlinx.coroutines.launch
@@ -109,12 +115,14 @@ fun SharedCommandDeckLayout(
     onNavigateToImportExport: () -> Unit,
     onNavigateToAttachments: () -> Unit,
     onNavigateToScripts: () -> Unit,
+    dayPlanViewModel: DayPlanViewModel = hiltViewModel(),
 ) {
     val tabs = CommandDeckTab.entries.toList()
     val innerNavController = rememberNavController()
 
     val navBackStackEntry by innerNavController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    val dayPlanUiState by dayPlanViewModel.uiState.collectAsState()
 
     val selectedTabIndex = remember(currentRoute) {
         tabs.indexOfFirst { tab ->
@@ -150,7 +158,15 @@ fun SharedCommandDeckLayout(
                 backgroundStyle = FAHeaderBackground.CommandDeck
             )
 
-            COMMAND_DECK_TODAY_ROUTE -> FAHeader(layout = TodayHeader(), backgroundStyle = FAHeaderBackground.CommandDeck)
+            COMMAND_DECK_TODAY_ROUTE -> FAHeader(
+                layout = TodayHeader(
+                    onNavigateToPreviousDay = { dayPlanViewModel.navigateToPreviousDay() },
+                    onNavigateToNextDay = { dayPlanViewModel.navigateToNextDay() },
+                    isNextDayNavigationEnabled = !dayPlanUiState.isToday,
+                    date = dayPlanUiState.dayPlan?.date
+                ),
+                backgroundStyle = FAHeaderBackground.CommandDeck
+            )
 
             STRATEGIC_MANAGEMENT_ROUTE -> FAHeader(
                 layout = StrategyHeader(onModeClick = {}),

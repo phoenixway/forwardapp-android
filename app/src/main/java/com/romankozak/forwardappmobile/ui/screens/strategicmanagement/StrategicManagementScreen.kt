@@ -26,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -61,7 +62,7 @@ fun StrategicManagementScreen(
       )
     },
   ) { paddingValues ->
-    Column(modifier = Modifier.padding(paddingValues)) {
+    Column(modifier = Modifier.fillMaxSize()) { // Removed padding(paddingValues) here
       if (uiState.isLoading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
           CircularProgressIndicator()
@@ -79,6 +80,7 @@ fun StrategicManagementScreen(
               onRevealProject = { projectId ->
                 mainScreenViewModel.onEvent(ProjectHierarchyScreenEvent.RevealProjectInHierarchy(projectId))
               },
+              scaffoldPadding = paddingValues, // Pass paddingValues here
             )
           }
 
@@ -99,16 +101,9 @@ private fun DashboardContent(
   projects: List<Project>,
   navController: NavController,
   onRevealProject: (String) -> Unit,
+  scaffoldPadding: PaddingValues, // New parameter for Scaffold's padding
+  modifier: Modifier = Modifier,
 ) {
-  val motivationalPhrases = listOf(
-      "The secret of getting ahead is getting started.",
-      "The best time to plant a tree was 20 years ago. The second best time is now.",
-      "It’s not whether you get knocked down, it’s whether you get up.",
-      "The harder you work for something, the greater you’ll feel when you achieve it.",
-      "Dream bigger. Do bigger."
-  )
-  val randomPhrase = remember { motivationalPhrases.random() }
-
   val (missionProjects, otherProjects) = remember(projects) {
       projects.partition { it.tags?.contains("mission") == true }
   }
@@ -116,39 +111,32 @@ private fun DashboardContent(
       missionProjects + otherProjects
   }
 
-  Column(
-    modifier =
-      Modifier.fillMaxSize().padding(horizontal = 20.dp).padding(top = 24.dp, bottom = 16.dp)
+  LazyColumn(
+    modifier = modifier
+      .fillMaxSize() // Fills the available space given by its parent (the Column in StrategicManagementScreen)
+      .padding(horizontal = 20.dp), // Applies horizontal padding to the whole scrollable area
+    contentPadding = PaddingValues(top = scaffoldPadding.calculateTopPadding(), bottom = scaffoldPadding.calculateBottomPadding()), // Applies Scaffold's top/bottom insets as content padding
+    verticalArrangement = Arrangement.spacedBy(12.dp)
   ) {
-    Text(
-      text = "Dashboard",
-      style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-      color = MaterialTheme.colorScheme.onBackground,
-    )
+    item {
+      Text(
+        text = "Key Steps",
+        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+        color = MaterialTheme.colorScheme.onBackground,
+        modifier = Modifier.padding(bottom = 8.dp),
+      )
+    }
 
-    Spacer(modifier = Modifier.height(24.dp))
-
-    Text(
-        text = randomPhrase,
-        style = MaterialTheme.typography.titleMedium,
-        modifier = Modifier.padding(vertical = 16.dp)
-    )
-
-    Spacer(modifier = Modifier.height(32.dp))
-
-    Text(
-      text = "Key Steps",
-      style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
-      color = MaterialTheme.colorScheme.onBackground,
-      modifier = Modifier.padding(bottom = 16.dp),
-    )
-
-    ProjectsLazyColumn(
-      projects = sortedProjects,
-      navController = navController,
-      onRevealProject = onRevealProject,
-      modifier = Modifier.fillMaxWidth(),
-    )
+    items(sortedProjects) { project ->
+      ProjectListItem(
+          project = project,
+          onItemClick = { navController.navigate("goal_detail_screen/${project.id}") },
+          onRevealClick = {
+              onRevealProject(project.id)
+              navController.popBackStack()
+          }
+      )
+    }
   }
 }
 
