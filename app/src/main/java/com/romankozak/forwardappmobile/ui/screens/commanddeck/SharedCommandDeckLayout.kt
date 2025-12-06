@@ -73,6 +73,7 @@ import androidx.navigation.compose.rememberNavController
 import com.romankozak.forwardappmobile.routes.STRATEGIC_MANAGEMENT_ROUTE
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckHeaderPreset
 import com.romankozak.forwardappmobile.ui.components.header.FAHeader
+import com.romankozak.forwardappmobile.ui.components.header.FAHeaderBackground
 import com.romankozak.forwardappmobile.ui.components.header.StrategicArcHeader
 import com.romankozak.forwardappmobile.ui.components.header.StrategyHeader
 import com.romankozak.forwardappmobile.ui.components.header.TodayHeader
@@ -83,12 +84,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.layout.PaddingValues
 
-import androidx.compose.runtime.collectAsState
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanViewModel
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanUiState
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.DayManagementViewModel // Import DayManagementViewModel
-import com.romankozak.forwardappmobile.ui.components.header.FAHeaderBackground
 
 import kotlinx.coroutines.launch
 
@@ -133,12 +129,7 @@ fun SharedCommandDeckLayout(
         }.coerceAtLeast(0)
     }
 
-    val dayPlanViewModel: DayPlanViewModel? =
-        if (currentRoute == COMMAND_DECK_TODAY_ROUTE) hiltViewModel() else null
-    val dayPlanUiState by dayPlanViewModel?.uiState?.collectAsState() ?: mutableStateOf(DayPlanUiState())
-    val dayManagementViewModel: com.romankozak.forwardappmobile.ui.screens.daymanagement.DayManagementViewModel =
-        hiltViewModel()
-    val dayManagementUiState by dayManagementViewModel.uiState.collectAsState()
+
 
     Column(
         modifier = Modifier
@@ -159,30 +150,7 @@ fun SharedCommandDeckLayout(
                 backgroundStyle = FAHeaderBackground.CommandDeck
             )
 
-            COMMAND_DECK_TODAY_ROUTE -> {
-                LaunchedEffect(dayManagementUiState.dayPlanId) {
-                    dayManagementUiState.dayPlanId?.let { planId ->
-                        dayPlanViewModel?.loadDataForPlan(planId)
-                    }
-                }
-                FAHeader(
-                    layout = TodayHeader(
-                        dayPlan = dayPlanUiState.dayPlan,
-                        totalPointsEarned = dayPlanUiState.tasks
-                            .filter { it.dayTask.completed }
-                            .sumOf { it.dayTask.points.coerceAtLeast(0) },
-                        totalPointsAvailable = dayPlanUiState.tasks
-                            .sumOf { it.dayTask.points.coerceAtLeast(0) },
-                        bestCompletedPoints = dayPlanUiState.bestCompletedPoints,
-                        completedTasks = dayPlanUiState.tasks.count { it.dayTask.completed },
-                        totalTasks = dayPlanUiState.tasks.size,
-                        onNavigateToPreviousDay = { dayPlanViewModel?.navigateToPreviousDay() },
-                        onNavigateToNextDay = { dayPlanViewModel?.navigateToNextDay() },
-                        isNextDayNavigationEnabled = !dayPlanUiState.isToday,
-                    ),
-                    backgroundStyle = FAHeaderBackground.CommandDeck
-                )
-            }
+            COMMAND_DECK_TODAY_ROUTE -> FAHeader(layout = TodayHeader(), backgroundStyle = FAHeaderBackground.CommandDeck)
 
             STRATEGIC_MANAGEMENT_ROUTE -> FAHeader(
                 layout = StrategyHeader(onModeClick = {}),
@@ -199,8 +167,6 @@ fun SharedCommandDeckLayout(
                 backgroundStyle = FAHeaderBackground.CommandDeck
             )
         }
-
-        Spacer(Modifier.height(12.dp))
 
         CommandDeckTabRow(
             tabs = tabs,
@@ -225,8 +191,6 @@ fun SharedCommandDeckLayout(
                 }
             }
         )
-
-        Spacer(Modifier.height(12.dp))
 
         NavHost(
             navController = innerNavController,
@@ -278,13 +242,8 @@ fun SharedCommandDeckLayout(
             composable(COMMAND_DECK_TACTICS_ROUTE) {
                 TacticalManagementScreen()
             }
-            composable(COMMAND_DECK_TODAY_ROUTE) { backStackEntry ->
-                val dayPlanViewModelScoped: DayPlanViewModel = hiltViewModel(backStackEntry)
-                DayManagementScreen(
-                    mainNavController = navController,
-                    startTab = "PLAN",
-                    dayPlanViewModel = dayPlanViewModelScoped
-                )
+            composable(COMMAND_DECK_TODAY_ROUTE) {
+                DayManagementScreen(mainNavController = navController, startTab = "PLAN")
             }
         }
     }
@@ -357,7 +316,7 @@ private fun CommandDeckTabRow(
     LazyRow(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(top = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
         contentPadding = PaddingValues(horizontal = 12.dp)
     ) {

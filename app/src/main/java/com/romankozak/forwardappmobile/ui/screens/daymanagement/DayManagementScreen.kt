@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.ui.screens.daymanagement
 import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -41,7 +42,7 @@ import com.romankozak.forwardappmobile.ui.components.header.TodayHeader
 
 import androidx.compose.foundation.layout.Column
 
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanViewModel // Add import
+
 
 
 enum class DayManagementTab(val title: String, val icon: ImageVector, val description: String) {
@@ -58,7 +59,6 @@ fun DayManagementScreen(
   viewModel: DayManagementViewModel = hiltViewModel(),
   modifier: Modifier = Modifier,
   startTab: String? = null,
-  dayPlanViewModel: DayPlanViewModel = hiltViewModel(),
 ) {
 
   val TAG = "NAV_DEBUG" // Тег для логування
@@ -100,6 +100,8 @@ fun DayManagementScreen(
 
   Scaffold(
     modifier = modifier.fillMaxSize(),
+    containerColor = Color.Transparent,
+    contentWindowInsets = WindowInsets(0, 0, 0, 0),
     snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
     bottomBar = {
       if (uiState.dayPlanId != null) {
@@ -121,7 +123,7 @@ fun DayManagementScreen(
       }
     },
   ) { innerPadding ->
-    Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+    Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
 
       Box(modifier = Modifier.fillMaxSize()) {
         when {

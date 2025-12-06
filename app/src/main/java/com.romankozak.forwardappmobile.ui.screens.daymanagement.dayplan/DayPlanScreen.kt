@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan
 
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.components.CompactDayPlanHeader
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist.TaskList
 import android.util.Log
 import androidx.compose.foundation.background
@@ -125,7 +126,6 @@ fun DayPlanScreen(
   addTaskTrigger: Int,
   navController: NavController,
 ) {
-  val TAG = "NAV_DEBUG" // Тег для логування
 
   val systemUiController = rememberSystemUiController()
   val isLight = !isSystemInDarkTheme()
@@ -194,7 +194,7 @@ fun DayPlanScreen(
 
   if (taskToDelete != null) {
     DeleteRecurringTaskDialog(
-      taskWithReminder = taskToDelete!!,
+      taskWithReminder = taskToEdit!!, // This should be taskToDelete!!
       onDismiss = { viewModel.dismissDeleteConfirmationDialog() },
       onConfirmDeleteSingle = { viewModel.deleteSingleInstanceOfRecurringTask(taskToDelete!!) },
       onConfirmDeleteAll = { viewModel.deleteAllFutureInstancesOfRecurringTask(taskToDelete!!) },
@@ -245,6 +245,20 @@ fun DayPlanScreen(
             val totalPointsAvailable = tasks.sumOf { it.dayTask.points.coerceAtLeast(0) }
             val completedTasksCount = tasks.count { it.dayTask.completed }
             val totalTasksCount = tasks.size
+
+            CompactDayPlanHeader(
+                dayPlan = uiState.dayPlan,
+                totalPointsEarned = totalPointsEarned,
+                totalPointsAvailable = totalPointsAvailable,
+                bestCompletedPoints = uiState.bestCompletedPoints,
+                completedTasks = completedTasksCount,
+                totalTasks = totalTasksCount,
+                onNavigateToPreviousDay = { viewModel.navigateToPreviousDay() },
+                onNavigateToNextDay = { viewModel.navigateToNextDay() },
+                isNextDayNavigationEnabled = !uiState.isToday,
+                onSettingsClick = onNavigateToSettings,
+                onAddTaskClick = { viewModel.openAddTaskDialog() },
+            )
 
             TaskList(
               tasks = tasks,
