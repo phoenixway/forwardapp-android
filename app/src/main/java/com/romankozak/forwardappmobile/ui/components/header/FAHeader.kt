@@ -83,15 +83,23 @@ fun FAHeader(
                         shape = RoundedCornerShape(20.dp)
                     )
                     .padding(horizontal = 20.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                // Left slot
                 Box(
                     modifier = Modifier.weight(1f),
                     contentAlignment = Alignment.CenterStart
                 ) { config.left?.invoke() }
 
+                // Center slot
                 Box(
+                    modifier = Modifier.weight(3f), // Give more weight to the center
+                    contentAlignment = Alignment.Center
+                ) { config.center?.invoke() }
+
+                // Right slot
+                Box(
+                    modifier = Modifier.weight(1f),
                     contentAlignment = Alignment.CenterEnd
                 ) { config.right?.invoke() }
             }

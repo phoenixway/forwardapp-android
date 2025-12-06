@@ -41,6 +41,9 @@ import com.romankozak.forwardappmobile.ui.components.header.TodayHeader
 
 import androidx.compose.foundation.layout.Column
 
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanViewModel // Add import
+
+
 enum class DayManagementTab(val title: String, val icon: ImageVector, val description: String) {
   TRACK("Трекер", Icons.Outlined.Timeline, "Відстежувати активність"),
   PLAN("План", Icons.AutoMirrored.Filled.ListAlt, "Створити та керувати завданнями"),
@@ -55,6 +58,7 @@ fun DayManagementScreen(
   viewModel: DayManagementViewModel = hiltViewModel(),
   modifier: Modifier = Modifier,
   startTab: String? = null,
+  dayPlanViewModel: DayPlanViewModel = hiltViewModel(),
 ) {
 
   val TAG = "NAV_DEBUG" // Тег для логування

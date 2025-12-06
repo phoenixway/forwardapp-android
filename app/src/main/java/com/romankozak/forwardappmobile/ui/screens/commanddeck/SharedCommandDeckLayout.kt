@@ -78,6 +78,16 @@ import com.romankozak.forwardappmobile.ui.components.header.TodayHeader
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.DayManagementScreen
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
 import com.romankozak.forwardappmobile.ui.screens.strategicmanagement.StrategicManagementScreen
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.layout.PaddingValues
+
+import androidx.compose.runtime.collectAsState
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanViewModel
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanUiState
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.DayManagementViewModel // Import DayManagementViewModel
+
 import kotlinx.coroutines.launch
 
 const val COMMAND_DECK_DASHBOARD_ROUTE = "command_deck_dashboard"
@@ -120,6 +130,11 @@ fun SharedCommandDeckLayout(
         }.coerceAtLeast(0)
     }
 
+    val dayPlanViewModel: DayPlanViewModel? = if (currentRoute == COMMAND_DECK_TODAY_ROUTE) hiltViewModel() else null
+    val dayPlanUiState by dayPlanViewModel?.uiState?.collectAsState() ?: mutableStateOf(DayPlanUiState())
+    val dayManagementViewModel: com.romankozak.forwardappmobile.ui.screens.daymanagement.DayManagementViewModel = hiltViewModel()
+    val dayManagementUiState by dayManagementViewModel.uiState.collectAsState()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -135,7 +150,26 @@ fun SharedCommandDeckLayout(
     ) {
         when (currentRoute) {
             COMMAND_DECK_DASHBOARD_ROUTE -> FAHeader(config = CommandDeckHeaderPreset())
-            COMMAND_DECK_TODAY_ROUTE -> FAHeader(config = TodayHeader())
+            COMMAND_DECK_TODAY_ROUTE -> {
+                LaunchedEffect(dayManagementUiState.dayPlanId) {
+                    dayManagementUiState.dayPlanId?.let { planId ->
+                        dayPlanViewModel?.loadDataForPlan(planId)
+                    }
+                }
+                FAHeader(
+                    config = TodayHeader(
+                        dayPlan = dayPlanUiState.dayPlan,
+                        totalPointsEarned = dayPlanUiState.tasks.filter { it.dayTask.completed }.sumOf { it.dayTask.points.coerceAtLeast(0) },
+                        totalPointsAvailable = dayPlanUiState.tasks.sumOf { it.dayTask.points.coerceAtLeast(0) },
+                        bestCompletedPoints = dayPlanUiState.bestCompletedPoints,
+                        completedTasks = dayPlanUiState.tasks.count { it.dayTask.completed },
+                        totalTasks = dayPlanUiState.tasks.size,
+                        onNavigateToPreviousDay = { dayPlanViewModel?.navigateToPreviousDay() },
+                        onNavigateToNextDay = { dayPlanViewModel?.navigateToNextDay() },
+                        isNextDayNavigationEnabled = !dayPlanUiState.isToday,
+                    )
+                )
+            }
             STRATEGIC_MANAGEMENT_ROUTE -> FAHeader(config = StrategyHeader(onModeClick = {}))
             COMMAND_DECK_STRATEGIC_ARC_ROUTE -> FAHeader(config = StrategicArcHeader(onModeClick = {}))
             else -> FAHeader(config = CommandDeckHeaderPreset())
@@ -217,8 +251,9 @@ fun SharedCommandDeckLayout(
             composable(COMMAND_DECK_TACTICS_ROUTE) {
                 TacticalManagementScreen()
             }
-            composable(COMMAND_DECK_TODAY_ROUTE) {
-                DayManagementScreen(mainNavController = navController, startTab = "PLAN")
+            composable(COMMAND_DECK_TODAY_ROUTE) { backStackEntry ->
+                val dayPlanViewModel: com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanViewModel = hiltViewModel(backStackEntry)
+                DayManagementScreen(mainNavController = navController, startTab = "PLAN", dayPlanViewModel = dayPlanViewModel)
             }
         }
     }
@@ -287,24 +322,14 @@ private fun CommandDeckTabRow(
     selectedTabIndex: Int,
     onTabSelected: (Int) -> Unit,
 ) {
-    val scrollState = rememberScrollState()
-    val coroutineScope = rememberCoroutineScope()
-
-    LaunchedEffect(selectedTabIndex) {
-        val tabWidth = 130f
-        val target = (selectedTabIndex * tabWidth) - (scrollState.maxValue / 2f) + tabWidth / 2
-        coroutineScope.launch {
-            scrollState.animateScrollTo(target.toInt().coerceAtLeast(0))
-        }
-    }
-
-    Row(
+    LazyRow(
         modifier = Modifier
-            .horizontalScroll(scrollState)
-            .padding(horizontal = 12.dp, vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.Center,
+        contentPadding = PaddingValues(horizontal = 12.dp)
     ) {
-        tabs.forEachIndexed { index, tab ->
+        itemsIndexed(tabs) { index, tab ->
             CommandDeckTabItem(
                 tab = tab,
                 isSelected = index == selectedTabIndex,
@@ -313,6 +338,7 @@ private fun CommandDeckTabRow(
         }
     }
 }
+
 
 // TAB COLORS
 fun tabAccentColor(tab: CommandDeckTab): Color {
@@ -335,93 +361,71 @@ fun CommandDeckTabItem(
     modifier: Modifier = Modifier
 ) {
     val accent = tabAccentColor(tab)
-    val coroutineScope = rememberCoroutineScope()
 
     val glowAlpha by animateFloatAsState(
-        targetValue = if (isSelected) 0.32f else 0f,
-        animationSpec = tween(600),
+        targetValue = if (isSelected) 0.18f else 0f,
+        animationSpec = tween(450),
         label = "glow"
     )
 
-    val shimmer = remember { Animatable(0f) }
-
-    LaunchedEffect(isSelected) {
-        if (isSelected) {
-            coroutineScope.launch {
-                shimmer.animateTo(
-                    1f,
-                    animationSpec = tween(durationMillis = 1100)
-                )
-                shimmer.snapTo(0f)
-            }
-        }
-    }
-
     val scale by animateFloatAsState(
-        targetValue = if (isSelected) 1.10f else 1f,
-        animationSpec = spring(dampingRatio = 0.60f, stiffness = 300f),
+        targetValue = if (isSelected) 1.05f else 1f,
+        animationSpec = spring(dampingRatio = 0.75f, stiffness = 320f),
         label = "scale"
-    )
-
-    val waveBrush = Brush.linearGradient(
-        colors = listOf(
-            Color.Transparent,
-            accent.copy(alpha = 0.40f),
-            Color.Transparent
-        ),
-        start = Offset(x = -220f + shimmer.value * 440f, y = 0f),
-        end = Offset(x = shimmer.value * 440f, y = 0f)
     )
 
     Row(
         modifier = modifier
             .scale(scale)
-            .clip(RoundedCornerShape(38.dp))
+            .clip(RoundedCornerShape(26.dp))
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        accent.copy(alpha = 0.12f + glowAlpha),
-                        accent.copy(alpha = 0.04f * glowAlpha),
-                        Color.Transparent
+                        accent.copy(alpha = 0.10f + glowAlpha),
+                        accent.copy(alpha = 0.03f)
                     )
                 )
             )
-            .drawBehind {
-                if (isSelected) {
-                    drawRect(
-                        brush = waveBrush,
-                        size = size,
-                        alpha = 0.85f
-                    )
-                }
-            }
             .border(
-                width = if (isSelected) 1.8.dp else 1.dp,
-                color = if (isSelected) accent else Color(0xFF444444),
-                shape = RoundedCornerShape(38.dp)
+                width = if (isSelected) 1.4.dp else 0.8.dp,
+                color = accent.copy(alpha = if (isSelected) 0.9f else 0.45f),
+                shape = RoundedCornerShape(26.dp)
             )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 8.dp),
+            .clickable { onClick() }
+            .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = tab.symbol,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            color = if (isSelected) accent else Color(0xFFAAAAAA)
-        )
+        // ------------------------
+        // UNIFIED CIRCLE ICON AREA
+        // ------------------------
+        Box(
+            modifier = Modifier
+                .size(24.dp)            // <-- ВСІ ІКОНКИ У ЄДИНОМУ КРУЗІ
+                .clip(CircleShape)
+                .background(accent.copy(alpha = if (isSelected) 0.22f else 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = tab.symbol,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (isSelected) accent else Color(0xFFBBBBBB)
+            )
+        }
 
         if (isSelected) {
             Spacer(Modifier.width(6.dp))
             Text(
                 text = tab.title,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Medium,
                 color = accent
             )
         }
     }
 }
+
+
 
 // MODULE CARD
 @Composable

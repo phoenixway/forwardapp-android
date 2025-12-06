@@ -56,7 +56,7 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.DayPlan
 import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.TaskPriority
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.CompactDayPlanHeader
+
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayTaskWithReminder
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
@@ -66,21 +66,10 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 @Composable
 fun TaskList(
     tasks: List<DayTaskWithReminder>,
-    dayPlan: DayPlan?,
-    totalPointsEarned: Int,
-    totalPointsAvailable: Int,
-    bestCompletedPoints: Int,
-    completedTasks: Int,
-    totalTasks: Int,
     onTaskLongPress: (DayTaskWithReminder) -> Unit,
     onTasksReordered: (List<DayTaskWithReminder>) -> Unit,
     onToggleTask: (String) -> Unit,
-    onNavigateToPreviousDay: () -> Unit,
-    onNavigateToNextDay: () -> Unit,
-    isNextDayNavigationEnabled: Boolean,
-    onAddTaskClick: () -> Unit,
     onSublistClick: (String) -> Unit,
-    onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
     onParentInfoClick: (ParentInfo) -> Unit,
 ) {
@@ -97,24 +86,12 @@ fun TaskList(
     }
 
     Column(modifier = modifier.fillMaxSize()) {
-        CompactDayPlanHeader(
-            dayPlan = dayPlan,
-            totalPointsEarned = totalPointsEarned,
-            totalPointsAvailable = totalPointsAvailable,
-            bestCompletedPoints = bestCompletedPoints,
-            completedTasks = completedTasks,
-            totalTasks = totalTasks,
-            onNavigateToPreviousDay = onNavigateToPreviousDay,
-            onNavigateToNextDay = onNavigateToNextDay,
-            isNextDayNavigationEnabled = isNextDayNavigationEnabled,
-            onSettingsClick = onSettingsClick,
-            onAddTaskClick = onAddTaskClick,
-        )
+
 
         if (internalTasks.isEmpty()) {
             EmptyTasksState(
                 modifier = Modifier.weight(1f),
-                onAddTaskClick = onAddTaskClick,
+
             )
         } else {
             LazyColumn(
@@ -154,7 +131,6 @@ fun TaskList(
 @Composable
 private fun EmptyTasksState(
     modifier: Modifier = Modifier,
-    onAddTaskClick: () -> Unit,
 ) {
     Column(
         modifier = modifier.fillMaxSize().padding(24.dp),
@@ -180,9 +156,6 @@ private fun EmptyTasksState(
             textAlign = TextAlign.Center,
         )
         Spacer(modifier = Modifier.height(24.dp))
-        FilledTonalButton(onClick = onAddTaskClick) {
-            Text("Додати перше завдання")
-        }
     }
 }
 
