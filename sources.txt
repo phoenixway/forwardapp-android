@@ -1,1270 +1,1025 @@
 TABLE OF CONTENTS
 ================================================================================
 
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/daymanagement/dayplan/DayPlanScreen.kt](##<<FILE_1>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/daymanagement/dayplan/tasklist/TaskList.kt](##<<FILE_2>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeader.kt](##<<FILE_1>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderConfig.kt](##<<FILE_2>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderPresets.kt](##<<FILE_3>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderTokens.kt](##<<FILE_4>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderUtils.kt](##<<FILE_5>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/HeaderModeCapsule.kt](##<<FILE_6>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/SharedCommandDeckLayout.kt](##<<FILE_7>>)
 
 ================================================================================
 
 ## <<FILE_1>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/daymanagement/dayplan/DayPlanScreen.kt (ID: FILE_1)
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeader.kt (ID: FILE_1)
 ================================================================================
 
-package com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan
+package com.romankozak.forwardappmobile.ui.components.header
 
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist.TaskList
-import android.util.Log
-import androidx.compose.foundation.background
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.AnimatedVisibility
-
-import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.outlined.ListAlt
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.Checklist
-import androidx.compose.material.icons.outlined.CloudOff
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.VerticalAlignTop
-import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.Today
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
-import com.google.accompanist.systemuicontroller.rememberSystemUiController
-import com.romankozak.forwardappmobile.data.database.models.DayPlan
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.ParentType
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.ParentInfo
-import com.romankozak.forwardappmobile.data.database.models.DayTask
-import com.romankozak.forwardappmobile.data.database.models.Goal
-import com.romankozak.forwardappmobile.data.database.models.ListItem
-import com.romankozak.forwardappmobile.data.database.models.ListItemContent
-import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
-import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
-import com.romankozak.forwardappmobile.data.database.models.TaskPriority
-import com.romankozak.forwardappmobile.ui.common.MatrixRainView
-import com.romankozak.forwardappmobile.ui.reminders.dialogs.ReminderPropertiesDialog
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist.AddTaskDialog
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist.EditTaskDialog
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.GoalItem
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
-import kotlinx.coroutines.delay
-import sh.calvin.reorderable.ReorderableLazyListState
-import kotlin.math.roundToInt
-import kotlin.math.max
 
-val TAG = "NAV_DEBUG" // Тег для логування
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalAnimationApi::class)
 @Composable
-private fun ErrorState(error: String, onRetry: () -> Unit, modifier: Modifier = Modifier) {
-  Column(
-    modifier = modifier.fillMaxSize().padding(24.dp),
-    horizontalAlignment = Alignment.CenterHorizontally,
-    verticalArrangement = Arrangement.Center,
-  ) {
-    Icon(
-      Icons.Outlined.CloudOff,
-      contentDescription = null,
-      modifier = Modifier.size(64.dp),
-      tint = MaterialTheme.colorScheme.error,
-    )
-    Spacer(modifier = Modifier.height(16.dp))
-    Text(
-      text = "Помилка завантаження",
-      style = MaterialTheme.typography.titleMedium,
-      textAlign = TextAlign.Center,
-      color = MaterialTheme.colorScheme.onSurface,
-    )
-    Text(
-      text = error,
-      style = MaterialTheme.typography.bodyMedium,
-      textAlign = TextAlign.Center,
-      color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-    Spacer(modifier = Modifier.height(16.dp))
-    Button(onClick = onRetry) { Text("Спробувати ще раз") }
-  }
-}
-
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-fun CompactDayPlanHeader(
-    dayPlan: DayPlan?,
-    totalPointsEarned: Int,
-    totalPointsAvailable: Int,
-    bestCompletedPoints: Int,
-    completedTasks: Int,
-    totalTasks: Int,
-    onNavigateToPreviousDay: () -> Unit,
-    onNavigateToNextDay: () -> Unit,
-    isNextDayNavigationEnabled: Boolean,
+fun FAHeader(
+    config: FAHeaderConfig,
+    modifier: Modifier = Modifier
 ) {
-    val colorScheme = MaterialTheme.colorScheme
-    val primaryColor = colorScheme.primary
     val glowAlpha by animateFloatAsState(
         targetValue = 0.15f,
         animationSpec = tween(2000),
         label = "header_glow"
     )
-    val formattedDate =
-        remember(dayPlan?.date) {
-            dayPlan?.date?.let { dateMillis ->
-                val formatter = DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale.forLanguageTag("uk"))
-                Instant.ofEpochMilli(dateMillis).atZone(ZoneId.systemDefault()).format(formatter)
-            } ?: "План дня"
-        }
-    val progress =
-        remember(totalPointsEarned, totalPointsAvailable) {
-            if (totalPointsAvailable > 0) {
-                (totalPointsEarned.toFloat() / totalPointsAvailable.toFloat()).coerceIn(0f, 1f)
-            } else {
-                0f
-            }
-        }
-    val pointsLabel =
-        buildString {
-            val bestDayPoints = max(bestCompletedPoints, totalPointsEarned)
-            append(totalPointsEarned)
-            append(" / ")
-            append(totalPointsAvailable)
-            append(" / ")
-            append(bestDayPoints)
-            append(" балів")
-        }
-    val tasksLabel =
-        if (totalTasks > 0) {
-            "$completedTasks / $totalTasks задач"
-        } else {
-            "Завдань поки немає"
-        }
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(
-                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 12.dp,
-                start = 16.dp,
-                end = 16.dp,
-                bottom = 4.dp
+    val backgroundModifier = when (config.backgroundStyle) {
+        FAHeaderBackground.Default -> Modifier.background(color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
+        FAHeaderBackground.Transparent -> Modifier.background(color = MaterialTheme.colorScheme.surface.copy(alpha = 0f))
+        FAHeaderBackground.Elevated -> Modifier.background(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+        FAHeaderBackground.Gradient -> Modifier.background(
+            brush = Brush.verticalGradient(
+                listOf(
+                    MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                    MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+                )
             )
-    ) {
-        Row(
+        )
+        FAHeaderBackground.CommandDeck -> Modifier.background(
+            brush = Brush.horizontalGradient(
+                colors = listOf(
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.08f + glowAlpha),
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.03f),
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.08f + glowAlpha)
+                )
+            )
+        )
+    }
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Spacer(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp))
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            primaryColor.copy(alpha = 0.08f + glowAlpha),
-                            primaryColor.copy(alpha = 0.03f),
-                            primaryColor.copy(alpha = 0.08f + glowAlpha)
-                        )
-                    )
+                .height(WindowInsets.statusBars.asPaddingValues().calculateTopPadding())
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    top = 8.dp,
+                    start = 16.dp,
+                    end = 16.dp,
+                    bottom = 4.dp
                 )
-                .border(
-                    width = 1.dp,
-                    brush = Brush.horizontalGradient(
-                        colors = listOf(
-                            primaryColor.copy(alpha = 0.3f),
-                            primaryColor.copy(alpha = 0.1f),
-                            primaryColor.copy(alpha = 0.3f)
-                        )
-                    ),
-                    shape = RoundedCornerShape(20.dp)
-                )
-                .padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onNavigateToPreviousDay) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Попередній день",
-                )
-            }
-            Column(
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.CenterHorizontally,
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(80.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .then(backgroundModifier)
+                    .border(
+                        width = 1.dp,
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                            )
+                        ),
+                        shape = RoundedCornerShape(20.dp)
+                    )
+                    .padding(horizontal = 20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text =
-                    formattedDate.replaceFirstChar {
-                        if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString()
-                    },
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    textAlign = TextAlign.Center,
-                    color = colorScheme.onSurface,
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-                    verticalArrangement = Arrangement.Center,
-                ) {
-                    HeaderInfoChip(
-                        icon = Icons.Filled.CheckCircle,
-                        text = pointsLabel,
-                        contentColor = colorScheme.primary,
-                    )
-                    HeaderInfoChip(
-                        icon = Icons.Outlined.Checklist,
-                        text = tasksLabel,
-                        contentColor = colorScheme.onSurface,
-                    )
-                }
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.CenterStart
+                ) { config.left?.invoke() }
 
-                if (totalPointsAvailable > 0) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    LinearProgressIndicator(
-                        progress = { progress },
-                        modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
-                        trackColor = colorScheme.surfaceVariant,
-                        color = colorScheme.primary,
-                    )
-                }
-            }
-            IconButton(onClick = onNavigateToNextDay, enabled = isNextDayNavigationEnabled) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = "Наступний день",
-                    tint =
-                    if (isNextDayNavigationEnabled) {
-                        colorScheme.onSurface
-                    } else {
-                        colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                    },
-                )
+                Box(
+                    contentAlignment = Alignment.CenterEnd
+                ) { config.right?.invoke() }
             }
         }
     }
-}
-
-@Composable
-private fun HeaderInfoChip(icon: ImageVector, text: String, contentColor: Color) {
-  Surface(
-    color = contentColor.copy(alpha = 0.12f),
-    contentColor = contentColor,
-    shape = RoundedCornerShape(12.dp),
-    tonalElevation = 0.dp,
-    shadowElevation = 0.dp,
-  ) {
-    Row(
-      modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-      verticalAlignment = Alignment.CenterVertically,
-      horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-      Icon(
-        icon,
-        contentDescription = null,
-        modifier = Modifier.size(14.dp),
-        tint = contentColor,
-      )
-      Text(
-        text = text,
-        style = MaterialTheme.typography.labelMedium,
-        fontWeight = FontWeight.Medium,
-      )
-    }
-  }
-}
-
-@Composable
-fun DayPlanScreen(
-  dayPlanId: String,
-  modifier: Modifier = Modifier,
-  viewModel: DayPlanViewModel = hiltViewModel(),
-  onNavigateToProject: (projectId: String) -> Unit,
-  onNavigateToBacklog: (task: DayTask) -> Unit,
-  onNavigateToSettings: () -> Unit,
-  addTaskTrigger: Int,
-  navController: NavController,
-) {
-  val TAG = "NAV_DEBUG" // Тег для логування
-
-  val systemUiController = rememberSystemUiController()
-  val isLight = !isSystemInDarkTheme()
-
-  LaunchedEffect(isLight) {
-    systemUiController.setSystemBarsColor(
-      color = Color.Transparent,
-      darkIcons = isLight,
-      isNavigationBarContrastEnforced = false,
-    )
-  }
-
-  val uiState by viewModel.uiState.collectAsState()
-  val isAddTaskDialogOpen by viewModel.isAddTaskDialogOpen.collectAsState()
-  val selectedTask by viewModel.selectedTask.collectAsState()
-  val snackbarHostState = remember { SnackbarHostState() }
-  val hapticFeedback = LocalHapticFeedback.current
-  val isEditTaskDialogOpen by viewModel.isEditTaskDialogOpen.collectAsState()
-  var showReminderDialog by remember { mutableStateOf(false) }
-  val taskToDelete by viewModel.showDeleteConfirmationDialog.collectAsState()
-  val taskToEdit by viewModel.showEditConfirmationDialog.collectAsState()
-
-  DisposableEffect(Unit) {
-    onDispose {
-        viewModel.clearSelectedTask()
-    }
-  }
-
-  LaunchedEffect(Unit) {
-    viewModel.uiEvent.collect {
-        when(it) {
-            is DayPlanUiEvent.NavigateToEditTask -> {
-                navController.navigate("edit_task_screen/${it.taskId}")
-            }
-        }
-    }
-  }
-
-  var showMatrixSplash by remember { mutableStateOf(true) }
-  var matrixView by remember { mutableStateOf<MatrixRainView?>(null) }
-  var isContentReady by remember { mutableStateOf(false) }
-
-  // Enhanced timing with content preparation
-  LaunchedEffect(Unit) {
-    // Pre-load content
-    delay(100)
-    isContentReady = true
-
-    // Show matrix longer, then smooth fade
-    delay(600)
-    matrixView?.startFadeOut()
-
-    // Wait for fade to complete
-    delay(500)
-    showMatrixSplash = false
-  }
-
-  if (taskToEdit != null) {
-    EditRecurringTaskDialog(
-      taskWithReminder = taskToEdit!!,
-      onDismiss = { viewModel.dismissEditConfirmationDialog() },
-      onConfirmEditSingle = { viewModel.editSingleInstanceOfRecurringTask(taskToEdit!!) },
-      onConfirmEditAll = { viewModel.editAllFutureInstancesOfRecurringTask(taskToEdit!!) },
-    )
-  }
-
-  if (taskToDelete != null) {
-    DeleteRecurringTaskDialog(
-      taskWithReminder = taskToDelete!!,
-      onDismiss = { viewModel.dismissDeleteConfirmationDialog() },
-      onConfirmDeleteSingle = { viewModel.deleteSingleInstanceOfRecurringTask(taskToDelete!!) },
-      onConfirmDeleteAll = { viewModel.deleteAllFutureInstancesOfRecurringTask(taskToDelete!!) },
-    )
-  }
-
-  LaunchedEffect(addTaskTrigger) {
-    if (addTaskTrigger > 0) {
-      viewModel.openAddTaskDialog()
-    }
-  }
-
-  LaunchedEffect(Unit) { viewModel.tasksUpdated.collect { viewModel.loadDataForPlan(dayPlanId) } }
-  LaunchedEffect(uiState.error) {
-    uiState.error?.let { error ->
-      snackbarHostState.showSnackbar(message = error, duration = SnackbarDuration.Short)
-      viewModel.dismissError()
-    }
-  }
-  LaunchedEffect(dayPlanId) { viewModel.loadDataForPlan(dayPlanId) }
-
-  Box(modifier = modifier.fillMaxSize()) {
-    // Main content with conditional visibility for smoother transition
-    AnimatedVisibility(
-      visible = isContentReady,
-      enter = fadeIn(animationSpec = tween(300, delayMillis = 400)),
-      modifier = Modifier.fillMaxSize(),
-    ) {
-      Box(
-        modifier =
-          Modifier.fillMaxSize().pointerInput(Unit) {
-            detectHorizontalDragGestures { _, dragAmount: Float ->
-              when {
-                dragAmount < -50 && !uiState.isToday -> viewModel.navigateToNextDay()
-                dragAmount > 50 -> viewModel.navigateToPreviousDay()
-              }
-            }
-          }
-      ) {
-        when {
-          uiState.isLoading -> LoadingState()
-          uiState.error != null && uiState.tasks.isEmpty() -> {
-            ErrorState(error = uiState.error!!, onRetry = { viewModel.loadDataForPlan(dayPlanId) })
-          }
-          else -> {
-            val tasks = uiState.tasks
-            val totalPointsEarned = tasks.filter { it.dayTask.completed }.sumOf { it.dayTask.points.coerceAtLeast(0) }
-            val totalPointsAvailable = tasks.sumOf { it.dayTask.points.coerceAtLeast(0) }
-            val completedTasksCount = tasks.count { it.dayTask.completed }
-            val totalTasksCount = tasks.size
-
-            TaskList(
-              tasks = tasks,
-              dayPlan = uiState.dayPlan,
-              totalPointsEarned = totalPointsEarned,
-              totalPointsAvailable = totalPointsAvailable,
-              bestCompletedPoints = uiState.bestCompletedPoints,
-              completedTasks = completedTasksCount,
-              totalTasks = totalTasksCount,
-              onTaskLongPress = { taskWithReminder -> viewModel.onTaskLongPressed(taskWithReminder) },
-              onTasksReordered = { reorderedList ->
-                uiState.dayPlan?.let { dayPlan ->
-                  viewModel.updateTasksOrder(dayPlan.id, reorderedList)
-                }
-              },
-              onToggleTask = { taskId -> viewModel.toggleTaskCompletion(taskId) },
-              onNavigateToPreviousDay = { viewModel.navigateToPreviousDay() },
-              onNavigateToNextDay = { viewModel.navigateToNextDay() },
-              isNextDayNavigationEnabled = !uiState.isToday,
-              onAddTaskClick = { viewModel.openAddTaskDialog() },
-              onSublistClick = onNavigateToProject,
-              onSettingsClick = onNavigateToSettings,
-              modifier = Modifier.fillMaxSize(),
-              onParentInfoClick = { parentInfo ->
-                  when (parentInfo.type) {
-                      ParentType.PROJECT -> {
-                          navController.navigate("goal_detail_screen/${parentInfo.id}")
-                      }
-                      ParentType.GOAL -> {
-                          parentInfo.projectId?.let { listId ->
-                              navController.navigate("goal_detail_screen/${listId}?goalId=${parentInfo.id}")
-                          } ?: run {
-                              Log.e(TAG, "Goal parentInfo has null projectId for goalId: ${parentInfo.id}")
-                          }
-                      }
-                  }
-              },
-            )
-          }
-        }
-
-        SnackbarHost(
-          hostState = snackbarHostState,
-          snackbar = { snackbarData ->
-            Snackbar(
-              snackbarData = snackbarData,
-              containerColor = MaterialTheme.colorScheme.errorContainer,
-              contentColor = MaterialTheme.colorScheme.onErrorContainer,
-            )
-          },
-          modifier = Modifier.align(Alignment.BottomCenter),
-        )
-      }
-    }
-
-    // Enhanced Matrix splash screen with better integration
-    AnimatedVisibility(visible = showMatrixSplash, exit = fadeOut(animationSpec = tween(300))) {
-      AndroidView(
-        factory = { context -> MatrixRainView(context).also { view -> matrixView = view } },
-        modifier = Modifier.fillMaxSize(),
-      )
-    }
-  }
-
-  if (isAddTaskDialogOpen) {
-    AddTaskDialog(
-      onDismissRequest = viewModel::dismissAddTaskDialog,
-      onConfirm = { title, description, duration, priority, recurrenceRule, points ->
-        viewModel.addTask(dayPlanId, title, description, duration, priority, recurrenceRule, points)
-      },
-      initialPriority = TaskPriority.MEDIUM,
-    )
-  }
-
-  selectedTask?.let { selectedTaskWithReminder ->
-    TaskOptionsBottomSheet(
-      taskWithReminder = selectedTaskWithReminder,
-      onDismiss = viewModel::clearSelectedTask,
-      onEdit = { viewModel.onEditTaskClicked(selectedTaskWithReminder) },
-      onDelete = { 
-        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-        viewModel.onDeleteTaskClicked(it)
-      },
-      onSetReminder = { showReminderDialog = true },
-      showAddToTodayOption = !uiState.isToday,
-      onAddToToday = { viewModel.copyTaskToTodaysPlan(selectedTaskWithReminder) },
-      onShowInBacklog = { onNavigateToBacklog(selectedTaskWithReminder.dayTask) },
-      onMoveToTop = { viewModel.moveTaskToTop(selectedTaskWithReminder) },
-      onMoveToTomorrow = { viewModel.moveTaskToTomorrow(selectedTaskWithReminder) },
-    )
-  }
-
-
-
-  if (showReminderDialog && selectedTask != null) {
-    ReminderPropertiesDialog(
-      onDismiss = {
-        showReminderDialog = false
-        viewModel.clearSelectedTask()
-      },
-      onSetReminder = { reminderTime ->
-        selectedTask?.let { viewModel.setTaskReminder(it.dayTask.id, reminderTime) }
-        showReminderDialog = false
-        viewModel.clearSelectedTask()
-      },
-      onRemoveReminder = {
-        selectedTask?.let { viewModel.clearTaskReminder(it.dayTask.id) }
-        showReminderDialog = false
-        viewModel.clearSelectedTask()
-      },
-      currentReminders = listOfNotNull(selectedTask?.reminder).map { it },
-    )
-  }
-}
-
-@Composable
-fun EditRecurringTaskDialog(
-  taskWithReminder: DayTaskWithReminder,
-  onDismiss: () -> Unit,
-  onConfirmEditSingle: (DayTaskWithReminder) -> Unit,
-  onConfirmEditAll: (DayTaskWithReminder) -> Unit,
-) {
-  AlertDialog(
-    onDismissRequest = onDismiss,
-    title = { Text("Редагувати повторюване завдання") },
-    text = {
-      Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Це завдання є частиною серії. Виберіть, що саме потрібно змінити.")
-
-        Row(
-          modifier =
-            Modifier
-              .fillMaxWidth()
-              .clip(MaterialTheme.shapes.medium)
-              .clickable { onConfirmEditSingle(taskWithReminder) }
-              .padding(vertical = 12.dp, horizontal = 16.dp),
-          verticalAlignment = Alignment.CenterVertically,
-        ) {
-          Text("Тільки це завдання")
-        }
-
-        Row(
-          modifier =
-            Modifier
-              .fillMaxWidth()
-              .clip(MaterialTheme.shapes.medium)
-              .clickable { onConfirmEditAll(taskWithReminder) }
-              .padding(vertical = 12.dp, horizontal = 16.dp),
-          verticalAlignment = Alignment.CenterVertically,
-        ) {
-          Text("Це та всі наступні завдання")
-        }
-      }
-    },
-    confirmButton = {},
-    dismissButton = { TextButton(onClick = onDismiss) { Text("Скасувати") } },
-  )
-}
-
-@Composable
-fun DeleteRecurringTaskDialog(
-  taskWithReminder: DayTaskWithReminder,
-  onDismiss: () -> Unit,
-  onConfirmDeleteSingle: (DayTaskWithReminder) -> Unit,
-  onConfirmDeleteAll: (DayTaskWithReminder) -> Unit,
-) {
-  AlertDialog(
-    onDismissRequest = onDismiss,
-    title = { Text("Видалити повторюване завдання?") },
-    text = {
-      Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Це завдання є частиною серії. Виберіть, що саме потрібно видалити.")
-
-        Button(
-          onClick = { onConfirmDeleteSingle(taskWithReminder) },
-          modifier = Modifier.fillMaxWidth(),
-          colors =
-            ButtonDefaults.buttonColors(
-              containerColor = MaterialTheme.colorScheme.errorContainer,
-              contentColor = MaterialTheme.colorScheme.onErrorContainer,
-            ),
-        ) {
-          Text("Тільки це завдання")
-        }
-
-        Button(
-          onClick = { onConfirmDeleteAll(taskWithReminder) },
-          modifier = Modifier.fillMaxWidth(),
-          colors =
-            ButtonDefaults.buttonColors(
-              containerColor = MaterialTheme.colorScheme.errorContainer,
-              contentColor = MaterialTheme.colorScheme.onErrorContainer,
-            ),
-        ) {
-          Text("Це та всі наступні")
-        }
-      }
-    },
-    confirmButton = {},
-    dismissButton = { TextButton(onClick = onDismiss) { Text("Скасувати") } },
-  )
-}
-
-@Composable
-private fun LoadingState(modifier: Modifier = Modifier) {
-  Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-    Column(
-      horizontalAlignment = Alignment.CenterHorizontally,
-      verticalArrangement = Arrangement.Center,
-    ) {
-      CircularProgressIndicator(
-        modifier = Modifier.size(48.dp),
-        color = MaterialTheme.colorScheme.primary,
-      )
-      Spacer(modifier = Modifier.height(16.dp))
-      Text(
-        text = "Завантаження плану...",
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-      )
-    }
-  }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun TaskOptionsBottomSheet(
-  taskWithReminder: DayTaskWithReminder,
-  onDismiss: () -> Unit,
-  onEdit: () -> Unit,
-  onDelete: (DayTaskWithReminder) -> Unit,
-  onSetReminder: () -> Unit,
-  showAddToTodayOption: Boolean,
-  onAddToToday: () -> Unit,
-  onShowInBacklog: (DayTask) -> Unit,
-  onMoveToTop: () -> Unit,
-  onMoveToTomorrow: () -> Unit,
-) {
-  val task = taskWithReminder.dayTask
-  ModalBottomSheet(onDismissRequest = onDismiss) {
-    Column(modifier = Modifier.padding(vertical = 8.dp)) {
-      ListItem(
-        headlineContent = { Text("Редагувати") },
-        leadingContent = { Icon(Icons.Outlined.Edit, contentDescription = null) },
-        modifier = Modifier.clickable { onEdit() },
-      )
-      ListItem(
-        headlineContent = { Text("Підняти на вершину списку") },
-        leadingContent = { Icon(Icons.Outlined.VerticalAlignTop, contentDescription = null) },
-        modifier = Modifier.clickable { onMoveToTop() },
-      )
-      ListItem(
-        headlineContent = { Text("Перенести на завтра") },
-        leadingContent = { Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null) },
-        modifier =
-          Modifier.clickable {
-            onMoveToTomorrow()
-            onDismiss()
-          },
-      )
-
-      HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
-
-      ListItem(
-        headlineContent = { Text("Встановити нагадування") },
-        leadingContent = { Icon(Icons.Outlined.Notifications, contentDescription = null) },
-        modifier = Modifier.clickable { onSetReminder() },
-      )
-      if (showAddToTodayOption) {
-        ListItem(
-          headlineContent = { Text("Додати в план на сьогодні") },
-          leadingContent = { Icon(Icons.Outlined.Today, contentDescription = null) },
-          modifier =
-            Modifier.clickable {
-              onAddToToday()
-              onDismiss()
-            },
-        )
-      }
-      if (task.projectId != null || task.goalId != null) {
-        ListItem(
-          headlineContent = { Text("Показати в беклозі проекту") },
-          leadingContent = { Icon(Icons.AutoMirrored.Outlined.ListAlt, contentDescription = null) },
-          modifier =
-            Modifier.clickable {
-              Log.d(TAG, "1. КЛІК: 'Показати в беклозі'.")
-              Log.d(TAG, "   - Task Title: ${task.title}")
-              Log.d(TAG, "   - Task ProjectID: ${task.projectId}") // ДУЖЕ ВАЖЛИВИЙ ЛОГ
-              Log.d(TAG, "   - Task GoalID: ${task.goalId}")
-              Log.d(TAG, "   - Task ID: ${task.id}")
-
-              onShowInBacklog(task)
-              onDismiss()
-            },
-        )
-      }
-
-      HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
-
-      ListItem(
-        headlineContent = { Text("Видалити", color = MaterialTheme.colorScheme.error) },
-        leadingContent = {
-          Icon(
-            Icons.Outlined.Delete,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.error,
-          )
-        },
-        modifier =
-          Modifier.clickable {
-            onDelete(taskWithReminder)
-            onDismiss()
-          },
-      )
-      Spacer(modifier = Modifier.navigationBarsPadding())
-    }
-  }
 }
 
 
 ================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/daymanagement/dayplan/DayPlanScreen.kt
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeader.kt
 ================================================================================
 
 ## <<FILE_2>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/daymanagement/dayplan/tasklist/TaskList.kt (ID: FILE_2)
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderConfig.kt (ID: FILE_2)
 ================================================================================
 
-package com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist
+package com.romankozak.forwardappmobile.ui.components.header
 
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.runtime.Composable
+
+data class FAHeaderConfig(
+    val left: ( @Composable () -> Unit)? = null,
+    val right: ( @Composable () -> Unit)? = null,
+    val backgroundStyle: FAHeaderBackground = FAHeaderBackground.Default
+)
+
+enum class FAHeaderBackground {
+    Default,
+    Transparent,
+    Elevated,
+    Gradient,
+    CommandDeck
+}
+
+
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderConfig.kt
+================================================================================
+
+## <<FILE_3>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderPresets.kt (ID: FILE_3)
+================================================================================
+
+package com.romankozak.forwardappmobile.ui.components.header
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+
+@Composable
+fun TodayHeader(): FAHeaderConfig {
+    val primaryColor = MaterialTheme.colorScheme.primary
+    return FAHeaderConfig(
+        backgroundStyle = FAHeaderBackground.CommandDeck,
+        left = {
+            Column(horizontalAlignment = Alignment.Start, modifier = Modifier.padding(vertical = 8.dp)) {
+                Text("Today", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+                Text(
+                    text = "Operative Mode • ${FAHeaderUtils.currentDate()}",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 0.3.sp,
+                    color = primaryColor.copy(alpha = 0.7f)
+                )
+            }
+        },
+        right = {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                primaryColor.copy(alpha = 0.25f),
+                                primaryColor.copy(alpha = 0.08f)
+                            )
+                        )
+                    )
+                    .border(
+                        width = 1.5.dp,
+                        color = primaryColor.copy(alpha = 0.4f),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "⌁",
+                    fontSize = 28.sp,
+                    color = primaryColor,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    )
+}
+
+@Composable
+fun StrategyHeader(onModeClick: () -> Unit): FAHeaderConfig {
+    val primaryColor = MaterialTheme.colorScheme.primary
+    return FAHeaderConfig(
+        backgroundStyle = FAHeaderBackground.CommandDeck,
+        left = {
+            Column(horizontalAlignment = Alignment.Start) {
+                Text("Strategy", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+                Text(
+                    text = "Long-term planning mode",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 0.3.sp,
+                    color = primaryColor.copy(alpha = 0.7f)
+                )
+            }
+        },
+        right = {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                primaryColor.copy(alpha = 0.25f),
+                                primaryColor.copy(alpha = 0.08f)
+                            )
+                        )
+                    )
+                    .border(
+                        width = 1.5.dp,
+                        color = primaryColor.copy(alpha = 0.4f),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "⌁",
+                    fontSize = 28.sp,
+                    color = primaryColor,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    )
+}
+
+@Composable
+fun StrategicArcHeader(onModeClick: () -> Unit): FAHeaderConfig {
+    val primaryColor = MaterialTheme.colorScheme.primary
+    return FAHeaderConfig(
+        backgroundStyle = FAHeaderBackground.CommandDeck,
+        left = {
+            Column(horizontalAlignment = Alignment.Start) {
+                Text("Strategic Arc", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+                Text(
+                    text = "April • Expansion Arc",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 0.3.sp,
+                    color = primaryColor.copy(alpha = 0.7f)
+                )
+            }
+        },
+        right = {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                primaryColor.copy(alpha = 0.25f),
+                                primaryColor.copy(alpha = 0.08f)
+                            )
+                        )
+                    )
+                    .border(
+                        width = 1.5.dp,
+                        color = primaryColor.copy(alpha = 0.4f),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "⌁",
+                    fontSize = 28.sp,
+                    color = primaryColor,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    )
+}
+
+@Composable
+fun CommandDeckHeaderPreset(): FAHeaderConfig {
+    val primaryColor = MaterialTheme.colorScheme.primary
+    return FAHeaderConfig(
+        backgroundStyle = FAHeaderBackground.CommandDeck,
+        left = {
+            Column {
+                Text(
+                    text = "ForwardApp",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.8.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Command & Control",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 0.3.sp,
+                    color = primaryColor.copy(alpha = 0.7f)
+                )
+            }
+        },
+        right = {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                primaryColor.copy(alpha = 0.25f),
+                                primaryColor.copy(alpha = 0.08f)
+                            )
+                        )
+                    )
+                    .border(
+                        width = 1.5.dp,
+                        color = primaryColor.copy(alpha = 0.4f),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "⌬",
+                    fontSize = 28.sp,
+                    color = primaryColor,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    )
+}
+
+
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderPresets.kt
+================================================================================
+
+## <<FILE_4>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderTokens.kt (ID: FILE_4)
+================================================================================
+
+
+
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderTokens.kt
+================================================================================
+
+## <<FILE_5>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderUtils.kt (ID: FILE_5)
+================================================================================
+
+package com.romankozak.forwardappmobile.ui.components.header
+
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+
+object FAHeaderUtils {
+    fun currentDate(): String =
+        LocalDate.now().format(DateTimeFormatter.ofPattern("d MMM yyyy"))
+}
+
+
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderUtils.kt
+================================================================================
+
+## <<FILE_6>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/HeaderModeCapsule.kt (ID: FILE_6)
+================================================================================
+
+package com.romankozak.forwardappmobile.ui.components.header
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+
+ @Composable
+fun ModeCapsule(
+    text: String,
+    onClick: () -> Unit,
+    color: Color = MaterialTheme.colorScheme.primary
+) {
+    Box(
+        modifier = Modifier
+            .clip(MaterialTheme.shapes.large)
+            .background(color.copy(alpha = 0.12f))
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Text(text, fontSize = 13.sp, color = color)
+    }
+}
+
+
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/HeaderModeCapsule.kt
+================================================================================
+
+## <<FILE_7>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/SharedCommandDeckLayout.kt (ID: FILE_7)
+================================================================================
+
+package com.romankozak.forwardappmobile.ui.screens.commanddeck
+
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.asPaddingValues
+
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.ParentType
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.ParentInfo
-import androidx.compose.material.icons.filled.TrackChanges
-import androidx.compose.material.icons.filled.Topic
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.Checklist
-import androidx.compose.material.icons.outlined.Flag
-import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.Repeat
-import androidx.compose.material.icons.outlined.Timer
-import androidx.compose.material.icons.rounded.DragHandle
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.IconToggleButton
-import androidx.compose.material3.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AccountTree
+import androidx.compose.material.icons.outlined.Analytics
+import androidx.compose.material.icons.outlined.AttachFile
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Chat
+import androidx.compose.material.icons.outlined.Code
+import androidx.compose.material.icons.outlined.ImportExport
+import androidx.compose.material.icons.outlined.Inbox
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.data.database.models.DayPlan
-import com.romankozak.forwardappmobile.data.database.models.DayTask
-import com.romankozak.forwardappmobile.data.database.models.TaskPriority
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.CompactDayPlanHeader
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayTaskWithReminder
-import sh.calvin.reorderable.ReorderableItem
-import sh.calvin.reorderable.rememberReorderableLazyListState
+import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import com.romankozak.forwardappmobile.routes.STRATEGIC_MANAGEMENT_ROUTE
+import com.romankozak.forwardappmobile.ui.components.header.CommandDeckHeaderPreset
+import com.romankozak.forwardappmobile.ui.components.header.FAHeader
+import com.romankozak.forwardappmobile.ui.components.header.StrategicArcHeader
+import com.romankozak.forwardappmobile.ui.components.header.StrategyHeader
+import com.romankozak.forwardappmobile.ui.components.header.TodayHeader
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.DayManagementScreen
+import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
+import com.romankozak.forwardappmobile.ui.screens.strategicmanagement.StrategicManagementScreen
+import kotlinx.coroutines.launch
 
+const val COMMAND_DECK_DASHBOARD_ROUTE = "command_deck_dashboard"
+const val COMMAND_DECK_CORE_ROUTE = "command_deck_core"
+const val COMMAND_DECK_STRATEGIC_ARC_ROUTE = "command_deck_strategic_arc"
+const val COMMAND_DECK_TACTICS_ROUTE = "command_deck_tactics"
+const val COMMAND_DECK_TODAY_ROUTE = "command_deck_today"
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun TaskList(
-    tasks: List<DayTaskWithReminder>,
-    dayPlan: DayPlan?,
-    totalPointsEarned: Int,
-    totalPointsAvailable: Int,
-    bestCompletedPoints: Int,
-    completedTasks: Int,
-    totalTasks: Int,
-    onTaskLongPress: (DayTaskWithReminder) -> Unit,
-    onTasksReordered: (List<DayTaskWithReminder>) -> Unit,
-    onToggleTask: (String) -> Unit,
-    onNavigateToPreviousDay: () -> Unit,
-    onNavigateToNextDay: () -> Unit,
-    isNextDayNavigationEnabled: Boolean,
-    onAddTaskClick: () -> Unit,
-    onSublistClick: (String) -> Unit,
-    onSettingsClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    onParentInfoClick: (ParentInfo) -> Unit,
+fun SharedCommandDeckLayout(
+    navController: NavController,
+    onNavigateToProjectHierarchy: () -> Unit,
+    onNavigateToGlobalSearch: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onNavigateToInbox: () -> Unit,
+    onNavigateToTracker: () -> Unit,
+    onNavigateToReminders: () -> Unit,
+    onNavigateToAiChat: () -> Unit,
+    onNavigateToAiLifeManagement: () -> Unit,
+    onNavigateToImportExport: () -> Unit,
+    onNavigateToAttachments: () -> Unit,
+    onNavigateToScripts: () -> Unit,
 ) {
-    val hapticFeedback = LocalHapticFeedback.current
-    var internalTasks by remember(tasks) { mutableStateOf(tasks) }
+    val tabs = CommandDeckTab.entries.toList()
+    val innerNavController = rememberNavController()
 
-    val lazyListState = rememberLazyListState()
-    val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
-        internalTasks = internalTasks.toMutableList().apply {
-            add(to.index, removeAt(from.index))
-        }
-        onTasksReordered(internalTasks)
-        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+    val navBackStackEntry by innerNavController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
+    val selectedTabIndex = remember(currentRoute) {
+        tabs.indexOfFirst { tab ->
+            when (tab) {
+                CommandDeckTab.Dashboard -> currentRoute == COMMAND_DECK_DASHBOARD_ROUTE
+                CommandDeckTab.Core -> currentRoute == COMMAND_DECK_CORE_ROUTE
+                CommandDeckTab.Strategy -> currentRoute == STRATEGIC_MANAGEMENT_ROUTE
+                CommandDeckTab.StrategicArc -> currentRoute == COMMAND_DECK_STRATEGIC_ARC_ROUTE
+                CommandDeckTab.Tactics -> currentRoute == COMMAND_DECK_TACTICS_ROUTE
+                CommandDeckTab.Today -> currentRoute == COMMAND_DECK_TODAY_ROUTE
+            }
+        }.coerceAtLeast(0)
     }
 
-    Column(modifier = modifier.fillMaxSize()) {
-        CompactDayPlanHeader(
-            dayPlan = dayPlan,
-            totalPointsEarned = totalPointsEarned,
-            totalPointsAvailable = totalPointsAvailable,
-            bestCompletedPoints = bestCompletedPoints,
-            completedTasks = completedTasks,
-            totalTasks = totalTasks,
-            onNavigateToPreviousDay = onNavigateToPreviousDay,
-            onNavigateToNextDay = onNavigateToNextDay,
-            isNextDayNavigationEnabled = isNextDayNavigationEnabled,
-            onSettingsClick = onSettingsClick,
-            onAddTaskClick = onAddTaskClick,
-        )
-
-        if (internalTasks.isEmpty()) {
-            EmptyTasksState(
-                modifier = Modifier.weight(1f),
-                onAddTaskClick = onAddTaskClick,
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                    )
+                )
             )
-        } else {
-            LazyColumn(
-                state = lazyListState,
-                modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(internalTasks, key = { it.dayTask.id }) { taskWithReminder ->
-                    ReorderableItem(reorderableState, key = taskWithReminder.dayTask.id) { isDragging ->
-                        val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp, label = "elevation")
-                        ElevatedCard(
-                            modifier = Modifier.fillMaxWidth(),
-                            elevation = CardDefaults.elevatedCardElevation(defaultElevation = elevation),
-                            shape = MaterialTheme.shapes.large,
-                            colors = CardDefaults.elevatedCardColors(
-                                containerColor = taskContainerColor(
-                                    dayTask = taskWithReminder.dayTask,
-                                ),
-                            ),
-                        ) {
-                            TaskItem(
-                                taskWithReminder = taskWithReminder,
-                                onToggle = { onToggleTask(taskWithReminder.dayTask.id) },
-                                onLongPress = { onTaskLongPress(taskWithReminder) },
-                                dragHandleModifier = Modifier.draggableHandle(),
-                                onParentInfoClick = onParentInfoClick,
-                            )
+    ) {
+        when (currentRoute) {
+            COMMAND_DECK_DASHBOARD_ROUTE -> FAHeader(config = CommandDeckHeaderPreset())
+            COMMAND_DECK_TODAY_ROUTE -> FAHeader(config = TodayHeader())
+            STRATEGIC_MANAGEMENT_ROUTE -> FAHeader(config = StrategyHeader(onModeClick = {}))
+            COMMAND_DECK_STRATEGIC_ARC_ROUTE -> FAHeader(config = StrategicArcHeader(onModeClick = {}))
+            else -> FAHeader(config = CommandDeckHeaderPreset())
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        CommandDeckTabRow(
+            tabs = tabs,
+            selectedTabIndex = selectedTabIndex,
+            onTabSelected = { index ->
+                val newRoute = when (tabs[index]) {
+                    CommandDeckTab.Dashboard -> COMMAND_DECK_DASHBOARD_ROUTE
+                    CommandDeckTab.Core -> COMMAND_DECK_CORE_ROUTE
+                    CommandDeckTab.Strategy -> STRATEGIC_MANAGEMENT_ROUTE
+                    CommandDeckTab.StrategicArc -> COMMAND_DECK_STRATEGIC_ARC_ROUTE
+                    CommandDeckTab.Tactics -> COMMAND_DECK_TACTICS_ROUTE
+                    CommandDeckTab.Today -> COMMAND_DECK_TODAY_ROUTE
+                }
+                if (newRoute != currentRoute) {
+                    innerNavController.navigate(newRoute) {
+                        popUpTo(innerNavController.graph.startDestinationId) {
+                            saveState = true
                         }
+                        launchSingleTop = true
+                        restoreState = true
                     }
                 }
+            }
+        )
+
+
+        Spacer(Modifier.height(12.dp))
+
+        NavHost(navController = innerNavController, startDestination = COMMAND_DECK_DASHBOARD_ROUTE) {
+            composable(COMMAND_DECK_DASHBOARD_ROUTE) {
+                 DashboardContent(
+                    onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                    onNavigateToGlobalSearch = onNavigateToGlobalSearch,
+                    onNavigateToSettings = onNavigateToSettings,
+                    onNavigateToInbox = onNavigateToInbox,
+                    onNavigateToTracker = onNavigateToTracker,
+                    onNavigateToReminders = onNavigateToReminders,
+                    onNavigateToAiChat = onNavigateToAiChat,
+                    onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
+                    onNavigateToImportExport = onNavigateToImportExport,
+                    onNavigateToAttachments = onNavigateToAttachments,
+                    onNavigateToScripts = onNavigateToScripts
+                 )
+            }
+            composable(STRATEGIC_MANAGEMENT_ROUTE) {
+                StrategicManagementScreen(navController = navController)
+            }
+            composable(COMMAND_DECK_CORE_ROUTE) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    DeckModuleCard(
+                        title = "Core Beacons",
+                        subtitle = "Foundational principles active: 3",
+                        progress = 72,
+                        accentColor = Color(0xFFBB86FC)
+                    )
+                }
+            }
+            composable(COMMAND_DECK_STRATEGIC_ARC_ROUTE) {
+                DeckModuleCard(
+                    title = "Strategic Arc",
+                    subtitle = "Plan for this month: Expansion Arc",
+                    progress = 62,
+                    accentColor = Color(0xFF9575CD),
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+            }
+            composable(COMMAND_DECK_TACTICS_ROUTE) {
+                TacticalManagementScreen()
+            }
+            composable(COMMAND_DECK_TODAY_ROUTE) {
+                DayManagementScreen(mainNavController = navController, startTab = "PLAN")
             }
         }
     }
 }
 
 @Composable
-private fun EmptyTasksState(
-    modifier: Modifier = Modifier,
-    onAddTaskClick: () -> Unit,
+fun DashboardContent(
+    onNavigateToProjectHierarchy: () -> Unit,
+    onNavigateToGlobalSearch: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onNavigateToInbox: () -> Unit,
+    onNavigateToTracker: () -> Unit,
+    onNavigateToReminders: () -> Unit,
+    onNavigateToAiChat: () -> Unit,
+    onNavigateToAiLifeManagement: () -> Unit,
+    onNavigateToImportExport: () -> Unit,
+    onNavigateToAttachments: () -> Unit,
+    onNavigateToScripts: () -> Unit
 ) {
     Column(
-        modifier = modifier.fillMaxSize().padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Icon(
-            Icons.Outlined.Checklist,
-            contentDescription = null,
-            modifier = Modifier.size(80.dp),
-            tint = MaterialTheme.colorScheme.outline,
+        CoreQuickActions(
+            onNavigateToProjectHierarchy,
+            onNavigateToGlobalSearch,
+            onNavigateToSettings,
+            onNavigateToInbox,
+            onNavigateToTracker,
+            onNavigateToReminders,
+            onNavigateToAiChat,
+            onNavigateToAiLifeManagement,
+            onNavigateToImportExport,
+            onNavigateToAttachments,
+            onNavigateToScripts
         )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "Завдань ще немає",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = "Натисніть кнопку '+' для додавання",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-        FilledTonalButton(onClick = onAddTaskClick) {
-            Text("Додати перше завдання")
+    }
+}
+
+// -----------------------------------------------
+// ALL THE COMPOSABLES FROM CommandDeckScreen.kt
+// -----------------------------------------------
+
+// ENUM TABS
+enum class CommandDeckTab(
+    val title: String,
+    val symbol: String,
+) {
+    Dashboard("Command Deck", "⌗"),
+    Core("Core", "⌘"),
+    Strategy("Strategy", "⌖"),
+    StrategicArc("Strategic Arc", "⟲"),
+    Tactics("Tactics", "◎"),
+    Today("Today", "⌁"),
+}
+
+
+
+// TAB ROW
+@Composable
+private fun CommandDeckTabRow(
+    tabs: List<CommandDeckTab>,
+    selectedTabIndex: Int,
+    onTabSelected: (Int) -> Unit,
+) {
+    val scrollState = rememberScrollState()
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(selectedTabIndex) {
+        val tabWidth = 130f
+        val target = (selectedTabIndex * tabWidth) - (scrollState.maxValue / 2f) + tabWidth / 2
+        coroutineScope.launch {
+            scrollState.animateScrollTo(target.toInt().coerceAtLeast(0))
+        }
+    }
+
+    Row(
+        modifier = Modifier
+            .horizontalScroll(scrollState)
+            .padding(horizontal = 12.dp, vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        tabs.forEachIndexed { index, tab ->
+            CommandDeckTabItem(
+                tab = tab,
+                isSelected = index == selectedTabIndex,
+                onClick = { onTabSelected(index) }
+            )
         }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+// TAB COLORS
+fun tabAccentColor(tab: CommandDeckTab): Color {
+    return when (tab) {
+        CommandDeckTab.Core -> Color(0xFFBB86FC)
+        CommandDeckTab.Strategy -> Color(0xFF4FC3F7)
+        CommandDeckTab.StrategicArc -> Color(0xFF9575CD)
+        CommandDeckTab.Tactics -> Color(0xFF26A69A)
+        CommandDeckTab.Today -> Color(0xFFFFB74D)
+        CommandDeckTab.Dashboard -> Color(0xFF6200EE)
+    }
+}
 
+// TAB ITEM
 @Composable
-
-fun TaskItem(
-
-    taskWithReminder: DayTaskWithReminder,
-
-    onToggle: () -> Unit,
-
-    onLongPress: () -> Unit,
-
-    modifier: Modifier = Modifier,
-
-    dragHandleModifier: Modifier = Modifier,
-
-    onParentInfoClick: (ParentInfo) -> Unit, // Add this line
-
+fun CommandDeckTabItem(
+    tab: CommandDeckTab,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
+    val accent = tabAccentColor(tab)
+    val coroutineScope = rememberCoroutineScope()
 
-    val task = taskWithReminder.dayTask
+    val glowAlpha by animateFloatAsState(
+        targetValue = if (isSelected) 0.32f else 0f,
+        animationSpec = tween(600),
+        label = "glow"
+    )
 
-    val contentAlpha = if (task.completed) 0.6f else 1f
+    val shimmer = remember { Animatable(0f) }
 
-
-
-    Surface(
-
-        modifier = modifier.fillMaxWidth(),
-
-        shape = RoundedCornerShape(20.dp),
-
-        color = taskContainerColor(task),
-
-        tonalElevation = if (task.completed) 0.dp else 4.dp,
-
-    ) {
-
-        Row(
-
-            modifier = Modifier
-
-                .fillMaxWidth()
-
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-
-            verticalAlignment = Alignment.CenterVertically,
-
-        ) {
-
-            IconToggleButton(
-                checked = task.completed,
-                onCheckedChange = { onToggle() },
-                modifier = Modifier.size(32.dp)
-            ) {
-                Surface(
-                    shape = androidx.compose.foundation.shape.CircleShape,
-                    color = if (task.completed)
-                        MaterialTheme.colorScheme.primary
-                    else
-                        Color.Transparent,
-                    border = if (!task.completed)
-                        androidx.compose.foundation.BorderStroke(
-                            2.dp,
-                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                        )
-                    else null,
-                    modifier = Modifier.size(18.dp)
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        if (task.completed) {
-                            Icon(
-                                imageVector = Icons.Filled.Check,
-                                contentDescription = "Checkbox",
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(12.dp)
-                            )
-                        }
-                    }
-                }
-            }
-
-
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-
-
-            Column(modifier = Modifier.weight(1f)) {
-
-                DayPlanMarkdownText(
-
-                    text = task.title,
-
-                    style =
-
-                        MaterialTheme.typography.titleMedium.copy(
-
-                            fontWeight = FontWeight.SemiBold,
-
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha),
-
-                        ),
-
-                    isCompleted = task.completed,
-                    maxLines = 3,
-
+    LaunchedEffect(isSelected) {
+        if (isSelected) {
+            coroutineScope.launch {
+                shimmer.animateTo(
+                    1f,
+                    animationSpec = tween(durationMillis = 1100)
                 )
+                shimmer.snapTo(0f)
+            }
+        }
+    }
 
+    val scale by animateFloatAsState(
+        targetValue = if (isSelected) 1.10f else 1f,
+        animationSpec = spring(dampingRatio = 0.60f, stiffness = 300f),
+        label = "scale"
+    )
 
+    val waveBrush = Brush.linearGradient(
+        colors = listOf(
+            Color.Transparent,
+            accent.copy(alpha = 0.40f),
+            Color.Transparent
+        ),
+        start = Offset(x = -220f + shimmer.value * 440f, y = 0f),
+        end = Offset(x = shimmer.value * 440f, y = 0f)
+    )
 
-                task.description?.takeIf { it.isNotBlank() }?.let { description ->
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    DayPlanMarkdownText(
-
-                        text = description,
-
-                        style =
-
-                            MaterialTheme.typography.bodyMedium.copy(
-
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
-
-                            ),
-
-                        isCompleted = task.completed,
-
+    Row(
+        modifier = modifier
+            .scale(scale)
+            .clip(RoundedCornerShape(38.dp))
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        accent.copy(alpha = 0.12f + glowAlpha),
+                        accent.copy(alpha = 0.04f * glowAlpha),
+                        Color.Transparent
                     )
-
-                }
-
-
-
-                TaskMetaInfo(
-                    taskWithReminder = taskWithReminder,
-                    modifier = Modifier.padding(top = 6.dp),
-                    onParentInfoClick = onParentInfoClick, // Add this line
                 )
-
+            )
+            .drawBehind {
+                if (isSelected) {
+                    drawRect(
+                        brush = waveBrush,
+                        size = size,
+                        alpha = 0.85f
+                    )
+                }
             }
+            .border(
+                width = if (isSelected) 1.8.dp else 1.dp,
+                color = if (isSelected) accent else Color(0xFF444444),
+                shape = RoundedCornerShape(38.dp)
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = tab.symbol,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (isSelected) accent else Color(0xFFAAAAAA)
+        )
 
+        if (isSelected) {
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = tab.title,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = accent
+            )
+        }
+    }
+}
 
+// MODULE CARD
+@Composable
+fun DeckModuleCard(
+    title: String,
+    subtitle: String,
+    progress: Int?,
+    accentColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF1E1E1E).copy(alpha = 0.22f)
+        ),
+        modifier = modifier
+            .fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = title,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = subtitle,
+                fontSize = 14.sp,
+                color = Color(0xFFCCCCCC)
+            )
 
+            if (progress != null) {
+                LinearProgressIndicator(
+                    progress = { progress / 100f },
+                    color = accentColor,
+                    trackColor = accentColor.copy(alpha = 0.15f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(50))
+                )
+            }
+        }
+    }
+}
 
+// CORE QUICK ACTIONS
+@Composable
+private fun CoreQuickActions(
+    onNavigateToProjectHierarchy: () -> Unit,
+    onNavigateToGlobalSearch: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onNavigateToInbox: () -> Unit,
+    onNavigateToTracker: () -> Unit,
+    onNavigateToReminders: () -> Unit,
+    onNavigateToAiChat: () -> Unit,
+    onNavigateToAiLifeManagement: () -> Unit,
+    onNavigateToImportExport: () -> Unit,
+    onNavigateToAttachments: () -> Unit,
+    onNavigateToScripts: () -> Unit,
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        QuickActionCard("Inbox", "View inbox", Icons.Outlined.Inbox, onNavigateToInbox)
+        QuickActionCard("Tracker", "Track activity", Icons.Outlined.Analytics, onNavigateToTracker)
+        QuickActionCard("Reminders", "See reminders", Icons.Outlined.Notifications, onNavigateToReminders)
+        QuickActionCard("AI Chat", "Chat with AI", Icons.Outlined.Chat, onNavigateToAiChat)
+        QuickActionCard("AI Life Management", "AI guidance", Icons.Outlined.AutoAwesome, onNavigateToAiLifeManagement)
+        QuickActionCard("Import/Export", "Transfer data", Icons.Outlined.ImportExport, onNavigateToImportExport)
+        QuickActionCard("Attachments", "All files & notes", Icons.Outlined.AttachFile, onNavigateToAttachments)
+        QuickActionCard("Scripts", "Automation scripts", Icons.Outlined.Code, onNavigateToScripts)
+        QuickActionCard("Проєкти", "Project hierarchy", Icons.Outlined.AccountTree, onNavigateToProjectHierarchy)
+        QuickActionCard("Глобальний пошук", "Search anything", Icons.Outlined.Search, onNavigateToGlobalSearch)
+        QuickActionCard("Налаштування", "App settings", Icons.Outlined.Settings, onNavigateToSettings)
+    }
+}
 
-            IconButton(
-                onClick = onLongPress,
+// QUICK ACTION CARD
+@Composable
+private fun QuickActionCard(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF1E1E1E).copy(alpha = 0.18f)
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .then(dragHandleModifier),
+                    .clip(CircleShape)
+                    .background(Color(0xFF6200EE).copy(alpha = 0.18f)),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    Icons.Filled.MoreVert,
-                    contentDescription = "Більше опцій",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    icon,
+                    contentDescription = null,
+                    tint = Color(0xFF6200EE)
                 )
             }
 
-        }
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = title,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.White
+                )
 
-    }
-
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun TaskMetaInfo(
-    taskWithReminder: DayTaskWithReminder,
-    modifier: Modifier = Modifier,
-    onParentInfoClick: (ParentInfo) -> Unit, // Add this line
-) {
-    val task = taskWithReminder.dayTask
-    val metaItems =
-        buildList<MetaInfoItem> {
-            if (task.priority != TaskPriority.NONE) {
-                add(
-                    MetaInfoItem(
-                        icon = Icons.Outlined.Flag,
-                        text = task.priority
-                            .name
-                            .lowercase()
-                            .replaceFirstChar { it.titlecase() },
-                        tint = task.priority.priorityIndicatorColor(),
-                    ),
+                Text(
+                    text = subtitle,
+                    fontSize = 13.sp,
+                    color = Color(0xFFCCCCCC)
                 )
             }
-            task.points.takeIf { it > 0 }?.let { points ->
-                add(
-                    MetaInfoItem(
-                        icon = Icons.Filled.Star,
-                        text = "$points балів",
-                        tint = MaterialTheme.colorScheme.secondary,
-                    ),
-                )
-            }
-            taskWithReminder.parentInfo?.let { parentInfo ->
-                add(
-                    MetaInfoItem(
-                        icon = if (parentInfo.type == ParentType.GOAL) Icons.Default.TrackChanges else Icons.Default.Topic,
-                        text = parentInfo.title,
-                        tint = if (parentInfo.type == ParentType.GOAL) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary,
-                        onClick = { onParentInfoClick(parentInfo) } // Add this line
-                    )
-                )
-            }
-            task.estimatedDurationMinutes?.takeIf { it > 0 }?.let { minutes ->
-                add(MetaInfoItem(icon = Icons.Outlined.Timer, text = "$minutes хв"))
-            }
-            if (task.recurringTaskId != null) {
-                add(MetaInfoItem(icon = Icons.Outlined.Repeat, text = "Повторюється"))
-            }
-            if (taskWithReminder.reminder != null) {
-                add(MetaInfoItem(icon = Icons.Outlined.Notifications, text = "Нагадування"))
-            }
         }
-
-    if (metaItems.isEmpty()) return
-
-    FlowRow(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(0.dp),
-    ) {
-        metaItems.forEach { item ->
-            MetaInfoChip(
-                icon = item.icon,
-                text = item.text,
-                contentColor = item.tint ?: MaterialTheme.colorScheme.onSurfaceVariant,
-                onClick = item.onClick, // Add this line
-            )
-        }
-    }
-}
-
-@Composable
-private fun MetaInfoChip(
-    icon: ImageVector,
-    text: String,
-    contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
-    onClick: (() -> Unit)? = null, // Add this line
-) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-        contentColor = contentColor,
-        shape = RoundedCornerShape(10.dp),
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp,
-        onClick = onClick ?: {}, // Add this line
-        enabled = onClick != null // Add this line
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 0.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(14.dp),
-                tint = contentColor,
-            )
-            Text(
-                text = text,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
-
-private data class MetaInfoItem(
-    val icon: ImageVector,
-    val text: String,
-    val tint: Color? = null,
-    val onClick: (() -> Unit)? = null, // Add this line
-)
-
-@Composable
-private fun taskContainerColor(dayTask: DayTask): Color {
-    val colorScheme = MaterialTheme.colorScheme
-    return if (dayTask.completed) {
-        colorScheme.surfaceContainerHighest
-    } else {
-        colorScheme.surfaceContainer
-    }
-}
-
-@Composable
-private fun TaskPriority.priorityIndicatorColor(): Color {
-    val colorScheme = MaterialTheme.colorScheme
-    return when (this) {
-        TaskPriority.CRITICAL -> colorScheme.error
-        TaskPriority.HIGH -> colorScheme.tertiary
-        TaskPriority.MEDIUM -> colorScheme.primary
-        TaskPriority.LOW -> colorScheme.secondary
-        TaskPriority.NONE -> colorScheme.outline
     }
 }
 
 
 ================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/daymanagement/dayplan/tasklist/TaskList.kt
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/SharedCommandDeckLayout.kt
 ================================================================================
 

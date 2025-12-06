@@ -49,45 +49,52 @@ fun FAHeader(
         )
     }
 
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(
-                top = 12.dp,
-                start = 16.dp,
-                end = 16.dp,
-                bottom = 4.dp
-            )
-    ) {
-        Row(
+    Column(modifier = modifier.fillMaxWidth()) {
+        Spacer(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(64.dp)
-                .clip(RoundedCornerShape(20.dp))
-                .then(backgroundModifier)
-                .border(
-                    width = 1.dp,
-                    brush = Brush.horizontalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                        )
-                    ),
-                    shape = RoundedCornerShape(20.dp)
+                .height(WindowInsets.statusBars.asPaddingValues().calculateTopPadding())
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    top = 8.dp,
+                    start = 16.dp,
+                    end = 16.dp,
+                    bottom = 4.dp
                 )
-                .padding(horizontal = 20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Box(
-                modifier = Modifier.weight(1f),
-                contentAlignment = Alignment.CenterStart
-            ) { config.left?.invoke() }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(80.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .then(backgroundModifier)
+                    .border(
+                        width = 1.dp,
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                            )
+                        ),
+                        shape = RoundedCornerShape(20.dp)
+                    )
+                    .padding(horizontal = 20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.CenterStart
+                ) { config.left?.invoke() }
 
-            Box(
-                contentAlignment = Alignment.CenterEnd
-            ) { config.right?.invoke() }
+                Box(
+                    contentAlignment = Alignment.CenterEnd
+                ) { config.right?.invoke() }
+            }
         }
     }
 }

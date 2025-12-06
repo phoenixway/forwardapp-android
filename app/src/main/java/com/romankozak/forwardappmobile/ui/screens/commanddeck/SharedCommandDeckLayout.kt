@@ -70,6 +70,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.romankozak.forwardappmobile.routes.STRATEGIC_MANAGEMENT_ROUTE
+import com.romankozak.forwardappmobile.ui.components.header.CommandDeckHeaderPreset
+import com.romankozak.forwardappmobile.ui.components.header.FAHeader
+import com.romankozak.forwardappmobile.ui.components.header.StrategicArcHeader
+import com.romankozak.forwardappmobile.ui.components.header.StrategyHeader
+import com.romankozak.forwardappmobile.ui.components.header.TodayHeader
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.DayManagementScreen
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
 import com.romankozak.forwardappmobile.ui.screens.strategicmanagement.StrategicManagementScreen
@@ -128,7 +133,13 @@ fun SharedCommandDeckLayout(
                 )
             )
     ) {
-        CommandDeckHeader()
+        when (currentRoute) {
+            COMMAND_DECK_DASHBOARD_ROUTE -> FAHeader(config = CommandDeckHeaderPreset())
+            COMMAND_DECK_TODAY_ROUTE -> FAHeader(config = TodayHeader())
+            STRATEGIC_MANAGEMENT_ROUTE -> FAHeader(config = StrategyHeader(onModeClick = {}))
+            COMMAND_DECK_STRATEGIC_ARC_ROUTE -> FAHeader(config = StrategicArcHeader(onModeClick = {}))
+            else -> FAHeader(config = CommandDeckHeaderPreset())
+        }
 
         Spacer(Modifier.height(12.dp))
 
@@ -155,6 +166,7 @@ fun SharedCommandDeckLayout(
                 }
             }
         )
+
 
         Spacer(Modifier.height(12.dp))
 
@@ -266,100 +278,7 @@ enum class CommandDeckTab(
     Today("Today", "⌁"),
 }
 
-// HEADER
-@Composable
-fun CommandDeckHeader() {
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val glowAlpha by animateFloatAsState(
-        targetValue = 0.15f,
-        animationSpec = tween(2000),
-        label = "header_glow"
-    )
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(
-                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 12.dp,
-                start = 16.dp,
-                end = 16.dp,
-                bottom = 4.dp // Reduced bottom padding
-            )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp)) // Slightly smaller corner radius
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            primaryColor.copy(alpha = 0.08f + glowAlpha),
-                            primaryColor.copy(alpha = 0.03f),
-                            primaryColor.copy(alpha = 0.08f + glowAlpha)
-                        )
-                    )
-                )
-                .border(
-                    width = 1.dp,
-                    brush = Brush.horizontalGradient(
-                        colors = listOf(
-                            primaryColor.copy(alpha = 0.3f),
-                            primaryColor.copy(alpha = 0.1f),
-                            primaryColor.copy(alpha = 0.3f)
-                        )
-                    ),
-                    shape = RoundedCornerShape(20.dp) // Match corner radius
-                )
-                .padding(horizontal = 16.dp, vertical = 10.dp), // Reduced vertical padding
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column {
-                Text(
-                    text = "ForwardApp",
-                    fontSize = 22.sp, // Reduced font size
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.8.sp,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "Command & Control",
-                    fontSize = 10.sp, // Reduced font size
-                    fontWeight = FontWeight.Medium,
-                    letterSpacing = 0.3.sp,
-                    color = primaryColor.copy(alpha = 0.7f)
-                )
-            }
-
-            Box(
-                modifier = Modifier
-                    .size(40.dp) // Reduced size
-                    .clip(CircleShape)
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                primaryColor.copy(alpha = 0.25f),
-                                primaryColor.copy(alpha = 0.08f)
-                            )
-                        )
-                    )
-                    .border(
-                        width = 1.5.dp,
-                        color = primaryColor.copy(alpha = 0.4f),
-                        shape = CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "⌬",
-                    fontSize = 28.sp, // Reduced font size
-                    color = primaryColor,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-    }
-}
 
 // TAB ROW
 @Composable

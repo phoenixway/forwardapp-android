@@ -1,2 +1,7 @@
-app/src/main/java/com/romankozak/forwardappmobile/ui/screens/daymanagement/dayplan/tasklist/TaskList.kt
-app/src/main/java/com/romankozak/forwardappmobile/ui/screens/daymanagement/dayplan/DayPlanScreen.kt
+app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeader.kt
+app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderConfig.kt
+app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderPresets.kt
+app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderTokens.kt
+app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderUtils.kt
+app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/HeaderModeCapsule.kt
+app/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/SharedCommandDeckLayout.kt

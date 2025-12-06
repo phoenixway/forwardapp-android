@@ -4,6 +4,21 @@
 
 ### Completed Tasks:
 
+- **Added Vertical Offset to Header from System Bar:**
+  - Added a small vertical offset (8.dp top padding) to the `Box` containing the header content in `FAHeader.kt`.
+  - This creates a visual separation from the system status bar, as per the user's request.
+  - The application now compiles successfully.
+- **Fixed Transparent Status Bar Effect (Spacer Background):**
+  - Removed the header's background from the status bar `Spacer` in `FAHeader.kt`.
+  - This allows the underlying screen's background to show through in the status bar area, creating the desired transparent effect.
+  - The application now compiles successfully.
+- **Fixed Transparent Status Bar Effect:**
+  - Removed the code that was hiding the system bars in `MainActivity.kt`.
+  - The `enableEdgeToEdge()` call and the theme's `SideEffect` now correctly handle the transparent status bar effect.
+  - The application now compiles successfully.
+- **Increased Vertical Padding for TodayHeader:**
+  - Increased the `vertical` padding for the `Column` in the `left` slot of `TodayHeader` in `FAHeaderPresets.kt` to provide more top and bottom spacing.
+  - The application now compiles successfully.
 - **Refined TodayHeader Styling (Bold "Today" and Padding):**
   - Made the "Today" text bold in `TodayHeader` in `FAHeaderPresets.kt`.
   - Added vertical padding to the `left` slot content in `TodayHeader`.

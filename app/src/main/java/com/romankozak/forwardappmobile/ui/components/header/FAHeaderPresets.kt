@@ -23,7 +23,7 @@ fun TodayHeader(): FAHeaderConfig {
     return FAHeaderConfig(
         backgroundStyle = FAHeaderBackground.CommandDeck,
         left = {
-            Column(horizontalAlignment = Alignment.Start, modifier = Modifier.padding(vertical = 4.dp)) {
+            Column(horizontalAlignment = Alignment.Start, modifier = Modifier.padding(vertical = 8.dp)) {
                 Text("Today", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
                 Text(
                     text = "Operative Mode • ${FAHeaderUtils.currentDate()}",
@@ -66,32 +66,100 @@ fun TodayHeader(): FAHeaderConfig {
 }
 
 @Composable
-fun StrategyHeader(onModeClick: () -> Unit): FAHeaderConfig =
-    FAHeaderConfig(
+fun StrategyHeader(onModeClick: () -> Unit): FAHeaderConfig {
+    val primaryColor = MaterialTheme.colorScheme.primary
+    return FAHeaderConfig(
+        backgroundStyle = FAHeaderBackground.CommandDeck,
         left = {
             Column(horizontalAlignment = Alignment.Start) {
-                Text("Strategy", style = MaterialTheme.typography.titleLarge)
-                Text("Long-term planning mode")
+                Text("Strategy", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+                Text(
+                    text = "Long-term planning mode",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 0.3.sp,
+                    color = primaryColor.copy(alpha = 0.7f)
+                )
             }
         },
         right = {
-            ModeCapsule("Modes", onClick = onModeClick)
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                primaryColor.copy(alpha = 0.25f),
+                                primaryColor.copy(alpha = 0.08f)
+                            )
+                        )
+                    )
+                    .border(
+                        width = 1.5.dp,
+                        color = primaryColor.copy(alpha = 0.4f),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "⌁",
+                    fontSize = 28.sp,
+                    color = primaryColor,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
     )
+}
 
 @Composable
-fun StrategicArcHeader(onModeClick: () -> Unit): FAHeaderConfig =
-    FAHeaderConfig(
+fun StrategicArcHeader(onModeClick: () -> Unit): FAHeaderConfig {
+    val primaryColor = MaterialTheme.colorScheme.primary
+    return FAHeaderConfig(
+        backgroundStyle = FAHeaderBackground.CommandDeck,
         left = {
             Column(horizontalAlignment = Alignment.Start) {
-                Text("Strategic Arc", style = MaterialTheme.typography.titleLarge)
-                Text("April • Expansion Arc")
+                Text("Strategic Arc", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+                Text(
+                    text = "April • Expansion Arc",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 0.3.sp,
+                    color = primaryColor.copy(alpha = 0.7f)
+                )
             }
         },
         right = {
-            ModeCapsule("Modes", onClick = onModeClick)
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                primaryColor.copy(alpha = 0.25f),
+                                primaryColor.copy(alpha = 0.08f)
+                            )
+                        )
+                    )
+                    .border(
+                        width = 1.5.dp,
+                        color = primaryColor.copy(alpha = 0.4f),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "⌁",
+                    fontSize = 28.sp,
+                    color = primaryColor,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
     )
+}
 
 @Composable
 fun CommandDeckHeaderPreset(): FAHeaderConfig {

@@ -118,7 +118,7 @@ fun DayManagementScreen(
     },
   ) { innerPadding ->
     Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-      FAHeader(config = TodayHeader())
+
       Box(modifier = Modifier.fillMaxSize()) {
         when {
         uiState.isLoading -> {
