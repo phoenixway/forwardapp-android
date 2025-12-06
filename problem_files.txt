@@ -1,0 +1,7 @@
+- app/src/main/java/com/romankozak/forwardappmobile/data/database/models/TacticalMissionModels.kt
+- app/src/main/java/com/romankozak/forwardappmobile/data/dao/TacticalMissionDao.kt
+- app/src/main/java/com/romankozak/forwardappmobile/data/database/AppDatabase.kt
+- app/src/main/java/com/romankozak/forwardappmobile/data/database/Migrations.kt
+- app/src/main/java/com/romankozak/forwardappmobile/di/DatabaseModule.kt
+- app/src/main/java/com/romankozak/forwardappmobile/data/repository/TacticalMissionRepository.kt
+- app/src/main/java/com/romankozak/forwardappmobile/features/attachments/data/model/AttachmentModels.kt

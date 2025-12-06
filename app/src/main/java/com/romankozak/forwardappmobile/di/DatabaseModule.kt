@@ -27,6 +27,7 @@ import com.romankozak.forwardappmobile.data.dao.ConversationFolderDao
 import com.romankozak.forwardappmobile.data.dao.ChecklistDao
 import com.romankozak.forwardappmobile.data.dao.ScriptDao
 import com.romankozak.forwardappmobile.data.dao.BacklogOrderDao
+import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import dagger.Module
 import dagger.Provides
@@ -311,4 +312,8 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideBacklogOrderDao(appDatabase: AppDatabase) = appDatabase.backlogOrderDao()
-}
+
+    @Provides
+    @Singleton
+    fun provideTacticalMissionDao(appDatabase: AppDatabase): TacticalMissionDao = appDatabase.tacticalMissionDao()
+    }
