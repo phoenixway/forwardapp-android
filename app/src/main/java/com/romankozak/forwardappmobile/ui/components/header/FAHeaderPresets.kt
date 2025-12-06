@@ -66,7 +66,7 @@ fun TodayHeader(
                 )
                 Row {
                     Text(
-                        text = "Action Mode",
+                        text = "The Alpha and Omega of everything",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Medium,
                         letterSpacing = 0.3.sp,
@@ -159,7 +159,10 @@ fun StrategyHeader(onModeClick: () -> Unit): HeaderLayout {
             Column(horizontalAlignment = Alignment.Start) {
                 Text(
                     "Strategy",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold
+                    )
                 )
                 Text(
                     text = "Long-term planning mode",
@@ -191,7 +194,7 @@ fun StrategyHeader(onModeClick: () -> Unit): HeaderLayout {
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "⌁",
+                    text = "❂",
                     fontSize = 22.sp,
                     color = primaryColor,
                     fontWeight = FontWeight.Bold
@@ -213,10 +216,13 @@ fun StrategicArcHeader(onModeClick: () -> Unit): HeaderLayout {
             Column(horizontalAlignment = Alignment.Start) {
                 Text(
                     "Strategic Arc",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold
+                    )
                 )
                 Text(
-                    text = "April • Expansion Arc",
+                    text = "The current Arc of your story",
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Medium,
                     letterSpacing = 0.3.sp,
@@ -245,7 +251,7 @@ fun StrategicArcHeader(onModeClick: () -> Unit): HeaderLayout {
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "⌁",
+                    text = "⟲",
                     fontSize = 22.sp,
                     color = primaryColor,
                     fontWeight = FontWeight.Bold
@@ -266,14 +272,14 @@ fun CommandDeckHeaderPreset(): HeaderLayout {
         left = {
             Column {
                 Text(
-                    text = "ForwardApp",
+                    text = "Forward",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 0.8.sp,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Command & Control",
+                    text = "Score your goals!",
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Medium,
                     letterSpacing = 0.3.sp,
@@ -303,6 +309,120 @@ fun CommandDeckHeaderPreset(): HeaderLayout {
             ) {
                 Text(
                     text = "⌬",
+                    fontSize = 22.sp,
+                    color = primaryColor,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    )
+}
+
+/**
+ * Tactics header.
+ */
+@Composable
+fun TacticsHeader(): HeaderLayout {
+    val primaryColor = MaterialTheme.colorScheme.primary
+
+    return LeftCenterCombinedHeaderLayout(
+        left = {
+            Column {
+                Text(
+                    text = "Tactics",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.8.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Your job is to make the impossible possible.",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 0.3.sp,
+                    color = primaryColor.copy(alpha = 0.7f)
+                )
+            }
+        },
+        right = {
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                primaryColor.copy(alpha = 0.25f),
+                                primaryColor.copy(alpha = 0.08f)
+                            )
+                        )
+                    )
+                    .border(
+                        width = 1.2.dp,
+                        color = primaryColor.copy(alpha = 0.4f),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "⦿",
+                    fontSize = 23.sp,
+                    color = primaryColor,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    )
+}
+
+/**
+ * Core header.
+ */
+@Composable
+fun CoreHeader(): HeaderLayout {
+    val primaryColor = MaterialTheme.colorScheme.primary
+
+    return LeftCenterCombinedHeaderLayout(
+        left = {
+            Column {
+                Text(
+                    text = "Core",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.8.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Your primary beacons.",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 0.3.sp,
+                    color = primaryColor.copy(alpha = 0.7f)
+                )
+            }
+        },
+        right = {
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                primaryColor.copy(alpha = 0.25f),
+                                primaryColor.copy(alpha = 0.08f)
+                            )
+                        )
+                    )
+                    .border(
+                        width = 1.2.dp,
+                        color = primaryColor.copy(alpha = 0.4f),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "⌘",
                     fontSize = 22.sp,
                     color = primaryColor,
                     fontWeight = FontWeight.Bold

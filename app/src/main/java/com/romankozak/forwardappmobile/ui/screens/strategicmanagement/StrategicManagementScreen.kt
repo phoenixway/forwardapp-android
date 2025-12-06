@@ -41,6 +41,8 @@ import com.romankozak.forwardappmobile.ui.screens.lifestate.LifeStateChatViewMod
 import com.romankozak.forwardappmobile.ui.screens.lifestate.LifeStateViewModel
 import com.romankozak.forwardappmobile.ui.screens.lifestate.AnalysisContent
 import com.romankozak.forwardappmobile.ui.screens.lifestate.ChatSection
+import androidx.compose.foundation.border
+
 
 @Composable
 fun StrategicManagementScreen(
@@ -114,9 +116,9 @@ private fun DashboardContent(
   LazyColumn(
     modifier = modifier
       .fillMaxSize() // Fills the available space given by its parent (the Column in StrategicManagementScreen)
-      .padding(horizontal = 20.dp), // Applies horizontal padding to the whole scrollable area
-    contentPadding = PaddingValues(top = scaffoldPadding.calculateTopPadding(), bottom = scaffoldPadding.calculateBottomPadding()), // Applies Scaffold's top/bottom insets as content padding
-    verticalArrangement = Arrangement.spacedBy(12.dp)
+      .padding(horizontal = 20.dp), // Re-introducing horizontal padding
+    contentPadding = PaddingValues(bottom = scaffoldPadding.calculateBottomPadding()), // Applies Scaffold's bottom inset as content padding
+    verticalArrangement = Arrangement.spacedBy(12.dp) // Re-introducing vertical spacing between items
   ) {
     item {
       Text(
@@ -269,7 +271,6 @@ private fun DashboardCard(title: String, value: String, modifier: Modifier = Mod
   }
 }
 
-
 @Composable
 private fun ProjectListItem(
     project: Project,
@@ -277,53 +278,80 @@ private fun ProjectListItem(
     onRevealClick: () -> Unit,
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onItemClick),
-        shape = MaterialTheme.shapes.large,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onItemClick),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 18.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                Box(
-                    modifier = Modifier.size(40.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = project.name.firstOrNull()?.uppercase() ?: "P",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
 
-                Spacer(modifier = Modifier.width(16.dp))
-
+            // --- Compact Icon Bubble
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f))
+                    .border(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
                 Text(
-                    text = project.name,
-                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
+                    text = project.name.firstOrNull()?.uppercase() ?: "P",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
 
-            IconButton(onClick = onRevealClick) {
+            Spacer(modifier = Modifier.width(14.dp))
+
+            // --- Title + optional subtitle
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = project.name,
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                    maxLines = 1,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                if (project.tags?.contains("mission") == true) {
+                    Text(
+                        text = "Mission project",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            IconButton(
+                modifier = Modifier.size(36.dp),
+                onClick = onRevealClick
+            ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
+                    Icons.AutoMirrored.Outlined.OpenInNew,
                     contentDescription = "Reveal Project",
-                    modifier = Modifier.size(22.dp),
                     tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
                 )
             }
         }
     }
 }
+
 
 @Composable
 private fun ProjectsLazyColumn(

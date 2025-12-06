@@ -82,8 +82,10 @@ import com.romankozak.forwardappmobile.routes.STRATEGIC_MANAGEMENT_ROUTE
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckHeaderPreset
 import com.romankozak.forwardappmobile.ui.components.header.FAHeader
 import com.romankozak.forwardappmobile.ui.components.header.FAHeaderBackground
+import com.romankozak.forwardappmobile.ui.components.header.CoreHeader
 import com.romankozak.forwardappmobile.ui.components.header.StrategicArcHeader
 import com.romankozak.forwardappmobile.ui.components.header.StrategyHeader
+import com.romankozak.forwardappmobile.ui.components.header.TacticsHeader
 import com.romankozak.forwardappmobile.ui.components.header.TodayHeader
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.DayManagementScreen
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
@@ -158,6 +160,11 @@ fun SharedCommandDeckLayout(
                 backgroundStyle = FAHeaderBackground.CommandDeck
             )
 
+            COMMAND_DECK_CORE_ROUTE -> FAHeader(
+                layout = CoreHeader(),
+                backgroundStyle = FAHeaderBackground.CommandDeck
+            )
+
             COMMAND_DECK_TODAY_ROUTE -> FAHeader(
                 layout = TodayHeader(
                     onNavigateToPreviousDay = { dayPlanViewModel.navigateToPreviousDay() },
@@ -175,6 +182,11 @@ fun SharedCommandDeckLayout(
 
             COMMAND_DECK_STRATEGIC_ARC_ROUTE -> FAHeader(
                 layout = StrategicArcHeader(onModeClick = {}),
+                backgroundStyle = FAHeaderBackground.CommandDeck
+            )
+
+            COMMAND_DECK_TACTICS_ROUTE -> FAHeader(
+                layout = TacticsHeader(),
                 backgroundStyle = FAHeaderBackground.CommandDeck
             )
 
