@@ -89,7 +89,7 @@ fun TodayHeader(
         // ----------------------
         topRight = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onNavigateToPreviousDay) {
+                IconButton(onClick = onNavigateToPreviousDay, modifier = Modifier.padding(start = 8.dp)) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Попередній день",
