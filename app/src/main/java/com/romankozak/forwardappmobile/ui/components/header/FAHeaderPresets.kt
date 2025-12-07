@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -88,26 +89,7 @@ fun TodayHeader(
         // 💛 TOP RIGHT: ENERGY ICON + Day Navigation
         // ----------------------
         topRight = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onNavigateToPreviousDay, modifier = Modifier.padding(start = 8.dp)) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Попередній день",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                IconButton(onClick = onNavigateToNextDay, enabled = isNextDayNavigationEnabled) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = "Наступний день",
-                        tint =
-                        if (isNextDayNavigationEnabled) {
-                            MaterialTheme.colorScheme.onSurface
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                        },
-                    )
-                }
+            Column(horizontalAlignment = Alignment.End) {
                 Box(
                     modifier = Modifier
                         .size(34.dp)
@@ -133,6 +115,27 @@ fun TodayHeader(
                         color = primaryColor,
                         fontWeight = FontWeight.Bold
                     )
+                }
+                Row(modifier = Modifier.offset(y = 4.dp)) {
+                    IconButton(onClick = onNavigateToPreviousDay, modifier = Modifier.padding(start = 8.dp)) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Попередній день",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    IconButton(onClick = onNavigateToNextDay, enabled = isNextDayNavigationEnabled) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = "Наступний день",
+                            tint =
+                            if (isNextDayNavigationEnabled) {
+                                MaterialTheme.colorScheme.onSurface
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                            },
+                        )
+                    }
                 }
             }
         },

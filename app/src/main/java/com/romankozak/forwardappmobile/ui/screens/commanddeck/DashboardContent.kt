@@ -5,9 +5,12 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,6 +22,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 
 // ---------------------------------------------
 // DATA MODELS
@@ -66,6 +70,7 @@ fun AnimatedCommandDeck(
   onNavigateToImportExport: () -> Unit,
   onNavigateToAttachments: () -> Unit,
   onNavigateToScripts: () -> Unit,
+  viewModel: CommandDeckViewModel = hiltViewModel()
 ) {
   val categories = remember {
     listOf(
@@ -77,7 +82,7 @@ fun AnimatedCommandDeck(
             DeckAction(
               "AI Chat",
               "Chat with AI",
-              Icons.Outlined.QuestionAnswer,
+              Icons.AutoMirrored.Outlined.Chat,
               Color(0xFF9D7BFF),
               onNavigateToAiChat,
             ),
@@ -123,20 +128,6 @@ fun AnimatedCommandDeck(
               Color(0xFF7CE8FF),
               onNavigateToAttachments,
             ),
-          ),
-      ),
-      DeckCategory(
-        title = "System",
-        color = Color(0xFFFFA85D),
-        actions =
-          listOf(
-            DeckAction(
-              "Import/Export",
-              "Sync data",
-              Icons.Outlined.ImportExport,
-              Color(0xFFFFA85D),
-              onNavigateToImportExport,
-            ),
             DeckAction(
               "Scripts",
               "Automation tools",
@@ -150,6 +141,20 @@ fun AnimatedCommandDeck(
               Icons.Outlined.AccountTree,
               Color(0xFF5DE2FF),
               onNavigateToProjectHierarchy,
+            ),
+          ),
+      ),
+      DeckCategory(
+        title = "System",
+        color = Color(0xFFFFA85D),
+        actions =
+          listOf(
+            DeckAction(
+              "Import/Export",
+              "Sync data",
+              Icons.Outlined.ImportExport,
+              Color(0xFFFFA85D),
+              onNavigateToImportExport,
             ),
             DeckAction(
               "Search",
@@ -170,21 +175,31 @@ fun AnimatedCommandDeck(
     )
   }
 
-  Column(
-    modifier = Modifier.fillMaxSize().padding(18.dp),
+  LazyColumn(
+    modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
     verticalArrangement = Arrangement.spacedBy(18.dp),
+    contentPadding = PaddingValues(bottom = 18.dp)
   ) {
-    Text("Command Deck", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.White)
-    val analytics =
-      listOf(
-        DeckAnalytics(category = "AI Tools", status = LevelStatus.OK, count = 0),
-        DeckAnalytics(category = "Personal Ops", status = LevelStatus.ATTENTION, count = 3),
-        DeckAnalytics(category = "System", status = LevelStatus.CRITICAL, count = 1),
-      )
+    item {
+        Text("Command Deck", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+    }
 
-    AnalyticsOverviewBar(analytics)
+    item {
+        val analytics =
+          listOf(
+            DeckAnalytics(category = "Core", status = LevelStatus.OK, count = 0),
+            DeckAnalytics(category = "Strategic", status = LevelStatus.OK, count = 0),
+            DeckAnalytics(category = "Arc", status = LevelStatus.OK, count = 0),
+            DeckAnalytics(category = "Tactics", status = LevelStatus.OK, count = 0),
+            DeckAnalytics(category = "Day", status = LevelStatus.OK, count = 0),
+          )
 
-    categories.forEach { category -> AnimatedDeckCategory(category) }
+        AnalyticsOverviewBar(analytics)
+    }
+
+    items(categories) { category ->
+        AnimatedDeckCategory(category, viewModel)
+    }
   }
 }
 
@@ -193,8 +208,8 @@ fun AnimatedCommandDeck(
 // ---------------------------------------------
 
 @Composable
-fun AnimatedDeckCategory(category: DeckCategory) {
-  var expanded by remember { mutableStateOf(true) }
+fun AnimatedDeckCategory(category: DeckCategory, viewModel: CommandDeckViewModel) {
+  var expanded by remember { mutableStateOf(viewModel.isCategoryExpanded(category.title)) }
 
   Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
 
@@ -203,7 +218,10 @@ fun AnimatedDeckCategory(category: DeckCategory) {
       modifier =
         Modifier.fillMaxWidth()
           .clip(RoundedCornerShape(16.dp))
-          .clickable { expanded = !expanded }
+          .clickable {
+              expanded = !expanded
+              viewModel.setCategoryExpanded(category.title, expanded)
+          }
           .background(Color.White.copy(alpha = 0.05f))
           .padding(16.dp),
       verticalAlignment = Alignment.CenterVertically,
@@ -222,14 +240,14 @@ fun AnimatedDeckCategory(category: DeckCategory) {
         text = category.title,
         fontSize = 17.sp,
         fontWeight = FontWeight.SemiBold,
-        color = Color.White,
+        color = MaterialTheme.colorScheme.onSurface,
         modifier = Modifier.weight(1f),
       )
 
       Icon(
         if (expanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
         contentDescription = null,
-        tint = Color.LightGray,
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
       )
     }
 
@@ -305,8 +323,8 @@ fun DeckActionCard(action: DeckAction) {
       }
 
       Column(Modifier.weight(1f)) {
-        Text(action.title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
-        Text(action.subtitle, fontSize = 13.sp, color = Color.LightGray)
+        Text(action.title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+        Text(action.subtitle, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
       }
     }
   }
@@ -320,10 +338,10 @@ fun AnalyticsOverviewBar(analytics: List<DeckAnalytics>) {
       Modifier.fillMaxWidth()
         .clip(RoundedCornerShape(18.dp))
         .background(Color.White.copy(alpha = 0.04f))
-        .padding(16.dp),
-    verticalArrangement = Arrangement.spacedBy(12.dp),
+        .padding(horizontal = 16.dp, vertical = 8.dp),
+    verticalArrangement = Arrangement.spacedBy(4.dp),
   ) {
-    Text("Overview", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+    Text("Overview", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
 
     analytics.forEachIndexed { index, item ->
       var visible by remember { mutableStateOf(false) }
@@ -351,10 +369,10 @@ fun AnalyticsRow(item: DeckAnalytics) {
     horizontalArrangement = Arrangement.SpaceBetween,
     verticalAlignment = Alignment.CenterVertically,
   ) {
-    Text(item.category, color = Color.White, fontWeight = FontWeight.Medium, fontSize = 15.sp)
+    Text(item.category, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium, fontSize = 14.sp)
 
     Row(verticalAlignment = Alignment.CenterVertically) {
-      Box(Modifier.size(12.dp).clip(CircleShape).background(levelColor(item.status)))
+      Box(Modifier.size(10.dp).clip(CircleShape).background(levelColor(item.status)))
 
       Spacer(Modifier.width(8.dp))
 
@@ -364,13 +382,13 @@ fun AnalyticsRow(item: DeckAnalytics) {
           LevelStatus.ATTENTION -> "Attention"
           LevelStatus.CRITICAL -> "Critical"
         },
-        color = Color.LightGray,
-        fontSize = 14.sp,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        fontSize = 12.sp,
       )
 
       Spacer(Modifier.width(12.dp))
 
-      Text("${item.count} items", color = Color.Gray, fontSize = 13.sp)
+      Text("${item.count} items", color = Color.Gray, fontSize = 12.sp)
     }
   }
 }
