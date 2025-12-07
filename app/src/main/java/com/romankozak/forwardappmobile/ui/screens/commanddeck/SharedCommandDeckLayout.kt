@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.asPaddingValues
 
+import android.util.Log
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -117,14 +118,12 @@ fun SharedCommandDeckLayout(
     onNavigateToImportExport: () -> Unit,
     onNavigateToAttachments: () -> Unit,
     onNavigateToScripts: () -> Unit,
-    dayPlanViewModel: DayPlanViewModel = hiltViewModel(),
 ) {
     val tabs = CommandDeckTab.entries.toList()
     val innerNavController = rememberNavController()
 
     val navBackStackEntry by innerNavController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-    val dayPlanUiState by dayPlanViewModel.uiState.collectAsState()
 
     val selectedTabIndex = remember(currentRoute) {
         tabs.indexOfFirst { tab ->
@@ -165,15 +164,29 @@ fun SharedCommandDeckLayout(
                 backgroundStyle = FAHeaderBackground.CommandDeck
             )
 
-            COMMAND_DECK_TODAY_ROUTE -> FAHeader(
-                layout = TodayHeader(
-                    onNavigateToPreviousDay = { dayPlanViewModel.navigateToPreviousDay() },
-                    onNavigateToNextDay = { dayPlanViewModel.navigateToNextDay() },
-                    isNextDayNavigationEnabled = !dayPlanUiState.isToday,
-                    date = dayPlanUiState.dayPlan?.date
-                ),
-                backgroundStyle = FAHeaderBackground.CommandDeck
-            )
+            COMMAND_DECK_TODAY_ROUTE -> {
+                val dayPlanBackStackEntry = remember(innerNavController.currentBackStackEntry) {
+                    innerNavController.getBackStackEntry(COMMAND_DECK_TODAY_ROUTE)
+                }
+                val dayPlanViewModel: DayPlanViewModel = hiltViewModel(dayPlanBackStackEntry)
+                val dayPlanUiState by dayPlanViewModel.uiState.collectAsState()
+
+                FAHeader(
+                    layout = TodayHeader(
+                        onNavigateToPreviousDay = {
+                            Log.d("TodayTab", "onNavigateToPreviousDay callback invoked.")
+                            dayPlanViewModel.navigateToPreviousDay()
+                        },
+                        onNavigateToNextDay = {
+                            Log.d("TodayTab", "onNavigateToNextDay callback invoked. Enabled: ${!dayPlanUiState.isToday}")
+                            dayPlanViewModel.navigateToNextDay()
+                        },
+                        isNextDayNavigationEnabled = !dayPlanUiState.isToday,
+                        date = dayPlanUiState.dayPlan?.date
+                    ),
+                    backgroundStyle = FAHeaderBackground.CommandDeck
+                )
+            }
 
             STRATEGIC_MANAGEMENT_ROUTE -> FAHeader(
                 layout = StrategyHeader(onModeClick = {}),

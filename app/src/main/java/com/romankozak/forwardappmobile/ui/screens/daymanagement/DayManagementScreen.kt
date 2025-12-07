@@ -32,6 +32,7 @@ import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.ActivityTrackerScreen
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayanalitics.DayAnalyticsScreen
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.daydashboard.DayDashboardScreen
+import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanScreen
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.components.DayManagementBottomNav
 import kotlinx.coroutines.launch
@@ -71,6 +72,9 @@ fun DayManagementScreen(
   val coroutineScope = rememberCoroutineScope()
   val snackbarHostState = remember { SnackbarHostState() }
   var addTaskTrigger by remember { mutableStateOf(0) }
+
+  // Instantiate DayPlanViewModel here, scoped to the COMMAND_DECK_TODAY_ROUTE
+  val dayPlanViewModel: com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanViewModel = hiltViewModel()
 
   LaunchedEffect(key1 = Unit) {
     viewModel.uiEvent.collect { event ->
@@ -142,11 +146,11 @@ fun DayManagementScreen(
               DayManagementTab.TRACK -> ActivityTrackerScreen(navController = mainNavController)
               DayManagementTab.PLAN ->
                 DayPlanScreen(
-                  dayPlanId = planId,
-                  onNavigateToProject = { projectId ->
+                  initialDayPlanId = planId,
+                  onNavigateToProject = { projectId: String ->
                     mainNavController.navigate("goal_detail_screen/$projectId")
                   },
-                  onNavigateToBacklog = { task ->
+                  onNavigateToBacklog = { task: DayTask ->
                     // <-- ПОСТАВТЕ ЛОГИ ТУТ
                     Log.d(TAG, "2. НАВІГАЦІЯ: Отримано task для переходу в беклог.")
                     task.projectId?.let { projectId ->
@@ -168,6 +172,7 @@ fun DayManagementScreen(
                   onNavigateToSettings = { mainNavController.navigate("settings_screen") },
                   addTaskTrigger = addTaskTrigger,
                   navController = mainNavController,
+                  viewModel = dayPlanViewModel, // Pass the shared instance
                 )
               DayManagementTab.DASHBOARD -> DayDashboardScreen(dayPlanId = planId)
               DayManagementTab.ANALYTICS -> DayAnalyticsScreen()

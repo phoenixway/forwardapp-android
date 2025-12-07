@@ -64,7 +64,7 @@ fun TodayHeader(
                         fontWeight = FontWeight.Bold
                     )
                 )
-                Row {
+                Column {
                     Text(
                         text = "The Alpha and Omega of everything",
                         fontSize = 10.sp,
@@ -74,10 +74,9 @@ fun TodayHeader(
                     )
                     if (dateText.isNotEmpty()) {
                         Text(
-                            text = " · $dateText",
+                            text = dateText,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Medium,
-                            letterSpacing = 0.3.sp,
                             color = primaryColor.copy(alpha = 0.7f)
                         )
                     }
@@ -94,6 +93,7 @@ fun TodayHeader(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Попередній день",
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
                 IconButton(onClick = onNavigateToNextDay, enabled = isNextDayNavigationEnabled) {
