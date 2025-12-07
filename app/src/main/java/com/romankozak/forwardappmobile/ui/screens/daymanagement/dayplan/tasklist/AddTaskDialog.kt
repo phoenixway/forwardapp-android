@@ -63,7 +63,7 @@ fun AddTaskDialog(
   AlertDialog(
     onDismissRequest = onDismissRequest,
     properties = DialogProperties(usePlatformDefaultWidth = false),
-    modifier = Modifier.padding(24.dp).fillMaxWidth(),
+    modifier = Modifier.padding(24.dp),
     containerColor = Color.Transparent,
     title = {
       Column(modifier = Modifier.fillMaxWidth()) {
@@ -118,7 +118,8 @@ fun AddTaskDialog(
                 ),
               shape = RoundedCornerShape(20.dp),
             )
-            .padding(20.dp),
+            .padding(20.dp)
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(18.dp),
       ) {
 
