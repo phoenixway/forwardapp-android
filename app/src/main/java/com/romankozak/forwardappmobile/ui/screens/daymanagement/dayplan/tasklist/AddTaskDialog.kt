@@ -5,6 +5,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -64,68 +66,55 @@ fun AddTaskDialog(
     onDismissRequest = onDismissRequest,
     properties = DialogProperties(usePlatformDefaultWidth = false),
     modifier = Modifier.padding(24.dp),
-    containerColor = Color.Transparent,
+    containerColor = MaterialTheme.colorScheme.surface,
     title = {
-      Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-          verticalAlignment = Alignment.CenterVertically,
-          horizontalArrangement = Arrangement.Start,
+      Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Start,
+      ) {
+        Box(
+          modifier =
+            Modifier.size(48.dp)
+              .clip(RoundedCornerShape(12.dp))
+              .background(
+                brush =
+                  Brush.linearGradient(
+                    colors =
+                      listOf(
+                        MaterialTheme.colorScheme.primary,
+                        MaterialTheme.colorScheme.tertiary,
+                      )
+                  )
+              ),
+          contentAlignment = Alignment.Center,
         ) {
-          Box(
-            modifier =
-              Modifier.size(48.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(
-                  brush =
-                    Brush.linearGradient(
-                      colors =
-                        listOf(
-                          MaterialTheme.colorScheme.primary,
-                          MaterialTheme.colorScheme.tertiary,
-                        )
-                    )
-                ),
-            contentAlignment = Alignment.Center,
-          ) {
-            Icon(
-              Icons.Default.Add,
-              contentDescription = null,
-              tint = Color.White,
-              modifier = Modifier.size(26.dp),
-            )
-          }
-          Spacer(Modifier.width(16.dp))
-          Text(
-            text = "Нове завдання",
-            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onSurface,
+          Icon(
+            Icons.Default.Add,
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier.size(26.dp),
           )
         }
+        Spacer(Modifier.width(16.dp))
+        Text(
+          text = "Нове завдання",
+          style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+          color = MaterialTheme.colorScheme.onSurface,
+        )
       }
     },
     text = {
       Column(
         modifier =
-          Modifier.fillMaxWidth()
-            .background(
-              brush =
-                Brush.verticalGradient(
-                  listOf(
-                    MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                    MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                    MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                  )
-                ),
-              shape = RoundedCornerShape(20.dp),
-            )
-            .padding(20.dp)
+          Modifier
+            .padding(top = 20.dp)
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(18.dp),
       ) {
 
-        // -----------------------------------------------------------------
+        //-----------------------------------------------------------------
         // Title Field
-        // -----------------------------------------------------------------
+        //-----------------------------------------------------------------
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
           Text(
             text = "Назва",
@@ -156,9 +145,9 @@ fun AddTaskDialog(
           )
         }
 
-        // -----------------------------------------------------------------
+        //-----------------------------------------------------------------
         // Description Field
-        // -----------------------------------------------------------------
+        //-----------------------------------------------------------------
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
           Text(
             text = "Опис",
@@ -183,9 +172,9 @@ fun AddTaskDialog(
           )
         }
 
-        // -----------------------------------------------------------------
+        //-----------------------------------------------------------------
         // Points + Duration
-        // -----------------------------------------------------------------
+        //-----------------------------------------------------------------
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
           Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
@@ -257,9 +246,9 @@ fun AddTaskDialog(
           }
         }
 
-        // -----------------------------------------------------------------
+        //-----------------------------------------------------------------
         // Recurrence
-        // -----------------------------------------------------------------
+        //-----------------------------------------------------------------
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
           Text(
             text = "Повторення",
@@ -302,9 +291,9 @@ fun AddTaskDialog(
           }
         }
 
-        // -----------------------------------------------------------------
+        //-----------------------------------------------------------------
         // Priority Selection
-        // -----------------------------------------------------------------
+        //-----------------------------------------------------------------
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
           Text(
             text = "Пріоритет",
@@ -375,37 +364,46 @@ fun AddTaskDialog(
       }
     },
 
-    // ---------------------------------------------------------------------
+    //---------------------------------------------------------------------
     // Action Buttons
-    // ---------------------------------------------------------------------
+    //---------------------------------------------------------------------
     confirmButton = {
-      Button(
-        onClick = {
-          val duration = durationText.toLongOrNull()
-          val points = pointsText.toIntOrNull() ?: 0
-          onConfirm(title, description, duration, priority, recurrenceRule, points)
-        },
-        enabled = title.isNotBlank(),
-        shape = RoundedCornerShape(12.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-        modifier = Modifier.height(48.dp),
-        contentPadding = PaddingValues(horizontal = 24.dp),
-      ) {
-        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(20.dp))
-        Spacer(Modifier.width(8.dp))
-        Text("Додати", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-      }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            OutlinedButton(
+                onClick = onDismissRequest,
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
+                modifier = Modifier.height(48.dp),
+                contentPadding = PaddingValues(horizontal = 24.dp)
+            ) {
+                Text(
+                    "Скасувати",
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 15.sp
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Button(
+                onClick = {
+                    val duration = durationText.toLongOrNull()
+                    val points = pointsText.toIntOrNull() ?: 0
+                    onConfirm(title, description, duration, priority, recurrenceRule, points)
+                },
+                enabled = title.isNotBlank(),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                modifier = Modifier.height(48.dp),
+                contentPadding = PaddingValues(horizontal = 24.dp),
+            ) {
+                Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Додати", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+            }
+        }
     },
-    dismissButton = {
-      OutlinedButton(
-        onClick = onDismissRequest,
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
-        modifier = Modifier.height(48.dp),
-        contentPadding = PaddingValues(horizontal = 24.dp),
-      ) {
-        Text("Скасувати", fontWeight = FontWeight.Medium, fontSize = 15.sp)
-      }
-    },
+    dismissButton = {}
   )
 }

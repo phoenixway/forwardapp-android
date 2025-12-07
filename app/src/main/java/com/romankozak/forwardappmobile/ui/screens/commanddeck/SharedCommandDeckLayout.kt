@@ -202,29 +202,10 @@ fun SharedCommandDeckLayout(
                 StrategicManagementScreen(navController = navController)
             }
             composable(COMMAND_DECK_CORE_ROUTE) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    DeckModuleCard(
-                        title = "Core Beacons",
-                        subtitle = "Foundational principles active: 3",
-                        progress = 72,
-                        accentColor = Color(0xFFBB86FC)
-                    )
-                }
+                CoreLevelScreen(navController = navController)
             }
             composable(COMMAND_DECK_STRATEGIC_ARC_ROUTE) {
-                DeckModuleCard(
-                    title = "Strategic Arc",
-                    subtitle = "Plan for this month: Expansion Arc",
-                    progress = 62,
-                    accentColor = Color(0xFF9575CD),
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
+                StrategicArcScreen(navController = navController)
             }
             composable(COMMAND_DECK_TACTICS_ROUTE) {
                 TacticalManagementScreen()

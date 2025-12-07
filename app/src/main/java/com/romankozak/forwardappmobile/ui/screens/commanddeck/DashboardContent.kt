@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.romankozak.forwardappmobile.ui.screens.commanddeck.LifeManagementState
 
 // ---------------------------------------------
 // DATA MODELS
@@ -181,7 +182,11 @@ fun AnimatedCommandDeck(
     contentPadding = PaddingValues(bottom = 18.dp)
   ) {
     item {
-        Text("Command Deck", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+        Text("Overview", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+    }
+
+    item {
+        LifeManagementState()
     }
 
     item {
@@ -195,6 +200,10 @@ fun AnimatedCommandDeck(
           )
 
         AnalyticsOverviewBar(analytics)
+    }
+
+    item {
+        Text("Tools", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
     }
 
     items(categories) { category ->
@@ -341,7 +350,7 @@ fun AnalyticsOverviewBar(analytics: List<DeckAnalytics>) {
         .padding(horizontal = 16.dp, vertical = 8.dp),
     verticalArrangement = Arrangement.spacedBy(4.dp),
   ) {
-    Text("Overview", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+    Text("Levels", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
 
     analytics.forEachIndexed { index, item ->
       var visible by remember { mutableStateOf(false) }
@@ -385,10 +394,6 @@ fun AnalyticsRow(item: DeckAnalytics) {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         fontSize = 12.sp,
       )
-
-      Spacer(Modifier.width(12.dp))
-
-      Text("${item.count} items", color = Color.Gray, fontSize = 12.sp)
     }
   }
 }
