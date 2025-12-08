@@ -118,7 +118,12 @@ private fun NavGraphBuilder.mainGraph(
     appNavigationViewModel: AppNavigationViewModel,
     sharedTransitionScope: SharedTransitionScope,
 ) {
-    composable(COMMAND_DECK_ROUTE) {
+    composable(COMMAND_DECK_ROUTE) { backStackEntry ->
+        val parentEntry = remember(backStackEntry) {
+            navController.getBackStackEntry(MAIN_GRAPH_ROUTE)
+        }
+        val viewModel: ProjectHierarchyScreenViewModel = hiltViewModel(parentEntry)
+
         SharedCommandDeckLayout(
             navController = navController,
             onNavigateToProjectHierarchy = {
@@ -131,7 +136,7 @@ private fun NavGraphBuilder.mainGraph(
                 navController.navigate("settings_screen")
             },
             onNavigateToInbox = {
-                navController.navigate("inbox_editor_screen")
+                viewModel.onEvent(ProjectHierarchyScreenEvent.OpenInboxProject)
             },
             onNavigateToTracker = {
                 navController.navigate("activity_tracker_screen")

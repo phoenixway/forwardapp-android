@@ -24,6 +24,13 @@ import com.romankozak.forwardappmobile.features.missions.domain.model.MissionSta
 import java.text.SimpleDateFormat
 import java.util.*
 
+import androidx.compose.animation.core.*
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.foundation.border
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TacticalManagementScreen(
@@ -220,77 +227,170 @@ fun TacticalMissionItem(
     onMissionDeleted: () -> Unit,
     onMissionEdited: () -> Unit
 ) {
-    val overdue = System.currentTimeMillis() > mission.deadline && mission.status != MissionStatus.COMPLETED
+    val primary = MaterialTheme.colorScheme.primary
+    val onSurface = MaterialTheme.colorScheme.onSurface
 
-    val bgColor by animateColorAsState(
-        when {
-            mission.status == MissionStatus.COMPLETED ->
-                MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.35f)
+    val overdue = System.currentTimeMillis() > mission.deadline &&
+            mission.status != MissionStatus.COMPLETED
 
-            overdue ->
-                Color(0x44FF5555)
+    // Glow intensity depends on mission status
+    val targetGlow = when {
+        mission.status == MissionStatus.COMPLETED -> 0.03f
+        overdue -> 0.18f
+        else -> 0.07f
+    }
 
-            else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-        }
+    // Animated wave motion
+    val infinite = rememberInfiniteTransition(label = "")
+    val waveShift by infinite.animateFloat(
+        initialValue = -250f,
+        targetValue = 250f,
+        animationSpec = infiniteRepeatable(
+            tween(4400, easing = LinearEasing),
+            RepeatMode.Reverse
+        ),
+        label = "wave_shift"
     )
 
-    Card(
+    val waveStrength by infinite.animateFloat(
+        initialValue = targetGlow,
+        targetValue = targetGlow + 0.05f,
+        animationSpec = infiniteRepeatable(
+            tween(3000, easing = FastOutSlowInEasing),
+            RepeatMode.Reverse
+        ),
+        label = "wave_strength"
+    )
+
+    // Dynamic card container
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp)),
-        colors = CardDefaults.cardColors(containerColor = bgColor),
-        elevation = CardDefaults.cardElevation(6.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        primary.copy(alpha = waveStrength * 0.9f),
+                        Color.Transparent,
+                        primary.copy(alpha = waveStrength * 0.9f)
+                    ),
+                    start = Offset(waveShift, 0f),
+                    end = Offset(-waveShift, 300f)
+                )
+            )
+            .border(
+                1.dp,
+                Brush.horizontalGradient(
+                    listOf(
+                        primary.copy(alpha = waveStrength + 0.1f),
+                        primary.copy(alpha = 0.08f),
+                        primary.copy(alpha = waveStrength + 0.1f)
+                    )
+                ),
+                shape = RoundedCornerShape(20.dp)
+            )
+            .padding(16.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
 
+        Row(verticalAlignment = Alignment.CenterVertically) {
+
+            // Checkbox nicely integrated
             Checkbox(
                 checked = mission.status == MissionStatus.COMPLETED,
-                onCheckedChange = { onMissionToggled() }
+                onCheckedChange = { onMissionToggled() },
+                colors = CheckboxDefaults.colors(
+                    checkedColor = primary,
+                    uncheckedColor = onSurface.copy(alpha = 0.7f)
+                )
             )
 
             Spacer(Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
 
+                // 🔥 Title with animated color if overdue
+                val titleColor by animateColorAsState(
+                    targetValue = when {
+                        mission.status == MissionStatus.COMPLETED ->
+                            onSurface.copy(alpha = 0.4f)
+
+                        overdue ->
+                            Color(0xFFFF6E6E)
+
+                        else -> onSurface
+                    }
+                )
+
                 Text(
                     mission.title,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = titleColor,
                     textDecoration = if (mission.status == MissionStatus.COMPLETED)
                         TextDecoration.LineThrough else null
                 )
 
+                // 🔥 Description faded
                 if (!mission.description.isNullOrBlank()) {
                     Text(
                         mission.description!!,
                         style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(top = 4.dp),
+                        color = onSurface.copy(alpha = 0.7f),
                         textDecoration = if (mission.status == MissionStatus.COMPLETED)
-                            TextDecoration.LineThrough else null
+                            TextDecoration.LineThrough else null,
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 }
 
-                Text(
-                    "⏳ " + formatDate(mission.deadline),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (overdue) Color.Red else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                    modifier = Modifier.padding(top = 6.dp)
-                )
+                // 🔥 Deadline badge
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(top = 8.dp)
+                ) {
+                    Text(
+                        text = if (overdue) "⚠ " else "⏳ ",
+                        color = if (overdue) Color(0xFFFF4444) else primary
+                    )
+                    Text(
+                        formatDate(mission.deadline),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (overdue)
+                            Color(0xFFFF4444)
+                        else
+                            onSurface.copy(alpha = 0.65f)
+                    )
+                }
             }
 
-            IconButton(onClick = onMissionEdited) {
-                Icon(Icons.Default.Edit, contentDescription = "Edit")
-            }
-            IconButton(onClick = onMissionDeleted) {
-                Icon(Icons.Default.Delete, contentDescription = "Delete")
+            // -------------------------
+            // 🔥 Action Buttons (Edit/Delete)
+            // -------------------------
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalAlignment = Alignment.End
+            ) {
+
+                IconButton(onClick = onMissionEdited) {
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = "Edit",
+                        tint = primary.copy(alpha = 0.9f)
+                    )
+                }
+
+                IconButton(onClick = onMissionDeleted) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = Color(0xFFFF5A5A)
+                    )
+                }
             }
         }
     }
 }
+
 
 
 private fun formatDate(ts: Long): String {

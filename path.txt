@@ -3,5 +3,5 @@ app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderC
 app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderPresets.kt
 app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderTokens.kt
 app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderUtils.kt
-app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/HeaderModeCapsule.kt
 app/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/SharedCommandDeckLayout.kt
+app/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/components/DashboardBottomBar.ktpp/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/SharedCommandDeckLayout.kt

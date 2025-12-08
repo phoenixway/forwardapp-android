@@ -6,8 +6,8 @@ TABLE OF CONTENTS
 - [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderPresets.kt](##<<FILE_3>>)
 - [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderTokens.kt](##<<FILE_4>>)
 - [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderUtils.kt](##<<FILE_5>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/HeaderModeCapsule.kt](##<<FILE_6>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/SharedCommandDeckLayout.kt](##<<FILE_7>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/SharedCommandDeckLayout.kt](##<<FILE_6>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/components/DashboardBottomBar.ktpp/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/SharedCommandDeckLayout.kt](##<<FILE_7>>)
 
 ================================================================================
 
@@ -22,20 +22,34 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
+/**
+ * Новий основний варіант:
+ *  - приймає HeaderLayout (стратегія розкладки)
+ *  - окремо приймає фон через FAHeaderBackground
+ */
 @Composable
 fun FAHeader(
-    config: FAHeaderConfig,
+    layout: HeaderLayout,
+    backgroundStyle: FAHeaderBackground = FAHeaderBackground.Default,
     modifier: Modifier = Modifier
 ) {
     val glowAlpha by animateFloatAsState(
@@ -44,10 +58,16 @@ fun FAHeader(
         label = "header_glow"
     )
 
-    val backgroundModifier = when (config.backgroundStyle) {
-        FAHeaderBackground.Default -> Modifier.background(color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
-        FAHeaderBackground.Transparent -> Modifier.background(color = MaterialTheme.colorScheme.surface.copy(alpha = 0f))
-        FAHeaderBackground.Elevated -> Modifier.background(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+    val backgroundModifier = when (backgroundStyle) {
+        FAHeaderBackground.Default -> Modifier.background(
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
+        )
+        FAHeaderBackground.Transparent -> Modifier.background(
+            color = Color.Transparent
+        )
+        FAHeaderBackground.Elevated -> Modifier.background(
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
         FAHeaderBackground.Gradient -> Modifier.background(
             brush = Brush.verticalGradient(
                 listOf(
@@ -68,11 +88,13 @@ fun FAHeader(
     }
 
     Column(modifier = modifier.fillMaxWidth()) {
+        // status bar inset
         Spacer(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(WindowInsets.statusBars.asPaddingValues().calculateTopPadding())
         )
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -83,10 +105,9 @@ fun FAHeader(
                     bottom = 4.dp
                 )
         ) {
-            Row(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(80.dp)
                     .clip(RoundedCornerShape(20.dp))
                     .then(backgroundModifier)
                     .border(
@@ -100,29 +121,34 @@ fun FAHeader(
                         ),
                         shape = RoundedCornerShape(20.dp)
                     )
-                    .padding(horizontal = 20.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 20.dp, vertical = 12.dp)
             ) {
-                // Left slot
-                Box(
-                    modifier = Modifier.weight(1f),
-                    contentAlignment = Alignment.CenterStart
-                ) { config.left?.invoke() }
-
-                // Center slot
-                Box(
-                    modifier = Modifier.weight(3f), // Give more weight to the center
-                    contentAlignment = Alignment.Center
-                ) { config.center?.invoke() }
-
-                // Right slot
-                Box(
-                    modifier = Modifier.weight(1f),
-                    contentAlignment = Alignment.CenterEnd
-                ) { config.right?.invoke() }
+                layout.Content()
             }
         }
     }
+}
+
+/**
+ * Старий варіант для сумісності:
+ *  - приймає FAHeaderConfig (left/center/right)
+ *  - адаптер у LeftCenterCombinedHeaderLayout
+ */
+@Composable
+fun FAHeader(
+    config: FAHeaderConfig,
+    modifier: Modifier = Modifier
+) {
+    val layout = LeftCenterCombinedHeaderLayout(
+        left = config.left,
+        center = config.center,
+        right = config.right
+    )
+    FAHeader(
+        layout = layout,
+        backgroundStyle = config.backgroundStyle,
+        modifier = modifier
+    )
 }
 
 
@@ -137,21 +163,141 @@ BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/ap
 
 package com.romankozak.forwardappmobile.ui.components.header
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 
+/**
+ * Старий конфіг для простих випадків (залишений для сумісності).
+ */
 data class FAHeaderConfig(
-    val left: ( @Composable () -> Unit)? = null,
-    val center: ( @Composable () -> Unit)? = null, // Added center slot
-    val right: ( @Composable () -> Unit)? = null,
+    val left: (@Composable () -> Unit)? = null,
+    val center: (@Composable () -> Unit)? = null,
+    val right: (@Composable () -> Unit)? = null,
     val backgroundStyle: FAHeaderBackground = FAHeaderBackground.Default
 )
 
+/**
+ * Тип фону хедера.
+ */
 enum class FAHeaderBackground {
     Default,
     Transparent,
     Elevated,
     Gradient,
     CommandDeck
+}
+
+/**
+ * Базовий інтерфейс для будь-якого layout-у хедера.
+ */
+interface HeaderLayout {
+    @Composable
+    fun Content()
+}
+
+/**
+ * Проста одно-рядкова схема:
+ * LEFT | CENTER | RIGHT
+ */
+class LeftCenterCombinedHeaderLayout(
+    private val left: (@Composable () -> Unit)? = null,
+    private val center: (@Composable () -> Unit)? = null,
+    private val right: (@Composable () -> Unit)? = null,
+    private val onClick: (() -> Unit)? = null
+) : HeaderLayout {
+
+    @Composable
+    override fun Content() {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onTap = {
+                            onClick?.invoke()
+                        }
+                    )
+                }
+        ) {
+            left?.let {
+                Box(modifier = Modifier.align(Alignment.CenterStart)) {
+                    it()
+                }
+            }
+            center?.let {
+                Box(modifier = Modifier.align(Alignment.Center)) {
+                    it()
+                }
+            }
+            right?.let {
+                Box(modifier = Modifier.align(Alignment.CenterEnd)) {
+                    it()
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Гнучка дво-рядкова схема:
+ *
+ *  TOP:    topLeft      topCenter      topRight
+ *  BOTTOM: bottomLeft   bottomCenter   bottomRight
+ *
+ * Будь-який слот може бути null.
+ */
+class FreeFormHeaderLayout(
+    private val topLeft: (@Composable () -> Unit)? = null,
+    private val topCenter: (@Composable () -> Unit)? = null,
+    private val topRight: (@Composable () -> Unit)? = null,
+    private val bottomLeft: (@Composable () -> Unit)? = null,
+    private val bottomCenter: (@Composable () -> Unit)? = null,
+    private val bottomRight: (@Composable () -> Unit)? = null,
+) : HeaderLayout {
+
+    @Composable
+    override fun Content() {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            if (topLeft != null || topCenter != null || topRight != null) {
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    topLeft?.let {
+                        Box(modifier = Modifier.align(Alignment.CenterStart)) { it() }
+                    }
+                    topCenter?.let {
+                        Box(modifier = Modifier.align(Alignment.Center)) { it() }
+                    }
+                    topRight?.let {
+                        Box(modifier = Modifier.align(Alignment.CenterEnd)) { it() }
+                    }
+                }
+            }
+
+            if (bottomLeft != null || bottomCenter != null || bottomRight != null) {
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    bottomLeft?.let {
+                        Box(modifier = Modifier.align(Alignment.CenterStart)) { it() }
+                    }
+                    bottomCenter?.let {
+                        Box(modifier = Modifier.align(Alignment.Center)) { it() }
+                    }
+                    bottomRight?.let {
+                        Box(modifier = Modifier.align(Alignment.CenterEnd)) { it() }
+                    }
+                }
+            }
+        }
+    }
 }
 
 
@@ -168,12 +314,22 @@ package com.romankozak.forwardappmobile.ui.components.header
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -182,104 +338,147 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
-import com.romankozak.forwardappmobile.data.database.models.DayPlan
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import com.romankozak.forwardappmobile.ui.components.header.DayPlanHeaderContent // Import DayPlanHeaderContent
-import androidx.compose.material.icons.Icons // Add this import
-
+/**
+ * TodayHeader:
+ *  - верх: ліворуч "Today", по центру DayPlanHeaderContent
+ *  - низ (праворуч): навігація по днях + "енергетичний" кружок
+ */
 @Composable
 fun TodayHeader(
-    dayPlan: DayPlan?,
-    totalPointsEarned: Int,
-    totalPointsAvailable: Int,
-    bestCompletedPoints: Int,
-    completedTasks: Int,
-    totalTasks: Int,
     onNavigateToPreviousDay: () -> Unit,
     onNavigateToNextDay: () -> Unit,
     isNextDayNavigationEnabled: Boolean,
-) : FAHeaderConfig {
+    date: Long?,
+): HeaderLayout {
+
     val primaryColor = MaterialTheme.colorScheme.primary
-    return FAHeaderConfig(
-        backgroundStyle = FAHeaderBackground.CommandDeck,
-        left = {
+    val dateText = remember(date) {
+        date?.let {
+            val cal = Calendar.getInstance()
+            cal.timeInMillis = it
+            SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).format(cal.time)
+        } ?: ""
+    }
+
+    return FreeFormHeaderLayout(
+        // ----------------------
+        // 💜 TOP LEFT: TODAY
+        // ----------------------
+        topLeft = {
             Column(horizontalAlignment = Alignment.Start) {
-                Text("Today", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+                Text(
+                    "Today",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+                Column {
+                    Text(
+                        text = "The Alpha and Omega of everything",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Medium,
+                        letterSpacing = 0.3.sp,
+                        color = primaryColor.copy(alpha = 0.7f)
+                    )
+                    if (dateText.isNotEmpty()) {
+                        Text(
+                            text = dateText,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = primaryColor.copy(alpha = 0.7f)
+                        )
+                    }
+                }
             }
         },
-        center = {
-            DayPlanHeaderContent(
-                dayPlan = dayPlan,
-                totalPointsEarned = totalPointsEarned,
-                totalPointsAvailable = totalPointsAvailable,
-                bestCompletedPoints = bestCompletedPoints,
-                completedTasks = completedTasks,
-                totalTasks = totalTasks
-            )
-        },
-        right = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onNavigateToPreviousDay) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Попередній день",
-                    )
-                }
+
+        // ----------------------
+        // 💛 TOP RIGHT: ENERGY ICON + Day Navigation
+        // ----------------------
+        topRight = {
+            Column(horizontalAlignment = Alignment.End) {
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(34.dp)
                         .clip(CircleShape)
                         .background(
                             Brush.radialGradient(
-                                colors = listOf(
+                                listOf(
                                     primaryColor.copy(alpha = 0.25f),
                                     primaryColor.copy(alpha = 0.08f)
                                 )
                             )
                         )
                         .border(
-                            width = 1.5.dp,
+                            width = 1.2.dp,
                             color = primaryColor.copy(alpha = 0.4f),
                             shape = CircleShape
                         ),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "⌁",
-                        fontSize = 28.sp,
+                        "⌁",
+                        fontSize = 22.sp,
                         color = primaryColor,
                         fontWeight = FontWeight.Bold
                     )
                 }
-                IconButton(onClick = onNavigateToNextDay, enabled = isNextDayNavigationEnabled) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = "Наступний день",
-                        tint =
-                        if (isNextDayNavigationEnabled) {
-                            primaryColor
-                        } else {
-                            primaryColor.copy(alpha = 0.4f)
-                        },
-                    )
+                Row(modifier = Modifier.offset(y = 4.dp)) {
+                    IconButton(onClick = onNavigateToPreviousDay, modifier = Modifier.padding(start = 8.dp)) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Попередній день",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    IconButton(onClick = onNavigateToNextDay, enabled = isNextDayNavigationEnabled) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = "Наступний день",
+                            tint =
+                            if (isNextDayNavigationEnabled) {
+                                MaterialTheme.colorScheme.onSurface
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                            },
+                        )
+                    }
                 }
             }
+        },
+
+        // ----------------------
+        // 💙 BOTTOM CENTER: Day Navigation
+        // ----------------------
+        bottomCenter = {
+            // MOVED TO TOP RIGHT
         }
     )
 }
 
+
+/**
+ * StrategyHeader: простий Left + (опис) + Right-іконка.
+ */
 @Composable
-fun StrategyHeader(onModeClick: () -> Unit): FAHeaderConfig {
+fun StrategyHeader(onModeClick: () -> Unit): HeaderLayout {
     val primaryColor = MaterialTheme.colorScheme.primary
-    return FAHeaderConfig(
-        backgroundStyle = FAHeaderBackground.CommandDeck,
+
+    return LeftCenterCombinedHeaderLayout(
         left = {
             Column(horizontalAlignment = Alignment.Start) {
-                Text("Strategy", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+                Text(
+                    "Strategy",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold
+                    )
+                )
                 Text(
                     text = "Long-term planning mode",
                     fontSize = 10.sp,
@@ -292,7 +491,7 @@ fun StrategyHeader(onModeClick: () -> Unit): FAHeaderConfig {
         right = {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(34.dp)
                     .clip(CircleShape)
                     .background(
                         Brush.radialGradient(
@@ -303,15 +502,15 @@ fun StrategyHeader(onModeClick: () -> Unit): FAHeaderConfig {
                         )
                     )
                     .border(
-                        width = 1.5.dp,
+                        width = 1.2.dp,
                         color = primaryColor.copy(alpha = 0.4f),
                         shape = CircleShape
                     ),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "⌁",
-                    fontSize = 28.sp,
+                    text = "❂",
+                    fontSize = 22.sp,
                     color = primaryColor,
                     fontWeight = FontWeight.Bold
                 )
@@ -320,16 +519,25 @@ fun StrategyHeader(onModeClick: () -> Unit): FAHeaderConfig {
     )
 }
 
+/**
+ * Strategic Arc header.
+ */
 @Composable
-fun StrategicArcHeader(onModeClick: () -> Unit): FAHeaderConfig {
+fun StrategicArcHeader(onModeClick: () -> Unit): HeaderLayout {
     val primaryColor = MaterialTheme.colorScheme.primary
-    return FAHeaderConfig(
-        backgroundStyle = FAHeaderBackground.CommandDeck,
+
+    return LeftCenterCombinedHeaderLayout(
         left = {
             Column(horizontalAlignment = Alignment.Start) {
-                Text("Strategic Arc", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
                 Text(
-                    text = "April • Expansion Arc",
+                    "Strategic Arc",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+                Text(
+                    text = "The current Arc of your story",
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Medium,
                     letterSpacing = 0.3.sp,
@@ -340,7 +548,7 @@ fun StrategicArcHeader(onModeClick: () -> Unit): FAHeaderConfig {
         right = {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(34.dp)
                     .clip(CircleShape)
                     .background(
                         Brush.radialGradient(
@@ -351,15 +559,15 @@ fun StrategicArcHeader(onModeClick: () -> Unit): FAHeaderConfig {
                         )
                     )
                     .border(
-                        width = 1.5.dp,
+                        width = 1.2.dp,
                         color = primaryColor.copy(alpha = 0.4f),
                         shape = CircleShape
                     ),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "⌁",
-                    fontSize = 28.sp,
+                    text = "⟲",
+                    fontSize = 22.sp,
                     color = primaryColor,
                     fontWeight = FontWeight.Bold
                 )
@@ -368,22 +576,26 @@ fun StrategicArcHeader(onModeClick: () -> Unit): FAHeaderConfig {
     )
 }
 
+/**
+ * Command Deck / Dashboard header.
+ */
 @Composable
-fun CommandDeckHeaderPreset(): FAHeaderConfig {
+fun CommandDeckHeaderPreset(onClick: (() -> Unit)? = null): HeaderLayout {
     val primaryColor = MaterialTheme.colorScheme.primary
-    return FAHeaderConfig(
-        backgroundStyle = FAHeaderBackground.CommandDeck,
+
+    return LeftCenterCombinedHeaderLayout(
+        onClick = onClick,
         left = {
             Column {
                 Text(
-                    text = "ForwardApp",
+                    text = "Forward",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 0.8.sp,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Command & Control",
+                    text = "Score your goals!",
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Medium,
                     letterSpacing = 0.3.sp,
@@ -394,7 +606,7 @@ fun CommandDeckHeaderPreset(): FAHeaderConfig {
         right = {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(34.dp)
                     .clip(CircleShape)
                     .background(
                         Brush.radialGradient(
@@ -405,7 +617,7 @@ fun CommandDeckHeaderPreset(): FAHeaderConfig {
                         )
                     )
                     .border(
-                        width = 1.5.dp,
+                        width = 1.2.dp,
                         color = primaryColor.copy(alpha = 0.4f),
                         shape = CircleShape
                     ),
@@ -413,7 +625,7 @@ fun CommandDeckHeaderPreset(): FAHeaderConfig {
             ) {
                 Text(
                     text = "⌬",
-                    fontSize = 28.sp,
+                    fontSize = 22.sp,
                     color = primaryColor,
                     fontWeight = FontWeight.Bold
                 )
@@ -422,6 +634,119 @@ fun CommandDeckHeaderPreset(): FAHeaderConfig {
     )
 }
 
+/**
+ * Tactics header.
+ */
+@Composable
+fun TacticsHeader(): HeaderLayout {
+    val primaryColor = MaterialTheme.colorScheme.primary
+
+    return LeftCenterCombinedHeaderLayout(
+        left = {
+            Column {
+                Text(
+                    text = "Tactics",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.8.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Your job is to make the impossible possible.",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 0.3.sp,
+                    color = primaryColor.copy(alpha = 0.7f)
+                )
+            }
+        },
+        right = {
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                primaryColor.copy(alpha = 0.25f),
+                                primaryColor.copy(alpha = 0.08f)
+                            )
+                        )
+                    )
+                    .border(
+                        width = 1.2.dp,
+                        color = primaryColor.copy(alpha = 0.4f),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "⦿",
+                    fontSize = 23.sp,
+                    color = primaryColor,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    )
+}
+
+/**
+ * Core header.
+ */
+@Composable
+fun CoreHeader(): HeaderLayout {
+    val primaryColor = MaterialTheme.colorScheme.primary
+
+    return LeftCenterCombinedHeaderLayout(
+        left = {
+            Column {
+                Text(
+                    text = "Core",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.8.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Your primary beacons.",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 0.3.sp,
+                    color = primaryColor.copy(alpha = 0.7f)
+                )
+            }
+        },
+        right = {
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                primaryColor.copy(alpha = 0.25f),
+                                primaryColor.copy(alpha = 0.08f)
+                            )
+                        )
+                    )
+                    .border(
+                        width = 1.2.dp,
+                        color = primaryColor.copy(alpha = 0.4f),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "⌘",
+                    fontSize = 22.sp,
+                    color = primaryColor,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    )
+}
 
 ================================================================================
 END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderPresets.kt
@@ -460,148 +785,60 @@ END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/
 
 ## <<FILE_6>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/HeaderModeCapsule.kt (ID: FILE_6)
-================================================================================
-
-package com.romankozak.forwardappmobile.ui.components.header
-
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-
- @Composable
-fun ModeCapsule(
-    text: String,
-    onClick: () -> Unit,
-    color: Color = MaterialTheme.colorScheme.primary
-) {
-    Box(
-        modifier = Modifier
-            .clip(MaterialTheme.shapes.large)
-            .background(color.copy(alpha = 0.12f))
-            .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-    ) {
-        Text(text, fontSize = 13.sp, color = color)
-    }
-}
-
-
-================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/HeaderModeCapsule.kt
-================================================================================
-
-## <<FILE_7>>
-================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/SharedCommandDeckLayout.kt (ID: FILE_7)
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/SharedCommandDeckLayout.kt (ID: FILE_6)
 ================================================================================
 
 package com.romankozak.forwardappmobile.ui.screens.commanddeck
 
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.asPaddingValues
-
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
+import android.util.Log
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AccountTree
-import androidx.compose.material.icons.outlined.Analytics
-import androidx.compose.material.icons.outlined.AttachFile
-import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material.icons.outlined.Chat
-import androidx.compose.material.icons.outlined.Code
-import androidx.compose.material.icons.outlined.ImportExport
-import androidx.compose.material.icons.outlined.Inbox
-import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.layout.offset // Corrected import
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
 import com.romankozak.forwardappmobile.routes.STRATEGIC_MANAGEMENT_ROUTE
+import com.romankozak.forwardappmobile.ui.components.header.CoreHeader
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckHeaderPreset
 import com.romankozak.forwardappmobile.ui.components.header.FAHeader
+import com.romankozak.forwardappmobile.ui.components.header.FAHeaderBackground
 import com.romankozak.forwardappmobile.ui.components.header.StrategicArcHeader
 import com.romankozak.forwardappmobile.ui.components.header.StrategyHeader
+import com.romankozak.forwardappmobile.ui.components.header.TacticsHeader
 import com.romankozak.forwardappmobile.ui.components.header.TodayHeader
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.DayManagementScreen
-import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
-import com.romankozak.forwardappmobile.ui.screens.strategicmanagement.StrategicManagementScreen
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.layout.PaddingValues
-
-import androidx.compose.runtime.collectAsState
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanViewModel
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanUiState
-import androidx.hilt.navigation.compose.hiltViewModel
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.DayManagementViewModel // Import DayManagementViewModel
-
-import kotlinx.coroutines.launch
+import com.romankozak.forwardappmobile.ui.screens.strategicmanagement.StrategicManagementScreen
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material3.Scaffold
+import com.romankozak.forwardappmobile.ui.screens.commanddeck.components.DashboardBottomBar
 
 const val COMMAND_DECK_DASHBOARD_ROUTE = "command_deck_dashboard"
 const val COMMAND_DECK_CORE_ROUTE = "command_deck_core"
 const val COMMAND_DECK_STRATEGIC_ARC_ROUTE = "command_deck_strategic_arc"
 const val COMMAND_DECK_TACTICS_ROUTE = "command_deck_tactics"
 const val COMMAND_DECK_TODAY_ROUTE = "command_deck_today"
+
+
+
 
 @Composable
 fun SharedCommandDeckLayout(
@@ -637,453 +874,175 @@ fun SharedCommandDeckLayout(
         }.coerceAtLeast(0)
     }
 
-    val dayPlanViewModel: DayPlanViewModel? = if (currentRoute == COMMAND_DECK_TODAY_ROUTE) hiltViewModel() else null
-    val dayPlanUiState by dayPlanViewModel?.uiState?.collectAsState() ?: mutableStateOf(DayPlanUiState())
-    val dayManagementViewModel: com.romankozak.forwardappmobile.ui.screens.daymanagement.DayManagementViewModel = hiltViewModel()
-    val dayManagementUiState by dayManagementViewModel.uiState.collectAsState()
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                    )
+    Scaffold(
+        topBar = {
+            when (currentRoute) {
+                COMMAND_DECK_DASHBOARD_ROUTE -> FAHeader(
+                    layout = CommandDeckHeaderPreset(onClick = onNavigateToProjectHierarchy),
+                    backgroundStyle = FAHeaderBackground.CommandDeck
                 )
-            )
-    ) {
-        when (currentRoute) {
-            COMMAND_DECK_DASHBOARD_ROUTE -> FAHeader(config = CommandDeckHeaderPreset())
-            COMMAND_DECK_TODAY_ROUTE -> {
-                LaunchedEffect(dayManagementUiState.dayPlanId) {
-                    dayManagementUiState.dayPlanId?.let { planId ->
-                        dayPlanViewModel?.loadDataForPlan(planId)
+
+                COMMAND_DECK_CORE_ROUTE -> FAHeader(
+                    layout = CoreHeader(),
+                    backgroundStyle = FAHeaderBackground.CommandDeck
+                )
+
+                COMMAND_DECK_TODAY_ROUTE -> {
+                    val dayPlanBackStackEntry = remember(innerNavController.currentBackStackEntry) {
+                        innerNavController.getBackStackEntry(COMMAND_DECK_TODAY_ROUTE)
                     }
-                }
-                FAHeader(
-                    config = TodayHeader(
-                        dayPlan = dayPlanUiState.dayPlan,
-                        totalPointsEarned = dayPlanUiState.tasks.filter { it.dayTask.completed }.sumOf { it.dayTask.points.coerceAtLeast(0) },
-                        totalPointsAvailable = dayPlanUiState.tasks.sumOf { it.dayTask.points.coerceAtLeast(0) },
-                        bestCompletedPoints = dayPlanUiState.bestCompletedPoints,
-                        completedTasks = dayPlanUiState.tasks.count { it.dayTask.completed },
-                        totalTasks = dayPlanUiState.tasks.size,
-                        onNavigateToPreviousDay = { dayPlanViewModel?.navigateToPreviousDay() },
-                        onNavigateToNextDay = { dayPlanViewModel?.navigateToNextDay() },
-                        isNextDayNavigationEnabled = !dayPlanUiState.isToday,
+                    val dayPlanViewModel: DayPlanViewModel = hiltViewModel(dayPlanBackStackEntry)
+                    val dayPlanUiState by dayPlanViewModel.uiState.collectAsState()
+
+                    FAHeader(
+                        layout = TodayHeader(
+                            onNavigateToPreviousDay = {
+                                Log.d("TodayTab", "onNavigateToPreviousDay callback invoked.")
+                                dayPlanViewModel.navigateToPreviousDay()
+                            },
+                            onNavigateToNextDay = {
+                                Log.d(
+                                    "TodayTab",
+                                    "onNavigateToNextDay callback invoked. Enabled: ${!dayPlanUiState.isToday}"
+                                )
+                                dayPlanViewModel.navigateToNextDay()
+                            },
+                            isNextDayNavigationEnabled = !dayPlanUiState.isToday,
+                            date = dayPlanUiState.dayPlan?.date
+                        ),
+                        backgroundStyle = FAHeaderBackground.CommandDeck
                     )
+                }
+
+                STRATEGIC_MANAGEMENT_ROUTE -> FAHeader(
+                    layout = StrategyHeader(onModeClick = {}),
+                    backgroundStyle = FAHeaderBackground.CommandDeck
+                )
+
+                COMMAND_DECK_STRATEGIC_ARC_ROUTE -> FAHeader(
+                    layout = StrategicArcHeader(onModeClick = {}),
+                    backgroundStyle = FAHeaderBackground.CommandDeck
+                )
+
+                COMMAND_DECK_TACTICS_ROUTE -> FAHeader(
+                    layout = TacticsHeader(),
+                    backgroundStyle = FAHeaderBackground.CommandDeck
+                )
+
+                else -> FAHeader(
+                    layout = CommandDeckHeaderPreset(onClick = {}),
+                    backgroundStyle = FAHeaderBackground.CommandDeck
                 )
             }
-            STRATEGIC_MANAGEMENT_ROUTE -> FAHeader(config = StrategyHeader(onModeClick = {}))
-            COMMAND_DECK_STRATEGIC_ARC_ROUTE -> FAHeader(config = StrategicArcHeader(onModeClick = {}))
-            else -> FAHeader(config = CommandDeckHeaderPreset())
-        }
-
-        Spacer(Modifier.height(12.dp))
-
-        CommandDeckTabRow(
-            tabs = tabs,
-            selectedTabIndex = selectedTabIndex,
-            onTabSelected = { index ->
-                val newRoute = when (tabs[index]) {
-                    CommandDeckTab.Dashboard -> COMMAND_DECK_DASHBOARD_ROUTE
-                    CommandDeckTab.Core -> COMMAND_DECK_CORE_ROUTE
-                    CommandDeckTab.Strategy -> STRATEGIC_MANAGEMENT_ROUTE
-                    CommandDeckTab.StrategicArc -> COMMAND_DECK_STRATEGIC_ARC_ROUTE
-                    CommandDeckTab.Tactics -> COMMAND_DECK_TACTICS_ROUTE
-                    CommandDeckTab.Today -> COMMAND_DECK_TODAY_ROUTE
-                }
-                if (newRoute != currentRoute) {
-                    innerNavController.navigate(newRoute) {
-                        popUpTo(innerNavController.graph.startDestinationId) {
-                            saveState = true
-                        }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                }
-            }
-        )
-
-
-        Spacer(Modifier.height(12.dp))
-
-        NavHost(navController = innerNavController, startDestination = COMMAND_DECK_DASHBOARD_ROUTE) {
-            composable(COMMAND_DECK_DASHBOARD_ROUTE) {
-                 DashboardContent(
+        },
+        bottomBar = {
+            if (currentRoute == COMMAND_DECK_DASHBOARD_ROUTE) {
+                DashboardBottomBar(
                     onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
-                    onNavigateToGlobalSearch = onNavigateToGlobalSearch,
-                    onNavigateToSettings = onNavigateToSettings,
-                    onNavigateToInbox = onNavigateToInbox,
                     onNavigateToTracker = onNavigateToTracker,
+                    onNavigateToInbox = onNavigateToInbox,
                     onNavigateToReminders = onNavigateToReminders,
-                    onNavigateToAiChat = onNavigateToAiChat,
-                    onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
-                    onNavigateToImportExport = onNavigateToImportExport,
-                    onNavigateToAttachments = onNavigateToAttachments,
-                    onNavigateToScripts = onNavigateToScripts
-                 )
-            }
-            composable(STRATEGIC_MANAGEMENT_ROUTE) {
-                StrategicManagementScreen(navController = navController)
-            }
-            composable(COMMAND_DECK_CORE_ROUTE) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    DeckModuleCard(
-                        title = "Core Beacons",
-                        subtitle = "Foundational principles active: 3",
-                        progress = 72,
-                        accentColor = Color(0xFFBB86FC)
-                    )
-                }
-            }
-            composable(COMMAND_DECK_STRATEGIC_ARC_ROUTE) {
-                DeckModuleCard(
-                    title = "Strategic Arc",
-                    subtitle = "Plan for this month: Expansion Arc",
-                    progress = 62,
-                    accentColor = Color(0xFF9575CD),
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                    onNavigateToMore = { /* TODO */ }
                 )
             }
-            composable(COMMAND_DECK_TACTICS_ROUTE) {
-                TacticalManagementScreen()
-            }
-            composable(COMMAND_DECK_TODAY_ROUTE) { backStackEntry ->
-                val dayPlanViewModel: com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanViewModel = hiltViewModel(backStackEntry)
-                DayManagementScreen(mainNavController = navController, startTab = "PLAN", dayPlanViewModel = dayPlanViewModel)
-            }
         }
-    }
-}
-
-@Composable
-fun DashboardContent(
-    onNavigateToProjectHierarchy: () -> Unit,
-    onNavigateToGlobalSearch: () -> Unit,
-    onNavigateToSettings: () -> Unit,
-    onNavigateToInbox: () -> Unit,
-    onNavigateToTracker: () -> Unit,
-    onNavigateToReminders: () -> Unit,
-    onNavigateToAiChat: () -> Unit,
-    onNavigateToAiLifeManagement: () -> Unit,
-    onNavigateToImportExport: () -> Unit,
-    onNavigateToAttachments: () -> Unit,
-    onNavigateToScripts: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        CoreQuickActions(
-            onNavigateToProjectHierarchy,
-            onNavigateToGlobalSearch,
-            onNavigateToSettings,
-            onNavigateToInbox,
-            onNavigateToTracker,
-            onNavigateToReminders,
-            onNavigateToAiChat,
-            onNavigateToAiLifeManagement,
-            onNavigateToImportExport,
-            onNavigateToAttachments,
-            onNavigateToScripts
-        )
-    }
-}
-
-// -----------------------------------------------
-// ALL THE COMPOSABLES FROM CommandDeckScreen.kt
-// -----------------------------------------------
-
-// ENUM TABS
-enum class CommandDeckTab(
-    val title: String,
-    val symbol: String,
-) {
-    Dashboard("Command Deck", "⌗"),
-    Core("Core", "⌘"),
-    Strategy("Strategy", "⌖"),
-    StrategicArc("Strategic Arc", "⟲"),
-    Tactics("Tactics", "◎"),
-    Today("Today", "⌁"),
-}
-
-
-
-// TAB ROW
-@Composable
-private fun CommandDeckTabRow(
-    tabs: List<CommandDeckTab>,
-    selectedTabIndex: Int,
-    onTabSelected: (Int) -> Unit,
-) {
-    LazyRow(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-        contentPadding = PaddingValues(horizontal = 12.dp)
-    ) {
-        itemsIndexed(tabs) { index, tab ->
-            CommandDeckTabItem(
-                tab = tab,
-                isSelected = index == selectedTabIndex,
-                onClick = { onTabSelected(index) }
-            )
-        }
-    }
-}
-
-
-// TAB COLORS
-fun tabAccentColor(tab: CommandDeckTab): Color {
-    return when (tab) {
-        CommandDeckTab.Core -> Color(0xFFBB86FC)
-        CommandDeckTab.Strategy -> Color(0xFF4FC3F7)
-        CommandDeckTab.StrategicArc -> Color(0xFF9575CD)
-        CommandDeckTab.Tactics -> Color(0xFF26A69A)
-        CommandDeckTab.Today -> Color(0xFFFFB74D)
-        CommandDeckTab.Dashboard -> Color(0xFF6200EE)
-    }
-}
-
-// TAB ITEM
-@Composable
-fun CommandDeckTabItem(
-    tab: CommandDeckTab,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val accent = tabAccentColor(tab)
-
-    val glowAlpha by animateFloatAsState(
-        targetValue = if (isSelected) 0.18f else 0f,
-        animationSpec = tween(450),
-        label = "glow"
-    )
-
-    val scale by animateFloatAsState(
-        targetValue = if (isSelected) 1.05f else 1f,
-        animationSpec = spring(dampingRatio = 0.75f, stiffness = 320f),
-        label = "scale"
-    )
-
-    val isSpecialTab = tab == CommandDeckTab.StrategicArc || tab == CommandDeckTab.Tactics || tab == CommandDeckTab.Today
-    val symbolFontSize = if (isSpecialTab) 22.sp else 18.sp // Even larger font size
-    val circleSize = if (isSpecialTab) 32.dp else 28.dp // Even larger circle for special tabs
-
-    Row(
-        modifier = modifier
-            .scale(scale)
-            .clip(RoundedCornerShape(26.dp))
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        accent.copy(alpha = 0.10f + glowAlpha),
-                        accent.copy(alpha = 0.03f)
-                    )
-                )
-            )
-            .border(
-                width = if (isSelected) 1.4.dp else 0.8.dp,
-                color = accent.copy(alpha = if (isSelected) 0.9f else 0.45f),
-                shape = RoundedCornerShape(26.dp)
-            )
-            .clickable { onClick() }
-            .padding(horizontal = 10.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // ------------------------
-        // UNIFIED CIRCLE ICON AREA
-        // ------------------------
-        Box(
-            modifier = Modifier
-                .size(circleSize) // Use dynamic size
-                .clip(CircleShape)
-                .background(accent.copy(alpha = if (isSelected) 0.22f else 0.12f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = tab.symbol,
-                fontSize = symbolFontSize, // Use dynamic font size
-                fontWeight = FontWeight.Bold,
-                color = if (isSelected) accent else Color(0xFFBBBBBB),
-                modifier = if (tab == CommandDeckTab.Tactics || tab == CommandDeckTab.StrategicArc) {
-                    Modifier.offset(y = (-2).dp) // Apply a small upward offset
-                } else {
-                    Modifier
-                }
-            )
-        }
-
-        if (isSelected) {
-            Spacer(Modifier.width(6.dp))
-            Text(
-                text = tab.title,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Medium,
-                color = accent
-            )
-        }
-    }
-}
-
-
-
-// MODULE CARD
-@Composable
-fun DeckModuleCard(
-    title: String,
-    subtitle: String,
-    progress: Int?,
-    accentColor: Color,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF1E1E1E).copy(alpha = 0.22f)
-        ),
-        modifier = modifier
-            .fillMaxWidth()
-    ) {
+    ) { paddingValues ->
         Column(
             modifier = Modifier
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Text(
-                text = title,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-
-            Text(
-                text = subtitle,
-                fontSize = 14.sp,
-                color = Color(0xFFCCCCCC)
-            )
-
-            if (progress != null) {
-                LinearProgressIndicator(
-                    progress = { progress / 100f },
-                    color = accentColor,
-                    trackColor = accentColor.copy(alpha = 0.15f),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(6.dp)
-                        .clip(RoundedCornerShape(50))
+                .fillMaxSize()
+                .padding(paddingValues)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                        )
+                    )
                 )
+        ) {
+            Spacer(Modifier.height(8.dp))
+
+            CommandDeckTabRow(
+                tabs = tabs,
+                selectedTabIndex = selectedTabIndex,
+                onTabSelected = { index ->
+                    val newRoute = when (tabs[index]) {
+                        CommandDeckTab.Dashboard -> COMMAND_DECK_DASHBOARD_ROUTE
+                        CommandDeckTab.Core -> COMMAND_DECK_CORE_ROUTE
+                        CommandDeckTab.Strategy -> STRATEGIC_MANAGEMENT_ROUTE
+                        CommandDeckTab.StrategicArc -> COMMAND_DECK_STRATEGIC_ARC_ROUTE
+                        CommandDeckTab.Tactics -> COMMAND_DECK_TACTICS_ROUTE
+                        CommandDeckTab.Today -> COMMAND_DECK_TODAY_ROUTE
+                    }
+                    if (newRoute != currentRoute) {
+                        innerNavController.navigate(newRoute) {
+                            popUpTo(innerNavController.graph.startDestinationId) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                }
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            NavHost(
+                navController = innerNavController,
+                startDestination = COMMAND_DECK_DASHBOARD_ROUTE
+            ) {
+                composable(COMMAND_DECK_DASHBOARD_ROUTE) {
+                    AnimatedCommandDeck(
+                        onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                        onNavigateToGlobalSearch = onNavigateToGlobalSearch,
+                        onNavigateToSettings = onNavigateToSettings,
+                        onNavigateToInbox = onNavigateToInbox,
+                        onNavigateToTracker = onNavigateToTracker,
+                        onNavigateToReminders = onNavigateToReminders,
+                        onNavigateToAiChat = onNavigateToAiChat,
+                        onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
+                        onNavigateToImportExport = onNavigateToImportExport,
+                        onNavigateToAttachments = onNavigateToAttachments,
+                        onNavigateToScripts = onNavigateToScripts
+                    )
+                }
+                composable(STRATEGIC_MANAGEMENT_ROUTE) {
+                    StrategicManagementScreen(navController = navController)
+                }
+                composable(COMMAND_DECK_CORE_ROUTE) {
+                    CoreLevelScreen(navController = navController)
+                }
+                composable(COMMAND_DECK_STRATEGIC_ARC_ROUTE) {
+                    StrategicArcScreen(navController = navController)
+                }
+                composable(COMMAND_DECK_TACTICS_ROUTE) {
+                    TacticalManagementScreen()
+                }
+                composable(COMMAND_DECK_TODAY_ROUTE) {
+                    DayManagementScreen(mainNavController = navController, startTab = "PLAN")
+                }
             }
         }
     }
 }
 
-// CORE QUICK ACTIONS
-@Composable
-private fun CoreQuickActions(
-    onNavigateToProjectHierarchy: () -> Unit,
-    onNavigateToGlobalSearch: () -> Unit,
-    onNavigateToSettings: () -> Unit,
-    onNavigateToInbox: () -> Unit,
-    onNavigateToTracker: () -> Unit,
-    onNavigateToReminders: () -> Unit,
-    onNavigateToAiChat: () -> Unit,
-    onNavigateToAiLifeManagement: () -> Unit,
-    onNavigateToImportExport: () -> Unit,
-    onNavigateToAttachments: () -> Unit,
-    onNavigateToScripts: () -> Unit,
-) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        QuickActionCard("Inbox", "View inbox", Icons.Outlined.Inbox, onNavigateToInbox)
-        QuickActionCard("Tracker", "Track activity", Icons.Outlined.Analytics, onNavigateToTracker)
-        QuickActionCard("Reminders", "See reminders", Icons.Outlined.Notifications, onNavigateToReminders)
-        QuickActionCard("AI Chat", "Chat with AI", Icons.Outlined.Chat, onNavigateToAiChat)
-        QuickActionCard("AI Life Management", "AI guidance", Icons.Outlined.AutoAwesome, onNavigateToAiLifeManagement)
-        QuickActionCard("Import/Export", "Transfer data", Icons.Outlined.ImportExport, onNavigateToImportExport)
-        QuickActionCard("Attachments", "All files & notes", Icons.Outlined.AttachFile, onNavigateToAttachments)
-        QuickActionCard("Scripts", "Automation scripts", Icons.Outlined.Code, onNavigateToScripts)
-        QuickActionCard("Проєкти", "Project hierarchy", Icons.Outlined.AccountTree, onNavigateToProjectHierarchy)
-        QuickActionCard("Глобальний пошук", "Search anything", Icons.Outlined.Search, onNavigateToGlobalSearch)
-        QuickActionCard("Налаштування", "App settings", Icons.Outlined.Settings, onNavigateToSettings)
-    }
-}
-
-// QUICK ACTION CARD
-@Composable
-private fun QuickActionCard(
-    title: String,
-    subtitle: String,
-    icon: ImageVector,
-    onClick: () -> Unit
-) {
-    Card(
-        onClick = onClick,
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF1E1E1E).copy(alpha = 0.18f)
-        ),
-        modifier = Modifier
-            .fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF6200EE).copy(alpha = 0.18f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    tint = Color(0xFF6200EE)
-                )
-            }
-
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = title,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.White
-                )
-
-                Text(
-                    text = subtitle,
-                    fontSize = 13.sp,
-                    color = Color(0xFFCCCCCC)
-                )
-            }
-        }
-    }
-}
 
 
 ================================================================================
 END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/SharedCommandDeckLayout.kt
+================================================================================
+
+## <<FILE_7>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/components/DashboardBottomBar.ktpp/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/SharedCommandDeckLayout.kt (ID: FILE_7)
+================================================================================
+
+[Помилка читання файлу /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/components/DashboardBottomBar.ktpp/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/SharedCommandDeckLayout.kt: [Errno 2] No such file or directory: '/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/components/DashboardBottomBar.ktpp/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/SharedCommandDeckLayout.kt']
+
+
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/components/DashboardBottomBar.ktpp/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/SharedCommandDeckLayout.kt
 ================================================================================
 

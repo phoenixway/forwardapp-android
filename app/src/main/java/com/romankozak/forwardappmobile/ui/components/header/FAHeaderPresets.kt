@@ -268,10 +268,11 @@ fun StrategicArcHeader(onModeClick: () -> Unit): HeaderLayout {
  * Command Deck / Dashboard header.
  */
 @Composable
-fun CommandDeckHeaderPreset(): HeaderLayout {
+fun CommandDeckHeaderPreset(onClick: (() -> Unit)? = null): HeaderLayout {
     val primaryColor = MaterialTheme.colorScheme.primary
 
     return LeftCenterCombinedHeaderLayout(
+        onClick = onClick,
         left = {
             Column {
                 Text(

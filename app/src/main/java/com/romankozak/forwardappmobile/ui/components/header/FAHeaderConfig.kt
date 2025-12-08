@@ -8,6 +8,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 
 /**
  * Старий конфіг для простих випадків (залишений для сумісності).
@@ -46,11 +48,22 @@ class LeftCenterCombinedHeaderLayout(
     private val left: (@Composable () -> Unit)? = null,
     private val center: (@Composable () -> Unit)? = null,
     private val right: (@Composable () -> Unit)? = null,
+    private val onClick: (() -> Unit)? = null
 ) : HeaderLayout {
 
     @Composable
     override fun Content() {
-        Box(modifier = Modifier.fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onTap = {
+                            onClick?.invoke()
+                        }
+                    )
+                }
+        ) {
             left?.let {
                 Box(modifier = Modifier.align(Alignment.CenterStart)) {
                     it()
