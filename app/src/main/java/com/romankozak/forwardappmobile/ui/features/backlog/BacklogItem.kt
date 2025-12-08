@@ -168,7 +168,7 @@ private fun InternalGoalItem(
                 .padding(horizontal = 16.dp, vertical = 14.dp)
             } else {
                 Modifier
-                .background(MaterialTheme.colorScheme.surface)
+                .background(Color.Transparent)
                 .padding(horizontal = 16.dp, vertical = 14.dp)
             }
         ) {
@@ -340,7 +340,7 @@ private fun InternalSubprojectItem(
                 .padding(horizontal = 16.dp, vertical = 14.dp)
             } else {
                 Modifier
-                .background(MaterialTheme.colorScheme.surface)
+                .background(Color.Transparent)
                 .padding(horizontal = 16.dp, vertical = 14.dp)
             }
         ) {

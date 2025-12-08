@@ -324,21 +324,23 @@ private fun ProjectScaffold(
             },
             snackbarHost = { SnackbarHost(snackbarHostState) },
             bottomBar = {
-                ProjectBottomBar(
-                    viewModel = viewModel,
-                    navController = navController,
-                    uiState = uiState,
-                    lastOngoingActivity = lastOngoingActivity,
-                    canGoBack = canGoBack,
-                    canGoForward = canGoForward,
-                    menuExpanded = menuExpanded,
-                    onMenuExpandedChange = { menuExpanded = it },
-                    reminderParseResult = reminderParseResult,
-                    suggestions = suggestions,
-                    project = project,
-                    onShowDisplayPropertiesClick = viewModel::onShowDisplayPropertiesDialog,
-                    holdMenuController = holdMenuController
-                )
+                Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
+                    ProjectBottomBar(
+                        viewModel = viewModel,
+                        navController = navController,
+                        uiState = uiState,
+                        lastOngoingActivity = lastOngoingActivity,
+                        canGoBack = canGoBack,
+                        canGoForward = canGoForward,
+                        menuExpanded = menuExpanded,
+                        onMenuExpandedChange = { menuExpanded = it },
+                        reminderParseResult = reminderParseResult,
+                        suggestions = suggestions,
+                        project = project,
+                        onShowDisplayPropertiesClick = viewModel::onShowDisplayPropertiesDialog,
+                        holdMenuController = holdMenuController
+                    )
+                }
             }
         ) { paddingValues ->
             GoalDetailContent(

@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.ui.graphics.Color
 
 @Composable
 fun ProjectDashboardView(
@@ -42,7 +43,7 @@ fun ProjectDashboardView(
     Column(modifier = modifier.fillMaxSize()) {
         TabRow(
             selectedTabIndex = selectedTab.ordinal,
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = Color.Transparent,
             contentColor = MaterialTheme.colorScheme.primary,
         ) {
             ProjectManagementTab.values().forEach { tab ->

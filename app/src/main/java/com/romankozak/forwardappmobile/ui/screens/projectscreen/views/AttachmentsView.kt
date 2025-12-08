@@ -35,6 +35,7 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
 import com.romankozak.forwardappmobile.features.attachments.ui.project.components.ChecklistItemRow
 import com.romankozak.forwardappmobile.features.attachments.ui.project.components.LinkItemRow
 import com.romankozak.forwardappmobile.features.attachments.ui.project.components.NoteDocumentItemRow
+import androidx.compose.ui.graphics.Color
 
 @Composable
 fun AttachmentsView(
@@ -112,7 +113,7 @@ private fun AttachmentItemCard(
         tonalElevation = 1.dp,
         shadowElevation = 1.dp,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
-        color = MaterialTheme.colorScheme.surface,
+        color = Color.Transparent,
     ) {
         Column(modifier = Modifier.padding(vertical = 8.dp)) {
             when (item) {

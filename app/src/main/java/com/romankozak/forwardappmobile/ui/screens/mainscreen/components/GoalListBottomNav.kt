@@ -279,100 +279,28 @@ internal fun ExpandingProjectHierarchyBottomNav(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = expandVertically(animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMedium)) + fadeIn(tween(150)),
-                exit = shrinkVertically(animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)) + fadeOut(tween(150)),
-            ) {
-                Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 4.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                ) {
-                    if (planningModesEnabled) {
-                        PlanningModeSelector(
-                            currentMode = currentMode,
-                            onPlanningModeChange = onPlanningModeChange,
-                        )
-                    }
-                    SmallBottomNavButton(
-                        text = "Inbox",
-                        icon = Icons.Outlined.Inbox,
-                        onClick = { onEvent(ProjectHierarchyScreenEvent.OpenInboxProject) },
-                    )
-                    SmallBottomNavButton(
-                        text = "Contexts",
-                        icon = Icons.Outlined.AccountTree,
-                        onClick = onContextsClick,
-                    )
-                    SmallBottomNavButton(
-                        text = "Tracker",
-                        icon = Icons.Outlined.TrackChanges,
-                        onClick = { onEvent(ProjectHierarchyScreenEvent.NavigateToActivityTrackerScreen) },
-                    )
-                    MoreActionsBottomNavButton(
-                        onInsightsClick = onInsightsClick,
-                        onShowReminders = onShowReminders,
-                        onAiChatClick = onAiChatClick,
-                        onLifeStateClick = onLifeStateClick,
-                        onTacticsClick = onTacticsClick, // Added
-                        aiChatEnabled = aiChatEnabled,
-                        aiInsightsEnabled = aiInsightsEnabled,
-                        aiLifeManagementEnabled = aiLifeManagementEnabled,
-                    )
-                }
-            }
-
-            
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .height(32.dp)
-                        .clickable {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            onExpandedChange(!isExpanded)
-                        },
-                contentAlignment = Alignment.Center,
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.KeyboardArrowUp,
-                        contentDescription = if (isExpanded) "Collapse" else "Expand",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier =
-                            Modifier
-                                .size(20.dp)
-                                .rotate(arrowRotation),
-                    )
-                }
-            }
-
-
-            
             Row(
                 modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(start = 4.dp, end = 4.dp, bottom = 8.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .padding(start = 4.dp, end = 4.dp, bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
                 ModernBottomNavButton(text = "Search", icon = Icons.Outlined.Search, isSelected = false, onClick = { onToggleSearch(true) })
-                ModernBottomNavButton(text = "Day", icon = Icons.Outlined.WbSunny, onClick = onDayPlanClick)
+                ModernBottomNavButton(text = "Contexts", icon = Icons.Outlined.AccountTree, onClick = onContextsClick)
                 ModernBottomNavButton(text = "Home", icon = Icons.Outlined.Home, onClick = onHomeClick)
                 ModernBottomNavButton(text = "Recent", icon = Icons.Outlined.History, onClick = onRecentsClick)
-                if (strategicManagementEnabled) {
-                    ModernBottomNavButton(text = "Strategy", icon = Icons.Outlined.Domain, onClick = onStrManagementClick)
-                }
-
+                MoreActionsBottomNavButton(
+                    onInsightsClick = onInsightsClick,
+                    onShowReminders = onShowReminders,
+                    onAiChatClick = onAiChatClick,
+                    onLifeStateClick = onLifeStateClick,
+                    onTacticsClick = onTacticsClick,
+                    aiChatEnabled = aiChatEnabled,
+                    aiInsightsEnabled = aiInsightsEnabled,
+                    aiLifeManagementEnabled = aiLifeManagementEnabled,
+                )
             }
         }
     }
