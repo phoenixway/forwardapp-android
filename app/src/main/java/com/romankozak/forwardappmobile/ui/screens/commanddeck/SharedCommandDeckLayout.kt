@@ -40,6 +40,12 @@ import com.romankozak.forwardappmobile.ui.screens.strategicmanagement.StrategicM
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.Scaffold
 import com.romankozak.forwardappmobile.ui.screens.commanddeck.components.DashboardBottomBar
+import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.fillMaxWidth
 
 const val COMMAND_DECK_DASHBOARD_ROUTE = "command_deck_dashboard"
 const val COMMAND_DECK_CORE_ROUTE = "command_deck_core"
@@ -85,6 +91,7 @@ fun SharedCommandDeckLayout(
     }
 
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
             when (currentRoute) {
                 COMMAND_DECK_DASHBOARD_ROUTE -> FAHeader(
@@ -147,13 +154,21 @@ fun SharedCommandDeckLayout(
         },
         bottomBar = {
             if (currentRoute == COMMAND_DECK_DASHBOARD_ROUTE) {
-                DashboardBottomBar(
-                    onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
-                    onNavigateToTracker = onNavigateToTracker,
-                    onNavigateToInbox = onNavigateToInbox,
-                    onNavigateToReminders = onNavigateToReminders,
-                    onNavigateToMore = { /* TODO */ }
-                )
+                Box(modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .then(CommandDeckBackgroundModifier())
+                    .padding(horizontal = 22.dp, vertical = 12.dp)
+                ) {
+                    DashboardBottomBar(
+                        onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                        onNavigateToTracker = onNavigateToTracker,
+                        onNavigateToInbox = onNavigateToInbox,
+                        onNavigateToReminders = onNavigateToReminders,
+                        onNavigateToMore = { /* TODO */ }
+                    )
+                }
             }
         }
     ) { paddingValues ->
@@ -161,15 +176,7 @@ fun SharedCommandDeckLayout(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                            MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
-                            MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                        )
-                    )
-                )
+                .background(Color.Transparent)
         ) {
             Spacer(Modifier.height(8.dp))
 

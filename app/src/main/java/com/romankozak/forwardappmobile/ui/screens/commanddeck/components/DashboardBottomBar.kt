@@ -29,58 +29,8 @@ fun DashboardBottomBar(
     onNavigateToReminders: () -> Unit,
     onNavigateToMore: () -> Unit
 ) {
-    val primary = MaterialTheme.colorScheme.primary
-
-    // Infinite neon wave animation
-    val infiniteTransition = rememberInfiniteTransition(label = "")
-    val waveShift by infiniteTransition.animateFloat(
-        initialValue = -300f,
-        targetValue = 300f,
-        animationSpec = infiniteRepeatable(
-            tween(5500, easing = LinearEasing),
-            RepeatMode.Reverse
-        ),
-        label = "wave_shift"
-    )
-
-    val waveIntensity by infiniteTransition.animateFloat(
-        initialValue = 0.04f,
-        targetValue = 0.12f,
-        animationSpec = infiniteRepeatable(
-            tween(3800, easing = FastOutSlowInEasing),
-            RepeatMode.Reverse
-        ),
-        label = "wave_intensity"
-    )
-
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-            .clip(RoundedCornerShape(20.dp))
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(
-                        primary.copy(alpha = 0.02f),
-                        primary.copy(alpha = 0.06f + waveIntensity),
-                        primary.copy(alpha = 0.02f),
-                    ),
-                    start = androidx.compose.ui.geometry.Offset(waveShift, 0f),
-                    end = androidx.compose.ui.geometry.Offset(-waveShift, 300f)
-                )
-            )
-            .border(
-                width = 1.dp,
-                brush = Brush.horizontalGradient(
-                    listOf(
-                        primary.copy(alpha = 0.35f + waveIntensity),
-                        primary.copy(alpha = 0.12f),
-                        primary.copy(alpha = 0.35f + waveIntensity),
-                    )
-                ),
-                shape = RoundedCornerShape(20.dp)
-            )
-            .padding(horizontal = 22.dp, vertical = 12.dp)
+        modifier = Modifier.fillMaxWidth()
     ) {
 
         Row(

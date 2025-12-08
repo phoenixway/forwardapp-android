@@ -34,41 +34,6 @@ fun FAHeader(
     backgroundStyle: FAHeaderBackground = FAHeaderBackground.Default,
     modifier: Modifier = Modifier
 ) {
-    val glowAlpha by animateFloatAsState(
-        targetValue = 0.15f,
-        animationSpec = tween(2000),
-        label = "header_glow"
-    )
-
-    val backgroundModifier = when (backgroundStyle) {
-        FAHeaderBackground.Default -> Modifier.background(
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
-        )
-        FAHeaderBackground.Transparent -> Modifier.background(
-            color = Color.Transparent
-        )
-        FAHeaderBackground.Elevated -> Modifier.background(
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
-        FAHeaderBackground.Gradient -> Modifier.background(
-            brush = Brush.verticalGradient(
-                listOf(
-                    MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                    MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
-                )
-            )
-        )
-        FAHeaderBackground.CommandDeck -> Modifier.background(
-            brush = Brush.horizontalGradient(
-                colors = listOf(
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.08f + glowAlpha),
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.03f),
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.08f + glowAlpha)
-                )
-            )
-        )
-    }
-
     Column(modifier = modifier.fillMaxWidth()) {
         // status bar inset
         Spacer(
@@ -87,11 +52,37 @@ fun FAHeader(
                     bottom = 4.dp
                 )
         ) {
-            Box(
-                modifier = Modifier
+            val innerModifier = if (backgroundStyle == FAHeaderBackground.CommandDeck) {
+                Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(20.dp))
-                    .then(backgroundModifier)
+                    .then(CommandDeckBackgroundModifier())
+            } else {
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .then(
+                        when (backgroundStyle) {
+                            FAHeaderBackground.Default -> Modifier.background(
+                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
+                            )
+                            FAHeaderBackground.Transparent -> Modifier.background(
+                                color = Color.Transparent
+                            )
+                            FAHeaderBackground.Elevated -> Modifier.background(
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            )
+                            FAHeaderBackground.Gradient -> Modifier.background(
+                                brush = Brush.verticalGradient(
+                                    listOf(
+                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+                                    )
+                                )
+                            )
+                            FAHeaderBackground.CommandDeck -> Modifier // Should not reach here
+                        }
+                    )
                     .border(
                         width = 1.dp,
                         brush = Brush.horizontalGradient(
@@ -103,12 +94,45 @@ fun FAHeader(
                         ),
                         shape = RoundedCornerShape(20.dp)
                     )
+            }
+            Box(
+                modifier = innerModifier
                     .padding(horizontal = 20.dp, vertical = 12.dp)
             ) {
                 layout.Content()
             }
         }
     }
+}
+
+@Composable
+fun CommandDeckBackgroundModifier(): Modifier {
+    val glowAlpha by animateFloatAsState(
+        targetValue = 0.15f,
+        animationSpec = tween(2000),
+        label = "header_glow"
+    )
+    return Modifier
+        .background(
+            brush = Brush.horizontalGradient(
+                colors = listOf(
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.08f + glowAlpha),
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.03f),
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.08f + glowAlpha)
+                )
+            )
+        )
+        .border(
+            width = 1.dp,
+            brush = Brush.horizontalGradient(
+                colors = listOf(
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                )
+            ),
+            shape = RoundedCornerShape(20.dp)
+        )
 }
 
 /**

@@ -271,9 +271,8 @@ private fun ProjectScaffold(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(animatedBackgroundColor),
+            modifier = Modifier.fillMaxSize(),
+            containerColor = animatedBackgroundColor,
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
                 val topBarContainerColor = MaterialTheme.colorScheme.surfaceContainer
@@ -324,7 +323,7 @@ private fun ProjectScaffold(
             },
             snackbarHost = { SnackbarHost(snackbarHostState) },
             bottomBar = {
-                Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
+                Surface(color = animatedBackgroundColor) {
                     ProjectBottomBar(
                         viewModel = viewModel,
                         navController = navController,
