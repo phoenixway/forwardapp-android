@@ -233,58 +233,58 @@ fun TacticalMissionItem(
     val overdue = System.currentTimeMillis() > mission.deadline &&
             mission.status != MissionStatus.COMPLETED
 
-    // Glow intensity depends on mission status
-    val targetGlow = when {
-        mission.status == MissionStatus.COMPLETED -> 0.03f
+    // Pulse intensity by status
+    val basePulse = when {
+        mission.status == MissionStatus.COMPLETED -> 0.02f
         overdue -> 0.18f
-        else -> 0.07f
+        else -> 0.08f
     }
 
-    // Animated wave motion
+    // PULSE ANIMATION
     val infinite = rememberInfiniteTransition(label = "")
-    val waveShift by infinite.animateFloat(
-        initialValue = -250f,
-        targetValue = 250f,
+    val pulse by infinite.animateFloat(
+        initialValue = basePulse,
+        targetValue = basePulse + 0.05f,
         animationSpec = infiniteRepeatable(
-            tween(4400, easing = LinearEasing),
-            RepeatMode.Reverse
+            animation = tween(2600, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
         ),
-        label = "wave_shift"
+        label = "pulse"
     )
 
-    val waveStrength by infinite.animateFloat(
-        initialValue = targetGlow,
-        targetValue = targetGlow + 0.05f,
+    // SWEEP LIGHT ANIMATION
+    val sweepShift by infinite.animateFloat(
+        initialValue = -200f,
+        targetValue = 400f,
         animationSpec = infiniteRepeatable(
-            tween(3000, easing = FastOutSlowInEasing),
-            RepeatMode.Reverse
+            animation = tween(4500, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
         ),
-        label = "wave_strength"
+        label = "sweep_shift"
     )
 
-    // Dynamic card container
+    val sweepColor = Color.White.copy(alpha = 0.12f)
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
             .background(
-                Brush.linearGradient(
+                Brush.verticalGradient(
                     colors = listOf(
-                        primary.copy(alpha = waveStrength * 0.9f),
-                        Color.Transparent,
-                        primary.copy(alpha = waveStrength * 0.9f)
-                    ),
-                    start = Offset(waveShift, 0f),
-                    end = Offset(-waveShift, 300f)
+                        primary.copy(alpha = pulse),
+                        primary.copy(alpha = pulse * 0.4f),
+                        primary.copy(alpha = pulse)
+                    )
                 )
             )
             .border(
                 1.dp,
                 Brush.horizontalGradient(
                     listOf(
-                        primary.copy(alpha = waveStrength + 0.1f),
-                        primary.copy(alpha = 0.08f),
-                        primary.copy(alpha = waveStrength + 0.1f)
+                        primary.copy(alpha = pulse + 0.1f),
+                        primary.copy(alpha = 0.06f),
+                        primary.copy(alpha = pulse + 0.1f)
                     )
                 ),
                 shape = RoundedCornerShape(20.dp)
@@ -292,9 +292,31 @@ fun TacticalMissionItem(
             .padding(16.dp)
     ) {
 
+        // 🔥 MOVING LIGHT SWEEP
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .padding(2.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .offset(x = sweepShift.dp)
+                    .width(80.dp)
+                    .fillMaxHeight()
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(
+                                Color.Transparent,
+                                sweepColor,
+                                Color.Transparent
+                            )
+                        )
+                    )
+            )
+        }
+
         Row(verticalAlignment = Alignment.CenterVertically) {
 
-            // Checkbox nicely integrated
             Checkbox(
                 checked = mission.status == MissionStatus.COMPLETED,
                 onCheckedChange = { onMissionToggled() },
@@ -308,15 +330,13 @@ fun TacticalMissionItem(
 
             Column(modifier = Modifier.weight(1f)) {
 
-                // 🔥 Title with animated color if overdue
+                // Title color logic
                 val titleColor by animateColorAsState(
-                    targetValue = when {
+                    when {
                         mission.status == MissionStatus.COMPLETED ->
                             onSurface.copy(alpha = 0.4f)
-
                         overdue ->
                             Color(0xFFFF6E6E)
-
                         else -> onSurface
                     }
                 )
@@ -331,7 +351,6 @@ fun TacticalMissionItem(
                         TextDecoration.LineThrough else null
                 )
 
-                // 🔥 Description faded
                 if (!mission.description.isNullOrBlank()) {
                     Text(
                         mission.description!!,
@@ -343,34 +362,27 @@ fun TacticalMissionItem(
                     )
                 }
 
-                // 🔥 Deadline badge
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(top = 8.dp)
                 ) {
                     Text(
                         text = if (overdue) "⚠ " else "⏳ ",
-                        color = if (overdue) Color(0xFFFF4444) else primary
+                        color = if (overdue) Color(0xFFFF5555) else primary
                     )
                     Text(
                         formatDate(mission.deadline),
                         style = MaterialTheme.typography.labelMedium,
-                        color = if (overdue)
-                            Color(0xFFFF4444)
-                        else
-                            onSurface.copy(alpha = 0.65f)
+                        color = if (overdue) Color(0xFFFF5555)
+                        else onSurface.copy(alpha = 0.65f)
                     )
                 }
             }
 
-            // -------------------------
-            // 🔥 Action Buttons (Edit/Delete)
-            // -------------------------
             Column(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
                 horizontalAlignment = Alignment.End
             ) {
-
                 IconButton(onClick = onMissionEdited) {
                     Icon(
                         Icons.Default.Edit,
@@ -378,7 +390,6 @@ fun TacticalMissionItem(
                         tint = primary.copy(alpha = 0.9f)
                     )
                 }
-
                 IconButton(onClick = onMissionDeleted) {
                     Icon(
                         Icons.Default.Delete,

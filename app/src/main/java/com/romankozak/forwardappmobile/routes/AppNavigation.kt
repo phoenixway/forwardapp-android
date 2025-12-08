@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -52,6 +53,7 @@ import com.romankozak.forwardappmobile.ui.screens.lifestate.LifeStateScreen
 import com.romankozak.forwardappmobile.ui.reminders.list.RemindersScreen
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
+import kotlinx.coroutines.launch
 import java.net.URLDecoder
 
 
@@ -123,6 +125,7 @@ private fun NavGraphBuilder.mainGraph(
             navController.getBackStackEntry(MAIN_GRAPH_ROUTE)
         }
         val viewModel: ProjectHierarchyScreenViewModel = hiltViewModel(parentEntry)
+        val scope = rememberCoroutineScope()
 
         SharedCommandDeckLayout(
             navController = navController,
@@ -136,7 +139,12 @@ private fun NavGraphBuilder.mainGraph(
                 navController.navigate("settings_screen")
             },
             onNavigateToInbox = {
-                viewModel.onEvent(ProjectHierarchyScreenEvent.OpenInboxProject)
+                scope.launch {
+                    val inboxId = viewModel.getInboxProjectId()
+                    if (inboxId != null) {
+                        navController.navigate("goal_detail_screen/$inboxId?initialViewMode=INBOX")
+                    }
+                }
             },
             onNavigateToTracker = {
                 navController.navigate("activity_tracker_screen")
@@ -487,6 +495,15 @@ private fun NavGraphBuilder.mainGraph(
         )
     }
     chatScreen(navController)
+    dayManagementGraph(navController)
+    dayManagementScreen(navController)
+    strategicManagementScreen(navController)
+
+    composable("tactical_management_screen") {
+        TacticalManagementScreen()
+    }
+
+
 
     composable(AI_INSIGHTS_ROUTE) {
         AiInsightsScreen(navController = navController)

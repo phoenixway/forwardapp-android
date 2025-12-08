@@ -177,7 +177,7 @@ private fun ProjectScaffold(
 
     val holdMenuController = rememberHoldMenu2()
 
-    val targetBackgroundColor = MaterialTheme.colorScheme.surface
+    val targetBackgroundColor = MaterialTheme.colorScheme.surfaceContainer
     val animatedBackgroundColor by animateColorAsState(
         targetValue = targetBackgroundColor,
         animationSpec = tween(600),

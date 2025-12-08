@@ -638,7 +638,7 @@ constructor(
           val inboxProject =
               _allProjectsFlat.value.firstOrNull { it.systemKey == ReservedProjectKeys.INBOX }
                   ?: _allProjectsFlat.value.firstOrNull {
-                      it.reservedGroup == ReservedGroup.Inbox && it.systemKey != ReservedProjectKeys.TODAY
+                      it.name.equals("Inbox", ignoreCase = true) && it.systemKey != ReservedProjectKeys.TODAY
                   }
           if (inboxProject == null) {
             _uiEventChannel.send(ProjectUiEvent.ShowToast("Inbox project not found"))
@@ -822,6 +822,16 @@ constructor(
 
   private fun onNavigateToProject(projectId: String) {
     navigationUseCase.onNavigateToProject(viewModelScope, projectId)
+  }
+
+  suspend fun getInboxProjectId(): String? = withContext(ioDispatcher) {
+    val allProjects = _allProjectsFlat.first()
+    val inboxProject =
+        allProjects.firstOrNull { it.systemKey == ReservedProjectKeys.INBOX }
+            ?: allProjects.firstOrNull {
+                it.name.equals("Inbox", ignoreCase = true) && it.systemKey != ReservedProjectKeys.TODAY
+            }
+    inboxProject?.id
   }
 
   override fun onCleared() {

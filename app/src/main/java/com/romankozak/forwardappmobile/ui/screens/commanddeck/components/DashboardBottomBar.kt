@@ -93,7 +93,7 @@ fun DashboardBottomBar(
                 icon = Icons.Outlined.Inbox,
                 label = "Inbox",
                 onClick = onNavigateToInbox
-            )
+                )
 
             BarButton(
                 icon = Icons.Outlined.Analytics,
@@ -103,8 +103,10 @@ fun DashboardBottomBar(
 
             BarButton(
                 icon = Icons.Outlined.AccountTree,
+                onClick = onNavigateToProjectHierarchy,
+
                 label = "Projects",
-                onClick = onNavigateToProjectHierarchy
+
             )
             BarButton(Icons.Outlined.Notifications, "Reminders", onNavigateToReminders)
             BarButton(Icons.Outlined.MoreHoriz, "More", onNavigateToMore)
