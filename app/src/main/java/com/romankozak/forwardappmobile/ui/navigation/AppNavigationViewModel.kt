@@ -1,5 +1,3 @@
-
-
 package com.romankozak.forwardappmobile.ui.navigation
 
 import androidx.lifecycle.SavedStateHandle
@@ -9,29 +7,30 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
 @HiltViewModel
-class AppNavigationViewModel
-@Inject
-constructor(
-    private val savedStateHandle: SavedStateHandle,
-) : ViewModel(), NavigationDispatcher {
-    lateinit var navigationManager: EnhancedNavigationManager
-        private set
+class AppNavigationViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
+    private val navigationDispatcher: DefaultNavigationDispatcher
+) : ViewModel(), NavigationHandler {
 
+    val navigationManager = EnhancedNavigationManager(savedStateHandle, viewModelScope)
+
+    /**
+     * Викликається з AppNavigation() перед побудовою NavHost.
+     * Тут ми реєструємо себе як handler глобального NavigationDispatcher.
+     */
     fun initialize() {
-        if (!::navigationManager.isInitialized) {
-            navigationManager = EnhancedNavigationManager(savedStateHandle, viewModelScope)
-
-
-            navigationManager.navigateToProjectHierarchyScreen(isInitial = true)
-        }
+        navigationDispatcher.setHandler(this)
     }
 
-    override fun navigate(route: String) {
+    override fun handleNavigate(route: String) {
         navigationManager.navigate(route)
     }
 
-    override fun popBackStack(key: String?, value: String?) {
-        navigationManager.goBackWithResult(key ?: "", value ?: "")
+    override fun handlePopBackStack(key: String?, value: String?) {
+        if (key != null && value != null) {
+            navigationManager.goBackWithResult(key, value)
+        } else {
+            navigationManager.goBack()
+        }
     }
 }
-
