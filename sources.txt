@@ -1,795 +1,1069 @@
 TABLE OF CONTENTS
 ================================================================================
 
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeader.kt](##<<FILE_1>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderConfig.kt](##<<FILE_2>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderPresets.kt](##<<FILE_3>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderTokens.kt](##<<FILE_4>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderUtils.kt](##<<FILE_5>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/SharedCommandDeckLayout.kt](##<<FILE_6>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/components/DashboardBottomBar.ktpp/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/SharedCommandDeckLayout.kt](##<<FILE_7>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/data/dao/RecentItemDao.kt](##<<FILE_1>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/data/database/models/RecentItem.kt](##<<FILE_2>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/data/repository/RecentItemsRepository.kt](##<<FILE_3>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/routes/AppNavigation.kt](##<<FILE_4>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/NewRecentListsSheet.kt](##<<FILE_5>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/navigation/NavigationDispatcher.kt](##<<FILE_6>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/recent/RecentUiEvent.kt](##<<FILE_7>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/recent/RecentViewModel.kt](##<<FILE_8>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/SharedCommandDeckLayout.kt](##<<FILE_9>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/components/DashboardBottomBar.kt](##<<FILE_10>>)
 
 ================================================================================
 
 ## <<FILE_1>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeader.kt (ID: FILE_1)
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/data/dao/RecentItemDao.kt (ID: FILE_1)
 ================================================================================
 
-package com.romankozak.forwardappmobile.ui.components.header
+package com.romankozak.forwardappmobile.data.dao
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import com.romankozak.forwardappmobile.data.database.models.RecentItem
+import kotlinx.coroutines.flow.Flow
 
-/**
- * Новий основний варіант:
- *  - приймає HeaderLayout (стратегія розкладки)
- *  - окремо приймає фон через FAHeaderBackground
- */
-@Composable
-fun FAHeader(
-    layout: HeaderLayout,
-    backgroundStyle: FAHeaderBackground = FAHeaderBackground.Default,
-    modifier: Modifier = Modifier
-) {
-    val glowAlpha by animateFloatAsState(
-        targetValue = 0.15f,
-        animationSpec = tween(2000),
-        label = "header_glow"
-    )
+@Dao
+interface RecentItemDao {
 
-    val backgroundModifier = when (backgroundStyle) {
-        FAHeaderBackground.Default -> Modifier.background(
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
-        )
-        FAHeaderBackground.Transparent -> Modifier.background(
-            color = Color.Transparent
-        )
-        FAHeaderBackground.Elevated -> Modifier.background(
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
-        FAHeaderBackground.Gradient -> Modifier.background(
-            brush = Brush.verticalGradient(
-                listOf(
-                    MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                    MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
-                )
-            )
-        )
-        FAHeaderBackground.CommandDeck -> Modifier.background(
-            brush = Brush.horizontalGradient(
-                colors = listOf(
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.08f + glowAlpha),
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.03f),
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.08f + glowAlpha)
-                )
-            )
-        )
-    }
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun logAccess(item: RecentItem)
 
-    Column(modifier = modifier.fillMaxWidth()) {
-        // status bar inset
-        Spacer(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(WindowInsets.statusBars.asPaddingValues().calculateTopPadding())
-        )
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(items: List<RecentItem>)
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    top = 8.dp,
-                    start = 16.dp,
-                    end = 16.dp,
-                    bottom = 4.dp
-                )
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .then(backgroundModifier)
-                    .border(
-                        width = 1.dp,
-                        brush = Brush.horizontalGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                            )
-                        ),
-                        shape = RoundedCornerShape(20.dp)
-                    )
-                    .padding(horizontal = 20.dp, vertical = 12.dp)
-            ) {
-                layout.Content()
-            }
-        }
-    }
-}
+    @Query("SELECT * FROM recent_items ORDER BY lastAccessed DESC LIMIT :limit")
+    fun getRecentItems(limit: Int): Flow<List<RecentItem>>
 
-/**
- * Старий варіант для сумісності:
- *  - приймає FAHeaderConfig (left/center/right)
- *  - адаптер у LeftCenterCombinedHeaderLayout
- */
-@Composable
-fun FAHeader(
-    config: FAHeaderConfig,
-    modifier: Modifier = Modifier
-) {
-    val layout = LeftCenterCombinedHeaderLayout(
-        left = config.left,
-        center = config.center,
-        right = config.right
-    )
-    FAHeader(
-        layout = layout,
-        backgroundStyle = config.backgroundStyle,
-        modifier = modifier
-    )
+    @Query("SELECT * FROM recent_items WHERE id = :id")
+    suspend fun getRecentItemById(id: String): RecentItem?
+
+
+    @Query("SELECT * FROM recent_items")
+    fun getAll(): List<RecentItem>
+
+    @Query("DELETE FROM recent_items")
+    suspend fun deleteAll()
 }
 
 
 ================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeader.kt
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/data/dao/RecentItemDao.kt
 ================================================================================
 
 ## <<FILE_2>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderConfig.kt (ID: FILE_2)
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/data/database/models/RecentItem.kt (ID: FILE_2)
 ================================================================================
 
-package com.romankozak.forwardappmobile.ui.components.header
+package com.romankozak.forwardappmobile.data.database.models
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 
-/**
- * Старий конфіг для простих випадків (залишений для сумісності).
- */
-data class FAHeaderConfig(
-    val left: (@Composable () -> Unit)? = null,
-    val center: (@Composable () -> Unit)? = null,
-    val right: (@Composable () -> Unit)? = null,
-    val backgroundStyle: FAHeaderBackground = FAHeaderBackground.Default
+enum class RecentItemType {
+    PROJECT,
+    NOTE,
+    NOTE_DOCUMENT,
+    OBSIDIAN_LINK,
+    CHECKLIST,
+}
+
+@Entity(tableName = "recent_items")
+data class RecentItem(
+    @PrimaryKey
+    val id: String,
+    val type: RecentItemType,
+    val lastAccessed: Long,
+    val displayName: String,
+    val target: String, // Project ID, Legacy Note ID, Note ID, or Obsidian URI
+    val isPinned: Boolean = false
 )
 
-/**
- * Тип фону хедера.
- */
-enum class FAHeaderBackground {
-    Default,
-    Transparent,
-    Elevated,
-    Gradient,
-    CommandDeck
-}
-
-/**
- * Базовий інтерфейс для будь-якого layout-у хедера.
- */
-interface HeaderLayout {
-    @Composable
-    fun Content()
-}
-
-/**
- * Проста одно-рядкова схема:
- * LEFT | CENTER | RIGHT
- */
-class LeftCenterCombinedHeaderLayout(
-    private val left: (@Composable () -> Unit)? = null,
-    private val center: (@Composable () -> Unit)? = null,
-    private val right: (@Composable () -> Unit)? = null,
-    private val onClick: (() -> Unit)? = null
-) : HeaderLayout {
-
-    @Composable
-    override fun Content() {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onTap = {
-                            onClick?.invoke()
-                        }
-                    )
-                }
-        ) {
-            left?.let {
-                Box(modifier = Modifier.align(Alignment.CenterStart)) {
-                    it()
-                }
-            }
-            center?.let {
-                Box(modifier = Modifier.align(Alignment.Center)) {
-                    it()
-                }
-            }
-            right?.let {
-                Box(modifier = Modifier.align(Alignment.CenterEnd)) {
-                    it()
-                }
-            }
-        }
-    }
-}
-
-/**
- * Гнучка дво-рядкова схема:
- *
- *  TOP:    topLeft      topCenter      topRight
- *  BOTTOM: bottomLeft   bottomCenter   bottomRight
- *
- * Будь-який слот може бути null.
- */
-class FreeFormHeaderLayout(
-    private val topLeft: (@Composable () -> Unit)? = null,
-    private val topCenter: (@Composable () -> Unit)? = null,
-    private val topRight: (@Composable () -> Unit)? = null,
-    private val bottomLeft: (@Composable () -> Unit)? = null,
-    private val bottomCenter: (@Composable () -> Unit)? = null,
-    private val bottomRight: (@Composable () -> Unit)? = null,
-) : HeaderLayout {
-
-    @Composable
-    override fun Content() {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            if (topLeft != null || topCenter != null || topRight != null) {
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    topLeft?.let {
-                        Box(modifier = Modifier.align(Alignment.CenterStart)) { it() }
-                    }
-                    topCenter?.let {
-                        Box(modifier = Modifier.align(Alignment.Center)) { it() }
-                    }
-                    topRight?.let {
-                        Box(modifier = Modifier.align(Alignment.CenterEnd)) { it() }
-                    }
-                }
-            }
-
-            if (bottomLeft != null || bottomCenter != null || bottomRight != null) {
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    bottomLeft?.let {
-                        Box(modifier = Modifier.align(Alignment.CenterStart)) { it() }
-                    }
-                    bottomCenter?.let {
-                        Box(modifier = Modifier.align(Alignment.Center)) { it() }
-                    }
-                    bottomRight?.let {
-                        Box(modifier = Modifier.align(Alignment.CenterEnd)) { it() }
-                    }
-                }
-            }
-        }
-    }
-}
-
 
 ================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderConfig.kt
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/data/database/models/RecentItem.kt
 ================================================================================
 
 ## <<FILE_3>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderPresets.kt (ID: FILE_3)
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/data/repository/RecentItemsRepository.kt (ID: FILE_3)
 ================================================================================
 
-package com.romankozak.forwardappmobile.ui.components.header
+package com.romankozak.forwardappmobile.data.repository
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
+import android.util.Log
+import com.romankozak.forwardappmobile.data.dao.RecentItemDao
+import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
+import com.romankozak.forwardappmobile.data.database.models.NoteDocumentEntity
+import com.romankozak.forwardappmobile.data.database.models.Project
+import com.romankozak.forwardappmobile.data.database.models.RecentItem
+import com.romankozak.forwardappmobile.data.database.models.RecentItemType
+import com.romankozak.forwardappmobile.data.database.models.RelatedLink
+import com.romankozak.forwardappmobile.data.database.models.ChecklistEntity
+import kotlinx.coroutines.flow.Flow
+import javax.inject.Inject
+import javax.inject.Singleton
 
-/**
- * TodayHeader:
- *  - верх: ліворуч "Today", по центру DayPlanHeaderContent
- *  - низ (праворуч): навігація по днях + "енергетичний" кружок
- */
-@Composable
-fun TodayHeader(
-    onNavigateToPreviousDay: () -> Unit,
-    onNavigateToNextDay: () -> Unit,
-    isNextDayNavigationEnabled: Boolean,
-    date: Long?,
-): HeaderLayout {
+@Singleton
+class RecentItemsRepository @Inject constructor(
+    private val recentItemDao: RecentItemDao
+) {
+    fun getRecentItems(limit: Int = 20): Flow<List<RecentItem>> = recentItemDao.getRecentItems(limit)
 
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val dateText = remember(date) {
-        date?.let {
-            val cal = Calendar.getInstance()
-            cal.timeInMillis = it
-            SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).format(cal.time)
-        } ?: ""
+    suspend fun logProjectAccess(project: Project) {
+        val existingItem = recentItemDao.getRecentItemById(project.id)
+        val recentItem = if (existingItem != null) {
+            existingItem.copy(lastAccessed = System.currentTimeMillis())
+        } else {
+            RecentItem(
+                id = project.id,
+                type = RecentItemType.PROJECT,
+                lastAccessed = System.currentTimeMillis(),
+                displayName = project.name,
+                target = project.id
+            )
+        }
+        Log.d("Recents_Debug", "Logging project access: $recentItem")
+        recentItemDao.logAccess(recentItem)
     }
 
-    return FreeFormHeaderLayout(
-        // ----------------------
-        // 💜 TOP LEFT: TODAY
-        // ----------------------
-        topLeft = {
-            Column(horizontalAlignment = Alignment.Start) {
-                Text(
-                    "Today",
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.Bold
-                    )
-                )
-                Column {
-                    Text(
-                        text = "The Alpha and Omega of everything",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Medium,
-                        letterSpacing = 0.3.sp,
-                        color = primaryColor.copy(alpha = 0.7f)
-                    )
-                    if (dateText.isNotEmpty()) {
-                        Text(
-                            text = dateText,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = primaryColor.copy(alpha = 0.7f)
-                        )
-                    }
-                }
-            }
-        },
-
-        // ----------------------
-        // 💛 TOP RIGHT: ENERGY ICON + Day Navigation
-        // ----------------------
-        topRight = {
-            Column(horizontalAlignment = Alignment.End) {
-                Box(
-                    modifier = Modifier
-                        .size(34.dp)
-                        .clip(CircleShape)
-                        .background(
-                            Brush.radialGradient(
-                                listOf(
-                                    primaryColor.copy(alpha = 0.25f),
-                                    primaryColor.copy(alpha = 0.08f)
-                                )
-                            )
-                        )
-                        .border(
-                            width = 1.2.dp,
-                            color = primaryColor.copy(alpha = 0.4f),
-                            shape = CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        "⌁",
-                        fontSize = 22.sp,
-                        color = primaryColor,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                Row(modifier = Modifier.offset(y = 4.dp)) {
-                    IconButton(onClick = onNavigateToPreviousDay, modifier = Modifier.padding(start = 8.dp)) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Попередній день",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                    IconButton(onClick = onNavigateToNextDay, enabled = isNextDayNavigationEnabled) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = "Наступний день",
-                            tint =
-                            if (isNextDayNavigationEnabled) {
-                                MaterialTheme.colorScheme.onSurface
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                            },
-                        )
-                    }
-                }
-            }
-        },
-
-        // ----------------------
-        // 💙 BOTTOM CENTER: Day Navigation
-        // ----------------------
-        bottomCenter = {
-            // MOVED TO TOP RIGHT
+    suspend fun logNoteAccess(note: LegacyNoteEntity) {
+        val existingItem = recentItemDao.getRecentItemById(note.id)
+        val recentItem = if (existingItem != null) {
+            existingItem.copy(lastAccessed = System.currentTimeMillis())
+        } else {
+            RecentItem(
+                id = note.id,
+                type = RecentItemType.NOTE,
+                lastAccessed = System.currentTimeMillis(),
+                displayName = note.title,
+                target = note.id
+            )
         }
-    )
+        Log.d("Recents_Debug", "Logging note access: $recentItem")
+        recentItemDao.logAccess(recentItem)
+    }
+
+    suspend fun logNoteDocumentAccess(document: NoteDocumentEntity) {
+        val existingItem = recentItemDao.getRecentItemById(document.id)
+        val recentItem = if (existingItem != null) {
+            existingItem.copy(lastAccessed = System.currentTimeMillis())
+        } else {
+            RecentItem(
+                id = document.id,
+                type = RecentItemType.NOTE_DOCUMENT,
+                lastAccessed = System.currentTimeMillis(),
+                displayName = document.name,
+                target = document.id
+            )
+        }
+        Log.d("Recents_Debug", "Logging note document access: $recentItem")
+        recentItemDao.logAccess(recentItem)
+    }
+
+    suspend fun logChecklistAccess(checklist: ChecklistEntity) {
+        val existingItem = recentItemDao.getRecentItemById(checklist.id)
+        val recentItem =
+            if (existingItem != null) {
+                existingItem.copy(lastAccessed = System.currentTimeMillis(), displayName = checklist.name)
+            } else {
+                RecentItem(
+                    id = checklist.id,
+                    type = RecentItemType.CHECKLIST,
+                    lastAccessed = System.currentTimeMillis(),
+                    displayName = checklist.name,
+                    target = checklist.id,
+                )
+            }
+        Log.d("Recents_Debug", "Logging checklist access: $recentItem")
+        recentItemDao.logAccess(recentItem)
+    }
+
+    suspend fun logObsidianLinkAccess(link: RelatedLink) {
+        val existingItem = recentItemDao.getRecentItemById(link.target)
+        val recentItem = if (existingItem != null) {
+            existingItem.copy(lastAccessed = System.currentTimeMillis())
+        } else {
+            RecentItem(
+                id = link.target,
+                type = RecentItemType.OBSIDIAN_LINK,
+                lastAccessed = System.currentTimeMillis(),
+                displayName = link.displayName ?: link.target,
+                target = link.target
+            )
+        }
+        Log.d("Recents_Debug", "Logging obsidian link access: $recentItem")
+        recentItemDao.logAccess(recentItem)
+    }
+
+    suspend fun updateRecentItem(item: RecentItem) {
+        recentItemDao.logAccess(item)
+    }
+    
+    suspend fun updateRecentItemDisplayName(itemId: String, displayName: String) {
+        val recentItem = recentItemDao.getRecentItemById(itemId)
+        if (recentItem != null) {
+            recentItemDao.logAccess(recentItem.copy(displayName = displayName))
+        }
+    }
 }
 
-
-/**
- * StrategyHeader: простий Left + (опис) + Right-іконка.
- */
-@Composable
-fun StrategyHeader(onModeClick: () -> Unit): HeaderLayout {
-    val primaryColor = MaterialTheme.colorScheme.primary
-
-    return LeftCenterCombinedHeaderLayout(
-        left = {
-            Column(horizontalAlignment = Alignment.Start) {
-                Text(
-                    "Strategy",
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.Bold
-                    )
-                )
-                Text(
-                    text = "Long-term planning mode",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Medium,
-                    letterSpacing = 0.3.sp,
-                    color = primaryColor.copy(alpha = 0.7f)
-                )
-            }
-        },
-        right = {
-            Box(
-                modifier = Modifier
-                    .size(34.dp)
-                    .clip(CircleShape)
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                primaryColor.copy(alpha = 0.25f),
-                                primaryColor.copy(alpha = 0.08f)
-                            )
-                        )
-                    )
-                    .border(
-                        width = 1.2.dp,
-                        color = primaryColor.copy(alpha = 0.4f),
-                        shape = CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "❂",
-                    fontSize = 22.sp,
-                    color = primaryColor,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-    )
-}
-
-/**
- * Strategic Arc header.
- */
-@Composable
-fun StrategicArcHeader(onModeClick: () -> Unit): HeaderLayout {
-    val primaryColor = MaterialTheme.colorScheme.primary
-
-    return LeftCenterCombinedHeaderLayout(
-        left = {
-            Column(horizontalAlignment = Alignment.Start) {
-                Text(
-                    "Strategic Arc",
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.Bold
-                    )
-                )
-                Text(
-                    text = "The current Arc of your story",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Medium,
-                    letterSpacing = 0.3.sp,
-                    color = primaryColor.copy(alpha = 0.7f)
-                )
-            }
-        },
-        right = {
-            Box(
-                modifier = Modifier
-                    .size(34.dp)
-                    .clip(CircleShape)
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                primaryColor.copy(alpha = 0.25f),
-                                primaryColor.copy(alpha = 0.08f)
-                            )
-                        )
-                    )
-                    .border(
-                        width = 1.2.dp,
-                        color = primaryColor.copy(alpha = 0.4f),
-                        shape = CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "⟲",
-                    fontSize = 22.sp,
-                    color = primaryColor,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-    )
-}
-
-/**
- * Command Deck / Dashboard header.
- */
-@Composable
-fun CommandDeckHeaderPreset(onClick: (() -> Unit)? = null): HeaderLayout {
-    val primaryColor = MaterialTheme.colorScheme.primary
-
-    return LeftCenterCombinedHeaderLayout(
-        onClick = onClick,
-        left = {
-            Column {
-                Text(
-                    text = "Forward",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.8.sp,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "Score your goals!",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Medium,
-                    letterSpacing = 0.3.sp,
-                    color = primaryColor.copy(alpha = 0.7f)
-                )
-            }
-        },
-        right = {
-            Box(
-                modifier = Modifier
-                    .size(34.dp)
-                    .clip(CircleShape)
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                primaryColor.copy(alpha = 0.25f),
-                                primaryColor.copy(alpha = 0.08f)
-                            )
-                        )
-                    )
-                    .border(
-                        width = 1.2.dp,
-                        color = primaryColor.copy(alpha = 0.4f),
-                        shape = CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "⌬",
-                    fontSize = 22.sp,
-                    color = primaryColor,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-    )
-}
-
-/**
- * Tactics header.
- */
-@Composable
-fun TacticsHeader(): HeaderLayout {
-    val primaryColor = MaterialTheme.colorScheme.primary
-
-    return LeftCenterCombinedHeaderLayout(
-        left = {
-            Column {
-                Text(
-                    text = "Tactics",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.8.sp,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "Your job is to make the impossible possible.",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Medium,
-                    letterSpacing = 0.3.sp,
-                    color = primaryColor.copy(alpha = 0.7f)
-                )
-            }
-        },
-        right = {
-            Box(
-                modifier = Modifier
-                    .size(34.dp)
-                    .clip(CircleShape)
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                primaryColor.copy(alpha = 0.25f),
-                                primaryColor.copy(alpha = 0.08f)
-                            )
-                        )
-                    )
-                    .border(
-                        width = 1.2.dp,
-                        color = primaryColor.copy(alpha = 0.4f),
-                        shape = CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "⦿",
-                    fontSize = 23.sp,
-                    color = primaryColor,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-    )
-}
-
-/**
- * Core header.
- */
-@Composable
-fun CoreHeader(): HeaderLayout {
-    val primaryColor = MaterialTheme.colorScheme.primary
-
-    return LeftCenterCombinedHeaderLayout(
-        left = {
-            Column {
-                Text(
-                    text = "Core",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.8.sp,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "Your primary beacons.",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Medium,
-                    letterSpacing = 0.3.sp,
-                    color = primaryColor.copy(alpha = 0.7f)
-                )
-            }
-        },
-        right = {
-            Box(
-                modifier = Modifier
-                    .size(34.dp)
-                    .clip(CircleShape)
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                primaryColor.copy(alpha = 0.25f),
-                                primaryColor.copy(alpha = 0.08f)
-                            )
-                        )
-                    )
-                    .border(
-                        width = 1.2.dp,
-                        color = primaryColor.copy(alpha = 0.4f),
-                        shape = CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "⌘",
-                    fontSize = 22.sp,
-                    color = primaryColor,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-    )
-}
 
 ================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderPresets.kt
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/data/repository/RecentItemsRepository.kt
 ================================================================================
 
 ## <<FILE_4>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderTokens.kt (ID: FILE_4)
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/routes/AppNavigation.kt (ID: FILE_4)
 ================================================================================
 
+package com.romankozak.forwardappmobile.routes
+
+import android.util.Log
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.SharedTransitionScope
+import androidx.navigation.NavGraphBuilder
+import androidx.navigation.NavHostController
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import androidx.navigation.navigation
+import com.romankozak.forwardappmobile.ui.navigation.AppNavigationViewModel
+import com.romankozak.forwardappmobile.ui.navigation.NavigationCommand
+import com.romankozak.forwardappmobile.ui.screens.ManageContextsScreen
+import com.romankozak.forwardappmobile.ui.screens.activitytracker.ActivityTrackerScreen
+import com.romankozak.forwardappmobile.ui.screens.notedocument.NoteDocumentEditorScreen
+import com.romankozak.forwardappmobile.ui.screens.notedocument.NoteDocumentScreen
+
+import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchScreen
+import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchViewModel
+import com.romankozak.forwardappmobile.features.attachments.ui.library.AttachmentsLibraryScreen
+import com.romankozak.forwardappmobile.ui.screens.script.ScriptChooserScreen
+import com.romankozak.forwardappmobile.ui.screens.script.ScriptEditorScreen
+import com.romankozak.forwardappmobile.ui.screens.script.ScriptsLibraryScreen
+import com.romankozak.forwardappmobile.ui.screens.projectsettings.ProjectSettingsScreen
+import com.romankozak.forwardappmobile.ui.screens.insights.AiInsightsScreen
+import com.romankozak.forwardappmobile.ui.screens.inbox.InboxEditorScreen
+import com.romankozak.forwardappmobile.ui.screens.commanddeck.SharedCommandDeckLayout
+import com.romankozak.forwardappmobile.ui.screens.listchooser.FilterableListChooserScreen
+import com.romankozak.forwardappmobile.ui.screens.listchooser.FilterableListChooserViewModel
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.ProjectHierarchyScreen
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.ProjectHierarchyScreenViewModel
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenEvent
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.EditTaskScreen
+import com.romankozak.forwardappmobile.ui.screens.note.NoteEditorScreen
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.ProjectsScreen
+import com.romankozak.forwardappmobile.ui.screens.settings.SettingsScreen
+import com.romankozak.forwardappmobile.ui.screens.settings.models.PlanningSettings
+import com.romankozak.forwardappmobile.ui.screens.sync.SyncScreen
+import com.romankozak.forwardappmobile.ui.screens.lifestate.LifeStateScreen
+import com.romankozak.forwardappmobile.ui.reminders.list.RemindersScreen
+import com.romankozak.forwardappmobile.ui.recent.RecentViewModel
+import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
+import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
+import kotlinx.coroutines.launch
+import java.net.URLDecoder
 
 
-================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderTokens.kt
-================================================================================
+const val MAIN_GRAPH_ROUTE = "main_graph"
+const val COMMAND_DECK_ROUTE = "command_deck_screen"
+const val GOAL_LISTS_ROUTE = "goal_lists_screen"
+const val AI_INSIGHTS_ROUTE = "ai_insights_screen"
+const val LIFE_STATE_ROUTE = "life_state_screen"
+const val SELECTIVE_IMPORT_ROUTE = "selective_import_screen/{fileUri}"
 
-## <<FILE_5>>
-================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderUtils.kt (ID: FILE_5)
-================================================================================
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
+    val navController = rememberNavController()
+    val appNavigationViewModel: AppNavigationViewModel = hiltViewModel()
 
-package com.romankozak.forwardappmobile.ui.components.header
+    appNavigationViewModel.initialize()
+    val navigationManager = appNavigationViewModel.navigationManager
 
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
+    LaunchedEffect(navigationManager, navController) {
+        navigationManager.navigationCommandFlow.collect { command ->
+            when (command) {
+                is NavigationCommand.Navigate -> {
+                    navController.navigate(command.route, command.builder)
+                }
+                is NavigationCommand.PopBackStack -> {
+                    if (command.key != null && command.value != null) {
+                        navController.previousBackStackEntry
+                            ?.savedStateHandle
+                            ?.set(command.key, command.value)
+                    }
+                    navController.popBackStack()
+                }
+            }
+        }
+    }
 
-object FAHeaderUtils {
-    fun currentDate(): String =
-        LocalDate.now().format(DateTimeFormatter.ofPattern("d MMM yyyy"))
+    SharedTransitionLayout {
+        NavHost(
+            navController = navController,
+            startDestination = MAIN_GRAPH_ROUTE,
+        ) {
+            // Єдиний граф верхнього рівня, як у вашій структурі
+            navigation(
+                startDestination = COMMAND_DECK_ROUTE,
+                route = MAIN_GRAPH_ROUTE,
+            ) {
+                mainGraph(
+                    navController,
+                    syncDataViewModel,
+                    appNavigationViewModel,
+                    this@SharedTransitionLayout
+                )
+            }
+        }
+    }
+}
+
+
+@OptIn(ExperimentalSharedTransitionApi::class)
+private fun NavGraphBuilder.mainGraph(
+    navController: NavHostController,
+    syncDataViewModel: SyncDataViewModel,
+    appNavigationViewModel: AppNavigationViewModel,
+    sharedTransitionScope: SharedTransitionScope,
+) {
+    composable(COMMAND_DECK_ROUTE) { backStackEntry ->
+        val parentEntry = remember(backStackEntry) {
+            navController.getBackStackEntry(MAIN_GRAPH_ROUTE)
+        }
+        val viewModel: ProjectHierarchyScreenViewModel = hiltViewModel(parentEntry)
+        val scope = rememberCoroutineScope()
+
+        SharedCommandDeckLayout(
+            navController = navController,
+            onNavigateToProjectHierarchy = {
+                navController.navigate(GOAL_LISTS_ROUTE)
+            },
+            onNavigateToGlobalSearch = {
+                navController.navigate("global_search")
+            },
+            onNavigateToSettings = {
+                navController.navigate("settings_screen")
+            },
+            onNavigateToInbox = {
+                scope.launch {
+                    val inboxId = viewModel.getInboxProjectId()
+                    if (inboxId != null) {
+                        navController.navigate("goal_detail_screen/$inboxId?initialViewMode=INBOX")
+                    }
+                }
+            },
+            onNavigateToTracker = {
+                navController.navigate("activity_tracker_screen")
+            },
+            onNavigateToReminders = {
+                navController.navigate("reminders_screen")
+            },
+            onNavigateToAiChat = {
+                navController.navigate(AI_INSIGHTS_ROUTE)
+            },
+            onNavigateToAiLifeManagement = {
+                navController.navigate(LIFE_STATE_ROUTE)
+            },
+            onNavigateToImportExport = {
+                navController.navigate(SELECTIVE_IMPORT_ROUTE.replace("/{fileUri}", "")) // Navigate to the base route without fileUri
+            },
+            onNavigateToAttachments = {
+                navController.navigate("attachments_library_screen")
+            },
+            onNavigateToScripts = {
+                navController.navigate("scripts_library_screen")
+            },
+            recentViewModel = hiltViewModel<RecentViewModel>()
+        )
+    }
+
+    composable(GOAL_LISTS_ROUTE) { backStackEntry ->
+
+        val parentEntry =
+            remember(backStackEntry) {
+                navController.getBackStackEntry(MAIN_GRAPH_ROUTE)
+            }
+        val viewModel: ProjectHierarchyScreenViewModel = hiltViewModel(parentEntry)
+
+        viewModel.enhancedNavigationManager = appNavigationViewModel.navigationManager
+
+
+
+        ProjectHierarchyScreen(
+            navController = navController,
+            syncDataViewModel = syncDataViewModel,
+            viewModel = viewModel,
+            sharedTransitionScope = sharedTransitionScope,
+            animatedVisibilityScope = this
+        )
+    }
+
+    composable(
+        route = "goal_detail_screen/{listId}?goalId={goalId}&itemIdToHighlight={itemIdToHighlight}&inboxRecordIdToHighlight={inboxRecordIdToHighlight}&initialViewMode={initialViewMode}",
+        arguments =
+            listOf(
+                navArgument("listId") { type = NavType.StringType },
+                navArgument("goalId") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+                navArgument("itemIdToHighlight") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+                navArgument("inboxRecordIdToHighlight") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+                navArgument("initialViewMode") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+            ),
+    ) { backStackEntry -> // Add backStackEntry here
+        val viewModel: BacklogViewModel = hiltViewModel()
+        viewModel.enhancedNavigationManager = appNavigationViewModel.navigationManager
+
+        // FIX: Extract the 'listId' argument from the route and assign it to a variable.
+        val projectId = backStackEntry.arguments?.getString("listId")
+
+        ProjectsScreen(
+            navController = navController,
+            viewModel = viewModel,
+            projectId = projectId, // Now 'projectId' is a resolved reference.
+            sharedTransitionScope = sharedTransitionScope,
+            animatedVisibilityScope = this
+        )
+    }
+
+    composable(
+        "global_search_screen/{query}",
+        arguments = listOf(navArgument("query") { type = NavType.StringType }),
+    ) {
+        val viewModel: GlobalSearchViewModel = hiltViewModel()
+        viewModel.enhancedNavigationManager = appNavigationViewModel.navigationManager
+
+        GlobalSearchScreen(
+            viewModel = viewModel,
+            navController = navController,
+        )
+    }
+
+    composable("attachments_library_screen") {
+        AttachmentsLibraryScreen(navController = navController)
+    }
+
+    composable("scripts_library_screen") {
+        ScriptsLibraryScreen(navController = navController)
+    }
+
+    composable("script_chooser_screen") {
+        ScriptChooserScreen(navController = navController)
+    }
+
+    composable(LIFE_STATE_ROUTE) {
+        LifeStateScreen(navController = navController)
+    }
+
+    composable("settings_screen") { backStackEntry ->
+
+        val parentEntry =
+            remember(backStackEntry) {
+                navController.getBackStackEntry(MAIN_GRAPH_ROUTE)
+            }
+        val goalListViewModel: ProjectHierarchyScreenViewModel = hiltViewModel(parentEntry)
+
+        val uiState by goalListViewModel.uiState.collectAsStateWithLifecycle()
+        val reservedContextCount = uiState.allContexts.count { it.isReserved }
+
+        SettingsScreen(
+            planningSettings = uiState.planningSettings,
+            initialVaultName = uiState.obsidianVaultName,
+            reservedContextCount = reservedContextCount,
+            onManageContextsClick = {
+                navController.navigate("manage_contexts_screen")
+            },
+            onBack = { navController.popBackStack() },
+            onSave = { settings ->
+                goalListViewModel.onEvent(
+                    ProjectHierarchyScreenEvent.SaveSettings(settings)
+                )
+            },
+        )
+    }
+
+    composable("manage_contexts_screen") { backStackEntry ->
+        val parentEntry =
+            remember(backStackEntry) {
+                navController.getBackStackEntry(MAIN_GRAPH_ROUTE)
+            }
+        val goalListViewModel: ProjectHierarchyScreenViewModel = hiltViewModel(parentEntry)
+
+        val uiState by goalListViewModel.uiState.collectAsStateWithLifecycle()
+
+        ManageContextsScreen(
+            initialContexts = uiState.allContexts,
+            onBack = { navController.popBackStack() },
+            onSave = { updatedContexts ->
+                goalListViewModel.onEvent(ProjectHierarchyScreenEvent.SaveAllContexts(updatedContexts))
+                navController.popBackStack()
+            },
+        )
+    }
+
+    composable("activity_tracker_screen") {
+        ActivityTrackerScreen(navController = navController)
+    }
+
+    composable(
+        route = "project_settings_screen?goalId={goalId}&projectId={projectId}",
+        arguments = listOf(
+            navArgument("goalId") {
+                type = NavType.StringType
+                nullable = true
+            },
+            navArgument("projectId") {
+                type = NavType.StringType
+                nullable = true
+            }
+        ),
+    ) {
+        ProjectSettingsScreen(
+            navController = navController,
+            viewModel = hiltViewModel(),
+        )
+    }
+
+    composable(
+        route = "goal_settings_screen/{goalId}",
+        arguments = listOf(
+            navArgument("goalId") {
+                type = NavType.StringType
+            }
+        ),
+    ) {
+        com.romankozak.forwardappmobile.ui.screens.goalsettings.GoalSettingsScreen(
+            navController = navController,
+            viewModel = hiltViewModel(),
+        )
+    }
+
+
+
+    composable("sync_screen") {
+        SyncScreen(
+            syncDataViewModel = syncDataViewModel,
+            onSyncComplete = { navController.popBackStack() },
+        )
+    }
+
+    // Об'єднаний екран для перегляду/редагування існуючого списку
+    composable(
+        route = "note_document_screen/{documentId}?startEdit={startEdit}",
+        arguments =
+            listOf(
+                navArgument("documentId") { type = NavType.StringType },
+                navArgument("startEdit") {
+                    type = NavType.BoolType
+                    defaultValue = false
+                },
+            ),
+    ) { backStackEntry ->
+        val startEdit = backStackEntry.arguments?.getBoolean("startEdit") ?: false
+        NoteDocumentEditorScreen(navController = navController, startEdit = startEdit)
+    }
+
+    composable(
+        route = "note_document_create_screen/{projectId}",
+        arguments = listOf(
+            navArgument("projectId") { type = NavType.StringType }
+        ),
+    ) {
+        NoteDocumentScreen(
+            navController = navController,
+        )
+    }
+
+    composable(
+        route = "note_document_edit_screen?projectId={projectId}&documentId={documentId}",
+        arguments =
+            listOf(
+                navArgument("projectId") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+                navArgument("documentId") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+            ),
+    ) {
+        NoteDocumentScreen(
+            navController = navController,
+        )
+    }
+
+    composable(
+        route = "script_editor_screen?projectId={projectId}&scriptId={scriptId}",
+        arguments =
+            listOf(
+                navArgument("projectId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("scriptId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+            ),
+    ) {
+        ScriptEditorScreen(
+            navController = navController,
+        )
+    }
+
+    composable(
+        route = "checklist_screen?projectId={projectId}&checklistId={checklistId}",
+        arguments =
+            listOf(
+                navArgument("projectId") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+                navArgument("checklistId") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+            ),
+    ) {
+        com.romankozak.forwardappmobile.ui.screens.checklist.ChecklistScreen(navController = navController)
+    }
+
+    composable(
+        route = "list_chooser_screen/{title}?currentParentId={currentParentId}&disabledIds={disabledIds}",
+        arguments =
+            listOf(
+                navArgument("title") { type = NavType.StringType },
+                navArgument("currentParentId") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+                navArgument("disabledIds") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+            ),
+    ) { backStackEntry ->
+        val viewModel: FilterableListChooserViewModel = hiltViewModel()
+        val TAG = "MOVE_DEBUG"
+
+        val title =
+            backStackEntry.arguments?.getString("title")?.let {
+                URLDecoder.decode(it, "UTF-8")
+            } ?: "Select a list"
+
+        val disabledIds =
+            backStackEntry.arguments
+                ?.getString("disabledIds")
+                ?.split(",")
+                ?.toSet() ?: emptySet()
+        val currentParentIdArg = backStackEntry.arguments?.getString("currentParentId")
+        val currentParentId = if (currentParentIdArg == "root") null else currentParentIdArg
+
+        Log.d(TAG, "[Nav] list_chooser_screen launched.")
+
+        val chooserUiState by viewModel.chooserState.collectAsStateWithLifecycle()
+        val filterText by viewModel.filterText.collectAsStateWithLifecycle()
+        val expandedIds by viewModel.expandedIds.collectAsStateWithLifecycle()
+        val showDescendants by viewModel.showDescendants.collectAsStateWithLifecycle()
+
+        FilterableListChooserScreen(
+            title = title,
+            filterText = filterText,
+            onFilterTextChanged = viewModel::updateFilterText,
+            chooserUiState = chooserUiState,
+            expandedIds = expandedIds,
+            onToggleExpanded = viewModel::toggleExpanded,
+            onNavigateBack = { navController.popBackStack() },
+            onConfirm = { selectedId ->
+                navController.previousBackStackEntry
+                    ?.savedStateHandle
+                    ?.set("list_chooser_result", selectedId ?: "root")
+
+                navController.popBackStack()
+            },
+            currentParentId = currentParentId,
+            disabledIds = disabledIds,
+            onAddNewList = viewModel::addNewProject,
+            showDescendants = showDescendants,
+            onToggleShowDescendants = viewModel::toggleShowDescendants,
+        )
+    }
+    chatScreen(navController)
+    dayManagementGraph(navController)
+    dayManagementScreen(navController)
+    strategicManagementScreen(navController)
+
+    composable("tactical_management_screen") {
+        TacticalManagementScreen()
+    }
+
+
+
+    composable(AI_INSIGHTS_ROUTE) {
+        AiInsightsScreen(navController = navController)
+    }
+
+    composable("reminders_screen") {
+        RemindersScreen(navController = navController)
+    }
+
+    composable(
+        route = "edit_task_screen/{taskId}",
+        arguments = listOf(navArgument("taskId") { type = NavType.StringType })
+    ) {
+        EditTaskScreen(onNavigateUp = { navController.navigateUp() })
+    }
+
+    composable(
+        route = "inbox_editor_screen/{inboxId}",
+        arguments = listOf(navArgument("inboxId") { type = NavType.StringType })
+    ) {
+        InboxEditorScreen(navController = navController)
+    }
+
+    composable(
+        route = SELECTIVE_IMPORT_ROUTE,
+        arguments = listOf(navArgument("fileUri") { type = NavType.StringType })
+    ) { backStackEntry ->
+        val fileUri = backStackEntry.arguments?.getString("fileUri")?.let {
+            URLDecoder.decode(it, "UTF-8")
+        }
+        if (fileUri != null) {
+            com.romankozak.forwardappmobile.ui.screens.selectiveimport.SelectiveImportScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        } else {
+            // Handle error: URI is missing. Maybe pop back or show an error message.
+            navController.popBackStack()
+        }
+    }
 }
 
 
 ================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderUtils.kt
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/routes/AppNavigation.kt
+================================================================================
+
+## <<FILE_5>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/NewRecentListsSheet.kt (ID: FILE_5)
+================================================================================
+
+package com.romankozak.forwardappmobile.ui.components
+
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.List
+import androidx.compose.material.icons.automirrored.outlined.Note
+import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material.icons.outlined.Checklist
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.data.database.models.RecentItem
+import com.romankozak.forwardappmobile.data.database.models.RecentItemType
+import kotlinx.coroutines.launch
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@Composable
+fun NewRecentListsSheet(
+    showSheet: Boolean,
+    recentItems: List<RecentItem>,
+    onDismiss: () -> Unit,
+    onItemClick: (RecentItem) -> Unit,
+    onPinClick: (RecentItem) -> Unit,
+) {
+    if (showSheet) {
+        ModalBottomSheet(
+            onDismissRequest = onDismiss,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        ) {
+            val tabs = listOf("Недавні", "Закріплені")
+            val pagerState = rememberPagerState { tabs.size }
+            val coroutineScope = rememberCoroutineScope()
+
+            Column(Modifier.navigationBarsPadding()) {
+                TabRow(
+                    selectedTabIndex = pagerState.currentPage,
+                    containerColor = Color.Transparent
+                ) {
+                    tabs.forEachIndexed { index, title ->
+                        Tab(
+                            selected = pagerState.currentPage == index,
+                            onClick = { coroutineScope.launch { pagerState.animateScrollToPage(index) } },
+                            text = { Text(text = title) }
+                        )
+                    }
+                }
+
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    page ->
+                    val items = if (page == 0) recentItems else recentItems.filter { it.isPinned }
+                    RecentItemsGrid(items = items, onItemClick = onItemClick, onPinClick = onPinClick)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecentItemsGrid(
+    items: List<RecentItem>,
+    onItemClick: (RecentItem) -> Unit,
+    onPinClick: (RecentItem) -> Unit
+) {
+    if (items.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize().padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "Історія порожня.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+    } else {
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = 150.dp),
+            contentPadding = PaddingValues(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            items(items, key = { it.id }) { item ->
+                RecentItemCard(item = item, onClick = { onItemClick(item) }, onPinClick = { onPinClick(item) })
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecentItemCard(
+    item: RecentItem,
+    onClick: () -> Unit,
+    onPinClick: () -> Unit
+) {
+    val color = getColorsForType(item.type)
+    Card(
+        modifier = Modifier
+            .aspectRatio(1.3f)
+            .clickable(onClick = onClick)
+            .border(
+                width = 1.dp,
+                color = color,
+                shape = MaterialTheme.shapes.medium
+            ),
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Icon(
+                    imageVector = when (item.type) {
+                        RecentItemType.PROJECT -> Icons.Outlined.Folder
+                        RecentItemType.NOTE -> Icons.AutoMirrored.Outlined.Note
+                        RecentItemType.NOTE_DOCUMENT -> Icons.AutoMirrored.Outlined.List
+                        RecentItemType.CHECKLIST -> Icons.Outlined.Checklist
+                        RecentItemType.OBSIDIAN_LINK -> Icons.Outlined.Link
+                    },
+                    contentDescription = null,
+                    modifier = Modifier.size(36.dp),
+                    tint = color
+                )
+                IconButton(onClick = onPinClick, modifier = Modifier.size(24.dp)) {
+                    Icon(
+                        imageVector = if (item.isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
+                        contentDescription = "Pin",
+                        tint = color,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+            Text(
+                text = item.displayName,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                color = color,
+                maxLines = 3
+            )
+        }
+    }
+}
+
+@Composable
+private fun getColorsForType(type: RecentItemType): Color {
+    return when (type) {
+        RecentItemType.PROJECT -> MaterialTheme.colorScheme.primary
+        RecentItemType.NOTE -> MaterialTheme.colorScheme.secondary
+        RecentItemType.NOTE_DOCUMENT -> MaterialTheme.colorScheme.tertiary
+        RecentItemType.CHECKLIST -> MaterialTheme.colorScheme.tertiaryContainer
+        RecentItemType.OBSIDIAN_LINK -> MaterialTheme.colorScheme.primaryContainer
+    }
+}
+
+
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/NewRecentListsSheet.kt
 ================================================================================
 
 ## <<FILE_6>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/SharedCommandDeckLayout.kt (ID: FILE_6)
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/navigation/NavigationDispatcher.kt (ID: FILE_6)
+================================================================================
+
+package com.romankozak.forwardappmobile.ui.navigation
+
+interface NavigationDispatcher {
+    fun navigate(route: String)
+    fun popBackStack(key: String? = null, value: String? = null)
+}
+
+
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/navigation/NavigationDispatcher.kt
+================================================================================
+
+## <<FILE_7>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/recent/RecentUiEvent.kt (ID: FILE_7)
+================================================================================
+
+[Помилка читання файлу /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/recent/RecentUiEvent.kt: [Errno 2] No such file or directory: '/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/recent/RecentUiEvent.kt']
+
+
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/recent/RecentUiEvent.kt
+================================================================================
+
+## <<FILE_8>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/recent/RecentViewModel.kt (ID: FILE_8)
+================================================================================
+
+package com.romankozak.forwardappmobile.ui.recent
+
+import android.util.Log
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.romankozak.forwardappmobile.data.database.models.RecentItem
+import com.romankozak.forwardappmobile.data.database.models.RecentItemType
+import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
+import com.romankozak.forwardappmobile.ui.navigation.NavigationDispatcher
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+@HiltViewModel
+class RecentViewModel @Inject constructor(
+    private val recentItemsRepository: RecentItemsRepository,
+    private val navigation: NavigationDispatcher
+) : ViewModel() {
+
+    val recentItems = recentItemsRepository.getRecentItems(100)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun onPinClick(item: RecentItem) {
+        viewModelScope.launch {
+            recentItemsRepository.updateRecentItem(item.copy(isPinned = !item.isPinned))
+        }
+    }
+
+    fun onItemClick(item: RecentItem) {
+        viewModelScope.launch {
+            when (item.type) {
+                RecentItemType.PROJECT ->
+                    navigation.navigate("goal_detail_screen/${item.target}")
+
+                RecentItemType.NOTE,
+                RecentItemType.NOTE_DOCUMENT ->
+                    navigation.navigate("note_document_screen/${item.target}")
+
+                RecentItemType.CHECKLIST ->
+                    navigation.navigate("checklist_screen?checklistId=${item.target}")
+
+                RecentItemType.OBSIDIAN_LINK -> {
+                    Log.d("RecentViewModel", "Obsidian link clicked: ${item.target}")
+                }
+            }
+        }
+    }
+}
+
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/recent/RecentViewModel.kt
+================================================================================
+
+## <<FILE_9>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/SharedCommandDeckLayout.kt (ID: FILE_9)
 ================================================================================
 
 package com.romankozak.forwardappmobile.ui.screens.commanddeck
 
+import com.romankozak.forwardappmobile.ui.recent.RecentViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
@@ -808,7 +1082,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -830,6 +1103,12 @@ import com.romankozak.forwardappmobile.ui.screens.strategicmanagement.StrategicM
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.Scaffold
 import com.romankozak.forwardappmobile.ui.screens.commanddeck.components.DashboardBottomBar
+import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.fillMaxWidth
 
 const val COMMAND_DECK_DASHBOARD_ROUTE = "command_deck_dashboard"
 const val COMMAND_DECK_CORE_ROUTE = "command_deck_core"
@@ -854,6 +1133,7 @@ fun SharedCommandDeckLayout(
     onNavigateToImportExport: () -> Unit,
     onNavigateToAttachments: () -> Unit,
     onNavigateToScripts: () -> Unit,
+    recentViewModel: RecentViewModel = hiltViewModel<RecentViewModel>()
 ) {
     val tabs = CommandDeckTab.entries.toList()
     val innerNavController = rememberNavController()
@@ -875,6 +1155,7 @@ fun SharedCommandDeckLayout(
     }
 
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
             when (currentRoute) {
                 COMMAND_DECK_DASHBOARD_ROUTE -> FAHeader(
@@ -937,13 +1218,21 @@ fun SharedCommandDeckLayout(
         },
         bottomBar = {
             if (currentRoute == COMMAND_DECK_DASHBOARD_ROUTE) {
-                DashboardBottomBar(
-                    onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
-                    onNavigateToTracker = onNavigateToTracker,
-                    onNavigateToInbox = onNavigateToInbox,
-                    onNavigateToReminders = onNavigateToReminders,
-                    onNavigateToMore = { /* TODO */ }
-                )
+                Box(modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .then(CommandDeckBackgroundModifier())
+                    .padding(horizontal = 22.dp, vertical = 12.dp)
+                ) {
+                    DashboardBottomBar(
+                        onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                        onNavigateToTracker = onNavigateToTracker,
+                        onNavigateToInbox = onNavigateToInbox,
+                        onNavigateToReminders = onNavigateToReminders,
+                        recentViewModel = recentViewModel
+                    )
+                }
             }
         }
     ) { paddingValues ->
@@ -951,15 +1240,7 @@ fun SharedCommandDeckLayout(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                            MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
-                            MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                        )
-                    )
-                )
+                .background(Color.Transparent)
         ) {
             Spacer(Modifier.height(8.dp))
 
@@ -1034,15 +1315,189 @@ fun SharedCommandDeckLayout(
 END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/SharedCommandDeckLayout.kt
 ================================================================================
 
-## <<FILE_7>>
+## <<FILE_10>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/components/DashboardBottomBar.ktpp/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/SharedCommandDeckLayout.kt (ID: FILE_7)
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/components/DashboardBottomBar.kt (ID: FILE_10)
 ================================================================================
 
-[Помилка читання файлу /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/components/DashboardBottomBar.ktpp/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/SharedCommandDeckLayout.kt: [Errno 2] No such file or directory: '/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/components/DashboardBottomBar.ktpp/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/SharedCommandDeckLayout.kt']
+package com.romankozak.forwardappmobile.ui.screens.commanddeck.components
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.romankozak.forwardappmobile.ui.components.NewRecentListsSheet
+import com.romankozak.forwardappmobile.ui.recent.RecentViewModel
+import kotlinx.coroutines.launch
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DashboardBottomBar(
+    onNavigateToProjectHierarchy: () -> Unit,
+    onNavigateToTracker: () -> Unit,
+    onNavigateToInbox: () -> Unit,
+    onNavigateToReminders: () -> Unit,
+    recentViewModel: RecentViewModel = hiltViewModel()
+) {
+    val coroutineScope = rememberCoroutineScope()
+    val modalSheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+    )
+    var showMoreBottomSheet by remember { mutableStateOf(false) }
+    var showRecentSheet by remember { mutableStateOf(false) }
+
+    val recentItems by recentViewModel.recentItems.collectAsStateWithLifecycle()
+
+    if (showMoreBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showMoreBottomSheet = false },
+            sheetState = modalSheetState,
+            shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
+        ) {
+            MoreBottomSheetContent(onNavigateToReminders = {
+                coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
+                    if (!modalSheetState.isVisible) {
+                        showMoreBottomSheet = false
+                    }
+                    onNavigateToReminders()
+                }
+            })
+        }
+    }
+
+    if (showRecentSheet) {
+        NewRecentListsSheet(
+            showSheet = showRecentSheet,
+            recentItems = recentItems,
+            onDismiss = { showRecentSheet = false },
+            onItemClick = { item ->
+                coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
+                    showRecentSheet = false
+                    recentViewModel.onItemClick(item)
+                }
+            },
+            onPinClick = { item -> recentViewModel.onPinClick(item) }
+        )
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceAround,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        BarButton(
+            icon = Icons.Outlined.Inbox,
+            label = "Inbox",
+            onClick = onNavigateToInbox
+        )
+
+        BarButton(
+            icon = Icons.Outlined.Analytics,
+            label = "Tracker",
+            onClick = onNavigateToTracker
+        )
+
+        BarButton(
+            icon = Icons.Outlined.AccountTree,
+            onClick = onNavigateToProjectHierarchy,
+            label = "Projects",
+        )
+        BarButton(
+            icon = Icons.Outlined.History,
+            label = "Recent",
+            onClick = { showRecentSheet = true }
+        )
+        BarButton(
+            icon = Icons.Outlined.MoreHoriz,
+            label = "More",
+            onClick = { showMoreBottomSheet = true }
+        )
+    }
+}
+
+@Composable
+private fun MoreBottomSheetContent(onNavigateToReminders: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(16.dp)
+    ) {
+        Column {
+            Text("More Options", style = MaterialTheme.typography.headlineSmall)
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onNavigateToReminders)
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Outlined.Notifications, contentDescription = "Reminders")
+                Spacer(modifier = Modifier.width(16.dp))
+                Text("Reminders")
+            }
+        }
+    }
+}
+
+
+@Composable
+private fun BarButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit
+) {
+    val primary = MaterialTheme.colorScheme.primary
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+            ) { onClick() }
+            .padding(6.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(primary.copy(alpha = 0.10f))
+                .border(
+                    width = 1.dp,
+                    color = primary.copy(alpha = 0.22f),
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, contentDescription = label, tint = primary.copy(alpha = 0.9f))
+        }
+    }
+}
+
+@Preview
+@Composable
+fun DashboardBottomBarPreview() {
+    DashboardBottomBar({}, {}, {}, {}, hiltViewModel())
+}
 
 ================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/components/DashboardBottomBar.ktpp/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/SharedCommandDeckLayout.kt
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/components/DashboardBottomBar.kt
 ================================================================================
 

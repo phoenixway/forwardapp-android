@@ -45,11 +45,11 @@ enum class CommandDeckTab(
     val symbol: String,
 ) {
     Dashboard("Command Deck", "⌗"),
-    Core("Core", "⌘"),
-    Strategy("Strategy", "⌖"),
-    StrategicArc("Strategic Arc", "⟲"),
-    Tactics("Tactics", "◎"),
     Today("Today", "⌁"),
+    Tactics("Tactics", "◎"),
+    StrategicArc("Strategic Arc", "⟲"),
+    Strategy("Strategy", "⌖"),
+    Core("Core", "⌘"),
 }
 
 

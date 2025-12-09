@@ -51,6 +51,9 @@ import com.romankozak.forwardappmobile.ui.screens.settings.models.PlanningSettin
 import com.romankozak.forwardappmobile.ui.screens.sync.SyncScreen
 import com.romankozak.forwardappmobile.ui.screens.lifestate.LifeStateScreen
 import com.romankozak.forwardappmobile.ui.reminders.list.RemindersScreen
+import com.romankozak.forwardappmobile.data.database.models.RecentItem
+import com.romankozak.forwardappmobile.data.database.models.RecentItemType
+import com.romankozak.forwardappmobile.ui.recent.RecentViewModel
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
 import kotlinx.coroutines.launch
@@ -159,7 +162,7 @@ private fun NavGraphBuilder.mainGraph(
                 navController.navigate(LIFE_STATE_ROUTE)
             },
             onNavigateToImportExport = {
-                navController.navigate(SELECTIVE_IMPORT_ROUTE.replace("/{fileUri}", "")) // Navigate to the base route without fileUri
+                navController.navigate(SELECTIVE_IMPORT_ROUTE.replace("/{fileUri}", ""))
             },
             onNavigateToAttachments = {
                 navController.navigate("attachments_library_screen")
@@ -167,6 +170,25 @@ private fun NavGraphBuilder.mainGraph(
             onNavigateToScripts = {
                 navController.navigate("scripts_library_screen")
             },
+            onNavigateToRecentItem = { item: RecentItem ->
+                when (item.type) {
+                    RecentItemType.PROJECT ->
+                        navController.navigate("goal_detail_screen/${item.target}")
+
+                    RecentItemType.NOTE,
+                    RecentItemType.NOTE_DOCUMENT ->
+                        navController.navigate("note_document_screen/${item.target}")
+
+                    RecentItemType.CHECKLIST ->
+                        navController.navigate("checklist_screen?checklistId=${item.target}")
+
+                    RecentItemType.OBSIDIAN_LINK -> {
+                        // Поки що просто лог або нічого
+                        Log.d("RecentItemNav", "Obsidian link clicked: ${item.target}")
+                    }
+                }
+            },
+            recentViewModel = hiltViewModel<RecentViewModel>()
         )
     }
 

@@ -1,5 +1,7 @@
 package com.romankozak.forwardappmobile.ui.screens.commanddeck
 
+import com.romankozak.forwardappmobile.ui.recent.RecentViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
@@ -18,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -44,6 +45,7 @@ import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroun
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.romankozak.forwardappmobile.data.database.models.RecentItem
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.fillMaxWidth
 
@@ -70,6 +72,8 @@ fun SharedCommandDeckLayout(
     onNavigateToImportExport: () -> Unit,
     onNavigateToAttachments: () -> Unit,
     onNavigateToScripts: () -> Unit,
+    onNavigateToRecentItem: (RecentItem) -> Unit,
+    recentViewModel: RecentViewModel = hiltViewModel<RecentViewModel>()
 ) {
     val tabs = CommandDeckTab.entries.toList()
     val innerNavController = rememberNavController()
@@ -166,7 +170,8 @@ fun SharedCommandDeckLayout(
                         onNavigateToTracker = onNavigateToTracker,
                         onNavigateToInbox = onNavigateToInbox,
                         onNavigateToReminders = onNavigateToReminders,
-                        onNavigateToMore = { /* TODO */ }
+                        onNavigateToRecentItem = onNavigateToRecentItem,
+                        recentViewModel = recentViewModel
                     )
                 }
             }

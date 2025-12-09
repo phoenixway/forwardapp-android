@@ -10,19 +10,28 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AppNavigationViewModel
-    @Inject
-    constructor(
-        private val savedStateHandle: SavedStateHandle,
-    ) : ViewModel() {
-        lateinit var navigationManager: EnhancedNavigationManager
-            private set
+@Inject
+constructor(
+    private val savedStateHandle: SavedStateHandle,
+) : ViewModel(), NavigationDispatcher {
+    lateinit var navigationManager: EnhancedNavigationManager
+        private set
 
-        fun initialize() {
-            if (!::navigationManager.isInitialized) {
-                navigationManager = EnhancedNavigationManager(savedStateHandle, viewModelScope)
-                
-                
-                navigationManager.navigateToProjectHierarchyScreen(isInitial = true)
-            }
+    fun initialize() {
+        if (!::navigationManager.isInitialized) {
+            navigationManager = EnhancedNavigationManager(savedStateHandle, viewModelScope)
+
+
+            navigationManager.navigateToProjectHierarchyScreen(isInitial = true)
         }
     }
+
+    override fun navigate(route: String) {
+        navigationManager.navigate(route)
+    }
+
+    override fun popBackStack(key: String?, value: String?) {
+        navigationManager.goBackWithResult(key ?: "", value ?: "")
+    }
+}
+
