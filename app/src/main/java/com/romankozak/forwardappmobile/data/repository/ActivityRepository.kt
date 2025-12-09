@@ -144,7 +144,8 @@ class ActivityRepository
         }
 
         suspend fun deleteRecord(record: ActivityRecord) {
-            activityRecordDao.insert(record.softDelete())
+            // Changed the logic here to correctly delete an activity
+            activityRecordDao.delete(record)
         }
 
         suspend fun searchActivities(query: String): List<ActivityRecord> = activityRecordDao.search(query)
