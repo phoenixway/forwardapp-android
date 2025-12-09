@@ -1,35 +1,28 @@
 package com.romankozak.forwardappmobile.ui.navigation
 
+import androidx.navigation.NavHostController
 import javax.inject.Inject
 import javax.inject.Singleton
-
-/**
- * Глобальний диспетчер навігації.
- * ViewModel-и інʼєктують NavigationDispatcher і викликають navigate / popBackStack.
- * AppNavigationViewModel реєструється як handler і обробляє ці виклики через EnhancedNavigationManager.
- */
-interface NavigationHandler {
-    fun handleNavigate(route: String)
-    fun handlePopBackStack(key: String? = null, value: String? = null)
-}
 
 @Singleton
 class DefaultNavigationDispatcher @Inject constructor() : NavigationDispatcher {
 
-    @Volatile
-    private var handler: NavigationHandler? = null
+    private var navController: NavHostController? = null
 
-    fun setHandler(handler: NavigationHandler) {
-        this.handler = handler
+    fun attach(navController: NavHostController) {
+        this.navController = navController
     }
 
     override fun navigate(route: String) {
-        handler?.handleNavigate(route)
-            ?: error("NavigationHandler is not set. Did you call AppNavigationViewModel.initialize()?")
+        navController?.navigate(route)
+    }
+
+    fun navigate(target: NavTarget) {
+        val route = NavTargetRouter.routeOf(target)
+        navController?.navigate(route)
     }
 
     override fun popBackStack(key: String?, value: String?) {
-        handler?.handlePopBackStack(key, value)
-            ?: error("NavigationHandler is not set. Did you call AppNavigationViewModel.initialize()?")
+        navController?.popBackStack()
     }
 }
