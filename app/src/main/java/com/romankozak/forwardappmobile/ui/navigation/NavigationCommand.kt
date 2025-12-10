@@ -2,15 +2,22 @@ package com.romankozak.forwardappmobile.ui.navigation
 
 import androidx.navigation.NavOptionsBuilder
 
-sealed class NavigationCommand {
+sealed interface NavigationCommand {
 
+    // Новий типізований варіант
+    data class NavigateTarget(
+        val target: NavTarget,
+        val builder: (NavOptionsBuilder.() -> Unit)? = null
+    ) : NavigationCommand
+
+    // Старий варіант — route як рядок
     data class Navigate(
         val route: String,
         val builder: (NavOptionsBuilder.() -> Unit)? = null
-    ) : NavigationCommand()
+    ) : NavigationCommand
 
-    data class PopBackStack(
+    data class PopBack(
         val key: String? = null,
-        val value: String? = null
-    ) : NavigationCommand()
+        val value: Any? = null
+    ) : NavigationCommand
 }

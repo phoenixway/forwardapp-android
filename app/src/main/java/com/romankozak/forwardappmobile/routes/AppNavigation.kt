@@ -54,6 +54,8 @@ import com.romankozak.forwardappmobile.ui.screens.sync.SyncScreen
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import java.net.URLDecoder
 import kotlinx.coroutines.launch
+import com.romankozak.forwardappmobile.ui.navigation.NavTarget
+
 
 const val MAIN_GRAPH_ROUTE = "main_graph"
 const val COMMAND_DECK_ROUTE = "command_deck_screen"
@@ -65,53 +67,48 @@ const val SELECTIVE_IMPORT_ROUTE = "selective_import_screen/{fileUri}"
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
-    val navController = rememberNavController()
-    val appNavigationViewModel: AppNavigationViewModel = hiltViewModel()
+  val navController = rememberNavController()
+  val appNavigationViewModel: AppNavigationViewModel = hiltViewModel()
 
-    val navigationManager = appNavigationViewModel.navigationManager
+  val navigationManager = appNavigationViewModel.navigationManager
 
-    LaunchedEffect(navigationManager, navController) {
-        navigationManager.navigationCommandFlow.collect { command ->
-            when (command) {
-                is NavigationCommand.Navigate -> {
-                    if (command.builder != null)
-                        navController.navigate(command.route, command.builder)
-                    else
-                        navController.navigate(command.route)
-                }
-
-                is NavigationCommand.PopBackStack -> {
-                    if (command.key != null && command.value != null) {
-                        navController.previousBackStackEntry
-                            ?.savedStateHandle
-                            ?.set(command.key, command.value)
-                    }
-                    navController.popBackStack()
-                }
-            }
+  LaunchedEffect(navigationManager, navController) {
+    navigationManager.navigationCommandFlow.collect { command ->
+      when (command) {
+        is NavigationCommand.Navigate -> {
+          val options = command.builder
+          navController.navigate(command.route, options ?: {})
         }
-    }
 
-    SharedTransitionLayout {
-        NavHost(
-            navController = navController,
-            startDestination = MAIN_GRAPH_ROUTE,
-        ) {
-            navigation(
-                startDestination = COMMAND_DECK_ROUTE,
-                route = MAIN_GRAPH_ROUTE,
-            ) {
-                mainGraph(
-                    navController,
-                    syncDataViewModel,
-                    appNavigationViewModel,
-                    this@SharedTransitionLayout
-                )
-            }
+        is NavigationCommand.NavigateTarget -> {
+          val route = mapTargetToRoute(command.target)
+          val options = command.builder
+          navController.navigate(route, options ?: {})
         }
+
+        is NavigationCommand.PopBack -> {
+          if (command.key != null && command.value != null) {
+            navController.previousBackStackEntry?.savedStateHandle?.set(command.key, command.value)
+          }
+          navController.popBackStack()
+        }
+      }
     }
+  }
+
+  SharedTransitionLayout {
+    NavHost(navController = navController, startDestination = MAIN_GRAPH_ROUTE) {
+      navigation(startDestination = COMMAND_DECK_ROUTE, route = MAIN_GRAPH_ROUTE) {
+        mainGraph(
+          navController,
+          syncDataViewModel,
+          appNavigationViewModel,
+          this@SharedTransitionLayout,
+        )
+      }
+    }
+  }
 }
-
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 private fun NavGraphBuilder.mainGraph(
@@ -489,3 +486,37 @@ private fun NavGraphBuilder.mainGraph(
     }
   }
 }
+
+fun mapTargetToRoute(target: NavTarget): String =
+    when (target) {
+        NavTarget.ProjectHierarchy -> "goal_lists_screen"
+
+        is NavTarget.ProjectDetail ->
+            if (target.initialViewMode != null)
+                "goal_detail_screen/${target.projectId}?initialViewMode=${target.initialViewMode}"
+            else
+                "goal_detail_screen/${target.projectId}"
+
+        is NavTarget.NoteDocument ->
+            "note_document_screen/${target.id}"
+
+        is NavTarget.Checklist ->
+            "checklist_screen?checklistId=${target.id}"
+
+        is NavTarget.GlobalSearch ->
+            "global_search_screen/${target.query}"
+
+        NavTarget.Settings -> "settings_screen"
+        NavTarget.Reminders -> "reminders_screen"
+        NavTarget.Tracker -> "activity_tracker_screen"
+        NavTarget.AiInsights -> "ai_insights_screen"
+        NavTarget.LifeState -> "life_state_screen"
+        NavTarget.AttachmentsLibrary -> "attachments_library_screen"
+        NavTarget.ScriptsLibrary -> "scripts_library_screen"
+
+        is NavTarget.ImportExport ->
+            if (target.uri != null)
+                "selective_import_screen/${java.net.URLEncoder.encode(target.uri, "UTF-8")}"
+            else
+                "selective_import_screen"
+    }
