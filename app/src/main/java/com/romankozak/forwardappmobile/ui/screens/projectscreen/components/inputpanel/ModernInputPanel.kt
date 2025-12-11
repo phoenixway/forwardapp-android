@@ -392,8 +392,7 @@ private fun OptionsMenu(state: NavPanelState, actions: NavPanelActions, contentC
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun BackForwardButton(state: NavPanelState, actions: NavPanelActions, contentColor: Color) {
-  val shouldShowButton =
-    state.inputMode != InputMode.SearchInList && (state.canGoBack || state.canGoForward)
+  val shouldShowButton = true
 
   AnimatedVisibility(visible = shouldShowButton) {
     val haptic = LocalHapticFeedback.current
@@ -411,8 +410,14 @@ private fun BackForwardButton(state: NavPanelState, actions: NavPanelActions, co
         Modifier.size(40.dp)
           .clip(CircleShape)
           .combinedClickable(
-            enabled = state.canGoBack || state.canGoForward,
-            onClick = { if (state.canGoBack) actions.onBackClick() },
+            enabled = true,
+            onClick = {
+              if (state.canGoBack) {
+                actions.onBackClick()
+              } else {
+                actions.onNavigateHome()
+              }
+            },
             onLongClick = {
               if (state.canGoForward) {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
