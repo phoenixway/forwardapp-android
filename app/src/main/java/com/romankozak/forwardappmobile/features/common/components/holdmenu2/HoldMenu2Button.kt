@@ -104,9 +104,12 @@ fun HoldMenu2Button(
                 onDragEnd = {
                     val hover = controller.state.hoverIndex
                     Log.e("HOLDMENU2", "✅ Drag ended on: $hover")
-                    if (hover >= 0) {
-                        onSelect(hover)
+                    val targetIndex = when {
+                        hover >= 0 -> hover
+                        controller.state.items.isNotEmpty() -> 0 // fallback: перший пункт при відпусканні без ховера
+                        else -> -1
                     }
+                    if (targetIndex >= 0) onSelect(targetIndex)
                     controller.close()
                 },
                 onDragCancel = {
