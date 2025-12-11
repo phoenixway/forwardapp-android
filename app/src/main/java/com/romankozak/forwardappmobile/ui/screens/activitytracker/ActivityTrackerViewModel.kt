@@ -124,6 +124,8 @@ class ActivityTrackerViewModel
             newText: String,
             newStartTime: Long?,
             newEndTime: Long?,
+            xpGained: Int?,
+            antyXp: Int?,
         ) = viewModelScope.launch {
             val recordToUpdate = _editingRecord.value
             if (recordToUpdate != null && newText.isNotBlank()) {
@@ -137,12 +139,24 @@ class ActivityTrackerViewModel
                             }
                         }
                     }
-                    val updatedRecord = recordToUpdate.copy(text = newText, startTime = newStartTime, endTime = newEndTime)
+                    val updatedRecord =
+                        recordToUpdate.copy(
+                            text = newText,
+                            startTime = newStartTime,
+                            endTime = newEndTime,
+                            xpGained = xpGained,
+                            antyXp = antyXp,
+                        )
                     repository.updateRecord(updatedRecord)
                 }
             }
             onEditDialogDismiss()
         }
+
+        fun onAddCompletedAction(text: String, xpGained: Int?, antyXp: Int?) =
+            viewModelScope.launch {
+                repository.addCompletedActivity(text, xpGained, antyXp)
+            }
 
         fun onRestartActivity(record: ActivityRecord) =
             viewModelScope.launch {

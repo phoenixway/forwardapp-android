@@ -16,11 +16,7 @@ import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.di.IoDispatcher
-import com.romankozak.forwardappmobile.routes.CHAT_ROUTE
-import com.romankozak.forwardappmobile.routes.LIFE_STATE_ROUTE
-import com.romankozak.forwardappmobile.routes.SELECTIVE_IMPORT_ROUTE
 import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
-import java.net.URLEncoder
 
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenEvent
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenUiState
@@ -61,6 +57,7 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.Navigation
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SettingsUseCase
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.HierarchyDebugLogger
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.ProjectHierarchyScreenStateUseCase
+import com.romankozak.forwardappmobile.ui.navigation.NavTarget
 
 @HiltViewModel
 class ProjectHierarchyScreenViewModel
@@ -412,11 +409,11 @@ constructor(
       is ProjectHierarchyScreenEvent.DeleteRequest -> dialogUseCase.onDeleteRequest(event.project)
       is ProjectHierarchyScreenEvent.MoveRequest -> {
         viewModelScope.launch {
-          val route = projectActionsUseCase.getMoveProjectRoute(event.project, _allProjectsFlat.value)
+          val target = projectActionsUseCase.getMoveProjectRoute(event.project, _allProjectsFlat.value)
           savedStateHandle[PROJECT_BEING_MOVED_ID_KEY] = event.project.id
           pendingChooserAction.value = PendingChooserAction.MoveProject
           dialogUseCase.dismissDialog()
-          _uiEventChannel.send(ProjectUiEvent.Navigate(route))
+          _uiEventChannel.send(ProjectUiEvent.Navigate(target))
         }
       }
       is ProjectHierarchyScreenEvent.DeleteConfirm -> {
@@ -450,8 +447,11 @@ constructor(
 
       is ProjectHierarchyScreenEvent.SelectiveImportFromFileRequest -> {
         viewModelScope.launch {
-          val encodedUri = URLEncoder.encode(event.uri.toString(), "UTF-8")
-          _uiEventChannel.send(ProjectUiEvent.Navigate("selective_import_screen/$encodedUri"))
+          _uiEventChannel.send(
+            ProjectUiEvent.Navigate(
+              NavTarget.ImportExport(uri = event.uri.toString())
+            )
+          )
         }
       }
 
@@ -546,33 +546,35 @@ constructor(
       }
       is ProjectHierarchyScreenEvent.NavigateToChat -> {
         if (uiState.value.featureToggles[FeatureFlag.AiChat] == true) {
-          viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate(CHAT_ROUTE)) }
+          viewModelScope.launch {
+            _uiEventChannel.send(ProjectUiEvent.Navigate(NavTarget.Chat))
+          }
         }
       }
       is ProjectHierarchyScreenEvent.NavigateToActivityTrackerScreen -> {
         viewModelScope.launch {
-          _uiEventChannel.send(ProjectUiEvent.Navigate("activity_tracker_screen"))
+          _uiEventChannel.send(ProjectUiEvent.Navigate(NavTarget.Tracker))
         }
       }
       
       is ProjectHierarchyScreenEvent.NavigateToAiInsights -> {
         if (uiState.value.featureToggles[FeatureFlag.AiInsights] == true) {
           viewModelScope.launch {
-            _uiEventChannel.send(ProjectUiEvent.Navigate("ai_insights_screen"))
+            _uiEventChannel.send(ProjectUiEvent.Navigate(NavTarget.AiInsights))
           }
         }
       }
       is ProjectHierarchyScreenEvent.NavigateToLifeState -> {
         if (uiState.value.featureToggles[FeatureFlag.AiLifeManagement] == true) {
           viewModelScope.launch {
-            _uiEventChannel.send(ProjectUiEvent.Navigate(LIFE_STATE_ROUTE))
+            _uiEventChannel.send(ProjectUiEvent.Navigate(NavTarget.LifeState))
           }
         }
       }
 
       is ProjectHierarchyScreenEvent.NavigateToTacticsScreen -> {
         viewModelScope.launch {
-          _uiEventChannel.send(ProjectUiEvent.Navigate("tactical_management_screen"))
+          _uiEventChannel.send(ProjectUiEvent.Navigate(NavTarget.TacticalManagement))
         }
       }
 
@@ -613,21 +615,27 @@ constructor(
       is ProjectHierarchyScreenEvent.UpdateDarkTheme -> themingUseCase.updateDarkTheme(viewModelScope, event.themeName)
       is ProjectHierarchyScreenEvent.UpdateThemeMode -> themingUseCase.updateThemeMode(viewModelScope, event.themeMode)
       is ProjectHierarchyScreenEvent.GoToReminders -> {
-        viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate("reminders_screen")) }
+        viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate(NavTarget.Reminders)) }
       }
       is ProjectHierarchyScreenEvent.OpenAttachmentsLibrary -> {
         if (uiState.value.featureToggles[FeatureFlag.AttachmentsLibrary] == true) {
-          viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate("attachments_library_screen")) }
+          viewModelScope.launch {
+            _uiEventChannel.send(ProjectUiEvent.Navigate(NavTarget.AttachmentsLibrary))
+          }
         }
       }
       is ProjectHierarchyScreenEvent.AddScriptRequest -> {
         if (uiState.value.featureToggles[FeatureFlag.ScriptsLibrary] == true) {
-          viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate("script_editor_screen")) }
+          viewModelScope.launch {
+            _uiEventChannel.send(ProjectUiEvent.Navigate(NavTarget.ScriptEditor()))
+          }
         }
       }
       is ProjectHierarchyScreenEvent.OpenScriptsLibrary -> {
         if (uiState.value.featureToggles[FeatureFlag.ScriptsLibrary] == true) {
-          viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate("scripts_library_screen")) }
+          viewModelScope.launch {
+            _uiEventChannel.send(ProjectUiEvent.Navigate(NavTarget.ScriptsLibrary))
+          }
         }
       }
       is ProjectHierarchyScreenEvent.RevealProjectInHierarchy -> {
@@ -715,13 +723,21 @@ constructor(
                 noteDocumentRepository.getDocumentById(item.target)?.let {
                     recentItemsRepository.logNoteDocumentAccess(it)
                 }
-                _uiEventChannel.send(ProjectUiEvent.Navigate("note_document_screen/${item.target}"))
+                _uiEventChannel.send(
+                  ProjectUiEvent.Navigate(
+                    NavTarget.NoteDocument(id = item.target)
+                  )
+                )
             }
             com.romankozak.forwardappmobile.data.database.models.RecentItemType.CHECKLIST -> {
                 checklistRepository.getChecklistById(item.target)?.let {
                     recentItemsRepository.logChecklistAccess(it)
                 }
-                _uiEventChannel.send(ProjectUiEvent.Navigate("checklist_screen?checklistId=${item.target}"))
+                _uiEventChannel.send(
+                  ProjectUiEvent.Navigate(
+                    NavTarget.Checklist(id = item.target)
+                  )
+                )
             }
             com.romankozak.forwardappmobile.data.database.models.RecentItemType.OBSIDIAN_LINK -> {
                 val link = com.romankozak.forwardappmobile.data.database.models.RelatedLink(
@@ -763,7 +779,11 @@ constructor(
         projectId = inboxProjectId,
         content = "",
       )
-      _uiEventChannel.send(ProjectUiEvent.Navigate("note_document_screen/$documentId?startEdit=true"))
+      _uiEventChannel.send(
+        ProjectUiEvent.Navigate(
+          NavTarget.NoteDocument(id = documentId, startEdit = true)
+        )
+      )
     }
   }
 
@@ -776,7 +796,11 @@ constructor(
     }
     viewModelScope.launch {
       val checklistId = checklistRepository.createChecklist(name = "Новий чекліст", projectId = inboxProjectId)
-      _uiEventChannel.send(ProjectUiEvent.Navigate("checklist_screen?checklistId=$checklistId"))
+      _uiEventChannel.send(
+        ProjectUiEvent.Navigate(
+          NavTarget.Checklist(id = checklistId)
+        )
+      )
     }
   }
 

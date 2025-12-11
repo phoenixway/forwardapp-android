@@ -41,6 +41,7 @@ fun TodayHeader(
     onNavigateToNextDay: () -> Unit,
     isNextDayNavigationEnabled: Boolean,
     date: Long?,
+    statsText: String? = null,
 ): HeaderLayout {
 
     val primaryColor = MaterialTheme.colorScheme.primary
@@ -79,6 +80,15 @@ fun TodayHeader(
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Medium,
                             color = primaryColor.copy(alpha = 0.7f)
+                        )
+                    }
+                    if (!statsText.isNullOrBlank()) {
+                        Text(
+                            text = statsText,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = primaryColor,
+                            modifier = Modifier.padding(top = 4.dp)
                         )
                     }
                 }

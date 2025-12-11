@@ -947,3 +947,15 @@ val MIGRATION_76_77 = object : Migration(76, 77) {
         )
     }
 }
+
+val MIGRATION_79_80 = object : Migration(79, 80) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE activity_records ADD COLUMN xp_gained INTEGER")
+    }
+}
+
+val MIGRATION_80_81 = object : Migration(80, 81) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE activity_records ADD COLUMN anty_xp INTEGER")
+    }
+}

@@ -26,6 +26,10 @@ data class ActivityRecord(
     @SerializedName(value = "projectId", alternate = ["listId"])
     @ColumnInfo(name = "project_id", index = true)
     val projectId: String? = null,
+    @ColumnInfo(name = "xp_gained")
+    val xpGained: Int? = null,
+    @ColumnInfo(name = "anty_xp")
+    val antyXp: Int? = null,
     val syncedAt: Long? = null,
     val isDeleted: Boolean = false,
     val version: Long = 0,

@@ -48,6 +48,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import com.romankozak.forwardappmobile.data.database.models.RecentItem
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.fillMaxWidth
+import com.romankozak.forwardappmobile.ui.screens.activitytracker.ActivityTrackerViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import java.util.Calendar
 
 const val COMMAND_DECK_DASHBOARD_ROUTE = "command_deck_dashboard"
 const val COMMAND_DECK_CORE_ROUTE = "command_deck_core"
@@ -114,6 +117,18 @@ fun SharedCommandDeckLayout(
                     }
                     val dayPlanViewModel: DayPlanViewModel = hiltViewModel(dayPlanBackStackEntry)
                     val dayPlanUiState by dayPlanViewModel.uiState.collectAsState()
+                    val activityTrackerViewModel: ActivityTrackerViewModel = hiltViewModel(dayPlanBackStackEntry)
+                    val activityLog by activityTrackerViewModel.activityLog.collectAsStateWithLifecycle()
+
+                    val (xpToday, antyXpToday) = remember(activityLog, dayPlanUiState.dayPlan?.date) {
+                        val targetDate = dayPlanUiState.dayPlan?.date ?: System.currentTimeMillis()
+                        val recordsForDay = activityLog.filter { record ->
+                            isSameDay(record.createdAt, targetDate)
+                        }
+                        val xp = recordsForDay.sumOf { it.xpGained ?: 0 }
+                        val antyXp = recordsForDay.sumOf { it.antyXp ?: 0 }
+                        xp to antyXp
+                    }
 
                     FAHeader(
                         layout = TodayHeader(
@@ -129,7 +144,8 @@ fun SharedCommandDeckLayout(
                                 dayPlanViewModel.navigateToNextDay()
                             },
                             isNextDayNavigationEnabled = !dayPlanUiState.isToday,
-                            date = dayPlanUiState.dayPlan?.date
+                            date = dayPlanUiState.dayPlan?.date,
+                            statsText = "Stats: ${xpToday} xp | ${antyXpToday} anti-xp"
                         ),
                         backgroundStyle = FAHeaderBackground.CommandDeck
                     )
@@ -250,3 +266,9 @@ fun SharedCommandDeckLayout(
     }
 }
 
+private fun isSameDay(timestamp: Long, other: Long): Boolean {
+    val cal1 = Calendar.getInstance().apply { timeInMillis = timestamp }
+    val cal2 = Calendar.getInstance().apply { timeInMillis = other }
+    return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
+        cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR)
+}

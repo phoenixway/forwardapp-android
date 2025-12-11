@@ -31,6 +31,8 @@ class ActivityRepository
                     createdAt = now,
                     startTime = null,
                     endTime = null,
+                    xpGained = null,
+                    antyXp = null,
                     updatedAt = now,
                     syncedAt = null,
                     version = 1,
@@ -51,6 +53,8 @@ class ActivityRepository
                     createdAt = now,
                     startTime = startTime,
                     endTime = null,
+                    xpGained = null,
+                    antyXp = null,
                     updatedAt = now,
                     syncedAt = null,
                     version = 1,
@@ -82,6 +86,8 @@ class ActivityRepository
                     startTime = now,
                     goalId = goalId,
                     createdAt = now,
+                    xpGained = null,
+                    antyXp = null,
                     updatedAt = now,
                     syncedAt = null,
                     version = 1,
@@ -113,12 +119,33 @@ class ActivityRepository
                     startTime = now,
                     projectId = projectId,
                     createdAt = now,
+                    xpGained = null,
+                    antyXp = null,
                     updatedAt = now,
                     syncedAt = null,
                     version = 1,
                 )
             activityRecordDao.insert(newRecord)
             return newRecord
+        }
+
+        suspend fun addCompletedActivity(text: String, xpGained: Int?, antyXp: Int?) {
+            if (text.isBlank()) return
+            val now = System.currentTimeMillis()
+            val record =
+                ActivityRecord(
+                    id = UUID.randomUUID().toString(),
+                    text = text,
+                    createdAt = now,
+                    startTime = now,
+                    endTime = now,
+                    xpGained = xpGained,
+                    antyXp = antyXp,
+                    updatedAt = now,
+                    syncedAt = null,
+                    version = 1,
+                )
+            activityRecordDao.insert(record)
         }
 
         suspend fun endProjectActivity(projectId: String) {
@@ -145,7 +172,7 @@ class ActivityRepository
 
         suspend fun deleteRecord(record: ActivityRecord) {
             // Changed the logic here to correctly delete an activity
-            activityRecordDao.delete(record)
+            activityRecordDao.deleteById(record.id)
         }
 
         suspend fun searchActivities(query: String): List<ActivityRecord> = activityRecordDao.search(query)

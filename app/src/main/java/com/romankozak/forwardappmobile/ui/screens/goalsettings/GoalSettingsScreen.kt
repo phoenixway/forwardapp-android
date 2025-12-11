@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Link
 import com.romankozak.forwardappmobile.ui.screens.projectsettings.ProjectSettingsEvent
+import com.romankozak.forwardappmobile.ui.navigation.NavTargetRouter
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.DisposableEffect
 import androidx.lifecycle.Lifecycle
@@ -41,7 +42,7 @@ fun GoalSettingsScreen(
         viewModel.events.collect {
             when (it) {
                 is ProjectSettingsEvent.NavigateBack -> navController.popBackStack()
-                is ProjectSettingsEvent.Navigate -> navController.navigate(it.route)
+                is ProjectSettingsEvent.Navigate -> navController.navigate(NavTargetRouter.routeOf(it.target))
             }
         }
     }

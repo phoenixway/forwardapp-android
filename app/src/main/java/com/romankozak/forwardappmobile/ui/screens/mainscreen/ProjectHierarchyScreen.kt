@@ -78,6 +78,7 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.AppStatistic
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.HandleProjectHierarchyDialogs
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import com.romankozak.forwardappmobile.ui.reminders.dialogs.ReminderPropertiesDialog
+import com.romankozak.forwardappmobile.ui.navigation.NavTargetRouter
 import kotlinx.coroutines.flow.collectLatest
 
 import androidx.compose.animation.AnimatedVisibilityScope
@@ -115,7 +116,7 @@ fun ProjectHierarchyScreen(
                 is ProjectUiEvent.NavigateToGlobalSearch -> navController.navigate("global_search_screen/${event.query}")
                 is ProjectUiEvent.NavigateToSettings -> navController.navigate("settings_screen")
                 is ProjectUiEvent.NavigateToEditProjectScreen -> navController.navigate("project_settings_screen?projectId=${event.projectId}")
-                is ProjectUiEvent.Navigate -> navController.navigate(event.route)
+                is ProjectUiEvent.Navigate -> navController.navigate(NavTargetRouter.routeOf(event.target))
                 is ProjectUiEvent.NavigateToDayPlan ->
                     navController.navigateToDayManagement(event.date, event.startTab)
                 is ProjectUiEvent.NavigateToStrategicManagement ->

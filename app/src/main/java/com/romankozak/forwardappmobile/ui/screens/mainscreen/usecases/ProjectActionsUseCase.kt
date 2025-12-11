@@ -10,7 +10,7 @@ import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DropPosition
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.findDescendantsForDeletion
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.getDescendantIds
-import java.net.URLEncoder
+import com.romankozak.forwardappmobile.ui.navigation.NavTarget
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
@@ -50,14 +50,17 @@ class ProjectActionsUseCase @Inject constructor(
     fun getMoveProjectRoute(
         project: Project,
         allProjects: List<Project>,
-    ): String {
+    ): NavTarget.ListChooser {
         val title = "Move '${project.name}'"
-        val encodedTitle = URLEncoder.encode(title, "UTF-8")
         val childMap = allProjects.filter { it.parentId != null }.groupBy { it.parentId!! }
         val descendantIds = getDescendantIds(project.id, childMap).joinToString(",")
         val currentParentId = project.parentId ?: "root"
         val disabledIds = "${project.id}${if (descendantIds.isNotEmpty()) ",$descendantIds" else ""}"
-        return "list_chooser_screen/$encodedTitle?currentParentId=$currentParentId&disabledIds=$disabledIds"
+        return NavTarget.ListChooser(
+            title = title,
+            currentParentId = currentParentId,
+            disabledIds = disabledIds,
+        )
     }
 
     suspend fun onListChooserResult(

@@ -71,7 +71,7 @@ import com.romankozak.forwardappmobile.features.missions.data.model.TacticalMiss
         LegacyNoteFts::class,
         RecurringTaskFts::class,
     ],
-    version = 79,
+    version = 81,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class, ProjectTypeConverter::class)

@@ -9,6 +9,7 @@ import com.romankozak.forwardappmobile.data.database.models.Reminder
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
+import com.romankozak.forwardappmobile.ui.navigation.NavTarget
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
@@ -16,7 +17,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 sealed class RemindersUiEvent {
-    data class Navigate(val route: String) : RemindersUiEvent()
+    data class Navigate(val target: NavTarget) : RemindersUiEvent()
 }
 
 sealed class ReminderListItem {
@@ -125,11 +126,22 @@ class ReminderViewModel @Inject constructor(
                 is ReminderListItem.GoalReminder -> {
                     val projectId = goalRepository.findProjectIdForGoal(item.goal.id)
                     if (projectId != null) {
-                        _uiEvent.send(RemindersUiEvent.Navigate("goal_detail_screen/$projectId?goalId=${item.goal.id}"))
+                        _uiEvent.send(
+                            RemindersUiEvent.Navigate(
+                                NavTarget.ProjectDetail(
+                                    projectId = projectId,
+                                    goalId = item.goal.id,
+                                )
+                            )
+                        )
                     }
                 }
                 is ReminderListItem.ProjectReminder -> {
-                    _uiEvent.send(RemindersUiEvent.Navigate("goal_detail_screen/${item.project.id}"))
+                    _uiEvent.send(
+                        RemindersUiEvent.Navigate(
+                            NavTarget.ProjectDetail(projectId = item.project.id)
+                        )
+                    )
                 }
                 is ReminderListItem.SimpleReminder -> {
                     // Not applicable for simple reminders

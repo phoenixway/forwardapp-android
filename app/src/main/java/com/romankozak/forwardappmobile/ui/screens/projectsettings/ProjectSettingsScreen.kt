@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Style
 import com.romankozak.forwardappmobile.ui.components.SegmentedTab
+import com.romankozak.forwardappmobile.ui.navigation.NavTargetRouter
 
 @Composable
 fun ProjectSettingsScreen(
@@ -45,7 +46,7 @@ fun ProjectSettingsScreen(
                     navController.popBackStack()
                 }
                 is ProjectSettingsEvent.Navigate -> {
-                    navController.navigate(event.route)
+                    navController.navigate(NavTargetRouter.routeOf(event.target))
                 }
             }
         }

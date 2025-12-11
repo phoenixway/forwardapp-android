@@ -76,6 +76,7 @@ fun ActivityTrackerScreen(
     val context = LocalContext.current
 
     var showMatrixSplash by remember { mutableStateOf(false) }
+    var quickDoneDialogState by remember { mutableStateOf<String?>(null) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
@@ -111,6 +112,7 @@ fun ActivityTrackerScreen(
                         onTextChange = viewModel::onInputTextChanged,
                         onToggleStartStop = viewModel::onToggleStartStop,
                         onTimelessClick = viewModel::onTimelessRecordClick,
+                        onQuickDoneClick = { textValue -> quickDoneDialogState = textValue },
                     )
                 }
             },
@@ -164,6 +166,18 @@ fun ActivityTrackerScreen(
 onSetReminder = { time -> viewModel.onSetReminder(time) },
                     onRemoveReminder = if (record.reminderTime != null) { { viewModel.onClearReminder() } } else null,
                     currentReminders = listOfNotNull(record.reminderTime).map { com.romankozak.forwardappmobile.data.database.models.Reminder(entityId = record.id, entityType = "TASK", reminderTime = it, status = "SCHEDULED", creationTime = System.currentTimeMillis()) },
+                )
+            }
+
+            quickDoneDialogState?.let { presetText ->
+                QuickCompletedActionDialog(
+                    initialText = presetText,
+                    onDismiss = { quickDoneDialogState = null },
+                    onConfirm = { desc, xp, antyXp ->
+                        viewModel.onAddCompletedAction(desc, xp, antyXp)
+                        viewModel.onInputTextChanged("")
+                        quickDoneDialogState = null
+                    },
                 )
             }
         }
@@ -255,6 +269,64 @@ private fun ActivityLog(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun QuickCompletedActionDialog(
+    initialText: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String, Int?, Int?) -> Unit,
+) {
+    var text by remember(initialText) { mutableStateOf(initialText) }
+    var xpText by remember { mutableStateOf("") }
+    var antyXpText by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Швидке додавання виконаної дії") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Опис активності") },
+                )
+                OutlinedTextField(
+                    value = xpText,
+                    onValueChange = { value ->
+                        if (value.all { it.isDigit() } || value.isBlank()) xpText = value
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Отримана експа (опціонально)") },
+                    placeholder = { Text("0") },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = antyXpText,
+                    onValueChange = { value ->
+                        if (value.all { it.isDigit() } || value.isBlank()) antyXpText = value
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Втрачена експа (опціонально)") },
+                    placeholder = { Text("0") },
+                    singleLine = true,
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val xp = xpText.toIntOrNull()
+                    val antyXp = antyXpText.toIntOrNull()
+                    onConfirm(text.trim(), xp, antyXp)
+                },
+                enabled = text.isNotBlank(),
+            ) { Text("Зберегти") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Скасувати") } },
+    )
+}
+
 @Composable
 private fun LogEntryItem(
     record: ActivityRecord,
@@ -280,7 +352,10 @@ private fun LogEntryItem(
                     modifier = Modifier.size(20.dp),
                 )
                 Spacer(Modifier.width(12.dp))
-                Text(record.text, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f), fontStyle = FontStyle.Italic)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(record.text, style = MaterialTheme.typography.bodyLarge, fontStyle = FontStyle.Italic)
+                    ActivityStatsLine(record.xpGained, record.antyXp)
+                }
                 Spacer(Modifier.width(8.dp))
                 IconButton(onClick = {
                     onDelete(record)
@@ -312,28 +387,60 @@ private fun LogEntryItem(
             )
             Spacer(modifier = Modifier.width(12.dp))
 
-            TextWithBadgeLayout(
-                modifier = Modifier.weight(1f),
-                text = record.text,
-                textStyle = MaterialTheme.typography.bodyLarge,
-                badge = {
-                    if (!record.isOngoing && record.endTime != null) {
-                        val duration = record.endTime - record.startTime!!
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
-                        ) {
-                            Text(
-                                text = formatDuration(duration),
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                color = MaterialTheme.colorScheme.onTertiaryContainer,
-                                fontWeight = FontWeight.SemiBold,
-                            )
+            Column(modifier = Modifier.weight(1f)) {
+                TextWithBadgeLayout(
+                    text = record.text,
+                    textStyle = MaterialTheme.typography.bodyLarge,
+                    badge = {
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            if (!record.isOngoing && record.endTime != null) {
+                                val duration = record.endTime - record.startTime!!
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
+                                ) {
+                                    Text(
+                                        text = formatDuration(duration),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                }
+                            }
+                            if ((record.xpGained ?: 0) > 0) {
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                                ) {
+                                    Text(
+                                        text = "+${record.xpGained} xp",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                }
+                            }
+                            if ((record.antyXp ?: 0) > 0) {
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f),
+                                ) {
+                                    Text(
+                                        text = "-${record.antyXp} xp",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        color = MaterialTheme.colorScheme.onErrorContainer,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                }
+                            }
                         }
-                    }
-                },
-            )
+                    },
+                )
+                ActivityStatsLine(record.xpGained, record.antyXp)
+            }
 
             Row {
                 if (record.isOngoing) {
@@ -452,12 +559,33 @@ private fun TextWithBadgeLayout(
 }
 
 @Composable
+private fun ActivityStatsLine(xp: Int?, antyXp: Int?) {
+    val positive = (xp ?: 0) > 0
+    val negative = (antyXp ?: 0) > 0
+    if (!positive && !negative) return
+
+    val statsText = buildString {
+        if (positive) append("+${xp} xp")
+        if (positive && negative) append(" | ")
+        if (negative) append("-${antyXp} xp")
+    }
+
+    Text(
+        text = statsText,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
+        modifier = Modifier.padding(top = 4.dp)
+    )
+}
+
+@Composable
 private fun ActivityInputBar(
     text: String,
     isActivityOngoing: Boolean,
     onTextChange: (String) -> Unit,
     onToggleStartStop: () -> Unit,
     onTimelessClick: () -> Unit,
+    onQuickDoneClick: (String) -> Unit,
 )
 {
     Surface(
@@ -489,6 +617,13 @@ private fun ActivityInputBar(
                 enabled = text.isNotBlank(),
             ) {
                 Icon(Icons.Default.AddComment, "Зробити запис", tint = MaterialTheme.colorScheme.secondary)
+            }
+
+            IconButton(
+                onClick = { if (text.isNotBlank()) onQuickDoneClick(text) },
+                enabled = text.isNotBlank(),
+            ) {
+                Icon(Icons.Default.CheckCircle, "Додати виконану дію", tint = MaterialTheme.colorScheme.tertiary)
             }
 
             IconButton(
@@ -567,13 +702,15 @@ private fun copyToClipboard(
 private fun EditRecordDialog(
     record: ActivityRecord,
     onDismiss: () -> Unit,
-    onConfirm: (String, Long?, Long?) -> Unit,
+    onConfirm: (String, Long?, Long?, Int?, Int?) -> Unit,
     isLastTimedRecord: Boolean,
 )
 {
     var text by remember(record) { mutableStateOf(record.text) }
     var startTime by remember(record) { mutableStateOf(record.startTime) }
     var endTime by remember(record) { mutableStateOf(record.endTime) }
+    var xpText by remember(record) { mutableStateOf(record.xpGained?.toString().orEmpty()) }
+    var antyXpText by remember(record) { mutableStateOf(record.antyXp?.toString().orEmpty()) }
 
     var showStartTimePicker by remember { mutableStateOf(false) }
     var showEndTimePicker by remember { mutableStateOf(false) }
@@ -616,6 +753,26 @@ private fun EditRecordDialog(
                         }
                     }
                 }
+                OutlinedTextField(
+                    value = xpText,
+                    onValueChange = { value ->
+                        if (value.all { it.isDigit() } || value.isBlank()) xpText = value
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Отримана експа (опціонально)") },
+                    singleLine = true,
+                    placeholder = { Text("0") },
+                )
+                OutlinedTextField(
+                    value = antyXpText,
+                    onValueChange = { value ->
+                        if (value.all { it.isDigit() } || value.isBlank()) antyXpText = value
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Втрачена експа (опціонально)") },
+                    singleLine = true,
+                    placeholder = { Text("0") },
+                )
             }
         },
         confirmButton = {
@@ -625,7 +782,9 @@ private fun EditRecordDialog(
                     if (isTimeInvalid) {
                         Toast.makeText(context, "Час закінчення не може бути раніше часу початку", Toast.LENGTH_SHORT).show()
                     } else {
-                        onConfirm(text, startTime, endTime)
+                        val xp = xpText.toIntOrNull()
+                        val antyXp = antyXpText.toIntOrNull()
+                        onConfirm(text, startTime, endTime, xp, antyXp)
                     }
                 },
                 enabled = text.isNotBlank(),

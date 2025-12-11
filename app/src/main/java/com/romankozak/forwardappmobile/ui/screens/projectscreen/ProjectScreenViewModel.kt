@@ -34,6 +34,7 @@ import com.romankozak.forwardappmobile.domain.wifirestapi.FileDataRequest
 import com.romankozak.forwardappmobile.domain.wifirestapi.RetrofitClient
 import com.romankozak.forwardappmobile.ui.navigation.ClearAndNavigateHomeUseCase
 import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
+import com.romankozak.forwardappmobile.ui.navigation.NavTarget
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.TagUtils
 import com.romankozak.forwardappmobile.features.attachments.ui.project.AttachmentType
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.inputpanel.InputHandler
@@ -48,6 +49,7 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.Select
 import com.romankozak.forwardappmobile.ui.common.editor.NoteTitleExtractor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.net.URLEncoder
+import java.net.URLDecoder
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -71,7 +73,7 @@ private const val TAG = "BacklogVM_DEBUG"
 sealed class UiEvent {
   data class ShowSnackbar(val message: String, val action: String? = null) : UiEvent()
 
-  data class Navigate(val route: String) : UiEvent()
+  data class Navigate(val target: NavTarget) : UiEvent()
 
   data class ResetSwipeState(val itemId: String) : UiEvent()
 
@@ -84,6 +86,8 @@ sealed class UiEvent {
   data class OpenUri(val uri: String) : UiEvent()
 
   data object ScrollToLatestInboxRecord : UiEvent()
+
+  data object NavigateBack : UiEvent()
 }
 
 enum class GoalActionType {
@@ -714,6 +718,10 @@ constructor(
 
   override fun requestNavigation(route: String) {
     viewModelScope.launch {
+      if (route == "back") {
+        _uiEventFlow.send(UiEvent.NavigateBack)
+        return@launch
+      }
       if (route.startsWith("goal_detail_screen/")) {
 
         val projectId = route.substringAfter("goal_detail_screen/")
@@ -723,6 +731,7 @@ constructor(
             projectRepository.getProjectById(projectId)?.name ?: "Project"
           }
         enhancedNavigationManager.navigateToProject(projectId, projectName)
+        return@launch
       } else if (route.startsWith(HANDLE_LINK_CLICK_ROUTE)) {
 
         val target = route.substringAfter(HANDLE_LINK_CLICK_ROUTE + "/")
@@ -750,9 +759,72 @@ constructor(
           }
         }
       } else {
-
-        _uiEventFlow.send(UiEvent.Navigate(route))
+        val target = parseRouteToNavTarget(route)
+        if (target != null) {
+          _uiEventFlow.send(UiEvent.Navigate(target))
+        } else {
+          Log.w(TAG, "Unknown navigation route: $route")
+        }
       }
+    }
+  }
+
+  private fun parseRouteToNavTarget(route: String): NavTarget? {
+    return when {
+      route.startsWith("global_search_screen/") -> {
+        val query = URLDecoder.decode(route.substringAfter("global_search_screen/"), "UTF-8")
+        NavTarget.GlobalSearch(query)
+      }
+      route.startsWith("note_document_screen/") -> {
+        val tail = route.substringAfter("note_document_screen/")
+        val id = tail.substringBefore("?")
+        val startEdit = tail.substringAfter("?", "").contains("startEdit=true")
+        NavTarget.NoteDocument(id = id, startEdit = startEdit)
+      }
+      route.startsWith("note_document_edit_screen") -> {
+        val params = route.substringAfter("?", "")
+        val paramMap = params.split("&").mapNotNull {
+          val parts = it.split("=", limit = 2)
+          if (parts.size == 2) parts[0] to parts[1] else null
+        }.toMap()
+        NavTarget.NoteDocumentEdit(
+          projectId = paramMap["projectId"]?.takeIf { it.isNotBlank() },
+          documentId = paramMap["documentId"]?.takeIf { it.isNotBlank() },
+        )
+      }
+      route.startsWith("checklist_screen") -> {
+        val params = route.substringAfter("?", "")
+        val paramMap = params.split("&").mapNotNull {
+          val parts = it.split("=", limit = 2)
+          if (parts.size == 2) parts[0] to parts[1] else null
+        }.toMap()
+        NavTarget.Checklist(
+          id = paramMap["checklistId"]?.takeIf { it.isNotBlank() },
+          projectId = paramMap["projectId"]?.takeIf { it.isNotBlank() },
+        )
+      }
+      route.startsWith("list_chooser_screen/") -> {
+        val titleEncoded = route.substringAfter("list_chooser_screen/").substringBefore("?")
+        val params = route.substringAfter("?", "")
+        val paramMap = params.split("&").mapNotNull {
+          val parts = it.split("=", limit = 2)
+          if (parts.size == 2) parts[0] to parts[1] else null
+        }.toMap()
+        NavTarget.ListChooser(
+          title = URLDecoder.decode(titleEncoded, "UTF-8"),
+          currentParentId = paramMap["currentParentId"]?.takeIf { it.isNotBlank() },
+          disabledIds = paramMap["disabledIds"]?.takeIf { it.isNotBlank() },
+        )
+      }
+      route == "activity_tracker_screen" -> NavTarget.Tracker
+      route == "reminders_screen" -> NavTarget.Reminders
+      route == "settings_screen" -> NavTarget.Settings
+      route == "ai_insights_screen" -> NavTarget.AiInsights
+      route == "life_state_screen" -> NavTarget.LifeState
+      route == "attachments_library_screen" -> NavTarget.AttachmentsLibrary
+      route == "scripts_library_screen" -> NavTarget.ScriptsLibrary
+      route == "tactical_management_screen" -> NavTarget.TacticalManagement
+      else -> null
     }
   }
 
@@ -934,10 +1006,14 @@ constructor(
 
   private fun navigateToListChooser(title: String) {
     viewModelScope.launch {
-      val encodedTitle = URLEncoder.encode(title, "UTF-8")
       val disabledIds = projectIdFlow.value
       _uiEventFlow.send(
-        UiEvent.Navigate("list_chooser_screen/$encodedTitle?disabledIds=$disabledIds")
+        UiEvent.Navigate(
+          NavTarget.ListChooser(
+            title = title,
+            disabledIds = disabledIds.ifBlank { null },
+          )
+        )
       )
     }
   }
@@ -1122,14 +1198,22 @@ constructor(
   fun onNoteDocumentItemClick(noteDocument: NoteDocumentEntity) {
     viewModelScope.launch {
       recentItemsRepository.logNoteDocumentAccess(noteDocument)
-      _uiEventFlow.send(UiEvent.Navigate("note_document_screen/${noteDocument.id}"))
+      _uiEventFlow.send(
+        UiEvent.Navigate(
+          NavTarget.NoteDocument(id = noteDocument.id)
+        )
+      )
     }
   }
 
   fun onChecklistItemClick(checklist: ChecklistEntity) {
     viewModelScope.launch {
       recentItemsRepository.logChecklistAccess(checklist)
-      _uiEventFlow.send(UiEvent.Navigate("checklist_screen?checklistId=${checklist.id}"))
+      _uiEventFlow.send(
+        UiEvent.Navigate(
+          NavTarget.Checklist(id = checklist.id)
+        )
+      )
     }
   }
 
@@ -1183,7 +1267,9 @@ constructor(
       AttachmentType.NOTES -> {
         viewModelScope.launch {
           _uiEventFlow.send(
-            UiEvent.Navigate("note_document_edit_screen?projectId=${projectIdFlow.value}")
+            UiEvent.Navigate(
+              NavTarget.NoteDocumentEdit(projectId = projectIdFlow.value)
+            )
           )
         }
       }
@@ -1195,7 +1281,11 @@ constructor(
         val projectId = projectIdFlow.value
         if (projectId.isNotBlank()) {
           viewModelScope.launch {
-            _uiEventFlow.send(UiEvent.Navigate("checklist_screen?projectId=$projectId"))
+            _uiEventFlow.send(
+              UiEvent.Navigate(
+                NavTarget.Checklist(projectId = projectId)
+              )
+            )
           }
         } else {
           showSnackbar("Не вдалося визначити проект для створення чекліста", null)
@@ -1810,11 +1900,19 @@ constructor(
         RecentItemType.NOTE -> _uiEventFlow.send(UiEvent.ShowSnackbar("Застарілі нотатки доступні лише для читання"))
         RecentItemType.NOTE_DOCUMENT -> {
           noteDocumentRepository.getDocumentById(item.target)?.let { recentItemsRepository.logNoteDocumentAccess(it) }
-          _uiEventFlow.send(UiEvent.Navigate("note_document_screen/${item.target}"))
+          _uiEventFlow.send(
+            UiEvent.Navigate(
+              NavTarget.NoteDocument(id = item.target)
+            )
+          )
         }
         RecentItemType.CHECKLIST -> {
           checklistRepository.getChecklistById(item.target)?.let { recentItemsRepository.logChecklistAccess(it) }
-          _uiEventFlow.send(UiEvent.Navigate("checklist_screen?checklistId=${item.target}"))
+          _uiEventFlow.send(
+            UiEvent.Navigate(
+              NavTarget.Checklist(id = item.target)
+            )
+          )
         }
         RecentItemType.OBSIDIAN_LINK -> {
           val link =
@@ -1857,7 +1955,11 @@ constructor(
       return
     }
     viewModelScope.launch {
-      _uiEventFlow.send(UiEvent.Navigate("checklist_screen?projectId=$projectId"))
+      _uiEventFlow.send(
+        UiEvent.Navigate(
+          NavTarget.Checklist(projectId = projectId)
+        )
+      )
     }
   }
 
@@ -1865,7 +1967,9 @@ constructor(
     viewModelScope.launch {
       _uiState.update { it.copy(showCreateNoteDocumentDialog = false) }
       _uiEventFlow.send(
-        UiEvent.Navigate("note_document_edit_screen?projectId=${projectIdFlow.value}")
+        UiEvent.Navigate(
+          NavTarget.NoteDocumentEdit(projectId = projectIdFlow.value)
+        )
       )
     }
   }
