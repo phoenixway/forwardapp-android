@@ -42,6 +42,10 @@ import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.TimePi
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.formatDuration
 import com.romankozak.forwardappmobile.ui.shared.InProgressIndicator
 import kotlinx.coroutines.delay
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Overlay
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenuItem
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.rememberHoldMenu2
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Button
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -77,6 +81,7 @@ fun ActivityTrackerScreen(
 
     var showMatrixSplash by remember { mutableStateOf(false) }
     var quickDoneDialogState by remember { mutableStateOf<String?>(null) }
+    val holdMenuController = rememberHoldMenu2()
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
@@ -113,6 +118,7 @@ fun ActivityTrackerScreen(
                         onToggleStartStop = viewModel::onToggleStartStop,
                         onTimelessClick = viewModel::onTimelessRecordClick,
                         onQuickDoneClick = { textValue -> quickDoneDialogState = textValue },
+                        holdMenuController = holdMenuController,
                     )
                 }
             },
@@ -181,6 +187,8 @@ onSetReminder = { time -> viewModel.onSetReminder(time) },
                 )
             }
         }
+
+        HoldMenu2Overlay(controller = holdMenuController)
     }
 }
 
@@ -586,6 +594,7 @@ private fun ActivityInputBar(
     onToggleStartStop: () -> Unit,
     onTimelessClick: () -> Unit,
     onQuickDoneClick: (String) -> Unit,
+    holdMenuController: com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller,
 )
 {
     Surface(
@@ -612,23 +621,30 @@ private fun ActivityInputBar(
             )
             Spacer(modifier = Modifier.width(8.dp))
 
-            IconButton(
-                onClick = onTimelessClick,
-                enabled = text.isNotBlank(),
-            ) {
-                Icon(Icons.Default.AddComment, "Зробити запис", tint = MaterialTheme.colorScheme.secondary)
+            val menuItems = remember {
+                listOf(
+                    HoldMenuItem(label = "Завершена дія", icon = Icons.Default.CheckCircle),
+                    HoldMenuItem(label = "Коментар", icon = Icons.Default.AddComment),
+                )
             }
 
-            IconButton(
-                onClick = { if (text.isNotBlank()) onQuickDoneClick(text) },
-                enabled = text.isNotBlank(),
-            ) {
-                Icon(Icons.Default.CheckCircle, "Додати виконану дію", tint = MaterialTheme.colorScheme.tertiary)
-            }
-
-            IconButton(
-                onClick = onToggleStartStop,
-                enabled = text.isNotBlank() || isActivityOngoing,
+            HoldMenu2Button(
+                items = menuItems,
+                controller = holdMenuController,
+                onSelect = { index ->
+                    if (text.isBlank()) return@HoldMenu2Button
+                    when (index) {
+                        0 -> onQuickDoneClick(text)
+                        1 -> onTimelessClick()
+                    }
+                },
+                onTap = {
+                    if (text.isNotBlank() || isActivityOngoing) {
+                        onToggleStartStop()
+                    }
+                },
+                menuAlignment = com.romankozak.forwardappmobile.features.common.components.holdmenu2.MenuAlignment.END,
+                iconPosition = com.romankozak.forwardappmobile.features.common.components.holdmenu2.IconPosition.END,
             ) {
                 val icon: ImageVector
                 val tint: Color
@@ -650,12 +666,18 @@ private fun ActivityInputBar(
                     description = "Почати"
                 }
 
-                Icon(
-                    imageVector = icon,
-                    contentDescription = description,
-                    tint = tint,
-                    modifier = Modifier.size(28.dp),
-                )
+                IconButton(
+                    onClick = {
+                        if (text.isNotBlank() || isActivityOngoing) onToggleStartStop()
+                    }
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = description,
+                        tint = tint,
+                        modifier = Modifier.size(28.dp),
+                    )
+                }
             }
         }
     }

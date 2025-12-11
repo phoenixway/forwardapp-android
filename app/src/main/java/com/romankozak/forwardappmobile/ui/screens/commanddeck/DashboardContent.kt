@@ -54,6 +54,26 @@ fun levelColor(status: LevelStatus): Color =
     LevelStatus.CRITICAL -> Color(0xFFF44336) // red
   }
 
+@Composable
+fun InfoCard(
+  title: String,
+  subtitle: String,
+  icon: ImageVector,
+  containerColor: Color = Color.White.copy(alpha = 0.04f),
+) {
+  Column(
+    modifier =
+      Modifier.fillMaxWidth()
+        .clip(RoundedCornerShape(18.dp))
+        .background(containerColor)
+        .padding(16.dp),
+    verticalArrangement = Arrangement.spacedBy(8.dp),
+  ) {
+    Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+    Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+  }
+}
+
 // ---------------------------------------------
 // MAIN SCREEN
 // ---------------------------------------------
@@ -187,6 +207,14 @@ fun AnimatedCommandDeck(
 
     item {
         LifeManagementState()
+    }
+
+    item {
+        InfoCard(
+            title = "AI Insights",
+            subtitle = "щсеп++",
+            icon = Icons.Outlined.AutoAwesome,
+        )
     }
 
     item {

@@ -21,19 +21,18 @@ class ActivityRepository
     ) {
         fun getLogStream(): Flow<List<ActivityRecord>> = activityRecordDao.getAllRecordsStream()
 
-        suspend fun addTimelessRecord(text: String) {
+        suspend fun addTimelessRecord(text: String, timestamp: Long = System.currentTimeMillis()) {
             if (text.isBlank()) return
-            val now = System.currentTimeMillis()
             val record =
                 ActivityRecord(
                     id = UUID.randomUUID().toString(),
                     text = text,
-                    createdAt = now,
+                    createdAt = timestamp,
                     startTime = null,
                     endTime = null,
                     xpGained = null,
                     antyXp = null,
-                    updatedAt = now,
+                    updatedAt = timestamp,
                     syncedAt = null,
                     version = 1,
                 )

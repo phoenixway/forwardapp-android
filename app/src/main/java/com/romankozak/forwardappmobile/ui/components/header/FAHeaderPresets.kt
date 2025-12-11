@@ -86,7 +86,7 @@ fun TodayHeader(
                         Text(
                             text = statsText,
                             fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.Medium,
                             color = primaryColor,
                             modifier = Modifier.padding(top = 4.dp)
                         )
