@@ -118,7 +118,10 @@ fun DashboardBottomBar(
 }
 
 @Composable
-private fun MoreBottomSheetContent(onNavigateToReminders: () -> Unit) {
+private fun MoreBottomSheetContent(
+    onNavigateToReminders: () -> Unit,
+    onNavigateToProjectSearch: () -> Unit,
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -195,6 +198,7 @@ private fun BarButton(
 fun DashboardBottomBarPreview() {
     DashboardBottomBar(
         onNavigateToProjectHierarchy = {},
+        onNavigateToProjectSearch = {},
         onNavigateToTracker = {},
         onNavigateToInbox = {},
         onNavigateToReminders = {},
