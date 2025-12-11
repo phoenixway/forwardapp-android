@@ -94,6 +94,9 @@ object NavTargetRouter {
                 "project_screen?projectId=${target.projectId}" +
                     (target.goalId?.let { "&goalId=$it" } ?: "")
 
+            is NavTarget.GoalSettings ->
+                "goal_settings_screen/${target.goalId}"
+
             is NavTarget.ScriptEditor ->
                 "script_editor_screen" +
                     buildQuery(

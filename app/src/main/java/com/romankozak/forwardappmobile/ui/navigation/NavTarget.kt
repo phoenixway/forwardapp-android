@@ -66,4 +66,8 @@ sealed interface NavTarget {
     data class ImportExport(
         val uri: String? = null,
     ) : NavTarget
+
+    data class GoalSettings(
+        val goalId: String,
+    ) : NavTarget
 }

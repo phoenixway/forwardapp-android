@@ -777,7 +777,7 @@ constructor(
       }
       route.startsWith("goal_settings_screen/") -> {
         val goalId = route.substringAfter("goal_settings_screen/")
-        NavTarget.ProjectDetail(projectId = projectIdFlow.value, goalId = goalId)
+        NavTarget.GoalSettings(goalId)
       }
       route.startsWith("note_document_screen/") -> {
         val tail = route.substringAfter("note_document_screen/")
