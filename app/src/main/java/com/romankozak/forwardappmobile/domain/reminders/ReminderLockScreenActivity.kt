@@ -181,14 +181,12 @@ class ReminderLockScreenActivity : ComponentActivity() {
       setShowWhenLocked(true)
       setTurnScreenOn(true)
 
-      val keyguardManager = getSystemService(KEYGUARD_SERVICE) as KeyguardManager
-      keyguardManager.requestDismissKeyguard(this, null)
+      // Do not request dismissing keyguard to avoid PIN prompt; just show over lock screen.
     } else {
       @Suppress("DEPRECATION")
       window.addFlags(
         WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-          WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
-          WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
+          WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
       )
     }
 
