@@ -775,6 +775,10 @@ constructor(
         val query = URLDecoder.decode(route.substringAfter("global_search_screen/"), "UTF-8")
         NavTarget.GlobalSearch(query)
       }
+      route.startsWith("goal_settings_screen/") -> {
+        val goalId = route.substringAfter("goal_settings_screen/")
+        NavTarget.ProjectDetail(projectId = projectIdFlow.value, goalId = goalId)
+      }
       route.startsWith("note_document_screen/") -> {
         val tail = route.substringAfter("note_document_screen/")
         val id = tail.substringBefore("?")
@@ -1482,37 +1486,37 @@ constructor(
 
   fun onSetReminderForItem(item: ListItemContent) {
     viewModelScope.launch {
-        val reminders = when (item) {
-            is ListItemContent.GoalItem -> item.reminders
-            is ListItemContent.SublistItem -> item.reminders
-            else -> emptyList()
-        }
-
-        val record =
-            when (item) {
-                is ListItemContent.GoalItem -> {
+        when (item) {
+            is ListItemContent.GoalItem -> {
+                val entityId = item.goal.id
+                val reminders = reminderRepository.getRemindersForEntityFlow(entityId).firstOrNull().orEmpty()
+                val record =
                     ActivityRecord(
-                        id = item.goal.id,
+                        id = entityId,
                         text = item.goal.text,
                         reminderTime = reminders.firstOrNull()?.reminderTime,
                         createdAt = item.goal.createdAt,
                         projectId = item.listItem.projectId,
                         goalId = item.goal.id,
                     )
-                }
-                is ListItemContent.SublistItem -> {
+                _uiState.update { it.copy(recordForReminderDialog = record, remindersForDialog = reminders) }
+            }
+            is ListItemContent.SublistItem -> {
+                val entityId = item.project.id
+                val reminders = reminderRepository.getRemindersForEntityFlow(entityId).firstOrNull().orEmpty()
+                val record =
                     ActivityRecord(
-                        id = item.project.id,
+                        id = entityId,
                         text = item.project.name,
                         reminderTime = reminders.firstOrNull()?.reminderTime,
                         createdAt = item.project.createdAt,
                         projectId = item.project.id,
                         goalId = null,
                     )
-                }
-                else -> null
+                _uiState.update { it.copy(recordForReminderDialog = record, remindersForDialog = reminders) }
             }
-        _uiState.update { it.copy(recordForReminderDialog = record, remindersForDialog = reminders) }
+            else -> return@launch
+        }
     }
   }
 

@@ -90,6 +90,10 @@ object NavTargetRouter {
             NavTarget.TacticalManagement ->
                 "tactical_management_screen"
 
+            is NavTarget.ProjectDetail ->
+                "project_screen?projectId=${target.projectId}" +
+                    (target.goalId?.let { "&goalId=$it" } ?: "")
+
             is NavTarget.ScriptEditor ->
                 "script_editor_screen" +
                     buildQuery(
