@@ -207,6 +207,7 @@ fun SharedCommandDeckLayout(
                     ) {
                         DashboardBottomBar(
                             onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                            onNavigateToProjectSearch = onNavigateToProjectHierarchy,
                             onNavigateToTracker = onNavigateToTracker,
                             onNavigateToInbox = onNavigateToInbox,
                             onNavigateToReminders = onNavigateToReminders,

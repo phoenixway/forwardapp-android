@@ -27,6 +27,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun DashboardBottomBar(
     onNavigateToProjectHierarchy: () -> Unit,
+    onNavigateToProjectSearch: () -> Unit,
     onNavigateToTracker: () -> Unit,
     onNavigateToInbox: () -> Unit,
     onNavigateToReminders: () -> Unit,
@@ -54,6 +55,13 @@ fun DashboardBottomBar(
                         showMoreBottomSheet = false
                     }
                     onNavigateToReminders()
+                }
+            }, onNavigateToProjectSearch = {
+                coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
+                    if (!modalSheetState.isVisible) {
+                        showMoreBottomSheet = false
+                    }
+                    onNavigateToProjectSearch()
                 }
             })
         }
@@ -120,6 +128,17 @@ private fun MoreBottomSheetContent(onNavigateToReminders: () -> Unit) {
         Column {
             Text("More Options", style = MaterialTheme.typography.headlineSmall)
             Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onNavigateToProjectSearch)
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Outlined.Search, contentDescription = "Search in projects")
+                Spacer(modifier = Modifier.width(16.dp))
+                Text("Search in projects")
+            }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
