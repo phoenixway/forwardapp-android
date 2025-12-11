@@ -126,9 +126,9 @@ private fun ViewModeToggle(
   holdMenuController: HoldMenu2Controller,
 ) {
     val availableViews = remember(isProjectManagementEnabled) {
-        ProjectViewMode.values().filter {
-            it != ProjectViewMode.ADVANCED || isProjectManagementEnabled
-        }
+        ProjectViewMode.values()
+            .filter { it != ProjectViewMode.ADVANCED || isProjectManagementEnabled }
+            .reversed()
     }
 
     val menuItems = remember(availableViews) {
@@ -154,6 +154,7 @@ private fun ViewModeToggle(
         HoldMenu2Button(
             items = menuItems,
             controller = holdMenuController,
+            longPressDuration = 250,
             onSelect = { index ->
                 val selectedViewMode = availableViews[index]
                 onViewChange(selectedViewMode)
@@ -251,7 +252,7 @@ private fun OptionsMenu(state: NavPanelState, actions: NavPanelActions, contentC
           remember(state.currentView, state.isProjectManagementEnabled) {
             listOf(
               MenuItem(
-                editListText,
+                "Project Properties",
                 Icons.Default.Edit,
                 {
                   menu.onEditList()
@@ -263,14 +264,6 @@ private fun OptionsMenu(state: NavPanelState, actions: NavPanelActions, contentC
                 Icons.Outlined.EventAvailable,
                 {
                   actions.onAddProjectToDayPlan()
-                  actions.onMenuExpandedChange(false)
-                },
-              ),
-              MenuItem(
-                "Toggle realization support",
-                Icons.Outlined.Construction,
-                {
-                  menu.onToggleProjectManagement()
                   actions.onMenuExpandedChange(false)
                 },
               ),
@@ -496,6 +489,12 @@ private fun NavigationBar(
   modifier: Modifier = Modifier,
   holdMenuController: HoldMenu2Controller,
 ) {
+    val lastNonSearchMode = remember { mutableStateOf<InputMode?>(null) }
+    LaunchedEffect(state.inputMode) {
+        if (state.inputMode != InputMode.SearchInList && state.inputMode != InputMode.SearchGlobal) {
+            lastNonSearchMode.value = state.inputMode
+        }
+    }
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val availableWidth = maxWidth
         val baseWidth = if (state.isProjectManagementEnabled) 380.dp else 320.dp
@@ -538,6 +537,45 @@ private fun NavigationBar(
                             modifier = Modifier.size(20.dp),
                         )
                     }
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(
+                            color = if (state.inputMode == InputMode.SearchInList || state.inputMode == InputMode.SearchGlobal) {
+                                contentColor.copy(alpha = 0.16f)
+                            } else Color.Transparent
+                        )
+                        .combinedClickable(
+                            onClick = {
+                                if (state.inputMode == InputMode.SearchInList || state.inputMode == InputMode.SearchGlobal) {
+                                    actions.onInputModeSelected(lastNonSearchMode.value ?: InputMode.AddGoal)
+                                } else {
+                                    lastNonSearchMode.value = state.inputMode
+                                    actions.onInputModeSelected(InputMode.SearchInList)
+                                }
+                            },
+                            onLongClick = {
+                                if (state.inputMode == InputMode.SearchInList || state.inputMode == InputMode.SearchGlobal) {
+                                    actions.onInputModeSelected(lastNonSearchMode.value ?: InputMode.AddGoal)
+                                } else {
+                                    lastNonSearchMode.value = state.inputMode
+                                    actions.onInputModeSelected(InputMode.SearchGlobal)
+                                }
+                            },
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = ripple(bounded = true, color = contentColor.copy(alpha = 0.2f))
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Outlined.Search,
+                        "Пошук (довгий тап — скрізь)",
+                        tint = contentColor.copy(alpha = 0.7f),
+                        modifier = Modifier.size(20.dp),
+                    )
                 }
             }
 
@@ -713,6 +751,12 @@ fun ModernInputPanel(
   val currentModeIndex = modes.indexOf(inputMode)
 
   val inputPanelColors = LocalInputPanelColors.current
+  var lastNonSearchMode by remember { mutableStateOf<InputMode?>(null) }
+  LaunchedEffect(inputMode) {
+    if (inputMode != InputMode.SearchInList && inputMode != InputMode.SearchGlobal) {
+      lastNonSearchMode = inputMode
+    }
+  }
   val panelColors =
     when (inputMode) {
       InputMode.AddGoal ->
@@ -902,7 +946,7 @@ fun ModernInputPanel(
                   }
                 Icon(
                   imageVector = icon,
-                  contentDescription = "Magic Button",
+                  contentDescription = "Add to project",
                   modifier =
                     Modifier.size(22.dp).graphicsLayer {
                       rotationZ = if (isPressed) (dragOffset / 20f).coerceIn(-15f, 15f) else 0f
@@ -1049,7 +1093,7 @@ fun ModernInputPanel(
     }
   }
   if (showModeMenu) {
-    InputPanelMagicActionsDialog(
+    InputPanelAddToProjectActionsDialog(
       currentInputMode = inputMode,
       isProjectManagementEnabled = isProjectManagementEnabled,
       onDismiss = { showModeMenu = false },

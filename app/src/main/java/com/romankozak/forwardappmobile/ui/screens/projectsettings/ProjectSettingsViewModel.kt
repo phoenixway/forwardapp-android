@@ -68,7 +68,8 @@ class ProjectSettingsViewModel @Inject constructor(
                     rawScore = project.rawScore,
                     displayScore = project.displayScore,
                     scoringStatus = project.scoringStatus,
-                    isScoringEnabled = project.scoringStatus != ScoringStatusValues.IMPOSSIBLE_TO_ASSESS
+                    isScoringEnabled = project.scoringStatus != ScoringStatusValues.IMPOSSIBLE_TO_ASSESS,
+                    isProjectManagementEnabled = project.isProjectManagementEnabled ?: false,
                 )
             }
         } else {
@@ -96,6 +97,7 @@ class ProjectSettingsViewModel @Inject constructor(
             description = _uiState.value.description.text.ifEmpty { null },
             tags = _uiState.value.tags,
             showCheckboxes = _uiState.value.showCheckboxes,
+            isProjectManagementEnabled = _uiState.value.isProjectManagementEnabled,
             valueImportance = _uiState.value.valueImportance,
             valueImpact = _uiState.value.valueImpact,
             effort = _uiState.value.effort,
@@ -162,6 +164,10 @@ class ProjectSettingsViewModel @Inject constructor(
 
     fun onRemoveTag(tag: String) {
         _uiState.update { it.copy(tags = it.tags - tag) }
+    }
+
+    fun onProjectManagementChange(enabled: Boolean) {
+        _uiState.update { it.copy(isProjectManagementEnabled = enabled) }
     }
 
     override fun onSetReminder(

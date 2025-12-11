@@ -25,4 +25,5 @@ data class ProjectSettingsUiState(
     val reminderTime: Long? = null,
     val selectedTabIndex: Int = 0,
     val showCheckboxes: Boolean = true,
+    val isProjectManagementEnabled: Boolean = false,
 )

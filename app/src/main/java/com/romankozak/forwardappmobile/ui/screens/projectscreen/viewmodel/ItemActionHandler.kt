@@ -103,6 +103,7 @@ class ItemActionHandler
                         item is ListItemContent.ChecklistItem
                 if (isAttachment) {
                     projectRepository.unlinkAttachmentFromProject(currentProjectId, item.listItem.id)
+                    resultListener.forceRefresh()
                     resultListener.showSnackbar("Вкладення видалено з проєкту", null)
                 } else {
                     projectRepository.deleteListItems(currentProjectId, listOf(item.listItem.id))

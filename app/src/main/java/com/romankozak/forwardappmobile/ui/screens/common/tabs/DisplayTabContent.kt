@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.ui.screens.common.tabs
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -14,19 +15,37 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun DisplayTabContent(
     showCheckboxes: Boolean,
-    onShowCheckboxesChange: (Boolean) -> Unit
+    onShowCheckboxesChange: (Boolean) -> Unit,
+    isAdvancedModeEnabled: Boolean,
+    onAdvancedModeChange: (Boolean) -> Unit,
 ) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("Show checkboxes")
-        Switch(
-            checked = showCheckboxes,
-            onCheckedChange = onShowCheckboxesChange
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Show checkboxes")
+            Switch(
+                checked = showCheckboxes,
+                onCheckedChange = onShowCheckboxesChange
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Advanced project mode")
+            Switch(
+                checked = isAdvancedModeEnabled,
+                onCheckedChange = onAdvancedModeChange
+            )
+        }
     }
 }

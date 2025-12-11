@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.domain.lifecontext.SubmitContextInputUseCase
+import com.romankozak.forwardappmobile.domain.lifecontext.StartContextTrackingUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,6 +17,7 @@ import kotlinx.coroutines.launch
 class CommandDeckViewModel @Inject constructor(
     private val application: Application,
     private val submitContextInputUseCase: SubmitContextInputUseCase,
+    private val startContextTrackingUseCase: StartContextTrackingUseCase,
 ) : ViewModel() {
 
     private val sharedPreferences = application.getSharedPreferences("command_deck_prefs", Context.MODE_PRIVATE)
@@ -58,6 +60,19 @@ class CommandDeckViewModel @Inject constructor(
         }
         viewModelScope.launch {
             submitContextInputUseCase(text)
+            clearContextInput()
+            closeContextInput()
+        }
+    }
+
+    fun startContextTracking() {
+        val text = _contextInputText.value.trim()
+        if (text.isEmpty()) {
+            closeContextInput()
+            return
+        }
+        viewModelScope.launch {
+            startContextTrackingUseCase(text)
             clearContextInput()
             closeContextInput()
         }

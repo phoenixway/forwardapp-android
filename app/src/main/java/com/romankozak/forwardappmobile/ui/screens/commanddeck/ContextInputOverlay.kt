@@ -24,6 +24,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -49,6 +50,7 @@ fun ContextInputOverlay(
     text: String,
     onTextChange: (String) -> Unit,
     onSend: () -> Unit,
+    onTrack: () -> Unit,
     onClear: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -122,6 +124,9 @@ fun ContextInputOverlay(
                                 onClear()
                             }) {
                                 Icon(Icons.Outlined.Clear, contentDescription = "Clear")
+                            }
+                            IconButton(onClick = onTrack) {
+                                Icon(Icons.Outlined.PlayArrow, contentDescription = "Track activity")
                             }
                             IconButton(onClick = onSend) {
                                 Icon(Icons.Outlined.Send, contentDescription = "Send")

@@ -80,7 +80,9 @@ fun ProjectSettingsScreen(
             )
             "Display" -> DisplayTabContent(
                 showCheckboxes = uiState.showCheckboxes,
-                onShowCheckboxesChange = viewModel::onShowCheckboxesChange
+                onShowCheckboxesChange = viewModel::onShowCheckboxesChange,
+                isAdvancedModeEnabled = uiState.isProjectManagementEnabled,
+                onAdvancedModeChange = viewModel::onProjectManagementChange,
             )
             "Evaluation" -> EvaluationTabContent(
                 uiState = EvaluationTabUiState(

@@ -41,7 +41,7 @@ data class ActionItem(
 )
 
 @Composable
-fun InputPanelMagicActionsDialog(
+fun InputPanelAddToProjectActionsDialog(
     currentInputMode: InputMode,
     isProjectManagementEnabled: Boolean,
     onDismiss: () -> Unit,
@@ -56,30 +56,6 @@ fun InputPanelMagicActionsDialog(
 ) {
     val haptic = LocalHapticFeedback.current
     val scriptsEnabled = FeatureToggles.isEnabled(FeatureFlag.ScriptsLibrary)
-
-    val searchActions =
-        listOf(
-            ActionItem(
-                title = "Пошук в списку",
-                icon = Icons.Outlined.Search,
-                color = MaterialTheme.colorScheme.primary,
-                isSelected = currentInputMode == InputMode.SearchInList,
-                action = {
-                    onInputModeSelected(InputMode.SearchInList)
-                    onDismiss()
-                },
-            ),
-            ActionItem(
-                title = "Глобальний пошук",
-                icon = Icons.Outlined.TravelExplore,
-                color = MaterialTheme.colorScheme.primary,
-                isSelected = currentInputMode == InputMode.SearchGlobal,
-                action = {
-                    onInputModeSelected(InputMode.SearchGlobal)
-                    onDismiss()
-                },
-            ),
-        )
 
     val linkActions =
         buildList {
@@ -168,41 +144,73 @@ fun InputPanelMagicActionsDialog(
             )
             add(
                 ActionItem(
-                    title = "Ціль",
-                    icon = Icons.Outlined.Add,
-                    color = MaterialTheme.colorScheme.tertiary,
-                    isSelected = currentInputMode == InputMode.AddGoal,
+                    title = "Документ",
+                    icon = Icons.Outlined.List,
+                    color = MaterialTheme.colorScheme.secondary,
                     action = {
-                        onInputModeSelected(InputMode.AddGoal)
+                        onShowCreateNoteDocumentDialog()
                         onDismiss()
                     },
                 ),
             )
             add(
                 ActionItem(
-                    title = "Inbox record",
-                    icon = Icons.Outlined.Inbox,
-                    color = MaterialTheme.colorScheme.tertiary,
-                    isSelected = currentInputMode == InputMode.AddQuickRecord,
+                    title = "Web посилання",
+                    icon = Icons.Outlined.Public,
+                    color = MaterialTheme.colorScheme.secondary,
                     action = {
-                        onInputModeSelected(InputMode.AddQuickRecord)
+                        onShowAddWebLinkDialog()
                         onDismiss()
                     },
                 ),
             )
-            if (isProjectManagementEnabled) {
+            add(
+                ActionItem(
+                    title = "Obsidian нотатка",
+                    icon = Icons.Outlined.DataObject,
+                    color = MaterialTheme.colorScheme.secondary,
+                    action = {
+                        onShowAddObsidianLinkDialog()
+                        onDismiss()
+                    },
+                ),
+            )
+            add(
+                ActionItem(
+                    title = "Вкладений проект",
+                    icon = Icons.Outlined.AccountTree,
+                    color = MaterialTheme.colorScheme.secondary,
+                    action = {
+                        onAddListLinkClick()
+                        onDismiss()
+                    },
+                ),
+            )
+            add(
+                ActionItem(
+                    title = "Чекліст",
+                    icon = Icons.Outlined.Checklist,
+                    color = MaterialTheme.colorScheme.secondary,
+                    action = {
+                        onCreateChecklist()
+                        onDismiss()
+                    },
+                ),
+            )
+            if (scriptsEnabled && onAddScript != null) {
                 add(
                     ActionItem(
-                        title = "Лог проекту",
-                        icon = Icons.Outlined.PostAdd,
-                        color = MaterialTheme.colorScheme.tertiary,
-                        isSelected = currentInputMode == InputMode.AddProjectLog,
+                        title = "Скрипт",
+                        icon = Icons.Outlined.Code,
+                        color = MaterialTheme.colorScheme.secondary,
                         action = {
-                            onInputModeSelected(InputMode.AddProjectLog)
+                            onAddScript()
                             onDismiss()
                         },
                     ),
                 )
+            }
+            if (isProjectManagementEnabled) {
                 add(
                     ActionItem(
                         title = "Віха",
@@ -245,18 +253,6 @@ fun InputPanelMagicActionsDialog(
                 ActionGrid(
                     title = "Add attachment",
                     items = linkActions,
-                    haptic = haptic,
-                )
-
-                ActionGrid(
-                    title = "Режим пошуку",
-                    items = searchActions,
-                    haptic = haptic,
-                )
-
-                ActionGrid(
-                    title = "Режим додавання",
-                    items = addActions,
                     haptic = haptic,
                 )
             }

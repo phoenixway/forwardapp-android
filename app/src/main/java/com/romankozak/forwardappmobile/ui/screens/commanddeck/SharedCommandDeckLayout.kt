@@ -294,6 +294,7 @@ fun SharedCommandDeckLayout(
             text = contextInputText,
             onTextChange = commandDeckViewModel::onContextInputChange,
             onSend = commandDeckViewModel::submitContextInput,
+            onTrack = commandDeckViewModel::startContextTracking,
             onClear = commandDeckViewModel::clearContextInput,
             onDismiss = commandDeckViewModel::closeContextInput
         )

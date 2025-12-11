@@ -230,6 +230,8 @@ private fun ProjectScaffold(
 
     if (uiState.showDisplayPropertiesDialog) {
         ProjectDisplayPropertiesDialog(
+            isProjectManagementEnabled = project?.isProjectManagementEnabled == true,
+            onToggleProjectManagement = viewModel::onToggleProjectManagement,
             onDismiss = viewModel::onDismissDisplayPropertiesDialog
         )
     }
