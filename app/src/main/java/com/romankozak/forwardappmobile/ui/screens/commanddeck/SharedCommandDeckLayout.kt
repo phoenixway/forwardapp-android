@@ -256,11 +256,11 @@ fun SharedCommandDeckLayout(
                     startDestination = COMMAND_DECK_DASHBOARD_ROUTE
                 ) {
                     composable(COMMAND_DECK_DASHBOARD_ROUTE) {
-                        AnimatedCommandDeck(
-                            onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
-                            onNavigateToGlobalSearch = onNavigateToGlobalSearch,
-                            onNavigateToSettings = onNavigateToSettings,
-                            onNavigateToInbox = onNavigateToInbox,
+                AnimatedCommandDeck(
+                    onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                    onNavigateToGlobalSearch = onNavigateToGlobalSearch,
+                    onNavigateToSettings = onNavigateToSettings,
+                    onNavigateToInbox = onNavigateToInbox,
                             onNavigateToTracker = onNavigateToTracker,
                             onNavigateToReminders = onNavigateToReminders,
                             onNavigateToAiChat = onNavigateToAiChat,

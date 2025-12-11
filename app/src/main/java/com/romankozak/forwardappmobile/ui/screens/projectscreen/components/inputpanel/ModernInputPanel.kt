@@ -86,7 +86,8 @@ data class NavPanelState(
 data class NavPanelActions(
   val onBackClick: () -> Unit,
   val onForwardClick: () -> Unit,
-  val onHomeClick: () -> Unit,
+  val onShowProjectHierarchy: () -> Unit,
+  val onNavigateHome: () -> Unit,
   val onRecentsClick: () -> Unit,
   val onRevealInExplorer: () -> Unit,
   val onCloseSearch: () -> Unit,
@@ -508,10 +509,10 @@ private fun NavigationBar(
             // --- LEFT SIDE ---
             BackForwardButton(state, actions, contentColor)
 
-            IconButton(onClick = actions.onHomeClick, modifier = Modifier.size(40.dp)) {
+            IconButton(onClick = actions.onShowProjectHierarchy, modifier = Modifier.size(40.dp)) {
                 Icon(
-                    Icons.Filled.Home,
-                    "Дім",
+                    Icons.Outlined.AccountTree,
+                    "Ієрархія проєктів",
                     tint = contentColor.copy(alpha = 0.7f),
                     modifier = Modifier.size(20.dp),
                 )
@@ -519,10 +520,10 @@ private fun NavigationBar(
 
             Row {
                 AnimatedVisibility(visible = showReveal) {
-                    IconButton(onClick = actions.onRevealInExplorer, modifier = Modifier.size(40.dp)) {
+                    IconButton(onClick = actions.onNavigateHome, modifier = Modifier.size(40.dp)) {
                         Icon(
-                            Icons.Outlined.RemoveRedEye,
-                            "Показати у списку",
+                            Icons.Filled.Home,
+                            "Головний екран",
                             tint = contentColor.copy(alpha = 0.7f),
                             modifier = Modifier.size(20.dp),
                         )
@@ -661,7 +662,8 @@ fun ModernInputPanel(
   canGoForward: Boolean,
   onBackClick: () -> Unit,
   onForwardClick: () -> Unit,
-  onHomeClick: () -> Unit,
+  onShowProjectHierarchy: () -> Unit,
+  onNavigateHome: () -> Unit,
   onEditList: () -> Unit,
   onShareList: () -> Unit,
   onDeleteList: () -> Unit,
@@ -705,7 +707,8 @@ fun ModernInputPanel(
     NavPanelActions(
       onBackClick = onBackClick,
       onForwardClick = onForwardClick,
-      onHomeClick = onHomeClick,
+      onShowProjectHierarchy = onShowProjectHierarchy,
+      onNavigateHome = onNavigateHome,
       onRecentsClick = onRecentsClick,
       onRevealInExplorer = onRevealInExplorer,
       onCloseSearch = onCloseSearch,

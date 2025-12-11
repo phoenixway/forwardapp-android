@@ -431,7 +431,8 @@ private fun ProjectBottomBar(
                 canGoForward = canGoForward,
                 onBackClick = { viewModel.onBackPressed() },
                 onForwardClick = { viewModel.onForwardPressed() },
-                onHomeClick = viewModel::onHomeClick,
+                onShowProjectHierarchy = viewModel::onHomeClick,
+                onNavigateHome = { navController.navigate("command_deck_screen") },
                 onEditList = {
                     Log.d("EDIT_PROJECT_DEBUG", "LIST EDITING")
                     onMenuExpandedChange(false)
@@ -448,7 +449,7 @@ private fun ProjectBottomBar(
                 onImportFromMarkdown = viewModel::onImportFromMarkdownRequest,
                 onExportToMarkdown = viewModel::onExportToMarkdownRequest,
                 onImportBacklogFromMarkdown = viewModel::onImportBacklogFromMarkdownRequest,
-                onExportBacklogToMarkdown = viewModel::onExportBacklogRequest,
+                onExportBacklogToMarkdown = viewModel::onExportBacklogToMarkdownRequest,
                 reminderParseResult = reminderParseResult,
                 onClearReminder = viewModel::onClearReminder,
                 isNerActive = uiState.nerState is NerState.Ready,
