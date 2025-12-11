@@ -1,8 +1,6 @@
 package com.romankozak.forwardappmobile.ui.screens.commanddeck
 
 import android.util.Log
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +15,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.consumeAllChanges
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -84,11 +88,15 @@ fun SharedCommandDeckLayout(
     val isContextInputVisible by commandDeckViewModel.isContextInputVisible.collectAsStateWithLifecycle()
     val contextInputText by commandDeckViewModel.contextInputText.collectAsStateWithLifecycle()
 
-    val headerModifier = Modifier.clickable(
-        indication = null,
-        interactionSource = remember { MutableInteractionSource() }
-    ) {
-        commandDeckViewModel.openContextInput()
+    val headerModifier = Modifier.pointerInput(Unit) {
+        awaitEachGesture {
+            val down = awaitFirstDown(pass = PointerEventPass.Initial, requireUnconsumed = false)
+            down.consumeAllChanges()
+            val up = waitForUpOrCancellation(pass = PointerEventPass.Initial)
+            if (up != null) {
+                commandDeckViewModel.openContextInput()
+            }
+        }
     }
 
     val selectedTabIndex = remember(currentRoute) {
@@ -110,7 +118,7 @@ fun SharedCommandDeckLayout(
             topBar = {
                 when (currentRoute) {
                     COMMAND_DECK_DASHBOARD_ROUTE -> FAHeader(
-                        layout = CommandDeckHeaderPreset(onClick = onNavigateToProjectHierarchy),
+                        layout = CommandDeckHeaderPreset(onClick = {}),
                         backgroundStyle = FAHeaderBackground.CommandDeck,
                         modifier = headerModifier
                     )

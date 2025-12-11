@@ -25,6 +25,6 @@ object LogicModule {
     @Provides
     @Singleton
     fun provideLifeContextProcessor(
-        rules: List<LifeContextRule>
+        rules: @JvmSuppressWildcards List<LifeContextRule>
     ): LifeContextProcessor = DefaultLifeContextProcessor(rules)
 }
