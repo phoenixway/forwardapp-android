@@ -518,12 +518,21 @@ private fun NavigationBar(
                 )
             }
 
+            IconButton(onClick = actions.onNavigateHome, modifier = Modifier.size(40.dp)) {
+                Icon(
+                    Icons.Filled.Home,
+                    "Головний екран",
+                    tint = contentColor.copy(alpha = 0.7f),
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+
             Row {
                 AnimatedVisibility(visible = showReveal) {
-                    IconButton(onClick = actions.onNavigateHome, modifier = Modifier.size(40.dp)) {
+                    IconButton(onClick = actions.onRevealInExplorer, modifier = Modifier.size(40.dp)) {
                         Icon(
-                            Icons.Filled.Home,
-                            "Головний екран",
+                            Icons.Outlined.RemoveRedEye,
+                            "Показати у списку",
                             tint = contentColor.copy(alpha = 0.7f),
                             modifier = Modifier.size(20.dp),
                         )
