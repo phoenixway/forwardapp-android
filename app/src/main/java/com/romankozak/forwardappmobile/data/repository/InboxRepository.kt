@@ -44,15 +44,7 @@ class InboxRepository @Inject constructor(
     }
 
     suspend fun deleteInboxRecordById(recordId: String) {
-        val now = System.currentTimeMillis()
-        val existing = inboxRecordDao.getRecordById(recordId)
-        if (existing != null) {
-            inboxRecordDao.insert(
-                existing.softDelete(now),
-            )
-        } else {
-            inboxRecordDao.deleteById(recordId)
-        }
+        inboxRecordDao.deleteById(recordId)
     }
 
     @Transaction

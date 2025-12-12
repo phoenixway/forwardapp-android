@@ -83,7 +83,7 @@ fun AttachmentsView(
                     AttachmentItemCard(
                         item = it,
                         onItemClick = { viewModel.itemActionHandler.onItemClick(it) },
-                        onDeleteItem = { viewModel.itemActionHandler.deleteItem(it) },
+                        onDeleteItem = { viewModel.deleteAttachmentEverywhere(it) },
                         onCopyContentRequest = { viewModel.itemActionHandler.copyContentRequest(it) },
                         onShareAttachment = { attachment ->
                             viewModel.itemActionHandler.shareAttachmentToProject(attachment)

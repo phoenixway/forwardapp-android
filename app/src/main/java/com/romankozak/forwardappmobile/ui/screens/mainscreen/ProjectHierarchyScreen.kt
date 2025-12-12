@@ -151,6 +151,15 @@ fun ProjectHierarchyScreen(
 
                     navController.currentBackStackEntry
                         ?.savedStateHandle
+                        ?.remove<Boolean>("open_search_dialog")
+                        ?.let { shouldOpen ->
+                            if (shouldOpen == true) {
+                                viewModel.onEvent(ProjectHierarchyScreenEvent.ShowSearchDialog)
+                            }
+                        }
+
+                    navController.currentBackStackEntry
+                        ?.savedStateHandle
                         ?.remove<String>("projectIdToReveal")
                         ?.let { projectId ->
                             android.util.Log.d("ProjectRevealDebug", "Retrieved and removed projectIdToReveal: $projectId")

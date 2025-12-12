@@ -41,6 +41,7 @@ import com.romankozak.forwardappmobile.ui.components.header.StrategicArcHeader
 import com.romankozak.forwardappmobile.ui.components.header.StrategyHeader
 import com.romankozak.forwardappmobile.ui.components.header.TacticsHeader
 import com.romankozak.forwardappmobile.ui.components.header.TodayHeader
+import com.romankozak.forwardappmobile.routes.GOAL_LISTS_ROUTE
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.DayManagementScreen
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanViewModel
 import com.romankozak.forwardappmobile.ui.screens.strategicmanagement.StrategicManagementScreen
@@ -207,7 +208,16 @@ fun SharedCommandDeckLayout(
                     ) {
                         DashboardBottomBar(
                             onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
-                            onNavigateToProjectSearch = onNavigateToProjectHierarchy,
+                            onNavigateToProjectSearch = {
+                                navController.navigate(GOAL_LISTS_ROUTE) {
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                                runCatching {
+                                    navController.getBackStackEntry(GOAL_LISTS_ROUTE)
+                                        .savedStateHandle["open_search_dialog"] = true
+                                }
+                            },
                             onNavigateToTracker = onNavigateToTracker,
                             onNavigateToInbox = onNavigateToInbox,
                             onNavigateToReminders = onNavigateToReminders,
