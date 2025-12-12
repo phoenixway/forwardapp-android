@@ -100,7 +100,7 @@ fun DashboardBottomBar(
         )
 
         BarButton(
-            icon = Icons.Outlined.AccountTree,
+            icon = Icons.Outlined.Dashboard,
             onClick = onNavigateToProjectHierarchy,
             label = "Projects",
         )

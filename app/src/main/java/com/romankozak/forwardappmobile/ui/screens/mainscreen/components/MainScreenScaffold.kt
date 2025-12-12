@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -45,6 +46,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
@@ -66,6 +68,7 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.HandlePr
 import com.romankozak.forwardappmobile.ui.shared.InProgressIndicator
 import com.romankozak.forwardappmobile.config.FeatureFlag
 import com.romankozak.forwardappmobile.config.FeatureToggles
+import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
 
 
 private const val UI_TAG = "ProjectHierarchyScreenUI_DEBUG"
@@ -173,47 +176,56 @@ fun ProjectHierarchyScreenScaffold(
                     onIndicatorClick = { onEvent(ProjectHierarchyScreenEvent.NavigateToActivityTracker) },
                     indicatorState = indicatorState
                 )
-                Spacer(modifier = Modifier.height(4.dp))
                 val isSearchActive = uiState.subStateStack.any { it is ProjectHierarchyScreenSubState.LocalSearch }
 
-                if (isSearchActive) {
-                    SearchProjectHierarchyBottomBar(
-                        searchQuery = uiState.searchQuery,
-                        onQueryChange = { onEvent(ProjectHierarchyScreenEvent.SearchQueryChanged(it)) },
-                        onCloseSearch = {
-                            onEvent(ProjectHierarchyScreenEvent.CloseSearch)
-                        },
-                        onPerformGlobalSearch = { onEvent(ProjectHierarchyScreenEvent.GlobalSearchPerform(it)) },
-                        onShowSearchHistory = { showSearchHistorySheet = true },
-                    )
-                } else {
-                    OptimizedExpandingProjectHierarchyBottomNav(
-                        onToggleSearch = { _ ->
-                            onEvent(ProjectHierarchyScreenEvent.SearchQueryChanged(TextFieldValue("")))
-                        },
-                        onGlobalSearchClick = { onEvent(ProjectHierarchyScreenEvent.ShowSearchDialog) },
-                        currentMode = uiState.planningMode,
-                        planningModesEnabled = uiState.featureToggles[com.romankozak.forwardappmobile.config.FeatureFlag.PlanningModes] == true,
-                        onPlanningModeChange = { mode -> onEvent(ProjectHierarchyScreenEvent.PlanningModeChange(mode)) },
-                        onContextsClick = { showContextSheet = true },
-                        onRecentsClick = { onEvent(ProjectHierarchyScreenEvent.ShowRecentLists) },
-                        onDayPlanClick = { onEvent(ProjectHierarchyScreenEvent.DayPlanClick) },
-                        onHomeClick = { onEvent(ProjectHierarchyScreenEvent.HomeClick) },
-                        onStrManagementClick = { onEvent(ProjectHierarchyScreenEvent.NavigateToStrategicManagement) },
-                        strategicManagementEnabled = uiState.featureToggles[com.romankozak.forwardappmobile.config.FeatureFlag.StrategicManagement] == true,
-                        aiChatEnabled = uiState.featureToggles[com.romankozak.forwardappmobile.config.FeatureFlag.AiChat] == true,
-                        aiInsightsEnabled = uiState.featureToggles[com.romankozak.forwardappmobile.config.FeatureFlag.AiInsights] == true,
-                        aiLifeManagementEnabled = uiState.featureToggles[com.romankozak.forwardappmobile.config.FeatureFlag.AiLifeManagement] == true,
-                        isExpanded = uiState.isBottomNavExpanded,
-                        onExpandedChange = { expanded -> onEvent(ProjectHierarchyScreenEvent.BottomNavExpandedChange(expanded)) },
-                        onAiChatClick = { onEvent(ProjectHierarchyScreenEvent.NavigateToChat) },
-                        onActivityTrackerClick = { onEvent(ProjectHierarchyScreenEvent.NavigateToActivityTracker) },
-                        onInsightsClick = { onEvent(ProjectHierarchyScreenEvent.NavigateToAiInsights) },
-                        onShowReminders = { onEvent(ProjectHierarchyScreenEvent.GoToReminders) },
-                        onLifeStateClick = { onEvent(ProjectHierarchyScreenEvent.NavigateToLifeState) },
-                        onTacticsClick = { onEvent(ProjectHierarchyScreenEvent.NavigateToTacticsScreen) },
-                        onEvent = onEvent,
-                    )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .then(CommandDeckBackgroundModifier())
+                        .padding(horizontal = 22.dp, vertical = 12.dp)
+                ) {
+                    if (isSearchActive) {
+                        SearchProjectHierarchyBottomBar(
+                            searchQuery = uiState.searchQuery,
+                            onQueryChange = { onEvent(ProjectHierarchyScreenEvent.SearchQueryChanged(it)) },
+                            onCloseSearch = {
+                                onEvent(ProjectHierarchyScreenEvent.CloseSearch)
+                            },
+                            onPerformGlobalSearch = { onEvent(ProjectHierarchyScreenEvent.GlobalSearchPerform(it)) },
+                            onShowSearchHistory = { showSearchHistorySheet = true },
+                        )
+                    } else {
+                        OptimizedExpandingProjectHierarchyBottomNav(
+                            onToggleSearch = { _ ->
+                                onEvent(ProjectHierarchyScreenEvent.SearchQueryChanged(TextFieldValue("")))
+                            },
+                            onGlobalSearchClick = { onEvent(ProjectHierarchyScreenEvent.ShowSearchDialog) },
+                            onShowCommandDeck = { onEvent(ProjectHierarchyScreenEvent.CommandDeckClick) },
+                            currentMode = uiState.planningMode,
+                            planningModesEnabled = uiState.featureToggles[com.romankozak.forwardappmobile.config.FeatureFlag.PlanningModes] == true,
+                            onPlanningModeChange = { mode -> onEvent(ProjectHierarchyScreenEvent.PlanningModeChange(mode)) },
+                            onRecentsClick = { onEvent(ProjectHierarchyScreenEvent.ShowRecentLists) },
+                            onDayPlanClick = { onEvent(ProjectHierarchyScreenEvent.DayPlanClick) },
+                            onHomeClick = { onEvent(ProjectHierarchyScreenEvent.HomeClick) },
+                            onStrManagementClick = { onEvent(ProjectHierarchyScreenEvent.NavigateToStrategicManagement) },
+                            strategicManagementEnabled = uiState.featureToggles[com.romankozak.forwardappmobile.config.FeatureFlag.StrategicManagement] == true,
+                            aiChatEnabled = uiState.featureToggles[com.romankozak.forwardappmobile.config.FeatureFlag.AiChat] == true,
+                            aiInsightsEnabled = uiState.featureToggles[com.romankozak.forwardappmobile.config.FeatureFlag.AiInsights] == true,
+                            aiLifeManagementEnabled = uiState.featureToggles[com.romankozak.forwardappmobile.config.FeatureFlag.AiLifeManagement] == true,
+                            isExpanded = uiState.isBottomNavExpanded,
+                            onExpandedChange = { expanded -> onEvent(ProjectHierarchyScreenEvent.BottomNavExpandedChange(expanded)) },
+                            onAiChatClick = { onEvent(ProjectHierarchyScreenEvent.NavigateToChat) },
+                            onActivityTrackerClick = { onEvent(ProjectHierarchyScreenEvent.NavigateToActivityTracker) },
+                            onInsightsClick = { onEvent(ProjectHierarchyScreenEvent.NavigateToAiInsights) },
+                            onShowReminders = { onEvent(ProjectHierarchyScreenEvent.GoToReminders) },
+                            onLifeStateClick = { onEvent(ProjectHierarchyScreenEvent.NavigateToLifeState) },
+                            onTacticsClick = { onEvent(ProjectHierarchyScreenEvent.NavigateToTacticsScreen) },
+                            onContextsClick = { showContextSheet = true },
+                            onEvent = onEvent,
+                        )
+                    }
                 }
             }
         },

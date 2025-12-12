@@ -17,6 +17,7 @@ import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
+import com.romankozak.forwardappmobile.routes.COMMAND_DECK_ROUTE
 
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenEvent
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenUiState
@@ -468,6 +469,12 @@ constructor(
       is ProjectHierarchyScreenEvent.RecentItemPinClick -> toggleRecentItemPin(event.item)
       is ProjectHierarchyScreenEvent.DayPlanClick -> onDayPlanClicked()
       is ProjectHierarchyScreenEvent.ContextSelected -> onContextSelected(event.name)
+      is ProjectHierarchyScreenEvent.CommandDeckClick -> {
+        enhancedNavigationManager?.navigate(COMMAND_DECK_ROUTE) {
+          popUpTo(COMMAND_DECK_ROUTE) { inclusive = true }
+          launchSingleTop = true
+        }
+      }
 
       is ProjectHierarchyScreenEvent.EditRequest -> {
         viewModelScope.launch {
@@ -495,7 +502,10 @@ constructor(
       is ProjectHierarchyScreenEvent.GoToSettings -> {
         viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.NavigateToSettings) }
       }
-      is ProjectHierarchyScreenEvent.ShowSearchDialog -> _showSearchDialog.value = true
+      is ProjectHierarchyScreenEvent.ShowSearchDialog -> {
+        searchUseCase.onSearchQueryChanged(TextFieldValue(""))
+        searchUseCase.onToggleSearch(true)
+      }
       is ProjectHierarchyScreenEvent.DismissSearchDialog -> _showSearchDialog.value = false
 
       is ProjectHierarchyScreenEvent.ShowWifiServerDialog -> if (uiState.value.featureToggles[FeatureFlag.WifiSync] == true) syncUseCase.onShowWifiServerDialog()

@@ -197,6 +197,7 @@ private fun StableHomeButton(
 internal fun OptimizedExpandingProjectHierarchyBottomNav(
     onToggleSearch: (Boolean) -> Unit,
     onGlobalSearchClick: () -> Unit,
+    onShowCommandDeck: () -> Unit,
     currentMode: PlanningMode,
     onPlanningModeChange: (PlanningMode) -> Unit,
     planningModesEnabled: Boolean,
@@ -225,15 +226,18 @@ internal fun OptimizedExpandingProjectHierarchyBottomNav(
     val stableOnToggleSearch = remember { onToggleSearch }
     val stableOnRecentsClick = remember { { onRecentsClick() } }
     val stableOnActivityTrackerClick = remember { { onActivityTrackerClick() } }
+    val stableOnShowCommandDeck = remember { { onShowCommandDeck() } }
+    val stableOnContextsClick = remember { { onContextsClick() } }
 
     
     ExpandingProjectHierarchyBottomNav(
         onToggleSearch = stableOnToggleSearch,
         onGlobalSearchClick = onGlobalSearchClick,
+        onShowCommandDeck = stableOnShowCommandDeck,
         currentMode = currentMode,
         onPlanningModeChange = onPlanningModeChange,
         planningModesEnabled = planningModesEnabled,
-        onContextsClick = onContextsClick,
+        onContextsClick = stableOnContextsClick,
         onRecentsClick = stableOnRecentsClick,
         onDayPlanClick = stableOnDayPlanClick,
         onHomeClick = stableOnHomeClick,

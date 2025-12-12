@@ -2,9 +2,10 @@ package com.romankozak.forwardappmobile.ui.screens.mainscreen.components
 
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.ui.dialogs.AboutAppDialog
 import com.romankozak.forwardappmobile.ui.dialogs.AddProjectDialog
-import com.romankozak.forwardappmobile.ui.dialogs.GlobalSearchDialog
 import com.romankozak.forwardappmobile.ui.dialogs.WifiImportDialog
 import com.romankozak.forwardappmobile.ui.dialogs.WifiServerDialog
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.dialogs.ContextMenuDialog
@@ -115,9 +116,9 @@ fun HandleProjectHierarchyDialogs(
         )
     }
     if (uiState.showSearchDialog) {
-        GlobalSearchDialog(
-            onDismiss = { onEvent(ProjectHierarchyScreenEvent.DismissSearchDialog) },
-            onConfirm = { onEvent(ProjectHierarchyScreenEvent.GlobalSearchPerform(it)) },
-        )
+        LaunchedEffect(uiState.showSearchDialog) {
+            onEvent(ProjectHierarchyScreenEvent.SearchQueryChanged(TextFieldValue("")))
+            onEvent(ProjectHierarchyScreenEvent.DismissSearchDialog)
+        }
     }
 }

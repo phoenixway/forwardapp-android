@@ -84,6 +84,8 @@ sealed interface ProjectHierarchyScreenEvent {
 
     data class ContextSelected(val name: String) : ProjectHierarchyScreenEvent
 
+    data object CommandDeckClick : ProjectHierarchyScreenEvent
+
     
     data class EditRequest(val project: Project) : ProjectHierarchyScreenEvent
     data class AddToDayPlanRequest(val project: Project) : ProjectHierarchyScreenEvent

@@ -10,7 +10,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -152,42 +154,54 @@ internal fun MoreActionsBottomNavButton(
     onAiChatClick: () -> Unit,
     onLifeStateClick: () -> Unit,
     onTacticsClick: () -> Unit, // Added
+    onContextsClick: () -> Unit,
     aiChatEnabled: Boolean,
     aiInsightsEnabled: Boolean,
     aiLifeManagementEnabled: Boolean,
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    val primary = MaterialTheme.colorScheme.primary
 
     Column(
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color.Transparent)
+            .clip(RoundedCornerShape(14.dp))
             .clickable { showMenu = true }
-            .padding(horizontal = 4.dp, vertical = 6.dp)
-            .widthIn(min = 56.dp),
+            .padding(6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Icon(
-            imageVector = Icons.Outlined.MoreVert,
-            contentDescription = "More Actions",
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-            modifier = Modifier.size(20.dp),
-        )
-        Spacer(modifier = Modifier.height(3.dp))
-        Text(
-            text = "More",
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Medium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-        )
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(primary.copy(alpha = 0.10f))
+                .border(
+                    width = 1.dp,
+                    color = primary.copy(alpha = 0.22f),
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.MoreVert,
+                contentDescription = "More Actions",
+                tint = primary.copy(alpha = 0.9f),
+                modifier = Modifier.size(24.dp),
+            )
+        }
 
         DropdownMenu(
             expanded = showMenu,
             onDismissRequest = { showMenu = false },
             offset = DpOffset(0.dp, (-50).dp) // Adjust offset to position above the button
         ) {
+            DropdownMenuItem(
+                text = { Text("Contexts") },
+                leadingIcon = { Icon(Icons.Outlined.AccountTree, contentDescription = "Contexts") },
+                onClick = {
+                    onContextsClick()
+                    showMenu = false
+                }
+            )
             DropdownMenuItem(
                 text = { Text("Tactics") },
                 leadingIcon = { Icon(Icons.Outlined.MilitaryTech, contentDescription = "Tactics") },
@@ -242,10 +256,10 @@ internal fun MoreActionsBottomNavButton(
 internal fun ExpandingProjectHierarchyBottomNav(
     onToggleSearch: (Boolean) -> Unit,
     onGlobalSearchClick: () -> Unit,
+    onShowCommandDeck: () -> Unit,
     currentMode: PlanningMode,
     onPlanningModeChange: (PlanningMode) -> Unit,
     planningModesEnabled: Boolean,
-    onContextsClick: () -> Unit,
     onRecentsClick: () -> Unit,
     onDayPlanClick: () -> Unit,
     onHomeClick: () -> Unit,
@@ -263,6 +277,7 @@ internal fun ExpandingProjectHierarchyBottomNav(
     onShowReminders: () -> Unit,
     onLifeStateClick: () -> Unit,
     onTacticsClick: () -> Unit, // Added
+    onContextsClick: () -> Unit,
     onEvent: (ProjectHierarchyScreenEvent) -> Unit,
 ) {
     var showMoreMenu by remember { mutableStateOf(false) }
@@ -270,10 +285,11 @@ internal fun ExpandingProjectHierarchyBottomNav(
     val arrowRotation by animateFloatAsState(targetValue = if (isExpanded) 180f else 0f, label = "arrowAnimation")
 
     Surface(
-        tonalElevation = 8.dp,
-        shadowElevation = 12.dp,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         modifier = Modifier.fillMaxWidth(),
+        color = Color.Transparent,
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -282,13 +298,12 @@ internal fun ExpandingProjectHierarchyBottomNav(
             Row(
                 modifier =
                 Modifier
-                    .fillMaxWidth()
-                    .padding(start = 4.dp, end = 4.dp, bottom = 8.dp),
+                    .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceEvenly,
+                horizontalArrangement = Arrangement.SpaceAround,
             ) {
                 ModernBottomNavButton(text = "Search", icon = Icons.Outlined.Search, isSelected = false, onClick = { onToggleSearch(true) })
-                ModernBottomNavButton(text = "Contexts", icon = Icons.Outlined.AccountTree, onClick = onContextsClick)
+                ModernBottomNavButton(text = "Command Deck", icon = Icons.Outlined.AccountTree, onClick = onShowCommandDeck)
                 ModernBottomNavButton(text = "Home", icon = Icons.Outlined.Home, onClick = onHomeClick)
                 ModernBottomNavButton(text = "Recent", icon = Icons.Outlined.History, onClick = onRecentsClick)
                 MoreActionsBottomNavButton(
@@ -300,6 +315,7 @@ internal fun ExpandingProjectHierarchyBottomNav(
                     aiChatEnabled = aiChatEnabled,
                     aiInsightsEnabled = aiInsightsEnabled,
                     aiLifeManagementEnabled = aiLifeManagementEnabled,
+                    onContextsClick = onContextsClick,
                 )
             }
         }
@@ -313,45 +329,42 @@ fun ModernBottomNavButton(
     isSelected: Boolean = false,
     onClick: () -> Unit,
 ) {
-    val backgroundColor =
-        if (isSelected) {
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f)
-        } else {
-            Color.Transparent
-        }
-
-    val contentColor =
-        if (isSelected) {
-            MaterialTheme.colorScheme.onPrimaryContainer
-        } else {
-            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-        }
+    val primary = MaterialTheme.colorScheme.primary
+    val interactionSource = remember { MutableInteractionSource() }
+    val fillAlpha = if (isSelected) 0.10f else 0.10f
+    val borderAlpha = if (isSelected) 0.22f else 0.22f
 
     Column(
         modifier =
             Modifier
-                .clip(RoundedCornerShape(12.dp))
-                .background(backgroundColor)
-                .clickable(onClick = onClick)
-                .padding(horizontal = 4.dp, vertical = 6.dp)
-                .widthIn(min = 56.dp),
+                .clip(RoundedCornerShape(14.dp))
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onClick
+                )
+                .padding(6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = text,
-            tint = contentColor,
-            modifier = Modifier.size(20.dp),
-        )
-        Spacer(modifier = Modifier.height(3.dp))
-        Text(
-            text = text,
-            fontSize = 10.sp,
-            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            color = contentColor,
-        )
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(primary.copy(alpha = fillAlpha))
+                .border(
+                    width = 1.dp,
+                    color = primary.copy(alpha = borderAlpha),
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = text,
+                tint = primary.copy(alpha = 0.9f),
+                modifier = Modifier.size(24.dp),
+            )
+        }
     }
 }
 
