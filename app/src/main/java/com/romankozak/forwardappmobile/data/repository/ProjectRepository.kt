@@ -346,6 +346,7 @@ constructor(
         id: String,
         name: String,
         parentId: String?,
+        roleCode: String? = null,
     ) {
         val now = System.currentTimeMillis()
         val newProject =
@@ -358,6 +359,7 @@ constructor(
                 updatedAt = now,
                 syncedAt = null,
                 version = 1,
+                roleCode = roleCode,
             )
         projectDao.insert(newProject)
         if (parentId != null) {
@@ -444,6 +446,8 @@ constructor(
         targetProjectId: String,
         ownerProjectId: String?,
         createdAt: Long = System.currentTimeMillis(),
+        roleCode: String? = null,
+        isSystem: Boolean = false,
     ): String =
         attachmentRepository
             .ensureAttachmentLinkedToProject(
@@ -452,6 +456,8 @@ constructor(
                 projectId = targetProjectId,
                 ownerProjectId = ownerProjectId,
                 createdAt = createdAt,
+                roleCode = roleCode,
+                isSystem = isSystem,
             ).id
 
     suspend fun unlinkAttachmentFromProject(
@@ -521,6 +527,33 @@ constructor(
     suspend fun updateProjectArtifact(artifact: ProjectArtifact) = projectArtifactRepository.updateProjectArtifact(artifact)
 
     suspend fun createProjectArtifact(artifact: ProjectArtifact) = projectArtifactRepository.createProjectArtifact(artifact)
+
+    suspend fun ensureSubprojectByRole(
+        parentProjectId: String,
+        roleCode: String,
+        title: String
+    ): Project {
+        val existing = projectDao.findChildByRole(parentProjectId, roleCode)
+        if (existing != null) return existing
+        val newId = UUID.randomUUID().toString()
+        createProjectWithId(
+            id = newId,
+            name = title,
+            parentId = parentProjectId,
+            roleCode = roleCode,
+        )
+        return projectDao.getProjectById(newId) ?: Project(
+            id = newId,
+            name = title,
+            parentId = parentProjectId,
+            description = "",
+            createdAt = System.currentTimeMillis(),
+            updatedAt = System.currentTimeMillis(),
+            syncedAt = null,
+            version = 1,
+            roleCode = roleCode,
+        )
+    }
 
     suspend fun ensureChildProjectListItemsExist(projectId: String) {
         val children = projectDao.getProjectsByParentId(projectId)

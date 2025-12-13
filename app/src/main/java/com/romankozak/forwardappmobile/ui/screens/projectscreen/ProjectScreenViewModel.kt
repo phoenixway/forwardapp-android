@@ -47,6 +47,7 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.ItemAc
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.ProjectMarkdownExporter
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.SelectionHandler
 import com.romankozak.forwardappmobile.ui.common.editor.NoteTitleExtractor
+import com.romankozak.forwardappmobile.data.repository.ProjectStructureRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.net.URLEncoder
 import java.net.URLDecoder
@@ -119,7 +120,13 @@ data class UiState(
   val itemToHighlight: String? = null,
   val inboxRecordToHighlight: String? = null,
   val needsStateRefresh: Boolean = false,
-  val currentView: ProjectViewMode = ProjectViewMode.BACKLOG,
+    val enableInbox: Boolean = true,
+    val enableLog: Boolean = true,
+    val enableArtifact: Boolean = true,
+    val isProjectManagementEnabled: Boolean = false,
+    val enableBacklog: Boolean = true,
+    val enableDashboard: Boolean = true,
+    val currentView: ProjectViewMode = ProjectViewMode.BACKLOG,
   val showRecentProjectsSheet: Boolean = false,
   val showImportFromMarkdownDialog: Boolean = false,
   val showImportBacklogFromMarkdownDialog: Boolean = false,
@@ -262,6 +269,7 @@ constructor(
   private val projectLogRepository: com.romankozak.forwardappmobile.data.repository.ProjectLogRepository,
   private val noteRepository: com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository,
   private val inboxRepository: com.romankozak.forwardappmobile.data.repository.InboxRepository,
+  private val projectStructureRepository: ProjectStructureRepository,
 ) :
   ViewModel(),
   ItemActionHandler.ResultListener,
@@ -473,6 +481,51 @@ constructor(
             projectRepository.ensureChildProjectListItemsExist(projectId)
         }
     }
+    viewModelScope.launch {
+        projectIdFlow
+            .filter { it.isNotEmpty() }
+            .flatMapLatest { projectStructureRepository.observeStructure(it) }
+            .collect { structureWithItems ->
+                val structure = structureWithItems?.structure
+                val enableInbox = structure?.enableInbox ?: true
+                val enableLog = structure?.enableLog ?: true
+                val enableArtifact = structure?.enableArtifact ?: true
+                val enableAdvanced = structure?.enableAdvanced ?: false
+                val enableDashboard = structure?.enableDashboard ?: true
+                val enableBacklog = structure?.enableBacklog ?: true
+                _uiState.update {
+                    val currentView = it.currentView
+                    val availableTabs = listOfNotNull(
+                        ProjectManagementTab.Dashboard.takeIf { enableDashboard },
+        ProjectManagementTab.Log.takeIf { enableLog },
+        ProjectManagementTab.Artifact.takeIf { enableArtifact },
+        ProjectManagementTab.Insights,
+                    )
+                    val safeDashboardTab =
+                        if (it.selectedDashboardTab in availableTabs) it.selectedDashboardTab else availableTabs.firstOrNull()
+                    val adjustedView =
+                        when {
+                            !enableBacklog && currentView == ProjectViewMode.BACKLOG && enableDashboard -> ProjectViewMode.DASHBOARD
+                            !enableInbox && currentView == ProjectViewMode.INBOX -> if (enableBacklog) ProjectViewMode.BACKLOG else ProjectViewMode.DASHBOARD
+                            !enableArtifact && currentView == ProjectViewMode.ATTACHMENTS -> if (enableBacklog) ProjectViewMode.BACKLOG else ProjectViewMode.DASHBOARD
+                            (!enableLog || !(it.isProjectManagementEnabled || enableAdvanced)) && currentView == ProjectViewMode.ADVANCED -> if (enableBacklog) ProjectViewMode.BACKLOG else ProjectViewMode.DASHBOARD
+                            !enableDashboard && currentView == ProjectViewMode.DASHBOARD && enableBacklog -> ProjectViewMode.BACKLOG
+                            else -> currentView
+                        }
+                    it.copy(
+                        enableInbox = enableInbox,
+                        enableLog = enableLog,
+                        enableArtifact = enableArtifact,
+                        enableBacklog = enableBacklog,
+                        enableDashboard = enableDashboard,
+                        isProjectManagementEnabled = it.isProjectManagementEnabled || enableAdvanced,
+                        currentView = adjustedView,
+                        inputMode = getInputModeForView(adjustedView),
+                        selectedDashboardTab = safeDashboardTab ?: ProjectManagementTab.Insights,
+                    )
+                }
+            }
+    }
 
     savedStateHandle.get<String>("initialViewMode")?.let { modeName ->
       try {
@@ -487,8 +540,8 @@ constructor(
     viewModelScope.launch {
       project.collect { proj ->
         if (proj != null) {
-          _uiState.update { it.copy(showCheckboxes = proj.showCheckboxes) }
-          val isManagementEnabled = proj.isProjectManagementEnabled ?: false
+          _uiState.update { it.copy(showCheckboxes = proj.showCheckboxes, isProjectManagementEnabled = proj.isProjectManagementEnabled == true || it.isProjectManagementEnabled) }
+          val isManagementEnabled = _uiState.value.isProjectManagementEnabled
           val currentView = uiState.value.currentView
           if (!isManagementEnabled && currentView == ProjectViewMode.ADVANCED) {
             Log.d(
@@ -1321,6 +1374,12 @@ constructor(
   }
 
   fun onProjectViewChange(newView: ProjectViewMode) {
+    val flags = uiState.value
+    if (newView == ProjectViewMode.INBOX && !flags.enableInbox) return
+    if (newView == ProjectViewMode.ADVANCED && (!flags.isProjectManagementEnabled || !flags.enableLog)) return
+    if (newView == ProjectViewMode.ATTACHMENTS && !flags.enableArtifact) return
+    if (newView == ProjectViewMode.DASHBOARD && !flags.enableDashboard) return
+    if (newView == ProjectViewMode.BACKLOG && !flags.enableBacklog) return
     Log.d("ATTACHMENT_DEBUG", "VM: onProjectViewChange(newView = $newView) called.")
     _uiState.update {
       Log.d("ATTACHMENT_DEBUG", "VM: Updating uiState.currentView to $newView.")

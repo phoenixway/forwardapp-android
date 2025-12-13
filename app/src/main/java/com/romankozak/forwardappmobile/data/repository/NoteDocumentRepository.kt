@@ -37,6 +37,8 @@ class NoteDocumentRepository @Inject constructor(
         name: String,
         projectId: String,
         content: String? = null,
+        roleCode: String? = null,
+        isSystem: Boolean = false,
     ): String {
         Log.d(TAG, "createDocument called with name: $name, projectId: $projectId, content: $content")
         val now = System.currentTimeMillis()
@@ -49,6 +51,8 @@ class NoteDocumentRepository @Inject constructor(
             projectId = projectId,
             ownerProjectId = projectId,
             createdAt = document.createdAt,
+            roleCode = roleCode,
+            isSystem = isSystem,
         )
         Log.d(TAG, "createDocument finished")
         return document.id

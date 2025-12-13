@@ -16,8 +16,6 @@ import androidx.compose.ui.unit.dp
 fun DisplayTabContent(
     showCheckboxes: Boolean,
     onShowCheckboxesChange: (Boolean) -> Unit,
-    isAdvancedModeEnabled: Boolean,
-    onAdvancedModeChange: (Boolean) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -34,17 +32,6 @@ fun DisplayTabContent(
             Switch(
                 checked = showCheckboxes,
                 onCheckedChange = onShowCheckboxesChange
-            )
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("Advanced project mode")
-            Switch(
-                checked = isAdvancedModeEnabled,
-                onCheckedChange = onAdvancedModeChange
             )
         }
     }

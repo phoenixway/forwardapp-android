@@ -90,10 +90,6 @@ object NavTargetRouter {
             NavTarget.TacticalManagement ->
                 "tactical_management_screen"
 
-            is NavTarget.ProjectDetail ->
-                "project_screen?projectId=${target.projectId}" +
-                    (target.goalId?.let { "&goalId=$it" } ?: "")
-
             is NavTarget.GoalSettings ->
                 "goal_settings_screen/${target.goalId}"
 
@@ -111,5 +107,20 @@ object NavTargetRouter {
                     "selective_import_screen/${URLEncoder.encode(target.uri, "UTF-8")}"
                 else
                     "selective_import_screen"
+
+            is NavTarget.ProjectStructure ->
+                "project_structure_screen/${target.projectId}"
+
+            NavTarget.StructurePresets ->
+                "structure_presets_screen"
+
+            is NavTarget.StructurePresetEditor ->
+                "structure_preset_editor_screen" +
+                    buildQuery(
+                        listOf(
+                            "presetId" to target.presetId,
+                            "copyFromPresetId" to target.copyFromPresetId,
+                        )
+                    )
         }
 }

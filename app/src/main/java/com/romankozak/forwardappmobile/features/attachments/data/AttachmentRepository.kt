@@ -44,17 +44,34 @@ class AttachmentRepository @Inject constructor(
     suspend fun getAttachmentById(attachmentId: String): AttachmentEntity? =
         attachmentDao.getAttachmentById(attachmentId)
 
+    suspend fun findAttachmentByRole(projectId: String, roleCode: String): AttachmentEntity? =
+        attachmentDao.findAttachmentByRole(projectId, roleCode)
+
     suspend fun ensureAttachmentForEntity(
         attachmentType: String,
         entityId: String,
         ownerProjectId: String?,
         createdAt: Long = System.currentTimeMillis(),
+        roleCode: String? = null,
+        isSystem: Boolean = false,
     ): AttachmentEntity {
         Log.d(ATTACHMENT_LOG_TAG, "[ensureAttachmentForEntity] START: type=$attachmentType, entity=$entityId, owner=$ownerProjectId, createdAt=$createdAt")
         val existing = attachmentDao.findAttachmentByEntity(attachmentType, entityId)
         if (existing != null) {
             Log.d(ATTACHMENT_LOG_TAG, "[ensureAttachmentForEntity] FOUND existing: id=${existing.id}, syncedAt=${existing.syncedAt}, version=${existing.version}")
-            return existing
+            val needsUpdate = (roleCode != null && existing.roleCode != roleCode) || (isSystem && !existing.isSystem)
+            return if (needsUpdate) {
+                val updated = existing.copy(
+                    roleCode = roleCode ?: existing.roleCode,
+                    isSystem = existing.isSystem || isSystem,
+                    updatedAt = System.currentTimeMillis(),
+                    version = existing.version + 1
+                )
+                attachmentDao.insertAttachment(updated)
+                updated
+            } else {
+                existing
+            }
         }
 
         val attachment =
@@ -63,6 +80,8 @@ class AttachmentRepository @Inject constructor(
                 attachmentType = attachmentType,
                 entityId = entityId,
                 ownerProjectId = ownerProjectId,
+                roleCode = roleCode,
+                isSystem = isSystem,
                 createdAt = createdAt,
                 updatedAt = createdAt,
                 syncedAt = null,
@@ -79,9 +98,18 @@ class AttachmentRepository @Inject constructor(
         projectId: String,
         ownerProjectId: String? = null,
         createdAt: Long = System.currentTimeMillis(),
+        roleCode: String? = null,
+        isSystem: Boolean = false,
     ): AttachmentEntity {
         Log.d(ATTACHMENT_LOG_TAG, "[ensureAttachmentLinkedToProject] START: type=$attachmentType, entity=$entityId, project=$projectId")
-        val attachment = ensureAttachmentForEntity(attachmentType, entityId, ownerProjectId, createdAt)
+        val attachment = ensureAttachmentForEntity(
+            attachmentType,
+            entityId,
+            ownerProjectId,
+            createdAt,
+            roleCode,
+            isSystem
+        )
         
         // Check if this link already exists to prevent duplicates
         val existingLink = attachmentDao.getProjectAttachmentLink(projectId, attachment.id)
@@ -103,6 +131,8 @@ class AttachmentRepository @Inject constructor(
     suspend fun createLinkAttachment(
          projectId: String,
          link: RelatedLink,
+         roleCode: String? = null,
+         isSystem: Boolean = false,
      ): AttachmentEntity {
          val timestamp = System.currentTimeMillis()
          Log.d(ATTACHMENT_LOG_TAG, "[createLinkAttachment] START: project=$projectId, link=${link.displayName ?: link.target}, ts=$timestamp")
@@ -125,6 +155,8 @@ class AttachmentRepository @Inject constructor(
                  attachmentType = ListItemTypeValues.LINK_ITEM,
                  entityId = linkEntity.id,
                  ownerProjectId = projectId,
+                roleCode = roleCode,
+                isSystem = isSystem,
                  createdAt = timestamp,
                  updatedAt = timestamp,
                  syncedAt = null,

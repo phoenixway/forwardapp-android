@@ -959,3 +959,121 @@ val MIGRATION_80_81 = object : Migration(80, 81) {
         db.execSQL("ALTER TABLE activity_records ADD COLUMN anty_xp INTEGER")
     }
 }
+
+val MIGRATION_81_82 = object : Migration(81, 82) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `structure_presets` (
+                `id` TEXT NOT NULL,
+                `code` TEXT NOT NULL,
+                `label` TEXT NOT NULL,
+                `description` TEXT,
+                PRIMARY KEY(`id`)
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_structure_presets_code` ON `structure_presets` (`code`)")
+    }
+}
+
+val MIGRATION_82_83 = object : Migration(82, 83) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `structure_preset_items` (
+                `id` TEXT NOT NULL,
+                `presetId` TEXT NOT NULL,
+                `entityType` TEXT NOT NULL,
+                `roleCode` TEXT NOT NULL,
+                `containerType` TEXT,
+                `title` TEXT NOT NULL,
+                `mandatory` INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY(`id`),
+                FOREIGN KEY(`presetId`) REFERENCES `structure_presets`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_structure_preset_items_presetId` ON `structure_preset_items` (`presetId`)")
+        db.execSQL(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS `index_structure_preset_items_role_per_preset`
+            ON `structure_preset_items` (`presetId`, `roleCode`)
+            """.trimIndent()
+        )
+    }
+}
+
+val MIGRATION_83_84 = object : Migration(83, 84) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE attachments ADD COLUMN role_code TEXT")
+        db.execSQL("ALTER TABLE attachments ADD COLUMN is_system INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE projects ADD COLUMN role_code TEXT")
+    }
+}
+
+val MIGRATION_84_85 = object : Migration(84, 85) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `project_structures` (
+                `id` TEXT NOT NULL,
+                `projectId` TEXT NOT NULL,
+                `base_preset_code` TEXT,
+                `apply_mode` TEXT NOT NULL DEFAULT 'ADDITIVE',
+                PRIMARY KEY(`id`),
+                UNIQUE(`projectId`)
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `project_structure_items` (
+                `id` TEXT NOT NULL,
+                `projectStructureId` TEXT NOT NULL,
+                `entityType` TEXT NOT NULL,
+                `roleCode` TEXT NOT NULL,
+                `containerType` TEXT,
+                `title` TEXT NOT NULL,
+                `mandatory` INTEGER NOT NULL DEFAULT 0,
+                `is_enabled` INTEGER NOT NULL DEFAULT 1,
+                PRIMARY KEY(`id`),
+                FOREIGN KEY(`projectStructureId`) REFERENCES `project_structures`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_project_structures_projectId` ON `project_structures` (`projectId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_project_structure_items_projectStructureId` ON `project_structure_items` (`projectStructureId`)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_project_structure_items_role_per_structure` ON `project_structure_items` (`projectStructureId`, `roleCode`)")
+    }
+}
+
+val MIGRATION_85_86 = object : Migration(85, 86) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("DROP INDEX IF EXISTS `index_project_structures_projectId`")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_project_structures_projectId` ON `project_structures` (`projectId`)")
+    }
+}
+
+val MIGRATION_86_87 = object : Migration(86, 87) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE structure_presets ADD COLUMN enable_inbox INTEGER")
+        db.execSQL("ALTER TABLE structure_presets ADD COLUMN enable_log INTEGER")
+        db.execSQL("ALTER TABLE structure_presets ADD COLUMN enable_artifact INTEGER")
+        db.execSQL("ALTER TABLE structure_presets ADD COLUMN enable_advanced INTEGER")
+
+        db.execSQL("ALTER TABLE project_structures ADD COLUMN enable_inbox INTEGER")
+        db.execSQL("ALTER TABLE project_structures ADD COLUMN enable_log INTEGER")
+        db.execSQL("ALTER TABLE project_structures ADD COLUMN enable_artifact INTEGER")
+        db.execSQL("ALTER TABLE project_structures ADD COLUMN enable_advanced INTEGER")
+    }
+}
+
+val MIGRATION_87_88 = object : Migration(87, 88) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE structure_presets ADD COLUMN enable_dashboard INTEGER")
+        db.execSQL("ALTER TABLE structure_presets ADD COLUMN enable_backlog INTEGER")
+        db.execSQL("ALTER TABLE project_structures ADD COLUMN enable_dashboard INTEGER")
+        db.execSQL("ALTER TABLE project_structures ADD COLUMN enable_backlog INTEGER")
+    }
+}

@@ -27,6 +27,9 @@ import com.romankozak.forwardappmobile.data.dao.ScriptDao
 import com.romankozak.forwardappmobile.data.dao.SystemAppDao
 import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
+import com.romankozak.forwardappmobile.data.dao.StructurePresetDao
+import com.romankozak.forwardappmobile.data.dao.StructurePresetItemDao
+import com.romankozak.forwardappmobile.data.dao.ProjectStructureDao
 import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentEntity
 import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRef
@@ -55,6 +58,10 @@ import com.romankozak.forwardappmobile.features.missions.data.model.TacticalMiss
         ChecklistEntity::class,
         ChecklistItemEntity::class,
         ScriptEntity::class,
+        StructurePreset::class,
+        StructurePresetItem::class,
+        ProjectStructure::class,
+        ProjectStructureItem::class,
         RecentItem::class,
         ConversationFolderEntity::class,
         RecurringTask::class,
@@ -71,7 +78,7 @@ import com.romankozak.forwardappmobile.features.missions.data.model.TacticalMiss
         LegacyNoteFts::class,
         RecurringTaskFts::class,
     ],
-    version = 81,
+    version = 88,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class, ProjectTypeConverter::class)
@@ -124,4 +131,10 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun scriptDao(): ScriptDao
 
     abstract fun tacticalMissionDao(): TacticalMissionDao
+
+    abstract fun structurePresetDao(): StructurePresetDao
+
+    abstract fun structurePresetItemDao(): StructurePresetItemDao
+
+    abstract fun projectStructureDao(): ProjectStructureDao
     }

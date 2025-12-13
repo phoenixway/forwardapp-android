@@ -109,6 +109,13 @@ import com.romankozak.forwardappmobile.data.database.MIGRATION_75_76
 import com.romankozak.forwardappmobile.data.database.MIGRATION_76_77
 import com.romankozak.forwardappmobile.data.database.MIGRATION_79_80
 import com.romankozak.forwardappmobile.data.database.MIGRATION_80_81
+import com.romankozak.forwardappmobile.data.database.MIGRATION_81_82
+import com.romankozak.forwardappmobile.data.database.MIGRATION_82_83
+import com.romankozak.forwardappmobile.data.database.MIGRATION_83_84
+import com.romankozak.forwardappmobile.data.database.MIGRATION_84_85
+import com.romankozak.forwardappmobile.data.database.MIGRATION_85_86
+import com.romankozak.forwardappmobile.data.database.MIGRATION_86_87
+import com.romankozak.forwardappmobile.data.database.MIGRATION_87_88
 import com.romankozak.forwardappmobile.data.repository.SystemAppRepository
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 
@@ -221,6 +228,13 @@ object DatabaseModule {
             MIGRATION_76_77,
             MIGRATION_79_80,
             MIGRATION_80_81,
+            MIGRATION_81_82,
+            MIGRATION_82_83,
+            MIGRATION_83_84,
+            MIGRATION_84_85,
+            MIGRATION_85_86,
+            MIGRATION_86_87,
+            MIGRATION_87_88,
         ).addCallback(callback).build()
         return db
     }
@@ -320,4 +334,16 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideTacticalMissionDao(appDatabase: AppDatabase): TacticalMissionDao = appDatabase.tacticalMissionDao()
+
+    @Provides
+    @Singleton
+    fun provideStructurePresetDao(appDatabase: AppDatabase) = appDatabase.structurePresetDao()
+
+    @Provides
+    @Singleton
+    fun provideStructurePresetItemDao(appDatabase: AppDatabase) = appDatabase.structurePresetItemDao()
+
+    @Provides
+    @Singleton
+    fun provideProjectStructureDao(appDatabase: AppDatabase) = appDatabase.projectStructureDao()
     }

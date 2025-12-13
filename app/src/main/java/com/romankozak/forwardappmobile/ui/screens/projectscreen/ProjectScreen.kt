@@ -234,7 +234,7 @@ private fun ProjectScaffold(
 
     if (uiState.showDisplayPropertiesDialog) {
         ProjectDisplayPropertiesDialog(
-            isProjectManagementEnabled = project?.isProjectManagementEnabled == true,
+            isProjectManagementEnabled = uiState.isProjectManagementEnabled,
             onToggleProjectManagement = viewModel::onToggleProjectManagement,
             onDismiss = viewModel::onDismissDisplayPropertiesDialog
         )
@@ -463,7 +463,12 @@ private fun ProjectBottomBar(
                 onClearReminder = viewModel::onClearReminder,
                 isNerActive = uiState.nerState is NerState.Ready,
                 onStartTrackingCurrentProject = viewModel::onStartTrackingCurrentProject,
-                isProjectManagementEnabled = project?.isProjectManagementEnabled == true,
+                isProjectManagementEnabled = uiState.isProjectManagementEnabled,
+                enableInbox = uiState.enableInbox,
+                enableLog = uiState.enableLog,
+                enableArtifact = uiState.enableArtifact,
+                enableBacklog = uiState.enableBacklog,
+                enableDashboard = uiState.enableDashboard,
                 modifier = Modifier
                     .navigationBarsPadding()
                     .imePadding(),

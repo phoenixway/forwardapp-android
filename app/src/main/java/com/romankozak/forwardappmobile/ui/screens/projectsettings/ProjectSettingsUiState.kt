@@ -26,4 +26,14 @@ data class ProjectSettingsUiState(
     val selectedTabIndex: Int = 0,
     val showCheckboxes: Boolean = true,
     val isProjectManagementEnabled: Boolean = false,
+    val currentPresetLabel: String? = null,
+    val availablePresets: List<com.romankozak.forwardappmobile.data.database.models.StructurePreset> = emptyList(),
+    val features: Map<String, Boolean> = mapOf(
+        "Inbox" to true,
+        "Log" to true,
+        "Artifact" to true,
+        "Advanced" to false,
+        "Dashboard" to true,
+        "Backlog" to true,
+    ),
 )

@@ -37,25 +37,49 @@ fun ProjectDashboardView(
     onEditArtifact: (ProjectArtifact) -> Unit,
     selectedTab: ProjectManagementTab,
     onTabSelected: (ProjectManagementTab) -> Unit,
+    enableDashboard: Boolean,
+    enableLog: Boolean,
+    enableArtifact: Boolean,
 ) {
     if (project == null) return
 
+    val availableTabs = remember(enableDashboard, enableLog, enableArtifact) {
+        ProjectManagementTab.values().filter { tab ->
+            when (tab) {
+                ProjectManagementTab.Dashboard -> enableDashboard
+                ProjectManagementTab.Log -> enableLog
+                ProjectManagementTab.Artifact -> enableArtifact
+                else -> true
+            }
+        }
+    }
+    val safeSelectedTab = remember(selectedTab, availableTabs) {
+        if (selectedTab in availableTabs) selectedTab else availableTabs.firstOrNull() ?: ProjectManagementTab.Insights
+    }
+    LaunchedEffect(safeSelectedTab, availableTabs) {
+        if (selectedTab !in availableTabs && availableTabs.isNotEmpty()) {
+            onTabSelected(availableTabs.first())
+        }
+    }
+
+    if (availableTabs.isEmpty()) return
+
     Column(modifier = modifier.fillMaxSize()) {
         TabRow(
-            selectedTabIndex = selectedTab.ordinal,
+            selectedTabIndex = availableTabs.indexOf(safeSelectedTab).coerceAtLeast(0),
             containerColor = Color.Transparent,
             contentColor = MaterialTheme.colorScheme.primary,
         ) {
-            ProjectManagementTab.values().forEach { tab ->
+            availableTabs.forEach { tab ->
                 Tab(
-                    selected = selectedTab == tab,
+                    selected = safeSelectedTab == tab,
                     onClick = { onTabSelected(tab) },
                     icon = { Icon(tab.icon, contentDescription = tab.displayName) },
                 )
             }
         }
 
-        when (selectedTab) {
+        when (safeSelectedTab) {
             ProjectManagementTab.Dashboard ->
                 DashboardContent(
                     project = project,

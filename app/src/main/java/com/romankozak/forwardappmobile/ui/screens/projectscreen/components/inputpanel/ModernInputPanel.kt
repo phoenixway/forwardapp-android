@@ -80,6 +80,11 @@ data class NavPanelState(
   val menuExpanded: Boolean,
   val currentView: ProjectViewMode,
   val isProjectManagementEnabled: Boolean,
+  val enableInbox: Boolean,
+  val enableLog: Boolean,
+  val enableArtifact: Boolean,
+  val enableBacklog: Boolean,
+  val enableDashboard: Boolean,
   val inputMode: InputMode,
 )
 
@@ -121,14 +126,28 @@ data class OptionsMenuActions(
 private fun ViewModeToggle(
   currentView: ProjectViewMode,
   isProjectManagementEnabled: Boolean,
+  enableInbox: Boolean = true,
+  enableLog: Boolean = true,
+  enableArtifact: Boolean = true,
+  enableBacklog: Boolean = true,
+  enableDashboard: Boolean = true,
   onViewChange: (ProjectViewMode) -> Unit,
   onInputModeSelected: (InputMode) -> Unit,
   contentColor: Color,
   holdMenuController: HoldMenu2Controller,
 ) {
-    val availableViews = remember(isProjectManagementEnabled) {
+    val availableViews = remember(isProjectManagementEnabled, enableInbox, enableLog, enableArtifact, enableBacklog, enableDashboard) {
         ProjectViewMode.values()
-            .filter { it != ProjectViewMode.ADVANCED || isProjectManagementEnabled }
+            .filter {
+                when (it) {
+                    ProjectViewMode.INBOX -> enableInbox
+                    ProjectViewMode.ADVANCED -> isProjectManagementEnabled && enableLog
+                    ProjectViewMode.ATTACHMENTS -> enableArtifact
+                    ProjectViewMode.BACKLOG -> enableBacklog
+                    ProjectViewMode.DASHBOARD -> enableDashboard
+                    else -> true
+                }
+            }
             .sortedBy {
                 when (it) {
                     ProjectViewMode.DASHBOARD -> 0
@@ -618,6 +637,11 @@ private fun NavigationBar(
                                 ViewModeToggle(
                                     currentView = state.currentView,
                                     isProjectManagementEnabled = state.isProjectManagementEnabled,
+                                    enableInbox = state.enableInbox,
+                                    enableLog = state.enableLog,
+                                    enableArtifact = state.enableArtifact,
+                                    enableBacklog = state.enableBacklog,
+                                    enableDashboard = state.enableDashboard,
                                     onViewChange = actions.onViewChange,
                                     onInputModeSelected = actions.onInputModeSelected,
                                     contentColor = contentColor,
@@ -714,6 +738,11 @@ fun ModernInputPanel(
   isNerActive: Boolean,
   onStartTrackingCurrentProject: () -> Unit,
   isProjectManagementEnabled: Boolean,
+  enableInbox: Boolean,
+  enableLog: Boolean,
+  enableArtifact: Boolean,
+  enableBacklog: Boolean,
+  enableDashboard: Boolean,
   onToggleProjectManagement: () -> Unit,
   onAddProjectToDayPlan: () -> Unit,
   onRevealInExplorer: () -> Unit,
@@ -733,6 +762,11 @@ fun ModernInputPanel(
       menuExpanded = menuExpanded,
       currentView = currentView,
       isProjectManagementEnabled = isProjectManagementEnabled,
+      enableInbox = enableInbox,
+      enableLog = enableLog,
+      enableArtifact = enableArtifact,
+      enableBacklog = enableBacklog,
+      enableDashboard = enableDashboard,
       inputMode = inputMode,
     )
   val actions =

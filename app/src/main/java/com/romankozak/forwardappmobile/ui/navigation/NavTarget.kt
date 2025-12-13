@@ -60,6 +60,17 @@ sealed interface NavTarget {
         val scriptId: String? = null,
     ) : NavTarget
 
+    data class ProjectStructure(
+        val projectId: String,
+    ) : NavTarget
+
+    data object StructurePresets : NavTarget
+
+    data class StructurePresetEditor(
+        val presetId: String? = null,
+        val copyFromPresetId: String? = null,
+    ) : NavTarget
+
 
     /* -------- IMPORT / EXPORT -------- */
 

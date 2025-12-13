@@ -27,7 +27,12 @@ class ChecklistRepository @Inject constructor(
 
     fun observeChecklistById(id: String): Flow<ChecklistEntity?> = checklistDao.observeChecklistById(id)
 
-    suspend fun createChecklist(name: String, projectId: String): String {
+    suspend fun createChecklist(
+        name: String,
+        projectId: String,
+        roleCode: String? = null,
+        isSystem: Boolean = false
+    ): String {
         val now = System.currentTimeMillis()
         val checklist = ChecklistEntity(projectId = projectId, name = name, updatedAt = now)
         checklistDao.insertChecklist(checklist)
@@ -37,6 +42,8 @@ class ChecklistRepository @Inject constructor(
             projectId = projectId,
             ownerProjectId = projectId,
             createdAt = System.currentTimeMillis(),
+            roleCode = roleCode,
+            isSystem = isSystem,
         )
         recentItemsRepository.logChecklistAccess(checklist)
         return checklist.id

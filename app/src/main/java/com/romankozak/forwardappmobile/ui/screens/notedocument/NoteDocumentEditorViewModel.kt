@@ -11,18 +11,26 @@ import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEdito
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
 
 @HiltViewModel
 class NoteDocumentEditorViewModel
 @Inject
-constructor(
-  private val noteDocumentRepository: NoteDocumentRepository,
-  private val application: Application,
-  private val savedStateHandle: SavedStateHandle,
-) : ViewModel() {
+  constructor(
+    private val noteDocumentRepository: NoteDocumentRepository,
+    private val application: Application,
+    private val savedStateHandle: SavedStateHandle,
+  ) : ViewModel() {
 
   val universalEditorViewModel = UniversalEditorViewModel(application)
   private var listId: String? = null
+
+  val linkSuggestions =
+    noteDocumentRepository.getAllDocumentsAsFlow()
+      .map { docs -> docs.map { it.name.ifBlank { "Untitled" } } }
+      .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
   fun loadDocument(id: String) {
     listId = id

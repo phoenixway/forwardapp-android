@@ -28,9 +28,11 @@ import kotlinx.coroutines.launch
 fun DashboardBottomBar(
     onNavigateToProjectHierarchy: () -> Unit,
     onNavigateToProjectSearch: () -> Unit,
+    structureProjectId: String?,
     onNavigateToTracker: () -> Unit,
     onNavigateToInbox: () -> Unit,
     onNavigateToReminders: () -> Unit,
+    onNavigateToPresets: () -> Unit,
     onNavigateToRecentItem: (RecentItem) -> Unit,
     recentViewModel: RecentViewModel = hiltViewModel()
 ) {
@@ -63,7 +65,15 @@ fun DashboardBottomBar(
                     }
                     onNavigateToProjectSearch()
                 }
-            })
+            },
+                onNavigateToPresets = {
+                    coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
+                        if (!modalSheetState.isVisible) {
+                            showMoreBottomSheet = false
+                        }
+                        onNavigateToPresets()
+                    }
+                })
         }
     }
 
@@ -121,6 +131,7 @@ fun DashboardBottomBar(
 private fun MoreBottomSheetContent(
     onNavigateToReminders: () -> Unit,
     onNavigateToProjectSearch: () -> Unit,
+    onNavigateToPresets: () -> Unit,
 ) {
     Box(
         modifier = Modifier
@@ -152,6 +163,17 @@ private fun MoreBottomSheetContent(
                 Icon(Icons.Outlined.Notifications, contentDescription = "Reminders")
                 Spacer(modifier = Modifier.width(16.dp))
                 Text("Reminders")
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onNavigateToPresets)
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Outlined.DashboardCustomize, contentDescription = "Presets")
+                Spacer(modifier = Modifier.width(16.dp))
+                Text("Structure presets")
             }
         }
     }
@@ -191,18 +213,4 @@ private fun BarButton(
             Icon(icon, contentDescription = label, tint = primary.copy(alpha = 0.9f))
         }
     }
-}
-
-@Preview
-@Composable
-fun DashboardBottomBarPreview() {
-    DashboardBottomBar(
-        onNavigateToProjectHierarchy = {},
-        onNavigateToProjectSearch = {},
-        onNavigateToTracker = {},
-        onNavigateToInbox = {},
-        onNavigateToReminders = {},
-        onNavigateToRecentItem = {},
-        recentViewModel = hiltViewModel()
-    )
 }

@@ -56,6 +56,22 @@ interface AttachmentDao {
 
     @Query(
         """
+        SELECT a.*
+          FROM attachments a
+          INNER JOIN project_attachment_cross_ref link ON link.attachment_id = a.id
+         WHERE link.project_id = :projectId
+           AND a.role_code = :roleCode
+           AND a.isDeleted = 0
+         LIMIT 1
+        """
+    )
+    suspend fun findAttachmentByRole(
+        projectId: String,
+        roleCode: String
+    ): AttachmentEntity?
+
+    @Query(
+        """
         DELETE FROM project_attachment_cross_ref
         WHERE project_id = :projectId AND attachment_id = :attachmentId
         """,

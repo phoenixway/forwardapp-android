@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -48,6 +49,7 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.ProjectsScreen
 import com.romankozak.forwardappmobile.ui.screens.projectsettings.ProjectSettingsScreen
 import com.romankozak.forwardappmobile.ui.screens.script.ScriptChooserScreen
+import com.romankozak.forwardappmobile.ui.screens.projectstructure.ProjectStructureScreen
 import com.romankozak.forwardappmobile.ui.screens.script.ScriptEditorScreen
 import com.romankozak.forwardappmobile.ui.screens.script.ScriptsLibraryScreen
 import com.romankozak.forwardappmobile.ui.screens.settings.SettingsScreen
@@ -124,10 +126,22 @@ private fun NavGraphBuilder.mainGraph(
     val parentEntry = remember(backStackEntry) { navController.getBackStackEntry(MAIN_GRAPH_ROUTE) }
     val viewModel: ProjectHierarchyScreenViewModel = hiltViewModel(parentEntry)
     val scope = rememberCoroutineScope()
+    val structureProjectIdState = remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+      structureProjectIdState.value = viewModel.getInboxProjectId()
+    }
 
     SharedCommandDeckLayout(
       navController = navController,
       onNavigateToProjectHierarchy = { navController.navigate(GOAL_LISTS_ROUTE) },
+      onNavigateToProjectStructure = { projectId ->
+        navController.navigate(NavTargetRouter.routeOf(com.romankozak.forwardappmobile.ui.navigation.NavTarget.ProjectStructure(projectId)))
+      },
+      structureProjectId = structureProjectIdState.value,
+      onNavigateToPresets = {
+        navController.navigate(NavTargetRouter.routeOf(com.romankozak.forwardappmobile.ui.navigation.NavTarget.StructurePresets))
+      },
       onNavigateToCharacter = { navController.navigate(CHARACTER_SCREEN_ROUTE) },
       onNavigateToGlobalSearch = { navController.navigate("global_search") },
       onNavigateToSettings = { navController.navigate("settings_screen") },
@@ -171,6 +185,27 @@ private fun NavGraphBuilder.mainGraph(
 
   composable(CHARACTER_SCREEN_ROUTE) {
     CharacterScreen()
+  }
+
+  composable(
+    route = "project_structure_screen/{projectId}",
+    arguments = listOf(navArgument("projectId") { type = NavType.StringType }),
+  ) {
+    ProjectStructureScreen(navController = navController)
+  }
+
+  composable("structure_presets_screen") {
+    com.romankozak.forwardappmobile.ui.screens.projectstructure.StructurePresetsScreen(navController = navController)
+  }
+
+  composable(
+    route = "structure_preset_editor_screen?presetId={presetId}&copyFromPresetId={copyFromPresetId}",
+    arguments = listOf(
+      navArgument("presetId") { type = NavType.StringType; nullable = true; defaultValue = null },
+      navArgument("copyFromPresetId") { type = NavType.StringType; nullable = true; defaultValue = null },
+    )
+  ) {
+    com.romankozak.forwardappmobile.ui.screens.projectstructure.StructurePresetEditorScreen(navController = navController)
   }
 
   composable(GOAL_LISTS_ROUTE) { backStackEntry ->

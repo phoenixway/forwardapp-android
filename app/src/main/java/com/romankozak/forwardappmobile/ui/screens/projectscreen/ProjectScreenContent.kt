@@ -120,7 +120,10 @@ fun GoalDetailContent(
                 onSaveArtifact = onSaveArtifact,
                 onEditArtifact = onEditArtifact,
                 selectedTab = uiState.selectedDashboardTab,
-                onTabSelected = viewModel::onDashboardTabSelected
+                onTabSelected = viewModel::onDashboardTabSelected,
+                enableDashboard = uiState.enableDashboard,
+                enableLog = uiState.enableLog,
+                enableArtifact = uiState.enableArtifact,
             )
         }
         ProjectViewMode.ATTACHMENTS -> {
