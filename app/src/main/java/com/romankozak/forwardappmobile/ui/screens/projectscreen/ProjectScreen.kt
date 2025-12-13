@@ -423,7 +423,7 @@ private fun ProjectBottomBar(
                     Log.d("Recents_Debug", "onRecentsClick called from ProjectScreen")
                     viewModel.inputHandler.onShowRecentLists()
                 },
-                onAddListLinkClick = { viewModel.inputHandler.onAddListLinkRequest() },
+                onAddNestedProjectClick = { viewModel.inputHandler.onAddListLinkRequest() },
                 onShowAddWebLinkDialog = { viewModel.inputHandler.onShowAddWebLinkDialog() },
                 onShowAddObsidianLinkDialog = { viewModel.inputHandler.onShowAddObsidianLinkDialog() },
                 onAddListShortcutClick = { viewModel.inputHandler.onAddListShortcutRequest() },

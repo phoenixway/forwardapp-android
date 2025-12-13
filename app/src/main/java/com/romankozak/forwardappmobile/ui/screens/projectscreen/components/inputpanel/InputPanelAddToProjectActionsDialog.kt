@@ -46,7 +46,7 @@ fun InputPanelAddToProjectActionsDialog(
     isProjectManagementEnabled: Boolean,
     onDismiss: () -> Unit,
     onInputModeSelected: (InputMode) -> Unit,
-    onAddListLinkClick: () -> Unit,
+    onAddNestedProjectClick: () -> Unit,
     onShowAddWebLinkDialog: () -> Unit,
     onShowAddObsidianLinkDialog: () -> Unit,
     onAddListShortcutClick: () -> Unit,
@@ -61,14 +61,25 @@ fun InputPanelAddToProjectActionsDialog(
         buildList {
             add(
             ActionItem(
-                title = "Вкладений проект",
+                    title = "Project link",
                 icon = Icons.Outlined.AccountTree,
                 color = MaterialTheme.colorScheme.secondary,
                 action = {
-                    onAddListLinkClick()
+                    onAddNestedProjectClick()
                     onDismiss()
                 },
             ),
+            )
+            add(
+                ActionItem(
+                    title = "Project to backlog",
+                    icon = Icons.Outlined.PlaylistAdd,
+                    color = MaterialTheme.colorScheme.tertiary,
+                    action = {
+                        onAddListShortcutClick()
+                        onDismiss()
+                    },
+                ),
             )
             add(
                 ActionItem(
@@ -133,11 +144,11 @@ fun InputPanelAddToProjectActionsDialog(
         buildList {
             add(
                 ActionItem(
-                    title = "Nested project",
+                    title = "Add nested project",
                     icon = Icons.Outlined.PlaylistAdd,
                     color = MaterialTheme.colorScheme.tertiary,
                     action = {
-                        onAddListShortcutClick()
+                        onAddNestedProjectClick()
                         onDismiss()
                     },
                 ),
@@ -179,12 +190,12 @@ fun InputPanelAddToProjectActionsDialog(
                 ActionItem(
                     title = "Вкладений проект",
                     icon = Icons.Outlined.AccountTree,
-                    color = MaterialTheme.colorScheme.secondary,
-                    action = {
-                        onAddListLinkClick()
-                        onDismiss()
-                    },
-                ),
+                color = MaterialTheme.colorScheme.secondary,
+                action = {
+                    onAddNestedProjectClick()
+                    onDismiss()
+                },
+            ),
             )
             add(
                 ActionItem(
@@ -251,7 +262,7 @@ fun InputPanelAddToProjectActionsDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 ActionGrid(
-                    title = "Add attachment",
+                    title = "Add",
                     items = linkActions,
                     haptic = haptic,
                 )
@@ -281,7 +292,7 @@ private fun ActionGrid(
             columns = GridCells.Fixed(3),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.height((items.size + 2) / 3 * 100.dp),
+            modifier = Modifier.height((items.size + 2) / 3 * 120.dp),
         ) {
             items(items) { item ->
                 ActionGridItem(
@@ -345,7 +356,7 @@ private fun ActionGridItem(
         },
         modifier =
             Modifier
-                .size(width = 80.dp, height = 100.dp)
+                .size(width = 90.dp, height = 120.dp)
                 .scale(scale),
         shape = RoundedCornerShape(16.dp),
         color = backgroundColor,
@@ -385,7 +396,7 @@ private fun ActionGridItem(
                 style = MaterialTheme.typography.labelMedium,
                 fontSize = 11.sp,
                 textAlign = TextAlign.Center,
-                maxLines = 2,
+                maxLines = 3,
                 overflow = TextOverflow.Visible,
                 color =
                     if (item.isSelected) {
