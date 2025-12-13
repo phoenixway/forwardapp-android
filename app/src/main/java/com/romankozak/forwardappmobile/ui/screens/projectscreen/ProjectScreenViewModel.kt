@@ -709,11 +709,13 @@ constructor(
               ) }
           }
       }
-    }
+  }
   private fun getInputModeForView(viewMode: ProjectViewMode): InputMode =
     when (viewMode) {
       ProjectViewMode.INBOX -> InputMode.AddQuickRecord
-                  ProjectViewMode.ADVANCED -> InputMode.AddProjectLog      else -> InputMode.AddGoal
+      ProjectViewMode.ADVANCED -> InputMode.AddProjectLog
+      ProjectViewMode.DASHBOARD -> InputMode.AddGoal
+      else -> InputMode.AddGoal
     }
 
   override fun requestNavigation(route: String) {

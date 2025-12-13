@@ -37,6 +37,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.data.database.models.ProjectArtifact
 import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -82,6 +83,7 @@ fun ProjectsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val recordToEdit by viewModel.inboxHandler.recordToEdit.collectAsStateWithLifecycle()
     val editorViewModel: UniversalEditorViewModel = hiltViewModel()
+    val currentProjectArtifact by viewModel.projectArtifact.collectAsStateWithLifecycle()
 
     // Router logic to decide which screen to show
     when {
@@ -359,7 +361,12 @@ private fun ProjectScaffold(
                 onRemindersClick = { item ->
                     selectedItemForReminders = item
                     showRemindersListDialog = true
-                }
+                },
+                onShowProjectProperties = {
+                    menuExpanded = false
+                    navController.navigate("project_settings_screen?projectId=${project?.id}")
+                },
+                onSwitchView = viewModel::onProjectViewChange,
             )
         }
 

@@ -129,18 +129,34 @@ private fun ViewModeToggle(
     val availableViews = remember(isProjectManagementEnabled) {
         ProjectViewMode.values()
             .filter { it != ProjectViewMode.ADVANCED || isProjectManagementEnabled }
+            .sortedBy {
+                when (it) {
+                    ProjectViewMode.DASHBOARD -> 0
+                    ProjectViewMode.BACKLOG -> 1
+                    ProjectViewMode.INBOX -> 2
+                    ProjectViewMode.ADVANCED -> 3
+                    ProjectViewMode.ATTACHMENTS -> 4
+                }
+            }
             .reversed()
     }
 
     val menuItems = remember(availableViews) {
         availableViews.map { viewMode ->
             HoldMenuItem(
-                label = viewMode.name.replaceFirstChar { it.titlecase() },
+            label = when (viewMode) {
+                ProjectViewMode.DASHBOARD -> "Dashboard"
+                ProjectViewMode.BACKLOG -> "Backlog"
+                ProjectViewMode.INBOX -> "Inbox"
+                ProjectViewMode.ADVANCED -> "Advanced"
+                ProjectViewMode.ATTACHMENTS -> "Attachments"
+            },
                 icon = when (viewMode) {
                     ProjectViewMode.BACKLOG -> Icons.AutoMirrored.Outlined.ListAlt
                     ProjectViewMode.INBOX -> Icons.AutoMirrored.Outlined.Notes
                     ProjectViewMode.ADVANCED -> Icons.Outlined.Dashboard
                     ProjectViewMode.ATTACHMENTS -> Icons.Default.Attachment
+                    ProjectViewMode.DASHBOARD -> Icons.Outlined.ViewModule
                 }
             )
         }
@@ -161,6 +177,7 @@ private fun ViewModeToggle(
                 onViewChange(selectedViewMode)
                 val newMode = when (selectedViewMode) {
                     ProjectViewMode.INBOX, ProjectViewMode.ADVANCED -> InputMode.AddQuickRecord
+                    ProjectViewMode.DASHBOARD -> InputMode.AddGoal
                     else -> InputMode.AddGoal
                 }
                 onInputModeSelected(newMode)
@@ -168,6 +185,7 @@ private fun ViewModeToggle(
             modifier = Modifier.size(40.dp).padding(2.dp)
         ) {
             val currentIcon = when (currentView) {
+                ProjectViewMode.DASHBOARD -> Icons.Outlined.ViewModule
                 ProjectViewMode.BACKLOG -> Icons.AutoMirrored.Outlined.ListAlt
                 ProjectViewMode.INBOX -> Icons.AutoMirrored.Outlined.Notes
                 ProjectViewMode.ADVANCED -> Icons.Outlined.Dashboard

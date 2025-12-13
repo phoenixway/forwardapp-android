@@ -43,6 +43,18 @@ public fun ViewModeIndicator(
                     Color(0xFFBA68C8).copy(alpha = 0.4f),
                     Color(0xFF7B1FA2).copy(alpha = 0.8f),
                 )
+            ProjectViewMode.ATTACHMENTS ->
+                Triple(
+                    Color(0xFFE8EAF6).copy(alpha = 0.7f),
+                    Color(0xFF7986CB).copy(alpha = 0.4f),
+                    Color(0xFF283593).copy(alpha = 0.8f),
+                )
+            ProjectViewMode.DASHBOARD ->
+                Triple(
+                    Color(0xFFFFF3E0).copy(alpha = 0.7f),
+                    Color(0xFFFFB74D).copy(alpha = 0.4f),
+                    Color(0xFFEF6C00).copy(alpha = 0.8f),
+                )
         }
 
     Box(

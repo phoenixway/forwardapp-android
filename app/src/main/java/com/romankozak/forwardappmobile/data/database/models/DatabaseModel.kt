@@ -181,7 +181,7 @@ data class BacklogOrder(
 
 
 
-enum class ProjectViewMode { BACKLOG, INBOX, ADVANCED, ATTACHMENTS }
+enum class ProjectViewMode { BACKLOG, INBOX, ADVANCED, ATTACHMENTS, DASHBOARD }
 
 enum class LinkType { PROJECT, URL, OBSIDIAN }
 
