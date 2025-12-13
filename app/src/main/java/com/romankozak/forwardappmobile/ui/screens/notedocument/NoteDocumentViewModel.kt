@@ -30,6 +30,7 @@ sealed class NoteDocumentEvent {
     data class ShowError(val message: String) : NoteDocumentEvent()
     data class ShowSuccess(val message: String = "") : NoteDocumentEvent()
     object AutoSaved : NoteDocumentEvent()
+    data class OpenDocument(val documentId: String) : NoteDocumentEvent()
 }
 
 data class NoteDocumentUiState(
@@ -102,6 +103,17 @@ class NoteDocumentViewModel @Inject constructor(
                 // Явно передаємо нове значення 'isEditing' в функцію
                 toolbarState = computeToolbarState(it.content, isEditing = isEditing)
             )
+        }
+    }
+
+    fun onWikiLinkClick(name: String) {
+        viewModelScope.launch {
+            val target = noteDocumentRepository.findDocumentByName(name)
+            if (target != null) {
+                _events.send(NoteDocumentEvent.OpenDocument(target.id))
+            } else {
+                _events.send(NoteDocumentEvent.ShowError("Посилання не знайдено"))
+            }
         }
     }
 

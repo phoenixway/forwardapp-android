@@ -12,6 +12,7 @@ import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -41,6 +42,7 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.TransformedText
@@ -49,10 +51,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import android.util.Log
 import com.romankozak.forwardappmobile.ui.common.components.ShareDialog
 import com.romankozak.forwardappmobile.ui.common.editor.components.ExperimentalEnhancedListToolbar
 import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEditorEvent
@@ -68,6 +72,7 @@ fun UniversalEditorScreen(
   title: String,
   onSave: (content: String, cursorPosition: Int) -> Unit,
   onNavigateBack: () -> Unit,
+  onWikiLinkClick: (String) -> Unit = {},
   navController: NavController,
   viewModel: UniversalEditorViewModel = hiltViewModel(),
   contentFocusRequester: FocusRequester,
@@ -239,6 +244,7 @@ fun UniversalEditorScreen(
         content = uiState.content,
         onContentChange = { viewModel.onContentChange(it) },
         onToggleCheckbox = viewModel::onToggleCheckbox,
+        onWikiLinkClick = onWikiLinkClick,
         contentFocusRequester = contentFocusRequester,
         isToolbarVisible = isToolbarVisible,
         readOnly = readOnly,
@@ -301,6 +307,7 @@ private fun Editor(
   content: TextFieldValue,
   onContentChange: (TextFieldValue) -> Unit,
   onToggleCheckbox: (Int) -> Unit,
+  onWikiLinkClick: (String) -> Unit,
   contentFocusRequester: FocusRequester,
   isToolbarVisible: Boolean,
   readOnly: Boolean,
@@ -339,55 +346,73 @@ private fun Editor(
         .verticalScroll(scrollState)
         .padding(start = 16.dp, end = 16.dp, top = 16.dp)
   ) {
-    BasicTextField(
-      value = content,
-      onValueChange = onContentChange,
-      onTextLayout = { result -> textLayoutResult = result },
-      modifier =
-        Modifier.padding(start = 16.dp)
-          .weight(1f)
-          .fillMaxHeight()
-          .focusRequester(contentFocusRequester)
-          .bringIntoViewRequester(bringIntoViewRequester)
-          .focusProperties { canFocus = isEditing }
-          .pointerInput(content.text, isEditing, readOnly) {
-              detectTapGestures { offset ->
-                if (!isEditing) {
-                  focusManager.clearFocus(force = true)
-                  return@detectTapGestures
-                }
+    val visualTransformation =
+      if (readOnly) ListVisualTransformation(emptySet(), textColor, accentColor)
+      else VisualTransformation.None
 
-                textLayoutResult?.let { layoutResult ->
-                  val clickedOffset = layoutResult.getOffsetForPosition(offset)
-                  val lineIndex = layoutResult.getLineForOffset(clickedOffset)
-                  val lines = content.text.lines()
+    val baseModifier =
+      Modifier.padding(start = 16.dp)
+        .weight(1f)
+        .fillMaxHeight()
+        .focusRequester(contentFocusRequester)
+        .bringIntoViewRequester(bringIntoViewRequester)
+        .focusProperties { canFocus = isEditing }
 
-                  if (lineIndex >= lines.size) return@detectTapGestures
+    if (readOnly) {
+      val transformed = visualTransformation.filter(AnnotatedString(content.text))
+      ClickableText(
+        text = transformed.text,
+        modifier = baseModifier,
+        style = TextStyle(fontSize = 16.sp, lineHeight = 24.sp, color = textColor),
+        onClick = { clickOffset: Int ->
+          val annotation =
+            transformed.text.getStringAnnotations("wikilink", clickOffset, clickOffset).firstOrNull()
+          if (annotation != null) {
+            Log.d("WikiTap", "ClickableText link '${annotation.item}' at $clickOffset")
+            onWikiLinkClick(annotation.item)
+          } else {
+            Log.d("WikiTap", "ClickableText no link at $clickOffset")
+          }
+        },
+      )
+    } else {
+      BasicTextField(
+        value = content,
+        onValueChange = onContentChange,
+        onTextLayout = { result -> textLayoutResult = result },
+        modifier =
+          baseModifier.pointerInput(content.text, isEditing) {
+            detectTapGestures { offset ->
+              val layout = textLayoutResult ?: return@detectTapGestures
 
-                  val line = lines[lineIndex]
-                  val trimmedLine = line.trimStart()
+              val clickedOffset = layout.getOffsetForPosition(offset)
+              val lineIndex = layout.getLineForOffset(clickedOffset)
+              val lines = content.text.lines()
 
-                  val checkboxRegex = Regex("""^\s*-\s\[[ x]\]\s?.*""", RegexOption.IGNORE_CASE)
-                  if (checkboxRegex.matches(trimmedLine)) {
-                    val lineStartOffset = layoutResult.getLineStart(lineIndex)
-                    val originalIndentLength = line.takeWhile { it.isWhitespace() }.length
+              if (lineIndex >= lines.size) return@detectTapGestures
 
-                    val offsetInLine = clickedOffset - lineStartOffset
+              val line = lines[lineIndex]
+              val trimmedLine = line.trimStart()
 
-                    val checkboxStart = originalIndentLength
-                    val checkboxEnd = originalIndentLength + 8
+              val checkboxRegex = Regex("""^\s*-\s\[[ x]\]\s?.*""", RegexOption.IGNORE_CASE)
+              if (checkboxRegex.matches(trimmedLine)) {
+                val lineStartOffset = layout.getLineStart(lineIndex)
+                val originalIndentLength = line.takeWhile { it.isWhitespace() }.length
 
-                    if (offsetInLine >= checkboxStart && offsetInLine < checkboxEnd) {
-                      onToggleCheckbox(lineIndex)
-                    }
-                  }
+                val offsetInLine = clickedOffset - lineStartOffset
+
+                val checkboxStart = originalIndentLength
+                val checkboxEnd = originalIndentLength + 8
+
+                if (offsetInLine >= checkboxStart && offsetInLine < checkboxEnd) {
+                  onToggleCheckbox(lineIndex)
                 }
               }
             }
+          }
           .drawBehind {
             if (!isEditing) return@drawBehind
-            textLayoutResult?.let {
-              layoutResult ->
+            textLayoutResult?.let { layoutResult ->
               val currentLine =
                 content.selection.start.let { offset -> layoutResult.getLineForOffset(offset) }
               if (currentLine < layoutResult.lineCount) {
@@ -401,11 +426,15 @@ private fun Editor(
               }
             }
           },
-      textStyle = TextStyle(fontSize = 16.sp, lineHeight = 24.sp, color = textColor),
-      cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-      visualTransformation = ListVisualTransformation(emptySet(), textColor, accentColor),
-      readOnly = readOnly,
-    )
+        textStyle = TextStyle(fontSize = 16.sp, lineHeight = 24.sp, color = textColor),
+        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+        visualTransformation = visualTransformation,
+        readOnly = false,
+        interactionSource = remember { MutableInteractionSource() },
+        singleLine = false,
+        maxLines = Int.MAX_VALUE,
+      )
+    }
   }
 }
 
@@ -464,7 +493,10 @@ private class ListVisualTransformation(
   override fun filter(text: AnnotatedString): TransformedText {
     val originalText = text.text
     val lines = originalText.lines()
+    data class LineInfo(val originalIndex: Int, val transformedLength: Int)
     val visibleLines = mutableListOf<IndexedValue<String>>()
+    val lineInfos = mutableListOf<LineInfo>()
+    val wikiLinkRegex = Regex("\\[\\[([^\\[\\]]+)\\]\\]")
 
     var i = 0
     while (i < lines.size) {
@@ -486,7 +518,8 @@ private class ListVisualTransformation(
 
     val transformedText = buildAnnotatedString {
       visibleLines.forEachIndexed { visibleIndex, indexedValue ->
-        val (_, line) = indexedValue
+        val (originalIndex, line) = indexedValue
+        val lineStart = length
 
         val headingRegex = Regex("""^(\s*)(#+\s)(.*)""")
         val bulletRegex = Regex("""^(\s*)\*\s(.*)""")
@@ -556,15 +589,42 @@ private class ListVisualTransformation(
 
         if (!matched) {
           val annotatedString = buildAnnotatedString {
-            append(line)
-            boldRegex.findAll(line).forEach { matchResult ->
+            var cursor = 0
+            wikiLinkRegex.findAll(line).forEach { match ->
+              if (match.range.first > cursor) {
+                append(line.substring(cursor, match.range.first))
+              }
+              val linkText = match.groupValues[1]
+              val linkStart = length + 2 // after adding [[
+              withStyle(SpanStyle(color = Color.Transparent)) { append("[[") }
+              append(linkText)
+              withStyle(SpanStyle(color = Color.Transparent)) { append("]]") }
+              val linkEnd = linkStart + linkText.length
+              addStyle(
+                style = SpanStyle(color = accentColor, textDecoration = TextDecoration.Underline),
+                start = linkStart,
+                end = linkEnd
+              )
+              addStringAnnotation(
+                tag = "wikilink",
+                annotation = match.groupValues[1],
+                start = linkStart,
+                end = linkEnd
+              )
+              cursor = match.range.last + 1
+            }
+            if (cursor < line.length) {
+              append(line.substring(cursor))
+            }
+
+            boldRegex.findAll(toString()).forEach { matchResult ->
               addStyle(
                 style = SpanStyle(fontWeight = FontWeight.Bold),
                 start = matchResult.range.first,
                 end = matchResult.range.last + 1
               )
             }
-            italicRegex.findAll(line).forEach { matchResult ->
+            italicRegex.findAll(toString()).forEach { matchResult ->
               addStyle(
                 style = SpanStyle(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic),
                 start = matchResult.range.first,
@@ -575,6 +635,9 @@ private class ListVisualTransformation(
           append(annotatedString)
         }
 
+        val lineEnd = length
+        val transformedLengthForLine = lineEnd - lineStart
+        lineInfos.add(LineInfo(originalIndex, transformedLengthForLine))
         if (visibleIndex < visibleLines.size - 1) {
           append("\n")
         }
@@ -592,12 +655,13 @@ private class ListVisualTransformation(
 
           var transformedLineStart = 0
           var found = false
-          for (v in visibleLines) {
-            if (v.index == originalLineIndex) {
+          for (i in lineInfos.indices) {
+            val info = lineInfos[i]
+            if (info.originalIndex == originalLineIndex) {
               found = true
               break
             }
-            transformedLineStart += v.value.length + 1
+            transformedLineStart += lineInfos[i].transformedLength + 1
           }
           if (!found) return transformedText.length
           return (transformedLineStart + charInLine).coerceIn(0, transformedText.length)
@@ -610,7 +674,7 @@ private class ListVisualTransformation(
           val transformedLineIndex = parts.size - 1
           val charInLine = parts.lastOrNull()?.length ?: 0
           if (transformedLineIndex >= visibleLines.size) return originalText.length
-          val originalLineIndex = visibleLines[transformedLineIndex].index
+          val originalLineIndex = lineInfos[transformedLineIndex].originalIndex
           val originalLineStart = lines.take(originalLineIndex).sumOf { it.length + 1 }
           return (originalLineStart + charInLine).coerceIn(0, originalText.length)
         }

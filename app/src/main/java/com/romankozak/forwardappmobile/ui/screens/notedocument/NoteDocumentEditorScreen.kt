@@ -14,6 +14,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalView
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 
 @Composable
 fun NoteDocumentEditorScreen(
@@ -28,6 +30,7 @@ fun NoteDocumentEditorScreen(
 
   val focusRequester = remember { FocusRequester() }
   val view = LocalView.current
+  val coroutineScope = rememberCoroutineScope()
 
   LaunchedEffect(documentId) {
     if (documentId == null) {
@@ -48,6 +51,16 @@ fun NoteDocumentEditorScreen(
       navController.popBackStack()
     },
     onNavigateBack = { navController.popBackStack() },
+    onWikiLinkClick = { link ->
+      coroutineScope.launch {
+        val targetId = viewModel.findDocumentIdByName(link)
+        if (targetId != null) {
+          navController.navigate("note_document_screen/$targetId?startEdit=false")
+        } else {
+          viewModel.universalEditorViewModel.showError("Не зміг відкрити вкладення \"$link\"")
+        }
+      }
+    },
     viewModel = viewModel.universalEditorViewModel,
     navController = navController,
     contentFocusRequester = focusRequester,

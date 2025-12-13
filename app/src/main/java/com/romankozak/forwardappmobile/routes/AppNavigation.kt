@@ -30,6 +30,7 @@ import com.romankozak.forwardappmobile.ui.reminders.list.RemindersScreen
 import com.romankozak.forwardappmobile.ui.screens.ManageContextsScreen
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.ActivityTrackerScreen
 import com.romankozak.forwardappmobile.ui.screens.commanddeck.SharedCommandDeckLayout
+import com.romankozak.forwardappmobile.ui.screens.commanddeck.CharacterScreen
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.EditTaskScreen
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchScreen
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchViewModel
@@ -60,6 +61,7 @@ import com.romankozak.forwardappmobile.ui.navigation.NavTargetRouter
 
 const val MAIN_GRAPH_ROUTE = "main_graph"
 const val COMMAND_DECK_ROUTE = "command_deck_screen"
+const val CHARACTER_SCREEN_ROUTE = "character_screen"
 const val GOAL_LISTS_ROUTE = "goal_lists_screen"
 const val AI_INSIGHTS_ROUTE = "ai_insights_screen"
 const val LIFE_STATE_ROUTE = "life_state_screen"
@@ -126,6 +128,7 @@ private fun NavGraphBuilder.mainGraph(
     SharedCommandDeckLayout(
       navController = navController,
       onNavigateToProjectHierarchy = { navController.navigate(GOAL_LISTS_ROUTE) },
+      onNavigateToCharacter = { navController.navigate(CHARACTER_SCREEN_ROUTE) },
       onNavigateToGlobalSearch = { navController.navigate("global_search") },
       onNavigateToSettings = { navController.navigate("settings_screen") },
       onNavigateToInbox = {
@@ -164,6 +167,10 @@ private fun NavGraphBuilder.mainGraph(
       },
       recentViewModel = hiltViewModel<RecentViewModel>(),
     )
+  }
+
+  composable(CHARACTER_SCREEN_ROUTE) {
+    CharacterScreen()
   }
 
   composable(GOAL_LISTS_ROUTE) { backStackEntry ->

@@ -10,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ListAlt
@@ -41,10 +42,13 @@ import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -154,6 +158,9 @@ fun NoteDocumentScreen(
         is NoteDocumentEvent.NavigateBack -> {
           navController.previousBackStackEntry?.savedStateHandle?.set("refresh_needed", true)
           navController.popBackStack()
+        }
+        is NoteDocumentEvent.OpenDocument -> {
+          navController.navigate("note_document_screen/${event.documentId}?startEdit=false")
         }
         is NoteDocumentEvent.ShowError -> {}
         is NoteDocumentEvent.ShowSuccess -> {}
@@ -416,6 +423,8 @@ private fun CreateEditContent(
       .verticalScroll(scrollState)
       .padding(start = 16.dp, end = 16.dp, top = 16.dp)
   ) {
+    val isViewMode = !uiState.isEditing
+
     Gutter(
       lines = uiState.content.text.lines(),
       collapsedLines = uiState.collapsedLines,
@@ -451,6 +460,21 @@ private fun CreateEditContent(
         .fillMaxHeight()
         .focusRequester(contentFocusRequester)
         .bringIntoViewRequester(bringIntoViewRequester)
+        .pointerInput(uiState.content.text, uiState.collapsedLines, isViewMode) {
+          detectTapGestures { offset ->
+            if (!isViewMode) return@detectTapGestures
+            val layout = textLayoutResult ?: return@detectTapGestures
+            val transformation = ListVisualTransformation(uiState.collapsedLines, textColor, accentColor)
+            val transformed = transformation.filter(AnnotatedString(uiState.content.text))
+            val transformedOffset = layout.getOffsetForPosition(offset)
+            val linkAnnotation =
+              transformed.text.getStringAnnotations("wikilink", transformedOffset, transformedOffset)
+                .firstOrNull()
+            linkAnnotation?.let { annotation ->
+              viewModel.onWikiLinkClick(annotation.item)
+            }
+          }
+        }
         .drawBehind {
           uiState.currentLine?.let { line ->
             textLayoutResult?.let { layoutResult ->
@@ -514,6 +538,7 @@ private class ListVisualTransformation(
     val originalText = text.text
     val lines = originalText.lines()
     val visibleLines = mutableListOf<IndexedValue<String>>()
+    val wikiLinkRegex = Regex("\\[\\[([^\\[\\]]+)\\]\\]")
 
     var i = 0
     while (i < lines.size) {
@@ -585,7 +610,34 @@ val uncheckedRegex = Regex("""^(\s*)\[\s\]\s(.*)""")
         }
 
         if (!matched) {
-          withStyle(SpanStyle(color = textColor)) { append(line) }
+          val lineAnnotated = buildAnnotatedString {
+            var cursor = 0
+            wikiLinkRegex.findAll(line).forEach { match ->
+              if (match.range.first > cursor) {
+                append(line.substring(cursor, match.range.first))
+              }
+              val linkText = match.value
+              val start = length
+              append(linkText)
+              val end = length
+              addStyle(
+                SpanStyle(color = accentColor, textDecoration = TextDecoration.Underline),
+                start = start,
+                end = end
+              )
+              addStringAnnotation(
+                tag = "wikilink",
+                annotation = match.groupValues[1],
+                start = start,
+                end = end
+              )
+              cursor = match.range.last + 1
+            }
+            if (cursor < line.length) {
+              append(line.substring(cursor))
+            }
+          }
+          withStyle(SpanStyle(color = textColor)) { append(lineAnnotated) }
         }
 
         if (visibleIndex < visibleLines.size - 1) {
@@ -695,38 +747,21 @@ private fun ViewContent(
         )
       }
     } else {
-      val annotatedString = buildAnnotatedString {
-        val lines = uiState.content.text.lines()
-        var i = 0
-        while (i < lines.size) {
-          val line = lines[i]
-          val indent = line.takeWhile { it.isWhitespace() }.length
-          val isCollapsed = uiState.collapsedLines.contains(i)
+      val textColor = MaterialTheme.colorScheme.onSurface
+      val accentColor = MaterialTheme.colorScheme.primary
+      val transformation =
+        ListVisualTransformation(uiState.collapsedLines, textColor, accentColor)
+      val transformed = transformation.filter(AnnotatedString(uiState.content.text))
 
-          withStyle(
-            style =
-              SpanStyle(background = if (isCollapsed) Color.LightGray else Color.Transparent)
-          ) {
-            append(line)
-          }
-          append("\n")
-
-          if (isCollapsed) {
-            i++
-            while (
-              i < lines.size &&
-                (lines[i].isBlank() || lines[i].takeWhile { it.isWhitespace() }.length > indent)
-            ) {
-              i++
-            }
-          } else {
-            i++
-          }
-        }
-      }
-      Text(
-        text = annotatedString,
-        style = TextStyle(lineHeight = 20.sp),
+      ClickableText(
+        text = transformed.text,
+        style = TextStyle(color = textColor, lineHeight = 20.sp),
+        onClick = { offset ->
+          transformed.text
+            .getStringAnnotations("wikilink", offset, offset)
+            .firstOrNull()
+            ?.let { annotation -> viewModel.onWikiLinkClick(annotation.item) }
+        },
       )
     }
     // Додатковий відступ знизу, щоб контент не ховався за панеллю навігації

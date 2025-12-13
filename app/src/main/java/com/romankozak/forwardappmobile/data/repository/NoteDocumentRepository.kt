@@ -29,6 +29,9 @@ class NoteDocumentRepository @Inject constructor(
     fun getAllDocumentsAsFlow(): Flow<List<NoteDocumentEntity>> =
         noteDocumentDao.getAllDocumentsAsFlow()
 
+    suspend fun findDocumentByName(name: String): NoteDocumentEntity? =
+        noteDocumentDao.findByName(name)
+
     @Transaction
     suspend fun createDocument(
         name: String,

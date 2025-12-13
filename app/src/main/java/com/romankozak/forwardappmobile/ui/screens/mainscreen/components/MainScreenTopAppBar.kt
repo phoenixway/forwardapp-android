@@ -165,19 +165,6 @@ fun ProjectHierarchyScreenTopAppBar(
                             ),
                             color = MaterialTheme.colorScheme.onSurface,
                         )
-                        if (com.romankozak.forwardappmobile.BuildConfig.DEBUG || com.romankozak.forwardappmobile.BuildConfig.IS_EXPERIMENTAL_BUILD) {
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Badge(
-                                containerColor = MaterialTheme.colorScheme.errorContainer,
-                                contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                            ) {
-                                Text(
-                                    // Show "Debug" if DEBUG build, otherwise "Experimental" for exp release
-                                    text = if (com.romankozak.forwardappmobile.BuildConfig.DEBUG) "Debug" else "Experimental",
-                                    style = MaterialTheme.typography.labelSmall,
-                                )
-                            }
-                        }
                     }
                 }
 

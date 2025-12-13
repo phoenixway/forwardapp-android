@@ -7,8 +7,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -278,7 +281,11 @@ fun StrategicArcHeader(onModeClick: () -> Unit): HeaderLayout {
  * Command Deck / Dashboard header.
  */
 @Composable
-fun CommandDeckHeaderPreset(onClick: (() -> Unit)? = null): HeaderLayout {
+fun CommandDeckHeaderPreset(
+    onClick: (() -> Unit)? = null,
+    onRightClick: (() -> Unit)? = null,
+    rightContent: @Composable (() -> Unit)? = null
+): HeaderLayout {
     val primaryColor = MaterialTheme.colorScheme.primary
 
     return LeftCenterCombinedHeaderLayout(
@@ -302,31 +309,46 @@ fun CommandDeckHeaderPreset(onClick: (() -> Unit)? = null): HeaderLayout {
             }
         },
         right = {
-            Box(
-                modifier = Modifier
-                    .size(34.dp)
-                    .clip(CircleShape)
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                primaryColor.copy(alpha = 0.25f),
-                                primaryColor.copy(alpha = 0.08f)
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (rightContent != null) {
+                    rightContent()
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.radialGradient(
+                                colors = listOf(
+                                    primaryColor.copy(alpha = 0.25f),
+                                    primaryColor.copy(alpha = 0.08f)
+                                )
                             )
                         )
+                        .border(
+                            width = 1.2.dp,
+                            color = primaryColor.copy(alpha = 0.4f),
+                            shape = CircleShape
+                        )
+                        .let { base ->
+                            if (onRightClick != null) {
+                                base.clickable { onRightClick() }
+                            } else {
+                                base
+                            }
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "⌬",
+                        fontSize = 22.sp,
+                        color = primaryColor,
+                        fontWeight = FontWeight.Bold
                     )
-                    .border(
-                        width = 1.2.dp,
-                        color = primaryColor.copy(alpha = 0.4f),
-                        shape = CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "⌬",
-                    fontSize = 22.sp,
-                    color = primaryColor,
-                    fontWeight = FontWeight.Bold
-                )
+                }
             }
         }
     )

@@ -57,4 +57,7 @@ constructor(
       }
     }
   }
+
+  suspend fun findDocumentIdByName(name: String): String? =
+    noteDocumentRepository.findDocumentByName(name)?.id
 }

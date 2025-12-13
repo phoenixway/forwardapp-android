@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.ui.screens.commanddeck
 
 import android.util.Log
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -11,6 +12,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Badge
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -21,6 +25,7 @@ import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.consumeAllChanges
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -42,6 +47,7 @@ import com.romankozak.forwardappmobile.ui.components.header.StrategyHeader
 import com.romankozak.forwardappmobile.ui.components.header.TacticsHeader
 import com.romankozak.forwardappmobile.ui.components.header.TodayHeader
 import com.romankozak.forwardappmobile.routes.GOAL_LISTS_ROUTE
+import com.romankozak.forwardappmobile.routes.CHARACTER_SCREEN_ROUTE
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.DayManagementScreen
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanViewModel
 import com.romankozak.forwardappmobile.ui.screens.strategicmanagement.StrategicManagementScreen
@@ -66,6 +72,7 @@ const val COMMAND_DECK_TODAY_ROUTE = "command_deck_today"
 fun SharedCommandDeckLayout(
     navController: NavController,
     onNavigateToProjectHierarchy: () -> Unit,
+    onNavigateToCharacter: () -> Unit,
     onNavigateToGlobalSearch: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToInbox: () -> Unit,
@@ -89,16 +96,11 @@ fun SharedCommandDeckLayout(
     val isContextInputVisible by commandDeckViewModel.isContextInputVisible.collectAsStateWithLifecycle()
     val contextInputText by commandDeckViewModel.contextInputText.collectAsStateWithLifecycle()
 
-    val headerModifier = Modifier.pointerInput(Unit) {
-        awaitEachGesture {
-            val down = awaitFirstDown(pass = PointerEventPass.Initial, requireUnconsumed = false)
-            down.consumeAllChanges()
-            val up = waitForUpOrCancellation(pass = PointerEventPass.Initial)
-            if (up != null) {
-                commandDeckViewModel.openContextInput()
-            }
-        }
-    }
+    val headerModifier =
+        Modifier.clickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = null,
+        ) { commandDeckViewModel.openContextInput() }
 
     val selectedTabIndex = remember(currentRoute) {
         tabs.indexOfFirst { tab ->
@@ -118,11 +120,30 @@ fun SharedCommandDeckLayout(
             containerColor = Color.Transparent,
             topBar = {
                 when (currentRoute) {
-                    COMMAND_DECK_DASHBOARD_ROUTE -> FAHeader(
-                        layout = CommandDeckHeaderPreset(onClick = {}),
-                        backgroundStyle = FAHeaderBackground.CommandDeck,
-                        modifier = headerModifier
-                    )
+                    COMMAND_DECK_DASHBOARD_ROUTE -> {
+                        val showBadge = com.romankozak.forwardappmobile.BuildConfig.DEBUG || com.romankozak.forwardappmobile.BuildConfig.IS_EXPERIMENTAL_BUILD
+                        FAHeader(
+                            layout = CommandDeckHeaderPreset(
+                                onClick = {},
+                                onRightClick = { onNavigateToCharacter() },
+                                rightContent = {
+                                    if (showBadge) {
+                                        Badge(
+                                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                                        ) {
+                                            Text(
+                                                text = if (com.romankozak.forwardappmobile.BuildConfig.DEBUG) "Debug" else "Experimental",
+                                                style = MaterialTheme.typography.labelSmall,
+                                            )
+                                        }
+                                    }
+                                }
+                            ),
+                            backgroundStyle = FAHeaderBackground.CommandDeck,
+                            modifier = headerModifier
+                        )
+                    }
 
                     COMMAND_DECK_CORE_ROUTE -> FAHeader(
                         layout = CoreHeader(),
@@ -164,7 +185,6 @@ fun SharedCommandDeckLayout(
                                 },
                                 isNextDayNavigationEnabled = !dayPlanUiState.isToday,
                                 date = dayPlanUiState.dayPlan?.date,
-                                statsText = "Stats: +$xpToday  -$antyXpToday"
                             ),
                             backgroundStyle = FAHeaderBackground.CommandDeck,
                             modifier = headerModifier
