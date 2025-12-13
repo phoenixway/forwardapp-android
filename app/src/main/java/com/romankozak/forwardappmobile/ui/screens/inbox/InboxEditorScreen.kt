@@ -25,6 +25,9 @@ fun InboxEditorScreen(
       viewModel.saveInboxItem(content)
       navController.popBackStack()
     },
+    onAutoSave = { content, _ ->
+      viewModel.saveInboxItem(content)
+    },
     onNavigateBack = { navController.popBackStack() },
     viewModel = viewModel.universalEditorViewModel,
     navController = navController,

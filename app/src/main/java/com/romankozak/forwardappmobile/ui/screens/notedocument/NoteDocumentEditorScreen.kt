@@ -16,6 +16,10 @@ import androidx.compose.ui.platform.LocalView
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.romankozak.forwardappmobile.ui.navigation.NavTarget
+import com.romankozak.forwardappmobile.ui.navigation.NavTargetRouter
+import java.net.URLEncoder
 
 @Composable
 fun NoteDocumentEditorScreen(
@@ -44,23 +48,37 @@ fun NoteDocumentEditorScreen(
   LaunchedEffect(documentId) { documentId?.let { viewModel.loadDocument(it) } }
 
   UniversalEditorScreen(
-    title = stringResource(R.string.note_editor_edit_title),
+    title = "Нотатка",
     onSave = { content, cursorPosition ->
       viewModel.saveDocument(content, cursorPosition)
       navController.previousBackStackEntry?.savedStateHandle?.set("refresh_needed", true)
       navController.popBackStack()
     },
+    onAutoSave = { content, cursorPosition ->
+      viewModel.saveDocument(content, cursorPosition)
+    },
     onNavigateBack = { navController.popBackStack() },
     onWikiLinkClick = { link ->
       coroutineScope.launch {
-        val targetId = viewModel.findDocumentIdByName(link)
-        if (targetId != null) {
-          navController.navigate("note_document_screen/$targetId?startEdit=false")
-        } else {
-          viewModel.universalEditorViewModel.showError("Не зміг відкрити вкладення \"$link\"")
+        when {
+          link.startsWith("#") || link.startsWith("@") -> {
+            val encoded = URLEncoder.encode(link, "UTF-8")
+            val target = NavTarget.GlobalSearch(query = encoded)
+            navController.navigate(NavTargetRouter.routeOf(target))
+          }
+          else -> {
+            val targetId = viewModel.findDocumentIdByName(link)
+            if (targetId != null) {
+              val target = NavTarget.NoteDocument(id = targetId, startEdit = false)
+              navController.navigate(NavTargetRouter.routeOf(target))
+            } else {
+              viewModel.universalEditorViewModel.showError("Не зміг відкрити вкладення \"$link\"")
+            }
+          }
         }
       }
     },
+    linkSuggestions = viewModel.linkSuggestions.collectAsStateWithLifecycle().value,
     viewModel = viewModel.universalEditorViewModel,
     navController = navController,
     contentFocusRequester = focusRequester,

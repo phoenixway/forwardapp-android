@@ -13,6 +13,7 @@ import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.ClickableText
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -43,6 +44,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.TransformedText
@@ -71,8 +73,10 @@ import kotlinx.coroutines.delay
 fun UniversalEditorScreen(
   title: String,
   onSave: (content: String, cursorPosition: Int) -> Unit,
+  onAutoSave: ((content: String, cursorPosition: Int) -> Unit)? = null,
   onNavigateBack: () -> Unit,
   onWikiLinkClick: (String) -> Unit = {},
+  linkSuggestions: List<String> = emptyList(),
   navController: NavController,
   viewModel: UniversalEditorViewModel = hiltViewModel(),
   contentFocusRequester: FocusRequester,
@@ -83,6 +87,8 @@ fun UniversalEditorScreen(
   val view = LocalView.current
   val isDarkTheme = isSystemInDarkTheme()
   val context = LocalContext.current
+  var lastSavedText by remember { mutableStateOf("") }
+  var isDirty by remember { mutableStateOf(false) }
   if (!view.isInEditMode) {
     LaunchedEffect(Unit) {
       val window = (view.context as Activity).window
@@ -122,6 +128,22 @@ fun UniversalEditorScreen(
     }
   }
 
+  LaunchedEffect(uiState.content.text) {
+    if (lastSavedText.isEmpty()) {
+      lastSavedText = uiState.content.text
+    }
+    isDirty = uiState.content.text != lastSavedText
+    val currentText = uiState.content.text
+    delay(2000)
+    if (currentText == uiState.content.text && isDirty) {
+      onAutoSave?.invoke(uiState.content.text, uiState.content.selection.start)
+      onAutoSave?.let {
+        lastSavedText = uiState.content.text
+        isDirty = false
+      }
+    }
+  }
+
   LaunchedEffect(Unit) {
     viewModel.events.collect {
       when (it) {
@@ -149,11 +171,17 @@ fun UniversalEditorScreen(
   Scaffold(
     modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainerLow).imePadding(),
     topBar = {
+      val handleSave = {
+        onSave(uiState.content.text, uiState.content.selection.start)
+        lastSavedText = uiState.content.text
+        isDirty = false
+      }
       EditorTopAppBar(
         title = title,
         isLoading = uiState.isLoading,
+        isSaveEnabled = isDirty && !uiState.isLoading,
         onNavigateBack = onNavigateBack,
-        onSave = { onSave(uiState.content.text, uiState.content.selection.start) },
+        onSave = handleSave,
         onCopyAll = viewModel::onCopyAll,
         onShare = viewModel::onShare,
         onShowLocation = viewModel::onShowLocation,
@@ -245,6 +273,7 @@ fun UniversalEditorScreen(
         onContentChange = { viewModel.onContentChange(it) },
         onToggleCheckbox = viewModel::onToggleCheckbox,
         onWikiLinkClick = onWikiLinkClick,
+        linkSuggestions = linkSuggestions,
         contentFocusRequester = contentFocusRequester,
         isToolbarVisible = isToolbarVisible,
         readOnly = readOnly,
@@ -264,6 +293,7 @@ fun UniversalEditorScreen(
 private fun EditorTopAppBar(
   title: String,
   isLoading: Boolean,
+  isSaveEnabled: Boolean,
   onNavigateBack: () -> Unit,
   onSave: () -> Unit,
   onCopyAll: () -> Unit,
@@ -271,6 +301,8 @@ private fun EditorTopAppBar(
   onShowLocation: () -> Unit,
   showLocationEnabled: Boolean,
 ) {
+  var menuExpanded by remember { mutableStateOf(false) }
+
   TopAppBar(
     title = { Text(text = title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
     navigationIcon = {
@@ -279,21 +311,43 @@ private fun EditorTopAppBar(
       }
     },
     actions = {
-      if (showLocationEnabled) {
-        IconButton(onClick = onShowLocation) {
-          Icon(Icons.Default.RemoveRedEye, contentDescription = "Show")
-        }
-      }
-      IconButton(onClick = onCopyAll) {
-        Icon(Icons.Default.ContentCopy, contentDescription = "Copy all")
-      }
-      IconButton(onClick = onShare) { Icon(Icons.Default.Share, contentDescription = "Share") }
-      FilledTonalIconButton(onClick = onSave, enabled = !isLoading) {
+      FilledTonalIconButton(onClick = onSave, enabled = isSaveEnabled) {
         if (isLoading) {
           CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
         } else {
           Icon(Icons.Default.Check, contentDescription = "Save")
         }
+      }
+      IconButton(onClick = { menuExpanded = true }) {
+        Icon(Icons.Default.MoreVert, contentDescription = "More")
+      }
+      DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+        if (showLocationEnabled) {
+          DropdownMenuItem(
+            text = { Text("Show location") },
+            leadingIcon = { Icon(Icons.Default.RemoveRedEye, contentDescription = null) },
+            onClick = {
+              menuExpanded = false
+              onShowLocation()
+            },
+          )
+        }
+        DropdownMenuItem(
+          text = { Text("Copy all") },
+          leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) },
+          onClick = {
+            menuExpanded = false
+            onCopyAll()
+          },
+        )
+        DropdownMenuItem(
+          text = { Text("Share") },
+          leadingIcon = { Icon(Icons.Default.Share, contentDescription = null) },
+          onClick = {
+            menuExpanded = false
+            onShare()
+          },
+        )
       }
     },
     colors =
@@ -308,6 +362,7 @@ private fun Editor(
   onContentChange: (TextFieldValue) -> Unit,
   onToggleCheckbox: (Int) -> Unit,
   onWikiLinkClick: (String) -> Unit,
+  linkSuggestions: List<String>,
   contentFocusRequester: FocusRequester,
   isToolbarVisible: Boolean,
   readOnly: Boolean,
@@ -325,6 +380,55 @@ private fun Editor(
   val imeHeight = WindowInsets.ime.getBottom(density)
   val isImeVisible = imeHeight > 0
 
+  data class InlineQuery(val start: Int, val prefix: String, val query: String)
+
+  fun extractInlineQuery(text: String, cursor: Int): InlineQuery? {
+    val before = text.take(cursor)
+    val lastLink = before.lastIndexOf("[[")
+    val lastTag = before.lastIndexOf("#")
+    val lastContext = before.lastIndexOf("@")
+    val candidates =
+      listOf(
+        "link" to lastLink,
+        "tag" to lastTag,
+        "context" to lastContext,
+      ).filter { it.second >= 0 }
+    if (candidates.isEmpty()) return null
+    val (type, start) = candidates.maxByOrNull { it.second } ?: return null
+    val remainder = before.substring(start + if (type == "link") 2 else 1)
+    if (remainder.contains("\n")) return null
+    when (type) {
+      "link" -> {
+        val hasClose = before.indexOf("]]", startIndex = start) != -1
+        if (hasClose) return null
+        return InlineQuery(start, "[[", remainder)
+      }
+      "tag" -> {
+        if (start > 0 && !before[start - 1].isWhitespace()) return null
+        if (remainder.length < 1) return null
+        return InlineQuery(start, "#", remainder)
+      }
+      "context" -> {
+        if (start > 0 && !before[start - 1].isWhitespace()) return null
+        if (remainder.length < 1) return null
+        return InlineQuery(start, "@", remainder)
+      }
+    }
+    return null
+  }
+
+  val activeQuery = remember(content.text, content.selection) {
+    extractInlineQuery(content.text, content.selection.start)
+  }
+
+  val filteredSuggestions =
+    remember(activeQuery, linkSuggestions) {
+      activeQuery?.let { q ->
+        if (q.query.length < 3) emptyList()
+        else linkSuggestions.filter { it.contains(q.query, ignoreCase = true) }.take(6)
+      } ?: emptyList()
+    }
+
   LaunchedEffect(content.selection, textLayoutResult, imeHeight, isToolbarVisible) {
     delay(100)
 
@@ -340,100 +444,162 @@ private fun Editor(
     }
   }
 
-  Row(
-    modifier =
-      Modifier.fillMaxSize()
-        .verticalScroll(scrollState)
-        .padding(start = 16.dp, end = 16.dp, top = 16.dp)
-  ) {
-    val visualTransformation =
-      if (readOnly) ListVisualTransformation(emptySet(), textColor, accentColor)
-      else VisualTransformation.None
+  Box(modifier = Modifier.fillMaxSize()) {
+    Row(
+      modifier =
+        Modifier.fillMaxSize()
+          .verticalScroll(scrollState)
+          .padding(start = 16.dp, end = 16.dp, top = 16.dp)
+    ) {
+      val visualTransformation =
+        if (readOnly) ListVisualTransformation(emptySet(), textColor, accentColor)
+        else VisualTransformation.None
 
-    val baseModifier =
-      Modifier.padding(start = 16.dp)
-        .weight(1f)
-        .fillMaxHeight()
-        .focusRequester(contentFocusRequester)
-        .bringIntoViewRequester(bringIntoViewRequester)
-        .focusProperties { canFocus = isEditing }
+      val baseModifier =
+        Modifier.padding(start = 16.dp)
+          .weight(1f)
+          .fillMaxHeight()
+          .focusRequester(contentFocusRequester)
+          .bringIntoViewRequester(bringIntoViewRequester)
+          .focusProperties { canFocus = isEditing }
 
-    if (readOnly) {
-      val transformed = visualTransformation.filter(AnnotatedString(content.text))
-      ClickableText(
-        text = transformed.text,
-        modifier = baseModifier,
-        style = TextStyle(fontSize = 16.sp, lineHeight = 24.sp, color = textColor),
-        onClick = { clickOffset: Int ->
-          val annotation =
-            transformed.text.getStringAnnotations("wikilink", clickOffset, clickOffset).firstOrNull()
-          if (annotation != null) {
-            Log.d("WikiTap", "ClickableText link '${annotation.item}' at $clickOffset")
-            onWikiLinkClick(annotation.item)
-          } else {
-            Log.d("WikiTap", "ClickableText no link at $clickOffset")
-          }
-        },
-      )
-    } else {
-      BasicTextField(
-        value = content,
-        onValueChange = onContentChange,
-        onTextLayout = { result -> textLayoutResult = result },
-        modifier =
-          baseModifier.pointerInput(content.text, isEditing) {
-            detectTapGestures { offset ->
-              val layout = textLayoutResult ?: return@detectTapGestures
+      if (readOnly) {
+        val transformed = visualTransformation.filter(AnnotatedString(content.text))
+        ClickableText(
+          text = transformed.text,
+          modifier = baseModifier,
+          style = TextStyle(fontSize = 16.sp, lineHeight = 24.sp, color = textColor),
+          onClick = { clickOffset: Int ->
+              val annotation =
+                transformed.text.getStringAnnotations("wikilink", clickOffset, clickOffset).firstOrNull()
+                  ?: transformed.text.getStringAnnotations("tag", clickOffset, clickOffset).firstOrNull()
+                  ?: transformed.text.getStringAnnotations("context", clickOffset, clickOffset).firstOrNull()
+            when (annotation?.tag) {
+              "wikilink" -> onWikiLinkClick(annotation.item)
+              "tag" -> onWikiLinkClick("#${annotation.item}")
+              "context" -> onWikiLinkClick("@${annotation.item}")
+            }
+          },
+        )
+      } else {
+        BasicTextField(
+          value = content,
+          onValueChange = onContentChange,
+          onTextLayout = { result -> textLayoutResult = result },
+          modifier =
+            baseModifier.pointerInput(content.text, isEditing) {
+              detectTapGestures { offset ->
+                val layout = textLayoutResult ?: return@detectTapGestures
 
-              val clickedOffset = layout.getOffsetForPosition(offset)
-              val lineIndex = layout.getLineForOffset(clickedOffset)
-              val lines = content.text.lines()
+                val clickedOffset = layout.getOffsetForPosition(offset)
+                val lineIndex = layout.getLineForOffset(clickedOffset)
+                val lines = content.text.lines()
 
-              if (lineIndex >= lines.size) return@detectTapGestures
+                if (lineIndex >= lines.size) return@detectTapGestures
 
-              val line = lines[lineIndex]
-              val trimmedLine = line.trimStart()
+                val line = lines[lineIndex]
+                val trimmedLine = line.trimStart()
 
-              val checkboxRegex = Regex("""^\s*-\s\[[ x]\]\s?.*""", RegexOption.IGNORE_CASE)
-              if (checkboxRegex.matches(trimmedLine)) {
-                val lineStartOffset = layout.getLineStart(lineIndex)
-                val originalIndentLength = line.takeWhile { it.isWhitespace() }.length
+                val checkboxRegex = Regex("""^\s*-\s\[[ x]\]\s?.*""", RegexOption.IGNORE_CASE)
+                if (checkboxRegex.matches(trimmedLine)) {
+                  val lineStartOffset = layout.getLineStart(lineIndex)
+                  val originalIndentLength = line.takeWhile { it.isWhitespace() }.length
 
-                val offsetInLine = clickedOffset - lineStartOffset
+                  val offsetInLine = clickedOffset - lineStartOffset
 
-                val checkboxStart = originalIndentLength
-                val checkboxEnd = originalIndentLength + 8
+                  val checkboxStart = originalIndentLength
+                  val checkboxEnd = originalIndentLength + 8
 
-                if (offsetInLine >= checkboxStart && offsetInLine < checkboxEnd) {
-                  onToggleCheckbox(lineIndex)
+                  if (offsetInLine >= checkboxStart && offsetInLine < checkboxEnd) {
+                    onToggleCheckbox(lineIndex)
+                  }
                 }
               }
             }
-          }
-          .drawBehind {
-            if (!isEditing) return@drawBehind
-            textLayoutResult?.let { layoutResult ->
-              val currentLine =
-                content.selection.start.let { offset -> layoutResult.getLineForOffset(offset) }
-              if (currentLine < layoutResult.lineCount) {
-                val top = layoutResult.getLineTop(currentLine)
-                val bottom = layoutResult.getLineBottom(currentLine)
-                drawRect(
-                  color = highlightColor,
-                  topLeft = Offset(0f, top),
-                  size = Size(size.width, bottom - top),
-                )
+            .drawBehind {
+              if (!isEditing) return@drawBehind
+              textLayoutResult?.let { layoutResult ->
+                val currentLine =
+                  content.selection.start.let { offset -> layoutResult.getLineForOffset(offset) }
+                if (currentLine < layoutResult.lineCount) {
+                  val top = layoutResult.getLineTop(currentLine)
+                  val bottom = layoutResult.getLineBottom(currentLine)
+                  drawRect(
+                    color = highlightColor,
+                    topLeft = Offset(0f, top),
+                    size = Size(size.width, bottom - top),
+                  )
+                }
               }
-            }
-          },
-        textStyle = TextStyle(fontSize = 16.sp, lineHeight = 24.sp, color = textColor),
-        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-        visualTransformation = visualTransformation,
-        readOnly = false,
-        interactionSource = remember { MutableInteractionSource() },
-        singleLine = false,
-        maxLines = Int.MAX_VALUE,
-      )
+            },
+          textStyle = TextStyle(fontSize = 16.sp, lineHeight = 24.sp, color = textColor),
+          cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+          visualTransformation = visualTransformation,
+          readOnly = false,
+          interactionSource = remember { MutableInteractionSource() },
+          singleLine = false,
+          maxLines = Int.MAX_VALUE,
+        )
+      }
+    }
+
+    if (!readOnly && filteredSuggestions.isNotEmpty() && activeQuery != null) {
+      Card(
+        modifier = Modifier
+          .align(Alignment.BottomStart)
+          .padding(12.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
+      ) {
+        Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+          filteredSuggestions.forEach { suggestion ->
+            Text(
+              text = suggestion,
+              style = MaterialTheme.typography.bodyMedium,
+              color = MaterialTheme.colorScheme.onSurface,
+              modifier =
+                Modifier
+                  .fillMaxWidth()
+                  .clickable {
+                    val query = activeQuery ?: return@clickable
+                    val cursor = content.selection.start
+                    val newText = buildString {
+                      append(content.text.substring(0, query.start))
+                      when (query.prefix) {
+                        "[[" -> {
+                          append("[[")
+                          append(suggestion)
+                          append("]]")
+                        }
+                        "#" -> {
+                          append("#")
+                          append(suggestion)
+                          append(" ")
+                        }
+                        "@" -> {
+                          append("@")
+                          append(suggestion)
+                          append(" ")
+                        }
+                      }
+                      append(content.text.substring(cursor))
+                    }
+                    val newCursor =
+                      when (query.prefix) {
+                        "[[" -> query.start + 2 + suggestion.length + 2
+                        "#" -> query.start + 1 + suggestion.length + 1
+                        "@" -> query.start + 1 + suggestion.length + 1
+                        else -> cursor
+                      }
+                    onContentChange(TextFieldValue(newText, TextRange(newCursor)))
+                  }
+                  .padding(horizontal = 6.dp, vertical = 4.dp),
+            )
+          }
+        }
+      }
     }
   }
 }
@@ -497,6 +663,8 @@ private class ListVisualTransformation(
     val visibleLines = mutableListOf<IndexedValue<String>>()
     val lineInfos = mutableListOf<LineInfo>()
     val wikiLinkRegex = Regex("\\[\\[([^\\[\\]]+)\\]\\]")
+    val tagRegex = Regex("#(\\w+)")
+    val contextRegex = Regex("@(\\w+)")
 
     var i = 0
     while (i < lines.size) {
@@ -528,6 +696,11 @@ private class ListVisualTransformation(
         val uncheckedRegex = Regex("""^(\s*)-\s\[\s\]\s(.*)""")
         val boldRegex = Regex("""(\*\*|__)(.*?)\1""")
         val italicRegex = Regex("""(\*|_)(.*?)\1""")
+        val allInlineRegex = listOf(
+          "wikilink" to wikiLinkRegex,
+          "tag" to tagRegex,
+          "context" to contextRegex,
+        )
 
         var matched = false
 
@@ -590,31 +763,39 @@ private class ListVisualTransformation(
         if (!matched) {
           val annotatedString = buildAnnotatedString {
             var cursor = 0
-            wikiLinkRegex.findAll(line).forEach { match ->
+            while (cursor < line.length) {
+              val nextMatch =
+                allInlineRegex
+                  .mapNotNull { (tag, regex) -> regex.find(line, startIndex = cursor)?.let { tag to it } }
+                  .minByOrNull { it.second.range.first }
+              if (nextMatch == null) {
+                append(line.substring(cursor))
+                break
+              }
+              val (tag, match) = nextMatch
               if (match.range.first > cursor) {
                 append(line.substring(cursor, match.range.first))
               }
-              val linkText = match.groupValues[1]
-              val linkStart = length + 2 // after adding [[
-              withStyle(SpanStyle(color = Color.Transparent)) { append("[[") }
-              append(linkText)
-              withStyle(SpanStyle(color = Color.Transparent)) { append("]]") }
-              val linkEnd = linkStart + linkText.length
-              addStyle(
-                style = SpanStyle(color = accentColor, textDecoration = TextDecoration.Underline),
-                start = linkStart,
-                end = linkEnd
-              )
-              addStringAnnotation(
-                tag = "wikilink",
-                annotation = match.groupValues[1],
-                start = linkStart,
-                end = linkEnd
-              )
+              val contentText = match.groupValues[1]
+              val start = length
+              when (tag) {
+                "wikilink" -> {
+                  append(contentText)
+                }
+                "tag" -> append("#$contentText")
+                "context" -> append("@$contentText")
+              }
+              val end = length
+              val style =
+                when (tag) {
+                  "wikilink" -> SpanStyle(color = accentColor, textDecoration = TextDecoration.Underline)
+                  "tag" -> SpanStyle(color = Color(0xFF0D47A1), fontWeight = FontWeight.Medium)
+                  "context" -> SpanStyle(color = Color(0xFF00695C), fontWeight = FontWeight.Medium)
+                  else -> SpanStyle(color = textColor)
+                }
+              addStyle(style, start = start, end = end)
+              addStringAnnotation(tag = tag, annotation = contentText, start = start, end = end)
               cursor = match.range.last + 1
-            }
-            if (cursor < line.length) {
-              append(line.substring(cursor))
             }
 
             boldRegex.findAll(toString()).forEach { matchResult ->
@@ -655,16 +836,19 @@ private class ListVisualTransformation(
 
           var transformedLineStart = 0
           var found = false
+          var lineTransformedLength = 0
           for (i in lineInfos.indices) {
             val info = lineInfos[i]
             if (info.originalIndex == originalLineIndex) {
               found = true
+              lineTransformedLength = info.transformedLength
               break
             }
             transformedLineStart += lineInfos[i].transformedLength + 1
           }
           if (!found) return transformedText.length
-          return (transformedLineStart + charInLine).coerceIn(0, transformedText.length)
+          val adjustedChar = charInLine.coerceAtMost(lineTransformedLength)
+          return (transformedLineStart + adjustedChar).coerceIn(0, transformedText.length)
         }
 
         override fun transformedToOriginal(offset: Int): Int {

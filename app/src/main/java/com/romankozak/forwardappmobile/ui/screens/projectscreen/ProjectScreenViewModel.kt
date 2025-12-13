@@ -2057,6 +2057,18 @@ constructor(
         }
     }
 
+    fun onAutoSaveArtifact(content: String) {
+        viewModelScope.launch {
+            val currentArtifact = projectArtifact.value ?: return@launch
+            projectRepository.updateProjectArtifact(
+                currentArtifact.copy(
+                    content = content,
+                    updatedAt = System.currentTimeMillis()
+                )
+            )
+        }
+    }
+
     fun onEditArtifact(artifact: ProjectArtifact) {
         _uiState.update { it.copy(artifactToEdit = artifact) }
     }

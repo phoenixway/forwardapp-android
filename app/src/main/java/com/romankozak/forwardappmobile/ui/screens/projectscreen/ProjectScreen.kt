@@ -119,6 +119,7 @@ fun ProjectsScreen(
             UniversalEditorScreen(
                 title = "Редагувати Артефакт",
                 onSave = { content, _ -> viewModel.onSaveArtifact(content) },
+                onAutoSave = { content, _ -> viewModel.onAutoSaveArtifact(content) },
                 onNavigateBack = { viewModel.onDismissArtifactEditor() },
                 navController = navController,
                 viewModel = editorViewModel,
@@ -133,6 +134,7 @@ fun ProjectsScreen(
             UniversalEditorScreen(
                 title = "Створити новий документ",
                 onSave = { content, _ -> viewModel.onSaveNoteDocument(content) },
+                onAutoSave = null,
                 onNavigateBack = { viewModel.onDismissNoteDocumentEditor() },
                 navController = navController,
                 viewModel = editorViewModel,

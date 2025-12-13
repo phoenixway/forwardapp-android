@@ -26,6 +26,9 @@ fun NoteEditorScreen(
       navController.previousBackStackEntry?.savedStateHandle?.set("refresh_needed", true)
       navController.popBackStack()
     },
+    onAutoSave = { content, _ ->
+      viewModel.saveNote(content)
+    },
     onNavigateBack = { navController.popBackStack() },
     viewModel = viewModel.universalEditorViewModel,
     navController = navController,
