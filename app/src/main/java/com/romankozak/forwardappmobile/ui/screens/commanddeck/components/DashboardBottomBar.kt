@@ -32,6 +32,7 @@ fun DashboardBottomBar(
     onNavigateToInbox: () -> Unit,
     onNavigateToReminders: () -> Unit,
     onNavigateToPresets: () -> Unit,
+    onNavigateToAiInsights: () -> Unit,
     onNavigateToRecentItem: (RecentItem) -> Unit,
     recentViewModel: RecentViewModel = hiltViewModel()
 ) {
@@ -72,7 +73,16 @@ fun DashboardBottomBar(
                         }
                         onNavigateToPresets()
                     }
-                })
+                },
+                onNavigateToAiInsights = {
+                    coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
+                        if (!modalSheetState.isVisible) {
+                            showMoreBottomSheet = false
+                        }
+                        onNavigateToAiInsights()
+                    }
+                }
+            )
         }
     }
 
@@ -131,6 +141,7 @@ private fun MoreBottomSheetContent(
     onNavigateToReminders: () -> Unit,
     onNavigateToProjectSearch: () -> Unit,
     onNavigateToPresets: () -> Unit,
+    onNavigateToAiInsights: () -> Unit,
 ) {
     Box(
         modifier = Modifier
@@ -173,6 +184,17 @@ private fun MoreBottomSheetContent(
                 Icon(Icons.Outlined.DashboardCustomize, contentDescription = "Presets")
                 Spacer(modifier = Modifier.width(16.dp))
                 Text("Structure presets")
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onNavigateToAiInsights)
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Outlined.AutoAwesome, contentDescription = "AI Insights")
+                Spacer(modifier = Modifier.width(16.dp))
+                Text("AI Insights")
             }
         }
     }

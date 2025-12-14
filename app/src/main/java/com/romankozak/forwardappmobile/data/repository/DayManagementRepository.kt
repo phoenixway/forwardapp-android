@@ -7,6 +7,10 @@ import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
+import com.romankozak.forwardappmobile.domain.ai.events.TaskCreatedEvent
+import com.romankozak.forwardappmobile.domain.ai.events.TaskCompletedEvent
+import com.romankozak.forwardappmobile.domain.ai.events.TaskDeferredEvent
+import com.romankozak.forwardappmobile.data.repository.AiEventRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -30,6 +34,7 @@ class DayManagementRepository
         private val listItemDao: ListItemDao, 
         private val activityRepository: ActivityRepository,
         private val alarmScheduler: javax.inject.Provider<AlarmScheduler>,
+        private val aiEventRepository: AiEventRepository,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     ) {
         @Volatile
@@ -185,6 +190,12 @@ class DayManagementRepository
                     version = 1,
                 )
             dayTaskDao.insert(task)
+            aiEventRepository.emit(
+                TaskCreatedEvent(
+                    timestamp = java.time.Instant.ofEpochMilli(System.currentTimeMillis()),
+                    effort = params.estimatedDurationMinutes?.toInt()
+                )
+            )
             task
         }
 
@@ -293,6 +304,12 @@ class DayManagementRepository
             // Recalculate metrics for both days
             calculateAndSaveDailyMetrics(currentPlan.id)
             calculateAndSaveDailyMetrics(tomorrowsPlan.id)
+            aiEventRepository.emit(
+                TaskDeferredEvent(
+                    timestamp = java.time.Instant.ofEpochMilli(System.currentTimeMillis()),
+                    taskId = taskToMove.id,
+                )
+            )
         }
 
         fun getTasksForDay(dayPlanId: String): Flow<List<DayTask>> =
@@ -352,6 +369,13 @@ class DayManagementRepository
                     updatedAt = now,
                 )
                 recalculateDayProgress(taskId)
+                aiEventRepository.emit(
+                    TaskCompletedEvent(
+                        timestamp = java.time.Instant.ofEpochMilli(now),
+                        xp = 0,
+                        antiXp = 0,
+                    )
+                )
             }
 
         suspend fun updateTask(

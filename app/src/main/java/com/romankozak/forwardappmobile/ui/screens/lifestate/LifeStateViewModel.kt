@@ -23,6 +23,9 @@ import java.io.File
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
+import com.romankozak.forwardappmobile.data.repository.AiEventRepository
+import com.romankozak.forwardappmobile.domain.ai.events.LifeStateUpdatedEvent
+import java.time.Instant
 
 data class LifeStateUiState(
     val isLoading: Boolean = false,
@@ -34,6 +37,7 @@ data class LifeStateUiState(
 class LifeStateViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
     private val aiAnalyzerService: AiAnalyzerService,
+    private val aiEventRepository: AiEventRepository,
 ) : ViewModel() {
 
     private val tag = "LifeStateViewModel"
@@ -90,6 +94,7 @@ class LifeStateViewModel @Inject constructor(
                         cachedAnalysis = analysis
                         persistAnalysis(analysis)
                         _uiState.value = LifeStateUiState(isLoading = false, analysis = analysis, error = null)
+                        aiEventRepository.emit(LifeStateUpdatedEvent(timestamp = Instant.now()))
                     },
                     onFailure = { throwable ->
                         _uiState.update {

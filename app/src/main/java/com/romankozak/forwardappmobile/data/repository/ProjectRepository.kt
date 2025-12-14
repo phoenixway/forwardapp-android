@@ -23,6 +23,8 @@ import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepos
 import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentWithProject
 import com.romankozak.forwardappmobile.data.sync.bumpSync
 import com.romankozak.forwardappmobile.data.sync.softDelete
+import com.romankozak.forwardappmobile.domain.ai.events.ProjectActivatedEvent
+import com.romankozak.forwardappmobile.data.repository.AiEventRepository
 import javax.inject.Singleton
 
 internal enum class ContextTextAction { ADD, REMOVE }
@@ -49,6 +51,7 @@ constructor(
     private val projectArtifactRepository: ProjectArtifactRepository,
     private val listItemRepository: ListItemRepository,
     private val backlogOrderRepository: BacklogOrderRepository,
+    private val aiEventRepository: AiEventRepository,
 ) {
     private val contextHandler: ContextHandler by lazy { contextHandlerProvider.get() }
     private val TAG = "NOTE_DOCUMENT_DEBUG"
@@ -365,6 +368,12 @@ constructor(
         if (parentId != null) {
             listItemRepository.addProjectLinkToProject(id, parentId)
         }
+        aiEventRepository.emit(
+            ProjectActivatedEvent(
+                timestamp = java.time.Instant.ofEpochMilli(now),
+                projectId = id,
+            )
+        )
     }
 
 

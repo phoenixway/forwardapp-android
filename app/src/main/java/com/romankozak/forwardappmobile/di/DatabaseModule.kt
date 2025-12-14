@@ -117,6 +117,10 @@ import com.romankozak.forwardappmobile.data.database.MIGRATION_85_86
 import com.romankozak.forwardappmobile.data.database.MIGRATION_86_87
 import com.romankozak.forwardappmobile.data.database.MIGRATION_87_88
 import com.romankozak.forwardappmobile.data.database.MIGRATION_88_89
+import com.romankozak.forwardappmobile.data.database.MIGRATION_89_90
+import com.romankozak.forwardappmobile.data.database.MIGRATION_90_91
+import com.romankozak.forwardappmobile.data.database.MIGRATION_89_90
+import com.romankozak.forwardappmobile.data.database.MIGRATION_89_90
 import com.romankozak.forwardappmobile.data.repository.SystemAppRepository
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 
@@ -237,6 +241,8 @@ object DatabaseModule {
             MIGRATION_86_87,
             MIGRATION_87_88,
             MIGRATION_88_89,
+            MIGRATION_89_90,
+            MIGRATION_90_91,
         ).addCallback(callback).build()
         return db
     }
@@ -276,6 +282,18 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideProjectManagementDao(appDatabase: AppDatabase) = appDatabase.projectManagementDao()
+
+    @Provides
+    @Singleton
+    fun provideAiEventDao(appDatabase: AppDatabase) = appDatabase.aiEventDao()
+
+    @Provides
+    @Singleton
+    fun provideLifeSystemStateDao(appDatabase: AppDatabase) = appDatabase.lifeSystemStateDao()
+
+    @Provides
+    @Singleton
+    fun provideAiInsightDao(appDatabase: AppDatabase) = appDatabase.aiInsightDao()
 
     @Provides
     @Singleton

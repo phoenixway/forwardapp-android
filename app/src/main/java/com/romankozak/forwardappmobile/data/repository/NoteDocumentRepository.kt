@@ -11,6 +11,8 @@ import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 import com.romankozak.forwardappmobile.data.sync.bumpSync
 import com.romankozak.forwardappmobile.data.sync.softDelete
+import com.romankozak.forwardappmobile.data.repository.AiEventRepository
+import com.romankozak.forwardappmobile.domain.ai.events.SystemNoteUpdatedEvent
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -20,6 +22,7 @@ class NoteDocumentRepository @Inject constructor(
     private val noteDocumentDao: NoteDocumentDao,
     private val attachmentRepository: AttachmentRepository,
     private val recentItemsRepository: RecentItemsRepository,
+    private val aiEventRepository: AiEventRepository,
 ) {
     private val TAG = "NoteDocumentRepository"
 
@@ -149,5 +152,14 @@ class NoteDocumentRepository @Inject constructor(
         noteDocumentDao.updateDocument(document.bumpSync(now))
         recentItemsRepository.updateRecentItemDisplayName(document.id, document.name)
         Log.d(TAG, "updateDocument finished")
+        if (document.name == "my-life-current-state") {
+            aiEventRepository.emit(
+                SystemNoteUpdatedEvent(
+                    timestamp = java.time.Instant.ofEpochMilli(now),
+                    noteId = document.id,
+                    textLength = document.content?.length ?: 0,
+                )
+            )
+        }
     }
 }

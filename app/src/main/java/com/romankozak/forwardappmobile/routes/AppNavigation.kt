@@ -146,7 +146,8 @@ private fun NavGraphBuilder.mainGraph(
       },
       onNavigateToTracker = { navController.navigate("activity_tracker_screen") },
       onNavigateToReminders = { navController.navigate("reminders_screen") },
-      onNavigateToAiChat = { navController.navigate(AI_INSIGHTS_ROUTE) },
+      onNavigateToAiChat = { navController.navigate(CHAT_ROUTE) },
+      onNavigateToAiInsights = { navController.navigate(AI_INSIGHTS_ROUTE) },
       onNavigateToAiLifeManagement = { navController.navigate(LIFE_STATE_ROUTE) },
       onNavigateToImportExport = {
         navController.navigate(SELECTIVE_IMPORT_ROUTE.replace("/{fileUri}", ""))

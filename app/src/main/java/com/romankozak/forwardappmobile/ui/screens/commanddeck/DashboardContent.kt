@@ -87,6 +87,7 @@ fun AnimatedCommandDeck(
   onNavigateToTracker: () -> Unit,
   onNavigateToReminders: () -> Unit,
   onNavigateToAiChat: () -> Unit,
+  onNavigateToAiInsights: () -> Unit,
   onNavigateToAiLifeManagement: () -> Unit,
   onNavigateToImportExport: () -> Unit,
   onNavigateToAttachments: () -> Unit,
@@ -106,6 +107,13 @@ fun AnimatedCommandDeck(
               Icons.AutoMirrored.Outlined.Chat,
               Color(0xFF9D7BFF),
               onNavigateToAiChat,
+            ),
+            DeckAction(
+              "AI Insights",
+              "Insights feed",
+              Icons.Outlined.AutoAwesome,
+              Color(0xFFB29CFF),
+              onNavigateToAiInsights,
             ),
             DeckAction(
               "AI Life Management",

@@ -80,6 +80,7 @@ fun SharedCommandDeckLayout(
     onNavigateToTracker: () -> Unit,
     onNavigateToReminders: () -> Unit,
     onNavigateToAiChat: () -> Unit,
+    onNavigateToAiInsights: () -> Unit,
     onNavigateToAiLifeManagement: () -> Unit,
     onNavigateToImportExport: () -> Unit,
     onNavigateToAttachments: () -> Unit,
@@ -243,6 +244,7 @@ fun SharedCommandDeckLayout(
                             onNavigateToInbox = onNavigateToInbox,
                             onNavigateToReminders = onNavigateToReminders,
                             onNavigateToPresets = onNavigateToPresets,
+                            onNavigateToAiInsights = onNavigateToAiInsights,
                             onNavigateToRecentItem = onNavigateToRecentItem,
                             recentViewModel = recentViewModel
                         )
@@ -294,12 +296,13 @@ fun SharedCommandDeckLayout(
                     onNavigateToGlobalSearch = onNavigateToGlobalSearch,
                     onNavigateToSettings = onNavigateToSettings,
                     onNavigateToInbox = onNavigateToInbox,
-                            onNavigateToTracker = onNavigateToTracker,
-                            onNavigateToReminders = onNavigateToReminders,
-                            onNavigateToAiChat = onNavigateToAiChat,
-                            onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
-                            onNavigateToImportExport = onNavigateToImportExport,
-                            onNavigateToAttachments = onNavigateToAttachments,
+                    onNavigateToTracker = onNavigateToTracker,
+                    onNavigateToReminders = onNavigateToReminders,
+                    onNavigateToAiChat = onNavigateToAiChat,
+                    onNavigateToAiInsights = onNavigateToAiInsights,
+                    onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
+                    onNavigateToImportExport = onNavigateToImportExport,
+                    onNavigateToAttachments = onNavigateToAttachments,
                             onNavigateToScripts = onNavigateToScripts
                         )
                     }

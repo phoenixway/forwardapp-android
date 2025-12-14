@@ -30,8 +30,8 @@ fun CharacterScreen(
     val entries = activityLog.map { Triple(it.createdAt, it.xpGained ?: 0, it.antyXp ?: 0) }
     val (xpToday, antiXpToday) = calculateTodayStats(entries)
     val dailyStats = calculateDailyStats(entries)
-    val maxPositiveDay = dailyStats.maxByOrNull { (_, value) -> value.first - value.second }
-    val maxNegativeDay = dailyStats.minByOrNull { (_, value) -> value.first - value.second }
+    val maxPositiveDay = dailyStats.maxByOrNull { entry -> entry.value.first - entry.value.second }
+    val maxNegativeDay = dailyStats.minByOrNull { entry -> entry.value.first - entry.value.second }
     val daysCount = dailyStats.size.coerceAtLeast(1)
     val avgXp = dailyStats.values.sumOf { it.first } / daysCount
     val avgAntiXp = dailyStats.values.sumOf { it.second } / daysCount
@@ -88,7 +88,7 @@ fun CharacterScreen(
                     )
                     Text(
                         text = "Максимально позитивний день: ${
-                            maxPositiveDay?.let { "${dateFormatter.format(it.first)} (+${it.second.first} / -${it.second.second}, нетто ${it.second.first - it.second.second})" }
+                            maxPositiveDay?.let { (day, stats) -> "${dateFormatter.format(day)} (+${stats.first} / -${stats.second}, нетто ${stats.first - stats.second})" }
                                 ?: "—"
                         }",
                         style = MaterialTheme.typography.bodyMedium,
@@ -96,7 +96,7 @@ fun CharacterScreen(
                     )
                     Text(
                         text = "Максимально негативний день: ${
-                            maxNegativeDay?.let { "${dateFormatter.format(it.first)} (+${it.second.first} / -${it.second.second}, нетто ${it.second.first - it.second.second})" }
+                            maxNegativeDay?.let { (day, stats) -> "${dateFormatter.format(day)} (+${stats.first} / -${stats.second}, нетто ${stats.first - stats.second})" }
                                 ?: "—"
                         }",
                         style = MaterialTheme.typography.bodyMedium,

@@ -1084,3 +1084,50 @@ val MIGRATION_88_89 = object : Migration(88, 89) {
         db.execSQL("ALTER TABLE project_structures ADD COLUMN enable_attachments INTEGER")
     }
 }
+
+val MIGRATION_89_90 = object : Migration(89, 90) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `ai_events` (
+                `id` TEXT NOT NULL,
+                `type` TEXT NOT NULL,
+                `timestamp` INTEGER NOT NULL,
+                `payload` TEXT NOT NULL,
+                PRIMARY KEY(`id`)
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `life_system_state` (
+                `id` TEXT NOT NULL,
+                `loadLevel` TEXT NOT NULL,
+                `executionMode` TEXT NOT NULL,
+                `stability` TEXT NOT NULL,
+                `entropy` TEXT NOT NULL,
+                `updatedAt` INTEGER NOT NULL,
+                PRIMARY KEY(`id`)
+            )
+            """.trimIndent()
+        )
+    }
+}
+
+val MIGRATION_90_91 = object : Migration(90, 91) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `ai_insights` (
+                `id` TEXT NOT NULL,
+                `text` TEXT NOT NULL,
+                `type` TEXT NOT NULL,
+                `timestamp` INTEGER NOT NULL,
+                `isRead` INTEGER NOT NULL,
+                `isFavorite` INTEGER NOT NULL,
+                PRIMARY KEY(`id`)
+            )
+            """.trimIndent()
+        )
+    }
+}

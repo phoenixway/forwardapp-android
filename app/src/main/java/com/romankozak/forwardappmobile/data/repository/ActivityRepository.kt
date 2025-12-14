@@ -6,6 +6,9 @@ import com.romankozak.forwardappmobile.data.dao.ProjectDao
 import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
 import com.romankozak.forwardappmobile.data.sync.bumpSync
 import com.romankozak.forwardappmobile.data.sync.softDelete
+import com.romankozak.forwardappmobile.domain.ai.events.ActivityFinishedEvent
+import com.romankozak.forwardappmobile.domain.ai.events.ActivityLoggedEvent
+import com.romankozak.forwardappmobile.data.repository.AiEventRepository
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject
@@ -18,6 +21,7 @@ class ActivityRepository
         private val activityRecordDao: ActivityRecordDao,
         private val goalDao: GoalDao,
         private val projectDao: ProjectDao,
+        private val aiEventRepository: AiEventRepository,
     ) {
         fun getLogStream(): Flow<List<ActivityRecord>> = activityRecordDao.getAllRecordsStream()
 
@@ -37,6 +41,15 @@ class ActivityRepository
                     version = 1,
                 )
             activityRecordDao.insert(record)
+            aiEventRepository.emit(
+                ActivityLoggedEvent(
+                    timestamp = java.time.Instant.ofEpochMilli(timestamp),
+                    durationMinutes = 0,
+                    xp = record.xpGained ?: 0,
+                    antiXp = record.antyXp ?: 0,
+                    isOngoing = false,
+                )
+            )
         }
 
         suspend fun startActivity(
@@ -59,6 +72,15 @@ class ActivityRepository
                     version = 1,
                 )
             activityRecordDao.insert(newRecord)
+            aiEventRepository.emit(
+                ActivityLoggedEvent(
+                    timestamp = java.time.Instant.ofEpochMilli(now),
+                    durationMinutes = 0,
+                    xp = 0,
+                    antiXp = 0,
+                    isOngoing = true,
+                )
+            )
             return newRecord
         }
 
@@ -92,6 +114,15 @@ class ActivityRepository
                     version = 1,
                 )
             activityRecordDao.insert(newRecord)
+            aiEventRepository.emit(
+                ActivityLoggedEvent(
+                    timestamp = java.time.Instant.ofEpochMilli(now),
+                    durationMinutes = 0,
+                    xp = 0,
+                    antiXp = 0,
+                    isOngoing = true,
+                )
+            )
             return newRecord
         }
 
@@ -105,6 +136,16 @@ class ActivityRepository
                     version = it.version + 1,
                 )
                 activityRecordDao.update(finishedActivity)
+                val end = finishedActivity.endTime ?: finishedActivity.createdAt
+                val duration = ((end - (finishedActivity.startTime ?: end)) / 60000L).toInt().coerceAtLeast(0)
+                aiEventRepository.emit(
+                    ActivityFinishedEvent(
+                        timestamp = java.time.Instant.ofEpochMilli(end),
+                        durationMinutes = duration,
+                        xp = finishedActivity.xpGained ?: 0,
+                        antiXp = finishedActivity.antyXp ?: 0,
+                    )
+                )
             }
         }
 
@@ -125,6 +166,15 @@ class ActivityRepository
                     version = 1,
                 )
             activityRecordDao.insert(newRecord)
+            aiEventRepository.emit(
+                ActivityLoggedEvent(
+                    timestamp = java.time.Instant.ofEpochMilli(now),
+                    durationMinutes = 0,
+                    xp = 0,
+                    antiXp = 0,
+                    isOngoing = true,
+                )
+            )
             return newRecord
         }
 
@@ -145,6 +195,14 @@ class ActivityRepository
                     version = 1,
                 )
             activityRecordDao.insert(record)
+            aiEventRepository.emit(
+                ActivityFinishedEvent(
+                    timestamp = java.time.Instant.ofEpochMilli(now),
+                    durationMinutes = 0,
+                    xp = xpGained ?: 0,
+                    antiXp = antyXp ?: 0,
+                )
+            )
         }
 
         suspend fun endProjectActivity(projectId: String) {
@@ -158,6 +216,15 @@ class ActivityRepository
                     version = it.version + 1,
                 )
                 activityRecordDao.update(finishedActivity)
+                val duration = ((now - (finishedActivity.startTime ?: now)) / 60000L).toInt().coerceAtLeast(0)
+                aiEventRepository.emit(
+                    ActivityFinishedEvent(
+                        timestamp = java.time.Instant.ofEpochMilli(now),
+                        durationMinutes = duration,
+                        xp = finishedActivity.xpGained ?: 0,
+                        antiXp = finishedActivity.antyXp ?: 0,
+                    )
+                )
             }
         }
 
