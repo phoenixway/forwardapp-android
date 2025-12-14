@@ -1077,3 +1077,10 @@ val MIGRATION_87_88 = object : Migration(87, 88) {
         db.execSQL("ALTER TABLE project_structures ADD COLUMN enable_backlog INTEGER")
     }
 }
+
+val MIGRATION_88_89 = object : Migration(88, 89) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE structure_presets ADD COLUMN enable_attachments INTEGER")
+        db.execSQL("ALTER TABLE project_structures ADD COLUMN enable_attachments INTEGER")
+    }
+}

@@ -118,6 +118,8 @@ fun StructurePresetEditorScreen(
                     onDashboardChange = viewModel::onEnableDashboardChange,
                     enableBacklog = uiState.enableBacklog,
                     onBacklogChange = viewModel::onEnableBacklogChange,
+                    enableAttachments = uiState.enableAttachments,
+                    onAttachmentsChange = viewModel::onEnableAttachmentsChange,
                 )
 
             Row(
@@ -175,6 +177,8 @@ private fun FeatureToggles(
     onDashboardChange: (Boolean) -> Unit,
     enableBacklog: Boolean,
     onBacklogChange: (Boolean) -> Unit,
+    enableAttachments: Boolean,
+    onAttachmentsChange: (Boolean) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -190,6 +194,7 @@ private fun FeatureToggles(
         FeatureToggleRow("Advanced mode", enableAdvanced, onAdvancedChange)
         FeatureToggleRow("Dashboard view", enableDashboard, onDashboardChange)
         FeatureToggleRow("Backlog view", enableBacklog, onBacklogChange)
+        FeatureToggleRow("Attachments view", enableAttachments, onAttachmentsChange)
     }
 }
 

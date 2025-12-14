@@ -155,7 +155,14 @@ fun RemindersScreen(
                 }
                 viewModel.onDismissPropertiesDialog()
             },
-            onRemoveReminder = { /* TODO */ },
+            onRemoveReminder = { reminderId: String ->
+                editingReminder?.let { current ->
+                    if (current.id == reminderId) {
+                        viewModel.deleteReminder(current)
+                    }
+                }
+                viewModel.onDismissPropertiesDialog()
+            },
             currentReminders = editingReminder?.let { listOf(it) } ?: emptyList()
         )
     }

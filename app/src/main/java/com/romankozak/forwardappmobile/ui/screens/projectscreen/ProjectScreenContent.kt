@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
@@ -137,15 +139,13 @@ fun GoalDetailContent(
             val attachments = listContent.filter {
                 it is ListItemContent.LinkItem || it is ListItemContent.NoteDocumentItem || it is ListItemContent.ChecklistItem
             }
-            val currentArtifact by viewModel.projectArtifact.collectAsStateWithLifecycle()
             DashboardOverview(
                 modifier = modifier,
                 project = goalList,
-                attachments = attachments.take(6),
+                attachments = attachments,
                 onAttachmentClick = { item -> viewModel.itemActionHandler.onItemClick(item) },
-                onShowArtifact = { currentArtifact?.let(viewModel::onEditArtifact) },
                 onShowProperties = onShowProjectProperties,
-                onSwitchView = onSwitchView,
+                enableAttachments = uiState.enableAttachments
             )
         }
     }
@@ -157,95 +157,54 @@ private fun DashboardOverview(
     project: com.romankozak.forwardappmobile.data.database.models.Project?,
     attachments: List<ListItemContent>,
     onAttachmentClick: (ListItemContent) -> Unit,
-    onShowArtifact: () -> Unit,
     onShowProperties: () -> Unit,
-    onSwitchView: (ProjectViewMode) -> Unit,
+    enableAttachments: Boolean
 ) {
     Column(
         modifier = modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        // Header Row with Title, Badge, and Settings
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     text = "Project Dashboard",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (!project?.description.isNullOrBlank()) {
+                val statusText = project?.projectStatusText?.takeIf { it.isNotBlank() }
+                    ?: project?.projectStatus
+                if (!statusText.isNullOrBlank()){
                     Text(
-                        text = project?.description ?: "",
+                        text = statusText,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
-            }
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = onShowArtifact) {
-                Icon(Icons.Outlined.Description, contentDescription = "Project artifact")
             }
             IconButton(onClick = onShowProperties) {
                 Icon(Icons.Default.Settings, contentDescription = "Project properties")
             }
-            IconButton(onClick = { onSwitchView(ProjectViewMode.BACKLOG) }) {
-                Icon(Icons.AutoMirrored.Outlined.ListAlt, contentDescription = "Backlog view")
-            }
-            IconButton(onClick = { onSwitchView(ProjectViewMode.INBOX) }) {
-                Icon(Icons.AutoMirrored.Outlined.Notes, contentDescription = "Inbox view")
-            }
-            IconButton(onClick = { onSwitchView(ProjectViewMode.ATTACHMENTS) }) {
-                Icon(Icons.Default.Attachment, contentDescription = "Attachments view")
-            }
         }
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        ) {
-            Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = "Status",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = project?.projectStatusText?.takeIf { it.isNotBlank() }
-                        ?: project?.projectStatus ?: "No status",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-            }
-        }
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
+        // Attachments Section (Conditional and Horizontally Scrollable)
+        if (enableAttachments) {
+            Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = "Attachments",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp)
                 )
                 if (attachments.isEmpty()) {
                     Text(
@@ -254,8 +213,47 @@ private fun DashboardOverview(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
-                    attachments.forEach { item ->
-                        AttachmentRowSummary(item = item, onClick = { onAttachmentClick(item) })
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(vertical = 4.dp)
+                    ) {
+                        items(attachments) { item ->
+                            val (icon, title) = when (item) {
+                                is ListItemContent.LinkItem ->
+                                    Icons.Outlined.Link to (item.link.linkData.displayName?.takeIf { it.isNotBlank() }
+                                        ?: item.link.linkData.target)
+                                is ListItemContent.NoteDocumentItem -> Icons.Outlined.Description to item.document.name.ifBlank { "Document" }
+                                is ListItemContent.ChecklistItem -> Icons.Outlined.Checklist to (item.checklist.name ?: "Checklist")
+                                else -> Icons.Default.Attachment to "Attachment"
+                            }
+                            Card(
+                                onClick = { onAttachmentClick(item) },
+                                modifier = Modifier
+                                    .width(120.dp)
+                                    .height(100.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(12.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = title,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }

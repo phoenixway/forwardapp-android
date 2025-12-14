@@ -61,6 +61,7 @@ class ProjectStructureRepository @Inject constructor(
             enableAdvanced = preset.enableAdvanced,
             enableDashboard = preset.enableDashboard,
             enableBacklog = preset.enableBacklog,
+            enableAttachments = preset.enableAttachments,
         )
         projectStructureDao.updateStructure(updatedStructure)
         val presetItems = structurePresetItemDao.getItemsByPresetOnce(preset.id)

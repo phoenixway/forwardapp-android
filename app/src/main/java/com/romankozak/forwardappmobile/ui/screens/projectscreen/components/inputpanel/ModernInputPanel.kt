@@ -85,6 +85,7 @@ data class NavPanelState(
   val enableArtifact: Boolean,
   val enableBacklog: Boolean,
   val enableDashboard: Boolean,
+  val enableAttachments: Boolean,
   val inputMode: InputMode,
 )
 
@@ -126,23 +127,24 @@ data class OptionsMenuActions(
 private fun ViewModeToggle(
   currentView: ProjectViewMode,
   isProjectManagementEnabled: Boolean,
+  onViewChange: (ProjectViewMode) -> Unit,
+  onInputModeSelected: (InputMode) -> Unit,
+  contentColor: Color,
+  holdMenuController: HoldMenu2Controller,
   enableInbox: Boolean = true,
   enableLog: Boolean = true,
   enableArtifact: Boolean = true,
   enableBacklog: Boolean = true,
   enableDashboard: Boolean = true,
-  onViewChange: (ProjectViewMode) -> Unit,
-  onInputModeSelected: (InputMode) -> Unit,
-  contentColor: Color,
-  holdMenuController: HoldMenu2Controller,
+  enableAttachments: Boolean = true,
 ) {
-    val availableViews = remember(isProjectManagementEnabled, enableInbox, enableLog, enableArtifact, enableBacklog, enableDashboard) {
+    val availableViews = remember(isProjectManagementEnabled, enableInbox, enableLog, enableArtifact, enableBacklog, enableDashboard, enableAttachments) {
         ProjectViewMode.values()
             .filter {
                 when (it) {
                     ProjectViewMode.INBOX -> enableInbox
                     ProjectViewMode.ADVANCED -> isProjectManagementEnabled && enableLog
-                    ProjectViewMode.ATTACHMENTS -> enableArtifact
+                    ProjectViewMode.ATTACHMENTS -> enableAttachments
                     ProjectViewMode.BACKLOG -> enableBacklog
                     ProjectViewMode.DASHBOARD -> enableDashboard
                     else -> true
@@ -642,6 +644,7 @@ private fun NavigationBar(
                                     enableArtifact = state.enableArtifact,
                                     enableBacklog = state.enableBacklog,
                                     enableDashboard = state.enableDashboard,
+                                    enableAttachments = state.enableAttachments,
                                     onViewChange = actions.onViewChange,
                                     onInputModeSelected = actions.onInputModeSelected,
                                     contentColor = contentColor,
@@ -743,6 +746,7 @@ fun ModernInputPanel(
   enableArtifact: Boolean,
   enableBacklog: Boolean,
   enableDashboard: Boolean,
+  enableAttachments: Boolean,
   onToggleProjectManagement: () -> Unit,
   onAddProjectToDayPlan: () -> Unit,
   onRevealInExplorer: () -> Unit,
@@ -767,6 +771,7 @@ fun ModernInputPanel(
       enableArtifact = enableArtifact,
       enableBacklog = enableBacklog,
       enableDashboard = enableDashboard,
+      enableAttachments = enableAttachments,
       inputMode = inputMode,
     )
   val actions =

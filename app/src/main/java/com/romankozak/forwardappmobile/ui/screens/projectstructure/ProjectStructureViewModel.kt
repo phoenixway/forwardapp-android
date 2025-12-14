@@ -30,6 +30,7 @@ data class ProjectStructureUiState(
         "Advanced" to false,
         "Dashboard" to true,
         "Backlog" to true,
+        "Attachments" to true,
     ),
     val isLoading: Boolean = false,
     val message: String? = null,
@@ -72,6 +73,7 @@ class ProjectStructureViewModel @Inject constructor(
                         "Advanced" to (structure.structure.enableAdvanced ?: _uiState.value.featureFlags["Advanced"] ?: false),
                         "Dashboard" to (structure.structure.enableDashboard ?: _uiState.value.featureFlags["Dashboard"] ?: true),
                         "Backlog" to (structure.structure.enableBacklog ?: _uiState.value.featureFlags["Backlog"] ?: true),
+                        "Attachments" to (structure.structure.enableAttachments ?: _uiState.value.featureFlags["Attachments"] ?: true),
                     )
                     _uiState.update {
                         it.copy(
@@ -150,6 +152,7 @@ class ProjectStructureViewModel @Inject constructor(
                     enableAdvanced = updatedFlags["Advanced"],
                     enableDashboard = updatedFlags["Dashboard"],
                     enableBacklog = updatedFlags["Backlog"],
+                    enableAttachments = updatedFlags["Attachments"],
                 )
             )
         }

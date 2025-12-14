@@ -90,6 +90,7 @@ class ProjectSettingsViewModel @Inject constructor(
                 "Advanced" to (structure?.enableAdvanced ?: _uiState.value.features["Advanced"] ?: false),
                 "Dashboard" to (structure?.enableDashboard ?: _uiState.value.features["Dashboard"] ?: true),
                 "Backlog" to (structure?.enableBacklog ?: _uiState.value.features["Backlog"] ?: true),
+                "Attachments" to (structure?.enableAttachments ?: _uiState.value.features["Attachments"] ?: true),
             )
             _uiState.update {
                 it.copy(
@@ -213,6 +214,7 @@ class ProjectSettingsViewModel @Inject constructor(
                         "Advanced" to (preset?.enableAdvanced ?: false),
                         "Dashboard" to (preset?.enableDashboard ?: true),
                         "Backlog" to (preset?.enableBacklog ?: true),
+                        "Attachments" to (preset?.enableAttachments ?: true),
                     ),
                     isProjectManagementEnabled = preset?.enableAdvanced ?: state.isProjectManagementEnabled
                 )
@@ -246,6 +248,7 @@ class ProjectSettingsViewModel @Inject constructor(
             enableAdvanced = flags["Advanced"],
             enableDashboard = flags["Dashboard"],
             enableBacklog = flags["Backlog"],
+            enableAttachments = flags["Attachments"],
         )
         projectStructureRepository.updateStructure(updated)
         _uiState.update { it.copy(isProjectManagementEnabled = flags["Advanced"] == true) }

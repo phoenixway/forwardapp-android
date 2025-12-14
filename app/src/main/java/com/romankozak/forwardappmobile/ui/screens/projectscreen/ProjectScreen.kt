@@ -469,6 +469,7 @@ private fun ProjectBottomBar(
                 enableArtifact = uiState.enableArtifact,
                 enableBacklog = uiState.enableBacklog,
                 enableDashboard = uiState.enableDashboard,
+                enableAttachments = uiState.enableAttachments,
                 modifier = Modifier
                     .navigationBarsPadding()
                     .imePadding(),

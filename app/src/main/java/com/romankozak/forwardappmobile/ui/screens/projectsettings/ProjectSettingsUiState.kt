@@ -35,5 +35,6 @@ data class ProjectSettingsUiState(
         "Advanced" to false,
         "Dashboard" to true,
         "Backlog" to true,
+        "Attachments" to true,
     ),
 )

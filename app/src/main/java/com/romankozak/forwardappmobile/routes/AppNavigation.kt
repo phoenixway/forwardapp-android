@@ -124,24 +124,15 @@ private fun NavGraphBuilder.mainGraph(
 ) {
   composable(COMMAND_DECK_ROUTE) { backStackEntry ->
     val parentEntry = remember(backStackEntry) { navController.getBackStackEntry(MAIN_GRAPH_ROUTE) }
-    val viewModel: ProjectHierarchyScreenViewModel = hiltViewModel(parentEntry)
-    val scope = rememberCoroutineScope()
-    val structureProjectIdState = remember { mutableStateOf<String?>(null) }
+      val viewModel: ProjectHierarchyScreenViewModel = hiltViewModel(parentEntry)
+      val scope = rememberCoroutineScope()
 
-    LaunchedEffect(Unit) {
-      structureProjectIdState.value = viewModel.getInboxProjectId()
-    }
-
-    SharedCommandDeckLayout(
-      navController = navController,
-      onNavigateToProjectHierarchy = { navController.navigate(GOAL_LISTS_ROUTE) },
-      onNavigateToProjectStructure = { projectId ->
-        navController.navigate(NavTargetRouter.routeOf(com.romankozak.forwardappmobile.ui.navigation.NavTarget.ProjectStructure(projectId)))
-      },
-      structureProjectId = structureProjectIdState.value,
-      onNavigateToPresets = {
-        navController.navigate(NavTargetRouter.routeOf(com.romankozak.forwardappmobile.ui.navigation.NavTarget.StructurePresets))
-      },
+      SharedCommandDeckLayout(
+        navController = navController,
+        onNavigateToProjectHierarchy = { navController.navigate(GOAL_LISTS_ROUTE) },
+        onNavigateToPresets = {
+          navController.navigate(NavTargetRouter.routeOf(com.romankozak.forwardappmobile.ui.navigation.NavTarget.StructurePresets))
+        },
       onNavigateToCharacter = { navController.navigate(CHARACTER_SCREEN_ROUTE) },
       onNavigateToGlobalSearch = { navController.navigate("global_search") },
       onNavigateToSettings = { navController.navigate("settings_screen") },

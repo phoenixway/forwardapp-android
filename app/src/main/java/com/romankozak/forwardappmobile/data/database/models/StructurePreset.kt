@@ -20,4 +20,5 @@ data class StructurePreset(
     @ColumnInfo(name = "enable_advanced") val enableAdvanced: Boolean? = null,
     @ColumnInfo(name = "enable_dashboard") val enableDashboard: Boolean? = null,
     @ColumnInfo(name = "enable_backlog") val enableBacklog: Boolean? = null,
+    @ColumnInfo(name = "enable_attachments") val enableAttachments: Boolean? = null,
 )

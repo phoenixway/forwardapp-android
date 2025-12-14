@@ -72,8 +72,6 @@ const val COMMAND_DECK_TODAY_ROUTE = "command_deck_today"
 fun SharedCommandDeckLayout(
     navController: NavController,
     onNavigateToProjectHierarchy: () -> Unit,
-    onNavigateToProjectStructure: (String) -> Unit,
-    structureProjectId: String?,
     onNavigateToPresets: () -> Unit,
     onNavigateToCharacter: () -> Unit,
     onNavigateToGlobalSearch: () -> Unit,
@@ -241,8 +239,6 @@ fun SharedCommandDeckLayout(
                                         .savedStateHandle["open_search_dialog"] = true
                                 }
                             },
-                            onNavigateToProjectStructure = onNavigateToProjectStructure,
-                            structureProjectId = structureProjectId,
                             onNavigateToTracker = onNavigateToTracker,
                             onNavigateToInbox = onNavigateToInbox,
                             onNavigateToReminders = onNavigateToReminders,

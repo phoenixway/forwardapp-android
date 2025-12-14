@@ -28,7 +28,6 @@ import kotlinx.coroutines.launch
 fun DashboardBottomBar(
     onNavigateToProjectHierarchy: () -> Unit,
     onNavigateToProjectSearch: () -> Unit,
-    structureProjectId: String?,
     onNavigateToTracker: () -> Unit,
     onNavigateToInbox: () -> Unit,
     onNavigateToReminders: () -> Unit,

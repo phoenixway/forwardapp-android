@@ -38,6 +38,7 @@ data class StructurePresetEditorUiState(
     val enableAdvanced: Boolean = false,
     val enableDashboard: Boolean = true,
     val enableBacklog: Boolean = true,
+    val enableAttachments: Boolean = true,
     val items: List<PresetEditorItem> = emptyList(),
 )
 
@@ -85,6 +86,7 @@ class StructurePresetEditorViewModel @Inject constructor(
                 enableAdvanced = preset.enableAdvanced ?: false,
                 enableDashboard = preset.enableDashboard ?: true,
                 enableBacklog = preset.enableBacklog ?: true,
+                enableAttachments = preset.enableAttachments ?: true,
                 items = items.map { item ->
                     PresetEditorItem(
                         id = if (isCopy) UUID.randomUUID().toString() else item.id,
@@ -108,6 +110,7 @@ class StructurePresetEditorViewModel @Inject constructor(
     fun onEnableAdvancedChange(value: Boolean) = _uiState.update { it.copy(enableAdvanced = value) }
     fun onEnableDashboardChange(value: Boolean) = _uiState.update { it.copy(enableDashboard = value) }
     fun onEnableBacklogChange(value: Boolean) = _uiState.update { it.copy(enableBacklog = value) }
+    fun onEnableAttachmentsChange(value: Boolean) = _uiState.update { it.copy(enableAttachments = value) }
 
     fun addItem(item: PresetEditorItem) {
         _uiState.update { it.copy(items = it.items + item) }
@@ -139,6 +142,7 @@ class StructurePresetEditorViewModel @Inject constructor(
                 enableAdvanced = state.enableAdvanced,
                 enableDashboard = state.enableDashboard,
                 enableBacklog = state.enableBacklog,
+                enableAttachments = state.enableAttachments,
             )
             presetDao.insertPreset(preset)
             val items = state.items.map {

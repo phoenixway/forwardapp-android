@@ -29,20 +29,40 @@ import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.Modifier
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.background
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.ui.components.SegmentedTab
@@ -110,13 +130,6 @@ fun ProjectSettingsScreen(
             )
             "Features" -> FeaturesTabContent(
                 currentPreset = uiState.currentPresetLabel,
-                onNewPreset = {
-                    navController.navigate(
-                        com.romankozak.forwardappmobile.ui.navigation.NavTargetRouter.routeOf(
-                            com.romankozak.forwardappmobile.ui.navigation.NavTarget.StructurePresetEditor()
-                        )
-                    )
-                },
                 onApplyPreset = { showPresetPicker = true },
                 features = uiState.features,
                 onToggleFeature = viewModel::onToggleFeature,
@@ -161,7 +174,15 @@ fun ProjectSettingsScreen(
             onSelect = { code ->
                 viewModel.onApplyPreset(code)
                 showPresetPicker = false
-            }
+            },
+            onEditPresets = {
+                showPresetPicker = false
+                navController.navigate(
+                    com.romankozak.forwardappmobile.ui.navigation.NavTargetRouter.routeOf(
+                        com.romankozak.forwardappmobile.ui.navigation.NavTarget.StructurePresets
+                    )
+                )
+            },
         )
     }
 
@@ -177,7 +198,6 @@ fun ProjectSettingsScreen(
 @Composable
 private fun FeaturesTabContent(
     currentPreset: String?,
-    onNewPreset: () -> Unit,
     onApplyPreset: () -> Unit,
     features: Map<String, Boolean>,
     onToggleFeature: (String, Boolean) -> Unit,
@@ -185,25 +205,123 @@ private fun FeaturesTabContent(
     Column(
         modifier = androidx.compose.ui.Modifier
             .fillMaxWidth()
-            .padding(16.dp),
+            .padding(16.dp)
+            .fillMaxHeight(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("Поточний пресет: ${currentPreset ?: "не вибрано"}")
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Button(onClick = onNewPreset) { Text("New preset") }
-            Button(onClick = onApplyPreset) { Text("Apply preset") }
-        }
-        Text("Фічі", style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
-        features.toList().forEach { (key, value) ->
+        PresetCard(currentPreset = currentPreset, onApplyPreset = onApplyPreset)
+        FeatureFlagCard(
+            modifier = Modifier.fillMaxHeight(),
+            features = features,
+            onToggleFeature = onToggleFeature
+        )
+    }
+}
+
+@Composable
+private fun PresetCard(
+    currentPreset: String?,
+    onApplyPreset: () -> Unit,
+) {
+    Surface(
+        modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+    ) {
+        Column(
+            modifier = androidx.compose.ui.Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)
+                        )
+                    )
+                )
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text("Structural preset", style = MaterialTheme.typography.titleMedium)
+            Text(
+                currentPreset ?: "Не вибрано",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             Row(
+                modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                Button(
+                    onClick = onApplyPreset,
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Icon(Icons.Outlined.Refresh, contentDescription = "Apply preset", modifier = androidx.compose.ui.Modifier.size(18.dp))
+                    Spacer(modifier = androidx.compose.ui.Modifier.width(6.dp))
+                    Text("Choose", maxLines = 1)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FeatureFlagCard(
+    modifier: Modifier = Modifier,
+    features: Map<String, Boolean>,
+    onToggleFeature: (String, Boolean) -> Unit,
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+    ) {
+        Column(
+            modifier = androidx.compose.ui.Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.55f)
+                        )
+                    )
+                )
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text("Feature toggles", style = MaterialTheme.typography.titleMedium)
+            Column(
                 modifier = androidx.compose.ui.Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(key)
-                Switch(checked = value, onCheckedChange = { onToggleFeature(key, it) })
+                features.toList().forEach { (key, value) ->
+                    Surface(
+                        modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f)
+                    ) {
+        Row(
+            modifier = androidx.compose.ui.Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(key)
+                            Switch(checked = value, onCheckedChange = { onToggleFeature(key, it) })
+                        }
+                    }
+                }
             }
         }
     }
@@ -214,6 +332,7 @@ private fun PresetChooserDialog(
     presets: List<StructurePreset>,
     onDismiss: () -> Unit,
     onSelect: (String) -> Unit,
+    onEditPresets: () -> Unit,
 ) {
     if (presets.isEmpty()) {
         AlertDialog(
@@ -230,7 +349,9 @@ private fun PresetChooserDialog(
         confirmButton = {
             TextButton(onClick = { onSelect(selected.code) }) { Text("Застосувати") }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Скасувати") } },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Скасувати", maxLines = 1) }
+        },
         title = { Text("Оберіть пресет") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -247,6 +368,20 @@ private fun PresetChooserDialog(
                         if (preset.id == selected.id) {
                             Icon(Icons.Default.Check, contentDescription = null)
                         }
+                    }
+                }
+                HorizontalDivider(modifier = androidx.compose.ui.Modifier.padding(top = 6.dp, bottom = 4.dp))
+                Row(
+                    modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    OutlinedButton(
+                        onClick = onEditPresets,
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Icon(Icons.Default.Edit, contentDescription = null, modifier = androidx.compose.ui.Modifier.size(18.dp))
+                        Spacer(modifier = androidx.compose.ui.Modifier.width(6.dp))
+                        Text("Редагувати пресети", maxLines = 1)
                     }
                 }
             }

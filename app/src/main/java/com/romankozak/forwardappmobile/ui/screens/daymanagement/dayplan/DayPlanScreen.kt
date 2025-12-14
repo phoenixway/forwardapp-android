@@ -324,7 +324,7 @@ fun DayPlanScreen(
                 showReminderDialog = false
                 viewModel.clearSelectedTask()
             },
-            onRemoveReminder = {
+            onRemoveReminder = { _: String ->
                 selectedTask?.let { viewModel.clearTaskReminder(it.dayTask.id) }
                 showReminderDialog = false
                 viewModel.clearSelectedTask()

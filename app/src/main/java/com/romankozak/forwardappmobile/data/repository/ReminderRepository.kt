@@ -8,6 +8,7 @@ import com.romankozak.forwardappmobile.data.sync.bumpSync
 import com.romankozak.forwardappmobile.data.sync.softDelete
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import com.romankozak.forwardappmobile.di.IoDispatcher
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.launch
@@ -27,9 +28,8 @@ class ReminderRepository @Inject constructor(
     private val repositoryScope = CoroutineScope(ioDispatcher + SupervisorJob())
 
 
-    fun getAllReminders(): Flow<List<Reminder>> {
-        return reminderDao.getAllReminders()
-    }
+    fun getAllReminders(): Flow<List<Reminder>> =
+        reminderDao.getAllReminders().map { reminders -> reminders.filter { !it.isDeleted } }
 
     suspend fun createReminder(
         entityId: String,
@@ -132,9 +132,8 @@ class ReminderRepository @Inject constructor(
         }
     }
 
-    fun getRemindersForEntityFlow(entityId: String): Flow<List<Reminder>> {
-        return reminderDao.getRemindersForEntity(entityId)
-    }
+    fun getRemindersForEntityFlow(entityId: String): Flow<List<Reminder>> =
+        reminderDao.getRemindersForEntity(entityId).map { reminders -> reminders.filter { !it.isDeleted } }
 
     suspend fun clearAllReminders() {
         val allReminders = reminderDao.getAllReminders().first()

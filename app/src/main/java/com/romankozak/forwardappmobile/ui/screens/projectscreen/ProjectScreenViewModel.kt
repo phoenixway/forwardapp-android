@@ -120,13 +120,14 @@ data class UiState(
   val itemToHighlight: String? = null,
   val inboxRecordToHighlight: String? = null,
   val needsStateRefresh: Boolean = false,
-    val enableInbox: Boolean = true,
-    val enableLog: Boolean = true,
-    val enableArtifact: Boolean = true,
-    val isProjectManagementEnabled: Boolean = false,
-    val enableBacklog: Boolean = true,
-    val enableDashboard: Boolean = true,
-    val currentView: ProjectViewMode = ProjectViewMode.BACKLOG,
+  val enableInbox: Boolean = true,
+  val enableLog: Boolean = true,
+  val enableArtifact: Boolean = true,
+  val isProjectManagementEnabled: Boolean = false,
+  val enableBacklog: Boolean = true,
+  val enableDashboard: Boolean = true,
+  val enableAttachments: Boolean = true,
+  val currentView: ProjectViewMode = ProjectViewMode.BACKLOG,
   val showRecentProjectsSheet: Boolean = false,
   val showImportFromMarkdownDialog: Boolean = false,
   val showImportBacklogFromMarkdownDialog: Boolean = false,
@@ -493,6 +494,7 @@ constructor(
                 val enableAdvanced = structure?.enableAdvanced ?: false
                 val enableDashboard = structure?.enableDashboard ?: true
                 val enableBacklog = structure?.enableBacklog ?: true
+                val enableAttachments = structure?.enableAttachments ?: true
                 _uiState.update {
                     val currentView = it.currentView
                     val availableTabs = listOfNotNull(
@@ -507,7 +509,7 @@ constructor(
                         when {
                             !enableBacklog && currentView == ProjectViewMode.BACKLOG && enableDashboard -> ProjectViewMode.DASHBOARD
                             !enableInbox && currentView == ProjectViewMode.INBOX -> if (enableBacklog) ProjectViewMode.BACKLOG else ProjectViewMode.DASHBOARD
-                            !enableArtifact && currentView == ProjectViewMode.ATTACHMENTS -> if (enableBacklog) ProjectViewMode.BACKLOG else ProjectViewMode.DASHBOARD
+                            !enableAttachments && currentView == ProjectViewMode.ATTACHMENTS -> if (enableBacklog) ProjectViewMode.BACKLOG else ProjectViewMode.DASHBOARD
                             (!enableLog || !(it.isProjectManagementEnabled || enableAdvanced)) && currentView == ProjectViewMode.ADVANCED -> if (enableBacklog) ProjectViewMode.BACKLOG else ProjectViewMode.DASHBOARD
                             !enableDashboard && currentView == ProjectViewMode.DASHBOARD && enableBacklog -> ProjectViewMode.BACKLOG
                             else -> currentView
@@ -518,6 +520,7 @@ constructor(
                         enableArtifact = enableArtifact,
                         enableBacklog = enableBacklog,
                         enableDashboard = enableDashboard,
+                        enableAttachments = enableAttachments,
                         isProjectManagementEnabled = it.isProjectManagementEnabled || enableAdvanced,
                         currentView = adjustedView,
                         inputMode = getInputModeForView(adjustedView),
@@ -1377,7 +1380,7 @@ constructor(
     val flags = uiState.value
     if (newView == ProjectViewMode.INBOX && !flags.enableInbox) return
     if (newView == ProjectViewMode.ADVANCED && (!flags.isProjectManagementEnabled || !flags.enableLog)) return
-    if (newView == ProjectViewMode.ATTACHMENTS && !flags.enableArtifact) return
+    if (newView == ProjectViewMode.ATTACHMENTS && !flags.enableAttachments) return
     if (newView == ProjectViewMode.DASHBOARD && !flags.enableDashboard) return
     if (newView == ProjectViewMode.BACKLOG && !flags.enableBacklog) return
     Log.d("ATTACHMENT_DEBUG", "VM: onProjectViewChange(newView = $newView) called.")
@@ -1524,13 +1527,19 @@ constructor(
       forceRefresh()
     }
 
-  fun onRemoveReminder(time: Long) = viewModelScope.launch {
-      val reminderToRemove = _uiState.value.remindersForDialog.find { it.reminderTime == time }
-      if (reminderToRemove != null) {
-          reminderRepository.removeReminder(reminderToRemove)
-          showSnackbar("Нагадування видалено", null)
-          forceRefresh()
-      }
+  fun onRemoveReminder(reminderId: String) = viewModelScope.launch {
+    val record = _uiState.value.recordForReminderDialog ?: return@launch
+
+    // Очищаємо всі нагадування для сутності, щоб точно вимкнути
+    reminderRepository.clearRemindersForEntity(record.id)
+
+    val refreshed = reminderRepository.getRemindersForEntityFlow(record.id).firstOrNull().orEmpty()
+    val updatedRecord = record.copy(reminderTime = refreshed.firstOrNull()?.reminderTime)
+
+    _uiState.update { it.copy(remindersForDialog = refreshed, recordForReminderDialog = updatedRecord) }
+
+    showSnackbar("Нагадування видалено", null)
+    forceRefresh()
   }
 
   fun onClearReminder() =
