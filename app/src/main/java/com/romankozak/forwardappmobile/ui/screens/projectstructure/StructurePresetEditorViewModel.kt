@@ -39,6 +39,7 @@ data class StructurePresetEditorUiState(
     val enableDashboard: Boolean = true,
     val enableBacklog: Boolean = true,
     val enableAttachments: Boolean = true,
+    val enableAutoLinkSubprojects: Boolean = true,
     val items: List<PresetEditorItem> = emptyList(),
 )
 
@@ -87,6 +88,7 @@ class StructurePresetEditorViewModel @Inject constructor(
                 enableDashboard = preset.enableDashboard ?: true,
                 enableBacklog = preset.enableBacklog ?: true,
                 enableAttachments = preset.enableAttachments ?: true,
+                enableAutoLinkSubprojects = preset.enableAutoLinkSubprojects ?: true,
                 items = items.map { item ->
                     PresetEditorItem(
                         id = if (isCopy) UUID.randomUUID().toString() else item.id,
@@ -111,6 +113,7 @@ class StructurePresetEditorViewModel @Inject constructor(
     fun onEnableDashboardChange(value: Boolean) = _uiState.update { it.copy(enableDashboard = value) }
     fun onEnableBacklogChange(value: Boolean) = _uiState.update { it.copy(enableBacklog = value) }
     fun onEnableAttachmentsChange(value: Boolean) = _uiState.update { it.copy(enableAttachments = value) }
+    fun onEnableAutoLinkSubprojectsChange(value: Boolean) = _uiState.update { it.copy(enableAutoLinkSubprojects = value) }
 
     fun addItem(item: PresetEditorItem) {
         _uiState.update { it.copy(items = it.items + item) }
@@ -143,6 +146,7 @@ class StructurePresetEditorViewModel @Inject constructor(
                 enableDashboard = state.enableDashboard,
                 enableBacklog = state.enableBacklog,
                 enableAttachments = state.enableAttachments,
+                enableAutoLinkSubprojects = state.enableAutoLinkSubprojects,
             )
             presetDao.insertPreset(preset)
             val items = state.items.map {

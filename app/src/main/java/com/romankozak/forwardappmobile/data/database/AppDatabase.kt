@@ -86,7 +86,7 @@ import com.romankozak.forwardappmobile.data.database.models.LifeSystemStateEntit
         LegacyNoteFts::class,
         RecurringTaskFts::class,
     ],
-    version = 91,
+    version = 92,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class, ProjectTypeConverter::class)

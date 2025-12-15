@@ -127,6 +127,7 @@ data class UiState(
   val enableBacklog: Boolean = true,
   val enableDashboard: Boolean = true,
   val enableAttachments: Boolean = true,
+  val enableAutoLinkSubprojects: Boolean = true,
   val currentView: ProjectViewMode = ProjectViewMode.BACKLOG,
   val showRecentProjectsSheet: Boolean = false,
   val showImportFromMarkdownDialog: Boolean = false,
@@ -477,16 +478,14 @@ constructor(
   init {
     Log.d(TAG, "ViewModel instance created: ${this.hashCode()}")
 
-    viewModelScope.launch {
-        projectIdFlow.filter { it.isNotEmpty() }.collect { projectId ->
-            projectRepository.ensureChildProjectListItemsExist(projectId)
-        }
-    }
+    var autoLinkChildProjectsEnsured = false
     viewModelScope.launch {
         projectIdFlow
             .filter { it.isNotEmpty() }
-            .flatMapLatest { projectStructureRepository.observeStructure(it) }
-            .collect { structureWithItems ->
+            .flatMapLatest { projectId ->
+                projectStructureRepository.observeStructure(projectId).map { projectId to it }
+            }
+            .collect { (projectId, structureWithItems) ->
                 val structure = structureWithItems?.structure
                 val enableInbox = structure?.enableInbox ?: true
                 val enableLog = structure?.enableLog ?: true
@@ -495,6 +494,14 @@ constructor(
                 val enableDashboard = structure?.enableDashboard ?: true
                 val enableBacklog = structure?.enableBacklog ?: true
                 val enableAttachments = structure?.enableAttachments ?: true
+                val enableAutoLinkSubprojects = structure?.enableAutoLinkSubprojects ?: true
+                if (enableAutoLinkSubprojects && !autoLinkChildProjectsEnsured) {
+                    projectRepository.ensureChildProjectListItemsExist(projectId)
+                    autoLinkChildProjectsEnsured = true
+                }
+                if (!enableAutoLinkSubprojects) {
+                    autoLinkChildProjectsEnsured = false
+                }
                 _uiState.update {
                     val currentView = it.currentView
                     val availableTabs = listOfNotNull(
@@ -521,6 +528,7 @@ constructor(
                         enableBacklog = enableBacklog,
                         enableDashboard = enableDashboard,
                         enableAttachments = enableAttachments,
+                        enableAutoLinkSubprojects = enableAutoLinkSubprojects,
                         isProjectManagementEnabled = it.isProjectManagementEnabled || enableAdvanced,
                         currentView = adjustedView,
                         inputMode = getInputModeForView(adjustedView),

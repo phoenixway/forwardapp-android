@@ -28,6 +28,7 @@ data class ProjectSettingsUiState(
     val isProjectManagementEnabled: Boolean = false,
     val currentPresetLabel: String? = null,
     val availablePresets: List<com.romankozak.forwardappmobile.data.database.models.StructurePreset> = emptyList(),
+    val autoLinkSubprojects: Boolean = true,
     val features: Map<String, Boolean> = mapOf(
         "Inbox" to true,
         "Log" to true,
@@ -36,5 +37,6 @@ data class ProjectSettingsUiState(
         "Dashboard" to true,
         "Backlog" to true,
         "Attachments" to true,
+        "Auto link subprojects" to true,
     ),
 )

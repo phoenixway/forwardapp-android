@@ -91,7 +91,8 @@ class ChecklistViewModel @Inject constructor(
                 checklistRepository.observeChecklistById(checklistId),
                 checklistRepository.getItemsForChecklist(checklistId),
             ) { checklist, items ->
-                checklist to items.sortedBy { it.itemOrder }
+                val activeItems = items.filterNot { it.isDeleted }
+                checklist to activeItems.sortedBy { it.itemOrder }
             }.collect { (checklist, items) ->
                 if (checklist != null && !hasLoggedAccess) {
                     recentItemsRepository.logChecklistAccess(checklist)

@@ -31,6 +31,7 @@ data class ProjectStructureUiState(
         "Dashboard" to true,
         "Backlog" to true,
         "Attachments" to true,
+        "Auto link subprojects" to true,
     ),
     val isLoading: Boolean = false,
     val message: String? = null,
@@ -74,6 +75,7 @@ class ProjectStructureViewModel @Inject constructor(
                         "Dashboard" to (structure.structure.enableDashboard ?: _uiState.value.featureFlags["Dashboard"] ?: true),
                         "Backlog" to (structure.structure.enableBacklog ?: _uiState.value.featureFlags["Backlog"] ?: true),
                         "Attachments" to (structure.structure.enableAttachments ?: _uiState.value.featureFlags["Attachments"] ?: true),
+                        "Auto link subprojects" to (structure.structure.enableAutoLinkSubprojects ?: _uiState.value.featureFlags["Auto link subprojects"] ?: true),
                     )
                     _uiState.update {
                         it.copy(
@@ -153,6 +155,7 @@ class ProjectStructureViewModel @Inject constructor(
                     enableDashboard = updatedFlags["Dashboard"],
                     enableBacklog = updatedFlags["Backlog"],
                     enableAttachments = updatedFlags["Attachments"],
+                    enableAutoLinkSubprojects = updatedFlags["Auto link subprojects"],
                 )
             )
         }

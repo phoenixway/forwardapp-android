@@ -1131,3 +1131,15 @@ val MIGRATION_90_91 = object : Migration(90, 91) {
         )
     }
 }
+
+val MIGRATION_91_92 = object : Migration(91, 92) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE structure_presets ADD COLUMN enable_auto_link_subprojects INTEGER")
+        db.execSQL(
+            "ALTER TABLE project_structures ADD COLUMN enable_auto_link_subprojects INTEGER"
+        )
+        db.execSQL(
+            "UPDATE project_structures SET enable_auto_link_subprojects = 1 WHERE enable_auto_link_subprojects IS NULL"
+        )
+    }
+}

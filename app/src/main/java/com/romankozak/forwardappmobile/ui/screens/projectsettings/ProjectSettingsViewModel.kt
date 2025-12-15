@@ -91,11 +91,13 @@ class ProjectSettingsViewModel @Inject constructor(
                 "Dashboard" to (structure?.enableDashboard ?: _uiState.value.features["Dashboard"] ?: true),
                 "Backlog" to (structure?.enableBacklog ?: _uiState.value.features["Backlog"] ?: true),
                 "Attachments" to (structure?.enableAttachments ?: _uiState.value.features["Attachments"] ?: true),
+                "Auto link subprojects" to (structure?.enableAutoLinkSubprojects ?: _uiState.value.features["Auto link subprojects"] ?: true),
             )
             _uiState.update {
                 it.copy(
                     currentPresetLabel = presetLabel,
                     features = structureFeatures,
+                    autoLinkSubprojects = structureFeatures["Auto link subprojects"] ?: true,
                     isProjectManagementEnabled = structureFeatures["Advanced"] == true
                 )
             }
@@ -198,6 +200,15 @@ class ProjectSettingsViewModel @Inject constructor(
         _uiState.update { it.copy(isProjectManagementEnabled = enabled) }
     }
 
+    fun onAutoLinkSubprojectsChange(enabled: Boolean) {
+        _uiState.update {
+            it.copy(
+                autoLinkSubprojects = enabled,
+                features = it.features + ("Auto link subprojects" to enabled)
+            )
+        }
+    }
+
     fun onApplyPreset(code: String) {
         val pid = projectId ?: return
         viewModelScope.launch {
@@ -215,7 +226,9 @@ class ProjectSettingsViewModel @Inject constructor(
                         "Dashboard" to (preset?.enableDashboard ?: true),
                         "Backlog" to (preset?.enableBacklog ?: true),
                         "Attachments" to (preset?.enableAttachments ?: true),
+                        "Auto link subprojects" to (preset?.enableAutoLinkSubprojects ?: true),
                     ),
+                    autoLinkSubprojects = preset?.enableAutoLinkSubprojects ?: state.autoLinkSubprojects,
                     isProjectManagementEnabled = preset?.enableAdvanced ?: state.isProjectManagementEnabled
                 )
             }
@@ -227,7 +240,8 @@ class ProjectSettingsViewModel @Inject constructor(
         _uiState.update { state ->
             state.copy(
                 features = state.features + (key to enabled),
-                isProjectManagementEnabled = if (key == "Advanced") enabled else state.isProjectManagementEnabled
+                isProjectManagementEnabled = if (key == "Advanced") enabled else state.isProjectManagementEnabled,
+                autoLinkSubprojects = if (key == "Auto link subprojects") enabled else state.autoLinkSubprojects,
             )
         }
     }
@@ -240,6 +254,7 @@ class ProjectSettingsViewModel @Inject constructor(
             "Log" to (_uiState.value.features["Log"] ?: true),
             "Artifact" to (_uiState.value.features["Artifact"] ?: true),
             "Advanced" to (_uiState.value.features["Advanced"] ?: false),
+            "Auto link subprojects" to (_uiState.value.features["Auto link subprojects"] ?: true),
         )
         val updated = structure.copy(
             enableInbox = flags["Inbox"],
@@ -249,6 +264,7 @@ class ProjectSettingsViewModel @Inject constructor(
             enableDashboard = flags["Dashboard"],
             enableBacklog = flags["Backlog"],
             enableAttachments = flags["Attachments"],
+            enableAutoLinkSubprojects = flags["Auto link subprojects"],
         )
         projectStructureRepository.updateStructure(updated)
         _uiState.update { it.copy(isProjectManagementEnabled = flags["Advanced"] == true) }

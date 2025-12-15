@@ -27,6 +27,7 @@ class ProjectStructureRepository @Inject constructor(
             id = UUID.randomUUID().toString(),
             projectId = projectId,
             basePresetCode = basePresetCode,
+            enableAutoLinkSubprojects = true,
         )
         projectStructureDao.insertStructure(structure)
         return structure
@@ -62,6 +63,7 @@ class ProjectStructureRepository @Inject constructor(
             enableDashboard = preset.enableDashboard,
             enableBacklog = preset.enableBacklog,
             enableAttachments = preset.enableAttachments,
+            enableAutoLinkSubprojects = preset.enableAutoLinkSubprojects,
         )
         projectStructureDao.updateStructure(updatedStructure)
         val presetItems = structurePresetItemDao.getItemsByPresetOnce(preset.id)

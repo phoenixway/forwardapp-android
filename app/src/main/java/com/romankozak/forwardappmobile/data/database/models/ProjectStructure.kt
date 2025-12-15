@@ -22,6 +22,7 @@ data class ProjectStructure(
     @ColumnInfo(name = "enable_dashboard") val enableDashboard: Boolean? = null,
     @ColumnInfo(name = "enable_backlog") val enableBacklog: Boolean? = null,
     @ColumnInfo(name = "enable_attachments") val enableAttachments: Boolean? = null,
+    @ColumnInfo(name = "enable_auto_link_subprojects") val enableAutoLinkSubprojects: Boolean? = null,
 )
 
 @Entity(

@@ -120,6 +120,8 @@ fun StructurePresetEditorScreen(
                     onBacklogChange = viewModel::onEnableBacklogChange,
                     enableAttachments = uiState.enableAttachments,
                     onAttachmentsChange = viewModel::onEnableAttachmentsChange,
+                    enableAutoLinkSubprojects = uiState.enableAutoLinkSubprojects,
+                    onAutoLinkSubprojectsChange = viewModel::onEnableAutoLinkSubprojectsChange,
                 )
 
             Row(
@@ -179,6 +181,8 @@ private fun FeatureToggles(
     onBacklogChange: (Boolean) -> Unit,
     enableAttachments: Boolean,
     onAttachmentsChange: (Boolean) -> Unit,
+    enableAutoLinkSubprojects: Boolean,
+    onAutoLinkSubprojectsChange: (Boolean) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -195,6 +199,7 @@ private fun FeatureToggles(
         FeatureToggleRow("Dashboard view", enableDashboard, onDashboardChange)
         FeatureToggleRow("Backlog view", enableBacklog, onBacklogChange)
         FeatureToggleRow("Attachments view", enableAttachments, onAttachmentsChange)
+        FeatureToggleRow("Auto link subprojects to backlog", enableAutoLinkSubprojects, onAutoLinkSubprojectsChange)
     }
 }
 
