@@ -35,12 +35,31 @@ class MissionRepository @Inject constructor(
         tacticalMissionDao.deleteMissionById(missionId)
     }
 
+    suspend fun setAttachments(missionId: Long, attachmentIds: List<String>) {
+        val existing = tacticalMissionDao.getAttachmentIdsForMission(missionId).toSet()
+        val incoming = attachmentIds.toSet()
+        val toAdd = incoming - existing
+        val toDelete = existing - incoming
+        toAdd.forEach { id ->
+            val crossRef = TacticalMissionAttachmentCrossRef(missionId = missionId, attachmentId = id)
+            tacticalMissionDao.insertMissionAttachmentCrossRef(crossRef)
+        }
+        toDelete.forEach { id ->
+            tacticalMissionDao.deleteMissionAttachmentCrossRef(missionId, id)
+        }
+    }
+
     suspend fun linkAttachmentToMission(missionId: Long, attachmentId: String) {
-        val crossRef = TacticalMissionAttachmentCrossRef(missionId = missionId, attachmentId = attachmentId)
-        tacticalMissionDao.insertMissionAttachmentCrossRef(crossRef)
+        val current = tacticalMissionDao.getAttachmentIdsForMission(missionId).toMutableSet()
+        if (current.add(attachmentId)) {
+            setAttachments(missionId, current.toList())
+        }
     }
 
     suspend fun unlinkAttachmentFromMission(missionId: Long, attachmentId: String) {
-        tacticalMissionDao.deleteMissionAttachmentCrossRef(missionId, attachmentId)
+        val current = tacticalMissionDao.getAttachmentIdsForMission(missionId).toMutableSet()
+        if (current.remove(attachmentId)) {
+            setAttachments(missionId, current.toList())
+        }
     }
 }

@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 
 package com.romankozak.forwardappmobile.ui.screens.activitytracker
 
@@ -10,6 +10,8 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -48,6 +50,7 @@ import com.romankozak.forwardappmobile.features.common.components.holdmenu2.reme
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -765,7 +768,10 @@ private fun EditRecordDialog(
         title = { Text("Редагувати запис") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     FilterChip(
                         selected = recordType == ActivityRecordType.COMMENT,
                         onClick = { recordType = ActivityRecordType.COMMENT },
@@ -797,14 +803,21 @@ private fun EditRecordDialog(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        OutlinedButton(onClick = { showStartTimePicker = true }, modifier = Modifier.weight(1f)) {
+                        OutlinedButton(
+                            onClick = { showStartTimePicker = true },
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = 44.dp)
+                        ) {
                             Text(startTime?.let { timeFormatter.format(Date(it)) } ?: "Start")
                         }
                         if (recordType == ActivityRecordType.TIMED) {
                             Text("-")
                             OutlinedButton(
                                 onClick = { showEndTimePicker = true },
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .heightIn(min = 44.dp),
                                 enabled = !record.isOngoing,
                             ) {
                                 Text(endTime?.let { timeFormatter.format(Date(it)) } ?: "Зараз")

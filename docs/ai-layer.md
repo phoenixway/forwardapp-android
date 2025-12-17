@@ -37,10 +37,20 @@ AI Control Layer — локальний рівень керування пове
 3. **Запис**: інжект `AiEventRepository` у репозиторій і викликай `emit(event)`.
 4. **Міграції**: якщо додаєш нову таблицю — збільшити версію БД, додати `MIGRATION_X_Y`, підключити в `DatabaseModule`.
 5. **Budget/Discipline**:
-   - Подія — рідкісний незворотний факт, не UI-шум.
-   - 1 факт → 1 подія.
-   - Не текстові wall-of-text payloads; лише сухі цифри/enum.
-   - Не стріляти часто: агрегуй перед emit.
+- Подія — рідкісний незворотний факт, не UI-шум.
+- 1 факт → 1 подія.
+- Не текстові wall-of-text payloads; лише сухі цифри/enum.
+- Не стріляти часто: агрегуй перед emit.
+
+### Де саме тригерити (коротка шпаргалка)
+- **Activity**: `ActivityRepository` після запису/оновлення → `ActivityLoggedEvent/ActivityFinishedEvent/ActivityOngoingTickEvent`
+- **Tasks/Projects**: відповідні репозиторії (створення/завершення/перенесення/активація) → `TaskCreated/TaskCompleted/TaskDeferred/ProjectActivated`
+- **System notes**: `NoteDocumentRepository.save()` для `my-life-current-state` → `SystemNoteUpdatedEvent`
+- **Navigation/Idle**: NavController listener / presence tracker → `ScreenVisitedEvent`, `IdleDetectedEvent`, `FocusResumedEvent`
+- **Life state/Policy**: після оновлення стану/застосування політики → `LifeStateUpdatedEvent`, `RecommendationAccepted/Ignored`
+- **Background**: WorkManager tick → `BackgroundAnalysisTickEvent`
+
+❌ Не тригерити з UI/ViewModel/Compose, не з LLM-відповідей.
 
 ## Як додати нове правило/політику
 

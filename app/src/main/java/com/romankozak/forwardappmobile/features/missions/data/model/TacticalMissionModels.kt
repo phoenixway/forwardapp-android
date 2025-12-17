@@ -33,7 +33,9 @@ data class TacticalMission(
     val deadline: Long,
     val status: MissionStatus = MissionStatus.PENDING,
     val priority: MissionPriority = MissionPriority.MEDIUM,
-    val projectId: String?
+    val projectId: String?,
+    val linkedProjectIds: List<String>? = emptyList(),
+    val linkedAttachmentIds: List<String>? = emptyList(),
 )
 
  @Entity(

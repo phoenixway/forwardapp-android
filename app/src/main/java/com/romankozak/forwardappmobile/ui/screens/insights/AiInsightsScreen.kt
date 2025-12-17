@@ -55,6 +55,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 import java.util.UUID
+import kotlin.math.max
 
 
 enum class MessageType {
@@ -100,9 +101,12 @@ class AiInsightsViewModel @Inject constructor(
         val now = System.currentTimeMillis()
         val todayStart = startOfDay(now)
         val yesterdayStart = todayStart - 24 * 60 * 60 * 1000
+        val fiveHoursAgo = now - 5 * 60 * 60 * 1000
 
         val todayRecords = records.filter { it.createdAt in todayStart until (todayStart + 24 * 60 * 60 * 1000) }
         val yesterdayRecords = records.filter { it.createdAt in yesterdayStart until todayStart }
+        val lastFiveHours = records.filter { it.createdAt >= fiveHoursAgo }
+        val lastDay = records.filter { it.createdAt >= yesterdayStart }
 
         val messages = mutableListOf<AiInsightEntity>()
 
@@ -117,6 +121,41 @@ class AiInsightsViewModel @Inject constructor(
                 )
             )
         }
+
+        fun durationMinutes(record: ActivityRecord): Long {
+            return record.durationInMillis?.let { max(1L, it / 60_000) } ?: 1L
+        }
+
+        fun buildFocusMessage(
+            windowId: String,
+            windowLabel: String,
+            windowRecords: List<ActivityRecord>,
+            minMinutes: Long,
+        ) {
+            val grouped = windowRecords
+                .filter { it.projectId != null }
+                .groupBy { it.projectId!! }
+                .mapValues { entry -> entry.value.sumOf { durationMinutes(it) } }
+                .toList()
+                .sortedByDescending { it.second }
+                .take(3)
+                .filter { it.second >= minMinutes }
+
+            grouped.forEachIndexed { index, (projectId, minutes) ->
+                messages.add(
+                    AiInsightEntity(
+                        id = "${windowId}_${projectId}_$index",
+                        text = "Фокус за $windowLabel: проєкт $projectId ~ ${minutes} хв.",
+                        type = MessageType.INFO.name,
+                        timestamp = now,
+                        isRead = false,
+                    )
+                )
+            }
+        }
+
+        buildFocusMessage("focus_5h", "останні 5 год", lastFiveHours, minMinutes = 20)
+        buildFocusMessage("focus_24h", "добу", lastDay, minMinutes = 60)
 
         val yesterdayXp = yesterdayRecords.sumOf { it.xpGained ?: 0 }
         val yesterdayAnti = yesterdayRecords.sumOf { it.antyXp ?: 0 }

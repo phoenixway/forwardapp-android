@@ -95,7 +95,6 @@ data class NavPanelActions(
   val onShowProjectHierarchy: () -> Unit,
   val onNavigateHome: () -> Unit,
   val onRecentsClick: () -> Unit,
-  val onRevealInExplorer: () -> Unit,
   val onCloseSearch: () -> Unit,
   val onViewChange: (ProjectViewMode) -> Unit,
   val onInputModeSelected: (InputMode) -> Unit,
@@ -543,7 +542,6 @@ private fun NavigationBar(
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val availableWidth = maxWidth
         val baseWidth = if (state.isProjectManagementEnabled) 380.dp else 320.dp
-        val showReveal = availableWidth > baseWidth
         val showRecents = availableWidth > (baseWidth - 40.dp)
 
         Row(
@@ -553,35 +551,21 @@ private fun NavigationBar(
             // --- LEFT SIDE ---
             BackForwardButton(state, actions, contentColor)
 
-            IconButton(onClick = actions.onShowProjectHierarchy, modifier = Modifier.size(40.dp)) {
-                Icon(
-                    Icons.Outlined.AccountTree,
-                    "Ієрархія проєктів",
-                    tint = contentColor.copy(alpha = 0.7f),
-                    modifier = Modifier.size(20.dp),
-                )
-            }
+            Icon(
+                Icons.Outlined.AccountTree,
+                "Ієрархія проєктів",
+                tint = contentColor.copy(alpha = 0.7f),
+                modifier = Modifier
+                    .size(40.dp)
+                    .combinedClickable(
+                        onClick = actions.onShowProjectHierarchy,
+                        onLongClick = actions.onNavigateHome
+                    )
+                    .padding(10.dp)
+            )
 
-            IconButton(onClick = actions.onNavigateHome, modifier = Modifier.size(40.dp)) {
-                Icon(
-                    Icons.Filled.Home,
-                    "Головний екран",
-                    tint = contentColor.copy(alpha = 0.7f),
-                    modifier = Modifier.size(20.dp),
-                )
-            }
 
             Row {
-                AnimatedVisibility(visible = showReveal) {
-                    IconButton(onClick = actions.onRevealInExplorer, modifier = Modifier.size(40.dp)) {
-                        Icon(
-                            Icons.Outlined.RemoveRedEye,
-                            "Показати у списку",
-                            tint = contentColor.copy(alpha = 0.7f),
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
-                }
                 AnimatedVisibility(visible = showRecents) {
                     IconButton(onClick = actions.onRecentsClick, modifier = Modifier.size(40.dp)) {
                         Icon(
@@ -749,7 +733,6 @@ fun ModernInputPanel(
   enableAttachments: Boolean,
   onToggleProjectManagement: () -> Unit,
   onAddProjectToDayPlan: () -> Unit,
-  onRevealInExplorer: () -> Unit,
   onCloseSearch: () -> Unit,
   onAddMilestone: () -> Unit,
   onShowCreateNoteDocumentDialog: () -> Unit,
@@ -781,7 +764,6 @@ fun ModernInputPanel(
       onShowProjectHierarchy = onShowProjectHierarchy,
       onNavigateHome = onNavigateHome,
       onRecentsClick = onRecentsClick,
-      onRevealInExplorer = onRevealInExplorer,
       onCloseSearch = onCloseSearch,
       onViewChange = onViewChange,
       onInputModeSelected = onInputModeSelected,

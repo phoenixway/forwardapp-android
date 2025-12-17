@@ -2,12 +2,14 @@ package com.romankozak.forwardappmobile.features.missions.presentation
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
@@ -29,6 +31,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.foundation.border
+import androidx.compose.material3.Divider
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,62 +42,90 @@ fun TacticalManagementScreen(
     viewModel: TacticalMissionViewModel = hiltViewModel()
 ) {
     val missions by viewModel.missions.collectAsState()
+    val attachmentOptions by viewModel.attachmentOptions.collectAsState()
+    val projectOptions by viewModel.projectOptions.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
     var editingMission by remember { mutableStateOf<TacticalMission?>(null) }
 
     Scaffold(
-        // topBar = {
-        //     TopAppBar(
-        //         title = { Text("🎯 Tactical Missions", fontWeight = FontWeight.Bold) }
-        //     )
-        // },
         floatingActionButton = {
-            FloatingActionButton(
-                containerColor = MaterialTheme.colorScheme.primary,
-                onClick = { showAddDialog = true }
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Mission")
+            if (editingMission == null) {
+                FloatingActionButton(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    onClick = { showAddDialog = true }
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Add Mission")
+                }
             }
         }
     ) { padding ->
-Text("🎯 Tactical Missions", fontWeight = FontWeight.Bold)
-
         TacticalMissionList(
             missions = missions,
             onMissionToggled = { viewModel.toggleMissionCompleted(it) },
             onMissionDeleted = { viewModel.deleteMission(it.id) },
             onMissionEdited = { editingMission = it },
-            modifier = Modifier.padding(padding)
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize(),
+            attachmentLabel = { id ->
+                attachmentOptions.firstOrNull { it.id == id }?.name ?: id
+            },
+            projectLabel = { id ->
+                projectOptions.firstOrNull { it.id == id }?.name ?: id
+            }
         )
 
         if (showAddDialog) {
             AddMissionDialog(
+                attachmentOptions = attachmentOptions,
                 onDismiss = { showAddDialog = false },
-                onConfirm = { title, description, deadline ->
-                    viewModel.addMission(title, description, deadline)
+                onConfirm = { title, description, deadline, projects, attachments ->
+                    viewModel.addMission(title, description, deadline, projects, attachments)
                     showAddDialog = false
                 }
             )
         }
 
         editingMission?.let { mission ->
-            EditMissionDialog(
-                mission = mission,
-                onDismiss = { editingMission = null },
-                onConfirm = { title, desc, deadline ->
-                    viewModel.updateMission(mission.id, title, desc, deadline)
-                    editingMission = null
+            Dialog(
+                onDismissRequest = { editingMission = null },
+                properties = DialogProperties(usePlatformDefaultWidth = false)
+            ) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                ) {
+                    MissionEditorScreen(
+                        mission = mission,
+                        attachmentOptions = attachmentOptions,
+                        onDismiss = { editingMission = null },
+                        onConfirm = { title, desc, deadline, projects, attachments ->
+                            viewModel.updateMission(
+                                mission.id,
+                                title,
+                                desc,
+                                deadline,
+                                projects,
+                                attachments
+                            )
+                            editingMission = null
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
-            )
+            }
         }
+
     }
 }
 
 
 @Composable
 fun AddMissionDialog(
+    attachmentOptions: List<AttachmentOption>,
     onDismiss: () -> Unit,
-    onConfirm: (String, String, Long) -> Unit
+    onConfirm: (String, String, Long, List<String>, List<String>) -> Unit
 ) {
     MissionDialog(
         title = "Create Tactical Mission",
@@ -101,24 +134,10 @@ fun AddMissionDialog(
         initialDeadline = System.currentTimeMillis().toString(),
         confirmText = "Create",
         onDismiss = onDismiss,
-        onConfirm = onConfirm
-    )
-}
-
-@Composable
-fun EditMissionDialog(
-    mission: TacticalMission,
-    onDismiss: () -> Unit,
-    onConfirm: (String, String, Long) -> Unit
-) {
-    MissionDialog(
-        title = "Edit Mission",
-        initialTitle = mission.title,
-        initialDescription = mission.description ?: "",
-        initialDeadline = mission.deadline.toString(),
-        confirmText = "Save",
-        onDismiss = onDismiss,
-        onConfirm = onConfirm
+        onConfirm = onConfirm,
+        initialProjectLinks = emptyList(),
+        initialAttachmentLinks = emptyList(),
+        attachmentOptions = attachmentOptions,
     )
 }
 
@@ -128,16 +147,25 @@ fun MissionDialog(
     initialTitle: String,
     initialDescription: String,
     initialDeadline: String,
+    initialProjectLinks: List<String>,
+    initialAttachmentLinks: List<String>,
+    attachmentOptions: List<AttachmentOption>,
     confirmText: String,
     onDismiss: () -> Unit,
-    onConfirm: (String, String, Long) -> Unit
+    onConfirm: (String, String, Long, List<String>, List<String>) -> Unit
 ) {
     var titleField by remember { mutableStateOf(initialTitle) }
     var descField by remember { mutableStateOf(initialDescription) }
     var deadlineField by remember { mutableStateOf(initialDeadline) }
-var deadlineLong by remember { mutableStateOf(initialDeadline.toLong()) }
-var showDeadlinePicker by remember { mutableStateOf(false) }
+    var deadlineLong by remember { mutableStateOf(initialDeadline.toLong()) }
+    var showDeadlinePicker by remember { mutableStateOf(false) }
+    val projectLinks = remember { mutableStateListOf<String>().apply { addAll(initialProjectLinks) } }
+    val attachmentLinks = remember { mutableStateListOf<String>().apply { addAll(initialAttachmentLinks) } }
+    var showAttachmentChooser by remember { mutableStateOf(false) }
 
+    fun attachmentLabel(id: String): String {
+        return attachmentOptions.firstOrNull { it.id == id }?.name ?: id
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -159,42 +187,99 @@ var showDeadlinePicker by remember { mutableStateOf(false) }
                     modifier = Modifier.fillMaxWidth()
                 )
 
-Button(
-    onClick = { showDeadlinePicker = true },
-    modifier = Modifier.fillMaxWidth()
-) {
-    Text("Select Deadline: ${formatDate(deadlineLong)}")
-}
+                Button(
+                    onClick = { showDeadlinePicker = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Select Deadline: ${formatDate(deadlineLong)}")
+                }
+
+                Divider()
+
+                Text("Attachments", style = MaterialTheme.typography.titleSmall)
+                if (attachmentLinks.isEmpty()) {
+                    Text(
+                        "No attachments linked",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        attachmentLinks.forEach { id ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    attachmentLabel(id),
+                                    modifier = Modifier.weight(1f),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                IconButton(onClick = { attachmentLinks.remove(id) }) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = "Remove attachment"
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Button(
+                    onClick = { showAttachmentChooser = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Add attachment")
+                }
 
             }
         },
         confirmButton = {
-    Button(
-        onClick = {
-            onConfirm(titleField, descField, deadlineLong)
+            Button(
+                onClick = {
+                    onConfirm(titleField, descField, deadlineLong, projectLinks.toList(), attachmentLinks.toList())
+                },
+                enabled = titleField.isNotBlank()
+            ) {
+                Text(confirmText)
+            }
         },
-        enabled = titleField.isNotBlank()
-    ) {
-        Text(confirmText)
-    }
-}
-,
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
 
     if (showDeadlinePicker) {
-    DeadlinePickerDialog(
-        initialTime = deadlineLong,
-        onDismiss = { showDeadlinePicker = false },
-        onConfirm = {
-            deadlineLong = it
-            showDeadlinePicker = false
-        }
-    )
-}
+        DeadlinePickerDialog(
+            initialTime = deadlineLong,
+            onDismiss = { showDeadlinePicker = false },
+            onConfirm = {
+                deadlineLong = it
+                showDeadlinePicker = false
+            }
+        )
+    }
 
+    if (showAttachmentChooser) {
+        AttachmentChooserScreen(
+            options = attachmentOptions,
+            preselected = attachmentLinks.toSet(),
+            onDismiss = { showAttachmentChooser = false },
+            onConfirm = { selected ->
+                selected.forEach { id ->
+                    if (!attachmentLinks.contains(id)) {
+                        attachmentLinks.add(id)
+                    }
+                }
+                showAttachmentChooser = false
+            }
+        )
+    }
 }
 
 @Composable
@@ -203,7 +288,9 @@ fun TacticalMissionList(
     onMissionToggled: (TacticalMission) -> Unit,
     onMissionDeleted: (TacticalMission) -> Unit,
     onMissionEdited: (TacticalMission) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    attachmentLabel: (String) -> String,
+    projectLabel: (String) -> String,
 ) {
     LazyColumn(
         modifier = modifier.padding(16.dp),
@@ -214,9 +301,169 @@ fun TacticalMissionList(
                 mission = mission,
                 onMissionToggled = { onMissionToggled(mission) },
                 onMissionDeleted = { onMissionDeleted(mission) },
-                onMissionEdited = { onMissionEdited(mission) }
+                onMissionEdited = { onMissionEdited(mission) },
+                attachmentLabel = attachmentLabel,
+                projectLabel = projectLabel,
             )
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MissionEditorScreen(
+    mission: TacticalMission,
+    attachmentOptions: List<AttachmentOption>,
+    onDismiss: () -> Unit,
+    onConfirm: (String, String, Long, List<String>, List<String>) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var titleField by remember { mutableStateOf(mission.title) }
+    var descField by remember { mutableStateOf(mission.description ?: "") }
+    var deadlineLong by remember { mutableStateOf(mission.deadline) }
+    var showDeadlinePicker by remember { mutableStateOf(false) }
+    var showAttachmentChooser by remember { mutableStateOf(false) }
+    val projectLinks = remember { mutableStateListOf<String>().apply { addAll(mission.linkedProjectIds.orEmpty()) } }
+    val attachmentLinks = remember { mutableStateListOf<String>().apply { addAll(mission.linkedAttachmentIds.orEmpty()) } }
+
+    fun attachmentLabel(id: String): String =
+        attachmentOptions.firstOrNull { it.id == id }?.name ?: id
+
+    Surface(
+        modifier = modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Scaffold(
+            topBar = {}
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+            ) {
+                TopAppBar(
+                    title = { Text("Edit Mission") },
+                    navigationIcon = {
+                        IconButton(onClick = onDismiss) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        }
+                    },
+                    actions = {
+                        TextButton(
+                            enabled = titleField.isNotBlank(),
+                            onClick = {
+                                onConfirm(
+                                    titleField,
+                                    descField,
+                                    deadlineLong,
+                                    projectLinks.toList(),
+                                    attachmentLinks.toList()
+                                )
+                            }
+                        ) { Text("Save") }
+                    }
+                )
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedTextField(
+                        value = titleField,
+                        onValueChange = { titleField = it },
+                        label = { Text("Title") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    OutlinedTextField(
+                        value = descField,
+                        onValueChange = { descField = it },
+                        label = { Text("Description") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Button(
+                        onClick = { showDeadlinePicker = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Select Deadline: ${formatDate(deadlineLong)}")
+                    }
+
+                    Divider()
+                    Text("Attachments", style = MaterialTheme.typography.titleSmall)
+                    if (attachmentLinks.isEmpty()) {
+                        Text(
+                            "No attachments linked",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            attachmentLinks.forEach { id ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        attachmentLabel(id),
+                                        modifier = Modifier.weight(1f),
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                    IconButton(onClick = { attachmentLinks.remove(id) }) {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = "Remove attachment"
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    OutlinedButton(
+                        onClick = { showAttachmentChooser = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Add attachment")
+                    }
+
+                    Spacer(Modifier.weight(1f, fill = true))
+                }
+            }
+        }
+    }
+
+    if (showDeadlinePicker) {
+        DeadlinePickerDialog(
+            initialTime = deadlineLong,
+            onDismiss = { showDeadlinePicker = false },
+            onConfirm = {
+                deadlineLong = it
+                showDeadlinePicker = false
+            }
+        )
+    }
+
+    if (showAttachmentChooser) {
+        AttachmentChooserScreen(
+            options = attachmentOptions,
+            preselected = attachmentLinks.toSet(),
+            onDismiss = { showAttachmentChooser = false },
+            onConfirm = { selected ->
+                selected.forEach { id ->
+                    if (!attachmentLinks.contains(id)) {
+                        attachmentLinks.add(id)
+                    }
+                }
+                showAttachmentChooser = false
+            }
+        )
     }
 }
 
@@ -225,22 +472,22 @@ fun TacticalMissionItem(
     mission: TacticalMission,
     onMissionToggled: () -> Unit,
     onMissionDeleted: () -> Unit,
-    onMissionEdited: () -> Unit
+    onMissionEdited: () -> Unit,
+    attachmentLabel: (String) -> String,
+    projectLabel: (String) -> String,
 ) {
     val primary = MaterialTheme.colorScheme.primary
     val onSurface = MaterialTheme.colorScheme.onSurface
 
     val overdue = System.currentTimeMillis() > mission.deadline &&
-            mission.status != MissionStatus.COMPLETED
+        mission.status != MissionStatus.COMPLETED
 
-    // Pulse intensity by status
     val basePulse = when {
         mission.status == MissionStatus.COMPLETED -> 0.02f
         overdue -> 0.18f
         else -> 0.08f
     }
 
-    // PULSE ANIMATION
     val infinite = rememberInfiniteTransition(label = "")
     val pulse by infinite.animateFloat(
         initialValue = basePulse,
@@ -252,7 +499,6 @@ fun TacticalMissionItem(
         label = "pulse"
     )
 
-    // SWEEP LIGHT ANIMATION
     val sweepShift by infinite.animateFloat(
         initialValue = -200f,
         targetValue = 400f,
@@ -292,7 +538,6 @@ fun TacticalMissionItem(
             .padding(16.dp)
     ) {
 
-        // 🔥 MOVING LIGHT SWEEP
         Box(
             modifier = Modifier
                 .matchParentSize()
@@ -330,7 +575,6 @@ fun TacticalMissionItem(
 
             Column(modifier = Modifier.weight(1f)) {
 
-                // Title color logic
                 val titleColor by animateColorAsState(
                     when {
                         mission.status == MissionStatus.COMPLETED ->
@@ -377,6 +621,26 @@ fun TacticalMissionItem(
                         else onSurface.copy(alpha = 0.65f)
                     )
                 }
+
+                val linkedProjects = mission.linkedProjectIds.orEmpty()
+                if (linkedProjects.isNotEmpty()) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Projects: " + linkedProjects.joinToString { projectLabel(it) },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = onSurface.copy(alpha = 0.7f)
+                    )
+                }
+
+                val linkedAttachments = mission.linkedAttachmentIds.orEmpty()
+                if (linkedAttachments.isNotEmpty()) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "Attachments: " + linkedAttachments.joinToString { attachmentLabel(it) },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = onSurface.copy(alpha = 0.7f)
+                    )
+                }
             }
 
             Column(
@@ -402,6 +666,107 @@ fun TacticalMissionItem(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AttachmentChooserScreen(
+    options: List<AttachmentOption>,
+    preselected: Set<String>,
+    onDismiss: () -> Unit,
+    onConfirm: (List<String>) -> Unit
+) {
+    val selections = remember(preselected, options) {
+        mutableStateMapOf<String, Boolean>().apply {
+            options.forEach { put(it.id, preselected.contains(it.id)) }
+        }
+    }
+    var query by remember { mutableStateOf("") }
+
+    val filtered = remember(query, options) {
+        if (query.isBlank()) options
+        else options.filter { it.name.contains(query, ignoreCase = true) }
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = { Text("Choose attachments") },
+                        navigationIcon = {
+                            IconButton(onClick = onDismiss) {
+                                Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                            }
+                        },
+                        actions = {
+                            // Apply button no longer needed when tapping selects
+                        }
+                    )
+                }
+            ) { padding ->
+                if (options.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "No attachments available",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding)
+                    ) {
+                        OutlinedTextField(
+                            value = query,
+                            onValueChange = { query = it },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            placeholder = { Text("Search attachments") },
+                            singleLine = true
+                        )
+
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(filtered) { option ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                        .clickable {
+                                            onConfirm(listOf(option.id))
+                                        }
+                                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(option.name, modifier = Modifier.weight(1f))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 
 private fun formatDate(ts: Long): String {
@@ -439,7 +804,6 @@ fun DeadlinePickerDialog(
         return
     }
 
-    // 🎯 FIX: створюємо state тут — у Composable, а не в onClick
     val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = initialCalendar.timeInMillis
     )

@@ -476,7 +476,6 @@ private fun ProjectBottomBar(
                 onToggleProjectManagement = viewModel::onToggleProjectManagement,
                 onExportProjectState = viewModel::onExportProjectStateRequest,
                 onAddProjectToDayPlan = viewModel::addCurrentProjectToDayPlan,
-                onRevealInExplorer = { viewModel.onRevealInExplorer(project?.id ?: "") },
                 onCloseSearch = viewModel::onCloseSearch,
                 onAddMilestone = viewModel::onAddMilestone,
                 onShowCreateNoteDocumentDialog = viewModel::onShowCreateNoteDocumentDialog,

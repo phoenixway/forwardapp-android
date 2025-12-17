@@ -1143,3 +1143,10 @@ val MIGRATION_91_92 = object : Migration(91, 92) {
         )
     }
 }
+
+val MIGRATION_92_93 = object : Migration(92, 93) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE tactical_missions ADD COLUMN linkedProjectIds TEXT")
+        db.execSQL("ALTER TABLE tactical_missions ADD COLUMN linkedAttachmentIds TEXT")
+    }
+}

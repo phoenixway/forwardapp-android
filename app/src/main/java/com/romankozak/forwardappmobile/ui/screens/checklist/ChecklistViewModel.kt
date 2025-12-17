@@ -228,6 +228,29 @@ class ChecklistViewModel @Inject constructor(
         normalizeOrder(reordered)
     }
 
+    fun onSelectAllItems() {
+        markAll(isChecked = true)
+    }
+
+    fun onMarkAllCompleted() {
+        markAll(isChecked = true)
+    }
+
+    fun onMarkAllIncomplete() {
+        markAll(isChecked = false)
+    }
+
+    private fun markAll(isChecked: Boolean) {
+        val updatedEntities = itemsById.value.values.map { it.copy(isChecked = isChecked) }
+        itemsById.value = updatedEntities.associateBy { it.id }
+        _uiState.update { state ->
+            state.copy(items = state.items.map { it.copy(isChecked = isChecked) })
+        }
+        viewModelScope.launch {
+            checklistRepository.updateItems(updatedEntities)
+        }
+    }
+
     fun onDeleteItem(itemId: String) {
         val itemToDelete = itemsById.value[itemId] ?: return
 

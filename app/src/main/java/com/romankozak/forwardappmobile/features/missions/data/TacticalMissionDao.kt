@@ -36,4 +36,12 @@ interface TacticalMissionDao {
 
     @Query("DELETE FROM tactical_mission_attachment_cross_ref WHERE missionId = :missionId AND attachmentId = :attachmentId")
     suspend fun deleteMissionAttachmentCrossRef(missionId: Long, attachmentId: String)
+
+    @Query(
+        """
+        SELECT attachmentId FROM tactical_mission_attachment_cross_ref
+        WHERE missionId = :missionId
+        """
+    )
+    suspend fun getAttachmentIdsForMission(missionId: Long): List<String>
 }
