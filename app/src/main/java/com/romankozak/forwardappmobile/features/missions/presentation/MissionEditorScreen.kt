@@ -97,9 +97,9 @@ fun MissionEditorScreen(
     }
 
     fun attachmentLabel(id: String): String =
-        attachmentOptions.firstOrNull { it.id == id }?.name ?: id
+        attachmentOptions.firstOrNull { it.id == id }?.name?.takeIf { it.isNotBlank() } ?: id
     fun projectLabel(id: String): String =
-        projectOptions.firstOrNull { it.id == id }?.name ?: id
+        projectOptions.firstOrNull { it.id == id }?.name?.takeIf { it.isNotBlank() } ?: id
 
     Surface(
         modifier = modifier.fillMaxSize(),

@@ -47,8 +47,9 @@ fun AttachmentChooserScreen(
     var query by remember { mutableStateOf("") }
 
     val filtered = remember(query, options) {
-        if (query.isBlank()) options
-        else options.filter { it.name.contains(query, ignoreCase = true) }
+        val items = options.map { it.copy(name = it.name.ifBlank { it.id }) }
+        if (query.isBlank()) items
+        else items.filter { it.name.contains(query, ignoreCase = true) }
     }
 
     Dialog(
@@ -120,7 +121,7 @@ fun AttachmentChooserScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        option.name,
+                                        option.name.ifBlank { option.id },
                                         style = MaterialTheme.typography.bodyMedium,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
