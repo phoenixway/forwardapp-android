@@ -27,8 +27,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -56,6 +59,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -63,11 +67,14 @@ import com.romankozak.forwardappmobile.features.missions.data.model.TacticalMiss
 import java.text.SimpleDateFormat
 import java.util.*
 
+private data class TabSpec(val title: String, val icon: ImageVector)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MissionEditorScreen(
     mission: TacticalMission,
     attachmentOptions: List<AttachmentOption>,
+    projectOptions: List<ProjectOption>,
     onDismiss: () -> Unit,
     onConfirm: (String, String, Long, List<String>, List<String>) -> Unit,
     modifier: Modifier = Modifier,
@@ -77,11 +84,22 @@ fun MissionEditorScreen(
     var deadlineLong by remember { mutableStateOf(mission.deadline) }
     var showDeadlinePicker by remember { mutableStateOf(false) }
     var showAttachmentChooser by remember { mutableStateOf(false) }
+    var showProjectChooser by remember { mutableStateOf(false) }
     val projectLinks = remember { mutableStateListOf<String>().apply { addAll(mission.linkedProjectIds.orEmpty()) } }
     val attachmentLinks = remember { mutableStateListOf<String>().apply { addAll(mission.linkedAttachmentIds.orEmpty()) } }
+    var selectedTab by remember { mutableStateOf(0) }
+    val tabs = remember {
+        listOf(
+            TabSpec("General", Icons.Outlined.Description),
+            TabSpec("Attachments", Icons.Outlined.AttachFile),
+            TabSpec("Project Links", Icons.Outlined.AccountTree)
+        )
+    }
 
     fun attachmentLabel(id: String): String =
         attachmentOptions.firstOrNull { it.id == id }?.name ?: id
+    fun projectLabel(id: String): String =
+        projectOptions.firstOrNull { it.id == id }?.name ?: id
 
     Surface(
         modifier = modifier.fillMaxSize(),
@@ -142,6 +160,31 @@ fun MissionEditorScreen(
                     .padding(horizontal = 20.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
+                    ScrollableTabRow(
+                        selectedTabIndex = selectedTab,
+                        edgePadding = 12.dp,
+                    ) {
+                        tabs.forEachIndexed { index, tab ->
+                            Tab(
+                                selected = selectedTab == index,
+                                onClick = { selectedTab = index },
+                                icon = null,
+                                text = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Icon(tab.icon, contentDescription = null)
+                                        if (selectedTab == index) {
+                                            Text(tab.title)
+                                        }
+                                    }
+                                }
+                            )
+                        }
+                    }
+
+                if (selectedTab == 0) {
                 // Header Card with Gradient
                 Card(
                     modifier = Modifier
@@ -277,146 +320,320 @@ fun MissionEditorScreen(
                     }
                 }
 
-                // Attachments Card
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(
-                            elevation = 4.dp,
-                            shape = RoundedCornerShape(20.dp),
-                            spotColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
-                        ),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                }
+
+                if (selectedTab == 1) {
+                    // Attachments Card (with gradient backdrop to match Mission Details)
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(
+                                elevation = 6.dp,
+                                shape = RoundedCornerShape(20.dp),
+                                spotColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f)
+                            ),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        )
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.secondaryContainer),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    Icons.Outlined.AttachFile,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.secondary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                            Text(
-                                "Attachments",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Surface(
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.secondaryContainer,
-                                modifier = Modifier.size(28.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Text(
-                                        attachmentLinks.size.toString(),
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.secondary
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(
+                                            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.25f),
+                                            MaterialTheme.colorScheme.surface
+                                        )
                                     )
-                                }
-                            }
-                        }
-
-                        AnimatedVisibility(
-                            visible = attachmentLinks.isEmpty(),
-                            enter = fadeIn() + slideInVertically(),
-                            exit = fadeOut() + slideOutVertically()
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                                    .padding(16.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    "No attachments yet",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                            }
-                        }
-
-                        AnimatedVisibility(
-                            visible = attachmentLinks.isNotEmpty(),
-                            enter = fadeIn() + slideInVertically(),
-                            exit = fadeOut() + slideOutVertically()
                         ) {
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            Column(
+                                modifier = Modifier.padding(20.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
-                                attachmentLinks.forEach { id ->
-                                    Surface(
-                                        shape = RoundedCornerShape(16.dp),
-                                        color = MaterialTheme.colorScheme.secondaryContainer,
-                                        tonalElevation = 2.dp,
-                                        shadowElevation = 2.dp
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.secondaryContainer),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
-                                        ) {
+                                        Icon(
+                                            Icons.Outlined.AttachFile,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.secondary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                    Text(
+                                        "Attachments",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = MaterialTheme.colorScheme.secondaryContainer,
+                                        modifier = Modifier.size(28.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
                                             Text(
-                                                attachmentLabel(id),
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                fontWeight = FontWeight.Medium,
-                                                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                                modifier = Modifier.weight(1f, fill = false)
+                                                attachmentLinks.size.toString(),
+                                                style = MaterialTheme.typography.labelMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.secondary
                                             )
-                                            Spacer(Modifier.width(8.dp))
-                                            IconButton(
-                                                onClick = { attachmentLinks.remove(id) },
-                                                modifier = Modifier.size(28.dp)
+                                        }
+                                    }
+                                }
+
+                                AnimatedVisibility(
+                                    visible = attachmentLinks.isEmpty(),
+                                    enter = fadeIn() + slideInVertically(),
+                                    exit = fadeOut() + slideOutVertically()
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                            .padding(16.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            "No attachments yet",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+
+                                AnimatedVisibility(
+                                    visible = attachmentLinks.isNotEmpty(),
+                                    enter = fadeIn() + slideInVertically(),
+                                    exit = fadeOut() + slideOutVertically()
+                                ) {
+                                    FlowRow(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        attachmentLinks.forEach { id ->
+                                            Surface(
+                                                shape = RoundedCornerShape(16.dp),
+                                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                                tonalElevation = 2.dp,
+                                                shadowElevation = 2.dp
                                             ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Delete,
-                                                    contentDescription = "Remove",
-                                                    tint = MaterialTheme.colorScheme.error,
-                                                    modifier = Modifier.size(18.dp)
-                                                )
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+                                                ) {
+                                                    Text(
+                                                        attachmentLabel(id),
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis,
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        fontWeight = FontWeight.Medium,
+                                                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                                        modifier = Modifier.weight(1f, fill = false)
+                                                    )
+                                                    Spacer(Modifier.width(8.dp))
+                                                    IconButton(
+                                                        onClick = { attachmentLinks.remove(id) },
+                                                        modifier = Modifier.size(28.dp)
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.Delete,
+                                                            contentDescription = "Remove",
+                                                            tint = MaterialTheme.colorScheme.error,
+                                                            modifier = Modifier.size(18.dp)
+                                                        )
+                                                    }
+                                                }
                                             }
                                         }
                                     }
                                 }
+
+                                FilledTonalButton(
+                                    onClick = { showAttachmentChooser = true },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.AttachFile,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Add Attachment", fontWeight = FontWeight.Medium)
+                                }
                             }
                         }
+                    }
 
-                        FilledTonalButton(
-                            onClick = { showAttachmentChooser = true },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Icon(
-                                Icons.Outlined.AttachFile,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp)
+                }
+
+                if (selectedTab == 2) {
+                    // Projects Card (gradient)
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(
+                                elevation = 4.dp,
+                                shape = RoundedCornerShape(20.dp),
+                                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                            ),
+                        shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface
                             )
-                            Spacer(Modifier.width(8.dp))
-                            Text("Add Attachment", fontWeight = FontWeight.Medium)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(
+                                        Brush.verticalGradient(
+                                            colors = listOf(
+                                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f),
+                                                MaterialTheme.colorScheme.surface
+                                            )
+                                        )
+                                    )
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(20.dp),
+                                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.primaryContainer),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                Icons.Outlined.AccountTree,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                        Text(
+                                            "Projects",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = MaterialTheme.colorScheme.primaryContainer,
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Text(
+                                                    projectLinks.size.toString(),
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    AnimatedVisibility(
+                                        visible = projectLinks.isEmpty(),
+                                        enter = fadeIn() + slideInVertically(),
+                                        exit = fadeOut() + slideOutVertically()
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                                .padding(16.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                "No projects linked",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+
+                                    AnimatedVisibility(
+                                        visible = projectLinks.isNotEmpty(),
+                                        enter = fadeIn() + slideInVertically(),
+                                        exit = fadeOut() + slideOutVertically()
+                                    ) {
+                                        FlowRow(
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            projectLinks.forEach { id ->
+                                                Surface(
+                                                    shape = RoundedCornerShape(16.dp),
+                                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                                    tonalElevation = 2.dp,
+                                                    shadowElevation = 2.dp
+                                                ) {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+                                                    ) {
+                                                        Text(
+                                                            projectLabel(id),
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis,
+                                                            style = MaterialTheme.typography.bodyMedium,
+                                                            fontWeight = FontWeight.Medium,
+                                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                            modifier = Modifier.weight(1f, fill = false)
+                                                        )
+                                                        Spacer(Modifier.width(8.dp))
+                                                        IconButton(
+                                                            onClick = { projectLinks.remove(id) },
+                                                            modifier = Modifier.size(28.dp)
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = Icons.Default.Delete,
+                                                                contentDescription = "Remove project",
+                                                                tint = MaterialTheme.colorScheme.error,
+                                                                modifier = Modifier.size(18.dp)
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    FilledTonalButton(
+                                        onClick = { showProjectChooser = true },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Outlined.AccountTree,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                        Text("Add Project", fontWeight = FontWeight.Medium)
+                                    }
+                                }
+                            }
                         }
                     }
-                }
 
                 Spacer(Modifier.height(16.dp))
             }
@@ -446,6 +663,20 @@ fun MissionEditorScreen(
                     }
                 }
                 showAttachmentChooser = false
+            }
+        )
+    }
+
+    if (showProjectChooser) {
+        ProjectChooserScreen(
+            options = projectOptions,
+            preselected = projectLinks.toSet(),
+            onDismiss = { showProjectChooser = false },
+            onConfirm = { selected ->
+                selected.forEach { id ->
+                    if (!projectLinks.contains(id)) projectLinks.add(id)
+                }
+                showProjectChooser = false
             }
         )
     }

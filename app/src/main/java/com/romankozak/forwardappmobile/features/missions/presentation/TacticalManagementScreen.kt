@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.romankozak.forwardappmobile.features.missions.data.model.TacticalMission
 import com.romankozak.forwardappmobile.features.missions.domain.model.MissionStatus
+import com.romankozak.forwardappmobile.features.missions.presentation.MissionEditorScreen
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -98,6 +99,7 @@ fun TacticalManagementScreen(
                     MissionEditorScreen(
                         mission = mission,
                         attachmentOptions = attachmentOptions,
+                        projectOptions = projectOptions,
                         onDismiss = { editingMission = null },
                         onConfirm = { title, desc, deadline, projects, attachments ->
                             viewModel.updateMission(
