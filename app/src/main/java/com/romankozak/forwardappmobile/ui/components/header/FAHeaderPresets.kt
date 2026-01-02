@@ -48,13 +48,6 @@ fun TodayHeader(
 ): HeaderLayout {
 
     val primaryColor = MaterialTheme.colorScheme.primary
-    val dateText = remember(date) {
-        date?.let {
-            val cal = Calendar.getInstance()
-            cal.timeInMillis = it
-            SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).format(cal.time)
-        } ?: ""
-    }
 
     return FreeFormHeaderLayout(
         // ----------------------
@@ -77,14 +70,6 @@ fun TodayHeader(
                         letterSpacing = 0.3.sp,
                         color = primaryColor.copy(alpha = 0.7f)
                     )
-                    if (dateText.isNotEmpty()) {
-                        Text(
-                            text = dateText,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = primaryColor.copy(alpha = 0.7f)
-                        )
-                    }
                     if (!statsText.isNullOrBlank()) {
                         Text(
                             text = statsText,
