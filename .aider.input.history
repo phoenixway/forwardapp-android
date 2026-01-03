@@ -13,3 +13,56 @@
 
 # 2025-12-09 07:18:32.697157
 +чи виправив проблему?
+
+# 2026-01-02 23:55:12.251189
++n
+
+# 2026-01-02 23:55:18.499515
++test
+
+# 2026-01-02 23:58:00.984023
++what this project can do?
+
+# 2026-01-03 00:00:44.812592
++n
+
+# 2026-01-03 00:01:00.221267
++S
+
+# 2026-01-03 00:02:32.720239
++there is todayheader or something similar. Remove the date from there
+
+# 2026-01-03 00:09:12.819376
++є головний екран. на ньому заголовок і вкладки. для вкладки today є щось схоже на todayheader. там дата поточна. прибери дату
+
+# 2026-01-03 00:11:58.311596
++/add app/src/main/java/com/romankozak/forwardappmobile/ui/screens/daymanagement/dayplan/components/Header.kt
++/add app/src/main/java/com/romankozak/forwardappmobile/ui/screens/daymanagement/dayplan/tasklist/DayPlanM.kt
++On the main screen there is a Today tab.
++It has a TodayHeader with a current date.
++Remove the date from the TodayHeader UI.
++
+
+# 2026-01-03 00:12:14.984436
++n
+
+# 2026-01-03 00:57:07.517945
++/add app/src/main/java/com/romankozak/forwardappmobile/ui/screens/daymanagement/dayplan/components/
+
+# 2026-01-03 00:57:37.334405
++/add app/src/main/java/com/romankozak/forwardappmobile/ui/screens/daymanagement/dayplan/tasklist/
+
+# 2026-01-03 00:59:54.066080
++On the main screen there is a Today tab. It has a TodayHeader with a current date. Remove the date from the TodayHeader UI.
+
+# 2026-01-03 01:02:11.198177
++/add app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/FAHeaderPresets.kt
+
+# 2026-01-03 01:02:28.742839
++On the main screen there is a Today tab. It has a TodayHeader with a current date. Remove the date from the TodayHeader UI.
+
+# 2026-01-03 01:08:29.561252
++/drop
+
+# 2026-01-03 01:21:45.055712
++/exit
