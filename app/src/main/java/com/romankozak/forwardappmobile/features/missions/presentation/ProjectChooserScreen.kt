@@ -46,9 +46,8 @@ fun ProjectChooserScreen(
     var query by remember { mutableStateOf("") }
 
     val filtered = remember(query, options) {
-        val items = options.map { it.copy(name = it.name.ifBlank { it.id }) }
-        if (query.isBlank()) items
-        else items.filter { it.name.contains(query, ignoreCase = true) }
+        if (query.isBlank()) options
+        else options.filter { it.name.contains(query, ignoreCase = true) }
     }
 
     Dialog(
@@ -120,7 +119,7 @@ fun ProjectChooserScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        option.name.ifBlank { option.id },
+                                        option.name,
                                         style = MaterialTheme.typography.bodyMedium,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
