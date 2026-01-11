@@ -245,6 +245,7 @@ fun SharedCommandDeckLayout(
                             onNavigateToReminders = onNavigateToReminders,
                             onNavigateToPresets = onNavigateToPresets,
                             onNavigateToAiInsights = onNavigateToAiInsights,
+                            onNavigateToSettings = onNavigateToSettings,
                             onNavigateToRecentItem = onNavigateToRecentItem,
                             recentViewModel = recentViewModel
                         )

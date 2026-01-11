@@ -82,7 +82,7 @@ fun SearchProjectHierarchyBottomBar(
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                            .padding(horizontal = 0.dp, vertical = 6.dp)
                             .height(44.dp)
                             .clip(RoundedCornerShape(12.dp))
                             .clickable { onPerformGlobalSearch(searchQuery.text) },
@@ -119,7 +119,7 @@ fun SearchProjectHierarchyBottomBar(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                        .padding(horizontal = 0.dp, vertical = 6.dp)
                         .height(52.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -131,7 +131,7 @@ fun SearchProjectHierarchyBottomBar(
                     )
                 }
 
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(4.dp))
 
                 SearchTextField(
                     searchQuery = searchQuery,

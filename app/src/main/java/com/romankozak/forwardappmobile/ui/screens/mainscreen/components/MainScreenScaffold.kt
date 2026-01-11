@@ -181,10 +181,16 @@ fun ProjectHierarchyScreenScaffold(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .padding(
+                            horizontal = if (isSearchActive) 8.dp else 16.dp,
+                            vertical = if (isSearchActive) 8.dp else 12.dp
+                        )
                         .clip(RoundedCornerShape(20.dp))
                         .then(CommandDeckBackgroundModifier())
-                        .padding(horizontal = 22.dp, vertical = 12.dp)
+                        .padding(
+                            horizontal = if (isSearchActive) 4.dp else 22.dp,
+                            vertical = if (isSearchActive) 4.dp else 12.dp
+                        )
                 ) {
                     if (isSearchActive) {
                         SearchProjectHierarchyBottomBar(
