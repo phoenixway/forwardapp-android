@@ -107,19 +107,19 @@ fun DashboardBottomBar(
         verticalAlignment = Alignment.CenterVertically
     ) {
         BarButton(
-            icon = Icons.Outlined.Inbox,
+            icon = Icons.Outlined.MoveToInbox,
             label = "Inbox",
             onClick = onNavigateToInbox
         )
 
         BarButton(
-            icon = Icons.Outlined.Analytics,
+            icon = Icons.Outlined.Radar,
             label = "Tracker",
             onClick = onNavigateToTracker
         )
 
         BarButton(
-            icon = Icons.Outlined.Dashboard,
+            icon = Icons.Outlined.AccountTree,
             onClick = onNavigateToProjectHierarchy,
             label = "Projects",
         )
