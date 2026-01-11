@@ -5,6 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
+import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -34,6 +35,7 @@ class NoteEditViewModel
     @Inject
     constructor(
         private val noteRepository: com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository,
+        private val recentItemsRepository: RecentItemsRepository,
         private val savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(NoteEditUiState())
@@ -53,6 +55,7 @@ class NoteEditViewModel
             viewModelScope.launch {
                 if (noteId != null) {
                     noteRepository.getNoteById(noteId!!)?.let { note ->
+                        recentItemsRepository.logNoteAccess(note)
                         projectId = note.projectId
                         initialTitle = note.title
                         initialContent = note.content

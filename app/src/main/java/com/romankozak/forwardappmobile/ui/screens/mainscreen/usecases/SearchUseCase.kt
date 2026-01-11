@@ -7,6 +7,7 @@ import androidx.lifecycle.SavedStateHandle
 import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
+import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.HierarchyDisplaySettings
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectUiEvent
@@ -33,6 +34,7 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHiera
 @ViewModelScoped
 class SearchUseCase @Inject constructor(
     private val projectRepository: ProjectRepository,
+    private val recentItemsRepository: RecentItemsRepository,
     private val savedStateHandle: SavedStateHandle,
 ): PlanningSearchAdapter {
     private lateinit var scope: CoroutineScope
@@ -182,6 +184,9 @@ class SearchUseCase @Inject constructor(
         currentHierarchy: ListHierarchyData,
     ) {
         scope.launch {
+            projectRepository.getProjectById(projectId)?.let {
+                recentItemsRepository.logProjectAccess(it)
+            }
             val path = buildPathToProject(projectId, currentHierarchy)
             currentBreadcrumbs.value = path
             focusedProjectId.value = projectId
