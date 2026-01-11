@@ -303,7 +303,7 @@ internal fun ExpandingProjectHierarchyBottomNav(
                 horizontalArrangement = Arrangement.SpaceAround,
             ) {
                 ModernBottomNavButton(text = "Search", icon = Icons.Outlined.Search, isSelected = false, onClick = { onToggleSearch(true) })
-                ModernBottomNavButton(text = "Command Deck", icon = Icons.Outlined.AccountTree, onClick = onShowCommandDeck)
+                CommandDeckNavButton(onClick = onShowCommandDeck)
                 ModernBottomNavButton(text = "Home", icon = Icons.Outlined.Home, onClick = onHomeClick)
                 ModernBottomNavButton(text = "Recent", icon = Icons.Outlined.History, onClick = onRecentsClick)
                 MoreActionsBottomNavButton(
@@ -363,6 +363,47 @@ fun ModernBottomNavButton(
                 contentDescription = text,
                 tint = primary.copy(alpha = 0.9f),
                 modifier = Modifier.size(24.dp),
+            )
+        }
+    }
+}
+
+@Composable
+fun CommandDeckNavButton(
+    onClick: () -> Unit,
+) {
+    val primary = MaterialTheme.colorScheme.primary
+    val interactionSource = remember { MutableInteractionSource() }
+
+    Column(
+        modifier =
+            Modifier
+                .clip(RoundedCornerShape(14.dp))
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onClick
+                )
+                .padding(6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(primary.copy(alpha = 0.10f))
+                .border(
+                    width = 1.dp,
+                    color = primary.copy(alpha = 0.22f),
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "⌬",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = primary.copy(alpha = 0.9f)
             )
         }
     }
