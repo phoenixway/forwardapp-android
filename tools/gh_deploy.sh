@@ -93,6 +93,11 @@ gh run watch "$RUN_ID" --exit-status
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}Remote build failed!${NC}"
+    echo -e "${YELLOW}Fetching error logs...${NC}"
+    echo "---------------------------------------------------"
+    gh run view "$RUN_ID" --log-failed | tail -n 30
+    echo "---------------------------------------------------"
+    echo -e "${YELLOW}Full logs: gh run view $RUN_ID --log${NC}"
     exit 1
 fi
 
