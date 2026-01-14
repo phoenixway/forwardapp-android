@@ -45,7 +45,7 @@ function select_options() {
 
     echo ""
     echo -e "${YELLOW}Select Target Host:${NC}"
-    echo "1) Connected Device (ADB Install)"
+    echo "1) Connected Device (ADB) / This Device (Termux)"
     echo "2) Local PC (Download only)"
     read -p "Choice [1-2]: " h_choice
     
@@ -121,22 +121,32 @@ if [ "$HOST" == "device" ]; then
     echo ""
     echo -e "${YELLOW}Installing to device...${NC}"
     
-    if ! adb devices | grep -w "device" > /dev/null; then
-        echo -e "${RED}No device connected!${NC}"
-        echo "APK is saved at: $APK_FILE"
-        exit 1
-    fi
+    # Check for Termux
+    if [ -n "$TERMUX_VERSION" ]; then
+        echo -e "${BLUE}Termux detected! Invoking system installer...${NC}"
+        termux-open "$APK_FILE"
+        echo -e "${GREEN}Installation prompt launched on device screen.${NC}"
+        # Wait a bit before cleanup to ensure intent is fired
+        sleep 2
+    else
+        # Standard ADB
+        if ! adb devices | grep -w "device" > /dev/null; then
+            echo -e "${RED}No device connected (ADB)!${NC}"
+            echo "APK is saved at: $APK_FILE"
+            exit 1
+        fi
 
-    adb install -r "$APK_FILE"
-    echo -e "${GREEN}Installation Successful!${NC}"
+        adb install -r "$APK_FILE"
+        echo -e "${GREEN}Installation Successful!${NC}"
 
-    read -p "Launch app? (y/n): " launch_opt
-    if [[ "$launch_opt" == "y" || "$launch_opt" == "Y" ]]; then
-         PKG_NAME="com.romankozak.forwardappmobile"
-         if [ "$FLAVOR" == "exp" ] && [ "$TYPE" == "debug" ]; then
-             PKG_NAME="${PKG_NAME}.debug"
-         fi
-         adb shell am start -n "$PKG_NAME/com.romankozak.forwardappmobile.MainActivity"
+        read -p "Launch app? (y/n): " launch_opt
+        if [[ "$launch_opt" == "y" || "$launch_opt" == "Y" ]]; then
+             PKG_NAME="com.romankozak.forwardappmobile"
+             if [ "$FLAVOR" == "exp" ] && [ "$TYPE" == "debug" ]; then
+                 PKG_NAME="${PKG_NAME}.debug"
+             fi
+             adb shell am start -n "$PKG_NAME/com.romankozak.forwardappmobile.MainActivity"
+        fi
     fi
 
 else
