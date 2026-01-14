@@ -62,6 +62,10 @@ check_gh_cli
 print_header
 select_options
 
+# Get current branch
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+echo -e "Current Branch: ${GREEN}$CURRENT_BRANCH${NC}"
+
 ARTIFACT_NAME="apk-${FLAVOR}-${TYPE}"
 
 echo ""
@@ -69,7 +73,7 @@ echo -e "${BLUE}Triggering workflow on GitHub...${NC}"
 echo -e "Flavor: ${GREEN}$FLAVOR${NC}, Type: ${GREEN}$TYPE${NC}"
 
 # 1. Trigger
-gh workflow run "$WORKFLOW_FILE" -f flavor="$FLAVOR" -f build_type="$TYPE"
+gh workflow run "$WORKFLOW_FILE" --ref "$CURRENT_BRANCH" -f flavor="$FLAVOR" -f build_type="$TYPE"
 
 echo -e "${YELLOW}Waiting for workflow to start...${NC}"
 sleep 5
