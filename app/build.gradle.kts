@@ -26,7 +26,8 @@ val localProperties = Properties().apply {
     if (file.exists()) {
         file.inputStream().use { load(it) }
     } else {
-        error("Missing local.properties for signing configuration.")
+        // local.properties is optional (e.g. in CI/CD)
+        // logger.warn("local.properties not found")
     }
 }
 
