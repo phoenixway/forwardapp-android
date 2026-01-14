@@ -159,7 +159,7 @@ fun ProjectHierarchyScreenTopAppBar(
                         modifier = Modifier.weight(1f),
                     ) {
                         Text(
-                            text = "Projects",
+                            text = "Contexts",
                             style = MaterialTheme.typography.titleLarge.copy(
                                 fontWeight = FontWeight.Bold,
                             ),

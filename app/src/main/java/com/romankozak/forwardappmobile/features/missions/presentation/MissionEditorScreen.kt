@@ -92,7 +92,7 @@ fun MissionEditorScreen(
         listOf(
             TabSpec("General", Icons.Outlined.Description),
             TabSpec("Attachments", Icons.Outlined.AttachFile),
-            TabSpec("Project Links", Icons.Outlined.AccountTree)
+            TabSpec("Context Links", Icons.Outlined.AccountTree)
         )
     }
 
@@ -529,7 +529,7 @@ fun MissionEditorScreen(
                                             )
                                         }
                                         Text(
-                                            "Projects",
+                                            "Contexts",
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -563,7 +563,7 @@ fun MissionEditorScreen(
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Text(
-                                                "No projects linked",
+                                                "No contexts linked",
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
@@ -628,7 +628,7 @@ fun MissionEditorScreen(
                                             modifier = Modifier.size(20.dp)
                                         )
                                         Spacer(Modifier.width(8.dp))
-                                        Text("Add Project", fontWeight = FontWeight.Medium)
+                                        Text("Add Context", fontWeight = FontWeight.Medium)
                                     }
                                 }
                             }

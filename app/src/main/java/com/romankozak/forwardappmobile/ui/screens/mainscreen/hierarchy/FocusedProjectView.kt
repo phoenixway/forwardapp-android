@@ -138,7 +138,7 @@ fun FocusedProjectView(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "No subprojects",
+                                text = "No subcontexts",
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -149,7 +149,7 @@ fun FocusedProjectView(
         }
     } else {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Focused project not found.")
+            Text("Focused context not found.")
         }
     }
 }

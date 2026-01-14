@@ -1,0 +1,60 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      flavor:
+        description: 'Build Flavor'
+        required: true
+        default: 'prod'
+        type: choice
+        options:
+        - prod
+        - exp
+      build_type:
+        description: 'Build Type'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+        - release
+        - debug
+
+jobs:
+  build:
+    name: Build ${{ inputs.flavor }} ${{ inputs.build_type }}
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    # Construct the task name properly: assembleProdRelease, assembleExpDebug
+    # Capitalize first letter of inputs
+    - name: Build with Gradle
+      run: |
+        FLAVOR="${{ inputs.flavor }}"
+        TYPE="${{ inputs.build_type }}"
+        # Capitalize
+        FLAVOR_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOR:0:1})${FLAVOR:1}"
+        TYPE_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${TYPE:0:1})${TYPE:1}"
+        
+        TASK="assemble${FLAVOR_CAP}${TYPE_CAP}"
+        echo "Running task: $TASK"
+        ./gradlew "$TASK" --stacktrace
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: apk-${{ inputs.flavor }}-${{ inputs.build_type }}
+        path: app/build/outputs/apk/${{ inputs.flavor }}/${{ inputs.build_type }}/*.apk
+        retention-days: 1

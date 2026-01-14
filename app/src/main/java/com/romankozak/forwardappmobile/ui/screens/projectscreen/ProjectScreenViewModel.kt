@@ -170,7 +170,7 @@ constructor(
 ) {
   fun exportToMarkdown(content: List<ListItemContent>) {
     if (content.isEmpty()) {
-      listener.showSnackbar("Беклог порожній. Нічого експортувати.", null)
+      listener.showSnackbar("Backlog is empty. Nothing to export.", null)
       return
     }
     val markdownBuilder = StringBuilder()
@@ -182,25 +182,25 @@ constructor(
             "$checkbox ${item.goal.text}"
           }
 
-          is ListItemContent.SublistItem -> "- [С] ${item.project.name}"
+          is ListItemContent.SublistItem -> "- [C] ${item.project.name}"
           is ListItemContent.LinkItem -> {
             val displayName = item.link.linkData.displayName ?: item.link.linkData.target
-            "- [Л] [$displayName](${item.link.linkData.target})"
+            "- [L] [$displayName](${item.link.linkData.target})"
           }
-          is ListItemContent.NoteItem -> "- [Н] ${item.note.title}"
-          is ListItemContent.NoteDocumentItem -> "- [К] ${item.document.name}"
-          is ListItemContent.ChecklistItem -> "- [Ч] ${item.checklist.name}"
+          is ListItemContent.NoteItem -> "- [N] ${item.note.title}"
+          is ListItemContent.NoteDocumentItem -> "- [D] ${item.document.name}"
+          is ListItemContent.ChecklistItem -> "- [Ch] ${item.checklist.name}"
         }
       markdownBuilder.appendLine(line)
     }
     val markdownText = markdownBuilder.toString()
     listener.copyToClipboard(markdownText, "Backlog Export")
-    listener.showSnackbar("Беклог скопійовано у буфер обміну.", null)
+    listener.showSnackbar("Backlog copied to clipboard.", null)
   }
 
   fun importFromMarkdown(markdownText: String, projectId: String) {
     if (markdownText.isBlank()) {
-      listener.showSnackbar("Нічого імпортувати.", null)
+      listener.showSnackbar("Nothing to import.", null)
       return
     }
     scope.launch(Dispatchers.IO) {
@@ -231,7 +231,7 @@ constructor(
         }
       }
       withContext(Dispatchers.Main) {
-        listener.showSnackbar("Імпортовано $importedCount елементів.", null)
+        listener.showSnackbar("Imported $importedCount items.", null)
         listener.forceRefresh()
       }
     }
@@ -794,7 +794,7 @@ constructor(
 
         val projectName =
           withContext(ioDispatcher) {
-            projectRepository.getProjectById(projectId)?.name ?: "Project"
+            projectRepository.getProjectById(projectId)?.name ?: "Context"
           }
         enhancedNavigationManager.navigateToProject(projectId, projectName)
         return@launch
@@ -820,7 +820,7 @@ constructor(
             }
             else -> {
               Log.w(TAG, "Unknown related link target: $target")
-              _uiEventFlow.send(UiEvent.ShowSnackbar("Невідоме посилання: $target", null))
+              _uiEventFlow.send(UiEvent.ShowSnackbar("Unknown link: $target", null))
             }
           }
         }
@@ -922,7 +922,7 @@ constructor(
 
   override fun requestAttachmentShare(item: ListItemContent) {
     pendingAttachmentShare = item
-    navigateToListChooser("Виберіть проект для вкладення")
+    navigateToListChooser("Select context for attachment")
   }
 
   override fun setPendingAction(
@@ -936,11 +936,11 @@ constructor(
 
     val title =
       when (actionType) {
-        GoalActionType.CreateInstance -> "Створити посилання у..."
-        GoalActionType.MoveInstance -> "Перемістити до..."
-        GoalActionType.CopyGoal -> "Копіювати до..."
-        GoalActionType.AddLinkToList -> "Додати посилання на проект..."
-        GoalActionType.ADD_LIST_SHORTCUT -> "Додати ярлик на проект..."
+        GoalActionType.CreateInstance -> "Create link in..."
+        GoalActionType.MoveInstance -> "Move to..."
+        GoalActionType.CopyGoal -> "Copy to..."
+        GoalActionType.AddLinkToList -> "Add link to context..."
+        GoalActionType.ADD_LIST_SHORTCUT -> "Add context shortcut..."
       }
     navigateToListChooser(title)
   }
@@ -1041,7 +1041,7 @@ constructor(
             RelatedLink(
               type = LinkType.PROJECT,
               target = targetProjectId,
-              displayName = targetProject?.name ?: "Проект без назви",
+              displayName = targetProject?.name ?: "Untitled context",
             )
           val newItemId = projectRepository.addLinkItemToProjectFromLink(projectIdFlow.value, link)
           withContext(Dispatchers.Main) {
@@ -1113,7 +1113,7 @@ constructor(
           attachment is ListItemContent.ChecklistItem
       if (!isAttachmentSupported) {
         withContext(Dispatchers.Main) {
-          showSnackbar("Цей тип вкладення не підтримує копіювання", null)
+          showSnackbar("This attachment type does not support copying", null)
         }
         return@launch
       }
@@ -1130,7 +1130,7 @@ constructor(
         } catch (e: Exception) {
           Log.e(TAG, "Failed to link attachment to project=$targetProjectId", e)
           withContext(Dispatchers.Main) {
-            showSnackbar("Не вдалося додати вкладення до проєкту", null)
+            showSnackbar("Failed to add attachment to context", null)
           }
           return@launch
         }
@@ -1139,7 +1139,7 @@ constructor(
           _uiState.update { it.copy(newlyAddedItemId = attachmentId) }
           forceRefresh()
         }
-        showSnackbar("Вкладення додано до вибраного проєкту", null)
+        showSnackbar("Attachment added to selected context", null)
       }
     }
   }
@@ -1157,12 +1157,12 @@ constructor(
       }.onSuccess {
         withContext(Dispatchers.Main) {
           forceRefresh()
-          showSnackbar("Вкладення повністю видалено", null)
+          showSnackbar("Attachment completely deleted", null)
         }
       }.onFailure { e ->
         Log.e(TAG, "Failed to delete attachment everywhere", e)
         withContext(Dispatchers.Main) {
-          showSnackbar("Не вдалося повністю видалити вкладення", null)
+          showSnackbar("Failed to delete attachment completely", null)
         }
       }
     }
@@ -1292,7 +1292,7 @@ constructor(
     viewModelScope.launch {
       when (link.type) {
         LinkType.PROJECT -> {
-          val projectName = link.displayName ?: "Project"
+          val projectName = link.displayName ?: "Context"
           enhancedNavigationManager.navigateToProject(link.target, projectName)
         }
         LinkType.OBSIDIAN -> {

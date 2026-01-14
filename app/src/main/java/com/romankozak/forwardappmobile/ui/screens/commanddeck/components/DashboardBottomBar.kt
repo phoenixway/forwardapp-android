@@ -130,7 +130,7 @@ fun DashboardBottomBar(
         BarButton(
             icon = Icons.Outlined.AccountTree,
             onClick = onNavigateToProjectHierarchy,
-            label = "Projects",
+            label = "Contexts",
         )
         BarButton(
             icon = Icons.Outlined.History,

@@ -124,10 +124,10 @@ fun ProjectHierarchyScreenContent(
                 val emptyText =
                     remember(uiState.planningMode, uiState.planningSettings) {
                         when (uiState.planningMode) {
-                            PlanningMode.Today -> "No projects with tag '#${uiState.planningSettings.dailyTag}'"
-                            PlanningMode.Medium -> "No projects with tag '#${uiState.planningSettings.mediumTag}'"
-                            PlanningMode.Long -> "No projects with tag '#${uiState.planningSettings.longTag}'"
-                            else -> "Create your first project"
+                            PlanningMode.Today -> "No contexts with tag '#${uiState.planningSettings.dailyTag}'"
+                            PlanningMode.Medium -> "No contexts with tag '#${uiState.planningSettings.mediumTag}'"
+                            PlanningMode.Long -> "No contexts with tag '#${uiState.planningSettings.longTag}'"
+                            else -> "Create your first context"
                         }
                     }
 

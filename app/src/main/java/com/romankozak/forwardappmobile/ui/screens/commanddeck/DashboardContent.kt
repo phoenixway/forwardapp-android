@@ -165,7 +165,7 @@ fun AnimatedCommandDeck(
               onNavigateToScripts,
             ),
             DeckAction(
-              "Projects",
+              "Contexts",
               "Hierarchy view",
               Icons.Outlined.AccountTree,
               Color(0xFF5DE2FF),

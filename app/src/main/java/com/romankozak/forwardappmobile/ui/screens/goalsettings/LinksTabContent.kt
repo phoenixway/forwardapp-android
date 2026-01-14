@@ -50,7 +50,7 @@ fun LinksTabContent(
             FilledTonalButton(onClick = onAddProjectLink, modifier = Modifier.weight(1f)) {
                 Icon(Icons.Default.Add, contentDescription = null)
                 Spacer(Modifier.size(4.dp))
-                Text("Project")
+                Text("Context")
             }
             FilledTonalButton(onClick = onAddWebLink, modifier = Modifier.weight(1f)) {
                 Icon(Icons.Default.Add, contentDescription = null)
