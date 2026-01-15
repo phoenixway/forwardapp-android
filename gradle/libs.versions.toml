@@ -7,7 +7,7 @@ kotlin = "2.2.20"
 ksp = "2.2.20-2.0.3"
 
 # Compose -> Використовуємо актуальну стабільну версію BOM
-androidx-compose-bom = "2024.02.01"
+androidx-compose-bom = "2025.02.00"
 
 # AndroidX Libraries
 coreKtx = "1.13.1"
@@ -30,7 +30,7 @@ slf4j-android = "1.7.36"
 hilt = "2.57.2"
 hilt-navigation-compose = "1.2.0"
 compose-dnd = "0.4.0"
-reorderable = "3.0.1-SNAPSHOT"
+reorderable = "3.0.0"
 kotlinx-coroutines = "1.9.0"
 work = "2.9.0"
 hilt-work = "1.2.0"
