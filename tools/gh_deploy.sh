@@ -62,7 +62,6 @@ check_gh_cli
 print_header
 select_options
 
-# Get current branch
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 echo -e "Current Branch: ${GREEN}$CURRENT_BRANCH${NC}"
 
@@ -72,14 +71,19 @@ echo ""
 echo -e "${BLUE}Triggering workflow on GitHub...${NC}"
 echo -e "Flavor: ${GREEN}$FLAVOR${NC}, Type: ${GREEN}$TYPE${NC}"
 
-# 1. Trigger
-gh workflow run "$WORKFLOW_FILE" --ref "$CURRENT_BRANCH" -f flavor="$FLAVOR" -f build_type="$TYPE"
+gh workflow run "$WORKFLOW_FILE" \
+    --ref "$CURRENT_BRANCH" \
+    -f flavor="$FLAVOR" \
+    -f build_type="$TYPE"
 
 echo -e "${YELLOW}Waiting for workflow to start...${NC}"
 sleep 5
 
-# 2. Find Run ID (Most recent for this workflow)
-RUN_ID=$(gh run list --workflow="$WORKFLOW_FILE" --limit=1 --json databaseId --jq '.[0].databaseId')
+RUN_ID=$(gh run list \
+    --workflow="$WORKFLOW_FILE" \
+    --limit=1 \
+    --json databaseId \
+    --jq '.[0].databaseId')
 
 if [ -z "$RUN_ID" ]; then
     echo -e "${RED}Could not find the triggered run.${NC}"
@@ -87,31 +91,49 @@ if [ -z "$RUN_ID" ]; then
 fi
 
 echo -e "Tracking Run ID: ${GREEN}$RUN_ID${NC}"
+echo ""
 
-# 3. Watch
+# --- WATCH WITH ERROR HANDLING ---
+
+set +e
 gh run watch "$RUN_ID" --exit-status
+RUN_STATUS=$?
+set -e
 
-if [ $? -ne 0 ]; then
-    echo -e "${RED}Remote build failed!${NC}"
-    echo -e "${YELLOW}Extracting failure details...${NC}"
-    echo "---------------------------------------------------"
-    # Try to find the Gradle failure block
-    gh run view "$RUN_ID" --log-failed | grep -A 20 "FAILURE: Build failed" || gh run view "$RUN_ID" --log-failed | tail -n 20
-    echo "---------------------------------------------------"
-    echo -e "${YELLOW}Full logs: gh run view $RUN_ID --log${NC}"
+if [ $RUN_STATUS -ne 0 ]; then
+    echo ""
+    echo -e "${RED}❌ Remote build failed.${NC}"
+    echo ""
+    echo -e "${YELLOW}How to inspect logs:${NC}"
+    echo ""
+    echo -e "  ${BLUE}1) View failed steps only:${NC}"
+    echo -e "     gh run view $RUN_ID --log-failed"
+    echo ""
+    echo -e "  ${BLUE}2) View full logs:${NC}"
+    echo -e "     gh run view $RUN_ID --log"
+    echo ""
+    echo -e "  ${BLUE}3) Open in browser:${NC}"
+    echo -e "     gh run view $RUN_ID --web"
+    echo ""
+    echo -e "${YELLOW}Quick hint:${NC}"
+    echo "  Look for:"
+    echo "   - Gradle task failure"
+    echo "   - Signing / keystore errors"
+    echo "   - assemble${FLAVOR^}${TYPE^}"
+    echo ""
     exit 1
 fi
 
 echo ""
 echo -e "${GREEN}Build complete! Downloading artifact...${NC}"
 
-# 4. Download
+# --- DOWNLOAD ARTIFACT ---
+
 TMP_DL_DIR=".tmp/forwardapp_gh_build_$RUN_ID"
 mkdir -p "$TMP_DL_DIR"
 
 gh run download "$RUN_ID" -n "$ARTIFACT_NAME" -D "$TMP_DL_DIR"
 
-# Find APK in download dir
 APK_FILE=$(find "$TMP_DL_DIR" -name "*.apk" | head -n 1)
 
 if [ -z "$APK_FILE" ]; then
@@ -122,34 +144,26 @@ fi
 
 echo -e "${GREEN}Downloaded: $(basename "$APK_FILE")${NC}"
 
-# 5. Handle Host
+# --- INSTALL / COPY ---
+
 if [ "$HOST" == "device" ]; then
     echo ""
     echo -e "${YELLOW}Installing to device...${NC}"
-    
-    # Check for Termux
+
     if [ -n "$TERMUX_VERSION" ]; then
-        echo -e "${BLUE}Termux detected! Invoking system installer...${NC}"
+        echo -e "${BLUE}Termux detected. Launching system installer.${NC}"
         termux-open "$APK_FILE"
-        echo -e "${GREEN}Installation prompt launched on device screen.${NC}"
-        # Wait a bit before cleanup to ensure intent is fired
         sleep 2
     else
-        # Standard ADB
         if ! adb devices | grep -w "device" > /dev/null; then
-            echo -e "${RED}No device connected (ADB)!${NC}"
-            echo "APK is saved at: $APK_FILE"
+            echo -e "${RED}No device connected (ADB).${NC}"
+            echo "APK saved at: $APK_FILE"
             exit 1
         fi
 
-        # Define Package Name Logic for Uninstall
         PKG_NAME="com.romankozak.forwardappmobile"
-        if [ "$FLAVOR" == "exp" ] && [ "$TYPE" == "debug" ]; then
-             PKG_NAME="${PKG_NAME}.debug"
-        elif [ "$FLAVOR" == "prod" ] && [ "$TYPE" == "debug" ]; then
-             # Assuming prod debug also has suffix, check build.gradle.kts if unsure.
-             # Based on provided context, debug always adds .debug suffix
-             PKG_NAME="${PKG_NAME}.debug"
+        if [ "$TYPE" == "debug" ]; then
+            PKG_NAME="$PKG_NAME.debug"
         fi
 
         echo -e "${YELLOW}Installing...${NC}"
@@ -184,7 +198,6 @@ if [ "$HOST" == "device" ]; then
              adb shell am start -n "$PKG_NAME/com.romankozak.forwardappmobile.MainActivity"
         fi
     fi
-
 else
     mkdir -p "$DIST_DIR"
     cp "$APK_FILE" "$DIST_DIR/"
