@@ -875,6 +875,13 @@ constructor(
                 if (skipped > 0) Log.w(IMPORT_TAG, "  CrossRefs: пропущено $skipped з невалідними посиланнями")
             }
             Log.d(IMPORT_TAG, "  CrossRefs: ${backup.projectAttachmentCrossRefs.size} -> ${cleanedCrossRefs.size}")
+
+            val cleanedSystemApps = backup.systemApps.map { sa ->
+                sa.copy(
+                    projectId = projectIdMap[sa.projectId] ?: sa.projectId,
+                    noteDocumentId = sa.noteDocumentId?.let { noteId -> projectIdMap[noteId] ?: noteId }
+                )
+            }
             
             Log.d(IMPORT_TAG, "✅ Крок 6 завершен: всі сутності переіндексовані")
 
@@ -1052,7 +1059,7 @@ constructor(
             
             backup.reminders.forEach { reminderDao.insert(it) }
             
-            backup.systemApps.forEach { systemAppDao.upsert(it) }
+            cleanedSystemApps.forEach { systemAppDao.upsert(it) }
             backup.projectArtifacts.forEach { projectArtifactDao.insert(it) }
             
             backup.tacticalMissions.forEach { tacticalMissionDao.insertMission(it) }
