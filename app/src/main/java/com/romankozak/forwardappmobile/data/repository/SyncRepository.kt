@@ -1062,7 +1062,8 @@ constructor(
             cleanedSystemApps.forEach { systemAppDao.upsert(it) }
             backup.projectArtifacts.forEach { projectArtifactDao.insert(it) }
             
-            backup.tacticalMissions.forEach { tacticalMissionDao.insertMission(it) }
+            val cleanedTacticalMissions = backup.tacticalMissions.filter { !it.title.isNullOrBlank() }
+            cleanedTacticalMissions.forEach { tacticalMissionDao.insertMission(it) }
             backup.tacticalMissionAttachments.forEach { tacticalMissionDao.insertMissionAttachmentCrossRef(it) }
             
             backup.aiEvents.forEach { aiEventDao.insert(it) }
