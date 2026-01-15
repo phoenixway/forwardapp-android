@@ -45,7 +45,7 @@ jobs:
         echo "storePassword=${{ secrets.SIGNING_STORE_PASSWORD }}" >> signing.properties
         echo "keyAlias=${{ secrets.SIGNING_KEY_ALIAS }}" >> signing.properties
         echo "keyPassword=${{ secrets.SIGNING_KEY_PASSWORD }}" >> signing.properties
-- name: Generate debug keystore if not exists
+    - name: Generate debug keystore if not exists
       run: |
         if [ ! -f ~/.android/debug.keystore ]; then
           keytool -genkey -v \
