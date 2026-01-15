@@ -60,6 +60,13 @@ jobs:
         echo "Running task: $TASK"
         ./gradlew "$TASK" --stacktrace
 
+    - name: Hint for Failed Build Logs
+      if: failure()
+      run: |
+        echo "The build failed. For more detailed logs, use the GitHub CLI (gh) on your local machine:"
+        echo "gh run view --log-failed ${{ github.run_id }}"
+        echo "Replace ${{ github.run_id }} with the actual Run ID if you are looking at a different run."
+
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
