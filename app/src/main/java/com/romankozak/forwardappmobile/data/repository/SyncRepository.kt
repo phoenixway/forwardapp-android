@@ -10,20 +10,38 @@ import androidx.core.net.toUri
 import androidx.room.withTransaction
 import com.google.gson.GsonBuilder
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
+import com.romankozak.forwardappmobile.data.dao.AiEventDao
+import com.romankozak.forwardappmobile.data.dao.AiInsightDao
+import com.romankozak.forwardappmobile.data.dao.BacklogOrderDao
+import com.romankozak.forwardappmobile.data.dao.ChatDao
 import com.romankozak.forwardappmobile.data.dao.ChecklistDao
+import com.romankozak.forwardappmobile.data.dao.ConversationFolderDao
+import com.romankozak.forwardappmobile.data.dao.DailyMetricDao
+import com.romankozak.forwardappmobile.data.dao.DayPlanDao
+import com.romankozak.forwardappmobile.data.dao.DayTaskDao
 import com.romankozak.forwardappmobile.data.dao.GoalDao
 import com.romankozak.forwardappmobile.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
+import com.romankozak.forwardappmobile.data.dao.LifeSystemStateDao
 import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.data.dao.NoteDocumentDao
+import com.romankozak.forwardappmobile.data.dao.ProjectArtifactDao
 import com.romankozak.forwardappmobile.data.dao.ProjectDao
 import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
+import com.romankozak.forwardappmobile.data.dao.ProjectStructureDao
 import com.romankozak.forwardappmobile.data.dao.RecentItemDao
+import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
+import com.romankozak.forwardappmobile.data.dao.ReminderDao
 import com.romankozak.forwardappmobile.data.dao.ScriptDao
+import com.romankozak.forwardappmobile.data.dao.StructurePresetDao
+import com.romankozak.forwardappmobile.data.dao.StructurePresetItemDao
 import com.romankozak.forwardappmobile.data.dao.SystemAppDao
 import com.romankozak.forwardappmobile.data.database.AppDatabase
-import com.romankozak.forwardappmobile.data.dao.BacklogOrderDao
+import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
+import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
+import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
+import dagger.hilt.android.qualifiers.ApplicationContext
 import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
 import com.romankozak.forwardappmobile.data.database.models.BacklogOrder
 import com.romankozak.forwardappmobile.data.database.models.ChecklistEntity
@@ -62,11 +80,8 @@ import com.romankozak.forwardappmobile.data.database.models.DayPlan
 import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.DailyMetric
 import com.romankozak.forwardappmobile.data.database.models.Reminder
-import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
-import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentEntity
 import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRef
-import dagger.hilt.android.qualifiers.ApplicationContext
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
@@ -138,6 +153,22 @@ constructor(
     private val attachmentRepository: AttachmentRepository,
     private val attachmentDao: AttachmentDao,
     private val systemAppDao: SystemAppDao,
+    // --- New DAOs for Full Backup ---
+    private val dayPlanDao: DayPlanDao,
+    private val dayTaskDao: DayTaskDao,
+    private val dailyMetricDao: DailyMetricDao,
+    private val chatDao: ChatDao,
+    private val conversationFolderDao: ConversationFolderDao,
+    private val reminderDao: ReminderDao,
+    private val recurringTaskDao: RecurringTaskDao,
+    private val projectArtifactDao: ProjectArtifactDao,
+    private val tacticalMissionDao: TacticalMissionDao,
+    private val aiEventDao: AiEventDao,
+    private val lifeSystemStateDao: LifeSystemStateDao,
+    private val aiInsightDao: AiInsightDao,
+    private val structurePresetDao: StructurePresetDao,
+    private val structurePresetItemDao: StructurePresetItemDao,
+    private val projectStructureDao: ProjectStructureDao,
 ) {
     private val TAG = "SyncRepository"
     private val WIFI_SYNC_LOG_TAG = "FWD_SYNC_TEST"
@@ -221,6 +252,26 @@ constructor(
                 scripts = scripts,
                 attachments = allAttachments,
                 projectAttachmentCrossRefs = synthesizedCrossRefs,
+                // --- Extended Entities ---
+                dayPlans = dayPlanDao.getAllPlansSync(),
+                dayTasks = dayTaskDao.getAllTasksSync(),
+                dailyMetrics = dailyMetricDao.getAllMetricsSync(),
+                conversations = chatDao.getAllConversationsSync(),
+                chatMessages = chatDao.getAllMessagesSync(),
+                conversationFolders = conversationFolderDao.getAllFoldersSync(),
+                reminders = reminderDao.getAllRemindersSync(),
+                recurringTasks = recurringTaskDao.getAll(),
+                systemApps = systemAppDao.getAll(),
+                projectArtifacts = projectArtifactDao.getAll(),
+                tacticalMissions = tacticalMissionDao.getAllMissionsSync(),
+                tacticalMissionAttachments = tacticalMissionDao.getAllMissionAttachmentCrossRefs(),
+                aiEvents = aiEventDao.getAll(),
+                aiInsights = aiInsightDao.getAllSync(),
+                lifeSystemStates = lifeSystemStateDao.getAll(),
+                structurePresets = structurePresetDao.getAllSync(),
+                structurePresetItems = structurePresetItemDao.getAllItems(),
+                projectStructures = projectStructureDao.getAllStructures(),
+                projectStructureItems = projectStructureDao.getAllItems(),
             )
         val settingsMap = settingsRepository.getPreferencesSnapshot().asMap().mapKeys { it.key.name }
             .mapValues { it.value.toString() }
@@ -862,6 +913,36 @@ constructor(
                 recentItemDao.deleteAll()
                 attachmentDao.deleteAllProjectAttachmentLinks()
                 attachmentDao.deleteAll()
+
+                // --- Extended Cleanup ---
+                dayTaskDao.deleteAllTasks()
+                dayPlanDao.deleteAllPlans()
+                dailyMetricDao.deleteAllMetrics()
+
+                chatDao.deleteAllMessages()
+                chatDao.deleteAllConversations()
+                conversationFolderDao.deleteAllFolders()
+
+                reminderDao.deleteAll()
+                recurringTaskDao.deleteAll()
+
+                projectArtifactDao.deleteAll()
+
+                tacticalMissionDao.deleteAllMissionAttachmentCrossRefs()
+                tacticalMissionDao.deleteAllMissions()
+
+                aiEventDao.deleteAll()
+                lifeSystemStateDao.deleteAll()
+                aiInsightDao.clearAll()
+
+                structurePresetItemDao.deleteAllItems()
+                structurePresetDao.deleteAll()
+
+                projectStructureDao.deleteAllItems()
+                projectStructureDao.deleteAllStructures()
+
+                systemAppDao.deleteAll()
+
                 Log.d(IMPORT_TAG, "Всі таблиці очищено.")
 
             // ============================================================================
@@ -952,6 +1033,40 @@ constructor(
             // Verify actual count in DB after insert
             val actualCrossRefCount = attachmentDao.getAllProjectAttachmentCrossRefs().size
             Log.d(IMPORT_TAG, "  [VERIFY] Actual crossRefs in DB after insert: $actualCrossRefCount")
+
+            // --- Extended Insert ---
+            if (backup.dayPlans.isNotEmpty()) {
+                dayPlanDao.insertAll(backup.dayPlans)
+                Log.d(IMPORT_TAG, "  - Вставлено: ${backup.dayPlans.size} dayPlans.")
+            }
+            if (backup.dayTasks.isNotEmpty()) {
+                dayTaskDao.insertAll(backup.dayTasks)
+                Log.d(IMPORT_TAG, "  - Вставлено: ${backup.dayTasks.size} dayTasks.")
+            }
+            backup.dailyMetrics.forEach { dailyMetricDao.insert(it) }
+            
+            backup.conversationFolders.forEach { conversationFolderDao.insertFolder(it) }
+            backup.conversations.forEach { chatDao.insertConversation(it) }
+            backup.chatMessages.forEach { chatDao.insertMessage(it) }
+            
+            backup.reminders.forEach { reminderDao.insert(it) }
+            backup.recurringTasks.forEach { recurringTaskDao.insert(it) }
+            
+            backup.systemApps.forEach { systemAppDao.upsert(it) }
+            backup.projectArtifacts.forEach { projectArtifactDao.insert(it) }
+            
+            backup.tacticalMissions.forEach { tacticalMissionDao.insertMission(it) }
+            backup.tacticalMissionAttachments.forEach { tacticalMissionDao.insertMissionAttachmentCrossRef(it) }
+            
+            backup.aiEvents.forEach { aiEventDao.insert(it) }
+            if (backup.aiInsights.isNotEmpty()) aiInsightDao.upsertAll(backup.aiInsights)
+            backup.lifeSystemStates.forEach { lifeSystemStateDao.upsert(it) }
+            
+            backup.structurePresets.forEach { structurePresetDao.insertPreset(it) }
+            if (backup.structurePresetItems.isNotEmpty()) structurePresetItemDao.insertItems(backup.structurePresetItems)
+            
+            backup.projectStructures.forEach { projectStructureDao.insertStructure(it) }
+            if (backup.projectStructureItems.isNotEmpty()) projectStructureDao.insertItems(backup.projectStructureItems)
 
             Log.d(IMPORT_TAG, "Транзакція: відновлення settings. Entries=${backupSettingsMap.size}")
             settingsRepository.restoreFromMap(backupSettingsMap)

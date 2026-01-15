@@ -153,4 +153,10 @@ interface DayTaskDao {
     @Query("UPDATE day_tasks SET nextOccurrenceTime = :nextOccurrenceTime WHERE id = :taskId")
     suspend fun updateNextOccurrenceTime(taskId: String, nextOccurrenceTime: Long)
 
+    // --- Backup Methods ---
+    @Query("SELECT * FROM day_tasks")
+    suspend fun getAllTasksSync(): List<DayTask>
+
+    @Query("DELETE FROM day_tasks")
+    suspend fun deleteAllTasks()
 }

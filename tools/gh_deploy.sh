@@ -142,15 +142,45 @@ if [ "$HOST" == "device" ]; then
             exit 1
         fi
 
-        adb install -r "$APK_FILE"
-        echo -e "${GREEN}Installation Successful!${NC}"
+        # Define Package Name Logic for Uninstall
+        PKG_NAME="com.romankozak.forwardappmobile"
+        if [ "$FLAVOR" == "exp" ] && [ "$TYPE" == "debug" ]; then
+             PKG_NAME="${PKG_NAME}.debug"
+        elif [ "$FLAVOR" == "prod" ] && [ "$TYPE" == "debug" ]; then
+             # Assuming prod debug also has suffix, check build.gradle.kts if unsure.
+             # Based on provided context, debug always adds .debug suffix
+             PKG_NAME="${PKG_NAME}.debug"
+        fi
+
+        echo -e "${YELLOW}Installing...${NC}"
+        INSTALL_OUTPUT=$(adb install -r "$APK_FILE" 2>&1)
+        
+        if echo "$INSTALL_OUTPUT" | grep -q "Success"; then
+             echo -e "${GREEN}Installation Successful!${NC}"
+        elif echo "$INSTALL_OUTPUT" | grep -q "INSTALL_FAILED_UPDATE_INCOMPATIBLE"; then
+             echo -e "${RED}Installation Failed: Signature Mismatch${NC}"
+             echo -e "${YELLOW}The installed version of '$PKG_NAME' is signed with a different key.${NC}"
+             echo -e "${YELLOW}To install this version, the old one must be UNINSTALLED. (Data will be lost!)${NC}"
+             
+             read -p "Uninstall and continue? (y/n): " uninstall_opt
+             if [[ "$uninstall_opt" == "y" || "$uninstall_opt" == "Y" ]]; then
+                 echo "Uninstalling $PKG_NAME..."
+                 adb uninstall "$PKG_NAME"
+                 echo "Retrying installation..."
+                 adb install -r "$APK_FILE"
+                 echo -e "${GREEN}Installation Successful!${NC}"
+             else
+                 echo -e "${RED}Aborted.${NC}"
+                 exit 1
+             fi
+        else
+             echo -e "${RED}Installation Failed with unknown error:${NC}"
+             echo "$INSTALL_OUTPUT"
+             exit 1
+        fi
 
         read -p "Launch app? (y/n): " launch_opt
         if [[ "$launch_opt" == "y" || "$launch_opt" == "Y" ]]; then
-             PKG_NAME="com.romankozak.forwardappmobile"
-             if [ "$FLAVOR" == "exp" ] && [ "$TYPE" == "debug" ]; then
-                 PKG_NAME="${PKG_NAME}.debug"
-             fi
              adb shell am start -n "$PKG_NAME/com.romankozak.forwardappmobile.MainActivity"
         fi
     fi

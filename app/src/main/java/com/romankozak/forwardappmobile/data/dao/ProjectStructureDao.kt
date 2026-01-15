@@ -60,4 +60,17 @@ interface ProjectStructureDao {
         deleteItemsForStructure(structureId)
         insertItems(newItems)
     }
+
+    // --- Backup Methods ---
+    @Query("SELECT * FROM project_structures")
+    suspend fun getAllStructures(): List<ProjectStructure>
+
+    @Query("SELECT * FROM project_structure_items")
+    suspend fun getAllItems(): List<ProjectStructureItem>
+
+    @Query("DELETE FROM project_structures")
+    suspend fun deleteAllStructures()
+
+    @Query("DELETE FROM project_structure_items")
+    suspend fun deleteAllItems()
 }

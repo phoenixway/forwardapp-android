@@ -23,4 +23,8 @@ interface AiInsightDao {
 
     @Query("UPDATE ai_insights SET isRead = 1 WHERE id = :id")
     suspend fun markRead(id: String)
+
+    // --- Backup Methods ---
+    @Query("SELECT * FROM ai_insights")
+    suspend fun getAllSync(): List<AiInsightEntity>
 }

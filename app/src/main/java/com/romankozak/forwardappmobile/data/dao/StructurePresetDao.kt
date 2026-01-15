@@ -20,4 +20,11 @@ interface StructurePresetDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPreset(preset: StructurePreset)
+
+    // --- Backup Methods ---
+    @Query("SELECT * FROM structure_presets")
+    suspend fun getAllSync(): List<StructurePreset>
+
+    @Query("DELETE FROM structure_presets")
+    suspend fun deleteAll()
 }

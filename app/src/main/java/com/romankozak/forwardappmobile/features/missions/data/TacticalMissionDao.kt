@@ -44,4 +44,17 @@ interface TacticalMissionDao {
         """
     )
     suspend fun getAttachmentIdsForMission(missionId: Long): List<String>
+
+    // --- Backup Methods ---
+    @Query("SELECT * FROM tactical_missions")
+    suspend fun getAllMissionsSync(): List<TacticalMission>
+
+    @Query("SELECT * FROM tactical_mission_attachment_cross_ref")
+    suspend fun getAllMissionAttachmentCrossRefs(): List<TacticalMissionAttachmentCrossRef>
+
+    @Query("DELETE FROM tactical_missions")
+    suspend fun deleteAllMissions()
+
+    @Query("DELETE FROM tactical_mission_attachment_cross_ref")
+    suspend fun deleteAllMissionAttachmentCrossRefs()
 }

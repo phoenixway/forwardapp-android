@@ -13,4 +13,11 @@ interface AiEventDao {
 
     @Query("SELECT * FROM ai_events WHERE timestamp >= :since ORDER BY timestamp ASC")
     suspend fun getEventsSince(since: Long): List<AiEventEntity>
+
+    // --- Backup Methods ---
+    @Query("SELECT * FROM ai_events")
+    suspend fun getAll(): List<AiEventEntity>
+
+    @Query("DELETE FROM ai_events")
+    suspend fun deleteAll()
 }

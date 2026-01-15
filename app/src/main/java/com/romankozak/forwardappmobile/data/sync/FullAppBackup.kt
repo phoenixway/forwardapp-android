@@ -49,6 +49,52 @@ data class DatabaseContent(
     val attachments: List<com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentEntity> = emptyList(),
     @SerializedName(value = "projectAttachmentCrossRefs", alternate = ["project_attachment_links"])
     val projectAttachmentCrossRefs: List<com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRef> = emptyList(),
+
+    // --- Extended Entities ---
+    @SerializedName("dayPlans")
+    val dayPlans: List<DayPlan> = emptyList(),
+    @SerializedName("dayTasks")
+    val dayTasks: List<DayTask> = emptyList(),
+    @SerializedName("dailyMetrics")
+    val dailyMetrics: List<DailyMetric> = emptyList(),
+
+    @SerializedName("conversations")
+    val conversations: List<ConversationEntity> = emptyList(),
+    @SerializedName("chatMessages")
+    val chatMessages: List<ChatMessageEntity> = emptyList(),
+    @SerializedName("conversationFolders")
+    val conversationFolders: List<ConversationFolderEntity> = emptyList(),
+
+    @SerializedName("reminders")
+    val reminders: List<Reminder> = emptyList(),
+    @SerializedName("recurringTasks")
+    val recurringTasks: List<RecurringTask> = emptyList(),
+
+    @SerializedName("systemApps")
+    val systemApps: List<SystemAppEntity> = emptyList(),
+    @SerializedName("projectArtifacts")
+    val projectArtifacts: List<ProjectArtifact> = emptyList(),
+
+    @SerializedName("tacticalMissions")
+    val tacticalMissions: List<com.romankozak.forwardappmobile.features.missions.data.model.TacticalMission> = emptyList(),
+    @SerializedName("tacticalMissionAttachments")
+    val tacticalMissionAttachments: List<com.romankozak.forwardappmobile.features.missions.data.model.TacticalMissionAttachmentCrossRef> = emptyList(),
+
+    @SerializedName("aiEvents")
+    val aiEvents: List<AiEventEntity> = emptyList(),
+    @SerializedName("aiInsights")
+    val aiInsights: List<AiInsightEntity> = emptyList(),
+    @SerializedName("lifeSystemStates")
+    val lifeSystemStates: List<LifeSystemStateEntity> = emptyList(),
+
+    @SerializedName("structurePresets")
+    val structurePresets: List<StructurePreset> = emptyList(),
+    @SerializedName("structurePresetItems")
+    val structurePresetItems: List<StructurePresetItem> = emptyList(),
+    @SerializedName("projectStructures")
+    val projectStructures: List<ProjectStructure> = emptyList(),
+    @SerializedName("projectStructureItems")
+    val projectStructureItems: List<ProjectStructureItem> = emptyList(),
 )
 
 data class SettingsContent(

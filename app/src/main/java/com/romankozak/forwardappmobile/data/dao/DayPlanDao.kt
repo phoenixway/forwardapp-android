@@ -74,4 +74,11 @@ interface DayPlanDao {
 
     @Query("SELECT * FROM day_plans WHERE id = :planId LIMIT 1")
     fun getPlanByIdStream(planId: String): Flow<DayPlan?>
+
+    // --- Backup Methods ---
+    @Query("SELECT * FROM day_plans")
+    suspend fun getAllPlansSync(): List<DayPlan>
+
+    @Query("DELETE FROM day_plans")
+    suspend fun deleteAllPlans()
 }

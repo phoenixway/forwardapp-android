@@ -95,7 +95,13 @@ android {
 
     signingConfigs {
         getByName("debug") {
-            if (signingProps.isNotEmpty()) {
+            val debugKey = file("debug.keystore")
+            if (debugKey.exists()) {
+                storeFile = debugKey
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+            } else if (signingProps.isNotEmpty()) {
                 val storeFilePath = signingProps.getProperty("storeFile")
                 require(!storeFilePath.isNullOrBlank()) {
                     "storeFile is missing in signing.properties"

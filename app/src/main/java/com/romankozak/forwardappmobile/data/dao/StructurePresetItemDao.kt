@@ -30,4 +30,11 @@ interface StructurePresetItemDao {
         deleteItemsByPreset(presetId)
         insertItems(items)
     }
+
+    // --- Backup Methods ---
+    @Query("SELECT * FROM structure_preset_items")
+    suspend fun getAllItems(): List<StructurePresetItem>
+
+    @Query("DELETE FROM structure_preset_items")
+    suspend fun deleteAllItems()
 }

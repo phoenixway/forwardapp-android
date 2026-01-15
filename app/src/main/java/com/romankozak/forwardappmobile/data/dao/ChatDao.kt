@@ -87,4 +87,17 @@ interface ChatDao {
 
     @Query("SELECT COUNT(*) FROM chat_messages WHERE conversationId = :conversationId")
     fun getMessageCountForConversation(conversationId: Long): Flow<Int>
+
+    // --- Backup Methods ---
+    @Query("SELECT * FROM conversations")
+    suspend fun getAllConversationsSync(): List<ConversationEntity>
+
+    @Query("SELECT * FROM chat_messages")
+    suspend fun getAllMessagesSync(): List<ChatMessageEntity>
+
+    @Query("DELETE FROM conversations")
+    suspend fun deleteAllConversations()
+
+    @Query("DELETE FROM chat_messages")
+    suspend fun deleteAllMessages()
 }

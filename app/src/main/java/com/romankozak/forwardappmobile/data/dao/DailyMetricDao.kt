@@ -53,4 +53,11 @@ interface DailyMetricDao {
 
     @Query("SELECT MAX(completedPoints) FROM daily_metrics")
     suspend fun getMaxCompletedPoints(): Int?
+
+    // --- Backup Methods ---
+    @Query("SELECT * FROM daily_metrics")
+    suspend fun getAllMetricsSync(): List<DailyMetric>
+
+    @Query("DELETE FROM daily_metrics")
+    suspend fun deleteAllMetrics()
 }
