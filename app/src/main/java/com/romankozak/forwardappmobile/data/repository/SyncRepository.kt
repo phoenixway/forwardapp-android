@@ -1039,6 +1039,7 @@ constructor(
                 dayPlanDao.insertAll(backup.dayPlans)
                 Log.d(IMPORT_TAG, "  - Вставлено: ${backup.dayPlans.size} dayPlans.")
             }
+            backup.recurringTasks.forEach { recurringTaskDao.insert(it) }
             if (backup.dayTasks.isNotEmpty()) {
                 dayTaskDao.insertAll(backup.dayTasks)
                 Log.d(IMPORT_TAG, "  - Вставлено: ${backup.dayTasks.size} dayTasks.")
@@ -1050,7 +1051,6 @@ constructor(
             backup.chatMessages.forEach { chatDao.insertMessage(it) }
             
             backup.reminders.forEach { reminderDao.insert(it) }
-            backup.recurringTasks.forEach { recurringTaskDao.insert(it) }
             
             backup.systemApps.forEach { systemAppDao.upsert(it) }
             backup.projectArtifacts.forEach { projectArtifactDao.insert(it) }
