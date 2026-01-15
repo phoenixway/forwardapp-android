@@ -166,10 +166,8 @@ object ListItemTypeValues {
 )
 data class BacklogOrder(
     @PrimaryKey val id: String,
-    @SerializedName("listId")
     @ColumnInfo(name = "list_id")
     val listId: String,
-    @SerializedName("itemId")
     @ColumnInfo(name = "item_id")
     val itemId: String,
     @ColumnInfo(name = "item_order") val order: Long,

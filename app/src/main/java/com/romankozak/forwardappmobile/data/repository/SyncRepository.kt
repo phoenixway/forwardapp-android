@@ -215,70 +215,126 @@ constructor(
         }
 
         suspend fun createFullBackupJsonString(): String {
-        val recentProjectEntries = recentItemDao.getAll().map { recentItem ->
-            com.romankozak.forwardappmobile.data.sync.RecentProjectEntry(
-                projectId = recentItem.target,
-                timestamp = recentItem.lastAccessed
-            )
+        val EXPORT_DEBUG_TAG = "JSON_EXPORT_DEBUG"
+        Log.d(EXPORT_DEBUG_TAG, "--- Starting Full Backup JSON String Creation ---")
+
+        fun <T> testSerialize(name: String, data: T) {
+            try {
+                val json = gson.toJson(data)
+                Log.d(EXPORT_DEBUG_TAG, "OK: $name, size: ${json.length}")
+            } catch (e: Exception) {
+                Log.e(EXPORT_DEBUG_TAG, "FAIL: $name", e)
+                throw e
+            }
         }
+
+        val recentProjectEntries = recentItemDao.getAll().map { com.romankozak.forwardappmobile.data.sync.RecentProjectEntry(projectId = it.target, timestamp = it.lastAccessed) }
+        testSerialize("RecentProjectEntries", recentProjectEntries)
+
         val scripts = scriptDao.getAll().first()
+        testSerialize("Scripts", scripts)
 
         val allAttachments = attachmentDao.getAll()
-        val allCrossRefs = attachmentDao.getAllProjectAttachmentCrossRefs()
-        val listItems = listItemDao.getAll()
-        val backlogOrders = ensureBacklogOrdersSeeded(listItems)
+        testSerialize("Attachments", allAttachments)
 
-        val synthesizedCrossRefs = synthesizeMissingCrossRefs(
-            attachments = allAttachments,
-            existingCrossRefs = allCrossRefs,
-            logPrefix = "[createFullBackupJsonString]",
+        val allCrossRefs = attachmentDao.getAllProjectAttachmentCrossRefs()
+        testSerialize("ProjectAttachmentCrossRefs", allCrossRefs)
+
+        val listItems = listItemDao.getAll()
+        testSerialize("ListItems", listItems)
+
+        val backlogOrders = ensureBacklogOrdersSeeded(listItems)
+        testSerialize("BacklogOrders", backlogOrders)
+
+        val synthesizedCrossRefs = synthesizeMissingCrossRefs(attachments = allAttachments, existingCrossRefs = allCrossRefs, logPrefix = "[createFullBackupJsonString]")
+        testSerialize("SynthesizedCrossRefs", synthesizedCrossRefs)
+
+        val goals = goalDao.getAll()
+        testSerialize("Goals", goals)
+        val projects = projectDao.getAll()
+        testSerialize("Projects", projects)
+        val legacyNotes = legacyNoteDao.getAll()
+        testSerialize("LegacyNotes", legacyNotes)
+        val documents = noteDocumentDao.getAllDocuments()
+        testSerialize("NoteDocuments", documents)
+        val documentItems = noteDocumentDao.getAllDocumentItems()
+        testSerialize("NoteDocumentItems", documentItems)
+        val checklists = checklistDao.getAllChecklists()
+        testSerialize("Checklists", checklists)
+        val checklistItems = checklistDao.getAllChecklistItems()
+        testSerialize("ChecklistItems", checklistItems)
+        val activityRecords = activityRecordDao.getAllRecordsStream().first()
+        testSerialize("ActivityRecords", activityRecords)
+        val linkItemEntities = linkItemDao.getAllEntities()
+        testSerialize("LinkItemEntities", linkItemEntities)
+        val inboxRecords = inboxRecordDao.getAll()
+        testSerialize("InboxRecords", inboxRecords)
+        val projectExecutionLogs = projectManagementDao.getAllLogs()
+        testSerialize("ProjectExecutionLogs", projectExecutionLogs)
+
+        val dayPlans = dayPlanDao.getAllPlansSync()
+        testSerialize("DayPlans", dayPlans)
+        val dayTasks = dayTaskDao.getAllTasksSync()
+        testSerialize("DayTasks", dayTasks)
+        val dailyMetrics = dailyMetricDao.getAllMetricsSync()
+        testSerialize("DailyMetrics", dailyMetrics)
+        val conversations = chatDao.getAllConversationsSync()
+        testSerialize("Conversations", conversations)
+        val chatMessages = chatDao.getAllMessagesSync()
+        testSerialize("ChatMessages", chatMessages)
+        val conversationFolders = conversationFolderDao.getAllFoldersSync()
+        testSerialize("ConversationFolders", conversationFolders)
+        val reminders = reminderDao.getAllRemindersSync()
+        testSerialize("Reminders", reminders)
+        val recurringTasks = recurringTaskDao.getAll()
+        testSerialize("RecurringTasks", recurringTasks)
+        val systemApps = systemAppDao.getAll()
+        testSerialize("SystemApps", systemApps)
+        val projectArtifacts = projectArtifactDao.getAll()
+        testSerialize("ProjectArtifacts", projectArtifacts)
+        val tacticalMissions = tacticalMissionDao.getAllMissionsSync()
+        testSerialize("TacticalMissions", tacticalMissions)
+        val tacticalMissionAttachments = tacticalMissionDao.getAllMissionAttachmentCrossRefs()
+        testSerialize("TacticalMissionAttachments", tacticalMissionAttachments)
+        val aiEvents = aiEventDao.getAll()
+        testSerialize("AIEvents", aiEvents)
+        val aiInsights = aiInsightDao.getAllSync()
+        testSerialize("AIInsights", aiInsights)
+        val lifeSystemStates = lifeSystemStateDao.getAll()
+        testSerialize("LifeSystemStates", lifeSystemStates)
+        val structurePresets = structurePresetDao.getAllSync()
+        testSerialize("StructurePresets", structurePresets)
+        val structurePresetItems = structurePresetItemDao.getAllItems()
+        testSerialize("StructurePresetItems", structurePresetItems)
+        val projectStructures = projectStructureDao.getAllStructures()
+        testSerialize("ProjectStructures", projectStructures)
+        val projectStructureItems = projectStructureDao.getAllItems()
+        testSerialize("ProjectStructureItems", projectStructureItems)
+
+        val databaseContent = DatabaseContent(
+            goals = goals, projects = projects, listItems = listItems, backlogOrders = backlogOrders,
+            legacyNotes = legacyNotes, documents = documents, documentItems = documentItems,
+            checklists = checklists, checklistItems = checklistItems, activityRecords = activityRecords,
+            linkItemEntities = linkItemEntities, inboxRecords = inboxRecords,
+            projectExecutionLogs = projectExecutionLogs, recentProjectEntries = recentProjectEntries,
+            scripts = scripts, attachments = allAttachments, projectAttachmentCrossRefs = synthesizedCrossRefs,
+            dayPlans = dayPlans, dayTasks = dayTasks, dailyMetrics = dailyMetrics,
+        conversations = conversations, chatMessages = chatMessages, conversationFolders = conversationFolders,
+            reminders = reminders, recurringTasks = recurringTasks, systemApps = systemApps,
+            projectArtifacts = projectArtifacts, tacticalMissions = tacticalMissions,
+            tacticalMissionAttachments = tacticalMissionAttachments, aiEvents = aiEvents,
+            aiInsights = aiInsights, lifeSystemStates = lifeSystemStates, structurePresets = structurePresets,
+            structurePresetItems = structurePresetItems, projectStructures = projectStructures,
+            projectStructureItems = projectStructureItems
         )
-        val databaseContent =
-            DatabaseContent(
-                goals = goalDao.getAll(),
-                projects = projectDao.getAll(),
-                listItems = listItems,
-                backlogOrders = backlogOrders,
-                legacyNotes = legacyNoteDao.getAll(),
-                documents = noteDocumentDao.getAllDocuments(),
-                documentItems = noteDocumentDao.getAllDocumentItems(),
-                checklists = checklistDao.getAllChecklists(),
-                checklistItems = checklistDao.getAllChecklistItems(),
-                activityRecords = activityRecordDao.getAllRecordsStream().first(),
-                linkItemEntities = linkItemDao.getAllEntities(),
-                inboxRecords = inboxRecordDao.getAll(),
-                projectExecutionLogs = projectManagementDao.getAllLogs(),
-                recentProjectEntries = recentProjectEntries,
-                scripts = scripts,
-                attachments = allAttachments,
-                projectAttachmentCrossRefs = synthesizedCrossRefs,
-                // --- Extended Entities ---
-                dayPlans = dayPlanDao.getAllPlansSync(),
-                dayTasks = dayTaskDao.getAllTasksSync(),
-                dailyMetrics = dailyMetricDao.getAllMetricsSync(),
-                conversations = chatDao.getAllConversationsSync(),
-                chatMessages = chatDao.getAllMessagesSync(),
-                conversationFolders = conversationFolderDao.getAllFoldersSync(),
-                reminders = reminderDao.getAllRemindersSync(),
-                recurringTasks = recurringTaskDao.getAll(),
-                systemApps = systemAppDao.getAll(),
-                projectArtifacts = projectArtifactDao.getAll(),
-                tacticalMissions = tacticalMissionDao.getAllMissionsSync(),
-                tacticalMissionAttachments = tacticalMissionDao.getAllMissionAttachmentCrossRefs(),
-                aiEvents = aiEventDao.getAll(),
-                aiInsights = aiInsightDao.getAllSync(),
-                lifeSystemStates = lifeSystemStateDao.getAll(),
-                structurePresets = structurePresetDao.getAllSync(),
-                structurePresetItems = structurePresetItemDao.getAllItems(),
-                projectStructures = projectStructureDao.getAllStructures(),
-                projectStructureItems = projectStructureDao.getAllItems(),
-            )
-        val settingsMap = settingsRepository.getPreferencesSnapshot().asMap().mapKeys { it.key.name }
-            .mapValues { it.value.toString() }
+        val settingsMap = settingsRepository.getPreferencesSnapshot().asMap().mapKeys { it.key.name }.mapValues { it.value.toString() }
         val settingsContent = com.romankozak.forwardappmobile.data.sync.SettingsContent(settings = settingsMap)
 
         val fullBackup = FullAppBackup(database = databaseContent, settings = settingsContent)
-        return gson.toJson(fullBackup)
+        Log.d(EXPORT_DEBUG_TAG, "--- Final JSON Serialization Starting ---")
+        val jsonResult = gson.toJson(fullBackup)
+        Log.d(EXPORT_DEBUG_TAG, "--- Final JSON Serialization Finished ---")
+        return jsonResult
     }
 
     suspend fun exportAttachmentsToFile(): Result<String> = 
