@@ -23,6 +23,10 @@ data class ChecklistEntity(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
     val projectId: String,
     var name: String,
+    val updatedAt: Long? = null,
+    val syncedAt: Long? = null,
+    val isDeleted: Boolean = false,
+    val version: Long = 0,
 )
 
 @Entity(
@@ -43,4 +47,8 @@ data class ChecklistItemEntity(
     var content: String,
     @ColumnInfo(defaultValue = "0") var isChecked: Boolean = false,
     var itemOrder: Long = 0,
+    val updatedAt: Long? = null,
+    val syncedAt: Long? = null,
+    val isDeleted: Boolean = false,
+    val version: Long = 0,
 )

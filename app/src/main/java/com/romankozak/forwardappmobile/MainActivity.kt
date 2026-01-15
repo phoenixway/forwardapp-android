@@ -73,13 +73,10 @@ class MainActivity : ComponentActivity() {
             contextHandler.initialize()
         }
         enableEdgeToEdge()
-        WindowCompat.getInsetsController(window, window.decorView).apply {
-            hide(WindowInsetsCompat.Type.navigationBars())
-            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        }
 
 
         Log.d(tag, "MainActivity: onCreate called")
+        Log.w(tag, "WE HERE, UPDATED BUILD HERE!!!")
         handleReminderIntent(intent)
         checkAndLogMissedDays()
 

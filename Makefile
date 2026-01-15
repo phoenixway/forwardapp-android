@@ -5,6 +5,7 @@
 # --- Конфігурація Проєкту ---
 # Базове ім'я пакета вашого додатку.
 PACKAGE_NAME=com.romankozak.forwardappmobile
+export GRADLE_USER_HOME := $(PWD)/.gradle
 
 # Ім'я пакета для дебаг-збірки (зазвичай з суфіксом .debug).
 DEBUG_PACKAGE_NAME=$(PACKAGE_NAME).debug
@@ -23,7 +24,7 @@ DEVICE_FLAG=-s $(DEVICE_ID)
 
 # --- Цілі (Targets) ---
 
-.PHONY: work-end work-start all debug-cycle release install start stop logcat debug install-debug start-debug stop-debug logcat-debug clean help test
+.PHONY: work-end work-start all debug-cycle release install start stop logcat debug install-debug start-debug stop-debug logcat-debug clean help test sync-contract get-android-dumps exp-cycle build-exp install-exp start-exp stop-exp logcat-exp
 
 work-start:
 	@echo "▶ Starting agent workflow…"
@@ -36,43 +37,45 @@ work-end:
 
 # ============== ОСНОВНІ КОМАНДИ ==============
 
-## Зібрати, встановити та запустити RELEASE версію
-all: install start
+## Зібрати, встановити та запустити продовий RELEASE (prodRelease)
+all: install-prod start
 
 ## Зібрати, встановити та запустити DEBUG версію
 debug-cycle: install-debug start-debug
+## Зібрати, встановити та запустити EXPERIMENTAL RELEASE (expRelease)
+exp-cycle: install-exp start-exp
 
 
 # ============== RELEASE ЦИКЛ ==============
 
-# Зібрати release APK
+# Зібрати prod release APK
 build-release:
-	@echo "🚀  Збираю release APK..."
-	@./gradlew :app:assembleRelease
+	@echo "🚀  Збираю prod release APK..."
+	@./gradlew :app:assembleProdRelease
 
-# Встановити release APK
-install: build-release
+# Встановити prod release APK
+install-prod: build-release
 	@echo "📦  Встановлюю release APK (пріоритет ARM64)..."
-	@if [ -f app/build/outputs/apk/release/app-arm64-v8a-release.apk ]; then \
+	@if [ -f app/build/outputs/apk/prod/release/app-prod-arm64-v8a-release.apk ]; then \
 		echo "Знайдено ARM64 APK. Встановлюю..."; \
-		adb $(DEVICE_FLAG) install -r app/build/outputs/apk/release/app-arm64-v8a-release.apk; \
+		adb $(DEVICE_FLAG) install -r app/build/outputs/apk/prod/release/app-prod-arm64-v8a-release.apk; \
 	else \
 		echo "ARM64 APK не знайдено. Шукаю інший варіант..."; \
-		find app/build/outputs/apk/release -type f -name "*-release.apk" -print0 | xargs -0 -I {} adb $(DEVICE_FLAG) install -r {}; \
+		find app/build/outputs/apk/prod/release -type f -name "*-release.apk" -print0 | xargs -0 -I {} adb $(DEVICE_FLAG) install -r {}; \
 	fi
 	@echo "✅  Release APK встановлено."
 
-# Запустити release додаток
+# Запустити prod release додаток
 start:
-	@echo "▶️  Запускаю release додаток ($(PACKAGE_NAME))..."
+	@echo "▶️  Запускаю prod release додаток ($(PACKAGE_NAME))..."
 	@adb $(DEVICE_FLAG) shell am start -n $(PACKAGE_NAME)/$(MAIN_ACTIVITY)
 
-# Зупинити release додаток
+# Зупинити prod release додаток
 stop:
 	@echo "🛑  Зупиняю release додаток ($(PACKAGE_NAME))..."
 	@adb $(DEVICE_FLAG) shell am force-stop $(PACKAGE_NAME)
 
-# Показати логи для release додатка
+# Показати логи для prod release додатка
 logcat:
 	@echo "📋  Показую логи для release: $(PACKAGE_NAME)..."
 	@adb $(DEVICE_FLAG) logcat $(PACKAGE_NAME):V *:S
@@ -80,41 +83,70 @@ logcat:
 
 # ============== DEBUG ЦИКЛ ==============
 
-# Зібрати debug APK
+# Зібрати debug APK (exp flavor з експериментальними можливостями)
 debug:
-	@echo "🚀  Збираю debug APK..."
-	@./gradlew :app:assembleDebug
+	@echo "🚀  Збираю exp debug APK..."
+	@./gradlew :app:assembleExpDebug
 
 check-compile:
 	@echo "🚀  Перевіряю через compileDebugKotlin..."
-	@./gradlew :app:compileDebugKotlin
-
-# Встановити debug APK
+	        @./gradlew :app:compileExpDebugKotlin
+# Встановити debug APK (exp flavor)
 install-debug: debug
-	@echo "🐞  Встановлюю debug APK (пріоритет ARM64)..."
-	@if [ -f app/build/outputs/apk/debug/app-arm64-v8a-debug.apk ]; then \
+	@echo "🐞  Встановлюю exp debug APK (пріоритет ARM64)..."
+	@if [ -f app/build/outputs/apk/exp/debug/app-exp-arm64-v8a-debug.apk ]; then \
 		echo "Знайдено ARM64 APK. Встановлюю..."; \
-		adb $(DEVICE_FLAG) install -r app/build/outputs/apk/debug/app-arm64-v8a-debug.apk; \
+		adb $(DEVICE_FLAG) install -r app/build/outputs/apk/exp/debug/app-exp-arm64-v8a-debug.apk; \
 	else \
 		echo "ARM64 APK не знайдено. Шукаю інший варіант..."; \
-		find app/build/outputs/apk/debug -type f -name "*-debug.apk" -print0 | xargs -0 -I {} adb $(DEVICE_FLAG) install -r {}; \
+		find app/build/outputs/apk/exp/debug -type f -name "*-debug.apk" -print0 | xargs -0 -I {} adb $(DEVICE_FLAG) install -r {}; \
 	fi
 	@echo "✅  Debug APK встановлено."
 
-# Запустити debug додаток
+# Запустити debug додаток (exp flavor - має .debug суфікс від buildType)
 start-debug:
-	@echo "▶️  Запускаю debug додаток ($(DEBUG_PACKAGE_NAME))..."
-	@adb $(DEVICE_FLAG) shell am start -n $(DEBUG_PACKAGE_NAME)/$(MAIN_ACTIVITY)
+	@echo "▶️  Запускаю exp debug додаток ($(PACKAGE_NAME).debug)..."
+	@adb $(DEVICE_FLAG) shell am start -n $(PACKAGE_NAME).debug/$(MAIN_ACTIVITY)
 
-# Зупинити debug додаток
+# Зупинити debug додаток (exp flavor)
 stop-debug:
-	@echo "🛑  Зупиняю debug додаток ($(DEBUG_PACKAGE_NAME))..."
-	@adb $(DEVICE_FLAG) shell am force-stop $(DEBUG_PACKAGE_NAME)
+	@echo "🛑  Зупиняю exp debug додаток ($(PACKAGE_NAME).debug)..."
+	@adb $(DEVICE_FLAG) shell am force-stop $(PACKAGE_NAME).debug
 
-# Показати логи для debug додатка
+# Показати логи для debug додатка (exp flavor)
 logcat-debug:
-	@echo "📋  Показую логи для debug: $(DEBUG_PACKAGE_NAME)..."
-	@adb $(DEVICE_FLAG) logcat $(DEBUG_PACKAGE_NAME):V *:S
+	@echo "📋  Показую логи для exp debug: $(PACKAGE_NAME).debug..."
+	@adb $(DEVICE_FLAG) logcat $(PACKAGE_NAME).debug:V *:S
+
+
+# ============== EXPERIMENTAL RELEASE ЦИКЛ ==============
+
+build-exp:
+	@echo "🚀  Збираю exp release APK..."
+	@./gradlew :app:assembleExpRelease
+
+install-exp: build-exp
+	@echo "📦  Встановлюю exp release APK (пріоритет ARM64)..."
+	@if [ -f app/build/outputs/apk/exp/release/app-exp-arm64-v8a-release.apk ]; then \
+		echo "Знайдено ARM64 APK. Встановлюю..."; \
+		adb $(DEVICE_FLAG) install -r app/build/outputs/apk/exp/release/app-exp-arm64-v8a-release.apk; \
+	else \
+		echo "ARM64 APK не знайдено. Шукаю інший варіант..."; \
+		find app/build/outputs/apk/exp/release -type f -name "*-release.apk" -print0 | xargs -0 -I {} adb $(DEVICE_FLAG) install -r {}; \
+	fi
+	@echo "✅  Exp release APK встановлено."
+
+start-exp:
+	@echo "▶️  Запускаю exp додаток ($(PACKAGE_NAME))..."
+	@adb $(DEVICE_FLAG) shell am start -n $(PACKAGE_NAME)/$(MAIN_ACTIVITY)
+
+stop-exp:
+	@echo "🛑  Зупиняю exp додаток ($(PACKAGE_NAME))..."
+	@adb $(DEVICE_FLAG) shell am force-stop $(PACKAGE_NAME)
+
+logcat-exp:
+	@echo "📋  Показую логи для exp: $(PACKAGE_NAME)..."
+	@adb $(DEVICE_FLAG) logcat $(PACKAGE_NAME):V *:S
 
 
 # ============== СЕРВІСНІ КОМАНДИ ==============
@@ -124,6 +156,35 @@ clean:
 	@echo "🧹  Очищую проєкт..."
 	@./gradlew clean
 	@echo "✅  Проєкт очищено."
+
+# Контрактні тести синку (офлайн)
+sync-contract:
+	@echo "🔄  Запускаю локальні контрактні тести синхронізації..."
+	@./gradlew :app:syncContractTest
+	@echo "✅  SyncContractTest завершено."
+
+# Витягнути андроїдні sync-dumps
+get-android-dumps:
+	@set -e; \
+	rm -f /tmp/android-sync-dumps.tar; \
+	rm -rf /tmp/android-sync-dumps; \
+	echo "Pulling dumps via adb exec-out..."; \
+	adb exec-out 'run-as com.romankozak.forwardappmobile.debug tar -cf - -C /data/user/0/com.romankozak.forwardappmobile.debug/files sync-dumps' > /tmp/android-sync-dumps.tar; \
+	mkdir -p /tmp/android-sync-dumps; \
+	if tar -tf /tmp/android-sync-dumps.tar >/dev/null 2>&1; then \
+		tar -xf /tmp/android-sync-dumps.tar -C /tmp/android-sync-dumps; \
+		echo "Android dumps extracted to /tmp/android-sync-dumps"; \
+	else \
+		echo "Failed to extract dumps: tar stream invalid (maybe empty or permission issue)"; \
+	fi
+
+clear-dumps:
+	@echo "🗑️  Clearing sync dumps on device and local /tmp..."; \
+	adb $(DEVICE_FLAG) exec-out run-as $(DEBUG_PACKAGE_NAME) sh -c 'rm -f /data/user/0/$(DEBUG_PACKAGE_NAME)/files/sync-dumps/*' || true; \
+	rm -f /tmp/android-sync-dumps.tar; \
+	rm -rf /tmp/android-sync-dumps; \
+	rm -f /tmp/forwardapp-backup-dumps/wifi-import---auto.json; \
+	echo "✅  Done."
 
 
 # ==============================================================================

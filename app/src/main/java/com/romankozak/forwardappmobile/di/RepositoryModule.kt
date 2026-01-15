@@ -10,15 +10,21 @@ import com.romankozak.forwardappmobile.data.dao.RecentItemDao
 import com.romankozak.forwardappmobile.data.dao.ReminderDao
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 import com.romankozak.forwardappmobile.data.dao.ProjectDao
+import com.romankozak.forwardappmobile.data.dao.ProjectStructureDao
+import com.romankozak.forwardappmobile.data.dao.StructurePresetDao
+import com.romankozak.forwardappmobile.data.dao.StructurePresetItemDao
 import com.romankozak.forwardappmobile.data.dao.SystemAppDao
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
+import com.romankozak.forwardappmobile.data.repository.AiEventRepository
 import com.romankozak.forwardappmobile.data.repository.ProjectLogRepository
+import com.romankozak.forwardappmobile.data.repository.ProjectStructureRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.data.repository.ActivityRecordRepository
 import com.romankozak.forwardappmobile.data.repository.SystemAppRepository
+import com.romankozak.forwardappmobile.data.repository.AiInsightRepository
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
@@ -38,8 +44,9 @@ object RepositoryModule {
     fun provideReminderRepository(
         reminderDao: ReminderDao,
         alarmScheduler: AlarmScheduler,
+        dayManagementRepository: com.romankozak.forwardappmobile.data.repository.DayManagementRepository,
         @IoDispatcher ioDispatcher: CoroutineDispatcher
-    ): ReminderRepository = ReminderRepository(reminderDao, alarmScheduler, ioDispatcher)
+    ): ReminderRepository = ReminderRepository(reminderDao, alarmScheduler, dayManagementRepository, ioDispatcher)
 
     @Provides
     @Singleton
@@ -74,12 +81,19 @@ object RepositoryModule {
 
     @Provides
     @Singleton
+    fun provideAiInsightRepository(
+        aiInsightDao: com.romankozak.forwardappmobile.data.dao.AiInsightDao,
+    ): AiInsightRepository = AiInsightRepository(aiInsightDao)
+
+    @Provides
+    @Singleton
     fun provideNoteDocumentRepository(
         noteDocumentDao: NoteDocumentDao,
         attachmentRepository: AttachmentRepository,
-        recentItemsRepository: RecentItemsRepository
+        recentItemsRepository: RecentItemsRepository,
+        aiEventRepository: AiEventRepository,
     ): NoteDocumentRepository =
-        NoteDocumentRepository(noteDocumentDao, attachmentRepository, recentItemsRepository)
+        NoteDocumentRepository(noteDocumentDao, attachmentRepository, recentItemsRepository, aiEventRepository)
 
     @Provides
     @Singleton
@@ -103,4 +117,12 @@ object RepositoryModule {
         noteDocumentDao: NoteDocumentDao,
         attachmentRepository: AttachmentRepository,
     ): SystemAppRepository = SystemAppRepository(systemAppDao, projectDao, noteDocumentDao, attachmentRepository)
+
+    @Provides
+    @Singleton
+    fun provideProjectStructureRepository(
+        projectStructureDao: ProjectStructureDao,
+        structurePresetDao: StructurePresetDao,
+        structurePresetItemDao: StructurePresetItemDao,
+    ): ProjectStructureRepository = ProjectStructureRepository(projectStructureDao, structurePresetDao, structurePresetItemDao)
 }

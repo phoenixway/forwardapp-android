@@ -1,5 +1,3 @@
-
-
 package com.romankozak.forwardappmobile.ui.navigation
 
 import androidx.lifecycle.SavedStateHandle
@@ -9,20 +7,12 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
 @HiltViewModel
-class AppNavigationViewModel
-    @Inject
-    constructor(
-        private val savedStateHandle: SavedStateHandle,
-    ) : ViewModel() {
-        lateinit var navigationManager: EnhancedNavigationManager
-            private set
+class AppNavigationViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle
+) : ViewModel() {
 
-        fun initialize() {
-            if (!::navigationManager.isInitialized) {
-                navigationManager = EnhancedNavigationManager(savedStateHandle, viewModelScope)
-                
-                
-                navigationManager.navigateToMainScreen(isInitial = true)
-            }
-        }
-    }
+    val navigationManager = EnhancedNavigationManager(
+        savedStateHandle = savedStateHandle,
+        scope = viewModelScope
+    )
+}

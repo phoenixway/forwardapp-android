@@ -51,6 +51,12 @@ class ItemActionHandler
         val onCopyContentToClipboard = _onCopyContentToClipboard.asStateFlow()
 
         fun onItemClick(item: ListItemContent) {
+            if (item is ListItemContent.GoalItem) {
+                // Одразу відкриваємо редагування цілі по тапу
+                resultListener.requestNavigation("goal_settings_screen/${item.goal.id}")
+                return
+            }
+
             if (resultListener.isSelectionModeActive()) {
                 resultListener.toggleSelection(item.listItem.id)
             } else {
@@ -103,6 +109,7 @@ class ItemActionHandler
                         item is ListItemContent.ChecklistItem
                 if (isAttachment) {
                     projectRepository.unlinkAttachmentFromProject(currentProjectId, item.listItem.id)
+                    resultListener.forceRefresh()
                     resultListener.showSnackbar("Вкладення видалено з проєкту", null)
                 } else {
                     projectRepository.deleteListItems(currentProjectId, listOf(item.listItem.id))

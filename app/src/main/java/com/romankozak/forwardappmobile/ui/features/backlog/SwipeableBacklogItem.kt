@@ -2,6 +2,8 @@
 package com.romankozak.forwardappmobile.ui.features.backlog
 
 import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
@@ -10,10 +12,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Delete
@@ -28,10 +32,15 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
+import kotlin.math.absoluteValue
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -67,6 +76,9 @@ fun SwipeableBacklogItem(
     onStartTracking: (ListItemContent) -> Unit,
     onShowGoalTransportMenu: (ListItemContent) -> Unit,
     onRelatedLinkClick: (com.romankozak.forwardappmobile.data.database.models.RelatedLink) -> Unit,
+    onRequestCloseOthers: () -> Unit,
+    swipedItemId: String?,
+    resetCounter: Int,
     modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
@@ -77,16 +89,20 @@ fun SwipeableBacklogItem(
     val leftActionWidthPx = with(density) { leftActionWidth.toPx() }
 
     var offsetX by remember { mutableFloatStateOf(0f) }
+    val lastResetCounter = remember { mutableStateOf(resetCounter) }
 
     val draggableState = rememberDraggableState { delta ->
         offsetX = (offsetX + delta).coerceIn(-rightActionWidthPx, leftActionWidthPx)
+        if (offsetX != 0f) onRequestCloseOthers()
     }
 
     fun animateTo(target: Float) {
         coroutineScope.launch {
-            animate(initialValue = offsetX, targetValue = target) { value, _ ->
-                offsetX = value
-            }
+            animate(
+                initialValue = offsetX,
+                targetValue = target,
+                animationSpec = tween(durationMillis = 180, easing = LinearOutSlowInEasing)
+            ) { value, _ -> offsetX = value }
         }
     }
 
@@ -94,6 +110,18 @@ fun SwipeableBacklogItem(
         is ListItemContent.GoalItem -> item.goal.completed
         is ListItemContent.SublistItem -> item.project.isCompleted
         else -> false
+    }
+
+    LaunchedEffect(resetCounter, swipedItemId) {
+        val shouldReset =
+            resetCounter != lastResetCounter.value &&
+                swipedItemId != item.listItem.id
+        lastResetCounter.value = resetCounter
+        if (shouldReset) {
+            val delayMs = (item.listItem.id.hashCode().absoluteValue % 160) + 80
+            delay(delayMs.toLong())
+            animateTo(0f)
+        }
     }
 
     Box(
@@ -164,39 +192,49 @@ fun SwipeableBacklogItem(
         }
 
         if (offsetX < 0f) {
-            Row(
+            Box(
                 modifier = Modifier
                     .width(rightActionWidth)
+                    .fillMaxHeight()
                     .align(Alignment.CenterEnd)
-                    .padding(end = 16.dp, start = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End),
+                    .padding(end = 12.dp, start = 8.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(MaterialTheme.colorScheme.error.copy(alpha = 0.18f)),
             ) {
-                SwipeActionButton(
-                    icon = Icons.Default.Done,
-                    contentDescription = "Complete",
-                    color = MaterialTheme.colorScheme.primary,
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    onCheckedChange(item, !isCompleted)
-                    resetSwipe()
-                }
-                SwipeActionButton(
-                    icon = Icons.Default.Delete,
-                    contentDescription = "Delete",
-                    color = MaterialTheme.colorScheme.error,
-                ) {
-                    onDelete(item)
-                    resetSwipe()
-                }
-                SwipeActionButton(
-                    icon = Icons.Default.Notifications,
-                    contentDescription = "Reminder properties",
-                    color = MaterialTheme.colorScheme.secondary,
-                ) {
-                    coroutineScope.launch {
-                        offsetX = 0f
-                        withFrameNanos { }
-                        withFrameNanos { }
-                        onRemindersClick(item)
+                    SwipeActionButton(
+                        icon = Icons.Default.Done,
+                        contentDescription = "Complete",
+                        color = MaterialTheme.colorScheme.primary,
+                    ) {
+                        onCheckedChange(item, !isCompleted)
+                        resetSwipe()
+                    }
+                    SwipeActionButton(
+                        icon = Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        color = MaterialTheme.colorScheme.error,
+                    ) {
+                        onDelete(item)
+                        resetSwipe()
+                    }
+                    SwipeActionButton(
+                        icon = Icons.Default.Notifications,
+                        contentDescription = "Reminder properties",
+                        color = MaterialTheme.colorScheme.secondary,
+                    ) {
+                        coroutineScope.launch {
+                            offsetX = 0f
+                            withFrameNanos { }
+                            withFrameNanos { }
+                            onRemindersClick(item)
+                        }
                     }
                 }
             }

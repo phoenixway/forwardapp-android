@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.ui.screens.mainscreen.utils
 import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbItem
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.FlatHierarchyItem
 
 private const val TAG = "SendDebug"
 
@@ -110,5 +111,34 @@ fun flattenHierarchy(
             }
         }
     }
+    return result
+}
+
+fun flattenHierarchyWithLevels(
+    projects: List<Project>,
+    childMap: Map<String, List<Project>>,
+    expandedIds: Set<String>? = null,
+    level: Int = 0,
+): List<FlatHierarchyItem> {
+    val result = mutableListOf<FlatHierarchyItem>()
+
+    fun traverse(
+        current: List<Project>,
+        currentLevel: Int,
+    ) {
+        val sortedProjects = current.sortedBy { it.order }
+        for (project in sortedProjects) {
+            result.add(FlatHierarchyItem(project = project, level = currentLevel))
+            val isExpanded = expandedIds?.contains(project.id) ?: project.isExpanded
+            if (isExpanded) {
+                val children = childMap[project.id].orEmpty()
+                if (children.isNotEmpty()) {
+                    traverse(children, currentLevel + 1)
+                }
+            }
+        }
+    }
+
+    traverse(projects, level)
     return result
 }

@@ -81,6 +81,9 @@ interface NoteDocumentDao {
     @Query("SELECT * FROM note_documents")
     fun getAllDocumentsAsFlow(): Flow<List<NoteDocumentEntity>>
 
+    @Query("SELECT * FROM note_documents WHERE LOWER(name) = LOWER(:name) LIMIT 1")
+    suspend fun findByName(name: String): NoteDocumentEntity?
+
     @Query("SELECT * FROM note_document_items")
     suspend fun getAllDocumentItems(): List<NoteDocumentItemEntity>
 

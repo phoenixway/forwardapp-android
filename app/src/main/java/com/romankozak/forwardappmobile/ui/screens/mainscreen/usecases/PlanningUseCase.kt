@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.FilterState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainSubState
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenSubState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningSettingsState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.state.PlanningModeManager
@@ -82,7 +83,7 @@ constructor(
       searchAdapter.searchQuery.map { it.text }.debounce(100L).distinctUntilChanged()
 
     val isLocalSearchActive =
-      searchAdapter.subStateStack.map { stack -> stack.any { it is MainSubState.LocalSearch } }
+      searchAdapter.subStateStack.map { stack -> stack.any { it is ProjectHierarchyScreenSubState.LocalSearch } }
 
     val baseFilterState =
       combine(
@@ -164,7 +165,7 @@ constructor(
 
   fun onPlanningModeChange(mode: PlanningMode) {
     if (searchAdapter.isSearchActive()) {
-      searchAdapter.popToSubState(MainSubState.Hierarchy)
+      searchAdapter.popToSubState(ProjectHierarchyScreenSubState.Hierarchy)
       searchAdapter.onToggleSearch(isActive = false)
     }
     planningModeManager.changeMode(mode)
@@ -174,3 +175,5 @@ constructor(
     planningModeManager.toggleExpandedInPlanningMode(project)
   }
 }
+
+typealias ProjectHierarchyScreenPlanningUseCase = PlanningUseCase

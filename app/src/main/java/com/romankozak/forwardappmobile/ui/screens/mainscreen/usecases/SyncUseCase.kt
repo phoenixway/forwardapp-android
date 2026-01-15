@@ -5,6 +5,7 @@ import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.data.repository.SyncRepository
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectUiEvent
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.sync.WifiSyncManager
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.sync.WifiSyncStatus
 import dagger.hilt.android.scopes.ViewModelScoped
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
@@ -27,6 +28,7 @@ class SyncUseCase @Inject constructor(
         val wifiServerAddress: String? = null,
         val showWifiImportDialog: Boolean = false,
         val desktopAddress: String = "",
+        val syncStatus: WifiSyncStatus = WifiSyncStatus.Disabled,
     )
 
     private val _syncUiState = MutableStateFlow(SyncUiState())
@@ -58,12 +60,14 @@ class SyncUseCase @Inject constructor(
                 manager.wifiServerAddress,
                 manager.showWifiImportDialog,
                 manager.desktopAddress,
-            ) { showServerDialog, wifiServerAddress, showImportDialog, desktopAddress ->
+                manager.syncStatus,
+            ) { showServerDialog, wifiServerAddress, showImportDialog, desktopAddress, syncStatus ->
                 SyncUiState(
                     showWifiServerDialog = showServerDialog,
                     wifiServerAddress = wifiServerAddress,
                     showWifiImportDialog = showImportDialog,
                     desktopAddress = desktopAddress,
+                    syncStatus = syncStatus,
                 )
             }.collect { syncState -> _syncUiState.value = syncState }
         }
@@ -85,4 +89,6 @@ class SyncUseCase @Inject constructor(
     fun onDesktopAddressChange(address: String) = manager().onDesktopAddressChange(address)
 
     fun performWifiImport(address: String) = manager().performWifiImport(address)
+
+    fun performWifiPush(address: String) = manager().performWifiPush(address)
 }

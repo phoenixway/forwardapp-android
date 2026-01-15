@@ -21,6 +21,10 @@ import javax.inject.Provider
 import com.romankozak.forwardappmobile.data.repository.SearchRepository
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentWithProject
+import com.romankozak.forwardappmobile.data.sync.bumpSync
+import com.romankozak.forwardappmobile.data.sync.softDelete
+import com.romankozak.forwardappmobile.domain.ai.events.ProjectActivatedEvent
+import com.romankozak.forwardappmobile.data.repository.AiEventRepository
 import javax.inject.Singleton
 
 internal enum class ContextTextAction { ADD, REMOVE }
@@ -46,6 +50,8 @@ constructor(
     private val projectTimeTrackingRepository: ProjectTimeTrackingRepository,
     private val projectArtifactRepository: ProjectArtifactRepository,
     private val listItemRepository: ListItemRepository,
+    private val backlogOrderRepository: BacklogOrderRepository,
+    private val aiEventRepository: AiEventRepository,
 ) {
     private val contextHandler: ContextHandler by lazy { contextHandlerProvider.get() }
     private val TAG = "NOTE_DOCUMENT_DEBUG"
@@ -99,6 +105,7 @@ constructor(
     fun getProjectContentStream(projectId: String): Flow<List<ListItemContent>> {
         return combine(
             listItemRepository.getItemsForProjectStream(projectId),
+            backlogOrderRepository.observeAll(),
             reminderRepository.getAllReminders(),
             goalRepository.getAllGoalsFlow(),
             projectDao.getAllProjects(),
@@ -111,24 +118,27 @@ constructor(
             @Suppress("UNCHECKED_CAST")
             val items = array[0] as List<ListItem>
             @Suppress("UNCHECKED_CAST")
-            val reminders = array[1] as List<Reminder>
+            val backlogOrders = array[1] as List<com.romankozak.forwardappmobile.data.database.models.BacklogOrder>
             @Suppress("UNCHECKED_CAST")
-            val goals = array[2] as List<Goal>
+            val reminders = array[2] as List<Reminder>
             @Suppress("UNCHECKED_CAST")
-            val projects = array[3] as List<Project>
+            val goals = array[3] as List<Goal>
             @Suppress("UNCHECKED_CAST")
-            val links = array[4] as List<LinkItemEntity>
+            val projects = array[4] as List<Project>
             @Suppress("UNCHECKED_CAST")
-            val notes = array[5] as List<LegacyNoteEntity>
+            val links = array[5] as List<LinkItemEntity>
             @Suppress("UNCHECKED_CAST")
-            val noteDocuments = array[6] as List<NoteDocumentEntity>
+            val notes = array[6] as List<LegacyNoteEntity>
             @Suppress("UNCHECKED_CAST")
-            val checklists = array[7] as List<ChecklistEntity>
+            val noteDocuments = array[7] as List<NoteDocumentEntity>
             @Suppress("UNCHECKED_CAST")
-            val attachments = array[8] as List<AttachmentWithProject>
+            val checklists = array[8] as List<ChecklistEntity>
+            @Suppress("UNCHECKED_CAST")
+            val attachments = array[9] as List<AttachmentWithProject>
             mapToListItemContent(
                 projectId = projectId,
                 items = items,
+                backlogOrders = backlogOrders,
                 attachments = attachments,
                 reminders = reminders,
                 goals = goals,
@@ -144,6 +154,7 @@ constructor(
     private fun mapToListItemContent(
         projectId: String,
         items: List<ListItem>,
+        backlogOrders: List<BacklogOrder>,
         attachments: List<AttachmentWithProject>,
         reminders: List<Reminder>,
         goals: List<Goal>,
@@ -164,10 +175,18 @@ constructor(
                     order = order,
                 )
             }
-        val combinedItems =
-            (items + attachmentListItems).sortedWith(
-                compareBy<ListItem> { it.order }.thenBy { it.id },
-            )
+        val orderOverrideMap = backlogOrders.associateBy { it.itemId to it.listId }
+
+        val combinedItems = (items + attachmentListItems).sortedWith(
+            Comparator<ListItem> { a, b ->
+                val keyA = orderOverrideMap[a.entityId to a.projectId]
+                val keyB = orderOverrideMap[b.entityId to b.projectId]
+                val orderA = keyA?.order ?: a.order
+                val orderB = keyB?.order ?: b.order
+                if (orderA != orderB) return@Comparator orderA.compareTo(orderB)
+                return@Comparator a.id.compareTo(b.id)
+            }
+        )
         val remindersMap = reminders.groupBy { it.entityId }
         val goalsMap = goals.associateBy { it.id }
         val projectsMap = projects.associateBy { it.id }
@@ -299,38 +318,62 @@ constructor(
     }
 
     suspend fun updateProject(project: Project) {
-        projectDao.update(project)
+        val now = System.currentTimeMillis()
+        val bumped =
+            project.bumpSync(now)
+        projectDao.update(bumped)
         recentItemsRepository.updateRecentItemDisplayName(project.id, project.name)
     }
 
-    suspend fun updateProjects(projects: List<Project>): Int = if (projects.isNotEmpty()) projectDao.update(projects) else 0
+    suspend fun updateProjects(projects: List<Project>): Int =
+        if (projects.isNotEmpty()) {
+            projectDao.update(projects.map { it.bumpSync() })
+        } else {
+            0
+        }
 
     @Transaction
     suspend fun deleteProjectsAndSubProjects(projectsToDelete: List<Project>) {
         if (projectsToDelete.isEmpty()) return
         val projectIds = projectsToDelete.map { it.id }
         listItemRepository.deleteItemsForProjects(projectIds)
-        projectsToDelete.forEach { projectDao.delete(it.id) }
+        val now = System.currentTimeMillis()
+        projectsToDelete.forEach { project ->
+            projectDao.insert(
+                project.softDelete(now),
+            )
+        }
     }
 
     suspend fun createProjectWithId(
         id: String,
         name: String,
         parentId: String?,
+        roleCode: String? = null,
     ) {
+        val now = System.currentTimeMillis()
         val newProject =
             Project(
                 id = id,
                 name = name,
                 parentId = parentId,
                 description = "",
-                createdAt = System.currentTimeMillis(),
-                updatedAt = System.currentTimeMillis(),
+                createdAt = now,
+                updatedAt = now,
+                syncedAt = null,
+                version = 1,
+                roleCode = roleCode,
             )
         projectDao.insert(newProject)
         if (parentId != null) {
             listItemRepository.addProjectLinkToProject(id, parentId)
         }
+        aiEventRepository.emit(
+            ProjectActivatedEvent(
+                timestamp = java.time.Instant.ofEpochMilli(now),
+                projectId = id,
+            )
+        )
     }
 
 
@@ -385,6 +428,9 @@ constructor(
             projectToMove.copy(
                 parentId = newParentId,
                 order = newSiblings.size.toLong(),
+                updatedAt = System.currentTimeMillis(),
+                syncedAt = null,
+                version = projectToMove.version + 1,
             )
         projectDao.update(finalProjectToMove)
     }
@@ -409,6 +455,8 @@ constructor(
         targetProjectId: String,
         ownerProjectId: String?,
         createdAt: Long = System.currentTimeMillis(),
+        roleCode: String? = null,
+        isSystem: Boolean = false,
     ): String =
         attachmentRepository
             .ensureAttachmentLinkedToProject(
@@ -417,6 +465,8 @@ constructor(
                 projectId = targetProjectId,
                 ownerProjectId = ownerProjectId,
                 createdAt = createdAt,
+                roleCode = roleCode,
+                isSystem = isSystem,
             ).id
 
     suspend fun unlinkAttachmentFromProject(
@@ -486,6 +536,33 @@ constructor(
     suspend fun updateProjectArtifact(artifact: ProjectArtifact) = projectArtifactRepository.updateProjectArtifact(artifact)
 
     suspend fun createProjectArtifact(artifact: ProjectArtifact) = projectArtifactRepository.createProjectArtifact(artifact)
+
+    suspend fun ensureSubprojectByRole(
+        parentProjectId: String,
+        roleCode: String,
+        title: String
+    ): Project {
+        val existing = projectDao.findChildByRole(parentProjectId, roleCode)
+        if (existing != null) return existing
+        val newId = UUID.randomUUID().toString()
+        createProjectWithId(
+            id = newId,
+            name = title,
+            parentId = parentProjectId,
+            roleCode = roleCode,
+        )
+        return projectDao.getProjectById(newId) ?: Project(
+            id = newId,
+            name = title,
+            parentId = parentProjectId,
+            description = "",
+            createdAt = System.currentTimeMillis(),
+            updatedAt = System.currentTimeMillis(),
+            syncedAt = null,
+            version = 1,
+            roleCode = roleCode,
+        )
+    }
 
     suspend fun ensureChildProjectListItemsExist(projectId: String) {
         val children = projectDao.getProjectsByParentId(projectId)

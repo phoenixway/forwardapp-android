@@ -12,5 +12,9 @@ data class Reminder(
     val reminderTime: Long,
     val status: String,        // "SCHEDULED", "COMPLETED", "SNOOZED", "DISMISSED"
     val creationTime: Long,
-    val snoozeUntil: Long? = null
+    val snoozeUntil: Long? = null,
+    val updatedAt: Long? = null,
+    val syncedAt: Long? = null,
+    val isDeleted: Boolean = false,
+    val version: Long = 0,
 )

@@ -23,4 +23,8 @@ interface RecurringTaskDao {
 
     @Query("DELETE FROM recurring_tasks WHERE id = :id")
     suspend fun deleteById(id: String)
+
+    // --- Backup Methods ---
+    @Query("DELETE FROM recurring_tasks")
+    suspend fun deleteAll()
 }

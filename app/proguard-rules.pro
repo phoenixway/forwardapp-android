@@ -22,3 +22,31 @@
 
 # Keep all data model classes used by Room from being obfuscated.
 -keep class com.romankozak.forwardappmobile.data.database.models.** { *; }
+
+# Hilt / Dagger generated code (aggregators, components, sentinels).
+-keep class dagger.hilt.internal.aggregatedroot.codegen.** { *; }
+-keep class dagger.hilt.internal.processedrootsentinel.codegen.** { *; }
+-keep class * implements dagger.hilt.internal.GeneratedComponent { *; }
+-keep class * extends dagger.hilt.internal.GeneratedComponentManager { *; }
+-keep class dagger.hilt.android.internal.managers.ViewComponentManager$FragmentContextWrapper { *; }
+
+# Kotlinx Serialization: keep generated serializers and metadata.
+-keepclassmembers class kotlinx.serialization.** { *; }
+-keepclassmembers class **$$serializer { *; }
+-keepclasseswithmembers class * {
+    @kotlinx.serialization.SerialName <fields>;
+}
+
+# Retrofit/OkHttp: keep service interfaces and avoid warnings from optional deps.
+-dontwarn okhttp3.**
+-dontwarn okio.**
+-dontwarn javax.annotation.**
+-dontwarn java.lang.management.ManagementFactory
+-dontwarn java.lang.management.RuntimeMXBean
+-dontwarn reactor.blockhound.integration.BlockHoundIntegration
+-dontwarn javax.script.**
+-keep class retrofit2.** { *; }
+-keep class com.romankozak.forwardappmobile.**Service { *; }
+
+# LuaJ: keep libs (bit32 and friends) to avoid reflection instantiation issues after shrinking.
+-keep class org.luaj.vm2.lib.** { *; }

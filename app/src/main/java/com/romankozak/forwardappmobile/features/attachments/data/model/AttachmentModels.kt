@@ -6,6 +6,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.google.gson.annotations.SerializedName
 import com.romankozak.forwardappmobile.data.database.models.Project
 import java.util.UUID
 
@@ -17,12 +18,17 @@ import java.util.UUID
     ],
 )
 data class AttachmentEntity(
-    @PrimaryKey val id: String = UUID.randomUUID().toString(),
-    @ColumnInfo(name = "attachment_type") val attachmentType: String,
-    @ColumnInfo(name = "entity_id") val entityId: String,
-    @ColumnInfo(name = "owner_project_id") val ownerProjectId: String? = null,
-    val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis(),
+    @PrimaryKey @SerializedName(value = "id", alternate = ["a"]) val id: String = UUID.randomUUID().toString(),
+    @ColumnInfo(name = "attachment_type") @SerializedName(value = "attachmentType", alternate = ["b"]) val attachmentType: String,
+    @ColumnInfo(name = "entity_id") @SerializedName(value = "entityId", alternate = ["c"]) val entityId: String,
+    @ColumnInfo(name = "owner_project_id") @SerializedName(value = "ownerProjectId", alternate = ["d"]) val ownerProjectId: String? = null,
+    @ColumnInfo(name = "role_code") val roleCode: String? = null,
+    @ColumnInfo(name = "is_system", defaultValue = "0") val isSystem: Boolean = false,
+    @SerializedName(value = "createdAt", alternate = ["crAt"]) val createdAt: Long = System.currentTimeMillis(),
+    @SerializedName(value = "updatedAt", alternate = ["upAt"]) val updatedAt: Long = System.currentTimeMillis(),
+    val syncedAt: Long? = null,
+    val isDeleted: Boolean = false,
+    val version: Long = 0,
 )
 
 @Entity(
@@ -47,9 +53,13 @@ data class AttachmentEntity(
     ],
 )
 data class ProjectAttachmentCrossRef(
-    @ColumnInfo(name = "project_id") val projectId: String,
-    @ColumnInfo(name = "attachment_id") val attachmentId: String,
-    @ColumnInfo(name = "attachment_order") val attachmentOrder: Long = -System.currentTimeMillis(),
+    @ColumnInfo(name = "project_id") @SerializedName(value = "projectId", alternate = ["a"]) val projectId: String,
+    @ColumnInfo(name = "attachment_id") @SerializedName(value = "attachmentId", alternate = ["b"]) val attachmentId: String,
+    @ColumnInfo(name = "attachment_order") @SerializedName(value = "attachmentOrder", alternate = ["c"]) val attachmentOrder: Long = -System.currentTimeMillis(),
+    val updatedAt: Long? = null,
+    val syncedAt: Long? = null,
+    val isDeleted: Boolean = false,
+    val version: Long = 0,
 )
 
 data class AttachmentWithProject(

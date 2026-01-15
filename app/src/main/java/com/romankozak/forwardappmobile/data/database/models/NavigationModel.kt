@@ -12,11 +12,11 @@ data class NavigationEntry(
     val timestamp: Long = System.currentTimeMillis(),
 ) : Parcelable {
     companion object {
-        fun createMainScreen(): NavigationEntry {
+        fun createProjectHierarchyScreen(): NavigationEntry {
             return NavigationEntry(
-                type = NavigationType.MAIN_SCREEN,
+                type = NavigationType.PROJECT_HIERARCHY_SCREEN,
                 id = "main",
-                title = "Projects",
+                title = "Contexts",
                 route = "goal_lists_screen",
             )
         }
@@ -47,7 +47,7 @@ data class NavigationEntry(
 
 @Parcelize
 enum class NavigationType : Parcelable {
-    MAIN_SCREEN,
+    PROJECT_HIERARCHY_SCREEN,
     PROJECT_SCREEN,
     GLOBAL_SEARCH,
     SETTINGS,

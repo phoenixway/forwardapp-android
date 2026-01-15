@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.features.attachments.ui.library
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.util.Log
 import com.romankozak.forwardappmobile.config.FeatureFlag
 import com.romankozak.forwardappmobile.config.FeatureToggles
 import com.romankozak.forwardappmobile.data.dao.ProjectDao
@@ -12,10 +13,13 @@ import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepos
 import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRef
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 @HiltViewModel
 class AttachmentsLibraryViewModel @Inject constructor(
@@ -23,8 +27,12 @@ class AttachmentsLibraryViewModel @Inject constructor(
     private val projectDao: ProjectDao,
 ) : ViewModel() {
 
+    private val _events = MutableSharedFlow<AttachmentsLibraryEvent>()
+    val events = _events.asSharedFlow()
+
     private val queryState = MutableStateFlow("")
     private val filterState = MutableStateFlow(AttachmentLibraryFilter.All)
+    private var pendingShareItem: AttachmentLibraryItem? = null
 
     val uiState =
                         combine(
@@ -42,6 +50,10 @@ class AttachmentsLibraryViewModel @Inject constructor(
                             val projects = array[2] as List<Project>
                             val query = array[3] as String
                             val filter = array[4] as AttachmentLibraryFilter
+                            
+                            Log.d("ATTACHMENTS_LIBRARY", "Query results: ${queryResults.size} items")
+                            Log.d("ATTACHMENTS_LIBRARY", "Links: ${links.size} cross-refs")
+                            Log.d("ATTACHMENTS_LIBRARY", "Projects: ${projects.size} projects")
                 
                             val projectRefs = projects.associateBy({ it.id }) { AttachmentProjectRef(it.id, it.name) }
                             val linksByAttachment = links.groupBy { it.attachmentId }
@@ -130,15 +142,21 @@ class AttachmentsLibraryViewModel @Inject constructor(
                                             (item.subtitle?.contains(query, ignoreCase = true) == true) ||
                                             item.projects.any { it.name.contains(query, ignoreCase = true) })
                                 }.sortedByDescending { it.updatedAt }
-                
+                            
+                            Log.d("ATTACHMENTS_LIBRARY", "Total items after mapping: ${items.size}")
+                            Log.d("ATTACHMENTS_LIBRARY", "Filtered items: ${filteredItems.size}")
+                            if (filteredItems.isEmpty()) {
+                                Log.w("ATTACHMENTS_LIBRARY", "No items found! Check if query results are empty or all filtered out")
+                            }
+                            
                             AttachmentsLibraryUiState(
                                 query = query,
                                 filter = filter,
-                items = filteredItems,
-                totalCount = items.size,
-                matchedCount = filteredItems.size,
-                isFeatureEnabled = FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary),
-            )
+                            items = filteredItems,
+                            totalCount = items.size,
+                            matchedCount = filteredItems.size,
+                            isFeatureEnabled = FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary),
+                            )
         }.stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5_000),
@@ -151,5 +169,33 @@ class AttachmentsLibraryViewModel @Inject constructor(
 
     fun onFilterChange(filter: AttachmentLibraryFilter) {
         filterState.value = filter
+    }
+
+    fun onShareToProjectClick(item: AttachmentLibraryItem) {
+        pendingShareItem = item
+        viewModelScope.launch {
+            _events.emit(
+                AttachmentsLibraryEvent.NavigateToProjectChooser(
+                    title = "Виберіть проєкт для \"${item.title}\"",
+                ),
+            )
+        }
+    }
+
+    fun onProjectChosen(projectId: String?) {
+        val attachment = pendingShareItem ?: return
+        if (projectId.isNullOrBlank() || projectId == "root") {
+            pendingShareItem = null
+            return
+        }
+
+        viewModelScope.launch {
+            attachmentRepository.linkAttachmentToProject(
+                attachmentId = attachment.id,
+                projectId = projectId,
+            )
+            _events.emit(AttachmentsLibraryEvent.ShowToast("Додано до проєкту"))
+            pendingShareItem = null
+        }
     }
 }

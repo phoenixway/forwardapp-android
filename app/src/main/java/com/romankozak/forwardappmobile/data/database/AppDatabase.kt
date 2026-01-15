@@ -23,11 +23,23 @@ import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
 import com.romankozak.forwardappmobile.data.dao.RecentItemDao
 import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
 import com.romankozak.forwardappmobile.data.dao.ReminderDao
+import com.romankozak.forwardappmobile.data.dao.ScriptDao
 import com.romankozak.forwardappmobile.data.dao.SystemAppDao
+import com.romankozak.forwardappmobile.data.dao.AiEventDao
+import com.romankozak.forwardappmobile.data.dao.LifeSystemStateDao
+import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
+import com.romankozak.forwardappmobile.data.dao.StructurePresetDao
+import com.romankozak.forwardappmobile.data.dao.StructurePresetItemDao
+import com.romankozak.forwardappmobile.data.dao.ProjectStructureDao
 import com.romankozak.forwardappmobile.data.database.models.*
+import com.romankozak.forwardappmobile.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentEntity
 import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRef
+import com.romankozak.forwardappmobile.features.missions.data.model.TacticalMission
+import com.romankozak.forwardappmobile.features.missions.data.model.TacticalMissionAttachmentCrossRef
+import com.romankozak.forwardappmobile.data.database.models.AiEventEntity
+import com.romankozak.forwardappmobile.data.database.models.LifeSystemStateEntity
 
 @Database(
     entities = [
@@ -35,6 +47,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAt
         Goal::class,
         Project::class,
         ListItem::class,
+        BacklogOrder::class,
         ActivityRecord::class,
         LinkItemEntity::class,
         AttachmentEntity::class,
@@ -49,6 +62,11 @@ import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAt
         NoteDocumentItemEntity::class,
         ChecklistEntity::class,
         ChecklistItemEntity::class,
+        ScriptEntity::class,
+        StructurePreset::class,
+        StructurePresetItem::class,
+        ProjectStructure::class,
+        ProjectStructureItem::class,
         RecentItem::class,
         ConversationFolderEntity::class,
         RecurringTask::class,
@@ -56,6 +74,11 @@ import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAt
         ProjectArtifact::class,
         ProjectAttachmentCrossRef::class,
         SystemAppEntity::class,
+        TacticalMission::class,
+        TacticalMissionAttachmentCrossRef::class,
+        AiEventEntity::class,
+        LifeSystemStateEntity::class,
+        AiInsightEntity::class,
 
         GoalFts::class,
         ProjectFts::class,
@@ -63,7 +86,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAt
         LegacyNoteFts::class,
         RecurringTaskFts::class,
     ],
-    version = 67,
+    version = 93,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class, ProjectTypeConverter::class)
@@ -73,6 +96,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun goalDao(): GoalDao
 
     abstract fun listItemDao(): ListItemDao
+    abstract fun backlogOrderDao(): com.romankozak.forwardappmobile.data.dao.BacklogOrderDao
 
     abstract fun activityRecordDao(): ActivityRecordDao
 
@@ -111,4 +135,20 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun recurringTaskDao(): RecurringTaskDao
 
     abstract fun reminderDao(): ReminderDao
-}
+
+    abstract fun scriptDao(): ScriptDao
+
+    abstract fun tacticalMissionDao(): TacticalMissionDao
+
+    abstract fun aiEventDao(): AiEventDao
+
+    abstract fun lifeSystemStateDao(): LifeSystemStateDao
+
+    abstract fun aiInsightDao(): AiInsightDao
+
+    abstract fun structurePresetDao(): StructurePresetDao
+
+    abstract fun structurePresetItemDao(): StructurePresetItemDao
+
+    abstract fun projectStructureDao(): ProjectStructureDao
+    }

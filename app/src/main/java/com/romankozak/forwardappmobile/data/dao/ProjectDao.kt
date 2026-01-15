@@ -15,6 +15,9 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface ProjectDao {
     @Query("SELECT * FROM projects ORDER BY goal_order ASC")
+    fun getAllProjectsForSync(): Flow<List<Project>>
+
+    @Query("SELECT * FROM projects WHERE is_deleted = 0 ORDER BY goal_order ASC")
     fun getAllProjects(): Flow<List<Project>>
 
     @Query("SELECT * FROM projects")
@@ -58,6 +61,12 @@ interface ProjectDao {
 
     @Query("SELECT * FROM projects WHERE parentId = :parentId ORDER BY goal_order ASC")
     suspend fun getProjectsByParentId(parentId: String): List<Project>
+
+    @Query("SELECT * FROM projects WHERE parentId = :parentId AND role_code = :roleCode AND is_deleted = 0 LIMIT 1")
+    suspend fun findChildByRole(
+        parentId: String,
+        roleCode: String
+    ): Project?
 
     @Query("SELECT * FROM projects WHERE parentId IS NULL ORDER BY goal_order ASC")
     suspend fun getTopLevelProjects(): List<Project>

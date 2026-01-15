@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 
 package com.romankozak.forwardappmobile.ui.screens.activitytracker
 
@@ -10,6 +10,8 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -42,6 +44,13 @@ import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.TimePi
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.formatDuration
 import com.romankozak.forwardappmobile.ui.shared.InProgressIndicator
 import kotlinx.coroutines.delay
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Overlay
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenuItem
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.rememberHoldMenu2
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Button
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -58,6 +67,8 @@ private val ActivityRecord.isTimeless: Boolean
 
 private val ActivityRecord.isOngoing: Boolean
     get() = this.startTime != null && this.endTime == null
+
+private enum class ActivityRecordType { COMMENT, TIMED, INSTANT }
 
 @Composable
 fun ActivityTrackerScreen(
@@ -76,6 +87,8 @@ fun ActivityTrackerScreen(
     val context = LocalContext.current
 
     var showMatrixSplash by remember { mutableStateOf(false) }
+    var quickDoneDialogState by remember { mutableStateOf<String?>(null) }
+    val holdMenuController = rememberHoldMenu2()
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
@@ -111,6 +124,8 @@ fun ActivityTrackerScreen(
                         onTextChange = viewModel::onInputTextChanged,
                         onToggleStartStop = viewModel::onToggleStartStop,
                         onTimelessClick = viewModel::onTimelessRecordClick,
+                        onQuickDoneClick = { textValue -> quickDoneDialogState = textValue },
+                        holdMenuController = holdMenuController,
                     )
                 }
             },
@@ -161,12 +176,26 @@ fun ActivityTrackerScreen(
             recordForReminder?.let { record ->
                 ReminderPropertiesDialog(
                     onDismiss = viewModel::onReminderDialogDismiss,
-onSetReminder = { time -> viewModel.onSetReminder(time) },
-                    onRemoveReminder = if (record.reminderTime != null) { { viewModel.onClearReminder() } } else null,
+                    onSetReminder = { time -> viewModel.onSetReminder(time) },
+                    onRemoveReminder = if (record.reminderTime != null) { { _: String -> viewModel.onClearReminder() } } else null,
                     currentReminders = listOfNotNull(record.reminderTime).map { com.romankozak.forwardappmobile.data.database.models.Reminder(entityId = record.id, entityType = "TASK", reminderTime = it, status = "SCHEDULED", creationTime = System.currentTimeMillis()) },
                 )
             }
+
+            quickDoneDialogState?.let { presetText ->
+                QuickCompletedActionDialog(
+                    initialText = presetText,
+                    onDismiss = { quickDoneDialogState = null },
+                    onConfirm = { desc, xp, antyXp ->
+                        viewModel.onAddCompletedAction(desc, xp, antyXp)
+                        viewModel.onInputTextChanged("")
+                        quickDoneDialogState = null
+                    },
+                )
+            }
         }
+
+        HoldMenu2Overlay(controller = holdMenuController)
     }
 }
 
@@ -255,6 +284,64 @@ private fun ActivityLog(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun QuickCompletedActionDialog(
+    initialText: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String, Int?, Int?) -> Unit,
+) {
+    var text by remember(initialText) { mutableStateOf(initialText) }
+    var xpText by remember { mutableStateOf("") }
+    var antyXpText by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Швидке додавання виконаної дії") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Опис активності") },
+                )
+                OutlinedTextField(
+                    value = xpText,
+                    onValueChange = { value ->
+                        if (value.all { it.isDigit() } || value.isBlank()) xpText = value
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Отримана експа (опціонально)") },
+                    placeholder = { Text("0") },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = antyXpText,
+                    onValueChange = { value ->
+                        if (value.all { it.isDigit() } || value.isBlank()) antyXpText = value
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Втрачена експа (опціонально)") },
+                    placeholder = { Text("0") },
+                    singleLine = true,
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val xp = xpText.toIntOrNull()
+                    val antyXp = antyXpText.toIntOrNull()
+                    onConfirm(text.trim(), xp, antyXp)
+                },
+                enabled = text.isNotBlank(),
+            ) { Text("Зберегти") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Скасувати") } },
+    )
+}
+
 @Composable
 private fun LogEntryItem(
     record: ActivityRecord,
@@ -280,16 +367,21 @@ private fun LogEntryItem(
                     modifier = Modifier.size(20.dp),
                 )
                 Spacer(Modifier.width(12.dp))
-                Text(record.text, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f), fontStyle = FontStyle.Italic)
-                Spacer(Modifier.width(8.dp))
-                IconButton(onClick = {
-                    onDelete(record)
-                }, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Delete, "Видалити", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(record.text, style = MaterialTheme.typography.bodyLarge, fontStyle = FontStyle.Italic)
+                    ActivityStatsLine(record.xpGained, record.antyXp)
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        IconButton(onClick = {
+                            onDelete(record)
+                        }, modifier = Modifier.size(32.dp)) {
+                            Icon(Icons.Default.Delete, "Видалити", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
+                        }
+                        IconButton(onClick = {
+                            onEdit(record)
+                        }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Edit, "Редагувати", modifier = Modifier.size(18.dp)) }
+                    }
                 }
-                IconButton(onClick = {
-                    onEdit(record)
-                }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Edit, "Редагувати", modifier = Modifier.size(18.dp)) }
             }
         }
     } else {
@@ -301,6 +393,7 @@ private fun LogEntryItem(
             val timeText =
                 when {
                     record.isOngoing -> "${timeFormat.format(Date(record.startTime!!))} - ..."
+                    record.endTime != null && record.startTime == record.endTime -> timeFormat.format(Date(record.startTime!!))
                     else -> "${timeFormat.format(Date(record.startTime!!))} - ${timeFormat.format(Date(record.endTime!!))}"
                 }
             Text(
@@ -312,62 +405,96 @@ private fun LogEntryItem(
             )
             Spacer(modifier = Modifier.width(12.dp))
 
-            TextWithBadgeLayout(
-                modifier = Modifier.weight(1f),
-                text = record.text,
-                textStyle = MaterialTheme.typography.bodyLarge,
-                badge = {
-                    if (!record.isOngoing && record.endTime != null) {
-                        val duration = record.endTime - record.startTime!!
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
+            Column(modifier = Modifier.weight(1f)) {
+                TextWithBadgeLayout(
+                    text = record.text,
+                    textStyle = MaterialTheme.typography.bodyLarge,
+                    badge = {
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            if (!record.isOngoing && record.endTime != null) {
+                                val duration = record.endTime - record.startTime!!
+                                if (duration > 0) {
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
+                                    ) {
+                                        Text(
+                                            text = formatDuration(duration),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                            color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                            fontWeight = FontWeight.SemiBold,
+                                        )
+                                    }
+                                }
+                            }
+                            if ((record.xpGained ?: 0) > 0) {
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                                ) {
+                                    Text(
+                                        text = "+${record.xpGained} xp",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                }
+                            }
+                            if ((record.antyXp ?: 0) > 0) {
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f),
+                                ) {
+                                    Text(
+                                        text = "-${record.antyXp} xp",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        color = MaterialTheme.colorScheme.onErrorContainer,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                }
+                            }
+                        }
+                    },
+                )
+                ActivityStatsLine(record.xpGained, record.antyXp)
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (record.isOngoing) {
+                        val isReminderSet = record.reminderTime != null
+                        FilledTonalIconButton(
+                            onClick = { onSetReminder(record) },
+                            modifier = Modifier.size(32.dp),
+                            colors =
+                                IconButtonDefaults.filledTonalIconButtonColors(
+                                    containerColor = if (isReminderSet) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                    contentColor = if (isReminderSet) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                ),
                         ) {
-                            Text(
-                                text = formatDuration(duration),
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                color = MaterialTheme.colorScheme.onTertiaryContainer,
-                                fontWeight = FontWeight.SemiBold,
+                            Icon(
+                                imageVector = if (isReminderSet) Icons.Default.NotificationImportant else Icons.Default.Notifications,
+                                contentDescription = "Встановити нагадування",
+                                modifier = Modifier.size(18.dp),
                             )
                         }
                     }
-                },
-            )
-
-            Row {
-                if (record.isOngoing) {
-                    val isReminderSet = record.reminderTime != null
-                    FilledTonalIconButton(
-                        onClick = { onSetReminder(record) },
-                        modifier = Modifier.size(32.dp),
-                        colors =
-                            IconButtonDefaults.filledTonalIconButtonColors(
-                                containerColor = if (isReminderSet) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                                contentColor = if (isReminderSet) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            ),
-                    ) {
-                        Icon(
-                            imageVector = if (isReminderSet) Icons.Default.NotificationImportant else Icons.Default.Notifications,
-                            contentDescription = "Встановити нагадування",
-                            modifier = Modifier.size(18.dp),
-                        )
+                    IconButton(onClick = {
+                        onRestart(record)
+                    }, modifier = Modifier.size(32.dp)) {
+                        Icon(Icons.Default.Replay, "Перезапустити", modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
                     }
-                }
-                IconButton(onClick = {
-                    onRestart(record)
-                }, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Replay, "Перезапустити", modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
-                }
-                IconButton(onClick = {
-                    onDelete(record)
-                }, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Delete, "Видалити", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
-                }
-                IconButton(onClick = {
-                    onEdit(record)
-                }, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Edit, "Редагувати", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.secondary)
+                    IconButton(onClick = {
+                        onDelete(record)
+                    }, modifier = Modifier.size(32.dp)) {
+                        Icon(Icons.Default.Delete, "Видалити", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
+                    }
+                    IconButton(onClick = {
+                        onEdit(record)
+                    }, modifier = Modifier.size(32.dp)) {
+                        Icon(Icons.Default.Edit, "Редагувати", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.secondary)
+                    }
                 }
             }
         }
@@ -452,12 +579,34 @@ private fun TextWithBadgeLayout(
 }
 
 @Composable
+private fun ActivityStatsLine(xp: Int?, antyXp: Int?) {
+    val positive = (xp ?: 0) > 0
+    val negative = (antyXp ?: 0) > 0
+    if (!positive && !negative) return
+
+    val statsText = buildString {
+        if (positive) append("+${xp} xp")
+        if (positive && negative) append(" | ")
+        if (negative) append("-${antyXp} xp")
+    }
+
+    Text(
+        text = statsText,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
+        modifier = Modifier.padding(top = 4.dp)
+    )
+}
+
+@Composable
 private fun ActivityInputBar(
     text: String,
     isActivityOngoing: Boolean,
     onTextChange: (String) -> Unit,
     onToggleStartStop: () -> Unit,
     onTimelessClick: () -> Unit,
+    onQuickDoneClick: (String) -> Unit,
+    holdMenuController: com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller,
 )
 {
     Surface(
@@ -484,16 +633,29 @@ private fun ActivityInputBar(
             )
             Spacer(modifier = Modifier.width(8.dp))
 
-            IconButton(
-                onClick = onTimelessClick,
-                enabled = text.isNotBlank(),
-            ) {
-                Icon(Icons.Default.AddComment, "Зробити запис", tint = MaterialTheme.colorScheme.secondary)
+            val menuItems = remember {
+                listOf(
+                    HoldMenuItem(label = "Завершена дія", icon = Icons.Default.CheckCircle),
+                    HoldMenuItem(label = "Коментар", icon = Icons.Default.AddComment),
+                )
             }
 
-            IconButton(
-                onClick = onToggleStartStop,
-                enabled = text.isNotBlank() || isActivityOngoing,
+            HoldMenu2Button(
+                items = menuItems,
+                controller = holdMenuController,
+                onSelect = { index ->
+                    when (index) {
+                        0 -> if (text.isNotBlank()) onQuickDoneClick(text)
+                        1 -> onTimelessClick()
+                    }
+                },
+                onTap = {
+                    if (text.isNotBlank() || isActivityOngoing) {
+                        onToggleStartStop()
+                    }
+                },
+                menuAlignment = com.romankozak.forwardappmobile.features.common.components.holdmenu2.MenuAlignment.END,
+                iconPosition = com.romankozak.forwardappmobile.features.common.components.holdmenu2.IconPosition.END,
             ) {
                 val icon: ImageVector
                 val tint: Color
@@ -515,12 +677,18 @@ private fun ActivityInputBar(
                     description = "Почати"
                 }
 
-                Icon(
-                    imageVector = icon,
-                    contentDescription = description,
-                    tint = tint,
-                    modifier = Modifier.size(28.dp),
-                )
+                IconButton(
+                    onClick = {
+                        if (text.isNotBlank() || isActivityOngoing) onToggleStartStop()
+                    }
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = description,
+                        tint = tint,
+                        modifier = Modifier.size(28.dp),
+                    )
+                }
             }
         }
     }
@@ -567,65 +735,146 @@ private fun copyToClipboard(
 private fun EditRecordDialog(
     record: ActivityRecord,
     onDismiss: () -> Unit,
-    onConfirm: (String, Long?, Long?) -> Unit,
+    onConfirm: (String, Long?, Long?, Int?, Int?) -> Unit,
     isLastTimedRecord: Boolean,
 )
 {
+    val initialType =
+        when {
+            record.isTimeless -> ActivityRecordType.COMMENT
+            record.endTime != null && record.startTime == record.endTime -> ActivityRecordType.INSTANT
+            else -> ActivityRecordType.TIMED
+        }
+
     var text by remember(record) { mutableStateOf(record.text) }
-    var startTime by remember(record) { mutableStateOf(record.startTime) }
+    var startTime by remember(record) { mutableStateOf(record.startTime ?: record.createdAt) }
     var endTime by remember(record) { mutableStateOf(record.endTime) }
+    var recordType by remember(record) { mutableStateOf(initialType) }
+    var xpText by remember(record) { mutableStateOf(record.xpGained?.toString().orEmpty()) }
+    var antyXpText by remember(record) { mutableStateOf(record.antyXp?.toString().orEmpty()) }
 
     var showStartTimePicker by remember { mutableStateOf(false) }
     var showEndTimePicker by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     val timeFormatter = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
+    val chipColors = FilterChipDefaults.filterChipColors(
+        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+    )
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Редагувати запис") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = recordType == ActivityRecordType.COMMENT,
+                        onClick = { recordType = ActivityRecordType.COMMENT },
+                        label = { Text("Коментар") },
+                        colors = chipColors,
+                    )
+                    FilterChip(
+                        selected = recordType == ActivityRecordType.INSTANT,
+                        onClick = { recordType = ActivityRecordType.INSTANT },
+                        label = { Text("Минулі дії") },
+                        colors = chipColors,
+                    )
+                    FilterChip(
+                        selected = recordType == ActivityRecordType.TIMED,
+                        onClick = { recordType = ActivityRecordType.TIMED },
+                        label = { Text("З часом") },
+                        colors = chipColors,
+                    )
+                }
                 OutlinedTextField(
                     value = text,
                     onValueChange = { text = it },
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text("Текст запису") },
                 )
-                if (!record.isTimeless) {
+                if (recordType != ActivityRecordType.COMMENT) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        OutlinedButton(onClick = { showStartTimePicker = true }, modifier = Modifier.weight(1f)) {
+                        OutlinedButton(
+                            onClick = { showStartTimePicker = true },
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = 44.dp)
+                        ) {
                             Text(startTime?.let { timeFormatter.format(Date(it)) } ?: "Start")
                         }
-                        Text("-")
-                        OutlinedButton(
-                            onClick = { showEndTimePicker = true },
-                            modifier = Modifier.weight(1f),
-                            enabled = !record.isOngoing,
-                        ) {
-                            Text(endTime?.let { timeFormatter.format(Date(it)) } ?: "Зараз")
-                        }
-                        if (isLastTimedRecord && endTime != null) {
-                            IconButton(onClick = { endTime = null }) {
-                                Icon(Icons.Default.Clear, contentDescription = "Зробити поточним")
+                        if (recordType == ActivityRecordType.TIMED) {
+                            Text("-")
+                            OutlinedButton(
+                                onClick = { showEndTimePicker = true },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .heightIn(min = 44.dp),
+                                enabled = !record.isOngoing,
+                            ) {
+                                Text(endTime?.let { timeFormatter.format(Date(it)) } ?: "Зараз")
+                            }
+                            if (isLastTimedRecord && endTime != null) {
+                                IconButton(onClick = { endTime = null }) {
+                                    Icon(Icons.Default.Clear, contentDescription = "Зробити поточним")
+                                }
                             }
                         }
                     }
                 }
+                OutlinedTextField(
+                    value = xpText,
+                    onValueChange = { value ->
+                        if (value.all { it.isDigit() } || value.isBlank()) xpText = value
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Отримана експа (опціонально)") },
+                    singleLine = true,
+                    placeholder = { Text("0") },
+                )
+                OutlinedTextField(
+                    value = antyXpText,
+                    onValueChange = { value ->
+                        if (value.all { it.isDigit() } || value.isBlank()) antyXpText = value
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Втрачена експа (опціонально)") },
+                    singleLine = true,
+                    placeholder = { Text("0") },
+                )
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    val isTimeInvalid = startTime != null && endTime != null && endTime!! < startTime!!
+                    val actualStart = when (recordType) {
+                        ActivityRecordType.COMMENT -> null
+                        ActivityRecordType.INSTANT -> startTime ?: record.createdAt
+                        ActivityRecordType.TIMED -> startTime ?: record.createdAt
+                    }
+                    val actualEnd = when (recordType) {
+                        ActivityRecordType.COMMENT -> null
+                        ActivityRecordType.INSTANT -> actualStart
+                        ActivityRecordType.TIMED -> endTime
+                    }
+                    val isTimeInvalid = recordType == ActivityRecordType.TIMED &&
+                        actualStart != null &&
+                        actualEnd != null &&
+                        actualEnd < actualStart
                     if (isTimeInvalid) {
                         Toast.makeText(context, "Час закінчення не може бути раніше часу початку", Toast.LENGTH_SHORT).show()
                     } else {
-                        onConfirm(text, startTime, endTime)
+                        val xp = xpText.toIntOrNull()
+                        val antyXp = antyXpText.toIntOrNull()
+                        onConfirm(text, actualStart, actualEnd, xp, antyXp)
                     }
                 },
                 enabled = text.isNotBlank(),

@@ -44,6 +44,7 @@ import com.romankozak.forwardappmobile.ui.reminders.viewmodel.ReminderListItem
 import com.romankozak.forwardappmobile.ui.reminders.viewmodel.ReminderViewModel
 import com.romankozak.forwardappmobile.ui.reminders.viewmodel.RemindersUiEvent
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.GoalItem
+import com.romankozak.forwardappmobile.ui.navigation.NavTargetRouter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,7 +63,7 @@ fun RemindersScreen(
         viewModel.uiEvent.collect { event ->
             when (event) {
                 is RemindersUiEvent.Navigate -> {
-                    navController.navigate(event.route)
+                    navController.navigate(NavTargetRouter.routeOf(event.target))
                 }
             }
         }
@@ -154,7 +155,14 @@ fun RemindersScreen(
                 }
                 viewModel.onDismissPropertiesDialog()
             },
-            onRemoveReminder = { /* TODO */ },
+            onRemoveReminder = { reminderId: String ->
+                editingReminder?.let { current ->
+                    if (current.id == reminderId) {
+                        viewModel.deleteReminder(current)
+                    }
+                }
+                viewModel.onDismissPropertiesDialog()
+            },
             currentReminders = editingReminder?.let { listOf(it) } ?: emptyList()
         )
     }

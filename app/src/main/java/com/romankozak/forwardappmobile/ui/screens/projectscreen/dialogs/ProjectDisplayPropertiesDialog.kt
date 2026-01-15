@@ -20,9 +20,12 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun ProjectDisplayPropertiesDialog(
+    isProjectManagementEnabled: Boolean,
+    onToggleProjectManagement: (Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
     var showCheckboxes by remember { mutableStateOf(true) }
+    var isAdvancedModeEnabled by remember { mutableStateOf(isProjectManagementEnabled) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -31,6 +34,18 @@ fun ProjectDisplayPropertiesDialog(
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                Text("Display", modifier = Modifier.padding(bottom = 4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Просунутий режим проєкту")
+                    Switch(
+                        checked = isAdvancedModeEnabled,
+                        onCheckedChange = { isAdvancedModeEnabled = it }
+                    )
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -45,7 +60,10 @@ fun ProjectDisplayPropertiesDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = {
+                onToggleProjectManagement(isAdvancedModeEnabled)
+                onDismiss()
+            }) {
                 Text("Готово")
             }
         }

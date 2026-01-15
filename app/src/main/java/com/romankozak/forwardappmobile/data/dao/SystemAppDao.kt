@@ -16,4 +16,8 @@ interface SystemAppDao {
 
     @Query("SELECT * FROM system_apps")
     suspend fun getAll(): List<SystemAppEntity>
+
+    // --- Backup Methods ---
+    @Query("DELETE FROM system_apps")
+    suspend fun deleteAll()
 }

@@ -65,9 +65,76 @@ constructor(
     private val dayManagementRepository: DayManagementRepository,
     private val reminderRepository: com.romankozak.forwardappmobile.data.repository.ReminderRepository,
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(DayPlanUiState())
-    val uiState: StateFlow<DayPlanUiState> = _uiState.asStateFlow()
 
+    init {
+        Log.d("DayPlanViewModel", "DayPlanViewModel initialized.")
+    }
+
+    private val _planId = MutableStateFlow<String?>(null)
+
+    @OptIn(kotlinx.coroutines.FlowPreview::class)
+    val uiState: StateFlow<DayPlanUiState> = _planId
+        .filterNotNull()
+        .flatMapLatest { planId ->
+            Log.d("DayPlanViewModel", "flatMapLatest: Processing planId: $planId")
+            val dayPlanFlow = dayManagementRepository.getPlanByIdStream(planId)
+                .onEach { dayPlan ->
+                    Log.d("DayPlanViewModel", "dayPlanFlow: Received dayPlan: ${dayPlan?.id} for planId: $planId")
+                    dayPlan?.let { dayManagementRepository.generateRecurringTasksForDate(it.date) }
+                }
+
+            val tasksFlow = dayManagementRepository.getTasksForDay(planId)
+                .flatMapLatest { tasks ->
+                    Log.d("DayPlanViewModel", "tasksFlow: Received ${tasks.size} tasks for planId: $planId")
+                    if (tasks.isEmpty()) {
+                        flowOf(emptyList())
+                    } else {
+                        combine(tasks.map { task ->
+                            val reminderFlow = reminderRepository.getRemindersForEntityFlow(task.id)
+                            val parentInfoFlow: Flow<ParentInfo?> = if (task.goalId != null) {
+                                flow {
+                                    val goal = dayManagementRepository.getGoal(task.goalId!!)
+                                    val projectId = goal?.let { dayManagementRepository.findProjectIdForGoal(it.id) }
+                                    emit(goal?.let { ParentInfo(it.id, it.text, ParentType.GOAL, projectId) })
+                                }
+                            } else if (task.projectId != null) {
+                                flow { emit(dayManagementRepository.getProject(task.projectId!!)) }.map { project ->
+                                    project?.let { ParentInfo(it.id, it.name, ParentType.PROJECT, it.id) }
+                                }
+                            } else {
+                                flowOf(null)
+                            }
+                            combine(reminderFlow, parentInfoFlow) { reminders, parentInfo ->
+                                DayTaskWithReminder(task, reminders.firstOrNull(), parentInfo)
+                            }
+                        }) { it.toList() }
+                    }
+                }
+
+            combine(dayPlanFlow, tasksFlow) { dayPlan, tasks ->
+                Log.d("DayPlanViewModel", "UI State combine: dayPlanId=${dayPlan?.id}, tasksCount=${tasks.size} (before creating DayPlanUiState)")
+                val highestCompletedPoints = dayManagementRepository.getHighestCompletedPointsAcrossPlans()
+                DayPlanUiState(
+                    dayPlan = dayPlan,
+                    tasks = sortTasksWithOrder(tasks),
+                    isLoading = false,
+                    isRefreshing = false,
+                    isToday = dayPlan?.let { isTimestampToday(it.date) } ?: true,
+                    bestCompletedPoints = highestCompletedPoints,
+                    lastUpdated = System.currentTimeMillis()
+                )
+            }
+        }
+        .catch { e ->
+            Log.e("DayPlanViewModel", "Error in uiState flow", e)
+            emit(DayPlanUiState(isLoading = false, error = "Помилка завантаження даних: ${e.localizedMessage}"))
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = DayPlanUiState(isLoading = true)
+        )
+    
     private val _isAddTaskDialogOpen = MutableStateFlow(false)
     val isAddTaskDialogOpen: StateFlow<Boolean> = _isAddTaskDialogOpen.asStateFlow()
 
@@ -82,14 +149,13 @@ constructor(
 
     private var editingMode: EditingMode = EditingMode.SINGLE
 
-    
-    private var currentPlanId: String? = null
-
-    private val _tasksUpdated = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
-    val tasksUpdated: SharedFlow<Unit> = _tasksUpdated.asSharedFlow()
-
     private val _uiEvent = Channel<DayPlanUiEvent>()
     val uiEvent = _uiEvent.receiveAsFlow()
+    
+    fun loadDataForPlan(dayPlanId: String) {
+        Log.d("DayPlanViewModel", "Loading data for plan: $dayPlanId")
+        _planId.value = dayPlanId
+    }
 
     fun openAddTaskDialog() {
         _isAddTaskDialogOpen.value = true
@@ -112,9 +178,8 @@ constructor(
     }
 
     fun dismissError() {
-        _uiState.update { it.copy(error = null) }
+        // This is now handled by the main flow, but can be used for one-time events if needed
     }
-
     
     private fun isTimestampToday(timestamp: Long): Boolean {
         val calendar = Calendar.getInstance()
@@ -126,55 +191,18 @@ constructor(
         return today == otherDay && year == otherYear
     }
 
-            fun updateTasksOrder(
-
-                dayPlanId: String,
-
-                reorderedTasks: List<DayTaskWithReminder>,
-
-            ) {
-
+    fun updateTasksOrder(dayPlanId: String, reorderedTasks: List<DayTaskWithReminder>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
                 val tasksForRepo = reorderedTasks.mapIndexed { index, taskWithReminder ->
-
                     taskWithReminder.dayTask.copy(order = index.toLong())
-
                 }
-
-        
-
-                _uiState.update { currentState ->
-
-                    currentState.copy(
-
-                        tasks = reorderedTasks.mapIndexed { index, taskWithReminder -> taskWithReminder.copy(dayTask = taskWithReminder.dayTask.copy(order = index.toLong())) },
-
-                        isReordering = true,
-
-                    )
-
-                }
-
-        
-
-                viewModelScope.launch(Dispatchers.IO) {
-
-                    try {
-
-                        dayManagementRepository.updateTasksOrder(dayPlanId, tasksForRepo)
-
-                        _uiState.update { it.copy(isReordering = false) }
-
-                    } catch (e: Exception) {
-
-                        _uiState.update { it.copy(error = "Помилка при зміні порядку завдань") }
-
-                        loadDataForPlan(dayPlanId)
-
-                    }
-
-                }
-
+                dayManagementRepository.updateTasksOrder(dayPlanId, tasksForRepo)
+            } catch (e: Exception) {
+                Log.e("DayPlanViewModel", "Error updating task order", e)
             }
+        }
+    }
 
     fun addTask(
         dayPlanId: String,
@@ -188,20 +216,15 @@ constructor(
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val trimmedTitle = title.trim()
-                val trimmedDescription = description.trim().takeIf { it.isNotEmpty() }
-
                 if (trimmedTitle.isEmpty() || trimmedTitle.length > 100) {
-                    _uiState.update {
-                        it.copy(error = "Назва завдання повинна містити від 1 до 100 символів")
-                    }
+                    // TODO: Handle validation error with a one-time event (e.g., a Channel)
                     return@launch
                 }
 
                 if (recurrenceRule != null) {
-                    Firebase.crashlytics.log("Adding recurring task: ${trimmedTitle}")
                     dayManagementRepository.addRecurringTask(
                         title = trimmedTitle,
-                        description = trimmedDescription,
+                        description = description.trim().takeIf { it.isNotEmpty() },
                         duration = duration,
                         priority = priority,
                         recurrenceRule = recurrenceRule,
@@ -209,14 +232,13 @@ constructor(
                         points = points,
                     )
                 } else {
-                    Firebase.crashlytics.log("Adding single task: ${trimmedTitle}")
-                    val currentTasks = _uiState.value.tasks
+                    val currentTasks = uiState.value.tasks
                     val maxOrder = currentTasks.maxOfOrNull { it.dayTask.order } ?: 0L
                     dayManagementRepository.addTaskToDayPlan(
                         NewTaskParameters(
                             dayPlanId = dayPlanId,
                             title = trimmedTitle,
-                            description = trimmedDescription,
+                            description = description.trim().takeIf { it.isNotEmpty() },
                             estimatedDurationMinutes = duration?.takeIf { it > 0 && it <= 1440 },
                             priority = priority,
                             order = maxOrder + 1,
@@ -224,17 +246,9 @@ constructor(
                         ),
                     )
                 }
-
-                
                 dismissAddTaskDialog()
-                loadDataForPlan(dayPlanId)
             } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(
-                        error = "Помилка при додаванні завдання: ${e.localizedMessage}",
-                        isLoading = false,
-                    )
-                }
+                Log.e("DayPlanViewModel", "Error adding task", e)
             }
         }
     }
@@ -247,20 +261,15 @@ constructor(
                 dayManagementRepository.addRecurringTask(
                     title = goal.text,
                     description = goal.description,
-                    duration = null, // Goals don't have duration
-                    priority = TaskPriority.MEDIUM, // Or map from goal importance
+                    duration = null,
+                    priority = TaskPriority.MEDIUM,
                     recurrenceRule = recurrenceRule,
                     dayPlanId = dayPlanId,
                     goalId = goalId,
                     projectId = projectId,
                 )
             } catch (e: Exception) {
-                 _uiState.update {
-                    it.copy(
-                        error = "Помилка при додаванні повторюваної цілі: ${e.localizedMessage}",
-                        isLoading = false,
-                    )
-                }
+                 Log.e("DayPlanViewModel", "Error adding goal as recurring task", e)
             }
         }
     }
@@ -291,15 +300,10 @@ constructor(
     }
 
     fun onDeleteTaskClicked(taskWithReminder: DayTaskWithReminder) {
-        val TAG = "DELETE_RECURRING_DEBUG"
-        Log.d(TAG, "onDeleteTaskClicked called for task: ${taskWithReminder.dayTask.title}")
-        Log.d(TAG, "Task recurringTaskId: ${taskWithReminder.dayTask.recurringTaskId}")
         if (taskWithReminder.dayTask.recurringTaskId != null) {
-            Log.d(TAG, "recurringTaskId is not null, showing confirmation dialog")
             _showDeleteConfirmationDialog.value = taskWithReminder
         } else {
-            Log.d(TAG, "recurringTaskId is null, deleting single task")
-            deleteTask(taskWithReminder.dayTask.dayPlanId, taskWithReminder.dayTask.id)
+            deleteTask(taskWithReminder.dayTask.id)
         }
     }
 
@@ -310,198 +314,57 @@ constructor(
     fun deleteSingleInstanceOfRecurringTask(taskWithReminder: DayTaskWithReminder) {
         viewModelScope.launch(Dispatchers.IO) {
             dayManagementRepository.deleteTask(taskWithReminder.dayTask.id)
-            _tasksUpdated.tryEmit(Unit)
             dismissDeleteConfirmationDialog()
         }
     }
 
     fun deleteAllFutureInstancesOfRecurringTask(taskWithReminder: DayTaskWithReminder) {
-        val TAG = "DELETE_RECURRING_DEBUG"
-        Log.d(TAG, "ViewModel.deleteAllFutureInstancesOfRecurringTask called for task: ${taskWithReminder.dayTask.title}")
-        Log.d(TAG, "Task recurringTaskId: ${taskWithReminder.dayTask.recurringTaskId}")
         viewModelScope.launch(Dispatchers.IO) {
             taskWithReminder.dayTask.recurringTaskId?.let {
-                Log.d(TAG, "recurringTaskId is not null, calling repository")
                 dayManagementRepository.deleteAllFutureInstancesOfRecurringTask(it, taskWithReminder.dayTask.dayPlanId)
-                _tasksUpdated.tryEmit(Unit)
             }
             dismissDeleteConfirmationDialog()
         }
     }
 
-    fun deleteTask(
-        dayPlanId: String,
-        taskId: String,
-    ) {
-        Firebase.crashlytics.log("Deleting task with id: $taskId from plan: $dayPlanId")
+    fun deleteTask(taskId: String) {
         viewModelScope.launch {
             try {
                 dayManagementRepository.deleteTask(taskId)
                 clearSelectedTask()
-                _tasksUpdated.tryEmit(Unit)
-
-                _uiState.update {
-                    it.copy(lastUpdated = System.currentTimeMillis())
-                }
             } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(error = "Помилка при видаленні завдання: ${e.localizedMessage}")
-                }
-                e.printStackTrace()
+                Log.e("DayPlanViewModel", "Error deleting task", e)
             }
         }
     }
 
     fun toggleTaskCompletion(taskId: String) {
         viewModelScope.launch {
-            val taskWithReminder = _uiState.value.tasks.find { it.dayTask.id == taskId } ?: return@launch
-            val task = taskWithReminder.dayTask
-
-            if (task.recurringTaskId != null) {
-                val recurringTask = dayManagementRepository.getRecurringTask(task.recurringTaskId)
-                if (recurringTask?.recurrenceRule?.frequency == RecurrenceFrequency.HOURLY) {
-                    val intervalMillis = recurringTask.recurrenceRule.interval * 60 * 60 * 1000
-                    val nextOccurrence = System.currentTimeMillis() + intervalMillis
-                    dayManagementRepository.updateTaskNextOccurrence(taskId, nextOccurrence)
-                    loadDataForPlan(task.dayPlanId) // Refresh data
-                    return@launch
-                }
-            }
-
+            val task = uiState.value.tasks.find { it.dayTask.id == taskId }?.dayTask ?: return@launch
             try {
-                _uiState.update { currentState ->
-                    val updatedTasks =
-                        currentState.tasks.map { tWithR ->
-                            if (tWithR.dayTask.id == taskId) {
-                                tWithR.copy(dayTask = tWithR.dayTask.copy(completed = !tWithR.dayTask.completed))
-                            } else {
-                                tWithR
-                            }
-                        }
-                    currentState.copy(
-                        tasks = sortTasksWithOrder(updatedTasks),
-                        lastUpdated = System.currentTimeMillis(),
-                    )
+                if (task.recurringTaskId != null) {
+                    val recurringTask = dayManagementRepository.getRecurringTask(task.recurringTaskId)
+                    if (recurringTask?.recurrenceRule?.frequency == RecurrenceFrequency.HOURLY) {
+                        val intervalMillis = recurringTask.recurrenceRule.interval * 60 * 60 * 1000
+                        val nextOccurrence = System.currentTimeMillis() + intervalMillis
+                        dayManagementRepository.updateTaskNextOccurrence(taskId, nextOccurrence)
+                        return@launch
+                    }
                 }
                 dayManagementRepository.toggleTaskCompletion(taskId)
             } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(error = "Помилка при оновленні статусу завдання: ${e.localizedMessage}")
-                }
-                e.printStackTrace()
+                Log.e("DayPlanViewModel", "Error toggling task completion", e)
             }
         }
     }
-
-    
-    fun loadDataForPlan(dayPlanId: String) {
-        val isRefresh = currentPlanId == dayPlanId
-
-        viewModelScope.launch {
-            _uiState.update {
-                it.copy(
-                    isLoading = !isRefresh,
-                    isRefreshing = isRefresh,
-                    error = null,
-                )
-            }
-
-            try {
-                
-                launch {
-                    dayManagementRepository.getPlanByIdStream(dayPlanId)
-                        .catch { e ->
-                            _uiState.update {
-                                it.copy(error = "Помилка завантаження плану: ${e.localizedMessage}")
-                            }
-                        }
-                        .collect { dayPlan ->
-                            dayPlan?.let {
-                                dayManagementRepository.generateRecurringTasksForDate(it.date)
-                                _uiState.update { currentState ->
-                                    currentState.copy(
-                                        dayPlan = dayPlan,
-                                        
-                                        isToday = isTimestampToday(dayPlan.date),
-                                    )
-                                }
-                            }
-                        }
-                }
-
-                
-                launch {
-                    dayManagementRepository.getTasksForDay(dayPlanId)
-                        .flatMapLatest { tasks ->
-                            if (tasks.isEmpty()) {
-                                flowOf(emptyList())
-                            } else {
-                                combine(tasks.map { task ->
-                                    val reminderFlow = reminderRepository.getRemindersForEntityFlow(task.id)
-
-                                    val parentInfoFlow: Flow<ParentInfo?> = if (task.goalId != null) {
-                                        flow {
-                                            val goal = dayManagementRepository.getGoal(task.goalId!!)
-                                            val projectId = goal?.let { dayManagementRepository.findProjectIdForGoal(it.id) }
-                                            emit(goal?.let { ParentInfo(it.id, it.text, ParentType.GOAL, projectId) })
-                                        }
-                                    } else if (task.projectId != null) {
-                                        flow { emit(dayManagementRepository.getProject(task.projectId!!)) }.map { project ->
-                                            project?.let { ParentInfo(it.id, it.name, ParentType.PROJECT, it.id) } // Project ID is its own ID
-                                        }
-                                    } else {
-                                        flowOf(null)
-                                    }
-
-                                    combine(reminderFlow, parentInfoFlow) { reminders, parentInfo ->
-                                        DayTaskWithReminder(task, reminders.firstOrNull(), parentInfo)
-                                    }
-                                }) { it.toList() }
-                            }
-                        }
-                        .catch { e ->
-                            _uiState.update {
-                                it.copy(
-                                    isLoading = false,
-                                    isRefreshing = false,
-                                    error = "Помилка завантаження задач: ${e.localizedMessage}",
-                                )
-                            }
-                        }
-                        .collect { tasksWithReminders ->
-                            val highestCompletedPoints = dayManagementRepository.getHighestCompletedPointsAcrossPlans()
-                            _uiState.update { currentState ->
-                                currentState.copy(
-                                    isLoading = false,
-                                    isRefreshing = false,
-                                    tasks = sortTasksWithOrder(tasksWithReminders),
-                                    bestCompletedPoints = highestCompletedPoints,
-                                    lastUpdated = System.currentTimeMillis(),
-                                    error = null,
-                                )
-                            }
-                            currentPlanId = dayPlanId
-                        }
-                }
-            } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        isRefreshing = false,
-                        error = "Помилка: ${e.localizedMessage}",
-                    )
-                }
-            }
-        }
-    }
-
     
     fun refreshPlan() {
-        currentPlanId?.let { planId ->
-            loadDataForPlan(planId)
+        _planId.value?.let { planId ->
+            // Re-emitting the same value will trigger a refresh in flatMapLatest
+            _planId.value = null 
+            _planId.value = planId
         }
     }
-
     
     private fun sortTasksWithOrder(tasks: List<DayTaskWithReminder>): List<DayTaskWithReminder> {
         return tasks.sortedWith(
@@ -511,153 +374,98 @@ constructor(
         )
     }
 
-    
-        private fun sortTasks(tasks: List<DayTaskWithReminder>): List<DayTaskWithReminder> {
-
-    
-            return tasks.sortedWith(
-
-    
-                compareBy<DayTaskWithReminder> { it.dayTask.completed }
-
-    
-                    .thenBy { task ->
-
-    
-                        when (task.dayTask.priority) {
-
-    
-                            TaskPriority.CRITICAL -> 0
-
-    
-                            TaskPriority.HIGH -> 1
-
-    
-                            TaskPriority.MEDIUM -> 2
-
-    
-                            TaskPriority.LOW -> 3
-
-    
-                            TaskPriority.NONE -> 4
-
-    
-                        }
-
-    
+    private fun sortTasks(tasks: List<DayTaskWithReminder>): List<DayTaskWithReminder> {
+        return tasks.sortedWith(
+            compareBy<DayTaskWithReminder> { it.dayTask.completed }
+                .thenBy { task ->
+                    when (task.dayTask.priority) {
+                        TaskPriority.CRITICAL -> 0
+                        TaskPriority.HIGH -> 1
+                        TaskPriority.MEDIUM -> 2
+                        TaskPriority.LOW -> 3
+                        TaskPriority.NONE -> 4
                     }
-
-    
-                    .thenBy { it.dayTask.dueTime ?: Long.MAX_VALUE }
-
-    
-                    .thenBy { it.dayTask.title.lowercase() },
-
-    
-            )
-
-    
-        }
-
+                }
+                .thenBy { it.dayTask.dueTime ?: Long.MAX_VALUE }
+                .thenBy { it.dayTask.title.lowercase() },
+        )
+    }
     
     fun hasOverdueTasks(): Boolean {
         val currentTime = System.currentTimeMillis()
-        return _uiState.value.tasks.any { taskWithReminder ->
+        return uiState.value.tasks.any { taskWithReminder ->
             !taskWithReminder.dayTask.completed && taskWithReminder.dayTask.dueTime != null && taskWithReminder.dayTask.dueTime < currentTime
         }
     }
-
     
     fun getCompletionStats(): Triple<Int, Int, Float> {
-        val tasks = _uiState.value.tasks
+        val tasks = uiState.value.tasks
         val completed = tasks.count { it.dayTask.completed }
         val total = tasks.size
         val percentage = if (total > 0) completed.toFloat() / total else 0f
         return Triple(completed, total, percentage)
     }
 
-    
     fun sortTasksByPriority(dayPlanId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val currentTasks = _uiState.value.tasks
+                val currentTasks = uiState.value.tasks
                 val sortedTasks = sortTasks(currentTasks)
-
-                val tasksWithNewOrder =
-                    sortedTasks.mapIndexed { index, taskWithReminder ->
-                        taskWithReminder.dayTask.copy(order = index.toLong())
-                    }
-
+                val tasksWithNewOrder = sortedTasks.mapIndexed { index, taskWithReminder ->
+                    taskWithReminder.dayTask.copy(order = index.toLong())
+                }
                 dayManagementRepository.updateTasksOrder(dayPlanId, tasksWithNewOrder)
-
-                _uiState.update { currentState ->
-                    currentState.copy(
-                        tasks = sortedTasks.mapIndexed { index, taskWithReminder -> taskWithReminder.copy(dayTask = taskWithReminder.dayTask.copy(order = index.toLong())) },
-                        lastUpdated = System.currentTimeMillis(),
-                    )
-                }
             } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(error = "Помилка при сортуванні завдань: ${e.localizedMessage}")
-                }
-                e.printStackTrace()
+                Log.e("DayPlanViewModel", "Error sorting tasks by priority", e)
             }
         }
     }
-
     
     fun navigateToPreviousDay() {
         viewModelScope.launch(Dispatchers.IO) {
-            _uiState.value.dayPlan?.date?.let { currentDate ->
+            uiState.value.dayPlan?.date?.let { currentDate ->
                 val calendar = Calendar.getInstance()
                 calendar.timeInMillis = currentDate
                 calendar.add(Calendar.DAY_OF_YEAR, -1)
                 val previousDate = calendar.timeInMillis
-
+                Log.d("DayPlanViewModel", "Navigating to previous day. CurrentDate: $currentDate, PreviousDate: $previousDate")
                 try {
-                    
-                    
-                    val prevPlanId = dayManagementRepository.getPlanIdForDate(previousDate)
-                    if (prevPlanId != null) {
-                        loadDataForPlan(prevPlanId)
-                    } else {
-                        _uiState.update { it.copy(error = "План на попередній день не знайдено") }
-                    }
+                    val prevDayPlan = dayManagementRepository.createOrUpdateDayPlan(previousDate)
+                    Log.d("DayPlanViewModel", "Previous day plan created/updated. ID: ${prevDayPlan.id}")
+                    loadDataForPlan(prevDayPlan.id)
                 } catch (e: Exception) {
-                    _uiState.update { it.copy(error = "Помилка при переході на попередній день") }
+                    Log.e("DayPlanViewModel", "Error navigating to previous day", e)
                 }
+            } ?: run {
+                Log.w("DayPlanViewModel", "navigateToPreviousDay: dayPlan is null, cannot navigate.")
             }
         }
     }
-
     
     fun navigateToNextDay() {
         viewModelScope.launch(Dispatchers.IO) {
-            
-            if (_uiState.value.isToday) return@launch
-
-            _uiState.value.dayPlan?.date?.let { currentDate ->
+            if (uiState.value.isToday) {
+                Log.d("DayPlanViewModel", "navigateToNextDay: Currently on today's plan, cannot navigate forward.")
+                return@launch
+            }
+            uiState.value.dayPlan?.date?.let { currentDate ->
                 val calendar = Calendar.getInstance()
                 calendar.timeInMillis = currentDate
                 calendar.add(Calendar.DAY_OF_YEAR, 1)
                 val nextDate = calendar.timeInMillis
-
+                Log.d("DayPlanViewModel", "Navigating to next day. CurrentDate: $currentDate, NextDate: $nextDate")
                 try {
-                    
-                    
-                    val nextPlanId = dayManagementRepository.getPlanIdForDate(nextDate)
-                    if (nextPlanId != null) {
-                        loadDataForPlan(nextPlanId)
-                    } else {
-                        _uiState.update { it.copy(error = "План на наступний день не знайдено") }
-                    }
+                    val nextDayPlan = dayManagementRepository.createOrUpdateDayPlan(nextDate)
+                    Log.d("DayPlanViewModel", "Next day plan created/updated. ID: ${nextDayPlan.id}")
+                    loadDataForPlan(nextDayPlan.id)
                 } catch (e: Exception) {
-                    _uiState.update { it.copy(error = "Помилка при переході на наступний день") }
+                    Log.e("DayPlanViewModel", "Error navigating to next day", e)
                 }
+            } ?: run {
+                Log.w("DayPlanViewModel", "navigateToNextDay: dayPlan is null, cannot navigate.")
             }
         }
     }
-
     
     fun copyTaskToTodaysPlan(taskToCopyWithReminder: DayTaskWithReminder) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -665,7 +473,7 @@ constructor(
                 dayManagementRepository.copyTaskToTodaysPlan(taskToCopyWithReminder.dayTask)
                 clearSelectedTask()
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Помилка копіювання завдання: ${e.localizedMessage}") }
+                Log.e("DayPlanViewModel", "Error copying task", e)
             }
         }
     }
@@ -675,9 +483,8 @@ constructor(
             try {
                 dayManagementRepository.moveTaskToTomorrow(taskToMoveWithReminder.dayTask)
                 clearSelectedTask()
-                _tasksUpdated.tryEmit(Unit)
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Помилка перенесення завдання: ${e.localizedMessage}") }
+                Log.e("DayPlanViewModel", "Error moving task to tomorrow", e)
             }
         }
     }
@@ -704,25 +511,26 @@ constructor(
         viewModelScope.launch(Dispatchers.IO) {
             val taskWithReminder = selectedTask.value ?: return@launch
             val task = taskWithReminder.dayTask
-
-            if (editingMode == EditingMode.ALL_INSTANCES && task.recurringTaskId != null) {
-                dayManagementRepository.splitRecurringTask(
-                    originalTask = task,
-                    newTitle = title,
-                    newDescription = description,
-                    newPriority = priority,
-                    newDuration = duration,
-                    points = task.points
-                )
-            } else {
-                dayManagementRepository.updateTask(taskId, title, description, priority, duration, points)
+            try {
+                if (editingMode == EditingMode.ALL_INSTANCES && task.recurringTaskId != null) {
+                    dayManagementRepository.splitRecurringTask(
+                        originalTask = task,
+                        newTitle = title,
+                        newDescription = description,
+                        newPriority = priority,
+                        newDuration = duration,
+                        points = task.points
+                    )
+                } else {
+                    dayManagementRepository.updateTask(taskId, title, description, priority, duration, points)
+                }
+                dismissEditTaskDialog()
+                clearSelectedTask()
+            } catch (e: Exception) {
+                Log.e("DayPlanViewModel", "Error updating task", e)
             }
-            dismissEditTaskDialog()
-            clearSelectedTask()
-            loadDataForPlan(task.dayPlanId)
         }
     }
-
     
     fun setTaskReminder(
         taskId: String,
@@ -732,18 +540,17 @@ constructor(
             try {
                 reminderRepository.createReminder(taskId, "TASK", reminderTime)
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Помилка встановлення нагадування") }
+                Log.e("DayPlanViewModel", "Error setting reminder", e)
             }
         }
     }
-
     
     fun clearTaskReminder(taskId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 reminderRepository.clearRemindersForEntity(taskId)
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Помилка скасування нагадування") }
+                Log.e("DayPlanViewModel", "Error clearing reminder", e)
             }
         }
     }
@@ -751,7 +558,7 @@ constructor(
     fun moveTaskToTop(taskWithReminder: DayTaskWithReminder) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val currentTasks = _uiState.value.tasks.toMutableList()
+                val currentTasks = uiState.value.tasks.toMutableList()
                 currentTasks.remove(taskWithReminder)
                 currentTasks.add(0, taskWithReminder.copy(dayTask = taskWithReminder.dayTask.copy(order = 0)))
 
@@ -761,19 +568,9 @@ constructor(
                     }
 
                 dayManagementRepository.updateTasksOrder(taskWithReminder.dayTask.dayPlanId, tasksForRepo)
-
-                _uiState.update { currentState ->
-                    currentState.copy(
-                        tasks = sortTasksWithOrder(currentTasks),
-                        lastUpdated = System.currentTimeMillis(),
-                    )
-                }
                 clearSelectedTask()
             } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(error = "Помилка при переміщенні завдання: ${e.localizedMessage}")
-                }
-                e.printStackTrace()
+                Log.e("DayPlanViewModel", "Error moving task to top", e)
             }
         }
     }

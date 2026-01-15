@@ -62,6 +62,7 @@ fun InboxScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         modifier = Modifier.fillMaxSize(),
+        containerColor = Color.Transparent,
     ) { padding ->
         if (records.isEmpty()) {
             Box(

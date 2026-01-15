@@ -130,7 +130,7 @@ private fun TabContent(
             .clip(RoundedCornerShape(8.dp))
             .background(
                 if (isSelected)
-                    MaterialTheme.colorScheme.surface
+                    MaterialTheme.colorScheme.primaryContainer
                 else
                     Color.Transparent
             )

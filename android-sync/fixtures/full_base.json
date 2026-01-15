@@ -1,0 +1,35 @@
+{
+  "backupSchemaVersion": 2,
+  "exportedAt": 1000,
+  "settings": { "settings": {} },
+  "database": {
+    "projects": [
+      { "id": "p1", "name": "Base Project", "description": "", "parentId": null, "order": 0, "createdAt": 1, "updatedAt": 10, "syncedAt": 10, "isDeleted": false, "version": 1, "tags": [], "relatedLinks": [] }
+    ],
+    "goals": [
+      { "id": "g1", "text": "Base Goal", "description": "", "completed": false, "createdAt": 1, "updatedAt": 10, "syncedAt": 10, "isDeleted": false, "version": 1 }
+    ],
+    "listItems": [
+      { "id": "li1", "projectId": "p1", "itemType": "GOAL", "entityId": "g1", "order": 0, "updatedAt": 10, "syncedAt": 10, "isDeleted": false, "version": 1 }
+    ],
+    "legacyNotes": [],
+    "documents": [
+      { "id": "d1", "projectId": "p1", "name": "Doc Base", "createdAt": 1, "updatedAt": 10, "syncedAt": 10, "isDeleted": false, "version": 1, "content": null, "lastCursorPosition": 0 }
+    ],
+    "documentItems": [],
+    "checklists": [],
+    "checklistItems": [],
+    "activityRecords": [],
+    "scripts": [],
+    "linkItemEntities": [],
+    "inboxRecords": [],
+    "projectExecutionLogs": [],
+    "recentProjectEntries": [],
+    "attachments": [
+      { "id": "a1", "attachmentType": "NOTE_DOCUMENT", "entityId": "d1", "ownerProjectId": "p1", "createdAt": 1, "updatedAt": 10, "syncedAt": 10, "isDeleted": false, "version": 1 }
+    ],
+    "projectAttachmentCrossRefs": [
+      { "projectId": "p1", "attachmentId": "a1", "attachmentOrder": 0, "updatedAt": 10, "syncedAt": 10, "isDeleted": false, "version": 1 }
+    ]
+  }
+}

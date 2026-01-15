@@ -3,6 +3,8 @@ package com.romankozak.forwardappmobile.data.repository
 import androidx.room.Transaction
 import com.romankozak.forwardappmobile.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.data.database.models.InboxRecord
+import com.romankozak.forwardappmobile.data.sync.bumpSync
+import com.romankozak.forwardappmobile.data.sync.softDelete
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject
@@ -30,12 +32,15 @@ class InboxRepository @Inject constructor(
                 text = text,
                 createdAt = currentTime,
                 order = -currentTime,
+                updatedAt = currentTime,
+                syncedAt = null,
+                version = 1,
             )
         inboxRecordDao.insert(newRecord)
     }
 
     suspend fun updateInboxRecord(record: InboxRecord) {
-        inboxRecordDao.update(record)
+        inboxRecordDao.update(record.bumpSync())
     }
 
     suspend fun deleteInboxRecordById(recordId: String) {
@@ -45,7 +50,7 @@ class InboxRepository @Inject constructor(
     @Transaction
     suspend fun promoteInboxRecordToGoal(record: InboxRecord) {
         goalRepository.addGoalToProject(record.text, record.projectId)
-        inboxRecordDao.deleteById(record.id)
+        deleteInboxRecordById(record.id)
     }
 
     @Transaction
@@ -54,6 +59,6 @@ class InboxRepository @Inject constructor(
         targetProjectId: String,
     ) {
         goalRepository.addGoalToProject(record.text, targetProjectId)
-        inboxRecordDao.deleteById(record.id)
+        deleteInboxRecordById(record.id)
     }
 }

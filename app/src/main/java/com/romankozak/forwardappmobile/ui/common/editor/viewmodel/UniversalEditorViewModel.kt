@@ -58,6 +58,10 @@ class UniversalEditorViewModel @Inject constructor(private val application: Appl
 
   private var clipboard: String = ""
 
+  fun showError(message: String) {
+    viewModelScope.launch { _events.send(UniversalEditorEvent.ShowError(message)) }
+  }
+
   fun setProjectId(projectId: String?) {
     _uiState.update { it.copy(projectId = projectId) }
   }

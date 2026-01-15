@@ -14,4 +14,11 @@ interface ConversationFolderDao {
 
     @Query("SELECT * FROM conversation_folders ORDER BY name ASC")
     fun getAllFolders(): Flow<List<ConversationFolderEntity>>
+
+    // --- Backup Methods ---
+    @Query("SELECT * FROM conversation_folders")
+    suspend fun getAllFoldersSync(): List<ConversationFolderEntity>
+
+    @Query("DELETE FROM conversation_folders")
+    suspend fun deleteAllFolders()
 }

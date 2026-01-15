@@ -104,7 +104,7 @@ fun ProjectItem(
         ) {
             Icon(
                 imageVector = Icons.Default.AccountTree,
-                contentDescription = "Project",
+                contentDescription = "Context",
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(24.dp)
             )

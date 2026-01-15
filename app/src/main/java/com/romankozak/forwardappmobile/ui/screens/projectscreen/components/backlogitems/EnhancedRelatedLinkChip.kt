@@ -100,20 +100,18 @@ internal fun EnhancedRelatedLinkChip(
                 tint = contentColor,
                 modifier = Modifier.size(14.dp),
             )
-            if (!isSubProject) {
-                Text(
-                    text = link.displayName ?: link.target,
-                    style =
-                        MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Medium,
-                            letterSpacing = 0.15.sp,
-                            fontSize = 10.sp,
-                        ),
-                    color = contentColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+            Text(
+                text = link.displayName ?: link.target,
+                style =
+                    MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Medium,
+                        letterSpacing = 0.15.sp,
+                        fontSize = 10.sp,
+                    ),
+                color = contentColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }

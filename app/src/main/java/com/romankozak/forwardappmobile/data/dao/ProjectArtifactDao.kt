@@ -18,4 +18,11 @@ interface ProjectArtifactDao {
 
     @Update
     suspend fun update(artifact: ProjectArtifact)
+
+    // --- Backup Methods ---
+    @Query("SELECT * FROM project_artifacts")
+    suspend fun getAll(): List<ProjectArtifact>
+
+    @Query("DELETE FROM project_artifacts")
+    suspend fun deleteAll()
 }

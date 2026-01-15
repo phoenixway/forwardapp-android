@@ -35,4 +35,8 @@ interface ReminderDao {
 
     @Query("DELETE FROM reminders")
     suspend fun deleteAll()
+
+    // --- Backup Methods ---
+    @Query("SELECT * FROM reminders")
+    suspend fun getAllRemindersSync(): List<Reminder>
 }

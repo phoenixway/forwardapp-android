@@ -9,6 +9,10 @@ import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.data.database.models.NoteDocumentItemEntity
 import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
+import com.romankozak.forwardappmobile.data.sync.bumpSync
+import com.romankozak.forwardappmobile.data.sync.softDelete
+import com.romankozak.forwardappmobile.data.repository.AiEventRepository
+import com.romankozak.forwardappmobile.domain.ai.events.SystemNoteUpdatedEvent
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -18,6 +22,7 @@ class NoteDocumentRepository @Inject constructor(
     private val noteDocumentDao: NoteDocumentDao,
     private val attachmentRepository: AttachmentRepository,
     private val recentItemsRepository: RecentItemsRepository,
+    private val aiEventRepository: AiEventRepository,
 ) {
     private val TAG = "NoteDocumentRepository"
 
@@ -27,14 +32,20 @@ class NoteDocumentRepository @Inject constructor(
     fun getAllDocumentsAsFlow(): Flow<List<NoteDocumentEntity>> =
         noteDocumentDao.getAllDocumentsAsFlow()
 
+    suspend fun findDocumentByName(name: String): NoteDocumentEntity? =
+        noteDocumentDao.findByName(name)
+
     @Transaction
     suspend fun createDocument(
         name: String,
         projectId: String,
         content: String? = null,
+        roleCode: String? = null,
+        isSystem: Boolean = false,
     ): String {
         Log.d(TAG, "createDocument called with name: $name, projectId: $projectId, content: $content")
-        val document = NoteDocumentEntity(name = name, projectId = projectId, content = content)
+        val now = System.currentTimeMillis()
+        val document = NoteDocumentEntity(name = name, projectId = projectId, content = content, updatedAt = now, syncedAt = null, version = 1)
         Log.d(TAG, "Inserting new note document: $document")
         noteDocumentDao.insertDocument(document)
         attachmentRepository.ensureAttachmentLinkedToProject(
@@ -43,6 +54,8 @@ class NoteDocumentRepository @Inject constructor(
             projectId = projectId,
             ownerProjectId = projectId,
             createdAt = document.createdAt,
+            roleCode = roleCode,
+            isSystem = isSystem,
         )
         Log.d(TAG, "createDocument finished")
         return document.id
@@ -50,7 +63,15 @@ class NoteDocumentRepository @Inject constructor(
 
     @Transaction
     suspend fun deleteDocument(documentId: String) {
-        noteDocumentDao.deleteDocumentById(documentId)
+        val now = System.currentTimeMillis()
+        val existing = noteDocumentDao.getDocumentById(documentId)
+        if (existing != null) {
+            noteDocumentDao.insertDocument(
+                existing.softDelete(now),
+            )
+        } else {
+            noteDocumentDao.deleteDocumentById(documentId)
+        }
         attachmentRepository.findAttachmentByEntity(ListItemTypeValues.NOTE_DOCUMENT, documentId)?.let {
             attachmentRepository.deleteAttachment(it.id)
         }
@@ -62,14 +83,36 @@ class NoteDocumentRepository @Inject constructor(
     suspend fun saveDocumentItem(item: NoteDocumentItemEntity) {
         val existingItem = noteDocumentDao.getListItemById(item.id)
         if (existingItem == null) {
-            noteDocumentDao.insertListItem(item)
+            val now = System.currentTimeMillis()
+            noteDocumentDao.insertListItem(
+                item.copy(
+                    updatedAt = now,
+                    syncedAt = null,
+                    version = item.version + 1,
+                ),
+            )
         } else {
-            noteDocumentDao.updateListItem(item.copy(updatedAt = System.currentTimeMillis()))
+            val now = System.currentTimeMillis()
+            noteDocumentDao.updateListItem(
+                item.copy(
+                    updatedAt = now,
+                    syncedAt = null,
+                    version = existingItem.version + 1,
+                ),
+            )
         }
     }
 
     suspend fun deleteDocumentItem(itemId: String) {
-        noteDocumentDao.deleteListItemById(itemId)
+        val now = System.currentTimeMillis()
+        val existing = noteDocumentDao.getListItemById(itemId)
+        if (existing != null) {
+            noteDocumentDao.insertListItem(
+                existing.softDelete(now),
+            )
+        } else {
+            noteDocumentDao.deleteListItemById(itemId)
+        }
     }
 
     suspend fun importFromLegacy(note: LegacyNoteEntity) {
@@ -86,7 +129,10 @@ class NoteDocumentRepository @Inject constructor(
     }
 
     suspend fun updateDocumentItems(items: List<NoteDocumentItemEntity>) {
-        noteDocumentDao.updateListItems(items)
+        val now = System.currentTimeMillis()
+        noteDocumentDao.updateListItems(
+            items.map { it.bumpSync(now) },
+        )
     }
 
     suspend fun getDocumentById(id: String): NoteDocumentEntity? {
@@ -102,8 +148,18 @@ class NoteDocumentRepository @Inject constructor(
             "Repository updating note document. lastCursorPosition: ${document.lastCursorPosition}",
         )
         Log.d(TAG, "updateDocument called with document: $document")
-        noteDocumentDao.updateDocument(document)
+        val now = System.currentTimeMillis()
+        noteDocumentDao.updateDocument(document.bumpSync(now))
         recentItemsRepository.updateRecentItemDisplayName(document.id, document.name)
         Log.d(TAG, "updateDocument finished")
+        if (document.name == "my-life-current-state") {
+            aiEventRepository.emit(
+                SystemNoteUpdatedEvent(
+                    timestamp = java.time.Instant.ofEpochMilli(now),
+                    noteId = document.id,
+                    textLength = document.content?.length ?: 0,
+                )
+            )
+        }
     }
 }

@@ -25,4 +25,18 @@ data class ProjectSettingsUiState(
     val reminderTime: Long? = null,
     val selectedTabIndex: Int = 0,
     val showCheckboxes: Boolean = true,
+    val isProjectManagementEnabled: Boolean = false,
+    val currentPresetLabel: String? = null,
+    val availablePresets: List<com.romankozak.forwardappmobile.data.database.models.StructurePreset> = emptyList(),
+    val autoLinkSubprojects: Boolean = true,
+    val features: Map<String, Boolean> = mapOf(
+        "Inbox" to true,
+        "Log" to true,
+        "Artifact" to true,
+        "Advanced" to false,
+        "Dashboard" to true,
+        "Backlog" to true,
+        "Attachments" to true,
+        "Auto link subprojects" to true,
+    ),
 )

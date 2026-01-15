@@ -21,6 +21,7 @@ import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.utils.handleRelatedLinkClick
+import com.romankozak.forwardappmobile.ui.navigation.NavTargetRouter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -94,19 +95,15 @@ fun GoalDetailEffects(
 
                 is UiEvent.Navigate -> {
 
-                    Log.d(TAG, "GoalDetailEffects: Отримано подію Navigate. Маршрут: '${event.route}'")
+                    Log.d(TAG, "GoalDetailEffects: Отримано подію Navigate.")
 
-                    if (event.route == "back") {
+                    navController.navigate(NavTargetRouter.routeOf(event.target))
 
-                        navController.popBackStack()
+                }
 
-                    }
+                is UiEvent.NavigateBack -> {
 
-                    else {
-
-                        navController.navigate(event.route)
-
-                    }
+                    navController.popBackStack()
 
                 }
 

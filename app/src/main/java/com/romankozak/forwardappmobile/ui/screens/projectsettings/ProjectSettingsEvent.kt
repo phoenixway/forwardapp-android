@@ -1,11 +1,13 @@
 package com.romankozak.forwardappmobile.ui.screens.projectsettings
 
+import com.romankozak.forwardappmobile.ui.navigation.NavTarget
+
 sealed class ProjectSettingsEvent {
     data class NavigateBack(
         val message: String? = null,
     ) : ProjectSettingsEvent()
 
     data class Navigate(
-        val route: String,
+        val target: NavTarget,
     ) : ProjectSettingsEvent()
 }

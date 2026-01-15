@@ -143,7 +143,7 @@ fun GoalDetailDialogs(viewModel: BacklogViewModel) {
         com.romankozak.forwardappmobile.ui.reminders.dialogs.ReminderPropertiesDialog(
             onDismiss = viewModel::onReminderDialogDismiss,
             onSetReminder = viewModel::onSetReminder,
-            onRemoveReminder = null,
+            onRemoveReminder = viewModel::onRemoveReminder,
             currentReminders = uiState.remindersForDialog,
         )
     }

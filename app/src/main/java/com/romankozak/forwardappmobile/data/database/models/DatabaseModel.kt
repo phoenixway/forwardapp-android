@@ -12,6 +12,8 @@ import androidx.room.TypeConverters
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
+import com.romankozak.forwardappmobile.features.missions.domain.model.MissionPriority
+import com.romankozak.forwardappmobile.features.missions.domain.model.MissionStatus
 
 
 
@@ -73,6 +75,26 @@ class Converters {
         val objectType = object : TypeToken<RelatedLink>() {}.type
         return gson.fromJson(value, objectType)
     }
+
+    @TypeConverter
+    fun fromMissionStatus(status: MissionStatus?): String? {
+        return status?.name
+    }
+
+    @TypeConverter
+    fun toMissionStatus(status: String?): MissionStatus? {
+        return status?.let { MissionStatus.valueOf(it) }
+    }
+
+    @TypeConverter
+    fun fromMissionPriority(priority: MissionPriority?): String? {
+        return priority?.name
+    }
+
+    @TypeConverter
+    fun toMissionPriority(priority: String?): MissionPriority? {
+        return priority?.let { MissionPriority.valueOf(it) }
+    }
 }
 
 object ProjectStatusValues {
@@ -124,11 +146,40 @@ object ListItemTypeValues {
     const val NOTE = "NOTE"
     const val NOTE_DOCUMENT = "NOTE_DOCUMENT"
     const val CHECKLIST = "CHECKLIST"
+    const val SCRIPT = "SCRIPT"
 }
 
+@Entity(
+    tableName = "backlog_orders",
+    indices = [
+        Index("list_id"),
+        Index(value = ["list_id", "item_id"], unique = true),
+    ],
+    foreignKeys = [
+        ForeignKey(
+            entity = Project::class,
+            parentColumns = ["id"],
+            childColumns = ["list_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+)
+data class BacklogOrder(
+    @PrimaryKey val id: String,
+    @ColumnInfo(name = "list_id")
+    val listId: String,
+    @ColumnInfo(name = "item_id")
+    val itemId: String,
+    @ColumnInfo(name = "item_order") val order: Long,
+    @ColumnInfo(name = "order_version", defaultValue = "0") val orderVersion: Long = 0,
+    val updatedAt: Long? = null,
+    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
+)
 
 
-enum class ProjectViewMode { BACKLOG, INBOX, ADVANCED, ATTACHMENTS }
+
+enum class ProjectViewMode { BACKLOG, INBOX, ADVANCED, ATTACHMENTS, DASHBOARD }
 
 enum class LinkType { PROJECT, URL, OBSIDIAN }
 
@@ -163,6 +214,10 @@ data class LinkItemEntity(
     @ColumnInfo(name = "link_data")
     val linkData: RelatedLink,
     val createdAt: Long,
+    val updatedAt: Long? = null,
+    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
+    @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0,
 )
 
 @Entity(tableName = "goals")
@@ -173,6 +228,9 @@ data class Goal(
     val completed: Boolean,
     val createdAt: Long,
     val updatedAt: Long?,
+    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
+    @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0,
     val tags: List<String>? = null,
     val relatedLinks: List<RelatedLink>? = null,
     @ColumnInfo(defaultValue = "0.0") val valueImportance: Float = 0f,
@@ -234,7 +292,12 @@ class ReservedGroupConverter {
     }
 }
 
-@Entity(tableName = "projects")
+@Entity(
+    tableName = "projects",
+    indices = [
+        Index("system_key", unique = true, name = "idx_projects_systemkey_unique")
+    ]
+)
 @TypeConverters(ProjectTypeConverter::class, ReservedGroupConverter::class)
 data class Project(
     @PrimaryKey val id: String,
@@ -244,6 +307,9 @@ data class Project(
     @ColumnInfo(name = "system_key") val systemKey: String? = null,
     val createdAt: Long,
     val updatedAt: Long?,
+    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
+    @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0,
     val tags: List<String>? = null,
     val relatedLinks: List<RelatedLink>? = null,
     @ColumnInfo(name = "is_expanded", defaultValue = "1") val isExpanded: Boolean = true,
@@ -269,7 +335,8 @@ data class Project(
     @ColumnInfo(name = "scoring_status") val scoringStatus: String = ScoringStatusValues.NOT_ASSESSED,
     @ColumnInfo(name = "show_checkboxes", defaultValue = "0") val showCheckboxes: Boolean = false,
     @ColumnInfo(name = "project_type", defaultValue = "'DEFAULT'") val projectType: ProjectType = ProjectType.DEFAULT,
-    @ColumnInfo(name = "reserved_group") val reservedGroup: ReservedGroup? = null
+    @ColumnInfo(name = "reserved_group") val reservedGroup: ReservedGroup? = null,
+    @ColumnInfo(name = "role_code") val roleCode: String? = null,
 )
 
 @Entity(
@@ -290,6 +357,10 @@ data class ProjectExecutionLog(
     @ColumnInfo(name = "type") val type: String,
     val description: String,
     val details: String? = null,
+    val updatedAt: Long? = null,
+    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
+    @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0,
 )
 
 @Entity(
@@ -309,6 +380,10 @@ data class InboxRecord(
     val text: String,
     val createdAt: Long,
     @ColumnInfo(name = "item_order") val order: Long,
+    val updatedAt: Long? = null,
+    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
+    @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0,
 )
 
 @Entity(
@@ -330,6 +405,10 @@ data class ListItem(
     val itemType: String,
     val entityId: String,
     @ColumnInfo(name = "item_order") val order: Long,
+    val updatedAt: Long? = null,
+    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
+    @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0,
 )
 
 @Fts4(contentEntity = Goal::class)

@@ -39,10 +39,16 @@ interface GoalDao {
     @Query("SELECT * FROM goals")
     suspend fun getAll(): List<Goal>
 
+    @Query("SELECT * FROM goals WHERE is_deleted = 0")
+    suspend fun getAllVisible(): List<Goal>
+
     @Query("SELECT * FROM goals")
     fun getAllGoalsFlow(): Flow<List<Goal>>
 
-    @Query("SELECT * FROM goals WHERE text LIKE '%' || :query || '%'")
+    @Query("SELECT * FROM goals WHERE is_deleted = 0")
+    fun getAllVisibleGoalsFlow(): Flow<List<Goal>>
+
+    @Query("SELECT * FROM goals WHERE text LIKE '%' || :query || '%' AND is_deleted = 0")
     fun searchGoalsByText(query: String): Flow<List<Goal>>
 
     @Transaction
@@ -59,13 +65,13 @@ FROM goals g
 JOIN list_items li ON g.id = li.entityId AND li.itemType = 'GOAL'
 JOIN projects p ON li.project_id = p.id
 JOIN path_cte pc ON p.id = pc.id
-WHERE g.text LIKE :query OR g.description LIKE :query
+WHERE (g.text LIKE :query OR g.description LIKE :query) AND g.is_deleted = 0
 """,
     )
     
     suspend fun searchGoalsGlobal(query: String): List<GlobalGoalSearchResult>
 
-    @Query("SELECT COUNT(*) FROM goals")
+    @Query("SELECT COUNT(*) FROM goals WHERE is_deleted = 0")
     fun getAllGoalsCountFlow(): Flow<Int>
 
     @Query("UPDATE goals SET description = :markdown WHERE id = :goalId")

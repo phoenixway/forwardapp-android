@@ -10,7 +10,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -41,7 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenEvent
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenEvent
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
 
 @Composable
@@ -151,33 +153,41 @@ internal fun MoreActionsBottomNavButton(
     onShowReminders: () -> Unit,
     onAiChatClick: () -> Unit,
     onLifeStateClick: () -> Unit,
+    onTacticsClick: () -> Unit, // Added
+    onContextsClick: () -> Unit,
+    aiChatEnabled: Boolean,
+    aiInsightsEnabled: Boolean,
+    aiLifeManagementEnabled: Boolean,
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    val primary = MaterialTheme.colorScheme.primary
 
     Column(
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color.Transparent)
+            .clip(RoundedCornerShape(14.dp))
             .clickable { showMenu = true }
-            .padding(horizontal = 4.dp, vertical = 6.dp)
-            .widthIn(min = 56.dp),
+            .padding(6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Icon(
-            imageVector = Icons.Outlined.MoreVert,
-            contentDescription = "More Actions",
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-            modifier = Modifier.size(20.dp),
-        )
-        Spacer(modifier = Modifier.height(3.dp))
-        Text(
-            text = "More",
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Medium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-        )
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(primary.copy(alpha = 0.10f))
+                .border(
+                    width = 1.dp,
+                    color = primary.copy(alpha = 0.22f),
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.MoreVert,
+                contentDescription = "More Actions",
+                tint = primary.copy(alpha = 0.9f),
+                modifier = Modifier.size(24.dp),
+            )
+        }
 
         DropdownMenu(
             expanded = showMenu,
@@ -185,21 +195,41 @@ internal fun MoreActionsBottomNavButton(
             offset = DpOffset(0.dp, (-50).dp) // Adjust offset to position above the button
         ) {
             DropdownMenuItem(
-                text = { Text("AI Life-Management") },
-                leadingIcon = { Icon(Icons.Outlined.AutoAwesome, contentDescription = "AI Life-Management") },
+                text = { Text("Contexts") },
+                leadingIcon = { Icon(Icons.Outlined.AccountTree, contentDescription = "Contexts") },
                 onClick = {
-                    onLifeStateClick()
+                    onContextsClick()
                     showMenu = false
                 }
             )
             DropdownMenuItem(
-                text = { Text("Insights") },
-                leadingIcon = { Icon(Icons.Outlined.Lightbulb, contentDescription = "Insights") },
+                text = { Text("Tactics") },
+                leadingIcon = { Icon(Icons.Outlined.MilitaryTech, contentDescription = "Tactics") },
                 onClick = {
-                    onInsightsClick()
+                    onTacticsClick()
                     showMenu = false
                 }
             )
+            if (aiLifeManagementEnabled) {
+                DropdownMenuItem(
+                    text = { Text("AI Life-Management") },
+                    leadingIcon = { Icon(Icons.Outlined.AutoAwesome, contentDescription = "AI Life-Management") },
+                    onClick = {
+                        onLifeStateClick()
+                        showMenu = false
+                    }
+                )
+            }
+            if (aiInsightsEnabled) {
+                DropdownMenuItem(
+                    text = { Text("Insights") },
+                    leadingIcon = { Icon(Icons.Outlined.Lightbulb, contentDescription = "Insights") },
+                    onClick = {
+                        onInsightsClick()
+                        showMenu = false
+                    }
+                )
+            }
             DropdownMenuItem(
                 text = { Text("Reminders") },
                 leadingIcon = { Icon(Icons.Outlined.Notifications, contentDescription = "Reminders") },
@@ -208,31 +238,36 @@ internal fun MoreActionsBottomNavButton(
                     showMenu = false
                 }
             )
-            DropdownMenuItem(
-                text = { Text("AI-Chat") },
-                leadingIcon = { Icon(Icons.Outlined.AutoAwesome, contentDescription = "AI-Chat") },
-                onClick = {
-                    onAiChatClick()
-                    showMenu = false
-                }
-            )
+            if (aiChatEnabled) {
+                DropdownMenuItem(
+                    text = { Text("AI-Chat") },
+                    leadingIcon = { Icon(Icons.Outlined.AutoAwesome, contentDescription = "AI-Chat") },
+                    onClick = {
+                        onAiChatClick()
+                        showMenu = false
+                    }
+                )
+            }
         }
     }
 }
 
 @Composable
-internal fun ExpandingBottomNav(
+internal fun ExpandingProjectHierarchyBottomNav(
     onToggleSearch: (Boolean) -> Unit,
     onGlobalSearchClick: () -> Unit,
+    onShowCommandDeck: () -> Unit,
     currentMode: PlanningMode,
     onPlanningModeChange: (PlanningMode) -> Unit,
     planningModesEnabled: Boolean,
-    onContextsClick: () -> Unit,
     onRecentsClick: () -> Unit,
     onDayPlanClick: () -> Unit,
     onHomeClick: () -> Unit,
     onStrManagementClick: () -> Unit,
     strategicManagementEnabled: Boolean,
+    aiChatEnabled: Boolean,
+    aiInsightsEnabled: Boolean,
+    aiLifeManagementEnabled: Boolean,
     isExpanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
     
@@ -241,111 +276,47 @@ internal fun ExpandingBottomNav(
     onInsightsClick: () -> Unit,
     onShowReminders: () -> Unit,
     onLifeStateClick: () -> Unit,
-    onEvent: (MainScreenEvent) -> Unit,
+    onTacticsClick: () -> Unit, // Added
+    onContextsClick: () -> Unit,
+    onEvent: (ProjectHierarchyScreenEvent) -> Unit,
 ) {
     var showMoreMenu by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
     val arrowRotation by animateFloatAsState(targetValue = if (isExpanded) 180f else 0f, label = "arrowAnimation")
 
     Surface(
-        tonalElevation = 8.dp,
-        shadowElevation = 12.dp,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         modifier = Modifier.fillMaxWidth(),
+        color = Color.Transparent,
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = expandVertically(animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMedium)) + fadeIn(tween(150)),
-                exit = shrinkVertically(animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)) + fadeOut(tween(150)),
-            ) {
-                Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 4.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                ) {
-                    if (planningModesEnabled) {
-                        PlanningModeSelector(
-                            currentMode = currentMode,
-                            onPlanningModeChange = onPlanningModeChange,
-                        )
-                    }
-                    SmallBottomNavButton(
-                        text = "Inbox",
-                        icon = Icons.Outlined.Inbox,
-                        onClick = { onEvent(MainScreenEvent.OpenInboxProject) },
-                    )
-                    SmallBottomNavButton(
-                        text = "Contexts",
-                        icon = Icons.Outlined.AccountTree,
-                        onClick = onContextsClick,
-                    )
-                    SmallBottomNavButton(
-                        text = "Tracker",
-                        icon = Icons.Outlined.TrackChanges,
-                        onClick = { onEvent(MainScreenEvent.NavigateToActivityTrackerScreen) },
-                    )
-                    MoreActionsBottomNavButton(
-                        onInsightsClick = onInsightsClick,
-                        onShowReminders = onShowReminders,
-                        onAiChatClick = onAiChatClick,
-                        onLifeStateClick = onLifeStateClick,
-                    )
-                }
-            }
-
-            
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .height(32.dp)
-                        .clickable {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            onExpandedChange(!isExpanded)
-                        },
-                contentAlignment = Alignment.Center,
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.KeyboardArrowUp,
-                        contentDescription = if (isExpanded) "Collapse" else "Expand",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier =
-                            Modifier
-                                .size(20.dp)
-                                .rotate(arrowRotation),
-                    )
-                }
-            }
-
-            
             Row(
                 modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(start = 4.dp, end = 4.dp, bottom = 8.dp),
+                Modifier
+                    .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceEvenly,
+                horizontalArrangement = Arrangement.SpaceAround,
             ) {
                 ModernBottomNavButton(text = "Search", icon = Icons.Outlined.Search, isSelected = false, onClick = { onToggleSearch(true) })
-                ModernBottomNavButton(text = "Day", icon = Icons.Outlined.WbSunny, onClick = onDayPlanClick)
+                CommandDeckNavButton(onClick = onShowCommandDeck)
                 ModernBottomNavButton(text = "Home", icon = Icons.Outlined.Home, onClick = onHomeClick)
                 ModernBottomNavButton(text = "Recent", icon = Icons.Outlined.History, onClick = onRecentsClick)
-                if (strategicManagementEnabled) {
-                    ModernBottomNavButton(text = "Strategy", icon = Icons.Outlined.Domain, onClick = onStrManagementClick)
-                }
-
+                MoreActionsBottomNavButton(
+                    onInsightsClick = onInsightsClick,
+                    onShowReminders = onShowReminders,
+                    onAiChatClick = onAiChatClick,
+                    onLifeStateClick = onLifeStateClick,
+                    onTacticsClick = onTacticsClick,
+                    aiChatEnabled = aiChatEnabled,
+                    aiInsightsEnabled = aiInsightsEnabled,
+                    aiLifeManagementEnabled = aiLifeManagementEnabled,
+                    onContextsClick = onContextsClick,
+                )
             }
         }
     }
@@ -358,45 +329,83 @@ fun ModernBottomNavButton(
     isSelected: Boolean = false,
     onClick: () -> Unit,
 ) {
-    val backgroundColor =
-        if (isSelected) {
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f)
-        } else {
-            Color.Transparent
-        }
-
-    val contentColor =
-        if (isSelected) {
-            MaterialTheme.colorScheme.onPrimaryContainer
-        } else {
-            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-        }
+    val primary = MaterialTheme.colorScheme.primary
+    val interactionSource = remember { MutableInteractionSource() }
+    val fillAlpha = if (isSelected) 0.10f else 0.10f
+    val borderAlpha = if (isSelected) 0.22f else 0.22f
 
     Column(
         modifier =
             Modifier
-                .clip(RoundedCornerShape(12.dp))
-                .background(backgroundColor)
-                .clickable(onClick = onClick)
-                .padding(horizontal = 4.dp, vertical = 6.dp)
-                .widthIn(min = 56.dp),
+                .clip(RoundedCornerShape(14.dp))
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onClick
+                )
+                .padding(6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = text,
-            tint = contentColor,
-            modifier = Modifier.size(20.dp),
-        )
-        Spacer(modifier = Modifier.height(3.dp))
-        Text(
-            text = text,
-            fontSize = 10.sp,
-            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            color = contentColor,
-        )
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(primary.copy(alpha = fillAlpha))
+                .border(
+                    width = 1.dp,
+                    color = primary.copy(alpha = borderAlpha),
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = text,
+                tint = primary.copy(alpha = 0.9f),
+                modifier = Modifier.size(24.dp),
+            )
+        }
+    }
+}
+
+@Composable
+fun CommandDeckNavButton(
+    onClick: () -> Unit,
+) {
+    val primary = MaterialTheme.colorScheme.primary
+    val interactionSource = remember { MutableInteractionSource() }
+
+    Column(
+        modifier =
+            Modifier
+                .clip(RoundedCornerShape(14.dp))
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onClick
+                )
+                .padding(6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(primary.copy(alpha = 0.10f))
+                .border(
+                    width = 1.dp,
+                    color = primary.copy(alpha = 0.22f),
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "⌬",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = primary.copy(alpha = 0.9f)
+            )
+        }
     }
 }
 

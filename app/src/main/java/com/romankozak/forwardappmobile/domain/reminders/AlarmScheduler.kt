@@ -24,7 +24,6 @@ import java.util.Locale
 import javax.inject.Provider
 import javax.inject.Inject
 import javax.inject.Singleton
-import android.provider.Settings
 
 
 @Singleton
@@ -197,15 +196,7 @@ class AlarmScheduler
             }
         }
 
-        // Перевірка дозволу на показ поверх інших додатків для Android 12+
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (!Settings.canDrawOverlays(context)) {
-                Log.e(tag, "AlarmScheduler: Cannot draw over other apps. Permission denied.")
-                Toast.makeText(context, "Please grant permission to display over other apps.", Toast.LENGTH_LONG).show()
-                return false
-            }
-        }
-
+        // Full-screen notification flow does not require SYSTEM_ALERT_WINDOW; avoid blocking scheduling.
         checkBatteryOptimization()
 
         Log.i(tag, "AlarmScheduler: All permissions are granted")

@@ -14,6 +14,7 @@ import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.attachments.AttachmentType
+import com.romankozak.forwardappmobile.ui.navigation.NavTarget
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
@@ -146,12 +147,20 @@ class AttachmentsViewModel @Inject constructor(
         when (type) {
             AttachmentType.NOTES -> {
                 viewModelScope.launch {
-                    _uiEventFlow.send(UiEvent.Navigate("note_document_edit_screen?projectId=${projectId.value}"))
+                    _uiEventFlow.send(
+                        UiEvent.Navigate(
+                            NavTarget.NoteDocumentEdit(projectId = projectId.value)
+                        )
+                    )
                 }
             }
             AttachmentType.CHECKLIST -> {
                 viewModelScope.launch {
-                    _uiEventFlow.send(UiEvent.Navigate("checklist_screen?projectId=${projectId.value}"))
+                    _uiEventFlow.send(
+                        UiEvent.Navigate(
+                            NavTarget.Checklist(projectId = projectId.value)
+                        )
+                    )
                 }
             }
             AttachmentType.WEB_LINK -> {
@@ -163,13 +172,27 @@ class AttachmentsViewModel @Inject constructor(
             AttachmentType.PROJECT_LINK -> {
                 _uiState.update { it.copy(pendingAttachmentType = PendingAttachmentType.PROJECT_LINK) }
                 viewModelScope.launch {
-                    _uiEventFlow.send(UiEvent.NavigateToListChooser("Add link to another project", projectId.value))
+                    _uiEventFlow.send(
+                        UiEvent.Navigate(
+                            NavTarget.ListChooser(
+                                title = "Add link to another project",
+                                currentParentId = projectId.value,
+                            )
+                        )
+                    )
                 }
             }
             AttachmentType.PROJECT_SHORTCUT -> {
                 _uiState.update { it.copy(pendingAttachmentType = PendingAttachmentType.PROJECT_SHORTCUT) }
                 viewModelScope.launch {
-                    _uiEventFlow.send(UiEvent.NavigateToListChooser("Add shortcut to another project", projectId.value))
+                    _uiEventFlow.send(
+                        UiEvent.Navigate(
+                            NavTarget.ListChooser(
+                                title = "Add shortcut to another project",
+                                currentParentId = projectId.value,
+                            )
+                        )
+                    )
                 }
             }
         }
@@ -179,7 +202,11 @@ class AttachmentsViewModel @Inject constructor(
         viewModelScope.launch {
             when (link.type) {
                 LinkType.PROJECT -> {
-                    _uiEventFlow.send(UiEvent.Navigate("goal_detail_screen/${link.target}"))
+                    _uiEventFlow.send(
+                        UiEvent.Navigate(
+                            NavTarget.ProjectDetail(projectId = link.target)
+                        )
+                    )
                 }
                 LinkType.URL -> {
                     _uiEventFlow.send(UiEvent.OpenUri(link.target))

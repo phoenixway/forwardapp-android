@@ -36,4 +36,7 @@ data class NoteDocumentItemEntity(
     var itemOrder: Long = 0,
     val createdAt: Long = System.currentTimeMillis(),
     var updatedAt: Long = System.currentTimeMillis(),
+    val syncedAt: Long? = null,
+    val isDeleted: Boolean = false,
+    val version: Long = 0,
 )

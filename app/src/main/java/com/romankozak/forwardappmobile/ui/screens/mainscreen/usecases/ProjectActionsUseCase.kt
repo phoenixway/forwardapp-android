@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
 
 import android.net.Uri
+import android.util.Log
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
@@ -9,7 +10,7 @@ import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DropPosition
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.findDescendantsForDeletion
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.getDescendantIds
-import java.net.URLEncoder
+import com.romankozak.forwardappmobile.ui.navigation.NavTarget
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
@@ -49,14 +50,17 @@ class ProjectActionsUseCase @Inject constructor(
     fun getMoveProjectRoute(
         project: Project,
         allProjects: List<Project>,
-    ): String {
+    ): NavTarget.ListChooser {
         val title = "Move '${project.name}'"
-        val encodedTitle = URLEncoder.encode(title, "UTF-8")
         val childMap = allProjects.filter { it.parentId != null }.groupBy { it.parentId!! }
         val descendantIds = getDescendantIds(project.id, childMap).joinToString(",")
         val currentParentId = project.parentId ?: "root"
         val disabledIds = "${project.id}${if (descendantIds.isNotEmpty()) ",$descendantIds" else ""}"
-        return "list_chooser_screen/$encodedTitle?currentParentId=$currentParentId&disabledIds=$disabledIds"
+        return NavTarget.ListChooser(
+            title = title,
+            currentParentId = currentParentId,
+            disabledIds = disabledIds,
+        )
     }
 
     suspend fun onListChooserResult(
@@ -187,11 +191,18 @@ class ProjectActionsUseCase @Inject constructor(
         return withContext(ioDispatcher) { syncRepository.exportAttachmentsToFile() }
     }
 
-    suspend fun onFullImportConfirmed(uri: Uri) =
-        withContext(ioDispatcher) { syncRepository.importFullBackupFromFile(uri) }
+    suspend fun onFullImportConfirmed(uri: Uri): Result<String> {
+        Log.e("GEMINI_DEBUG", "ProjectActionsUseCase.onFullImportConfirmed is called")
+        return withContext(ioDispatcher) { syncRepository.importFullBackupFromFile(uri) }
+    }
 
-    suspend fun importAttachments(uri: Uri) =
-        withContext(ioDispatcher) { syncRepository.importAttachmentsFromFile(uri) }
+    suspend fun importAttachments(uri: Uri): Result<String> {
+        Log.d("SyncRepo_AttachmentsImport", "ProjectActionsUseCase.importAttachments called with uri=$uri")
+        return withContext(ioDispatcher) { 
+            Log.d("SyncRepo_AttachmentsImport", "About to call syncRepository.importAttachmentsFromFile")
+            syncRepository.importAttachmentsFromFile(uri) 
+        }
+    }
 
     suspend fun onBottomNavExpandedChange(expanded: Boolean) =
         withContext(ioDispatcher) { settingsRepository.saveBottomNavExpanded(expanded) }

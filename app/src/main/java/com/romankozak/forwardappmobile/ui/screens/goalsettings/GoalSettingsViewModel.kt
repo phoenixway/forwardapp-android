@@ -12,6 +12,7 @@ import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.ui.screens.projectsettings.ProjectSettingsEvent
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.TagUtils
+import com.romankozak.forwardappmobile.ui.navigation.NavTarget
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.RemindersTabActions
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.EvaluationTabActions
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -22,7 +23,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.net.URLEncoder
 import java.util.UUID
 import javax.inject.Inject
 
@@ -236,8 +236,14 @@ class GoalSettingsViewModel @Inject constructor(
                 _uiState.value.relatedLinks
                     .filter { it.type == LinkType.PROJECT }
                     .joinToString(",") { it.target }
-            val title = URLEncoder.encode("Додати посилання на проект", "UTF-8")
-            _events.send(ProjectSettingsEvent.Navigate("list_chooser_screen/$title?disabledIds=$disabledIds"))
+            _events.send(
+                ProjectSettingsEvent.Navigate(
+                    NavTarget.ListChooser(
+                        title = "Додати посилання на проект",
+                        disabledIds = disabledIds.ifBlank { null },
+                    )
+                )
+            )
         }
     }
 

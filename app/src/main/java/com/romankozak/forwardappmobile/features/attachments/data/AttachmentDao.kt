@@ -56,6 +56,22 @@ interface AttachmentDao {
 
     @Query(
         """
+        SELECT a.*
+          FROM attachments a
+          INNER JOIN project_attachment_cross_ref link ON link.attachment_id = a.id
+         WHERE link.project_id = :projectId
+           AND a.role_code = :roleCode
+           AND a.isDeleted = 0
+         LIMIT 1
+        """
+    )
+    suspend fun findAttachmentByRole(
+        projectId: String,
+        roleCode: String
+    ): AttachmentEntity?
+
+    @Query(
+        """
         DELETE FROM project_attachment_cross_ref
         WHERE project_id = :projectId AND attachment_id = :attachmentId
         """,
@@ -73,6 +89,21 @@ interface AttachmentDao {
 
     @Query("SELECT COUNT(*) FROM project_attachment_cross_ref WHERE attachment_id = :attachmentId")
     suspend fun countLinksForAttachment(attachmentId: String): Int
+
+    @Query(
+        """
+        SELECT * FROM project_attachment_cross_ref
+        WHERE project_id = :projectId AND attachment_id = :attachmentId
+        LIMIT 1
+        """,
+    )
+    suspend fun getProjectAttachmentLink(
+        projectId: String,
+        attachmentId: String,
+    ): ProjectAttachmentCrossRef?
+
+    @Query("SELECT * FROM project_attachment_cross_ref WHERE attachment_id = :attachmentId")
+    suspend fun getProjectAttachmentLinksForAttachment(attachmentId: String): List<ProjectAttachmentCrossRef>
 
     @Query(
         """

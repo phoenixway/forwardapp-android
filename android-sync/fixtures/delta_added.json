@@ -1,0 +1,33 @@
+{
+  "backupSchemaVersion": 2,
+  "exportedAt": 2000,
+  "settings": { "settings": {} },
+  "database": {
+    "projects": [],
+    "goals": [
+      { "id": "g2", "text": "New Remote Goal", "description": "", "completed": false, "createdAt": 5, "updatedAt": 200, "syncedAt": null, "isDeleted": false, "version": 1 }
+    ],
+    "listItems": [
+      { "id": "li2", "projectId": "p1", "itemType": "GOAL", "entityId": "g2", "order": 1, "updatedAt": 200, "syncedAt": null, "isDeleted": false, "version": 1 }
+    ],
+    "legacyNotes": [],
+    "documents": [
+      { "id": "d2", "projectId": "p1", "name": "Doc Delta", "createdAt": 5, "updatedAt": 200, "syncedAt": null, "isDeleted": false, "version": 1, "content": null, "lastCursorPosition": 0 }
+    ],
+    "documentItems": [],
+    "checklists": [],
+    "checklistItems": [],
+    "activityRecords": [],
+    "scripts": [],
+    "linkItemEntities": [],
+    "inboxRecords": [],
+    "projectExecutionLogs": [],
+    "recentProjectEntries": [],
+    "attachments": [
+      { "id": "a2", "attachmentType": "NOTE_DOCUMENT", "entityId": "d2", "ownerProjectId": "p1", "createdAt": 5, "updatedAt": 200, "syncedAt": null, "isDeleted": false, "version": 1 }
+    ],
+    "projectAttachmentCrossRefs": [
+      { "projectId": "p1", "attachmentId": "a2", "attachmentOrder": 1, "updatedAt": 200, "syncedAt": null, "isDeleted": false, "version": 1 }
+    ]
+  }
+}

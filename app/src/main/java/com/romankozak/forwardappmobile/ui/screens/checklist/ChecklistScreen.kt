@@ -206,7 +206,10 @@ fun ChecklistScreen(
                             }
                         }
                     }
-                }
+                },
+                onSelectAll = viewModel::onSelectAllItems,
+                onMarkAllCompleted = viewModel::onMarkAllCompleted,
+                onMarkAllIncomplete = viewModel::onMarkAllIncomplete,
             )
         },
         floatingActionButton = {
@@ -424,6 +427,9 @@ private fun ChecklistTopBar(
     onClearCompleted: () -> Unit,
     onExportMarkdown: () -> Unit,
     onImportFromClipboard: () -> Unit,
+    onSelectAll: () -> Unit,
+    onMarkAllCompleted: () -> Unit,
+    onMarkAllIncomplete: () -> Unit,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     TopAppBar(
@@ -508,6 +514,30 @@ colors = OutlinedTextFieldDefaults.colors(
                     onClick = {
                         menuExpanded = false
                         onImportFromClipboard()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Select all") },
+                    leadingIcon = { Icon(imageVector = Icons.Filled.CheckBox, contentDescription = null) },
+                    onClick = {
+                        menuExpanded = false
+                        onSelectAll()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Mark all done") },
+                    leadingIcon = { Icon(imageVector = Icons.Filled.Check, contentDescription = null) },
+                    onClick = {
+                        menuExpanded = false
+                        onMarkAllCompleted()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Mark all not done") },
+                    leadingIcon = { Icon(imageVector = Icons.Outlined.CheckBoxOutlineBlank, contentDescription = null) },
+                    onClick = {
+                        menuExpanded = false
+                        onMarkAllIncomplete()
                     }
                 )
             }

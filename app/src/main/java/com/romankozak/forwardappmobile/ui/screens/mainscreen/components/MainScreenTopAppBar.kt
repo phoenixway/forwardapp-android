@@ -2,18 +2,29 @@ package com.romankozak.forwardappmobile.ui.screens.mainscreen.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.NorthEast
 import androidx.compose.material3.Badge
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -23,28 +34,36 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.res.stringResource
 import com.romankozak.forwardappmobile.config.FeatureFlag
-import com.romankozak.forwardappmobile.config.FeatureToggles
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.tween
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.sync.WifiSyncStatus
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreenTopAppBar(
+fun ProjectHierarchyScreenTopAppBar(
     isSearchActive: Boolean,
     isFocusMode: Boolean,
+    focusedProjectTitle: String?,
+    focusedProjectMenuClick: (() -> Unit)?,
+    focusedProjectOpenClick: (() -> Unit)?,
     canGoBack: Boolean,
     canGoForward: Boolean,
     onGoBack: () -> Unit,
@@ -52,182 +71,255 @@ fun MainScreenTopAppBar(
     onShowHistory: () -> Unit,
     onShowWifiServer: () -> Unit,
     onShowWifiImport: () -> Unit,
-    onExportToFile: () -> Unit,
-    onImportFromFile: () -> Unit,
-    onExportAttachments: () -> Unit,
-    onImportAttachments: () -> Unit,
+    onShowImportExportSheet: () -> Unit,
     onShowSettings: () -> Unit,
     onShowAbout: () -> Unit,
     onShowReminders: () -> Unit,
     onShowAttachmentsLibrary: () -> Unit,
+    onShowScriptsLibrary: () -> Unit,
+    syncStatus: WifiSyncStatus,
+    onSyncIndicatorClick: () -> Unit,
+    featureToggles: Map<FeatureFlag, Boolean>,
 ) {
     var swipeState by remember { mutableStateOf(0f) }
-    TopAppBar(
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                NeonTitle("Projects")
-                if (com.romankozak.forwardappmobile.BuildConfig.DEBUG) {
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Badge(
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Spacer(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(WindowInsets.statusBars.asPaddingValues().calculateTopPadding())
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp, start = 16.dp, end = 16.dp, bottom = 4.dp)
+        ) {
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(20.dp))
+                        .then(CommandDeckBackgroundModifier())
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .pointerInput(Unit) {
+                            detectHorizontalDragGestures(
+                                onHorizontalDrag = { change, dragAmount ->
+                                    change.consume()
+                                    swipeState += dragAmount
+                                },
+                                onDragEnd = {
+                                    if (swipeState > 50) {
+                                        onGoBack()
+                                    } else if (swipeState < -50) {
+                                        onGoForward()
+                                    }
+                                    swipeState = 0f
+                                }
+                            )
+                        },
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (isFocusMode && focusedProjectTitle != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f, fill = false),
                     ) {
                         Text(
-                            text = "Debug",
-                            style = MaterialTheme.typography.labelSmall,
+                            text = focusedProjectTitle,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier =
+                                Modifier
+                                    .weight(1f, fill = false)
+                                    .let { base ->
+                                        if (focusedProjectOpenClick != null) {
+                                            base.clickable(onClick = focusedProjectOpenClick)
+                                        } else {
+                                            base
+                                        }
+                                    },
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
-                    }
-                }
-            }
-        },
-        actions = {
-            if (!isSearchActive) {
-                AnimatedVisibility(visible = false) {
-                    IconButton(onClick = onGoBack) {
-                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Назад")
-                    }
-                }
-                AnimatedVisibility(visible = false) {
-                    IconButton(onClick = onGoForward) {
-                        Icon(Icons.AutoMirrored.Outlined.ArrowForward, "Вперед")
-                    }
-                }
-                var menuExpanded by remember { mutableStateOf(false) }
-                IconButton(onClick = { menuExpanded = true }) {
-                    Icon(Icons.Default.MoreVert, "Menu")
-                }
-                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }, modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
-                    if (FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary)) {
-                        DropdownMenuItem(
-                            text = { Text("Attachments library") },
-                            onClick = {
-                                onShowAttachmentsLibrary()
-                                menuExpanded = false
-                            },
-                        )
-                        HorizontalDivider()
-                    }
-                    if (FeatureToggles.isEnabled(FeatureFlag.WifiSync)) {
-                        DropdownMenuItem(
-                            text = { Text("Run Wi-Fi Server") },
-                            onClick = {
-                                onShowWifiServer()
-                                menuExpanded = false
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Import from Wi-Fi") },
-                            onClick = {
-                                onShowWifiImport()
-                                menuExpanded = false
-                            },
-                        )
-                        HorizontalDivider()
-                    }
-                    DropdownMenuItem(
-                        text = { Text("Export to file") },
-                        onClick = {
-                            onExportToFile()
-                            menuExpanded = false
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Import from file") },
-                        onClick = {
-                            onImportFromFile()
-                            menuExpanded = false
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Export Attachments (JSON)") },
-                        onClick = {
-                            onExportAttachments()
-                            menuExpanded = false
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Import Attachments (JSON)") },
-                        onClick = {
-                            onImportAttachments()
-                            menuExpanded = false
-                        },
-                    )
-                    HorizontalDivider()
-                    DropdownMenuItem(
-                        text = { Text("Settings") },
-                        onClick = {
-                            onShowSettings()
-                            menuExpanded = false
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("About") },
-                        onClick = {
-                            onShowAbout()
-                            menuExpanded = false
-                        },
-                    )
-
-                }
-            }
-        },
-        colors =
-            TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-                titleContentColor = MaterialTheme.colorScheme.primary,
-                actionIconContentColor = MaterialTheme.colorScheme.onSurface,
-                navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
-            ),
-        modifier = Modifier
-            .shadow(4.dp)
-            .pointerInput(Unit) {
-                detectHorizontalDragGestures(
-                    onHorizontalDrag = { change, dragAmount ->
-                        change.consume()
-                        swipeState += dragAmount
-                    },
-                    onDragEnd = {
-                        if (swipeState > 50) {
-                            onGoBack()
-                        } else if (swipeState < -50) {
-                            onGoForward()
+                        if (focusedProjectOpenClick != null) {
+                            IconButton(
+                                onClick = focusedProjectOpenClick,
+                                modifier = Modifier.size(36.dp).padding(start = 4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.NorthEast,
+                                    contentDescription = "Open project",
+                                    tint = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
                         }
-                        swipeState = 0f
                     }
-                )
+                } else {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(
+                            text = "Contexts",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
+
+                if (!isSearchActive) {
+                    if (isFocusMode && focusedProjectMenuClick != null) {
+                        IconButton(onClick = focusedProjectMenuClick) {
+                            Icon(Icons.Default.MoreVert, stringResource(id = com.romankozak.forwardappmobile.R.string.more_options))
+                        }
+                    } else {
+                        if (featureToggles[FeatureFlag.WifiSync] == true) {
+                            SyncStatusIndicator(
+                                status = syncStatus,
+                                onClick = onSyncIndicatorClick,
+                            )
+                        }
+                        AnimatedVisibility(visible = false) {
+                            IconButton(onClick = onGoBack) {
+                                Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(id = com.romankozak.forwardappmobile.R.string.back))
+                            }
+                        }
+                        AnimatedVisibility(visible = false) {
+                            IconButton(onClick = onGoForward) {
+                                Icon(Icons.AutoMirrored.Outlined.ArrowForward, stringResource(id = com.romankozak.forwardappmobile.R.string.forward))
+                            }
+                        }
+                        var menuExpanded by remember { mutableStateOf(false) }
+                        IconButton(onClick = { menuExpanded = true }) {
+                            Icon(Icons.Default.MoreVert, stringResource(id = com.romankozak.forwardappmobile.R.string.more_options))
+                        }
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = { menuExpanded = false },
+                            modifier = Modifier.background(MaterialTheme.colorScheme.surface),
+                        ) {
+                            val showAttachmentsLibrary = featureToggles[FeatureFlag.AttachmentsLibrary] == true
+                            val showScriptsLibrary = featureToggles[FeatureFlag.ScriptsLibrary] == true
+                            if (showAttachmentsLibrary || showScriptsLibrary) {
+                                if (showAttachmentsLibrary) {
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(id = com.romankozak.forwardappmobile.R.string.menu_attachments_library)) },
+                                        onClick = {
+                                            onShowAttachmentsLibrary()
+                                            menuExpanded = false
+                                        },
+                                    )
+                                }
+                                if (showScriptsLibrary) {
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(id = com.romankozak.forwardappmobile.R.string.menu_scripts_library)) },
+                                        onClick = {
+                                            onShowScriptsLibrary()
+                                            menuExpanded = false
+                                        },
+                                    )
+                                }
+                                HorizontalDivider()
+                            }
+                            if (featureToggles[FeatureFlag.WifiSync] == true) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(id = com.romankozak.forwardappmobile.R.string.menu_run_wifi_server)) },
+                                    onClick = {
+                                        onShowWifiServer()
+                                        menuExpanded = false
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(id = com.romankozak.forwardappmobile.R.string.menu_import_wifi)) },
+                                    onClick = {
+                                        onShowWifiImport()
+                                        menuExpanded = false
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Відправити зміни по Wi‑Fi") },
+                                    onClick = {
+                                        onShowImportExportSheet()
+                                        menuExpanded = false
+                                    },
+                                )
+                                HorizontalDivider()
+                            }
+                            DropdownMenuItem(
+                                text = { Text(stringResource(id = com.romankozak.forwardappmobile.R.string.menu_import_export)) },
+                                onClick = {
+                                    menuExpanded = false
+                                    onShowImportExportSheet()
+                                },
+                            )
+                            HorizontalDivider()
+                            DropdownMenuItem(
+                                text = { Text("Settings") },
+                                onClick = {
+                                    onShowSettings()
+                                    menuExpanded = false
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("About") },
+                                onClick = {
+                                    onShowAbout()
+                                    menuExpanded = false
+                                },
+                            )
+                        }
+                    }
+                }
             }
-    )
+        }
+    }
 }
 
 @Composable
-private fun NeonTitle(
-    text: String,
-    modifier: Modifier = Modifier,
+private fun SyncStatusIndicator(
+    status: WifiSyncStatus,
+    onClick: () -> Unit,
 ) {
-    val backgroundColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-    val borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-    val textColor = MaterialTheme.colorScheme.primary
+    val baseColor =
+        when (status) {
+            WifiSyncStatus.Syncing -> MaterialTheme.colorScheme.primary
+            is WifiSyncStatus.Error -> MaterialTheme.colorScheme.error
+            WifiSyncStatus.Offline -> MaterialTheme.colorScheme.outline
+            is WifiSyncStatus.ServerRunning -> MaterialTheme.colorScheme.tertiary
+            WifiSyncStatus.Idle -> MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+            WifiSyncStatus.Disabled -> MaterialTheme.colorScheme.onSurfaceVariant
+        }
+    val infiniteTransition = rememberInfiniteTransition(label = "sync_indicator_transition")
+    val pulse =
+        if (status is WifiSyncStatus.Syncing) {
+            infiniteTransition.animateFloat(
+                initialValue = 0.85f,
+                targetValue = 1.15f,
+                animationSpec =
+                    infiniteRepeatable(
+                        animation = tween(durationMillis = 650),
+                        repeatMode = RepeatMode.Reverse,
+                    ),
+                label = "sync_indicator_pulse",
+            ).value
+        } else {
+            1f
+        }
 
     Box(
         modifier =
-        modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(backgroundColor)
-            .border(
-                width = 1.dp,
-                color = borderColor,
-                shape = RoundedCornerShape(8.dp),
-            )
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+            Modifier
+                .padding(end = 8.dp)
+                .size(18.dp)
+                .graphicsLayer(
+                    scaleX = pulse,
+                    scaleY = pulse,
+                )
+                .clip(CircleShape)
+                .background(baseColor)
+                .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = text,
-            style =
-            MaterialTheme.typography.titleLarge.copy(
-                fontWeight = FontWeight.Bold,
-            ),
-            color = textColor,
-        )
-    }
+    ) { }
 }

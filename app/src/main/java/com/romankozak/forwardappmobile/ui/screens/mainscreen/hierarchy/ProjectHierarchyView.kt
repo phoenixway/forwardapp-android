@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import com.mohamedrejeb.compose.dnd.DragAndDropContainer
 import com.mohamedrejeb.compose.dnd.rememberDragAndDropState
@@ -13,8 +14,9 @@ import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DropPosition
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.FlatHierarchyItem
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.HierarchyDisplaySettings
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenEvent
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenEvent
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
 
 import androidx.compose.animation.AnimatedVisibilityScope
@@ -26,6 +28,7 @@ import androidx.compose.animation.SharedTransitionScope
 fun ProjectHierarchyView(
     modifier: Modifier = Modifier,
     hierarchy: ListHierarchyData,
+    flattenedHierarchy: List<FlatHierarchyItem>,
     breadcrumbs: List<BreadcrumbItem>,
     focusedProjectId: String?,
     highlightedProjectId: String?,
@@ -35,13 +38,16 @@ fun ProjectHierarchyView(
     hierarchySettings: HierarchyDisplaySettings,
     listState: LazyListState,
     longDescendantsMap: Map<String, Boolean>,
-    onEvent: (MainScreenEvent) -> Unit,
+    onEvent: (ProjectHierarchyScreenEvent) -> Unit,
     
     onProjectClicked: (String) -> Unit,
     onToggleExpanded: (Project) -> Unit,
     onMenuRequested: (Project) -> Unit,
-    onNavigateToProject: (String) -> Unit,
     onProjectReorder: (fromId: String, toId: String, position: DropPosition) -> Unit,
+    onFocusProject: (Project) -> Unit,
+    onAddSubproject: (Project) -> Unit,
+    onDeleteProject: (Project) -> Unit,
+    onEditProject: (Project) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
@@ -63,41 +69,51 @@ fun ProjectHierarchyView(
                 highlightedProjectId = highlightedProjectId,
                 settings = hierarchySettings,
                 searchQuery = searchQuery,
-                onNavigateToProject = onNavigateToProject,
                 longDescendantsMap = longDescendantsMap,
                 onEvent = onEvent,
                 onProjectClick = onProjectClicked,
                 onToggleExpanded = onToggleExpanded,
                 onMenuRequested = onMenuRequested,
                 onProjectReorder = onProjectReorder,
+                onFocusProject = onFocusProject,
+                onAddSubproject = onAddSubproject,
+                onDeleteProject = onDeleteProject,
+                onEditProject = onEditProject,
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = animatedVisibilityScope,
             )
         } else {
+            val visibleItems =
+                remember(flattenedHierarchy, longDescendantsMap, hierarchy.childMap) {
+                    buildVisibleHierarchy(flattenedHierarchy, hierarchy.childMap, longDescendantsMap)
+                }
+
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
             ) {
-                items(hierarchy.topLevelProjects, key = { it.id }) { topLevelProject ->
-                    SmartHierarchyView(
-                        project = topLevelProject,
+                items(visibleItems, key = { it.project.id }) { item ->
+                    HierarchyListItem(
+                        item = item,
                         childMap = hierarchy.childMap,
-                        level = 0,
                         dragAndDropState = dragAndDropState,
                         isSearchActive = isSearchActive,
                         planningMode = planningMode,
                         highlightedProjectId = highlightedProjectId,
                         settings = hierarchySettings,
                         searchQuery = searchQuery,
-                        onNavigateToProject = onNavigateToProject,
                         focusedProjectId = focusedProjectId,
                         longDescendantsMap = longDescendantsMap,
-                        sharedTransitionScope = sharedTransitionScope,
-                        animatedVisibilityScope = animatedVisibilityScope,
                         onProjectClick = onProjectClicked,
                         onToggleExpanded = onToggleExpanded,
                         onMenuRequested = onMenuRequested,
                         onProjectReorder = onProjectReorder,
+                        onFocusProject = onFocusProject,
+                        onAddSubproject = onAddSubproject,
+                        onDeleteProject = onDeleteProject,
+                        onEditProject = onEditProject,
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedVisibilityScope = animatedVisibilityScope,
                     )
                 }
             }

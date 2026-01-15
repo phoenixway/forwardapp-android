@@ -12,6 +12,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
+import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.ui.common.editor.components.ListFormatMode
 import com.romankozak.forwardappmobile.ui.common.editor.components.ListToolbarState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -30,6 +31,7 @@ sealed class NoteDocumentEvent {
     data class ShowError(val message: String) : NoteDocumentEvent()
     data class ShowSuccess(val message: String = "") : NoteDocumentEvent()
     object AutoSaved : NoteDocumentEvent()
+    data class OpenDocument(val documentId: String) : NoteDocumentEvent()
 }
 
 data class NoteDocumentUiState(
@@ -48,6 +50,7 @@ class NoteDocumentViewModel @Inject constructor(
     private val application: Application,
     private val projectRepository: ProjectRepository,
     private val noteDocumentRepository: NoteDocumentRepository,
+    private val recentItemsRepository: RecentItemsRepository,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -79,6 +82,7 @@ class NoteDocumentViewModel @Inject constructor(
             viewModelScope.launch {
                 _uiState.update { it.copy(isLoading = true, isNewDocument = false) }
                 noteDocumentRepository.getDocumentById(documentId)?.let { document ->
+                    recentItemsRepository.logNoteDocumentAccess(document)
                     noteDocumentRepository.updateDocument(document.copy(updatedAt = System.currentTimeMillis()))
                     val content = TextFieldValue(document.content ?: "")
                     _uiState.update {
@@ -102,6 +106,17 @@ class NoteDocumentViewModel @Inject constructor(
                 // Явно передаємо нове значення 'isEditing' в функцію
                 toolbarState = computeToolbarState(it.content, isEditing = isEditing)
             )
+        }
+    }
+
+    fun onWikiLinkClick(name: String) {
+        viewModelScope.launch {
+            val target = noteDocumentRepository.findDocumentByName(name)
+            if (target != null) {
+                _events.send(NoteDocumentEvent.OpenDocument(target.id))
+            } else {
+                _events.send(NoteDocumentEvent.ShowError("Посилання не знайдено"))
+            }
         }
     }
 

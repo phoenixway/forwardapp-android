@@ -83,7 +83,9 @@ fun GlobalSearchScreen(
     )
 
     BackHandler {
-        viewModel.enhancedNavigationManager.goBack()
+        if (!navController.popBackStack()) {
+            viewModel.enhancedNavigationManager.goBack()
+        }
     }
 
     Scaffold(
@@ -107,7 +109,11 @@ fun GlobalSearchScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = { viewModel.enhancedNavigationManager.goBack() }) {
+                    IconButton(onClick = {
+                        if (!navController.popBackStack()) {
+                            viewModel.enhancedNavigationManager.goBack()
+                        }
+                    }) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Назад",

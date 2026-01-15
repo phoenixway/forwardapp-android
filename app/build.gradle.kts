@@ -1,6 +1,7 @@
+import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.implementation
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-import org.gradle.api.tasks.testing.Test
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -20,6 +21,23 @@ plugins {
 
 }
 
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) {
+        file.inputStream().use { load(it) }
+    } else {
+        // local.properties is optional (e.g. in CI/CD)
+        // logger.warn("local.properties not found")
+    }
+}
+
+val signingPropsFile = rootProject.file("signing.properties")
+val signingProps = Properties()
+
+if (signingPropsFile.exists()) {
+    signingProps.load(signingPropsFile.inputStream())
+}
+
 android {
     namespace = "com.romankozak.forwardappmobile"
     compileSdk = 36
@@ -28,8 +46,8 @@ android {
         applicationId = "com.romankozak.forwardappmobile"
         minSdk = 29
         targetSdk = 36
-        versionCode = 53
-        versionName = "10.0-alpha1"
+        versionCode = 54
+        versionName = "1.20.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -76,24 +94,84 @@ android {
     }
 
     signingConfigs {
+        getByName("debug") {
+            val debugKey = file("debug.keystore")
+            if (debugKey.exists()) {
+                storeFile = debugKey
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+            } else if (signingProps.isNotEmpty()) {
+                val storeFilePath = signingProps.getProperty("storeFile")
+                require(!storeFilePath.isNullOrBlank()) {
+                    "storeFile is missing in signing.properties"
+                }
+
+                storeFile = file(storeFilePath)
+                storePassword = signingProps.getProperty("storePassword")
+                keyAlias = signingProps.getProperty("keyAlias")
+                keyPassword = signingProps.getProperty("keyPassword")
+            }
+        }
         create("release") {
-            storeFile = file("keystore.jks")          // <- через =
-            storePassword = "defpass1"
-            keyAlias = "romanKeyAlias"
-            keyPassword = "defpass1"
+
+            if (signingProps.isNotEmpty()) {
+                val storeFilePath = signingProps.getProperty("storeFile")
+                require(!storeFilePath.isNullOrBlank()) {
+                    "storeFile is missing in signing.properties"
+                }
+
+                storeFile = file(storeFilePath)
+                storePassword = signingProps.getProperty("storePassword")
+                keyAlias = signingProps.getProperty("keyAlias")
+                keyPassword = signingProps.getProperty("keyPassword")
+                storeType = "pkcs12"
+            }
         }
     }
 
     buildTypes {
         getByName("debug") {
-            // для дебажної версії змінюємо applicationId
+            // Add .debug suffix to allow parallel installation with release
             applicationIdSuffix = ".debug"
-            versionNameSuffix = "-debug"
+            
+            // DEBUG USES SIGNING CONFIG IF AVAILABLE
+            if (signingProps.isNotEmpty()) {
+                signingConfig = signingConfigs.getByName("debug")
+            }
         }
 
         getByName("release") {
-            isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = true
+	    isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+
+
+            // RELEASE ONLY SIGNED IF CONFIG EXISTS
+            if (signingProps.isNotEmpty()) {
+                signingConfig = signingConfigs.getByName("release")
+            } else {
+                logger.warn("⚠ No signing.properties found — RELEASE will be UNSIGNED")
+            }
+        }
+    }
+    flavorDimensions += "env"
+    productFlavors {
+        create("prod") {
+            dimension = "env"
+            isDefault = true
+            applicationId = "com.romankozak.forwardappmobile"
+            buildConfigField("Boolean", "IS_EXPERIMENTAL_BUILD", "false")
+        }
+        create("exp") {
+            dimension = "env"
+            // Використовуємо той самий applicationId як prod для google-services.json сумісності
+            applicationId = "com.romankozak.forwardappmobile"
+            versionNameSuffix = "-exp"
+            buildConfigField("Boolean", "IS_EXPERIMENTAL_BUILD", "true")
         }
     }
     splits {
@@ -110,6 +188,21 @@ android {
 tasks.withType<Test> {
     useJUnitPlatform()
     systemProperties.put("mockk.mock-maker-inline", "true")
+}
+
+tasks.withType<Test>().configureEach {
+    if (name == "testProdDebugUnitTest" || name == "testExpDebugUnitTest") {
+        filter {
+            includeTestsMatching("com.romankozak.forwardappmobile.data.sync.SyncRepositoryMergeTest")
+            includeTestsMatching("com.romankozak.forwardappmobile.data.sync.SyncContractFixturesTest")
+        }
+    }
+}
+
+tasks.register("syncContractTest") {
+    description = "Runs sync contract tests (Android<->Desktop roundtrip) via prodDebug unit tests"
+    group = "verification"
+    dependsOn("testProdDebugUnitTest")
 }
 
 dependencies {
@@ -182,6 +275,7 @@ dependencies {
     implementation(libs.slf4j.android)
 
     // Other Libraries
+    implementation("org.luaj:luaj-jse:3.0.1")
     implementation(libs.google.gson)
     implementation(libs.compose.dnd)
     implementation(libs.androidx.work.runtime)
@@ -189,6 +283,9 @@ dependencies {
     // Testing
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation("org.junit.vintage:junit-vintage-engine:5.10.2")
+    testImplementation("androidx.test:core:1.5.0")
+    testImplementation("org.robolectric:robolectric:4.11.1")
     androidTestImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -208,19 +305,19 @@ dependencies {
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.compose.material3:material3-window-size-class:1.1.1")
 
-    implementation("com.squareup.retrofit2:retrofit:2.9.0")
-    //implementation("com.squareup.retrofit2:converter-gson:2.9.0")
-
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
-    implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:1.0.0")
-
-
     // OkHttp (для налаштування тайм-аутів, опціонально, але рекомендовано)
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0") // Для дебагу
+
+    // Retrofit
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:1.0.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+    implementation("org.jmdns:jmdns:3.5.9")
 
     // Jetpack DataStore (якщо ще не додано, для збереження налаштувань)
-    implementation(libs.androidx.datastore.preferences)
-    implementation("androidx.compose.runtime:runtime-livedata:1.6.8")
+    implementation("androidx.compose.runtime:runtime-livedata")
 
     // ONNX Runtime для Android
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.18.0")
@@ -231,19 +328,11 @@ dependencies {
     // DJL вимагає SLF4J, додаємо реалізацію без логування, щоб уникнути помилок
     implementation("org.slf4j:slf4j-nop:2.0.13")
 
-    //implementation("ai.djl.android:core:0.25.0")
-    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.16.3")
-
     // Додайте явно нативну бібліотеку
     //implementation("ai.djl.huggingface:tokenizers:0.25.0:android-native")
 
     implementation("com.google.mlkit:translate:17.0.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
-
-    implementation("com.squareup.retrofit2:retrofit:2.9.0")
-    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
-            implementation("org.jmdns:jmdns:3.5.9")
-    implementation("com.squareup.okhttp3:logging-interceptor:4.11.0") // Для дебагу
 
     // Для безпечного зберігання даних
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
@@ -253,24 +342,12 @@ dependencies {
 // Biometric authentication
     implementation("androidx.biometric:biometric:1.1.0")
 // Google Play Services (необхідно для Passkeys)
-    implementation("com.google.android.gms:play-services-auth:20.7.0")
     implementation("com.google.android.gms:play-services-base:18.2.0")
 // Якщо ще немає
     implementation("com.google.android.gms:play-services-fido:20.1.0")
 
 
 
-// KotlinX Serialization для роботи з JSON
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
-// Адаптер для Retrofit, щоб він працював з KotlinX Serialization
-    implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:1.0.0")
-    /*implementation("androidx.compose.animation:animation")
-    implementation("androidx.compose.foundation:foundation")
-    implementation("androidx.compose.ui:ui")*/
-
-    implementation("androidx.compose.animation:animation")
-    implementation("androidx.compose.ui:ui")
-
     // Рекомендується використовувати останню версію бібліотеки
-implementation("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
+    implementation("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
 }

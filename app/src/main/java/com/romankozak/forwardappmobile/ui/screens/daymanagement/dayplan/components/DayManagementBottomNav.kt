@@ -113,7 +113,7 @@ fun DayManagementBottomNav(
                     isSelected = currentTab == DayManagementTab.PLAN,
                     onClick = { onTabSelected(DayManagementTab.PLAN) }
                 )
-                ModernBottomNavButton(text = "Projects", icon = Icons.Outlined.Home, onClick = onHomeClick)
+                ModernBottomNavButton(text = "Contexts", icon = Icons.Outlined.Home, onClick = onHomeClick)
                 ModernBottomNavButton(
                     text = "Dashboard",
                     icon = Icons.Outlined.Dashboard,

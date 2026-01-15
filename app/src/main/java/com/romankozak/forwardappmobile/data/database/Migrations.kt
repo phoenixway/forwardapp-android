@@ -649,3 +649,504 @@ val MIGRATION_66_67 = object : Migration(66, 67) {
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_system_apps_note_document_id` ON `system_apps` (`note_document_id`)")
     }
 }
+
+val MIGRATION_67_68 = object : Migration(67, 68) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `scripts` (
+                `id` TEXT NOT NULL,
+                `projectId` TEXT,
+                `name` TEXT NOT NULL,
+                `description` TEXT,
+                `content` TEXT NOT NULL,
+                `createdAt` INTEGER NOT NULL,
+                `updatedAt` INTEGER NOT NULL,
+                PRIMARY KEY(`id`),
+                FOREIGN KEY(`projectId`) REFERENCES `projects`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL
+            )
+            """.trimIndent(),
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_scripts_projectId` ON `scripts` (`projectId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_scripts_name` ON `scripts` (`name`)")
+    }
+}
+
+val MIGRATION_68_69 = object : Migration(68, 69) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `projects` ADD COLUMN `synced_at` INTEGER")
+        db.execSQL("ALTER TABLE `projects` ADD COLUMN `is_deleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `projects` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+
+        db.execSQL("ALTER TABLE `goals` ADD COLUMN `synced_at` INTEGER")
+        db.execSQL("ALTER TABLE `goals` ADD COLUMN `is_deleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `goals` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+
+        db.execSQL("ALTER TABLE `list_items` ADD COLUMN `synced_at` INTEGER")
+        db.execSQL("ALTER TABLE `list_items` ADD COLUMN `is_deleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `list_items` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
+val MIGRATION_69_70 = object : Migration(69, 70) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `notes` ADD COLUMN `syncedAt` INTEGER")
+        db.execSQL("ALTER TABLE `notes` ADD COLUMN `isDeleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `notes` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+
+        db.execSQL("ALTER TABLE `note_documents` ADD COLUMN `syncedAt` INTEGER")
+        db.execSQL("ALTER TABLE `note_documents` ADD COLUMN `isDeleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `note_documents` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+
+        db.execSQL("ALTER TABLE `note_document_items` ADD COLUMN `syncedAt` INTEGER")
+        db.execSQL("ALTER TABLE `note_document_items` ADD COLUMN `isDeleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `note_document_items` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+
+        db.execSQL("ALTER TABLE `checklists` ADD COLUMN `syncedAt` INTEGER")
+        db.execSQL("ALTER TABLE `checklists` ADD COLUMN `isDeleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `checklists` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+
+        db.execSQL("ALTER TABLE `checklist_items` ADD COLUMN `syncedAt` INTEGER")
+        db.execSQL("ALTER TABLE `checklist_items` ADD COLUMN `isDeleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `checklist_items` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+
+        db.execSQL("ALTER TABLE `activity_records` ADD COLUMN `syncedAt` INTEGER")
+        db.execSQL("ALTER TABLE `activity_records` ADD COLUMN `isDeleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `activity_records` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+
+        db.execSQL("ALTER TABLE `inbox_records` ADD COLUMN `synced_at` INTEGER")
+        db.execSQL("ALTER TABLE `inbox_records` ADD COLUMN `is_deleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `inbox_records` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+
+        db.execSQL("ALTER TABLE `link_items` ADD COLUMN `synced_at` INTEGER")
+        db.execSQL("ALTER TABLE `link_items` ADD COLUMN `is_deleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `link_items` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+
+        db.execSQL("ALTER TABLE `project_execution_logs` ADD COLUMN `synced_at` INTEGER")
+        db.execSQL("ALTER TABLE `project_execution_logs` ADD COLUMN `is_deleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `project_execution_logs` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+
+        db.execSQL("ALTER TABLE `attachments` ADD COLUMN `syncedAt` INTEGER")
+        db.execSQL("ALTER TABLE `attachments` ADD COLUMN `isDeleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `attachments` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+
+        db.execSQL("ALTER TABLE `project_attachment_cross_ref` ADD COLUMN `syncedAt` INTEGER")
+        db.execSQL("ALTER TABLE `project_attachment_cross_ref` ADD COLUMN `isDeleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `project_attachment_cross_ref` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+
+        db.execSQL("ALTER TABLE `scripts` ADD COLUMN `syncedAt` INTEGER")
+        db.execSQL("ALTER TABLE `scripts` ADD COLUMN `isDeleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `scripts` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
+val MIGRATION_70_71 = object : Migration(70, 71) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `list_items` ADD COLUMN `updatedAt` INTEGER")
+        db.execSQL("UPDATE `list_items` SET `updatedAt` = (strftime('%s','now') * 1000)")
+
+        db.execSQL("ALTER TABLE `checklists` ADD COLUMN `updatedAt` INTEGER")
+        db.execSQL("UPDATE `checklists` SET `updatedAt` = (strftime('%s','now') * 1000)")
+
+        db.execSQL("ALTER TABLE `checklist_items` ADD COLUMN `updatedAt` INTEGER")
+        db.execSQL("UPDATE `checklist_items` SET `updatedAt` = (strftime('%s','now') * 1000)")
+
+        db.execSQL("ALTER TABLE `inbox_records` ADD COLUMN `updatedAt` INTEGER")
+        db.execSQL("UPDATE `inbox_records` SET `updatedAt` = `createdAt`")
+
+        db.execSQL("ALTER TABLE `activity_records` ADD COLUMN `updatedAt` INTEGER")
+        db.execSQL("UPDATE `activity_records` SET `updatedAt` = COALESCE(`endTime`, `startTime`, `createdAt`)")
+
+        db.execSQL("ALTER TABLE `link_items` ADD COLUMN `updatedAt` INTEGER")
+        db.execSQL("UPDATE `link_items` SET `updatedAt` = `createdAt`")
+
+        db.execSQL("ALTER TABLE `project_execution_logs` ADD COLUMN `updatedAt` INTEGER")
+        db.execSQL("UPDATE `project_execution_logs` SET `updatedAt` = `timestamp`")
+
+        db.execSQL("ALTER TABLE `project_attachment_cross_ref` ADD COLUMN `updatedAt` INTEGER")
+        db.execSQL("UPDATE `project_attachment_cross_ref` SET `updatedAt` = ABS(`attachment_order`)")
+    }
+}
+
+val MIGRATION_71_72 = object : Migration(71, 72) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        val now = System.currentTimeMillis()
+        // Day plans
+        db.execSQL("ALTER TABLE `day_plans` ADD COLUMN `syncedAt` INTEGER")
+        db.execSQL("ALTER TABLE `day_plans` ADD COLUMN `isDeleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `day_plans` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("UPDATE `day_plans` SET `version` = 1, `updatedAt` = COALESCE(`updatedAt`, `createdAt`, $now)")
+
+        // Day tasks
+        db.execSQL("ALTER TABLE `day_tasks` ADD COLUMN `syncedAt` INTEGER")
+        db.execSQL("ALTER TABLE `day_tasks` ADD COLUMN `isDeleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `day_tasks` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("UPDATE `day_tasks` SET `version` = 1 WHERE `version` = 0")
+        db.execSQL("UPDATE `day_tasks` SET `updatedAt` = COALESCE(`updatedAt`, `createdAt`, $now)")
+
+        // Daily metrics
+        db.execSQL("ALTER TABLE `daily_metrics` ADD COLUMN `syncedAt` INTEGER")
+        db.execSQL("ALTER TABLE `daily_metrics` ADD COLUMN `isDeleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `daily_metrics` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("UPDATE `daily_metrics` SET `version` = 1 WHERE `version` = 0")
+        db.execSQL("UPDATE `daily_metrics` SET `updatedAt` = COALESCE(`updatedAt`, `createdAt`, $now)")
+
+        // Reminders
+        db.execSQL("ALTER TABLE `reminders` ADD COLUMN `updatedAt` INTEGER")
+        db.execSQL("ALTER TABLE `reminders` ADD COLUMN `syncedAt` INTEGER")
+        db.execSQL("ALTER TABLE `reminders` ADD COLUMN `isDeleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `reminders` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("UPDATE `reminders` SET `updatedAt` = COALESCE(`updatedAt`, `creationTime`, $now)")
+        db.execSQL("UPDATE `reminders` SET `version` = 1 WHERE `version` = 0")
+    }
+}
+
+val MIGRATION_72_73 = object : Migration(72, 73) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Step 1: Delete duplicate system_key entries (keep the first one)
+        db.execSQL(
+            """
+            DELETE FROM `projects`
+            WHERE `id` NOT IN (
+                SELECT MIN(`id`) FROM `projects`
+                WHERE `system_key` IS NOT NULL
+                GROUP BY `system_key`
+            )
+            AND `system_key` IS NOT NULL
+            """.trimIndent()
+        )
+
+        // Step 2: Create the unique index on system_key
+        // This enforces uniqueness at the database level
+        db.execSQL(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS `idx_projects_systemkey_unique` ON `projects` (`system_key`)
+            """.trimIndent()
+        )
+    }
+}
+
+val MIGRATION_73_74 = object : Migration(73, 74) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Re-run special projects reconciliation to ensure system_key and reserved_group are present.
+        migrateSpecialProjects(db)
+    }
+}
+
+val MIGRATION_74_75 = object : Migration(74, 75) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        migrateSpecialProjects(db)
+        // Hard-set system_key/reserved_group/parentId for all reserved projects to ensure consistency.
+        val updates = listOf(
+            Triple("personal-management", null, "personal-management"),
+            Triple("strategic", "personal-management", "strategic_group"),
+            Triple("strategic-beacons", "strategic", "main_beacons_group"),
+            Triple("week", "personal-management", "strategic"),
+            Triple("today", "personal-management", "inbox"),
+            Triple("main-beacons", "personal-management", "main_beacons"),
+            Triple("mission", "strategic-beacons", "main_beacons"),
+            Triple("long-term-strategy", "strategic-beacons", "strategic"),
+            Triple("strategic-programs", "strategic-beacons", "strategic"),
+            Triple("medium-term-strategy", "personal-management", "strategic"),
+            Triple("active-quests", "week", "strategic"),
+            Triple("strategic-inbox", "strategic", "strategic"),
+            Triple("strategic-review", "strategic", "strategic"),
+            Triple("inbox", "today", "inbox"),
+        )
+        updates.forEach { (key, parentName, reservedGroup) ->
+            val parentIdClause = if (parentName != null) {
+                "parentId = (SELECT id FROM projects WHERE name = '$parentName' LIMIT 1)"
+            } else {
+                "parentId IS NULL"
+            }
+            db.execSQL(
+                """
+                UPDATE projects
+                   SET system_key = '$key',
+                       reserved_group = '$reservedGroup'
+                 WHERE name = '$key'
+                   AND $parentIdClause
+                """.trimIndent()
+            )
+        }
+    }
+}
+
+val MIGRATION_75_76 = object : Migration(75, 76) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        migrateSpecialProjects(db)
+        // Force set system_key/reserved_group even if names differ: use ReservedProjectKeys mapping.
+        val mapping = mapOf(
+            "personal-management" to Triple(null, "personal-management", "SYSTEM"),
+            "strategic" to Triple("personal-management", "strategic_group", "RESERVED"),
+            "strategic-beacons" to Triple("strategic", "main_beacons_group", "RESERVED"),
+            "week" to Triple("personal-management", "strategic", "RESERVED"),
+            "today" to Triple("personal-management", "inbox", "RESERVED"),
+            "main-beacons" to Triple("personal-management", "main_beacons", "RESERVED"),
+            "mission" to Triple("strategic-beacons", "main_beacons", "RESERVED"),
+            "long-term-strategy" to Triple("strategic-beacons", "strategic", "RESERVED"),
+            "strategic-programs" to Triple("strategic-beacons", "strategic", "RESERVED"),
+            "medium-term-strategy" to Triple("personal-management", "strategic", "RESERVED"),
+            "active-quests" to Triple("week", "strategic", "RESERVED"),
+            "strategic-inbox" to Triple("strategic", "strategic", "RESERVED"),
+            "strategic-review" to Triple("strategic", "strategic", "RESERVED"),
+            "inbox" to Triple("today", "inbox", "RESERVED"),
+        )
+        mapping.forEach { (key, triple) ->
+            val (parentName, reservedGroup, projectType) = triple
+            val parentClause = if (parentName == null) "parentId IS NULL" else "parentId = (SELECT id FROM projects WHERE system_key = '$parentName' OR name = '$parentName' LIMIT 1)"
+            db.execSQL(
+                """
+                UPDATE projects
+                   SET system_key = '$key',
+                       reserved_group = '$reservedGroup',
+                       project_type = '$projectType'
+                 WHERE (system_key IS NULL OR system_key != '$key')
+                   AND name = '$key'
+                   AND $parentClause
+                """.trimIndent()
+            )
+        }
+    }
+}
+
+val MIGRATION_76_77 = object : Migration(76, 77) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `backlog_orders` (
+                `id` TEXT NOT NULL,
+                `list_id` TEXT NOT NULL,
+                `item_id` TEXT NOT NULL,
+                `item_order` INTEGER NOT NULL,
+                `order_version` INTEGER NOT NULL DEFAULT 0,
+                `updatedAt` INTEGER,
+                `synced_at` INTEGER,
+                `is_deleted` INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY(`id`),
+                FOREIGN KEY(`list_id`) REFERENCES `projects`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_backlog_orders_list_id` ON `backlog_orders` (`list_id`)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_backlog_orders_list_item` ON `backlog_orders` (`list_id`, `item_id`)")
+        // Seed from existing list_items to preserve current order
+        db.execSQL(
+            """
+            INSERT OR REPLACE INTO backlog_orders (id, list_id, item_id, item_order, order_version, updatedAt, synced_at, is_deleted)
+            SELECT li.id,
+                   li.project_id,
+                   li.entityId,
+                   li.item_order,
+                   COALESCE(li.version, li.updatedAt, 0),
+                   li.updatedAt,
+                   li.synced_at,
+                   li.is_deleted
+              FROM list_items li
+            """.trimIndent()
+        )
+    }
+}
+
+val MIGRATION_79_80 = object : Migration(79, 80) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE activity_records ADD COLUMN xp_gained INTEGER")
+    }
+}
+
+val MIGRATION_80_81 = object : Migration(80, 81) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE activity_records ADD COLUMN anty_xp INTEGER")
+    }
+}
+
+val MIGRATION_81_82 = object : Migration(81, 82) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `structure_presets` (
+                `id` TEXT NOT NULL,
+                `code` TEXT NOT NULL,
+                `label` TEXT NOT NULL,
+                `description` TEXT,
+                PRIMARY KEY(`id`)
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_structure_presets_code` ON `structure_presets` (`code`)")
+    }
+}
+
+val MIGRATION_82_83 = object : Migration(82, 83) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `structure_preset_items` (
+                `id` TEXT NOT NULL,
+                `presetId` TEXT NOT NULL,
+                `entityType` TEXT NOT NULL,
+                `roleCode` TEXT NOT NULL,
+                `containerType` TEXT,
+                `title` TEXT NOT NULL,
+                `mandatory` INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY(`id`),
+                FOREIGN KEY(`presetId`) REFERENCES `structure_presets`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_structure_preset_items_presetId` ON `structure_preset_items` (`presetId`)")
+        db.execSQL(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS `index_structure_preset_items_role_per_preset`
+            ON `structure_preset_items` (`presetId`, `roleCode`)
+            """.trimIndent()
+        )
+    }
+}
+
+val MIGRATION_83_84 = object : Migration(83, 84) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE attachments ADD COLUMN role_code TEXT")
+        db.execSQL("ALTER TABLE attachments ADD COLUMN is_system INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE projects ADD COLUMN role_code TEXT")
+    }
+}
+
+val MIGRATION_84_85 = object : Migration(84, 85) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `project_structures` (
+                `id` TEXT NOT NULL,
+                `projectId` TEXT NOT NULL,
+                `base_preset_code` TEXT,
+                `apply_mode` TEXT NOT NULL DEFAULT 'ADDITIVE',
+                PRIMARY KEY(`id`),
+                UNIQUE(`projectId`)
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `project_structure_items` (
+                `id` TEXT NOT NULL,
+                `projectStructureId` TEXT NOT NULL,
+                `entityType` TEXT NOT NULL,
+                `roleCode` TEXT NOT NULL,
+                `containerType` TEXT,
+                `title` TEXT NOT NULL,
+                `mandatory` INTEGER NOT NULL DEFAULT 0,
+                `is_enabled` INTEGER NOT NULL DEFAULT 1,
+                PRIMARY KEY(`id`),
+                FOREIGN KEY(`projectStructureId`) REFERENCES `project_structures`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_project_structures_projectId` ON `project_structures` (`projectId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_project_structure_items_projectStructureId` ON `project_structure_items` (`projectStructureId`)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_project_structure_items_role_per_structure` ON `project_structure_items` (`projectStructureId`, `roleCode`)")
+    }
+}
+
+val MIGRATION_85_86 = object : Migration(85, 86) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("DROP INDEX IF EXISTS `index_project_structures_projectId`")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_project_structures_projectId` ON `project_structures` (`projectId`)")
+    }
+}
+
+val MIGRATION_86_87 = object : Migration(86, 87) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE structure_presets ADD COLUMN enable_inbox INTEGER")
+        db.execSQL("ALTER TABLE structure_presets ADD COLUMN enable_log INTEGER")
+        db.execSQL("ALTER TABLE structure_presets ADD COLUMN enable_artifact INTEGER")
+        db.execSQL("ALTER TABLE structure_presets ADD COLUMN enable_advanced INTEGER")
+
+        db.execSQL("ALTER TABLE project_structures ADD COLUMN enable_inbox INTEGER")
+        db.execSQL("ALTER TABLE project_structures ADD COLUMN enable_log INTEGER")
+        db.execSQL("ALTER TABLE project_structures ADD COLUMN enable_artifact INTEGER")
+        db.execSQL("ALTER TABLE project_structures ADD COLUMN enable_advanced INTEGER")
+    }
+}
+
+val MIGRATION_87_88 = object : Migration(87, 88) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE structure_presets ADD COLUMN enable_dashboard INTEGER")
+        db.execSQL("ALTER TABLE structure_presets ADD COLUMN enable_backlog INTEGER")
+        db.execSQL("ALTER TABLE project_structures ADD COLUMN enable_dashboard INTEGER")
+        db.execSQL("ALTER TABLE project_structures ADD COLUMN enable_backlog INTEGER")
+    }
+}
+
+val MIGRATION_88_89 = object : Migration(88, 89) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE structure_presets ADD COLUMN enable_attachments INTEGER")
+        db.execSQL("ALTER TABLE project_structures ADD COLUMN enable_attachments INTEGER")
+    }
+}
+
+val MIGRATION_89_90 = object : Migration(89, 90) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `ai_events` (
+                `id` TEXT NOT NULL,
+                `type` TEXT NOT NULL,
+                `timestamp` INTEGER NOT NULL,
+                `payload` TEXT NOT NULL,
+                PRIMARY KEY(`id`)
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `life_system_state` (
+                `id` TEXT NOT NULL,
+                `loadLevel` TEXT NOT NULL,
+                `executionMode` TEXT NOT NULL,
+                `stability` TEXT NOT NULL,
+                `entropy` TEXT NOT NULL,
+                `updatedAt` INTEGER NOT NULL,
+                PRIMARY KEY(`id`)
+            )
+            """.trimIndent()
+        )
+    }
+}
+
+val MIGRATION_90_91 = object : Migration(90, 91) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `ai_insights` (
+                `id` TEXT NOT NULL,
+                `text` TEXT NOT NULL,
+                `type` TEXT NOT NULL,
+                `timestamp` INTEGER NOT NULL,
+                `isRead` INTEGER NOT NULL,
+                `isFavorite` INTEGER NOT NULL,
+                PRIMARY KEY(`id`)
+            )
+            """.trimIndent()
+        )
+    }
+}
+
+val MIGRATION_91_92 = object : Migration(91, 92) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE structure_presets ADD COLUMN enable_auto_link_subprojects INTEGER")
+        db.execSQL(
+            "ALTER TABLE project_structures ADD COLUMN enable_auto_link_subprojects INTEGER"
+        )
+        db.execSQL(
+            "UPDATE project_structures SET enable_auto_link_subprojects = 1 WHERE enable_auto_link_subprojects IS NULL"
+        )
+    }
+}
+
+val MIGRATION_92_93 = object : Migration(92, 93) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE tactical_missions ADD COLUMN linkedProjectIds TEXT")
+        db.execSQL("ALTER TABLE tactical_missions ADD COLUMN linkedAttachmentIds TEXT")
+    }
+}

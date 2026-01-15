@@ -3,8 +3,11 @@ package com.romankozak.forwardappmobile.data.repository
 import android.util.Log
 import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
+import com.romankozak.forwardappmobile.data.database.models.BacklogOrder
 import com.romankozak.forwardappmobile.data.database.models.ListItem
 import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.data.sync.bumpSync
+import com.romankozak.forwardappmobile.data.sync.softDelete
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -12,7 +15,8 @@ import javax.inject.Singleton
 @Singleton
 class ListItemRepository @Inject constructor(
     private val listItemDao: ListItemDao,
-    private val linkItemDao: LinkItemDao
+    private val linkItemDao: LinkItemDao,
+    private val backlogOrderRepository: BacklogOrderRepository,
 ) {
     private val TAG = "ListItemRepository"
 
@@ -48,12 +52,28 @@ class ListItemRepository @Inject constructor(
     ) {
         if (itemIds.isNotEmpty()) {
             listItemDao.updateListItemProjectIds(itemIds, targetProjectId)
+            // bump updatedAt/version for moved items
+            val now = System.currentTimeMillis()
+            val items = listItemDao.getItemsByIds(itemIds)
+            if (items.isNotEmpty()) {
+                listItemDao.insertItems(
+                    items.map { it.copy(projectId = targetProjectId).bumpSync(now) },
+                )
+            }
         }
     }
 
     suspend fun deleteListItems(itemIds: List<String>) {
         if (itemIds.isNotEmpty()) {
-            listItemDao.deleteItemsByIds(itemIds)
+            val now = System.currentTimeMillis()
+            val items = listItemDao.getItemsByIds(itemIds)
+            if (items.isNotEmpty()) {
+                listItemDao.insertItems(
+                    items.map { it.softDelete(now) },
+                )
+            } else {
+                listItemDao.deleteItemsByIds(itemIds)
+            }
         }
     }
 
@@ -65,7 +85,31 @@ class ListItemRepository @Inject constructor(
 
     suspend fun updateListItemsOrder(items: List<ListItem>) {
         if (items.isNotEmpty()) {
-            listItemDao.updateItems(items)
+            val now = System.currentTimeMillis()
+            val bumped = items.map {
+                val bumpedItem = it.bumpSync(now)
+                Log.d(
+                    TAG,
+                    "[updateListItemsOrder] bump id=${it.id} project=${it.projectId} order=${it.order} v_old=${it.version} v_new=${bumpedItem.version} syncedAt_old=${it.syncedAt}"
+                )
+                bumpedItem
+            }
+            Log.d(TAG, "[updateListItemsOrder] applying ${bumped.size} items, now=$now")
+            listItemDao.updateItems(bumped)
+            // Пишемо порядок у backlog_orders як канонічний
+            val orders = bumped.map { bi ->
+                BacklogOrder(
+                    id = bi.id,
+                    listId = bi.projectId,
+                    itemId = bi.entityId,
+                    order = bi.order,
+                    orderVersion = bi.version,
+                    updatedAt = bi.updatedAt,
+                    syncedAt = bi.syncedAt,
+                    isDeleted = bi.isDeleted,
+                )
+            }
+            backlogOrderRepository.upsertOrders(orders)
         }
     }
 

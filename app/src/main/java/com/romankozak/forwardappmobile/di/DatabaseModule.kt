@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.di
 
 import android.content.Context
+import android.util.Log
 import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
@@ -24,6 +25,9 @@ import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
 import com.romankozak.forwardappmobile.data.dao.ChatDao
 import com.romankozak.forwardappmobile.data.dao.ConversationFolderDao
 import com.romankozak.forwardappmobile.data.dao.ChecklistDao
+import com.romankozak.forwardappmobile.data.dao.ScriptDao
+import com.romankozak.forwardappmobile.data.dao.BacklogOrderDao
+import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import dagger.Module
 import dagger.Provides
@@ -93,6 +97,32 @@ import com.romankozak.forwardappmobile.data.database.MIGRATION_63_64
 import com.romankozak.forwardappmobile.data.database.MIGRATION_64_65
 import com.romankozak.forwardappmobile.data.database.MIGRATION_65_66
 import com.romankozak.forwardappmobile.data.database.MIGRATION_66_67
+import com.romankozak.forwardappmobile.data.database.MIGRATION_67_68
+import com.romankozak.forwardappmobile.data.database.MIGRATION_68_69
+import com.romankozak.forwardappmobile.data.database.MIGRATION_69_70
+import com.romankozak.forwardappmobile.data.database.MIGRATION_70_71
+import com.romankozak.forwardappmobile.data.database.MIGRATION_71_72
+import com.romankozak.forwardappmobile.data.database.MIGRATION_72_73
+import com.romankozak.forwardappmobile.data.database.MIGRATION_73_74
+import com.romankozak.forwardappmobile.data.database.MIGRATION_74_75
+import com.romankozak.forwardappmobile.data.database.MIGRATION_75_76
+import com.romankozak.forwardappmobile.data.database.MIGRATION_76_77
+import com.romankozak.forwardappmobile.data.database.MIGRATION_79_80
+import com.romankozak.forwardappmobile.data.database.MIGRATION_80_81
+import com.romankozak.forwardappmobile.data.database.MIGRATION_81_82
+import com.romankozak.forwardappmobile.data.database.MIGRATION_82_83
+import com.romankozak.forwardappmobile.data.database.MIGRATION_83_84
+import com.romankozak.forwardappmobile.data.database.MIGRATION_84_85
+import com.romankozak.forwardappmobile.data.database.MIGRATION_85_86
+import com.romankozak.forwardappmobile.data.database.MIGRATION_86_87
+import com.romankozak.forwardappmobile.data.database.MIGRATION_87_88
+import com.romankozak.forwardappmobile.data.database.MIGRATION_88_89
+import com.romankozak.forwardappmobile.data.database.MIGRATION_89_90
+import com.romankozak.forwardappmobile.data.database.MIGRATION_90_91
+import com.romankozak.forwardappmobile.data.database.MIGRATION_91_92
+import com.romankozak.forwardappmobile.data.database.MIGRATION_92_93
+import com.romankozak.forwardappmobile.data.database.MIGRATION_89_90
+import com.romankozak.forwardappmobile.data.database.MIGRATION_89_90
 import com.romankozak.forwardappmobile.data.repository.SystemAppRepository
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 
@@ -117,6 +147,17 @@ object DatabaseModule {
                     val databaseInitializer = com.romankozak.forwardappmobile.data.database.DatabaseInitializer(db.projectDao(), systemAppRepository)
                     databaseInitializer.prePopulate()
                     migrateSpecialProjects(dbSupport)
+                    runCatching {
+                        val projects = db.projectDao().getAll()
+                        val missingSystemKey = projects.count { it.systemKey == null }
+                        val missingReserved = projects.count { it.reservedGroup == null }
+                        Log.d(
+                            "DB_INIT",
+                            "After prePopulate/migrate: total=${projects.size}, missingSystemKey=$missingSystemKey, missingReserved=$missingReserved, dbVersion=${db.openHelper.readableDatabase.version}"
+                        )
+                    }.onFailure {
+                        Log.w("DB_INIT", "Failed to log systemKey state", it)
+                    }
                 }
             }
         }
@@ -182,6 +223,30 @@ object DatabaseModule {
             MIGRATION_64_65,
             MIGRATION_65_66,
             MIGRATION_66_67,
+            MIGRATION_67_68,
+            MIGRATION_68_69,
+            MIGRATION_69_70,
+            MIGRATION_70_71,
+            MIGRATION_71_72,
+            MIGRATION_72_73,
+            MIGRATION_73_74,
+            MIGRATION_74_75,
+            MIGRATION_75_76,
+            MIGRATION_76_77,
+            MIGRATION_79_80,
+            MIGRATION_80_81,
+            MIGRATION_81_82,
+            MIGRATION_82_83,
+            MIGRATION_83_84,
+            MIGRATION_84_85,
+            MIGRATION_85_86,
+            MIGRATION_86_87,
+            MIGRATION_87_88,
+            MIGRATION_88_89,
+            MIGRATION_89_90,
+            MIGRATION_90_91,
+            MIGRATION_91_92,
+            MIGRATION_92_93,
         ).addCallback(callback).build()
         return db
     }
@@ -221,6 +286,18 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideProjectManagementDao(appDatabase: AppDatabase) = appDatabase.projectManagementDao()
+
+    @Provides
+    @Singleton
+    fun provideAiEventDao(appDatabase: AppDatabase) = appDatabase.aiEventDao()
+
+    @Provides
+    @Singleton
+    fun provideLifeSystemStateDao(appDatabase: AppDatabase) = appDatabase.lifeSystemStateDao()
+
+    @Provides
+    @Singleton
+    fun provideAiInsightDao(appDatabase: AppDatabase) = appDatabase.aiInsightDao()
 
     @Provides
     @Singleton
@@ -269,4 +346,28 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideSystemAppDao(appDatabase: AppDatabase) = appDatabase.systemAppDao()
-}
+
+    @Provides
+    @Singleton
+    fun provideScriptDao(appDatabase: AppDatabase): ScriptDao = appDatabase.scriptDao()
+
+    @Provides
+    @Singleton
+    fun provideBacklogOrderDao(appDatabase: AppDatabase) = appDatabase.backlogOrderDao()
+
+    @Provides
+    @Singleton
+    fun provideTacticalMissionDao(appDatabase: AppDatabase): TacticalMissionDao = appDatabase.tacticalMissionDao()
+
+    @Provides
+    @Singleton
+    fun provideStructurePresetDao(appDatabase: AppDatabase) = appDatabase.structurePresetDao()
+
+    @Provides
+    @Singleton
+    fun provideStructurePresetItemDao(appDatabase: AppDatabase) = appDatabase.structurePresetItemDao()
+
+    @Provides
+    @Singleton
+    fun provideProjectStructureDao(appDatabase: AppDatabase) = appDatabase.projectStructureDao()
+    }

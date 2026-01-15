@@ -1,7 +1,6 @@
 package com.romankozak.forwardappmobile.ui.navigation
 
 import android.util.Log
-import androidx.compose.runtime.getValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.navigation.NavOptionsBuilder
 import com.romankozak.forwardappmobile.data.database.models.NavigationEntry
@@ -11,208 +10,160 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
-
 data class NavigationResult(val key: String, val value: String)
 
-
-sealed class NavigationCommand {
-    data class Navigate(val route: String, val builder: NavOptionsBuilder.() -> Unit = {}) : NavigationCommand()
-
-    data class PopBackStack(val key: String? = null, val value: String? = null) : NavigationCommand()
-}
-
-
 class EnhancedNavigationManager(
-    savedStateHandle: SavedStateHandle,
-    private val scope: CoroutineScope,
+  savedStateHandle: SavedStateHandle,
+  private val scope: CoroutineScope,
 ) {
-    companion object {
-        private const val TAG = "Nav_DEBUG"
+
+  companion object {
+    private const val TAG = "Nav_DEBUG"
+  }
+
+  private val historyManager = NavigationHistoryManager(savedStateHandle, scope)
+
+  private val _navigationChannel = Channel<NavigationCommand>()
+  val navigationCommandFlow = _navigationChannel.receiveAsFlow()
+
+  private val _navigationResults = MutableSharedFlow<NavigationResult>()
+  val navigationResults: SharedFlow<NavigationResult> = _navigationResults.asSharedFlow()
+
+  val canGoBack: StateFlow<Boolean> = historyManager.canGoBack
+  val canGoForward: StateFlow<Boolean> = historyManager.canGoForward
+  val currentEntry: StateFlow<NavigationEntry?> = historyManager.currentEntry
+
+  private val _showNavigationMenu = MutableStateFlow(false)
+  val showNavigationMenu: StateFlow<Boolean> = _showNavigationMenu.asStateFlow()
+
+  fun navigate(route: String, builder: (NavOptionsBuilder.() -> Unit)? = null) {
+    sendNavigationCommand(NavigationCommand.Navigate(route, builder))
+  }
+
+  fun navigate(target: NavTarget, builder: (NavOptionsBuilder.() -> Unit)? = null) {
+    sendNavigationCommand(NavigationCommand.NavigateTarget(target, builder))
+  }
+
+  fun navigateToProjectHierarchyScreen(isInitial: Boolean = false) {
+    val entry = NavigationEntry.createProjectHierarchyScreen()
+    historyManager.addEntry(entry)
+
+    if (!isInitial) {
+      sendNavigationCommand(NavigationCommand.Navigate("goal_lists_screen"))
     }
+  }
 
-    private val historyManager = NavigationHistoryManager(savedStateHandle, scope)
+  fun navigateToProject(projectId: String, projectName: String) {
+    val entry = NavigationEntry.createProjectScreen(projectId, projectName)
+    historyManager.addEntry(entry)
+    sendNavigationCommand(NavigationCommand.Navigate("goal_detail_screen/$projectId"))
+  }
 
-    
-    private val _navigationChannel = Channel<NavigationCommand>()
-    val navigationCommandFlow = _navigationChannel.receiveAsFlow()
+  fun navigateToGlobalSearch(query: String) {
+    val entry = NavigationEntry.createGlobalSearch(query)
+    historyManager.addEntry(entry)
+    sendNavigationCommand(NavigationCommand.Navigate("global_search_screen/$query"))
+  }
 
-    
-    private val _navigationResults = MutableSharedFlow<NavigationResult>()
-    val navigationResults: SharedFlow<NavigationResult> = _navigationResults.asSharedFlow()
-
-    val canGoBack: StateFlow<Boolean> = historyManager.canGoBack
-    val canGoForward: StateFlow<Boolean> = historyManager.canGoForward
-    val currentEntry: StateFlow<NavigationEntry?> = historyManager.currentEntry
-
-    private val _showNavigationMenu = MutableStateFlow(false)
-    val showNavigationMenu: StateFlow<Boolean> = _showNavigationMenu.asStateFlow()
-
-    fun navigate(route: String) {
-        sendNavigationCommand(NavigationCommand.Navigate(route))
+  fun goBack() {
+    if (canGoBack.value) {
+      historyManager.goBack()
+      sendNavigationCommand(NavigationCommand.PopBack())
     }
+  }
 
-    fun navigateToMainScreen(isInitial: Boolean = false) {
-        val entry = NavigationEntry.createMainScreen()
-        historyManager.addEntry(entry)
-        if (!isInitial) {
-            
-            sendNavigationCommand(NavigationCommand.Navigate("goal_lists_screen"))
-        }
-    }
+  fun goBackWithResult(key: String, value: String) {
+    scope.launch { _navigationResults.emit(NavigationResult(key, value)) }
+    sendNavigationCommand(NavigationCommand.PopBack(key, value))
+    historyManager.goBack()
+  }
 
-    fun navigateToProject(
-        projectId: String,
-        projectName: String,
-    ) {
-        val entry = NavigationEntry.createProjectScreen(projectId, projectName)
-        historyManager.addEntry(entry)
-        sendNavigationCommand(NavigationCommand.Navigate("goal_detail_screen/$projectId"))
-    }
+  fun goForward() {
+    val entry = historyManager.goForward()
+    if (entry != null) navigateToEntry(entry)
+  }
 
-    fun navigateToGlobalSearch(query: String) {
-        val entry = NavigationEntry.createGlobalSearch(query)
-        historyManager.addEntry(entry)
-        sendNavigationCommand(NavigationCommand.Navigate("global_search_screen/$query"))
-    }
+  fun showNavigationMenu() {
+    _showNavigationMenu.value = true
+  }
 
-    
+  fun hideNavigationMenu() {
+    _showNavigationMenu.value = false
+  }
 
-    
+  fun navigateToHistoryEntry(index: Int) {
+    val entry = historyManager.goToEntry(index)
+    if (entry != null) navigateToEntry(entry)
+    hideNavigationMenu()
+  }
 
-    fun goBack() {
-        
-        if (canGoBack.value) {
-            
-            historyManager.goBack()
-            
-            
-            sendNavigationCommand(NavigationCommand.PopBackStack())
-        }
-    }
+  fun getNavigationHistory(): List<NavigationEntry> = historyManager.getFullHistory()
 
-    fun goBackWithResult(
-        key: String,
-        value: String,
-    ) {
-        
-        scope.launch {
-            _navigationResults.emit(NavigationResult(key, value))
-        }
+  fun updateCurrentEntry(updatedTitle: String) {
+    val current = currentEntry.value ?: return
+    historyManager.updateCurrentEntry(current.copy(title = updatedTitle))
+  }
 
-        
-        sendNavigationCommand(NavigationCommand.PopBackStack(key, value))
-        
-        historyManager.goBack()
-    }
+  fun sendResult(key: String, value: String) {
+    scope.launch { _navigationResults.emit(NavigationResult(key, value)) }
+  }
 
-    fun goForward() {
-        val entry = historyManager.goForward()
-        if (entry != null) {
-            navigateToEntry(entry)
-        }
-    }
+  fun clearHistory() {
+    historyManager.clearHistory()
+  }
 
-    fun showNavigationMenu() {
-        _showNavigationMenu.value = true
-    }
+  fun navigateHome() {
+    historyManager.clearHistory()
 
-    fun hideNavigationMenu() {
-        _showNavigationMenu.value = false
-    }
+    sendNavigationCommand(
+      NavigationCommand.Navigate("goal_lists_screen") {
+        popUpTo("goal_lists_screen") { inclusive = true }
+        launchSingleTop = true
+      }
+    )
+  }
 
-    fun navigateToHistoryEntry(index: Int) {
-        val entry = historyManager.goToEntry(index)
-        if (entry != null) {
-            navigateToEntry(entry)
-        }
-        hideNavigationMenu()
-    }
+  private fun navigateToEntry(entry: NavigationEntry) {
+    Log.d(TAG, "Navigating to history entry: ${entry.type} - ${entry.title}")
 
-    fun getNavigationHistory(): List<NavigationEntry> {
-        return historyManager.getFullHistory()
-    }
+    val command =
+      when (entry.type) {
+        NavigationType.PROJECT_HIERARCHY_SCREEN ->
+          NavigationCommand.Navigate("goal_lists_screen") {
+            popUpTo("goal_lists_screen") { inclusive = false }
+          }
 
-    fun updateCurrentEntry(updatedTitle: String) {
-        val current = currentEntry.value
-        if (current != null) {
-            val updated = current.copy(title = updatedTitle)
-            historyManager.updateCurrentEntry(updated)
-        }
-    }
+        NavigationType.PROJECT_SCREEN ->
+          NavigationCommand.Navigate("goal_detail_screen/${entry.id}")
 
-    
-    fun sendResult(
-        key: String,
-        value: String,
-    ) {
-        scope.launch {
-            _navigationResults.emit(NavigationResult(key, value))
-        }
-    }
-
-    
-    fun clearHistory() {
-        historyManager.clearHistory()
-    }
-
-    
-    fun navigateHome() {
-        
-        historyManager.clearHistory()
-
-        
-        sendNavigationCommand(
-            NavigationCommand.Navigate("goal_lists_screen") {
-                popUpTo("goal_lists_screen") { inclusive = true }
-                launchSingleTop = true
-            },
-        )
-    }
-
-    private fun navigateToEntry(entry: NavigationEntry) {
-        Log.d(TAG, "Navigating to history entry: ${entry.type} - ${entry.title}")
-
-        val command =
-            when (entry.type) {
-                NavigationType.MAIN_SCREEN ->
-                    NavigationCommand.Navigate("goal_lists_screen") {
-                        
-                        popUpTo("goal_lists_screen") { inclusive = false }
-                    }
-                NavigationType.PROJECT_SCREEN -> NavigationCommand.Navigate("goal_detail_screen/${entry.id}")
-                NavigationType.GLOBAL_SEARCH -> {
-                    val query = entry.id.removePrefix("search_")
-                    NavigationCommand.Navigate("global_search_screen/$query")
-                }
-                else -> NavigationCommand.Navigate(entry.route)
-            }
-        sendNavigationCommand(command)
-    }
-
-    private fun sendNavigationCommand(command: NavigationCommand) {
-        scope.launch {
-            _navigationChannel.send(command)
-        }
-    }
-
-    fun navigateHomeWithResult(
-        key: String,
-        value: String,
-    ) {
-        
-        scope.launch {
-            _navigationResults.emit(NavigationResult(key, value))
+        NavigationType.GLOBAL_SEARCH -> {
+          val query = entry.id.removePrefix("search_")
+          NavigationCommand.Navigate("global_search_screen/$query")
         }
 
-        
-        historyManager.clearHistory()
-        val homeEntry = NavigationEntry.createMainScreen()
-        historyManager.addEntry(homeEntry)
-        sendNavigationCommand(
-            NavigationCommand.Navigate("goal_lists_screen") {
-                popUpTo("goal_lists_screen") { inclusive = true }
-                launchSingleTop = true
-            },
-        )
-    }
+        else -> NavigationCommand.Navigate(entry.route)
+      }
+
+    sendNavigationCommand(command)
+  }
+
+  private fun sendNavigationCommand(command: NavigationCommand) {
+    scope.launch { _navigationChannel.send(command) }
+  }
+
+  fun navigateHomeWithResult(key: String, value: String) {
+    scope.launch { _navigationResults.emit(NavigationResult(key, value)) }
+
+    historyManager.clearHistory()
+
+    val entry = NavigationEntry.createProjectHierarchyScreen()
+    historyManager.addEntry(entry)
+
+    sendNavigationCommand(
+      NavigationCommand.Navigate("goal_lists_screen") {
+        popUpTo("goal_lists_screen") { inclusive = true }
+        launchSingleTop = true
+      }
+    )
+  }
 }

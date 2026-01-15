@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.ui.screens.daymanagement
 import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -31,12 +32,19 @@ import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.ActivityTrackerScreen
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayanalitics.DayAnalyticsScreen
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.daydashboard.DayDashboardScreen
+import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanScreen
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.components.DayManagementBottomNav
 import kotlinx.coroutines.launch
 
 import androidx.compose.material.icons.filled.Inbox
-import com.romankozak.forwardappmobile.ui.screens.inbox.InboxScreen
+import com.romankozak.forwardappmobile.ui.components.header.FAHeader
+import com.romankozak.forwardappmobile.ui.components.header.TodayHeader
+
+import androidx.compose.foundation.layout.Column
+
+
+
 
 enum class DayManagementTab(val title: String, val icon: ImageVector, val description: String) {
   TRACK("Трекер", Icons.Outlined.Timeline, "Відстежувати активність"),
@@ -64,6 +72,9 @@ fun DayManagementScreen(
   val coroutineScope = rememberCoroutineScope()
   val snackbarHostState = remember { SnackbarHostState() }
   var addTaskTrigger by remember { mutableStateOf(0) }
+
+  // Instantiate DayPlanViewModel here, scoped to the COMMAND_DECK_TODAY_ROUTE
+  val dayPlanViewModel: com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanViewModel = hiltViewModel()
 
   LaunchedEffect(key1 = Unit) {
     viewModel.uiEvent.collect { event ->
@@ -93,9 +104,11 @@ fun DayManagementScreen(
 
   Scaffold(
     modifier = modifier.fillMaxSize(),
+    containerColor = Color.Transparent,
+    contentWindowInsets = WindowInsets(0, 0, 0, 0),
     snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
     bottomBar = {
-      if (uiState.dayPlanId != null) {
+      if (uiState.dayPlanId != null && tabs[pagerState.currentPage] != DayManagementTab.PLAN) {
         DayManagementBottomNav(
           currentTab = tabs[pagerState.currentPage],
           onTabSelected = { tab ->
@@ -115,7 +128,9 @@ fun DayManagementScreen(
     },
   ) { innerPadding ->
     Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-      when {
+
+      Box(modifier = Modifier.fillMaxSize()) {
+        when {
         uiState.isLoading -> {
           LoadingContent()
         }
@@ -131,11 +146,11 @@ fun DayManagementScreen(
               DayManagementTab.TRACK -> ActivityTrackerScreen(navController = mainNavController)
               DayManagementTab.PLAN ->
                 DayPlanScreen(
-                  dayPlanId = planId,
-                  onNavigateToProject = { projectId ->
+                  initialDayPlanId = planId,
+                  onNavigateToProject = { projectId: String ->
                     mainNavController.navigate("goal_detail_screen/$projectId")
                   },
-                  onNavigateToBacklog = { task ->
+                  onNavigateToBacklog = { task: DayTask ->
                     // <-- ПОСТАВТЕ ЛОГИ ТУТ
                     Log.d(TAG, "2. НАВІГАЦІЯ: Отримано task для переходу в беклог.")
                     task.projectId?.let { projectId ->
@@ -157,6 +172,7 @@ fun DayManagementScreen(
                   onNavigateToSettings = { mainNavController.navigate("settings_screen") },
                   addTaskTrigger = addTaskTrigger,
                   navController = mainNavController,
+                  viewModel = dayPlanViewModel, // Pass the shared instance
                 )
               DayManagementTab.DASHBOARD -> DayDashboardScreen(dayPlanId = planId)
               DayManagementTab.ANALYTICS -> DayAnalyticsScreen()
@@ -173,11 +189,12 @@ fun DayManagementScreen(
         )
       }
     }
+      }
   }
 }
 
 @Composable
-private fun NeonTitle(
+fun NeonTitle(
   text: String,
   modifier: Modifier = Modifier,
   color: Color = MaterialTheme.colorScheme.primary,
@@ -203,7 +220,7 @@ private fun NeonTitle(
 }
 
 @Composable
-private fun LoadingContent(modifier: Modifier = Modifier) {
+fun LoadingContent(modifier: Modifier = Modifier) {
   Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
     Column(
       horizontalAlignment = Alignment.CenterHorizontally,
@@ -225,7 +242,7 @@ private fun LoadingContent(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun ErrorContent(error: String, onRetry: () -> Unit, modifier: Modifier = Modifier) {
+fun ErrorContent(error: String, onRetry: () -> Unit, modifier: Modifier = Modifier) {
   Column(
     modifier = modifier.fillMaxSize().padding(24.dp),
     horizontalAlignment = Alignment.CenterHorizontally,

@@ -15,6 +15,7 @@ import com.romankozak.forwardappmobile.BuildConfig
 import com.romankozak.forwardappmobile.config.FeatureFlag
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.PlanningSettingsProvider
+import com.romankozak.forwardappmobile.domain.reminders.RingtoneType
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -42,6 +43,12 @@ sealed class ServerDiscoveryState {
     data class Error(val message: String) : ServerDiscoveryState()
 }
 
+data class RingtoneSettings(
+    val currentType: RingtoneType,
+    val uris: Map<RingtoneType, String>,
+    val volumes: Map<RingtoneType, Float>,
+)
+
 @Singleton
 class SettingsRepository @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -53,6 +60,16 @@ class SettingsRepository @Inject constructor(
     private val wifiSyncPortKey = intPreferencesKey("wifi_sync_port")
     private val ollamaPortKey = intPreferencesKey("ollama_port")
     private val fastApiPortKey = intPreferencesKey("fastapi_port")
+    private val ringtoneTypeKey = stringPreferencesKey("ringtone_type")
+    private val ringtoneEnergeticKey = stringPreferencesKey("ringtone_uri_energetic")
+    private val ringtoneModerateKey = stringPreferencesKey("ringtone_uri_moderate")
+    private val ringtoneQuietKey = stringPreferencesKey("ringtone_uri_quiet")
+    private val ringtoneEnergeticVolumeKey = floatPreferencesKey("ringtone_volume_energetic")
+    private val ringtoneModerateVolumeKey = floatPreferencesKey("ringtone_volume_moderate")
+    private val ringtoneQuietVolumeKey = floatPreferencesKey("ringtone_volume_quiet")
+    private val reminderVibrationEnabledKey = booleanPreferencesKey("reminder_vibration_enabled")
+    private val wifiSyncServerEnabledKey = booleanPreferencesKey("wifi_sync_server_enabled")
+    private val desktopSyncAddressKey = stringPreferencesKey("desktop_sync_address")
 
 
     val serverIpConfigurationModeFlow: Flow<String> = context.dataStore.data.map {
@@ -87,16 +104,80 @@ class SettingsRepository @Inject constructor(
         }
     }
 
+    val ringtoneTypeFlow: Flow<RingtoneType> =
+        context.dataStore.data.map { prefs ->
+            RingtoneType.fromStorage(prefs[ringtoneTypeKey])
+        }
+
+    val ringtoneUrisFlow: Flow<Map<RingtoneType, String>> =
+        context.dataStore.data.map { prefs ->
+            mapOf(
+                RingtoneType.Energetic to (prefs[ringtoneEnergeticKey] ?: ""),
+                RingtoneType.Moderate to (prefs[ringtoneModerateKey] ?: ""),
+                RingtoneType.Quiet to (prefs[ringtoneQuietKey] ?: ""),
+            )
+        }
+
+    val ringtoneVolumesFlow: Flow<Map<RingtoneType, Float>> =
+        context.dataStore.data.map { prefs ->
+            mapOf(
+                RingtoneType.Energetic to prefs.safeFloat(ringtoneEnergeticVolumeKey, 1.0f),
+                RingtoneType.Moderate to prefs.safeFloat(ringtoneModerateVolumeKey, 0.8f),
+                RingtoneType.Quiet to prefs.safeFloat(ringtoneQuietVolumeKey, 0.5f),
+            )
+        }
+
+    val reminderVibrationEnabledFlow: Flow<Boolean> =
+        context.dataStore.data.map { prefs ->
+            prefs.safeBoolean(reminderVibrationEnabledKey, true)
+        }
+
+    val wifiSyncServerEnabledFlow: Flow<Boolean> =
+        context.dataStore.data.map { prefs ->
+            prefs.safeBoolean(wifiSyncServerEnabledKey, true)
+        }
+
+    val desktopSyncAddressFlow: Flow<String> =
+        context.dataStore.data.map { prefs ->
+            prefs[desktopSyncAddressKey] ?: "192.168.0.106"
+        }
+
+    private fun Preferences.safeFloat(
+        key: Preferences.Key<Float>,
+        defaultValue: Float,
+    ): Float =
+        try {
+            this[key] ?: defaultValue
+        } catch (e: ClassCastException) {
+            Log.w("SettingsRepository", "Value for ${key.name} stored as String, attempting to parse.", e)
+            this[stringPreferencesKey(key.name)]?.toFloatOrNull() ?: defaultValue
+        }
+
+    private fun Preferences.safeBoolean(
+        key: Preferences.Key<Boolean>,
+        defaultValue: Boolean,
+    ): Boolean =
+        try {
+            this[key] ?: defaultValue
+        } catch (e: ClassCastException) {
+            Log.w("SettingsRepository", "Value for ${key.name} stored as String, attempting to parse.", e)
+            this[stringPreferencesKey(key.name)]?.toBoolean() ?: defaultValue
+        }
+
     private val featureToggleKeys: Map<FeatureFlag, androidx.datastore.preferences.core.Preferences.Key<Boolean>> =
         FeatureFlag.values().associateWith { flag -> booleanPreferencesKey("feature_toggle_${flag.storageKey}") }
 
     private fun defaultFor(flag: FeatureFlag): Boolean =
         when (flag) {
-            FeatureFlag.AttachmentsLibrary -> BuildConfig.DEBUG
+            FeatureFlag.AttachmentsLibrary -> BuildConfig.IS_EXPERIMENTAL_BUILD
+            FeatureFlag.ScriptsLibrary -> BuildConfig.IS_EXPERIMENTAL_BUILD
             FeatureFlag.AllowSystemProjectMoves -> false
-            FeatureFlag.PlanningModes -> BuildConfig.DEBUG
-            FeatureFlag.WifiSync -> BuildConfig.DEBUG
-            FeatureFlag.StrategicManagement -> BuildConfig.DEBUG
+            FeatureFlag.PlanningModes -> BuildConfig.IS_EXPERIMENTAL_BUILD
+            FeatureFlag.WifiSync -> BuildConfig.IS_EXPERIMENTAL_BUILD
+            FeatureFlag.StrategicManagement -> BuildConfig.IS_EXPERIMENTAL_BUILD
+            FeatureFlag.AiChat -> BuildConfig.IS_EXPERIMENTAL_BUILD
+            FeatureFlag.AiInsights -> BuildConfig.IS_EXPERIMENTAL_BUILD
+            FeatureFlag.AiLifeManagement -> BuildConfig.IS_EXPERIMENTAL_BUILD
         }
 
     val featureTogglesFlow: Flow<Map<FeatureFlag, Boolean>> =
@@ -138,6 +219,60 @@ class SettingsRepository @Inject constructor(
             prefs[featureToggleKeys[flag]!!] = enabled
         }
     }
+
+    suspend fun saveRingtoneType(type: RingtoneType) {
+        context.dataStore.edit { prefs ->
+            prefs[ringtoneTypeKey] = type.storageKey
+        }
+    }
+
+    suspend fun saveRingtoneUri(type: RingtoneType, uri: String) {
+        context.dataStore.edit { prefs ->
+            when (type) {
+                RingtoneType.Energetic -> prefs[ringtoneEnergeticKey] = uri
+                RingtoneType.Moderate -> prefs[ringtoneModerateKey] = uri
+                RingtoneType.Quiet -> prefs[ringtoneQuietKey] = uri
+            }
+        }
+    }
+
+    suspend fun saveRingtoneVolume(type: RingtoneType, volume: Float) {
+        val clamped = volume.coerceIn(0f, 1f)
+        context.dataStore.edit { prefs ->
+            when (type) {
+                RingtoneType.Energetic -> prefs[ringtoneEnergeticVolumeKey] = clamped
+                RingtoneType.Moderate -> prefs[ringtoneModerateVolumeKey] = clamped
+                RingtoneType.Quiet -> prefs[ringtoneQuietVolumeKey] = clamped
+            }
+        }
+    }
+
+    suspend fun setReminderVibrationEnabled(enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[reminderVibrationEnabledKey] = enabled
+        }
+    }
+
+    suspend fun saveWifiSyncServerEnabled(enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[wifiSyncServerEnabledKey] = enabled
+        }
+    }
+
+    suspend fun saveDesktopSyncAddress(address: String) {
+        context.dataStore.edit { prefs ->
+            prefs[desktopSyncAddressKey] = address
+        }
+    }
+
+    suspend fun getRingtoneSettings(): RingtoneSettings {
+        val type = ringtoneTypeFlow.first()
+        val uris = ringtoneUrisFlow.first()
+        val volumes = ringtoneVolumesFlow.first()
+        return RingtoneSettings(type, uris, volumes)
+    }
+
+    suspend fun isReminderVibrationEnabled(): Boolean = reminderVibrationEnabledFlow.first()
 
     fun discoverServer(): Flow<ServerDiscoveryState> = callbackFlow {
         val job = launch(Dispatchers.IO) {
@@ -550,6 +685,8 @@ class SettingsRepository @Inject constructor(
                 when (key) {
                     showPlanningModesKey.name,
                     isBottomNavExpandedKey.name,
+                    reminderVibrationEnabledKey.name,
+                    wifiSyncServerEnabledKey.name,
                     -> {
                         preferences[booleanPreferencesKey(key)] = value.toBoolean()
                     }

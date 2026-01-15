@@ -1,0 +1,64 @@
+# Progress Report
+
+## December 6, 2025
+
+### Completed Tasks:
+
+- **Added Vertical Offset to Header from System Bar:**
+  - Added a small vertical offset (8.dp top padding) to the `Box` containing the header content in `FAHeader.kt`.
+  - This creates a visual separation from the system status bar, as per the user's request.
+  - The application now compiles successfully.
+- **Fixed Transparent Status Bar Effect (Spacer Background):**
+  - Removed the header's background from the status bar `Spacer` in `FAHeader.kt`.
+  - This allows the underlying screen's background to show through in the status bar area, creating the desired transparent effect.
+  - The application now compiles successfully.
+- **Fixed Transparent Status Bar Effect:**
+  - Removed the code that was hiding the system bars in `MainActivity.kt`.
+  - The `enableEdgeToEdge()` call and the theme's `SideEffect` now correctly handle the transparent status bar effect.
+  - The application now compiles successfully.
+- **Increased Vertical Padding for TodayHeader:**
+  - Increased the `vertical` padding for the `Column` in the `left` slot of `TodayHeader` in `FAHeaderPresets.kt` to provide more top and bottom spacing.
+  - The application now compiles successfully.
+- **Refined TodayHeader Styling (Bold "Today" and Padding):**
+  - Made the "Today" text bold in `TodayHeader` in `FAHeaderPresets.kt`.
+  - Added vertical padding to the `left` slot content in `TodayHeader`.
+  - The application now compiles successfully.
+- **Refined TodayHeader Styling:**
+  - Added "⌁" icon to the `right` slot of `TodayHeader` in `FAHeaderPresets.kt`.
+  - Adjusted the font style of "Operative Mode • [date]" in `TodayHeader` to match "Command & Control" from `CommandDeckHeaderPreset`.
+  - The application now compiles successfully.
+- **Refactored Universal Header System to a Two-Slot Layout:**
+  - Modified `FAHeaderConfig.kt` to have a two-slot layout (`left` and `right`).
+  - Updated `FAHeader.kt` to use the new two-slot layout.
+  - Updated all header presets in `FAHeaderPresets.kt` to use the new two-slot layout.
+  - The application now compiles successfully.
+- **Created Universal Header System (FAHeader):**
+  - Created a new package `com.romankozak.forwardappmobile.ui.components.header` for the universal header.
+  - Created `FAHeader.kt`, `FAHeaderConfig.kt`, `FAHeaderPresets.kt`, `HeaderModeCapsule.kt`, `FAHeaderTokens.kt`, and `FAHeaderUtils.kt`.
+  - Resolved all compilation errors related to the new header components.
+- **Integrated FAHeader into DayManagementScreen:**
+  - Integrated `FAHeader` with `TodayHeader` into `DayManagementScreen.kt`.
+  - Resolved all compilation errors related to the integration.
+- **Styled TodayHeader to match CommandDeckHeader:**
+  - Updated `FAHeader.kt` to support `CommandDeck` styling (background, border, clip).
+  - Modified `TodayHeader` in `FAHeaderPresets.kt` to use the `CommandDeck` style and layout.
+  - Applied left alignment to the header content in `FAHeader.kt`.
+  - The application now compiles successfully.
+- **Resolved TacticalMission compilation errors:**
+  - Added missing `Project` and `TypeConverters` imports to `TacticalMissionModels.kt`.
+  - Updated `TacticalManagementScreen.kt` and `TacticalMissionViewModel.kt` to use the `MissionStatus` enum instead of the non-existent `isCompleted` property, resolving `Unresolved reference 'isCompleted'` errors.
+  - The application now builds successfully.
+- **Fixed AppNavigation.kt compilation errors and implemented navigation for Inbox and AI Chat:**
+  - Added `onNavigateToInbox` and `onNavigateToAIChat` lambdas to `CommandDeckScreen` in `AppNavigation.kt`.
+  - Configured navigation to "inbox_editor_screen" and `AI_INSIGHTS_ROUTE` respectively.
+- **Resolved AppNavigation.kt missing parameter errors for CommandDeckScreen:**
+  - Identified all required navigation lambdas from `CommandDeckScreen.kt`.
+  - Updated `AppNavigation.kt` to pass `onNavigateToTracker`, `onNavigateToReminders`, `onNavigateToAiLifeManagement`, `onNavigateToImportExport`, `onNavigateToAttachments`, and `onNavigateToScripts` to `CommandDeckScreen` with appropriate navigation logic.
+  - The application now compiles and launches successfully.
+- Integrated day plan specific header content (date, points summary, tasks summary, progress bar, day navigation buttons) into `TodayHeader` in `FAHeaderPresets.kt`.
+- Introduced a `center` slot in `FAHeaderConfig` and `FAHeader.kt` to accommodate the new header content.
+- Created `DayPlanHeaderContent.kt` to encapsulate the day plan header UI logic.
+- Refactored `SharedCommandDeckLayout.kt` to hoist `DayPlanViewModel` and pass its UI state and navigation callbacks to `TodayHeader`.
+- Updated `DayManagementScreen.kt` to adapt to the hoisted `DayPlanViewModel` and the new header structure.
+- Removed `CompactDayPlanHeader` and `HeaderInfoChip` from `dayplan/DayPlanScreen.kt` as their functionality was migrated.
+- Updated `TaskList.kt` to remove the call to `CompactDayPlanHeader` and adjust its function signature accordingly.

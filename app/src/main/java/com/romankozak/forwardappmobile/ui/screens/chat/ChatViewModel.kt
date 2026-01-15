@@ -14,6 +14,8 @@ import com.romankozak.forwardappmobile.data.database.models.ConversationEntity
 import com.romankozak.forwardappmobile.data.repository.ChatRepository
 import com.romankozak.forwardappmobile.data.repository.RolesRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.data.repository.ScriptRepository
+import com.romankozak.forwardappmobile.domain.scripts.LuaScriptRunner
 import com.romankozak.forwardappmobile.domain.aichat.GenerationService
 import com.romankozak.forwardappmobile.domain.aichat.Message
 import com.romankozak.forwardappmobile.domain.aichat.OllamaService
@@ -28,7 +30,18 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import org.luaj.vm2.LuaValue
+import org.luaj.vm2.lib.TwoArgFunction
+import android.content.ContentValues
+import android.provider.MediaStore
+import android.net.Uri
 
 private const val TAG = "AI_CHAT_DEBUG"
 
@@ -51,6 +64,8 @@ class ChatViewModel @Inject constructor(
     private val chatRepo: ChatRepository,
     private val rolesRepo: RolesRepository,
     private val ollamaService: OllamaService,
+    private val scriptRepository: ScriptRepository,
+    private val luaScriptRunner: LuaScriptRunner,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -405,6 +420,161 @@ class ChatViewModel @Inject constructor(
                 sendMessage()
             }
         }
+    }
+
+    fun runScript(scriptId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val conversationId = ensureConversation()
+            val script = scriptRepository.getScriptById(scriptId)
+            if (script == null) {
+                chatRepo.addMessage(
+                    ChatMessage(
+                        conversationId = conversationId,
+                    text = "Скрипт не знайдено",
+                    isFromUser = false,
+                    isError = true,
+                ).toEntity(),
+            )
+            return@launch
+        }
+            val startedAt = System.currentTimeMillis()
+            val startMessage =
+                ChatMessage(
+                    conversationId = conversationId,
+                    text = buildString {
+                        appendLine("\uD83E\uDDF9 Запускаю скрипт \"${script.name}\"")
+                        appendLine("Контекст: input=${_userInput.value.take(60)}, conversation_title=${_uiState.value.currentConversation?.title ?: "Chat"}")
+                        appendLine("Підказка: save_chat_md(folder?, filename?) збереже чат у Markdown")
+                    },
+                    isFromUser = false,
+                    isError = false,
+                )
+            chatRepo.addMessage(startMessage.toEntity())
+            val contextMap =
+                mapOf(
+                    "input" to _userInput.value,
+                    "conversation_title" to (_uiState.value.currentConversation?.title ?: "Chat"),
+                )
+            val markdown = exportChatMarkdown()
+            val saveHelper = createSaveChatHelper(markdown)
+            val result = luaScriptRunner.runScript(script.content, contextMap, mapOf("save_chat_md" to saveHelper))
+            val isError = result.isFailure
+            val durationMs = System.currentTimeMillis() - startedAt
+            val messageText =
+                result.fold(
+                    onSuccess = { value ->
+                        buildString {
+                            appendLine("✅ Скрипт \"${script.name}\" виконано за ${durationMs}мс")
+                            append("Вивід: ${value.toString()}")
+                        }
+                    },
+                    onFailure = { e ->
+                        buildString {
+                            appendLine("❌ Помилка виконання \"${script.name}\" за ${durationMs}мс")
+                            appendLine(formatScriptErrorMessage(e))
+                            append("Перевірте код або контекст і спробуйте ще раз.")
+                        }
+                    },
+                )
+            chatRepo.addMessage(
+                ChatMessage(
+                    conversationId = conversationId,
+                    text = messageText,
+                    isFromUser = false,
+                    isError = isError,
+                ).toEntity(),
+            )
+        }
+    }
+
+    private fun createSaveChatHelper(markdown: String): LuaValue =
+        object : TwoArgFunction() {
+            override fun call(arg1: LuaValue, arg2: LuaValue): LuaValue {
+                val folder = arg1.optjstring("")
+                val fileName =
+                    arg2.optjstring(
+                        "chat-" +
+                            SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date()) +
+                            ".md",
+                    )
+            val result = saveChatToPath(folder, fileName, markdown)
+            return result.fold(
+                onSuccess = { path -> LuaValue.valueOf(path) },
+                onFailure = { error -> LuaValue.error("Save failed: ${error.message ?: error}") },
+            )
+        }
+    }
+
+    private fun saveChatToPath(folder: String?, fileName: String, content: String): Result<String> =
+        runCatching {
+            val baseDir =
+                if (folder.isNullOrBlank()) {
+                    context.getExternalFilesDir(null)
+                } else {
+                    val folderFile = File(folder)
+                    if (folderFile.isAbsolute) {
+                        return@runCatching saveToPublicFolder(folderFile, fileName, content)
+                    } else {
+                        File(context.getExternalFilesDir(null), folder)
+                    }
+                } ?: error("Storage unavailable")
+            if (!baseDir.exists() && !baseDir.mkdirs()) {
+                error("Cannot create folder: ${baseDir.absolutePath}")
+            }
+            val target = File(baseDir, fileName)
+            target.writeText(content)
+            target.absolutePath
+        }
+
+    private fun saveToPublicFolder(folder: File, fileName: String, content: String): String {
+        val relativePath = buildString {
+            val root = "/storage/emulated/0/"
+            val clean = folder.path.removePrefix(root).trim('/')
+            append("Documents/")
+            if (clean.isNotBlank()) append(clean).append('/')
+        }
+
+        val values =
+            ContentValues().apply {
+                put(MediaStore.Files.FileColumns.DISPLAY_NAME, fileName)
+                put(MediaStore.Files.FileColumns.MIME_TYPE, "text/markdown")
+                put(MediaStore.Files.FileColumns.RELATIVE_PATH, relativePath)
+            }
+        val resolver = context.contentResolver
+        val uri: Uri =
+            resolver.insert(MediaStore.Files.getContentUri("external"), values)
+                ?: error("Cannot create media entry")
+        resolver.openOutputStream(uri)?.use { stream ->
+            stream.writer().use { writer -> writer.write(content) }
+        } ?: error("Cannot open output stream")
+        return "/storage/emulated/0/$relativePath$fileName"
+    }
+
+    fun exportChatMarkdown(): String {
+        val roleTitle = _uiState.value.roleTitle
+        return _uiState.value.messages.joinToString("\n\n") { msg ->
+            val prefix = if (msg.isFromUser) "### USER" else "### ASSISTANT ($roleTitle)"
+            "$prefix\n${msg.text}"
+        }
+    }
+
+    private fun formatScriptErrorMessage(e: Throwable): String {
+        val firstTrace = e.stackTrace.firstOrNull()
+        return buildString {
+            appendLine("Тип: ${e.javaClass.simpleName}")
+            appendLine("Деталі: ${e.message ?: "без повідомлення"}")
+            firstTrace?.let {
+                append("Стек: ${it.className}:${it.lineNumber}")
+            }
+        }
+    }
+
+    private suspend fun ensureConversation(): Long {
+        val existing = _uiState.value.currentConversation?.id
+        if (existing != null) return existing
+        val newId = chatRepo.createConversation("New Chat")
+        setCurrentConversation(newId)
+        return newId
     }
 
     fun stopGeneration() {

@@ -80,15 +80,21 @@ data class NavPanelState(
   val menuExpanded: Boolean,
   val currentView: ProjectViewMode,
   val isProjectManagementEnabled: Boolean,
+  val enableInbox: Boolean,
+  val enableLog: Boolean,
+  val enableArtifact: Boolean,
+  val enableBacklog: Boolean,
+  val enableDashboard: Boolean,
+  val enableAttachments: Boolean,
   val inputMode: InputMode,
 )
 
 data class NavPanelActions(
   val onBackClick: () -> Unit,
   val onForwardClick: () -> Unit,
-  val onHomeClick: () -> Unit,
+  val onShowProjectHierarchy: () -> Unit,
+  val onNavigateHome: () -> Unit,
   val onRecentsClick: () -> Unit,
-  val onRevealInExplorer: () -> Unit,
   val onCloseSearch: () -> Unit,
   val onViewChange: (ProjectViewMode) -> Unit,
   val onInputModeSelected: (InputMode) -> Unit,
@@ -124,22 +130,53 @@ private fun ViewModeToggle(
   onInputModeSelected: (InputMode) -> Unit,
   contentColor: Color,
   holdMenuController: HoldMenu2Controller,
+  enableInbox: Boolean = true,
+  enableLog: Boolean = true,
+  enableArtifact: Boolean = true,
+  enableBacklog: Boolean = true,
+  enableDashboard: Boolean = true,
+  enableAttachments: Boolean = true,
 ) {
-    val availableViews = remember(isProjectManagementEnabled) {
-        ProjectViewMode.values().filter {
-            it != ProjectViewMode.ADVANCED || isProjectManagementEnabled
-        }
+    val availableViews = remember(isProjectManagementEnabled, enableInbox, enableLog, enableArtifact, enableBacklog, enableDashboard, enableAttachments) {
+        ProjectViewMode.values()
+            .filter {
+                when (it) {
+                    ProjectViewMode.INBOX -> enableInbox
+                    ProjectViewMode.ADVANCED -> isProjectManagementEnabled && enableLog
+                    ProjectViewMode.ATTACHMENTS -> enableAttachments
+                    ProjectViewMode.BACKLOG -> enableBacklog
+                    ProjectViewMode.DASHBOARD -> enableDashboard
+                    else -> true
+                }
+            }
+            .sortedBy {
+                when (it) {
+                    ProjectViewMode.DASHBOARD -> 0
+                    ProjectViewMode.BACKLOG -> 1
+                    ProjectViewMode.INBOX -> 2
+                    ProjectViewMode.ADVANCED -> 3
+                    ProjectViewMode.ATTACHMENTS -> 4
+                }
+            }
+            .reversed()
     }
 
     val menuItems = remember(availableViews) {
         availableViews.map { viewMode ->
             HoldMenuItem(
-                label = viewMode.name.replaceFirstChar { it.titlecase() },
+            label = when (viewMode) {
+                ProjectViewMode.DASHBOARD -> "Dashboard"
+                ProjectViewMode.BACKLOG -> "Backlog"
+                ProjectViewMode.INBOX -> "Inbox"
+                ProjectViewMode.ADVANCED -> "Advanced"
+                ProjectViewMode.ATTACHMENTS -> "Attachments"
+            },
                 icon = when (viewMode) {
                     ProjectViewMode.BACKLOG -> Icons.AutoMirrored.Outlined.ListAlt
                     ProjectViewMode.INBOX -> Icons.AutoMirrored.Outlined.Notes
                     ProjectViewMode.ADVANCED -> Icons.Outlined.Dashboard
                     ProjectViewMode.ATTACHMENTS -> Icons.Default.Attachment
+                    ProjectViewMode.DASHBOARD -> Icons.Outlined.ViewModule
                 }
             )
         }
@@ -154,11 +191,13 @@ private fun ViewModeToggle(
         HoldMenu2Button(
             items = menuItems,
             controller = holdMenuController,
+            longPressDuration = 250,
             onSelect = { index ->
                 val selectedViewMode = availableViews[index]
                 onViewChange(selectedViewMode)
                 val newMode = when (selectedViewMode) {
                     ProjectViewMode.INBOX, ProjectViewMode.ADVANCED -> InputMode.AddQuickRecord
+                    ProjectViewMode.DASHBOARD -> InputMode.AddGoal
                     else -> InputMode.AddGoal
                 }
                 onInputModeSelected(newMode)
@@ -166,6 +205,7 @@ private fun ViewModeToggle(
             modifier = Modifier.size(40.dp).padding(2.dp)
         ) {
             val currentIcon = when (currentView) {
+                ProjectViewMode.DASHBOARD -> Icons.Outlined.ViewModule
                 ProjectViewMode.BACKLOG -> Icons.AutoMirrored.Outlined.ListAlt
                 ProjectViewMode.INBOX -> Icons.AutoMirrored.Outlined.Notes
                 ProjectViewMode.ADVANCED -> Icons.Outlined.Dashboard
@@ -251,7 +291,7 @@ private fun OptionsMenu(state: NavPanelState, actions: NavPanelActions, contentC
           remember(state.currentView, state.isProjectManagementEnabled) {
             listOf(
               MenuItem(
-                editListText,
+                "Project Properties",
                 Icons.Default.Edit,
                 {
                   menu.onEditList()
@@ -263,14 +303,6 @@ private fun OptionsMenu(state: NavPanelState, actions: NavPanelActions, contentC
                 Icons.Outlined.EventAvailable,
                 {
                   actions.onAddProjectToDayPlan()
-                  actions.onMenuExpandedChange(false)
-                },
-              ),
-              MenuItem(
-                "Toggle realization support",
-                Icons.Outlined.Construction,
-                {
-                  menu.onToggleProjectManagement()
                   actions.onMenuExpandedChange(false)
                 },
               ),
@@ -398,8 +430,7 @@ private fun OptionsMenu(state: NavPanelState, actions: NavPanelActions, contentC
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun BackForwardButton(state: NavPanelState, actions: NavPanelActions, contentColor: Color) {
-  val shouldShowButton =
-    state.inputMode != InputMode.SearchInList && (state.canGoBack || state.canGoForward)
+  val shouldShowButton = true
 
   AnimatedVisibility(visible = shouldShowButton) {
     val haptic = LocalHapticFeedback.current
@@ -417,8 +448,14 @@ private fun BackForwardButton(state: NavPanelState, actions: NavPanelActions, co
         Modifier.size(40.dp)
           .clip(CircleShape)
           .combinedClickable(
-            enabled = state.canGoBack || state.canGoForward,
-            onClick = { if (state.canGoBack) actions.onBackClick() },
+            enabled = true,
+            onClick = {
+              if (state.canGoBack) {
+                actions.onBackClick()
+              } else {
+                actions.onNavigateHome()
+              }
+            },
             onLongClick = {
               if (state.canGoForward) {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -496,10 +533,15 @@ private fun NavigationBar(
   modifier: Modifier = Modifier,
   holdMenuController: HoldMenu2Controller,
 ) {
+    val lastNonSearchMode = remember { mutableStateOf<InputMode?>(null) }
+    LaunchedEffect(state.inputMode) {
+        if (state.inputMode != InputMode.SearchInList && state.inputMode != InputMode.SearchGlobal) {
+            lastNonSearchMode.value = state.inputMode
+        }
+    }
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val availableWidth = maxWidth
         val baseWidth = if (state.isProjectManagementEnabled) 380.dp else 320.dp
-        val showReveal = availableWidth > baseWidth
         val showRecents = availableWidth > (baseWidth - 40.dp)
 
         Row(
@@ -509,26 +551,21 @@ private fun NavigationBar(
             // --- LEFT SIDE ---
             BackForwardButton(state, actions, contentColor)
 
-            IconButton(onClick = actions.onHomeClick, modifier = Modifier.size(40.dp)) {
-                Icon(
-                    Icons.Filled.Home,
-                    "Дім",
-                    tint = contentColor.copy(alpha = 0.7f),
-                    modifier = Modifier.size(20.dp),
-                )
-            }
+            Icon(
+                Icons.Outlined.AccountTree,
+                "Ієрархія проєктів",
+                tint = contentColor.copy(alpha = 0.7f),
+                modifier = Modifier
+                    .size(40.dp)
+                    .combinedClickable(
+                        onClick = actions.onShowProjectHierarchy,
+                        onLongClick = actions.onNavigateHome
+                    )
+                    .padding(10.dp)
+            )
+
 
             Row {
-                AnimatedVisibility(visible = showReveal) {
-                    IconButton(onClick = actions.onRevealInExplorer, modifier = Modifier.size(40.dp)) {
-                        Icon(
-                            Icons.Outlined.RemoveRedEye,
-                            "Показати у списку",
-                            tint = contentColor.copy(alpha = 0.7f),
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
-                }
                 AnimatedVisibility(visible = showRecents) {
                     IconButton(onClick = actions.onRecentsClick, modifier = Modifier.size(40.dp)) {
                         Icon(
@@ -539,6 +576,45 @@ private fun NavigationBar(
                         )
                     }
                 }
+                Spacer(modifier = Modifier.width(4.dp))
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(
+                            color = if (state.inputMode == InputMode.SearchInList || state.inputMode == InputMode.SearchGlobal) {
+                                contentColor.copy(alpha = 0.16f)
+                            } else Color.Transparent
+                        )
+                        .combinedClickable(
+                            onClick = {
+                                if (state.inputMode == InputMode.SearchInList || state.inputMode == InputMode.SearchGlobal) {
+                                    actions.onInputModeSelected(lastNonSearchMode.value ?: InputMode.AddGoal)
+                                } else {
+                                    lastNonSearchMode.value = state.inputMode
+                                    actions.onInputModeSelected(InputMode.SearchInList)
+                                }
+                            },
+                            onLongClick = {
+                                if (state.inputMode == InputMode.SearchInList || state.inputMode == InputMode.SearchGlobal) {
+                                    actions.onInputModeSelected(lastNonSearchMode.value ?: InputMode.AddGoal)
+                                } else {
+                                    lastNonSearchMode.value = state.inputMode
+                                    actions.onInputModeSelected(InputMode.SearchGlobal)
+                                }
+                            },
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = ripple(bounded = true, color = contentColor.copy(alpha = 0.2f))
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Outlined.Search,
+                        "Пошук (довгий тап — скрізь)",
+                        tint = contentColor.copy(alpha = 0.7f),
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
             }
 
             Spacer(Modifier.weight(1f))
@@ -547,6 +623,12 @@ private fun NavigationBar(
                                 ViewModeToggle(
                                     currentView = state.currentView,
                                     isProjectManagementEnabled = state.isProjectManagementEnabled,
+                                    enableInbox = state.enableInbox,
+                                    enableLog = state.enableLog,
+                                    enableArtifact = state.enableArtifact,
+                                    enableBacklog = state.enableBacklog,
+                                    enableDashboard = state.enableDashboard,
+                                    enableAttachments = state.enableAttachments,
                                     onViewChange = actions.onViewChange,
                                     onInputModeSelected = actions.onInputModeSelected,
                                     contentColor = contentColor,
@@ -615,7 +697,7 @@ fun ModernInputPanel(
   onSubmit: () -> Unit,
   onInputModeSelected: (InputMode) -> Unit,
   onRecentsClick: () -> Unit,
-  onAddListLinkClick: () -> Unit,
+  onAddNestedProjectClick: () -> Unit,
   onShowAddWebLinkDialog: () -> Unit,
   onShowAddObsidianLinkDialog: () -> Unit,
   onAddListShortcutClick: () -> Unit,
@@ -623,7 +705,8 @@ fun ModernInputPanel(
   canGoForward: Boolean,
   onBackClick: () -> Unit,
   onForwardClick: () -> Unit,
-  onHomeClick: () -> Unit,
+  onShowProjectHierarchy: () -> Unit,
+  onNavigateHome: () -> Unit,
   onEditList: () -> Unit,
   onShareList: () -> Unit,
   onDeleteList: () -> Unit,
@@ -642,9 +725,14 @@ fun ModernInputPanel(
   isNerActive: Boolean,
   onStartTrackingCurrentProject: () -> Unit,
   isProjectManagementEnabled: Boolean,
+  enableInbox: Boolean,
+  enableLog: Boolean,
+  enableArtifact: Boolean,
+  enableBacklog: Boolean,
+  enableDashboard: Boolean,
+  enableAttachments: Boolean,
   onToggleProjectManagement: () -> Unit,
   onAddProjectToDayPlan: () -> Unit,
-  onRevealInExplorer: () -> Unit,
   onCloseSearch: () -> Unit,
   onAddMilestone: () -> Unit,
   onShowCreateNoteDocumentDialog: () -> Unit,
@@ -652,6 +740,7 @@ fun ModernInputPanel(
   onShowDisplayPropertiesClick: () -> Unit,
   suggestions: List<String>,
   onSuggestionClick: (String) -> Unit,
+  onAddScript: (() -> Unit)? = null,
 ) {
   val state =
     NavPanelState(
@@ -660,15 +749,21 @@ fun ModernInputPanel(
       menuExpanded = menuExpanded,
       currentView = currentView,
       isProjectManagementEnabled = isProjectManagementEnabled,
+      enableInbox = enableInbox,
+      enableLog = enableLog,
+      enableArtifact = enableArtifact,
+      enableBacklog = enableBacklog,
+      enableDashboard = enableDashboard,
+      enableAttachments = enableAttachments,
       inputMode = inputMode,
     )
   val actions =
     NavPanelActions(
       onBackClick = onBackClick,
       onForwardClick = onForwardClick,
-      onHomeClick = onHomeClick,
+      onShowProjectHierarchy = onShowProjectHierarchy,
+      onNavigateHome = onNavigateHome,
       onRecentsClick = onRecentsClick,
-      onRevealInExplorer = onRevealInExplorer,
       onCloseSearch = onCloseSearch,
       onViewChange = onViewChange,
       onInputModeSelected = onInputModeSelected,
@@ -712,6 +807,12 @@ fun ModernInputPanel(
   val currentModeIndex = modes.indexOf(inputMode)
 
   val inputPanelColors = LocalInputPanelColors.current
+  var lastNonSearchMode by remember { mutableStateOf<InputMode?>(null) }
+  LaunchedEffect(inputMode) {
+    if (inputMode != InputMode.SearchInList && inputMode != InputMode.SearchGlobal) {
+      lastNonSearchMode = inputMode
+    }
+  }
   val panelColors =
     when (inputMode) {
       InputMode.AddGoal ->
@@ -901,7 +1002,7 @@ fun ModernInputPanel(
                   }
                 Icon(
                   imageVector = icon,
-                  contentDescription = "Magic Button",
+                  contentDescription = "Add to project",
                   modifier =
                     Modifier.size(22.dp).graphicsLayer {
                       rotationZ = if (isPressed) (dragOffset / 20f).coerceIn(-15f, 15f) else 0f
@@ -1048,17 +1149,20 @@ fun ModernInputPanel(
     }
   }
   if (showModeMenu) {
-    InputPanelMagicActionsDialog(
+    InputPanelAddToProjectActionsDialog(
       currentInputMode = inputMode,
       isProjectManagementEnabled = isProjectManagementEnabled,
       onDismiss = { showModeMenu = false },
       onInputModeSelected = onInputModeSelected,
-      onAddListLinkClick = onAddListLinkClick,
+      onAddNestedProjectClick = onAddNestedProjectClick,
       onShowAddWebLinkDialog = onShowAddWebLinkDialog,
       onShowAddObsidianLinkDialog = onShowAddObsidianLinkDialog,
       onAddListShortcutClick = onAddListShortcutClick,
       onShowCreateNoteDocumentDialog = onShowCreateNoteDocumentDialog,
       onCreateChecklist = onCreateChecklist,
+      onAddScript = if (com.romankozak.forwardappmobile.config.FeatureToggles.isEnabled(com.romankozak.forwardappmobile.config.FeatureFlag.ScriptsLibrary)) {
+        onAddScript
+      } else null,
     )
   }
 }

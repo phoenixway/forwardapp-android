@@ -10,6 +10,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.media.AudioAttributes
 import android.media.RingtoneManager
+import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
 import android.util.Log
@@ -18,6 +19,7 @@ import android.view.View
 import android.widget.RemoteViews
 import android.R as AndroidR
 import com.romankozak.forwardappmobile.R
+import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -35,6 +37,9 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
 
     @Inject
     lateinit var reminderRepository: ReminderRepository
+
+    @Inject
+    lateinit var settingsRepository: SettingsRepository
 
     companion object {
         const val EXTRA_REMINDER_ID = "EXTRA_REMINDER_ID"
@@ -97,6 +102,11 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
                 val goalEmoji = intent.getStringExtra(Companion.EXTRA_GOAL_EMOJI) ?: "🎯"
                 val extraInfo = intent.getStringExtra(Companion.EXTRA_INFO)
 
+                val ringtoneSettings = settingsRepository.getRingtoneSettings()
+                val ringtoneUri = resolveRingtoneUri(ringtoneSettings)
+                val channelSuffix = ringtoneSettings.currentType.storageKey
+                val vibrationEnabled = settingsRepository.isReminderVibrationEnabled()
+
                 if (reminderId == null || goalId == null || goalText == null) {
                     Log.e(Companion.tag, "Received broadcast with missing data. reminderId=$reminderId, goalId=$goalId, goalText=$goalText")
                     return@launch
@@ -114,9 +124,15 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
                 val isScreenOn = powerManager.isInteractive
                 Log.d(Companion.tag, "Reminder data ok. screenOn=$isScreenOn reminderId=$reminderId goalId=$goalId")
 
-                val channelId = if (isScreenOn) Companion.CHANNEL_ID_SCREEN_ON else Companion.CHANNEL_ID_SCREEN_OFF
+                val vibrationTag = if (vibrationEnabled) "vib" else "novib"
+                val channelId =
+                    if (isScreenOn) {
+                        "${Companion.CHANNEL_ID_SCREEN_ON}_${channelSuffix}_$vibrationTag"
+                    } else {
+                        "${Companion.CHANNEL_ID_SCREEN_OFF}_${channelSuffix}_$vibrationTag"
+                    }
                 val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                createNotificationChannel(notificationManager, channelId)
+                createNotificationChannel(notificationManager, channelId, ringtoneUri, vibrationEnabled)
 
                 val notificationText = buildString {
                     if (!goalDescription.isNullOrBlank()) append(goalDescription)
@@ -137,6 +153,8 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
                     extraInfo = extraInfo,
                     isScreenOn = isScreenOn,
                     channelId = channelId,
+                    ringtoneUri = ringtoneUri,
+                    vibrationEnabled = vibrationEnabled,
                 )
             } finally {
                 pendingResult.finish()
@@ -178,9 +196,8 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun createNotificationChannel(notificationManager: NotificationManager, channelId: String) {
+    private fun createNotificationChannel(notificationManager: NotificationManager, channelId: String, soundUri: Uri?, vibrationEnabled: Boolean) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
             val audioAttributes = AudioAttributes.Builder()
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                 .setUsage(AudioAttributes.USAGE_ALARM)
@@ -194,8 +211,8 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
                 description = "Critical goal reminders that appear on lock screen"
                 enableLights(true)
                 lightColor = Color.RED
-                enableVibration(true)
-                vibrationPattern = longArrayOf(0, 200, 150, 200)
+                enableVibration(vibrationEnabled)
+                vibrationPattern = if (vibrationEnabled) longArrayOf(0, 200, 150, 200) else longArrayOf(0L)
                 setSound(soundUri, audioAttributes)
                 setBypassDnd(true)
                 lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
@@ -204,6 +221,19 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
             Log.d(Companion.tag, "Notification channel created/updated: ${channel.id}, importance=${channel.importance}")
         }
     }
+
+    private fun resolveRingtoneUri(settings: com.romankozak.forwardappmobile.data.repository.RingtoneSettings): Uri? {
+        val stored = settings.uris[settings.currentType].orEmpty()
+        return stored.takeIf { it.isNotBlank() }?.let { Uri.parse(it) }
+            ?: defaultUriFor(settings.currentType)
+    }
+
+    private fun defaultUriFor(type: com.romankozak.forwardappmobile.domain.reminders.RingtoneType): Uri? =
+        when (type) {
+            com.romankozak.forwardappmobile.domain.reminders.RingtoneType.Energetic -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            com.romankozak.forwardappmobile.domain.reminders.RingtoneType.Moderate -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+            com.romankozak.forwardappmobile.domain.reminders.RingtoneType.Quiet -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+        }
     private fun showNotification(
         context: Context,
         notificationManager: NotificationManager,
@@ -215,10 +245,34 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         extraInfo: String?,
         isScreenOn: Boolean,
         channelId: String,
+        ringtoneUri: Uri?,
+        vibrationEnabled: Boolean,
     ) {
         val completeIntent = createActionIntent(context, Companion.ACTION_COMPLETE, reminderId)
         val snoozeIntent = createActionIntent(context, Companion.ACTION_SNOOZE, reminderId)
         val dismissIntent = createActionIntent(context, Companion.ACTION_DISMISS, reminderId)
+
+        val channelImportance =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                notificationManager.getNotificationChannel(channelId)?.importance
+                    ?: NotificationManager.IMPORTANCE_HIGH
+            } else {
+                NotificationManager.IMPORTANCE_HIGH
+            }
+        val canUseFullScreenIntent =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                notificationManager.canUseFullScreenIntent()
+            } else {
+                true
+            }
+        val shouldUseFullScreenIntent =
+            !isScreenOn && canUseFullScreenIntent &&
+                channelImportance >= NotificationManager.IMPORTANCE_HIGH
+
+        Log.d(
+            Companion.tag,
+            "FSI decision: screenOn=$isScreenOn channelImportance=$channelImportance canUseFSI=$canUseFullScreenIntent useFSI=$shouldUseFullScreenIntent",
+        )
 
         val baseIntent = Intent(context, ReminderLockScreenActivity::class.java).apply {
             putExtra(Companion.EXTRA_GOAL_ID, goalId)
@@ -242,18 +296,21 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         )
 
         val fullScreenPendingIntent =
-            if (isScreenOn) null else {
+            if (shouldUseFullScreenIntent) {
                 PendingIntent.getActivity(
                     context,
                     getFullScreenId(reminderId),
                     baseIntent,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
+            } else {
+                null
             }
 
         val timeText = SimpleDateFormat("HH:mm", Locale.getDefault()).format(System.currentTimeMillis())
         val primaryDescription = goalDescription?.takeIf { it.isNotBlank() } ?: "Time to focus on this goal"
         val extra = extraInfo?.takeIf { !it.isNullOrBlank() } ?: ""
+        val vibrationPattern = longArrayOf(0, 200, 150, 200)
 
         val collapsedView = RemoteViews(context.packageName, com.romankozak.forwardappmobile.R.layout.notification_custom_collapsed).apply {
             setTextViewText(com.romankozak.forwardappmobile.R.id.notification_title, goalText)
@@ -276,13 +333,20 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
             .setSmallIcon(R.drawable.ic_notification_bell)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
-            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setDefaults(if (vibrationEnabled) NotificationCompat.DEFAULT_ALL else NotificationCompat.DEFAULT_SOUND)
+            .setSound(ringtoneUri)
             .setColor(0xFF6366F1.toInt())
             .setLights(Color.BLUE, 1000, 500)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .addAction(R.drawable.ic_notification_done, "Готово", completeIntent)
             .addAction(R.drawable.ic_notification_snooze, "Відкласти", snoozeIntent)
             .addAction(R.drawable.ic_notification_close, "Пропустити", dismissIntent)
+
+        if (vibrationEnabled) {
+            builder.setVibrate(vibrationPattern)
+        } else {
+            builder.setVibrate(longArrayOf(0L))
+        }
 
         if (isScreenOn) {
             val bigText = buildString {
@@ -325,6 +389,20 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         try {
             notificationManager.notify(Companion.getNotificationId(reminderId), notification)
             Log.d(Companion.tag, "Notification posted. screenOn=$isScreenOn goal=$goalId id=${Companion.getNotificationId(reminderId)}")
+
+            // Якщо система не дає full-screen інтерфейс, явно стартуємо activity для заблокованого екрану
+            if (!isScreenOn && fullScreenPendingIntent == null && !ReminderLockScreenActivity.isActive) {
+                Log.d(Companion.tag, "FSI unavailable, starting lock screen activity manually")
+                startLockScreenActivity(
+                    context = context,
+                    reminderId = reminderId,
+                    goalId = goalId,
+                    goalText = goalText,
+                    goalDescription = goalDescription,
+                    goalEmoji = goalEmoji,
+                    extraInfo = extraInfo,
+                )
+            }
         } catch (e: Exception) {
             Log.e(Companion.tag, "Failed to show reminder notification", e)
         }

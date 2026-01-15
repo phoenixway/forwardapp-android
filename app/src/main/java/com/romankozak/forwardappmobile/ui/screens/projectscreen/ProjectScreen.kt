@@ -37,6 +37,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.data.database.models.ProjectArtifact
 import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -53,6 +54,8 @@ import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEdito
 import com.romankozak.forwardappmobile.ui.reminders.dialogs.ReminderPropertiesDialog
 import com.romankozak.forwardappmobile.ui.reminders.dialogs.RemindersDialog
 import com.romankozak.forwardappmobile.ui.reminders.viewmodel.ReminderViewModel
+import com.romankozak.forwardappmobile.config.FeatureFlag
+import com.romankozak.forwardappmobile.config.FeatureToggles
 
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.inputpanel.ModernInputPanel
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.topbar.AdaptiveTopBar
@@ -80,6 +83,7 @@ fun ProjectsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val recordToEdit by viewModel.inboxHandler.recordToEdit.collectAsStateWithLifecycle()
     val editorViewModel: UniversalEditorViewModel = hiltViewModel()
+    val currentProjectArtifact by viewModel.projectArtifact.collectAsStateWithLifecycle()
 
     // Router logic to decide which screen to show
     when {
@@ -115,6 +119,7 @@ fun ProjectsScreen(
             UniversalEditorScreen(
                 title = "Редагувати Артефакт",
                 onSave = { content, _ -> viewModel.onSaveArtifact(content) },
+                onAutoSave = { content, _ -> viewModel.onAutoSaveArtifact(content) },
                 onNavigateBack = { viewModel.onDismissArtifactEditor() },
                 navController = navController,
                 viewModel = editorViewModel,
@@ -129,6 +134,7 @@ fun ProjectsScreen(
             UniversalEditorScreen(
                 title = "Створити новий документ",
                 onSave = { content, _ -> viewModel.onSaveNoteDocument(content) },
+                onAutoSave = null,
                 onNavigateBack = { viewModel.onDismissNoteDocumentEditor() },
                 navController = navController,
                 viewModel = editorViewModel,
@@ -175,7 +181,7 @@ private fun ProjectScaffold(
 
     val holdMenuController = rememberHoldMenu2()
 
-    val targetBackgroundColor = MaterialTheme.colorScheme.surface
+    val targetBackgroundColor = MaterialTheme.colorScheme.surfaceContainer
     val animatedBackgroundColor by animateColorAsState(
         targetValue = targetBackgroundColor,
         animationSpec = tween(600),
@@ -228,6 +234,8 @@ private fun ProjectScaffold(
 
     if (uiState.showDisplayPropertiesDialog) {
         ProjectDisplayPropertiesDialog(
+            isProjectManagementEnabled = uiState.isProjectManagementEnabled,
+            onToggleProjectManagement = viewModel::onToggleProjectManagement,
             onDismiss = viewModel::onDismissDisplayPropertiesDialog
         )
     }
@@ -269,9 +277,8 @@ private fun ProjectScaffold(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(animatedBackgroundColor),
+            modifier = Modifier.fillMaxSize(),
+            containerColor = animatedBackgroundColor,
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
                 val topBarContainerColor = MaterialTheme.colorScheme.surfaceContainer
@@ -322,21 +329,23 @@ private fun ProjectScaffold(
             },
             snackbarHost = { SnackbarHost(snackbarHostState) },
             bottomBar = {
-                ProjectBottomBar(
-                    viewModel = viewModel,
-                    navController = navController,
-                    uiState = uiState,
-                    lastOngoingActivity = lastOngoingActivity,
-                    canGoBack = canGoBack,
-                    canGoForward = canGoForward,
-                    menuExpanded = menuExpanded,
-                    onMenuExpandedChange = { menuExpanded = it },
-                    reminderParseResult = reminderParseResult,
-                    suggestions = suggestions,
-                    project = project,
-                    onShowDisplayPropertiesClick = viewModel::onShowDisplayPropertiesDialog,
-                    holdMenuController = holdMenuController
-                )
+                Surface(color = animatedBackgroundColor) {
+                    ProjectBottomBar(
+                        viewModel = viewModel,
+                        navController = navController,
+                        uiState = uiState,
+                        lastOngoingActivity = lastOngoingActivity,
+                        canGoBack = canGoBack,
+                        canGoForward = canGoForward,
+                        menuExpanded = menuExpanded,
+                        onMenuExpandedChange = { menuExpanded = it },
+                        reminderParseResult = reminderParseResult,
+                        suggestions = suggestions,
+                        project = project,
+                        onShowDisplayPropertiesClick = viewModel::onShowDisplayPropertiesDialog,
+                        holdMenuController = holdMenuController
+                    )
+                }
             }
         ) { paddingValues ->
             GoalDetailContent(
@@ -354,7 +363,12 @@ private fun ProjectScaffold(
                 onRemindersClick = { item ->
                     selectedItemForReminders = item
                     showRemindersListDialog = true
-                }
+                },
+                onShowProjectProperties = {
+                    menuExpanded = false
+                    navController.navigate("project_settings_screen?projectId=${project?.id}")
+                },
+                onSwitchView = viewModel::onProjectViewChange,
             )
         }
 
@@ -418,7 +432,7 @@ private fun ProjectBottomBar(
                     Log.d("Recents_Debug", "onRecentsClick called from ProjectScreen")
                     viewModel.inputHandler.onShowRecentLists()
                 },
-                onAddListLinkClick = { viewModel.inputHandler.onAddListLinkRequest() },
+                onAddNestedProjectClick = { viewModel.inputHandler.onAddListLinkRequest() },
                 onShowAddWebLinkDialog = { viewModel.inputHandler.onShowAddWebLinkDialog() },
                 onShowAddObsidianLinkDialog = { viewModel.inputHandler.onShowAddObsidianLinkDialog() },
                 onAddListShortcutClick = { viewModel.inputHandler.onAddListShortcutRequest() },
@@ -426,7 +440,8 @@ private fun ProjectBottomBar(
                 canGoForward = canGoForward,
                 onBackClick = { viewModel.onBackPressed() },
                 onForwardClick = { viewModel.onForwardPressed() },
-                onHomeClick = viewModel::onHomeClick,
+                onShowProjectHierarchy = viewModel::onHomeClick,
+                onNavigateHome = { navController.navigate("command_deck_screen") },
                 onEditList = {
                     Log.d("EDIT_PROJECT_DEBUG", "LIST EDITING")
                     onMenuExpandedChange(false)
@@ -443,26 +458,39 @@ private fun ProjectBottomBar(
                 onImportFromMarkdown = viewModel::onImportFromMarkdownRequest,
                 onExportToMarkdown = viewModel::onExportToMarkdownRequest,
                 onImportBacklogFromMarkdown = viewModel::onImportBacklogFromMarkdownRequest,
-                onExportBacklogToMarkdown = viewModel::onExportBacklogRequest,
+                onExportBacklogToMarkdown = viewModel::onExportBacklogToMarkdownRequest,
                 reminderParseResult = reminderParseResult,
                 onClearReminder = viewModel::onClearReminder,
                 isNerActive = uiState.nerState is NerState.Ready,
                 onStartTrackingCurrentProject = viewModel::onStartTrackingCurrentProject,
-                isProjectManagementEnabled = project?.isProjectManagementEnabled == true,
+                isProjectManagementEnabled = uiState.isProjectManagementEnabled,
+                enableInbox = uiState.enableInbox,
+                enableLog = uiState.enableLog,
+                enableArtifact = uiState.enableArtifact,
+                enableBacklog = uiState.enableBacklog,
+                enableDashboard = uiState.enableDashboard,
+                enableAttachments = uiState.enableAttachments,
                 modifier = Modifier
                     .navigationBarsPadding()
                     .imePadding(),
                 onToggleProjectManagement = viewModel::onToggleProjectManagement,
                 onExportProjectState = viewModel::onExportProjectStateRequest,
                 onAddProjectToDayPlan = viewModel::addCurrentProjectToDayPlan,
-                onRevealInExplorer = { viewModel.onRevealInExplorer(project?.id ?: "") },
                 onCloseSearch = viewModel::onCloseSearch,
                 onAddMilestone = viewModel::onAddMilestone,
                 onShowCreateNoteDocumentDialog = viewModel::onShowCreateNoteDocumentDialog,
                 onCreateChecklist = viewModel::onCreateChecklist,
                 suggestions = suggestions,
                 onSuggestionClick = viewModel::onSuggestionClick,
-                onShowDisplayPropertiesClick = onShowDisplayPropertiesClick
+                onShowDisplayPropertiesClick = onShowDisplayPropertiesClick,
+                onAddScript = if (FeatureToggles.isEnabled(FeatureFlag.ScriptsLibrary)) {
+                    {
+                        val route =
+                            project?.id?.let { id -> "script_editor_screen?projectId=$id" }
+                                ?: "script_editor_screen"
+                        navController.navigate(route)
+                    }
+                } else null,
             )
         }
     }

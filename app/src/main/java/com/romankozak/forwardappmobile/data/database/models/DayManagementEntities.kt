@@ -42,6 +42,9 @@ data class DayPlan(
     val completionPercentage: Float = 0f,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long? = null,
+    val syncedAt: Long? = null,
+    val isDeleted: Boolean = false,
+    val version: Long = 0,
 )
 
 @Entity(
@@ -120,9 +123,12 @@ data class DayTask(
     val location: String? = null,
     val tags: List<String>? = null,
     val notes: String? = null,
-    
+
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long? = null,
+    val syncedAt: Long? = null,
+    val isDeleted: Boolean = false,
+    val version: Long = 0,
     val completedAt: Long? = null,
     val nextOccurrenceTime: Long? = null,
     @ColumnInfo(defaultValue = "0") val points: Int = 0,
@@ -152,6 +158,9 @@ data class DailyMetric(
     val customMetrics: Map<String, Float>? = null,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long? = null,
+    val syncedAt: Long? = null,
+    val isDeleted: Boolean = false,
+    val version: Long = 0,
 )
 
 

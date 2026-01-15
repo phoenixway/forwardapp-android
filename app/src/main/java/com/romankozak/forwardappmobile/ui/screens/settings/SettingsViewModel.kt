@@ -10,9 +10,11 @@ import com.romankozak.forwardappmobile.config.FeatureFlag
 import com.romankozak.forwardappmobile.config.FeatureToggles
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.data.repository.RolesRepository
+import com.romankozak.forwardappmobile.data.repository.RingtoneSettings
 import com.romankozak.forwardappmobile.domain.aichat.OllamaService
 import com.romankozak.forwardappmobile.domain.ner.NerManager
 import com.romankozak.forwardappmobile.domain.ner.NerState
+import com.romankozak.forwardappmobile.domain.reminders.RingtoneType
 import com.romankozak.forwardappmobile.ui.ModelsState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -43,10 +45,28 @@ data class SettingsUiState(
     val themeSettings: com.romankozak.forwardappmobile.ui.theme.ThemeSettings = com.romankozak.forwardappmobile.ui.theme.ThemeSettings(),
     val featureToggles: Map<FeatureFlag, Boolean> = FeatureFlag.values().associateWith { FeatureToggles.isEnabled(it) },
     val attachmentsLibraryEnabled: Boolean = FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary),
+    val scriptsLibraryEnabled: Boolean = FeatureToggles.isEnabled(FeatureFlag.ScriptsLibrary),
     val allowSystemProjectMoves: Boolean = FeatureToggles.isEnabled(FeatureFlag.AllowSystemProjectMoves),
     val planningModesEnabled: Boolean = FeatureToggles.isEnabled(FeatureFlag.PlanningModes),
     val wifiSyncEnabled: Boolean = FeatureToggles.isEnabled(FeatureFlag.WifiSync),
     val strategicManagementEnabled: Boolean = FeatureToggles.isEnabled(FeatureFlag.StrategicManagement),
+    val aiChatEnabled: Boolean = FeatureToggles.isEnabled(FeatureFlag.AiChat),
+    val aiInsightsEnabled: Boolean = FeatureToggles.isEnabled(FeatureFlag.AiInsights),
+    val aiLifeManagementEnabled: Boolean = FeatureToggles.isEnabled(FeatureFlag.AiLifeManagement),
+    val ringtoneType: RingtoneType = RingtoneType.Energetic,
+    val ringtoneUris: Map<RingtoneType, String> = mapOf(
+        RingtoneType.Energetic to "",
+        RingtoneType.Moderate to "",
+        RingtoneType.Quiet to "",
+    ),
+    val ringtoneVolumes: Map<RingtoneType, Float> = mapOf(
+        RingtoneType.Energetic to 1f,
+        RingtoneType.Moderate to 0.8f,
+        RingtoneType.Quiet to 0.5f,
+    ),
+    val reminderVibrationEnabled: Boolean = true,
+    val wifiSyncServerEnabled: Boolean = false,
+    val desktopSyncAddress: String = "",
 )
 
 @HiltViewModel
@@ -84,14 +104,30 @@ class SettingsViewModel @Inject constructor(
                 settingsRepo.ollamaPortFlow,
                 settingsRepo.fastApiPortFlow,
                 settingsRepo.featureTogglesFlow,
+                settingsRepo.ringtoneTypeFlow,
+                settingsRepo.ringtoneUrisFlow,
+                settingsRepo.ringtoneVolumesFlow,
+                settingsRepo.reminderVibrationEnabledFlow,
+                settingsRepo.wifiSyncServerEnabledFlow,
+                settingsRepo.desktopSyncAddressFlow,
             )
             combine(settingsFlows) { values ->
                 val featureToggles = values[12] as Map<FeatureFlag, Boolean>
+                val ringtoneType = values[13] as RingtoneType
+                val ringtoneUris = values[14] as Map<RingtoneType, String>
+                val ringtoneVolumes = values[15] as Map<RingtoneType, Float>
+                val reminderVibrationEnabled = values[16] as Boolean
+                val wifiSyncServerEnabled = values[17] as Boolean
+                val desktopSyncAddress = values[18] as String
                 val attachmentsEnabled = featureToggles[FeatureFlag.AttachmentsLibrary] ?: FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary)
+                val scriptsEnabled = featureToggles[FeatureFlag.ScriptsLibrary] ?: FeatureToggles.isEnabled(FeatureFlag.ScriptsLibrary)
                 val allowSystemMoves = featureToggles[FeatureFlag.AllowSystemProjectMoves] ?: FeatureToggles.isEnabled(FeatureFlag.AllowSystemProjectMoves)
                 val planningModesEnabled = featureToggles[FeatureFlag.PlanningModes] ?: FeatureToggles.isEnabled(FeatureFlag.PlanningModes)
                 val wifiSyncEnabled = featureToggles[FeatureFlag.WifiSync] ?: FeatureToggles.isEnabled(FeatureFlag.WifiSync)
                 val strategicEnabled = featureToggles[FeatureFlag.StrategicManagement] ?: FeatureToggles.isEnabled(FeatureFlag.StrategicManagement)
+                val aiChatEnabled = featureToggles[FeatureFlag.AiChat] ?: FeatureToggles.isEnabled(FeatureFlag.AiChat)
+                val aiInsightsEnabled = featureToggles[FeatureFlag.AiInsights] ?: FeatureToggles.isEnabled(FeatureFlag.AiInsights)
+                val aiLifeEnabled = featureToggles[FeatureFlag.AiLifeManagement] ?: FeatureToggles.isEnabled(FeatureFlag.AiLifeManagement)
                 FeatureToggles.updateAll(featureToggles)
                 _uiState.update {
                     it.copy(
@@ -109,10 +145,20 @@ class SettingsViewModel @Inject constructor(
                         fastApiPort = values[11] as Int,
                         featureToggles = featureToggles,
                         attachmentsLibraryEnabled = attachmentsEnabled,
+                        scriptsLibraryEnabled = scriptsEnabled,
                         allowSystemProjectMoves = allowSystemMoves,
                         planningModesEnabled = planningModesEnabled,
                         wifiSyncEnabled = wifiSyncEnabled,
                         strategicManagementEnabled = strategicEnabled,
+                        aiChatEnabled = aiChatEnabled,
+                        aiInsightsEnabled = aiInsightsEnabled,
+                        aiLifeManagementEnabled = aiLifeEnabled,
+                        ringtoneType = ringtoneType,
+                        ringtoneUris = ringtoneUris,
+                        ringtoneVolumes = ringtoneVolumes,
+                        reminderVibrationEnabled = reminderVibrationEnabled,
+                        wifiSyncServerEnabled = wifiSyncServerEnabled,
+                        desktopSyncAddress = desktopSyncAddress,
                     )
                 }
             }.collect {
@@ -236,18 +282,25 @@ class SettingsViewModel @Inject constructor(
             state.copy(
                 featureToggles = updated,
                 attachmentsLibraryEnabled = updated[FeatureFlag.AttachmentsLibrary] ?: state.attachmentsLibraryEnabled,
+                scriptsLibraryEnabled = updated[FeatureFlag.ScriptsLibrary] ?: state.scriptsLibraryEnabled,
                 allowSystemProjectMoves = updated[FeatureFlag.AllowSystemProjectMoves] ?: state.allowSystemProjectMoves,
                 planningModesEnabled = updated[FeatureFlag.PlanningModes] ?: state.planningModesEnabled,
                 wifiSyncEnabled = updated[FeatureFlag.WifiSync] ?: state.wifiSyncEnabled,
                 strategicManagementEnabled = updated[FeatureFlag.StrategicManagement] ?: state.strategicManagementEnabled,
+                aiChatEnabled = updated[FeatureFlag.AiChat] ?: state.aiChatEnabled,
+                aiInsightsEnabled = updated[FeatureFlag.AiInsights] ?: state.aiInsightsEnabled,
+                aiLifeManagementEnabled = updated[FeatureFlag.AiLifeManagement] ?: state.aiLifeManagementEnabled,
             )
         }
         FeatureToggles.update(flag, enabled)
-        viewModelScope.launch { settingsRepo.saveFeatureToggle(flag, enabled) }
     }
 
     fun onAttachmentsLibraryToggle(enabled: Boolean) {
         updateFeatureToggle(FeatureFlag.AttachmentsLibrary, enabled)
+    }
+
+    fun onScriptsLibraryToggle(enabled: Boolean) {
+        updateFeatureToggle(FeatureFlag.ScriptsLibrary, enabled)
     }
 
     fun onAllowSystemProjectMovesToggle(enabled: Boolean) {
@@ -260,10 +313,49 @@ class SettingsViewModel @Inject constructor(
 
     fun onWifiSyncToggle(enabled: Boolean) {
         updateFeatureToggle(FeatureFlag.WifiSync, enabled)
+        if (!enabled) {
+            _uiState.update { it.copy(wifiSyncServerEnabled = false) }
+        }
+    }
+
+    fun onWifiSyncServerEnabledToggle(enabled: Boolean) {
+        _uiState.update { it.copy(wifiSyncServerEnabled = enabled) }
+    }
+
+    fun onDesktopSyncAddressChanged(address: String) {
+        _uiState.update { it.copy(desktopSyncAddress = address) }
     }
 
     fun onStrategicManagementToggle(enabled: Boolean) {
         updateFeatureToggle(FeatureFlag.StrategicManagement, enabled)
+    }
+
+    fun onAiChatToggle(enabled: Boolean) {
+        updateFeatureToggle(FeatureFlag.AiChat, enabled)
+    }
+
+    fun onAiInsightsToggle(enabled: Boolean) {
+        updateFeatureToggle(FeatureFlag.AiInsights, enabled)
+    }
+
+    fun onAiLifeManagementToggle(enabled: Boolean) {
+        updateFeatureToggle(FeatureFlag.AiLifeManagement, enabled)
+    }
+
+    fun onRingtoneTypeSelected(type: RingtoneType) {
+        _uiState.update { it.copy(ringtoneType = type) }
+    }
+
+    fun onRingtoneUriSelected(type: RingtoneType, uri: String) {
+        _uiState.update { it.copy(ringtoneUris = it.ringtoneUris + (type to uri)) }
+    }
+
+    fun onRingtoneVolumeChanged(type: RingtoneType, volume: Float) {
+        _uiState.update { it.copy(ringtoneVolumes = it.ringtoneVolumes + (type to volume.coerceIn(0f, 1f))) }
+    }
+
+    fun onReminderVibrationToggle(enabled: Boolean) {
+        _uiState.update { it.copy(reminderVibrationEnabled = enabled) }
     }
 
     fun saveSettings() {
@@ -284,6 +376,16 @@ class SettingsViewModel @Inject constructor(
                 ollamaPort = currentState.ollamaPort,
                 fastApiPort = currentState.fastApiPort,
             )
+            settingsRepo.saveWifiSyncServerEnabled(currentState.wifiSyncServerEnabled)
+            settingsRepo.saveDesktopSyncAddress(currentState.desktopSyncAddress)
+            settingsRepo.saveRingtoneType(currentState.ringtoneType)
+            currentState.ringtoneUris.forEach { (type, uri) ->
+                settingsRepo.saveRingtoneUri(type, uri)
+            }
+            currentState.ringtoneVolumes.forEach { (type, volume) ->
+                settingsRepo.saveRingtoneVolume(type, volume)
+            }
+            settingsRepo.setReminderVibrationEnabled(currentState.reminderVibrationEnabled)
             settingsRepo.saveThemeSettings(currentState.themeSettings)
             FeatureFlag.values().forEach { flag ->
                 val enabled = currentState.featureToggles[flag] ?: FeatureToggles.isEnabled(flag)

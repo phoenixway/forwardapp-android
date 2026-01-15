@@ -31,6 +31,8 @@ import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,16 +52,15 @@ import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.config.FeatureFlag
+import com.romankozak.forwardappmobile.config.FeatureToggles
 import com.romankozak.forwardappmobile.domain.aichat.RoleFile
 import com.romankozak.forwardappmobile.domain.aichat.RoleFolder
 import com.romankozak.forwardappmobile.domain.aichat.RoleItem
 import com.romankozak.forwardappmobile.ui.ModelsState
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.viewinterop.AndroidView
 import com.romankozak.forwardappmobile.ui.common.MatrixRainView
 import androidx.compose.animation.fadeOut
@@ -79,6 +80,7 @@ fun ChatScreen(
     val listState = rememberLazyListState()
     val keyboardController = LocalSoftwareKeyboardController.current
     val context = LocalContext.current
+    val scriptsEnabled = FeatureToggles.isEnabled(FeatureFlag.ScriptsLibrary)
 
     var showMenu by remember { mutableStateOf(false) }
     var showRoleSelectorDialog by remember { mutableStateOf(false) }
@@ -97,6 +99,18 @@ fun ChatScreen(
     LaunchedEffect(Unit) {
         delay(480)
         showMatrixSplash = false
+    }
+
+    LaunchedEffect(navController, viewModel) {
+        navController.currentBackStackEntry
+            ?.savedStateHandle
+            ?.getStateFlow<String?>("script_chooser_result", null)
+            ?.collect { scriptId ->
+                if (scriptId != null) {
+                    navController.currentBackStackEntry?.savedStateHandle?.set("script_chooser_result", null)
+                    viewModel.runScript(scriptId)
+                }
+            }
     }
 
     LaunchedEffect(uiState.messages.size) {
@@ -251,6 +265,15 @@ fun ChatScreen(
                                             showMenu = false
                                         },
                                     )
+                                    if (scriptsEnabled) {
+                                        DropdownMenuItem(
+                                            text = { Text("Execute script") },
+                                            onClick = {
+                                                navController.navigate("script_chooser_screen")
+                                                showMenu = false
+                                            },
+                                        )
+                                    }
                                     DropdownMenuItem(
                                         text = { Text("Change Role") },
                                         onClick = {

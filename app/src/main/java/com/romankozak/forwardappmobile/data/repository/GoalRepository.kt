@@ -7,11 +7,16 @@ import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.ListItem
 import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
+import com.romankozak.forwardappmobile.data.sync.bumpSync
+import com.romankozak.forwardappmobile.data.sync.softDelete
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Provider
 import javax.inject.Singleton
+import android.util.Log
+
+private const val SYNC_LOG_TAG = "FWD_SYNC_TEST"
 
 @Singleton
 class GoalRepository @Inject constructor(
@@ -140,17 +145,34 @@ class GoalRepository @Inject constructor(
 
     @androidx.room.Transaction
     suspend fun deleteGoal(goalId: String) {
-        goalDao.deleteGoalById(goalId)
-        listItemDao.deleteItemByEntityId(goalId)
+        val now = System.currentTimeMillis()
+        goalDao.getGoalById(goalId)?.let { goal ->
+            Log.d(SYNC_LOG_TAG, "[GoalRepo] Deleting Goal. Original: $goal")
+            val tombstone = goal.softDelete(now)
+            Log.d(SYNC_LOG_TAG, "[GoalRepo] Deleting Goal. Tombstone: $tombstone")
+            goalDao.insertGoal(tombstone)
+        }
+        listItemDao.getListItemByEntityId(goalId)?.let { listItem ->
+            Log.d(SYNC_LOG_TAG, "[GoalRepo] Deleting ListItem. Original: $listItem")
+            val tombstone = listItem.softDelete(now)
+            Log.d(SYNC_LOG_TAG, "[GoalRepo] Deleting ListItem. Tombstone: $tombstone")
+            listItemDao.insertItem(tombstone)
+        }
     }
 
-    suspend fun updateGoal(goal: Goal) = goalDao.updateGoal(goal)
+    suspend fun updateGoal(goal: Goal) {
+        goalDao.updateGoal(goal.bumpSync())
+    }
 
-    suspend fun updateGoals(goals: List<Goal>) = goalDao.updateGoals(goals)
+    suspend fun updateGoals(goals: List<Goal>) {
+        if (goals.isNotEmpty()) {
+            goalDao.updateGoals(goals.map { it.bumpSync() })
+        }
+    }
 
     fun getAllGoalsCountFlow(): Flow<Int> = goalDao.getAllGoalsCountFlow()
 
-    fun getAllGoalsFlow(): Flow<List<Goal>> = goalDao.getAllGoalsFlow()
+    fun getAllGoalsFlow(): Flow<List<Goal>> = goalDao.getAllVisibleGoalsFlow()
 
     suspend fun getAllGoals(): List<Goal> = goalDao.getAll()
 

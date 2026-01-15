@@ -5,6 +5,8 @@ import com.romankozak.forwardappmobile.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.data.database.models.ListItem
 import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.data.sync.bumpSync
+import com.romankozak.forwardappmobile.data.sync.softDelete
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject
@@ -26,7 +28,9 @@ class LegacyNoteRepository @Inject constructor(
     suspend fun saveNote(note: LegacyNoteEntity) {
         val existingNote = legacyNoteDao.getNoteById(note.id)
         if (existingNote == null) {
-            legacyNoteDao.insert(note)
+            val now = System.currentTimeMillis()
+            val newNote = note.bumpSync(now)
+            legacyNoteDao.insert(newNote)
 
             val newListItem =
                 ListItem(
@@ -34,18 +38,39 @@ class LegacyNoteRepository @Inject constructor(
                     projectId = note.projectId,
                     itemType = ListItemTypeValues.NOTE,
                     entityId = note.id,
-                    order = -System.currentTimeMillis(),
+                    order = -now,
+                    updatedAt = now,
+                    syncedAt = null,
+                    version = 1,
                 )
             listItemDao.insertItem(newListItem)
         } else {
-            legacyNoteDao.update(note.copy(updatedAt = System.currentTimeMillis()))
+            val now = System.currentTimeMillis()
+            val bumped = note.copy(
+                updatedAt = now,
+                syncedAt = null,
+                version = note.version + 1,
+            )
+            legacyNoteDao.update(bumped)
             recentItemsRepository.updateRecentItemDisplayName(note.id, note.title)
         }
     }
 
     @androidx.room.Transaction
     suspend fun deleteNote(noteId: String) {
-        legacyNoteDao.deleteNoteById(noteId)
-        listItemDao.deleteItemByEntityId(noteId)
+        val now = System.currentTimeMillis()
+        val existingNote = legacyNoteDao.getNoteById(noteId)
+        if (existingNote != null) {
+            legacyNoteDao.insert(
+                existingNote.softDelete(now),
+            )
+        } else {
+            legacyNoteDao.deleteNoteById(noteId)
+        }
+        listItemDao.getListItemByEntityId(noteId)?.let { listItem ->
+            listItemDao.insertItem(
+                listItem.softDelete(now),
+            )
+        } ?: listItemDao.deleteItemByEntityId(noteId)
     }
 }

@@ -62,3 +62,8 @@ data class AttachmentsLibraryUiState(
     val matchedCount: Int = 0,
     val isFeatureEnabled: Boolean = false,
 )
+
+sealed interface AttachmentsLibraryEvent {
+    data class NavigateToProjectChooser(val title: String) : AttachmentsLibraryEvent
+    data class ShowToast(val message: String) : AttachmentsLibraryEvent
+}
