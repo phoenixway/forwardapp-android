@@ -173,14 +173,23 @@ android {
             buildConfigField("Boolean", "IS_EXPERIMENTAL_BUILD", "true")
         }
     }
-    splits {
+    /*splits {
         abi {
             isEnable = true
             reset()
             include("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
             isUniversalApk = false
         }
+    }*/
+    
+    splits {
+    abi {
+        isEnable = true
+        reset()
+        include("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
+        isUniversalApk = true
     }
+}
 
 }
 

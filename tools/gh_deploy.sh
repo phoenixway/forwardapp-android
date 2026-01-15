@@ -134,7 +134,20 @@ mkdir -p "$TMP_DL_DIR"
 
 gh run download "$RUN_ID" -n "$ARTIFACT_NAME" -D "$TMP_DL_DIR"
 
-APK_FILE=$(find "$TMP_DL_DIR" -name "*.apk" | head -n 1)
+# APK_FILE=$(find "$TMP_DL_DIR" -name "*.apk" | head -n 1)
+
+APK_FILE=$(find "$TMP_DL_DIR" -name "*universal*.apk" | head -n 1)
+
+if [ -z "$APK_FILE" ]; then
+    echo -e "${YELLOW}Universal APK not found, falling back to ABI-specific...${NC}"
+    APK_FILE=$(find "$TMP_DL_DIR" -name "*arm64-v8a*.apk" | head -n 1)
+fi
+
+if [ -z "$APK_FILE" ]; then
+    echo -e "${RED}No suitable APK found!${NC}"
+    find "$TMP_DL_DIR" -name "*.apk"
+    exit 1
+fi
 
 if [ -z "$APK_FILE" ]; then
     echo -e "${RED}Artifact downloaded but no APK found inside!${NC}"
