@@ -106,7 +106,7 @@ echo ""
 echo -e "${GREEN}Build complete! Downloading artifact...${NC}"
 
 # 4. Download
-TMP_DL_DIR="/tmp/forwardapp_gh_build_$RUN_ID"
+TMP_DL_DIR=".tmp/forwardapp_gh_build_$RUN_ID"
 mkdir -p "$TMP_DL_DIR"
 
 gh run download "$RUN_ID" -n "$ARTIFACT_NAME" -D "$TMP_DL_DIR"
@@ -192,4 +192,4 @@ else
 fi
 
 # Cleanup
-rm -rf "$TMP_DL_DIR"
+# rm -rf "$TMP_DL_DIR"
