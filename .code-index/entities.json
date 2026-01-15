@@ -24742,490 +24742,686 @@
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/ProjectStructureScreen.kt",
     "symbol": "FeatureFlagsSection",
+    "summary": {
+      "text": "Presents a user interface for managing project structure elements within an app.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/ProjectStructureScreen.kt:PresetSelector",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/ProjectStructureScreen.kt",
     "symbol": "PresetSelector",
+    "summary": {
+      "text": "Manages the display and interaction of project structure elements within an application. \n\n\nLet me know if you'd like a more detailed breakdown of any specific aspect of the code!",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/ProjectStructureScreen.kt:AddStructureItemDialog",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/ProjectStructureScreen.kt",
     "symbol": "AddStructureItemDialog",
+    "summary": {
+      "text": "Presents a user interface for managing project structure elements.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetsViewModel.kt:StructurePresetsUiState",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetsViewModel.kt",
     "symbol": "StructurePresetsUiState",
+    "summary": {
+      "text": "Manages and displays a list of project structure presets to users.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetsViewModel.kt:StructurePresetsViewModel",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetsViewModel.kt",
     "symbol": "StructurePresetsViewModel",
+    "summary": {
+      "text": "Manages project structure presets and their associated items. \n\n\nLet me know if you'd like more details about the code itself, or another aspect of its functionality!",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetsViewModel.kt:observePresets",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetsViewModel.kt",
     "symbol": "observePresets",
+    "summary": {
+      "text": "Manages the display and interaction of project structure presets.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetsViewModel.kt:selectPreset",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetsViewModel.kt",
     "symbol": "selectPreset",
+    "summary": {
+      "text": "Manages and displays project structure presets from a database.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetsViewModel.kt:addPreset",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetsViewModel.kt",
     "symbol": "addPreset",
+    "summary": {
+      "text": "Manages and displays a list of project structure presets to users.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetsScreen.kt:StructurePresetsScreen",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetsScreen.kt",
     "symbol": "StructurePresetsScreen",
+    "summary": {
+      "text": "Manages project structure elements like adding, editing, deleting, and copying items within a mobile application.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetsScreen.kt:PresetRow",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetsScreen.kt",
     "symbol": "PresetRow",
+    "summary": {
+      "text": "Manages project structure elements through a UI interface. \n\n\nLet me know if you'd like me to elaborate on any specific aspects of the code!",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetsScreen.kt:AddPresetDialog",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetsScreen.kt",
     "symbol": "AddPresetDialog",
+    "summary": {
+      "text": "Manages project structure elements within an application.  \n\n\nLet me know if you'd like me to elaborate on any specific aspect of the code!",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt:PresetEditorItem",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt",
     "symbol": "PresetEditorItem",
+    "summary": {
+      "text": "Manages and edits structure presets for applications.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt:StructurePresetEditorEvent",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt",
     "symbol": "StructurePresetEditorEvent",
+    "summary": {
+      "text": "Manages and edits structure presets for data organization within the application.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt:removeItem",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt",
     "symbol": "removeItem",
+    "summary": {
+      "text": "Manages the creation and editing of project structure presets. \n\n\nLet me know if you'd like a more detailed breakdown of the code itself! 😊",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt:onEnableArtifactChange",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt",
     "symbol": "onEnableArtifactChange",
+    "summary": {
+      "text": "Manages the creation and editing of project structure presets. \n\n\nLet me know if you'd like a deeper dive into any specific aspect of the code!",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt:onCodeChange",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt",
     "symbol": "onCodeChange",
+    "summary": {
+      "text": "Manages the structure and configuration of project presets for users.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt:onDescriptionChange",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt",
     "symbol": "onDescriptionChange",
+    "summary": {
+      "text": "Manages the creation and editing of project structure presets within an application.  \n\n\nLet me know if you'd like a more detailed analysis of any specific aspect of the code!",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt:onEnableLogChange",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt",
     "symbol": "onEnableLogChange",
+    "summary": {
+      "text": "Manages the creation and editing of structure presets for project organization within the mobile application. \n\n\nLet me know if you'd like a more detailed analysis of the code's functionality!",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt:updateItem",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt",
     "symbol": "updateItem",
+    "summary": {
+      "text": "Manages the creation, editing, and display of project structure presets. \n\n\nLet me know if you have any other code snippets you'd like analyzed!",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt:onEnableAttachmentsChange",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt",
     "symbol": "onEnableAttachmentsChange",
+    "summary": {
+      "text": "Manages the creation and editing of project structure presets within the ForwardAppMobile application.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt:onEnableAutoLinkSubprojectsChange",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt",
     "symbol": "onEnableAutoLinkSubprojectsChange",
+    "summary": {
+      "text": "Manages the creation and editing of project structure presets.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt:StructurePresetEditorUiState",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt",
     "symbol": "StructurePresetEditorUiState",
+    "summary": {
+      "text": "Manages the creation and editing of project structure presets.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt:loadPreset",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt",
     "symbol": "loadPreset",
+    "summary": {
+      "text": "Manages and edits structure presets for applications within ForwardAppMobile.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt:StructurePresetEditorViewModel",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt",
     "symbol": "StructurePresetEditorViewModel",
+    "summary": {
+      "text": "Manages the creation and editing of project structure presets.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt:onLabelChange",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt",
     "symbol": "onLabelChange",
+    "summary": {
+      "text": "Manages project structure presets, including their creation, editing, and retrieval.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt:onEnableInboxChange",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt",
     "symbol": "onEnableInboxChange",
+    "summary": {
+      "text": "Manages structure presets for a mobile application related to project organization.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt:onEnableAdvancedChange",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt",
     "symbol": "onEnableAdvancedChange",
+    "summary": {
+      "text": "Manages and edits project structure presets within the application.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt:onEnableBacklogChange",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt",
     "symbol": "onEnableBacklogChange",
+    "summary": {
+      "text": "Manages and edits project structure presets within a mobile application.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt:addItem",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt",
     "symbol": "addItem",
+    "summary": {
+      "text": "Manages project structure presets and their corresponding UI state.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt:onEnableDashboardChange",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt",
     "symbol": "onEnableDashboardChange",
+    "summary": {
+      "text": "Manages the creation and editing of project structure presets. \n\n\nLet me know if you'd like a more in-depth analysis of specific aspects of the code!",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt:onSave",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorViewModel.kt",
     "symbol": "onSave",
+    "summary": {
+      "text": "Manages and edits project structure presets within an application.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorScreen.kt:StructurePresetEditorScreen",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorScreen.kt",
     "symbol": "StructurePresetEditorScreen",
+    "summary": {
+      "text": "Manages and displays a structured list of items, likely representing a project's components or tasks.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorScreen.kt:AddPresetItemDialog",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorScreen.kt",
     "symbol": "AddPresetItemDialog",
+    "summary": {
+      "text": "Manages project structure by allowing users to create, modify, and delete elements within a visual interface. \n\n\nLet me know if you'd like me to analyze any other aspects of the code! 😊",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorScreen.kt:FeatureToggleRow",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorScreen.kt",
     "symbol": "FeatureToggleRow",
+    "summary": {
+      "text": "Manages project structure elements, likely within a mobile application.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorScreen.kt:PresetEditorItemRow",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorScreen.kt",
     "symbol": "PresetEditorItemRow",
+    "summary": {
+      "text": "Manages project structure and allows users to add, delete, and rename elements within it.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorScreen.kt:FeatureToggles",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectstructure/StructurePresetEditorScreen.kt",
     "symbol": "FeatureToggles",
+    "summary": {
+      "text": "Manages project structure by allowing users to add, delete, and rename elements.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/shared/InProgressIndicator.kt:InProgressIndicator",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/shared/InProgressIndicator.kt",
     "symbol": "InProgressIndicator",
+    "summary": {
+      "text": "Manages user interface elements for features like notifications, timer controls, and potentially more.  \n\n\nLet me know if you have any other code snippets you'd like analyzed!",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/shared/InProgressIndicator.kt:formatElapsedTime",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/shared/InProgressIndicator.kt",
     "symbol": "formatElapsedTime",
+    "summary": {
+      "text": "Displays and manages a row of interactive icons for user actions within an Android application.  \n\n\nLet me know if you'd like me to analyze any other aspects of this code!",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/shared/InProgressIndicatorState.kt:InProgressIndicatorState",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/shared/InProgressIndicatorState.kt",
     "symbol": "InProgressIndicatorState",
+    "summary": {
+      "text": "Manages the expanded state of an in-progress indicator within a user interface.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/shared/NavigationResultViewModel.kt:NavigationResultViewModel",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/shared/NavigationResultViewModel.kt",
     "symbol": "NavigationResultViewModel",
+    "summary": {
+      "text": "Manages and provides access to navigation results within the application.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/shared/NavigationResultViewModel.kt:consumeResult",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/shared/NavigationResultViewModel.kt",
     "symbol": "consumeResult",
+    "summary": {
+      "text": "Manages and provides access to navigation results within an application.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/shared/NavigationResultViewModel.kt:setResult",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/shared/NavigationResultViewModel.kt",
     "symbol": "setResult",
+    "summary": {
+      "text": "Manages and provides access to navigation results within the application.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/shared/Styler.kt:styleLine",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/shared/Styler.kt",
     "symbol": "styleLine",
+    "summary": {
+      "text": "This function processes text lines and applies various styling elements like bolding, headings, and bullet points.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/shared/Styler.kt:applyBold",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/shared/Styler.kt",
     "symbol": "applyBold",
+    "summary": {
+      "text": "This function processes text lines to apply styling based on various patterns like headings, bullet points, and bold text.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/shared/SyncDataViewModel.kt:SyncDataViewModel",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/shared/SyncDataViewModel.kt",
     "symbol": "SyncDataViewModel",
+    "summary": {
+      "text": "Synchronizes data from a server based on provided address and last synchronization time.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/shared/SyncDataViewModel.kt:importData",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/shared/SyncDataViewModel.kt",
     "symbol": "importData",
+    "summary": {
+      "text": "Synchronizes data from a specified server address with the application. \n\n\nLet me know if you'd like a more detailed analysis of specific parts of the code!",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/shared/SyncDataViewModel.kt:checkForChanges",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/shared/SyncDataViewModel.kt",
     "symbol": "checkForChanges",
+    "summary": {
+      "text": "Checks for changes in data on a given server address and updates local information accordingly.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/theme/HoldMenuColors.kt:HoldMenuColors",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/theme/HoldMenuColors.kt",
     "symbol": "HoldMenuColors",
+    "summary": {
+      "text": "Provides a way to customize colors for a hold menu based on a color scheme and whether it's in dark mode.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/theme/HoldMenuColors.kt:holdMenuColorsFromScheme",
     "type": "function",
     "path": "./app/src/main/java/com/romankozak/forwardappmobile/ui/theme/HoldMenuColors.kt",
     "symbol": "holdMenuColorsFromScheme",
+    "summary": {
+      "text": "Defines colors for a hold menu based on light or dark mode and a provided color scheme.",
+      "source": "llm"
+    },
     "side_effects": [],
     "calls": [],
     "called_by": [],
-    "confidence": "low"
+    "confidence": "medium"
   },
   {
     "id": "./app/src/main/java/com/romankozak/forwardappmobile/ui/theme/InputPanelColors.kt:InputModeColors",

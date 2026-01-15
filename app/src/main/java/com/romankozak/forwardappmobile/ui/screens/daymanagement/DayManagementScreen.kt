@@ -33,6 +33,7 @@ import com.romankozak.forwardappmobile.ui.screens.activitytracker.ActivityTracke
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayanalitics.DayAnalyticsScreen
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.daydashboard.DayDashboardScreen
 import com.romankozak.forwardappmobile.data.database.models.DayTask
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.components.DayManagementBottomBar
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanScreen
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.components.DayManagementBottomNav
 import kotlinx.coroutines.launch
@@ -108,24 +109,25 @@ fun DayManagementScreen(
     contentWindowInsets = WindowInsets(0, 0, 0, 0),
     snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
     bottomBar = {
-      if (uiState.dayPlanId != null && tabs[pagerState.currentPage] != DayManagementTab.PLAN) {
-        DayManagementBottomNav(
-          currentTab = tabs[pagerState.currentPage],
-          onTabSelected = { tab ->
-            coroutineScope.launch { pagerState.animateScrollToPage(tab.ordinal) }
-          },
-          onHomeClick = { mainNavController.popBackStack() },
-          onInboxClick = { viewModel.onInboxClicked() }
-        )
-      }
-    },
-    floatingActionButton = {
-      if (pagerState.currentPage == DayManagementTab.PLAN.ordinal && uiState.dayPlanId != null) {
-        FloatingActionButton(onClick = { addTaskTrigger++ }) {
-          Icon(Icons.Default.Add, contentDescription = "Додати завдання")
+        if (uiState.dayPlanId != null) {
+            if (tabs[pagerState.currentPage] == DayManagementTab.PLAN) {
+                DayManagementBottomBar(
+                    onAddTask = { addTaskTrigger++ },
+                    onNavigateToSettings = { mainNavController.navigate("settings_screen") }
+                )
+            } else {
+                DayManagementBottomNav(
+                    currentTab = tabs[pagerState.currentPage],
+                    onTabSelected = { tab ->
+                        coroutineScope.launch { pagerState.animateScrollToPage(tab.ordinal) }
+                    },
+                    onHomeClick = { mainNavController.popBackStack() },
+                    onInboxClick = { viewModel.onInboxClicked() }
+                )
+            }
         }
-      }
     },
+    floatingActionButton = {},
   ) { innerPadding ->
     Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
 
