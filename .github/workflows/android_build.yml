@@ -76,7 +76,7 @@ jobs:
         
         TASK="assemble${FLAVOR_CAP}${TYPE_CAP}"
         echo "Running task: $TASK"
-        ./gradlew "$TASK" --stacktrace
+        ./gradlew "$TASK" --stacktrace -Dorg.gradle.java.home=$JAVA_HOME
 
     - name: Hint for Failed Build Logs
       if: failure()
