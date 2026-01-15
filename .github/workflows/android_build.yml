@@ -48,6 +48,7 @@ jobs:
     - name: Generate debug keystore if not exists
       run: |
         if [ ! -f ~/.android/debug.keystore ]; then
+          mkdir -p ~/.android
           keytool -genkey -v \
             -keystore ~/.android/debug.keystore \
             -alias androiddebugkey \
