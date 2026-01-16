@@ -1,5 +1,4 @@
-
-package com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist
+package com.romankozak.forwardappmobile.features.daymanagement.presentation.dayplan.tasklist
 
 import androidx.compose.material3.*
 import androidx.compose.runtime.*

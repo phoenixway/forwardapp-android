@@ -1,10 +1,8 @@
-package com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan
+package com.romankozak.forwardappmobile.features.daymanagement.presentation.dayplan
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.crashlytics.ktx.crashlytics
-import com.google.firebase.ktx.Firebase
 import com.romankozak.forwardappmobile.data.database.models.DayPlan
 import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.RecurrenceFrequency
@@ -18,10 +16,11 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.Calendar
-import java.util.UUID
 import javax.inject.Inject
 
 import com.romankozak.forwardappmobile.data.database.models.Reminder
+import com.romankozak.forwardappmobile.data.repository.ReminderRepository
+import kotlinx.coroutines.FlowPreview
 
 data class ParentInfo(
     val id: String, // This is the ID of the goal or project
@@ -63,7 +62,7 @@ class DayPlanViewModel
 @Inject
 constructor(
     private val dayManagementRepository: DayManagementRepository,
-    private val reminderRepository: com.romankozak.forwardappmobile.data.repository.ReminderRepository,
+    private val reminderRepository: ReminderRepository,
 ) : ViewModel() {
 
     init {
@@ -72,7 +71,7 @@ constructor(
 
     private val _planId = MutableStateFlow<String?>(null)
 
-    @OptIn(kotlinx.coroutines.FlowPreview::class)
+    @OptIn(FlowPreview::class)
     val uiState: StateFlow<DayPlanUiState> = _planId
         .filterNotNull()
         .flatMapLatest { planId ->

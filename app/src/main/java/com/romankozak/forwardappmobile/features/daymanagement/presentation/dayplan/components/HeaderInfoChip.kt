@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.components
+package com.romankozak.forwardappmobile.features.daymanagement.presentation.dayplan.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row

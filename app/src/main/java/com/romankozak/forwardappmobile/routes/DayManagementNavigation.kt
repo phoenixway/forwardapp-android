@@ -5,7 +5,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.DayManagementScreen
+import com.romankozak.forwardappmobile.features.daymanagement.presentation.DayManagementScreen
 
 fun NavGraphBuilder.dayManagementGraph(navController: NavController) {
     composable(

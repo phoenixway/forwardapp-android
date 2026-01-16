@@ -1,5 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan
-// /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan/DayPlanScreen.kt
+package com.romankozak.forwardappmobile.features.daymanagement.presentation.dayplan
 
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
@@ -35,16 +34,14 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.romankozak.forwardappmobile.data.database.models.DayTask
-import com.romankozak.forwardappmobile.data.database.models.ListItem
 import com.romankozak.forwardappmobile.data.database.models.TaskPriority
 import com.romankozak.forwardappmobile.ui.common.MatrixRainView
 import com.romankozak.forwardappmobile.ui.reminders.dialogs.ReminderPropertiesDialog
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist.AddTaskDialog
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist.TaskList
+import com.romankozak.forwardappmobile.features.daymanagement.presentation.dayplan.tasklist.AddTaskDialog
+import com.romankozak.forwardappmobile.features.daymanagement.presentation.dayplan.tasklist.TaskList
 import kotlinx.coroutines.delay
 
 const val TAG = "NAV_DEBUG"
@@ -234,6 +231,7 @@ fun DayPlanScreen(
                                         ParentType.PROJECT -> {
                                             navController.navigate("goal_detail_screen/${parentInfo.id}")
                                         }
+
                                         ParentType.GOAL -> {
                                             parentInfo.projectId?.let { listId ->
                                                 navController.navigate(

@@ -1,16 +1,14 @@
-package com.romankozak.forwardappmobile.ui.screens.daymanagement
+package com.romankozak.forwardappmobile.features.daymanagement.presentation
 
 import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ListAlt
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Error
@@ -30,21 +28,16 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.ActivityTrackerScreen
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayanalitics.DayAnalyticsScreen
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.daydashboard.DayDashboardScreen
+import com.romankozak.forwardappmobile.features.daymanagement.presentation.dayanalitics.DayAnalyticsScreen
+import com.romankozak.forwardappmobile.features.daymanagement.presentation.daydashboard.DayDashboardScreen
 import com.romankozak.forwardappmobile.data.database.models.DayTask
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.components.DayManagementBottomBar
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanScreen
+import com.romankozak.forwardappmobile.features.daymanagement.presentation.components.DayManagementBottomBar
+import com.romankozak.forwardappmobile.features.daymanagement.presentation.dayplan.DayPlanScreen
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.components.DayManagementBottomNav
 import kotlinx.coroutines.launch
 
-import androidx.compose.material.icons.filled.Inbox
-import com.romankozak.forwardappmobile.ui.components.header.FAHeader
-import com.romankozak.forwardappmobile.ui.components.header.TodayHeader
-
 import androidx.compose.foundation.layout.Column
-
-
+import com.romankozak.forwardappmobile.features.daymanagement.presentation.dayplan.DayPlanViewModel
 
 
 enum class DayManagementTab(val title: String, val icon: ImageVector, val description: String) {
@@ -75,7 +68,7 @@ fun DayManagementScreen(
   var addTaskTrigger by remember { mutableStateOf(0) }
 
   // Instantiate DayPlanViewModel here, scoped to the COMMAND_DECK_TODAY_ROUTE
-  val dayPlanViewModel: com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanViewModel = hiltViewModel()
+  val dayPlanViewModel: DayPlanViewModel = hiltViewModel()
 
   LaunchedEffect(key1 = Unit) {
     viewModel.uiEvent.collect { event ->

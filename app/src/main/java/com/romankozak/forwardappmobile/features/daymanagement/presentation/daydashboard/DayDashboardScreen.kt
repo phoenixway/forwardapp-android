@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.daymanagement.daydashboard
+package com.romankozak.forwardappmobile.features.daymanagement.presentation.daydashboard
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.romankozak.forwardappmobile.features.daymanagement.presentation.daydashboard.DayDashboardViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale

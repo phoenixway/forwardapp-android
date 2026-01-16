@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.daymanagement.daydashboard
+package com.romankozak.forwardappmobile.features.daymanagement.presentation.daydashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

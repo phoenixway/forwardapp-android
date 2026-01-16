@@ -1,6 +1,5 @@
-package com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist
+package com.romankozak.forwardappmobile.features.daymanagement.presentation.dayplan.tasklist
 
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -26,7 +25,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.google.accompanist.flowlayout.FlowRow
 import com.romankozak.forwardappmobile.data.database.models.RecurrenceRule
 import com.romankozak.forwardappmobile.data.database.models.TaskPriority
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.components.AdvancedRecurrencePickerDialog
+import com.romankozak.forwardappmobile.features.daymanagement.presentation.dayplan.components.AdvancedRecurrencePickerDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

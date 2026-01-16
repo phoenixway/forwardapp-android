@@ -19,12 +19,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.waitForUpOrCancellation
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.consumeAllChanges
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
@@ -47,9 +41,8 @@ import com.romankozak.forwardappmobile.ui.components.header.StrategyHeader
 import com.romankozak.forwardappmobile.ui.components.header.TacticsHeader
 import com.romankozak.forwardappmobile.ui.components.header.TodayHeader
 import com.romankozak.forwardappmobile.routes.GOAL_LISTS_ROUTE
-import com.romankozak.forwardappmobile.routes.CHARACTER_SCREEN_ROUTE
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.DayManagementScreen
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanViewModel
+import com.romankozak.forwardappmobile.features.daymanagement.presentation.DayManagementScreen
+import com.romankozak.forwardappmobile.features.daymanagement.presentation.dayplan.DayPlanViewModel
 import com.romankozak.forwardappmobile.ui.screens.strategicmanagement.StrategicManagementScreen
 import com.romankozak.forwardappmobile.ui.screens.commanddeck.components.DashboardBottomBar
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier

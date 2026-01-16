@@ -1,6 +1,7 @@
-package com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist
+package com.romankozak.forwardappmobile.features.daymanagement.presentation.dayplan.tasklist
 
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -20,8 +21,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.ParentType
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.ParentInfo
+import com.romankozak.forwardappmobile.features.daymanagement.presentation.dayplan.ParentType
+import com.romankozak.forwardappmobile.features.daymanagement.presentation.dayplan.ParentInfo
 import androidx.compose.material.icons.filled.TrackChanges
 import androidx.compose.material.icons.filled.Topic
 import androidx.compose.material.icons.filled.MoreVert
@@ -31,8 +32,6 @@ import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.Timer
-import androidx.compose.material.icons.rounded.DragHandle
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.Check
@@ -53,11 +52,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.data.database.models.DayPlan
 import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.TaskPriority
 
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayTaskWithReminder
+import com.romankozak.forwardappmobile.features.daymanagement.presentation.dayplan.DayTaskWithReminder
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
@@ -215,13 +213,13 @@ fun TaskItem(
                 modifier = Modifier.size(32.dp)
             ) {
                 Surface(
-                    shape = androidx.compose.foundation.shape.CircleShape,
+                    shape = CircleShape,
                     color = if (task.completed)
                         MaterialTheme.colorScheme.primary
                     else
                         Color.Transparent,
                     border = if (!task.completed)
-                        androidx.compose.foundation.BorderStroke(
+                        BorderStroke(
                             2.dp,
                             MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                         )
@@ -264,12 +262,12 @@ fun TaskItem(
 
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha),
 
-                        ),
+                            ),
 
                     isCompleted = task.completed,
                     maxLines = 3,
 
-                )
+                    )
 
 
 
@@ -287,11 +285,11 @@ fun TaskItem(
 
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
 
-                            ),
+                                ),
 
                         isCompleted = task.completed,
 
-                    )
+                        )
 
                 }
 

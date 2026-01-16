@@ -1,5 +1,4 @@
-
-package com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist
+package com.romankozak.forwardappmobile.features.daymanagement.presentation.dayplan.tasklist
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
@@ -26,6 +25,9 @@ import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.TaskPriority
 import com.romankozak.forwardappmobile.data.database.models.Reminder
 import com.romankozak.forwardappmobile.ui.reminders.components.ReminderBadge
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 
 @Composable
@@ -153,8 +155,8 @@ private fun FlowRowScope.RenderBadges(
     }
     task.nextOccurrenceTime?.let { time ->
         if (time > currentTimeMillis) {
-            val formatter = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
-            val nextTime = formatter.format(java.util.Date(time))
+            val formatter = SimpleDateFormat("HH:mm", Locale.getDefault())
+            val nextTime = formatter.format(Date(time))
             Text("Наступне о $nextTime", style = MaterialTheme.typography.labelSmall)
         }
     }

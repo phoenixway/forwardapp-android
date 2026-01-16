@@ -8,7 +8,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -32,7 +31,7 @@ import com.romankozak.forwardappmobile.ui.screens.ManageContextsScreen
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.ActivityTrackerScreen
 import com.romankozak.forwardappmobile.ui.screens.commanddeck.SharedCommandDeckLayout
 import com.romankozak.forwardappmobile.ui.screens.commanddeck.CharacterScreen
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.EditTaskScreen
+import com.romankozak.forwardappmobile.features.daymanagement.presentation.dayplan.EditTaskScreen
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchScreen
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchViewModel
 import com.romankozak.forwardappmobile.ui.screens.inbox.InboxEditorScreen

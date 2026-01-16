@@ -1,12 +1,8 @@
-
-
-package com.romankozak.forwardappmobile.ui.screens.daymanagement.dayanalitics
+package com.romankozak.forwardappmobile.features.daymanagement.presentation.dayanalitics
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
@@ -17,18 +13,18 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.romankozak.forwardappmobile.data.database.models.WeeklyInsights
-import kotlinx.coroutines.launch
+import com.romankozak.forwardappmobile.features.daymanagement.presentation.dayanalitics.DayAnalyticsUiState
+import com.romankozak.forwardappmobile.features.daymanagement.presentation.dayanalitics.DayAnalyticsViewModel
+import com.romankozak.forwardappmobile.features.daymanagement.presentation.dayanalitics.TimeRange
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale

@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan
+package com.romankozak.forwardappmobile.features.daymanagement.presentation.dayplan
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
