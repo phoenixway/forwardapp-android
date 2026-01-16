@@ -15,7 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.ModernBottomNavButton
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.components.ModernBottomNavButton
 
 @Composable
 fun DayPlanBottomNav(

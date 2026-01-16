@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.TaskPriority
 import com.romankozak.forwardappmobile.data.database.models.Reminder
-import com.romankozak.forwardappmobile.ui.reminders.components.ReminderBadge
+import com.romankozak.forwardappmobile.features.reminders.components.ReminderBadge
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale

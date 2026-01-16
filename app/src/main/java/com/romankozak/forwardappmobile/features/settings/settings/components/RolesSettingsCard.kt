@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.settings.components
+package com.romankozak.forwardappmobile.features.settings.settings.components
 
 import android.content.Context
 import android.net.Uri
@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Face
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,10 +23,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.ui.screens.settings.SettingsUiState
-import com.romankozak.forwardappmobile.ui.screens.settings.components.SettingsCard
-import com.romankozak.forwardappmobile.ui.screens.settings.utils.getFolderName
-import com.romankozak.forwardappmobile.ui.screens.settings.utils.getFileName
+import com.romankozak.forwardappmobile.features.settings.settings.SettingsUiState
+import com.romankozak.forwardappmobile.features.settings.settings.utils.getFolderName
+import com.romankozak.forwardappmobile.features.settings.settings.utils.getFileName
 
 @Composable
 fun RolesSettingsCard(
@@ -87,11 +87,11 @@ fun FileSelector(
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(label, style = androidx.compose.material3.MaterialTheme.typography.bodyLarge)
+            Text(label, style = MaterialTheme.typography.bodyLarge)
             Text(
                 displayName,
-                style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
-                color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

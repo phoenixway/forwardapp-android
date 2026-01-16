@@ -14,10 +14,9 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.romankozak.forwardappmobile.BuildConfig
 import com.romankozak.forwardappmobile.config.FeatureFlag
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.PlanningSettingsProvider
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases.PlanningSettingsProvider
 import com.romankozak.forwardappmobile.domain.reminders.RingtoneType
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -25,7 +24,6 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.net.InetAddress

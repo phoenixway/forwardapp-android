@@ -11,7 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.AppStatistics
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.AppStatistics
 
 @Composable
 fun AboutAppDialog(

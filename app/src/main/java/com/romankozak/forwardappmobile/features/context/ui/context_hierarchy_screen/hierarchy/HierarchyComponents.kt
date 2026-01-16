@@ -1,11 +1,10 @@
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.hierarchy
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -42,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -51,16 +51,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import com.google.android.material.transition.platform.MaterialContainerTransform
 import com.mohamedrejeb.compose.dnd.DragAndDropState
 import com.mohamedrejeb.compose.dnd.drag.DraggableItem
 import com.mohamedrejeb.compose.dnd.drop.dropTarget
 import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbItem
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DropPosition
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.FlatHierarchyItem
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.HierarchyDisplaySettings
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.BreadcrumbItem
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.DropPosition
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.FlatHierarchyItem
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.PlanningMode
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 
@@ -460,7 +459,7 @@ fun SwipeableProjectRow(
 
 @Composable
 private fun ProjectSwipeActionButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     contentDescription: String,
     color: Color,
     onClick: () -> Unit,

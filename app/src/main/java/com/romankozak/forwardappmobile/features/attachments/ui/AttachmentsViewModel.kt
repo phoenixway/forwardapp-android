@@ -16,7 +16,7 @@ import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.features.attachments.ui.project.AttachmentType
-import com.romankozak.forwardappmobile.ui.navigation.NavTarget
+import com.romankozak.forwardappmobile.features.navigation.NavTarget
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel

@@ -39,9 +39,9 @@ import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.TaskPriority
 import com.romankozak.forwardappmobile.ui.common.MatrixRainView
-import com.romankozak.forwardappmobile.ui.reminders.dialogs.ReminderPropertiesDialog
 import com.romankozak.forwardappmobile.features.daymanagement.presentation.dayplan.tasklist.AddTaskDialog
 import com.romankozak.forwardappmobile.features.daymanagement.presentation.dayplan.tasklist.TaskList
+import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
 import kotlinx.coroutines.delay
 
 const val TAG = "NAV_DEBUG"

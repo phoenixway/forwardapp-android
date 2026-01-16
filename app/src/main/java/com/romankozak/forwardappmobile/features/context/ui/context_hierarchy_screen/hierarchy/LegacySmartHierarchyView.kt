@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.hierarchy
 
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -16,9 +16,9 @@ import com.mohamedrejeb.compose.dnd.DragAndDropState
 import com.mohamedrejeb.compose.dnd.drag.DraggableItem
 import com.mohamedrejeb.compose.dnd.drop.dropTarget
 import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DropPosition
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.HierarchyDisplaySettings
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.DropPosition
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.PlanningMode
 
 
 @OptIn(ExperimentalSharedTransitionApi::class)

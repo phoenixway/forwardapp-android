@@ -26,7 +26,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.features.daymanagement.presentation.DayManagementTab
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.ModernBottomNavButton
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.components.ModernBottomNavButton
 
 @Composable
 fun DayManagementBottomNav(

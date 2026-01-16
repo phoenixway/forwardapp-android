@@ -1,7 +1,6 @@
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models
 
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.models
-
-import com.romankozak.forwardappmobile.ui.navigation.NavTarget
+import com.romankozak.forwardappmobile.features.navigation.NavTarget
 
 sealed interface ProjectUiEvent {
     

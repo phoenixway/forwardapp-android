@@ -1,8 +1,9 @@
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases
 
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.ui.theme.ThemeName
 import com.romankozak.forwardappmobile.ui.theme.ThemeMode
+import com.romankozak.forwardappmobile.ui.theme.ThemeSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -12,7 +13,7 @@ import javax.inject.Inject
 class ThemingUseCase @Inject constructor(
     private val settingsRepo: SettingsRepository,
 ) {
-    val themeSettings: Flow<com.romankozak.forwardappmobile.ui.theme.ThemeSettings> = settingsRepo.themeSettings
+    val themeSettings: Flow<ThemeSettings> = settingsRepo.themeSettings
 
     fun updateLightTheme(scope: CoroutineScope, themeName: ThemeName) {
         scope.launch {

@@ -1,13 +1,12 @@
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases
 
 import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.ui.navigation.ClearAndNavigateHomeUseCase
-import com.romankozak.forwardappmobile.ui.navigation.ClearCommand
-import com.romankozak.forwardappmobile.ui.navigation.ClearResult
-import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
-import com.romankozak.forwardappmobile.ui.navigation.createClearExecutionContext
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainSubState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectUiEvent
+import com.romankozak.forwardappmobile.features.navigation.ClearAndNavigateHomeUseCase
+import com.romankozak.forwardappmobile.features.navigation.ClearCommand
+import com.romankozak.forwardappmobile.features.navigation.ClearResult
+import com.romankozak.forwardappmobile.features.navigation.EnhancedNavigationManager
+import com.romankozak.forwardappmobile.features.navigation.createClearExecutionContext
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.ProjectUiEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow

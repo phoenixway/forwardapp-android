@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.mainscreen
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen
 
 import android.app.Application
 import android.util.Log
@@ -9,56 +9,56 @@ import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
-import com.romankozak.forwardappmobile.domain.reminders.cancelForActivityRecord
-import com.romankozak.forwardappmobile.domain.reminders.scheduleForActivityRecord
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.di.IoDispatcher
-import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
-import com.romankozak.forwardappmobile.routes.COMMAND_DECK_ROUTE
+import com.romankozak.forwardappmobile.features.navigation.EnhancedNavigationManager
+import com.romankozak.forwardappmobile.features.navigation.routes.COMMAND_DECK_ROUTE
 
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenEvent
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenUiState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenSubState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectUiEvent
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.HierarchyDisplaySettings
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.FlatHierarchyItem
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbItem
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DropPosition
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.SearchResult
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningSettingsState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.AppStatistics
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.navigation.RevealResult
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.flattenHierarchy
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.ProjectHierarchyScreenEvent
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.PlanningMode
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.ProjectUiEvent
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.navigation.RevealResult
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.utils.flattenHierarchy
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.channels.Channel
 import com.romankozak.forwardappmobile.config.FeatureFlag
-import com.romankozak.forwardappmobile.config.FeatureToggles
+import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
+import com.romankozak.forwardappmobile.data.database.models.LinkType
+import com.romankozak.forwardappmobile.data.database.models.RecentItem
+import com.romankozak.forwardappmobile.data.database.models.RecentItemType
+import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SearchUseCase
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.DialogUseCase
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.PlanningUseCase
-import com.romankozak.forwardappmobile.data.database.models.ReservedGroup
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases.SearchUseCase
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases.DialogUseCase
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases.PlanningUseCase
 import com.romankozak.forwardappmobile.data.database.models.ReservedProjectKeys
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.ProjectActionsUseCase
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SyncUseCase
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.ThemingUseCase
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.NavigationUseCase
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SettingsUseCase
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.HierarchyDebugLogger
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.ProjectHierarchyScreenStateUseCase
-import com.romankozak.forwardappmobile.ui.navigation.NavTarget
+import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
+import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
+import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases.ProjectActionsUseCase
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases.SyncUseCase
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases.ThemingUseCase
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases.NavigationUseCase
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases.SettingsUseCase
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases.HierarchyDebugLogger
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases.ProjectHierarchyScreenStateUseCase
+import com.romankozak.forwardappmobile.features.navigation.NavTarget
+import com.romankozak.forwardappmobile.ui.theme.ThemeSettings
+import kotlinx.coroutines.delay
+import java.net.URLEncoder
 
 @HiltViewModel
 class ProjectHierarchyScreenViewModel
@@ -70,10 +70,10 @@ constructor(
   private val dialogUseCase: DialogUseCase,
   @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
   private val contextHandler: ContextHandler,
-  private val dayManagementRepository: com.romankozak.forwardappmobile.data.repository.DayManagementRepository,
+  private val dayManagementRepository: DayManagementRepository,
   private val activityRepository: ActivityRepository,
-  private val recentItemsRepository: com.romankozak.forwardappmobile.data.repository.RecentItemsRepository,
-  private val noteRepository: com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository,
+  private val recentItemsRepository: RecentItemsRepository,
+  private val noteRepository: LegacyNoteRepository,
   private val noteDocumentRepository: NoteDocumentRepository,
   private val checklistRepository: ChecklistRepository,
 
@@ -127,18 +127,18 @@ constructor(
   val uiState: StateFlow<ProjectHierarchyScreenUiState>
     get() = projectHierarchyScreenStateUseCase.uiState
 
-  val lastOngoingActivity: StateFlow<com.romankozak.forwardappmobile.data.database.models.ActivityRecord?> =
+  val lastOngoingActivity: StateFlow<ActivityRecord?> =
       activityRepository
           .getLogStream()
           .map { log ->
               log.firstOrNull { it.startTime != null && it.endTime == null }
           }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-  val themeSettings: kotlinx.coroutines.flow.StateFlow<com.romankozak.forwardappmobile.ui.theme.ThemeSettings> = themingUseCase.themeSettings
+  val themeSettings: StateFlow<ThemeSettings> = themingUseCase.themeSettings
       .stateIn(
           scope = viewModelScope,
-          started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000),
-          initialValue = com.romankozak.forwardappmobile.ui.theme.ThemeSettings()
+          started = SharingStarted.WhileSubscribed(5_000),
+          initialValue = ThemeSettings()
       )
 
   private val _uiEventChannel = Channel<ProjectUiEvent>()
@@ -198,7 +198,7 @@ constructor(
       }
     }
     viewModelScope.launch {
-      kotlinx.coroutines.delay(1500)
+      delay(1500)
       val filterState = planningUseCase.filterStateFlow.first()
       val filterSize = filterState.flatList.size
       HierarchyDebugLogger.d { "Delayed check: filterState flat=$filterSize" }
@@ -232,21 +232,21 @@ constructor(
   }
 
   private suspend fun revealProject(projectId: String) {
-    android.util.Log.d("ProjectRevealDebug", "Attempting to reveal projectId: $projectId")
+    Log.d("ProjectRevealDebug", "Attempting to reveal projectId: $projectId")
     planningUseCase.onPlanningModeChange(PlanningMode.All)
 
     when (val result = searchUseCase.revealProjectInHierarchy(projectId)) {
       is RevealResult.Success -> {
-        android.util.Log.d("ProjectRevealDebug", "revealProjectInHierarchy result: Success, shouldFocus=${result.shouldFocus}")
+        Log.d("ProjectRevealDebug", "revealProjectInHierarchy result: Success, shouldFocus=${result.shouldFocus}")
         searchUseCase.pushSubState(ProjectHierarchyScreenSubState.ProjectFocused(result.projectId))
         if (result.shouldFocus) {
-          android.util.Log.d("ProjectRevealDebug", "Calling navigateToProject for ${result.projectId}")
+          Log.d("ProjectRevealDebug", "Calling navigateToProject for ${result.projectId}")
           searchUseCase.navigateToProject(
             result.projectId,
             uiState.value.projectHierarchy,
           )
         } else {
-          android.util.Log.d("ProjectRevealDebug", "Setting projectToRevealAndScroll to ${result.projectId}")
+          Log.d("ProjectRevealDebug", "Setting projectToRevealAndScroll to ${result.projectId}")
           projectToRevealAndScroll = result.projectId
           if (searchUseCase.isSearchActive()) {
             searchUseCase.popToSubState(ProjectHierarchyScreenSubState.Hierarchy)
@@ -254,7 +254,7 @@ constructor(
         }
       }
       is RevealResult.Failure -> {
-        android.util.Log.d("ProjectRevealDebug", "revealProjectInHierarchy result: Failure")
+        Log.d("ProjectRevealDebug", "revealProjectInHierarchy result: Failure")
         _uiEventChannel.send(ProjectUiEvent.ShowToast("Не удалось показать локацию"))
       }
     }
@@ -711,11 +711,11 @@ constructor(
     }
   }
 
-  private fun onRecentItemSelected(item: com.romankozak.forwardappmobile.data.database.models.RecentItem) {
+  private fun onRecentItemSelected(item: RecentItem) {
     viewModelScope.launch {
         _showRecentListsSheet.value = false
         when (item.type) {
-            com.romankozak.forwardappmobile.data.database.models.RecentItemType.PROJECT -> {
+            RecentItemType.PROJECT -> {
                 projectRepository.getProjectById(item.target)?.let { recentItemsRepository.logProjectAccess(it) }
                 val project = _allProjectsFlat.value.find { it.id == item.target }
                 if (project != null) {
@@ -723,13 +723,13 @@ constructor(
                     enhancedNavigationManager?.navigateToProject(item.target, project.name)
                 }
             }
-            com.romankozak.forwardappmobile.data.database.models.RecentItemType.NOTE -> {
+            RecentItemType.NOTE -> {
                 noteRepository.getNoteById(item.target)?.let {
                     recentItemsRepository.logNoteAccess(it)
                 }
                 _uiEventChannel.send(ProjectUiEvent.ShowToast("Legacy note editing is no longer supported"))
             }
-            com.romankozak.forwardappmobile.data.database.models.RecentItemType.NOTE_DOCUMENT -> {
+            RecentItemType.NOTE_DOCUMENT -> {
                 noteDocumentRepository.getDocumentById(item.target)?.let {
                     recentItemsRepository.logNoteDocumentAccess(it)
                 }
@@ -739,7 +739,7 @@ constructor(
                   )
                 )
             }
-            com.romankozak.forwardappmobile.data.database.models.RecentItemType.CHECKLIST -> {
+            RecentItemType.CHECKLIST -> {
                 checklistRepository.getChecklistById(item.target)?.let {
                     recentItemsRepository.logChecklistAccess(it)
                 }
@@ -749,15 +749,15 @@ constructor(
                   )
                 )
             }
-            com.romankozak.forwardappmobile.data.database.models.RecentItemType.OBSIDIAN_LINK -> {
-                val link = com.romankozak.forwardappmobile.data.database.models.RelatedLink(
+            RecentItemType.OBSIDIAN_LINK -> {
+                val link = RelatedLink(
                     target = item.target,
                     displayName = item.displayName,
-                    type = com.romankozak.forwardappmobile.data.database.models.LinkType.OBSIDIAN
+                    type = LinkType.OBSIDIAN
                 )
                 recentItemsRepository.logObsidianLinkAccess(link)
                 val vaultName = settingsRepo.obsidianVaultNameFlow.first()
-                val encodedNoteName = java.net.URLEncoder.encode(item.target, "UTF-8")
+                val encodedNoteName = URLEncoder.encode(item.target, "UTF-8")
                 val uri = "obsidian://new?vault=$vaultName&name=$encodedNoteName"
                 _uiEventChannel.send(ProjectUiEvent.OpenUri(uri))
             }
@@ -778,7 +778,7 @@ constructor(
 
   private fun createNoteInInbox() {
     val inboxProjectId =
-      _allProjectsFlat.value.firstOrNull { it.systemKey == com.romankozak.forwardappmobile.data.database.models.ReservedProjectKeys.INBOX }?.id
+      _allProjectsFlat.value.firstOrNull { it.systemKey == ReservedProjectKeys.INBOX }?.id
     if (inboxProjectId == null) {
       viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.ShowToast("Inbox проект не знайдено")) }
       return
@@ -799,7 +799,7 @@ constructor(
 
   private fun createChecklistInInbox() {
     val inboxProjectId =
-      _allProjectsFlat.value.firstOrNull { it.systemKey == com.romankozak.forwardappmobile.data.database.models.ReservedProjectKeys.INBOX }?.id
+      _allProjectsFlat.value.firstOrNull { it.systemKey == ReservedProjectKeys.INBOX }?.id
     if (inboxProjectId == null) {
       viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.ShowToast("Inbox проект не знайдено")) }
       return
@@ -814,7 +814,7 @@ constructor(
     }
   }
 
-  private fun toggleRecentItemPin(item: com.romankozak.forwardappmobile.data.database.models.RecentItem) {
+  private fun toggleRecentItemPin(item: RecentItem) {
     viewModelScope.launch {
         val updatedItem = item.copy(isPinned = !item.isPinned)
         recentItemsRepository.updateRecentItem(updatedItem)

@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.components
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween

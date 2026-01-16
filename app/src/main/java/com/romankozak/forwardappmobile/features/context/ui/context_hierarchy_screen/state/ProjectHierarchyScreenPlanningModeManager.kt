@@ -1,10 +1,10 @@
 
 
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.state
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.state
 
 import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenPlanningMode
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.PlanningMode
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.ProjectHierarchyScreenPlanningMode
 import dagger.hilt.android.scopes.ViewModelScoped
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

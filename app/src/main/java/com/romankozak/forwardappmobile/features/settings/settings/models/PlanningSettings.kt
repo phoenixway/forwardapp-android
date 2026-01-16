@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.settings.models
+package com.romankozak.forwardappmobile.features.settings.settings.models
 
 data class PlanningSettings(
     val showModes: Boolean,

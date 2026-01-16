@@ -10,7 +10,7 @@ import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.ProjectStructureRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.domain.structure.StructurePresetService
-import com.romankozak.forwardappmobile.ui.navigation.NavTarget
+import com.romankozak.forwardappmobile.features.navigation.NavTarget
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.RemindersTabActions
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.EvaluationTabActions
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,9 +23,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import javax.inject.Inject
-import kotlin.plus
-import kotlin.sequences.ifEmpty
-import kotlin.text.get
 
 @HiltViewModel
 class ProjectSettingsViewModel @Inject constructor(

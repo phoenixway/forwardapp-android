@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.settings.components
+package com.romankozak.forwardappmobile.features.settings.settings.components
 
 import android.Manifest
 import android.app.AlarmManager
@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.os.PowerManager
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -64,7 +65,7 @@ fun PermissionsSettingsCard() {
 
     val ignoresBatteryOptimizations = remember(permissionUpdateTrigger) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val powerManager = context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+            val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
             powerManager.isIgnoringBatteryOptimizations(context.packageName)
         } else {
             true

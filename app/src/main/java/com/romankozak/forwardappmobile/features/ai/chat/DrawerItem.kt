@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.chat
+package com.romankozak.forwardappmobile.features.ai.chat
 
 import com.romankozak.forwardappmobile.data.database.models.ConversationFolderEntity
 import com.romankozak.forwardappmobile.data.database.models.ConversationWithLastMessage

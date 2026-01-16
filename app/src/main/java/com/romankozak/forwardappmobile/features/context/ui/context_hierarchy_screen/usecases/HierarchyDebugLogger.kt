@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases
 
 import android.util.Log
 import com.romankozak.forwardappmobile.BuildConfig

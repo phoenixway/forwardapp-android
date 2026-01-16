@@ -1,7 +1,7 @@
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases
 
 import androidx.compose.ui.text.input.TextFieldValue
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainSubState
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.MainSubState
 import kotlinx.coroutines.flow.StateFlow
 
 interface PlanningSearchAdapter {

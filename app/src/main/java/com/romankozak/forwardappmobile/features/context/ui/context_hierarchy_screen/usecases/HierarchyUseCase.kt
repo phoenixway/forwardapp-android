@@ -1,14 +1,14 @@
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases
 
 import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
 import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.FilterState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningSettingsState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.SearchResult
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.buildPathToProject
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.findAncestorsRecursive
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.fuzzyMatch
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.FilterState
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.PlanningMode
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.PlanningSettingsState
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.SearchResult
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.utils.buildPathToProject
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.utils.findAncestorsRecursive
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.utils.fuzzyMatch
 import javax.inject.Inject
 
 class HierarchyUseCase @Inject constructor() {

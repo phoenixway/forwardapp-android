@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.components
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.components
 
 import android.util.Log
 import androidx.activity.compose.BackHandler
@@ -50,24 +50,26 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.components.ContextBottomSheet
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Overlay
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Button
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.components.HandleProjectHierarchyDialogs
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenuItem
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.rememberHoldMenu2
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.components.ProjectHierarchyScreenTopAppBar
 import com.romankozak.forwardappmobile.ui.components.NewRecentListsSheet
-import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
-import com.romankozak.forwardappmobile.ui.reminders.dialogs.ReminderPropertiesDialog
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.ProjectHierarchyScreenContent
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.ProjectHierarchyScreenViewModel
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.SearchProjectHierarchyBottomBar
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenEvent
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenUiState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenSubState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.OptimizedExpandingProjectHierarchyBottomNav
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.HandleProjectHierarchyDialogs
+import com.romankozak.forwardappmobile.features.navigation.EnhancedNavigationManager
+import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.ProjectHierarchyScreenContent
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.ProjectHierarchyScreenViewModel
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.SearchProjectHierarchyBottomBar
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.ProjectHierarchyScreenEvent
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.OptimizedExpandingProjectHierarchyBottomNav
 import com.romankozak.forwardappmobile.ui.shared.InProgressIndicator
 import com.romankozak.forwardappmobile.config.FeatureFlag
-import com.romankozak.forwardappmobile.config.FeatureToggles
+import com.romankozak.forwardappmobile.features.navigation.NavigationHistoryMenu
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
 
 
@@ -344,7 +346,7 @@ fun ProjectHierarchyScreenScaffold(
     }
 
     if (uiState.showNavigationMenu) {
-        com.romankozak.forwardappmobile.ui.navigation.NavigationHistoryMenu(
+        NavigationHistoryMenu(
             navManager = enhancedNavigationManager,
             onDismiss = { onEvent(ProjectHierarchyScreenEvent.HideHistory) },
         )

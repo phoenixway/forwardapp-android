@@ -1,6 +1,5 @@
-package com.romankozak.forwardappmobile.ui.screens.settings.components
+package com.romankozak.forwardappmobile.features.settings.settings.components
 
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -22,7 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.ui.ModelsState
-import com.romankozak.forwardappmobile.ui.screens.settings.SettingsUiState
+import com.romankozak.forwardappmobile.features.settings.settings.SettingsUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

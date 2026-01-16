@@ -1,7 +1,6 @@
 package com.romankozak.forwardappmobile.features.context.ui.contextcreen
 
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SearchUseCase
-import com.romankozak.forwardappmobile.features.context.ui.contextcreen.components.utils.ParsedTag
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases.SearchUseCase
 
 import android.app.Application
 import android.content.ClipData
@@ -30,10 +29,10 @@ import com.romankozak.forwardappmobile.domain.ner.ReminderParser
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.domain.wifirestapi.FileDataRequest
 import com.romankozak.forwardappmobile.domain.wifirestapi.RetrofitClient
-import com.romankozak.forwardappmobile.ui.navigation.ClearAndNavigateHomeUseCase
-import com.romankozak.forwardappmobile.ui.features.backlog.withCompletedAtEnd
-import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
-import com.romankozak.forwardappmobile.ui.navigation.NavTarget
+import com.romankozak.forwardappmobile.features.navigation.ClearAndNavigateHomeUseCase
+import com.romankozak.forwardappmobile.features.context.toggled_features.backlog.withCompletedAtEnd
+import com.romankozak.forwardappmobile.features.navigation.EnhancedNavigationManager
+import com.romankozak.forwardappmobile.features.navigation.NavTarget
 import com.romankozak.forwardappmobile.features.context.ui.contextcreen.components.utils.TagUtils
 import com.romankozak.forwardappmobile.features.attachments.ui.project.AttachmentType
 import com.romankozak.forwardappmobile.features.context.ui.contextcreen.components.inputpanel.InputHandler
@@ -64,6 +63,12 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import com.romankozak.forwardappmobile.features.context.ui.contextcreen.components.projectrealization.ProjectManagementTab
+import com.romankozak.forwardappmobile.features.navigation.ClearCommand
+import com.romankozak.forwardappmobile.features.navigation.ClearExecutionContext
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.ProjectUiEvent
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.state.PlanningModeManager
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.state.ProjectHierarchyScreenPlanningModeManager
 import java.util.UUID
 import kotlinx.coroutines.withContext
 
@@ -1830,7 +1835,7 @@ constructor(
         Log.d(TAG, "Starting home navigation with UseCase")
 
         clearAndNavigateHomeUseCase.execute(
-          command = com.romankozak.forwardappmobile.ui.navigation.ClearCommand.Home,
+          command = ClearCommand.Home,
           context = createClearExecutionContext(),
         )
 
@@ -1847,21 +1852,21 @@ constructor(
   }
 
   private fun createClearExecutionContext():
-    com.romankozak.forwardappmobile.ui.navigation.ClearExecutionContext {
-    return com.romankozak.forwardappmobile.ui.navigation.createClearExecutionContext(
-      currentProjects = _allProjects.value,
-      subStateStack =
-        MutableStateFlow(
-          listOf(
-            com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenSubState.Hierarchy,
-          ),
-        ),
-      searchUseCase = searchUseCase,
-      planningModeManager =
-        com.romankozak.forwardappmobile.ui.screens.mainscreen.state.PlanningModeManager(),
-      enhancedNavigationManager = enhancedNavigationManager,
-      uiEventChannel =
-        Channel<com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectUiEvent>(),
+    ClearExecutionContext {
+    return com.romankozak.forwardappmobile.features.navigation.createClearExecutionContext(
+        currentProjects = _allProjects.value,
+        subStateStack =
+            MutableStateFlow(
+                listOf(
+                    ProjectHierarchyScreenSubState.Hierarchy,
+                ),
+            ),
+        searchUseCase = searchUseCase,
+        planningModeManager =
+          PlanningModeManager(),
+        enhancedNavigationManager = enhancedNavigationManager,
+        uiEventChannel =
+            Channel<ProjectUiEvent>(),
     )
   }
 

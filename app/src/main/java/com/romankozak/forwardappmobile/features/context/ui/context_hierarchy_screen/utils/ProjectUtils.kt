@@ -1,9 +1,9 @@
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.utils
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.utils
 
 import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
 import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbItem
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.FlatHierarchyItem
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.BreadcrumbItem
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.FlatHierarchyItem
 
 private const val TAG = "SendDebug"
 

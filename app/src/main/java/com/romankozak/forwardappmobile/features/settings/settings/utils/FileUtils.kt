@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.settings.utils
+package com.romankozak.forwardappmobile.features.settings.settings.utils
 
 import android.content.Context
 import android.net.Uri

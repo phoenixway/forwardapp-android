@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.mainscreen
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -39,7 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.SearchTextField
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.components.SearchTextField
 
 @Composable
 fun SearchProjectHierarchyBottomBar(

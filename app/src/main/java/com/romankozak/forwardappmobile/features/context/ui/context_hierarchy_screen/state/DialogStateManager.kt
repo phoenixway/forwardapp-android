@@ -1,10 +1,8 @@
-
-
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.state
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.state
 
 import android.net.Uri
 import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DialogState
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.DialogState
 import dagger.hilt.android.scopes.ViewModelScoped
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

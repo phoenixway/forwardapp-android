@@ -1,9 +1,9 @@
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases
 
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
-import com.romankozak.forwardappmobile.ui.screens.settings.models.PlanningSettings
+import com.romankozak.forwardappmobile.features.settings.settings.models.PlanningSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import javax.inject.Inject

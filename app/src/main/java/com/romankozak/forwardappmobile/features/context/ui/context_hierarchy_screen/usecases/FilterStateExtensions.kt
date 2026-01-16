@@ -1,8 +1,8 @@
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases
 
 import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.FilterState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.FilterState
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.PlanningMode
 
 internal fun FilterState.withHierarchyFallback(allProjects: List<Project>): FilterState {
   if (!isReady) return this

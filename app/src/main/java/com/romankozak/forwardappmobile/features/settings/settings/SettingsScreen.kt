@@ -1,5 +1,6 @@
-package com.romankozak.forwardappmobile.ui.screens.settings
+package com.romankozak.forwardappmobile.features.settings.settings
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -48,27 +49,26 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningSettingsState
-import com.romankozak.forwardappmobile.ui.screens.settings.components.NerSettingsCard
-import com.romankozak.forwardappmobile.ui.screens.settings.components.PermissionsSettingsCard
-import com.romankozak.forwardappmobile.ui.screens.settings.components.RolesSettingsCard
-import com.romankozak.forwardappmobile.ui.screens.settings.components.RingtoneSettingsCard
-import com.romankozak.forwardappmobile.ui.screens.settings.components.ServerSettingsCard
-import com.romankozak.forwardappmobile.ui.screens.settings.components.ThemeSettingsCard
-import com.romankozak.forwardappmobile.ui.screens.settings.components.WifiSyncSettingsCard
-import com.romankozak.forwardappmobile.ui.screens.settings.models.PlanningSettings
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.PlanningSettingsState
+import com.romankozak.forwardappmobile.features.settings.settings.components.NerSettingsCard
+import com.romankozak.forwardappmobile.features.settings.settings.components.PermissionsSettingsCard
+import com.romankozak.forwardappmobile.features.settings.settings.components.RolesSettingsCard
+import com.romankozak.forwardappmobile.features.settings.settings.components.RingtoneSettingsCard
+import com.romankozak.forwardappmobile.features.settings.settings.components.ServerSettingsCard
+import com.romankozak.forwardappmobile.features.settings.settings.components.ThemeSettingsCard
+import com.romankozak.forwardappmobile.features.settings.settings.components.WifiSyncSettingsCard
+import com.romankozak.forwardappmobile.features.settings.settings.models.PlanningSettings
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.only
-import com.romankozak.forwardappmobile.ui.screens.settings.components.AnimatedTextField
-import com.romankozak.forwardappmobile.ui.screens.settings.components.SettingsCard
+import com.romankozak.forwardappmobile.features.settings.settings.components.AnimatedTextField
+import com.romankozak.forwardappmobile.features.settings.settings.components.SettingsCard
 import com.romankozak.forwardappmobile.R
-import androidx.compose.material3.Tab
-import androidx.compose.material3.ScrollableTabRow
-import androidx.compose.material3.TabRowDefaults
 import com.romankozak.forwardappmobile.BuildConfig
+import com.romankozak.forwardappmobile.config.FeatureFlag
+import com.romankozak.forwardappmobile.config.FeatureToggles
 import kotlinx.coroutines.flow.first
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -243,7 +243,7 @@ fun SettingsScreen(
                         )
                     }
                     SettingsTab.Management -> {
-                        if (com.romankozak.forwardappmobile.config.FeatureToggles.isEnabled(com.romankozak.forwardappmobile.config.FeatureFlag.PlanningModes)) {
+                        if (FeatureToggles.isEnabled(FeatureFlag.PlanningModes)) {
                             SettingsCard(
                                 title = "Planning Modes",
                                 icon = Icons.Default.Tune,
@@ -314,9 +314,9 @@ fun SettingsScreen(
                     }
                     SettingsTab.Ai -> {
                         val aiEnabled =
-                            com.romankozak.forwardappmobile.config.FeatureToggles.isEnabled(com.romankozak.forwardappmobile.config.FeatureFlag.AiChat) ||
-                                com.romankozak.forwardappmobile.config.FeatureToggles.isEnabled(com.romankozak.forwardappmobile.config.FeatureFlag.AiInsights) ||
-                                com.romankozak.forwardappmobile.config.FeatureToggles.isEnabled(com.romankozak.forwardappmobile.config.FeatureFlag.AiLifeManagement)
+                            FeatureToggles.isEnabled(FeatureFlag.AiChat) ||
+                                FeatureToggles.isEnabled(FeatureFlag.AiInsights) ||
+                                FeatureToggles.isEnabled(FeatureFlag.AiLifeManagement)
                         if (aiEnabled) {
                             ServerSettingsCard(
                                 state = uiState,
@@ -487,7 +487,7 @@ fun SettingsScreen(
     }
 }
 
-private enum class SettingsTab(@androidx.annotation.StringRes val labelRes: Int) {
+private enum class SettingsTab(@StringRes val labelRes: Int) {
     General(R.string.settings_tab_general),
     Ui(R.string.settings_tab_ui),
     Reminders(R.string.settings_tab_reminders),

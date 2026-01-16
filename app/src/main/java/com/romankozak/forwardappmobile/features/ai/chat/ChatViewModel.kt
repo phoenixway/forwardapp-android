@@ -1,8 +1,7 @@
-package com.romankozak.forwardappmobile.ui.screens.chat
+package com.romankozak.forwardappmobile.features.ai.chat
 
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -31,7 +30,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import java.io.File
 import java.text.SimpleDateFormat
@@ -499,8 +497,8 @@ class ChatViewModel @Inject constructor(
                     )
             val result = saveChatToPath(folder, fileName, markdown)
             return result.fold(
-                onSuccess = { path -> LuaValue.valueOf(path) },
-                onFailure = { error -> LuaValue.error("Save failed: ${error.message ?: error}") },
+                onSuccess = { path -> valueOf(path) },
+                onFailure = { error -> error("Save failed: ${error.message ?: error}") },
             )
         }
     }

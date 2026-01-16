@@ -27,7 +27,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.ui.screens.activitytracker.ActivityTrackerScreen
+import com.romankozak.forwardappmobile.features.activitytracker.ActivityTrackerScreen
 import com.romankozak.forwardappmobile.features.daymanagement.presentation.dayanalitics.DayAnalyticsScreen
 import com.romankozak.forwardappmobile.features.daymanagement.presentation.daydashboard.DayDashboardScreen
 import com.romankozak.forwardappmobile.data.database.models.DayTask

@@ -8,7 +8,7 @@ import com.romankozak.forwardappmobile.data.database.models.ReservedGroup
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.di.IoDispatcher
-import com.romankozak.forwardappmobile.routes.DAY_PLAN_DATE_ARG
+import com.romankozak.forwardappmobile.features.navigation.routes.DAY_PLAN_DATE_ARG
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.channels.Channel

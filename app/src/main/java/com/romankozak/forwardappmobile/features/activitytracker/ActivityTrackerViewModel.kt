@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.activitytracker
+package com.romankozak.forwardappmobile.features.activitytracker
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel

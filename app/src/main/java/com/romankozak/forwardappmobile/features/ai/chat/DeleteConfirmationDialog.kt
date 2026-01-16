@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.chat
+package com.romankozak.forwardappmobile.features.ai.chat
 
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text

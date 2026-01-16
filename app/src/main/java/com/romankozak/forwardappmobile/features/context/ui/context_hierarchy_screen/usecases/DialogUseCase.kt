@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases
 
 import android.net.Uri
 import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
@@ -6,8 +6,8 @@ import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DialogState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.state.DialogStateManager
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.DialogState
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.state.DialogStateManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

@@ -1,11 +1,11 @@
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases
 
 import android.app.Application
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.data.repository.SyncRepository
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectUiEvent
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.sync.WifiSyncManager
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.sync.WifiSyncStatus
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.ProjectUiEvent
+import com.romankozak.forwardappmobile.features.sync.WifiSyncManager
+import com.romankozak.forwardappmobile.features.sync.WifiSyncStatus
 import dagger.hilt.android.scopes.ViewModelScoped
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
@@ -14,7 +14,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 @ViewModelScoped

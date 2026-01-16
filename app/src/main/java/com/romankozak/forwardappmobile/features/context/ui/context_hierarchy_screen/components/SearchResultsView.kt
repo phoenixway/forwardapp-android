@@ -1,6 +1,4 @@
-
-
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.components
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.components
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
@@ -28,7 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.SearchResult
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.SearchResult
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable

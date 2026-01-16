@@ -1,12 +1,15 @@
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.models
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models
 
 import android.net.Uri
 import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.data.database.models.Project
+import com.romankozak.forwardappmobile.data.database.models.RecentItem
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 
 
-import com.romankozak.forwardappmobile.ui.screens.settings.models.PlanningSettings
+import com.romankozak.forwardappmobile.features.settings.settings.models.PlanningSettings
+import com.romankozak.forwardappmobile.ui.theme.ThemeMode
+import com.romankozak.forwardappmobile.ui.theme.ThemeName
 
 sealed interface ProjectHierarchyScreenEvent {
     
@@ -76,9 +79,9 @@ sealed interface ProjectHierarchyScreenEvent {
 
     data object DismissRecentLists : ProjectHierarchyScreenEvent
 
-    data class RecentItemSelected(val item: com.romankozak.forwardappmobile.data.database.models.RecentItem) : ProjectHierarchyScreenEvent
+    data class RecentItemSelected(val item: RecentItem) : ProjectHierarchyScreenEvent
 
-    data class RecentItemPinClick(val item: com.romankozak.forwardappmobile.data.database.models.RecentItem) : ProjectHierarchyScreenEvent
+    data class RecentItemPinClick(val item: RecentItem) : ProjectHierarchyScreenEvent
 
     data object DayPlanClick : ProjectHierarchyScreenEvent
 
@@ -139,9 +142,9 @@ sealed interface ProjectHierarchyScreenEvent {
 
     data object CollapseAll : ProjectHierarchyScreenEvent
 
-    data class UpdateLightTheme(val themeName: com.romankozak.forwardappmobile.ui.theme.ThemeName) : ProjectHierarchyScreenEvent
-    data class UpdateDarkTheme(val themeName: com.romankozak.forwardappmobile.ui.theme.ThemeName) : ProjectHierarchyScreenEvent
-    data class UpdateThemeMode(val themeMode: com.romankozak.forwardappmobile.ui.theme.ThemeMode) : ProjectHierarchyScreenEvent
+    data class UpdateLightTheme(val themeName: ThemeName) : ProjectHierarchyScreenEvent
+    data class UpdateDarkTheme(val themeName: ThemeName) : ProjectHierarchyScreenEvent
+    data class UpdateThemeMode(val themeMode: ThemeMode) : ProjectHierarchyScreenEvent
     data object GoToReminders : ProjectHierarchyScreenEvent
     data class RevealProjectInHierarchy(val projectId: String) : ProjectHierarchyScreenEvent
     object OpenInboxProject : ProjectHierarchyScreenEvent

@@ -10,7 +10,9 @@ import com.romankozak.forwardappmobile.features.context.ui.contextcreen.BacklogV
 import com.romankozak.forwardappmobile.features.context.ui.contextcreen.GoalActionDialogState
 import com.romankozak.forwardappmobile.ui.components.NewRecentListsSheet
 import com.romankozak.forwardappmobile.features.context.ui.contextcreen.GoalActionType
-
+import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
+import com.romankozak.forwardappmobile.features.reminders.dialogs.RemindersDialog
+import com.romankozak.forwardappmobile.features.reminders.viewmodel.ReminderViewModel
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -56,9 +58,9 @@ fun GoalDetailDialogs(viewModel: BacklogViewModel) {
     }
 
     if (uiState.showRemindersDialog) {
-        val remindersViewModel: com.romankozak.forwardappmobile.ui.reminders.viewmodel.ReminderViewModel = hiltViewModel()
+        val remindersViewModel: ReminderViewModel = hiltViewModel()
         uiState.itemForRemindersDialog?.let {
-            com.romankozak.forwardappmobile.ui.reminders.dialogs.RemindersDialog(
+           RemindersDialog(
                 viewModel = remindersViewModel,
                 item = it,
                 onDismiss = { viewModel.onDismissRemindersDialog() }
@@ -123,7 +125,7 @@ fun GoalDetailDialogs(viewModel: BacklogViewModel) {
     }
 
     if (showReminderDialog && uiState.recordForReminderDialog != null) {
-        com.romankozak.forwardappmobile.ui.reminders.dialogs.ReminderPropertiesDialog(
+        ReminderPropertiesDialog(
             onDismiss = viewModel::onReminderDialogDismiss,
             onSetReminder = viewModel::onSetReminder,
             onRemoveReminder = viewModel::onRemoveReminder,

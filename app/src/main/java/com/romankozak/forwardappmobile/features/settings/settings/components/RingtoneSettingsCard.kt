@@ -1,5 +1,6 @@
-package com.romankozak.forwardappmobile.ui.screens.settings.components
+package com.romankozak.forwardappmobile.features.settings.settings.components
 
+import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
 import android.media.MediaPlayer
@@ -187,7 +188,7 @@ fun RingtoneSettingsCard(
     }
 }
 
-private fun ringtoneLabel(context: android.content.Context, type: RingtoneType, uriString: String): String {
+private fun ringtoneLabel(context: Context, type: RingtoneType, uriString: String): String {
     if (uriString.isBlank()) return "Системний за замовчуванням"
     return try {
         val title = RingtoneManager.getRingtone(context, Uri.parse(uriString))?.getTitle(context)
@@ -207,7 +208,7 @@ private fun RingtoneType.toSystemType(): Int =
     }
 
 private fun playPreview(
-    context: android.content.Context,
+    context: Context,
     uriString: String,
     type: RingtoneType,
     volume: Float,

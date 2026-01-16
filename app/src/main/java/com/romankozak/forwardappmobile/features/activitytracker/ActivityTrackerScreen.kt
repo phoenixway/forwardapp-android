@@ -1,12 +1,11 @@
 @file:OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 
-package com.romankozak.forwardappmobile.ui.screens.activitytracker
+package com.romankozak.forwardappmobile.features.activitytracker
 
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
-import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
@@ -39,11 +38,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
-import com.romankozak.forwardappmobile.ui.reminders.dialogs.ReminderPropertiesDialog
-import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.TimePickerDialog
-import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.formatDuration
+import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
+import com.romankozak.forwardappmobile.features.activitytracker.dialogs.TimePickerDialog
+import com.romankozak.forwardappmobile.features.activitytracker.dialogs.formatDuration
 import com.romankozak.forwardappmobile.ui.shared.InProgressIndicator
-import kotlinx.coroutines.delay
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Overlay
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenuItem
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.rememberHoldMenu2
@@ -53,14 +51,16 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import java.text.SimpleDateFormat
 import java.util.*
-import java.util.concurrent.TimeUnit
 import kotlin.math.max
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.viewinterop.AndroidView
 
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.core.tween
+import androidx.compose.ui.text.style.TextOverflow
+import com.romankozak.forwardappmobile.data.database.models.Reminder
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.IconPosition
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.MenuAlignment
+import com.romankozak.forwardappmobile.ui.shared.InProgressIndicatorState
 
 private val ActivityRecord.isTimeless: Boolean
     get() = this.startTime == null
@@ -110,7 +110,7 @@ fun ActivityTrackerScreen(
                         .navigationBarsPadding()
                         .imePadding(),
                 ) {
-                    val indicatorState = remember { com.romankozak.forwardappmobile.ui.shared.InProgressIndicatorState(isInitiallyExpanded = true) }
+                    val indicatorState = remember { InProgressIndicatorState(isInitiallyExpanded = true) }
                     InProgressIndicator(
                         ongoingActivity = lastOngoingActivity,
                         onStopClick = viewModel::onToggleStartStop,
@@ -178,7 +178,7 @@ fun ActivityTrackerScreen(
                     onDismiss = viewModel::onReminderDialogDismiss,
                     onSetReminder = { time -> viewModel.onSetReminder(time) },
                     onRemoveReminder = if (record.reminderTime != null) { { _: String -> viewModel.onClearReminder() } } else null,
-                    currentReminders = listOfNotNull(record.reminderTime).map { com.romankozak.forwardappmobile.data.database.models.Reminder(entityId = record.id, entityType = "TASK", reminderTime = it, status = "SCHEDULED", creationTime = System.currentTimeMillis()) },
+                    currentReminders = listOfNotNull(record.reminderTime).map { Reminder(entityId = record.id, entityType = "TASK", reminderTime = it, status = "SCHEDULED", creationTime = System.currentTimeMillis()) },
                 )
             }
 
@@ -532,9 +532,9 @@ private fun TextWithBadgeLayout(
                         if (textLayoutResult.lineCount >
                             1
                         ) {
-                            androidx.compose.ui.text.style.TextOverflow.Clip
+                            TextOverflow.Clip
                         } else {
-                            androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            TextOverflow.Ellipsis
                         },
                 )
             }.first().measure(constraints)
@@ -548,7 +548,7 @@ private fun TextWithBadgeLayout(
                         text,
                         style = textStyle,
                         maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }.first().measure(
                     Constraints(
@@ -606,7 +606,7 @@ private fun ActivityInputBar(
     onToggleStartStop: () -> Unit,
     onTimelessClick: () -> Unit,
     onQuickDoneClick: (String) -> Unit,
-    holdMenuController: com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller,
+    holdMenuController: HoldMenu2Controller,
 )
 {
     Surface(
@@ -654,8 +654,8 @@ private fun ActivityInputBar(
                         onToggleStartStop()
                     }
                 },
-                menuAlignment = com.romankozak.forwardappmobile.features.common.components.holdmenu2.MenuAlignment.END,
-                iconPosition = com.romankozak.forwardappmobile.features.common.components.holdmenu2.IconPosition.END,
+                menuAlignment = MenuAlignment.END,
+                iconPosition = IconPosition.END,
             ) {
                 val icon: ImageVector
                 val tint: Color

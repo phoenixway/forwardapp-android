@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.hierarchy
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -25,12 +25,12 @@ import androidx.compose.ui.unit.dp
 import com.mohamedrejeb.compose.dnd.DragAndDropState
 import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
 import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbItem
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DropPosition
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.HierarchyDisplaySettings
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenEvent
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.flattenHierarchyWithLevels
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.BreadcrumbItem
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.DropPosition
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.ProjectHierarchyScreenEvent
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.PlanningMode
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.utils.flattenHierarchyWithLevels
 
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi

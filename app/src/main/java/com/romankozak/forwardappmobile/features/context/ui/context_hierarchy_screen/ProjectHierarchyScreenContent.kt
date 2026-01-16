@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.mainscreen
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -24,16 +24,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.ExpandingProjectHierarchyBottomNav
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.ModernBottomNavButton
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.SearchResultsView
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy.BreadcrumbNavigation
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy.ProjectHierarchyView
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.HierarchyDisplaySettings
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenEvent
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenUiState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenSubState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.components.ExpandingProjectHierarchyBottomNav
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.components.ModernBottomNavButton
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.components.SearchResultsView
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.hierarchy.BreadcrumbNavigation
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.hierarchy.ProjectHierarchyView
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.ProjectHierarchyScreenEvent
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.PlanningMode
 
 
 

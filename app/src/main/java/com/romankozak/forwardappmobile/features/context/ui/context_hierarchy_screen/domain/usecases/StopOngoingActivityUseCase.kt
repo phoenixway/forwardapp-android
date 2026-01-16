@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.domain.usecases
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.domain.usecases
 
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import javax.inject.Inject

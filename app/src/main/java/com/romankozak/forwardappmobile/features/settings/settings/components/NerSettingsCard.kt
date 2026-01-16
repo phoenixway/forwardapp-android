@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.settings.components
+package com.romankozak.forwardappmobile.features.settings.settings.components
 
 import android.content.Intent
 import android.net.Uri
@@ -34,10 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.domain.ner.NerState
-import com.romankozak.forwardappmobile.ui.screens.settings.SettingsUiState
-import com.romankozak.forwardappmobile.ui.screens.settings.components.SettingsCard
-
-import com.romankozak.forwardappmobile.ui.screens.settings.components.FileSelector
+import com.romankozak.forwardappmobile.features.settings.settings.SettingsUiState
 
 @Composable
 fun NerSettingsCard(

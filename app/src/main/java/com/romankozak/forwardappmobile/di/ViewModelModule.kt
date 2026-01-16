@@ -1,9 +1,9 @@
 package com.romankozak.forwardappmobile.di
 
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.PlanningSearchAdapter
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.PlanningSettingsProvider
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SearchUseCase
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases.PlanningSearchAdapter
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases.PlanningSettingsProvider
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases.SearchUseCase
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn

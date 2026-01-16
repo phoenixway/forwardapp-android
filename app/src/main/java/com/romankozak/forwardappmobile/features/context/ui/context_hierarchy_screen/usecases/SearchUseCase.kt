@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases
 
 import android.util.Log
 import androidx.compose.ui.text.TextRange
@@ -8,12 +8,12 @@ import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbItem
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.HierarchyDisplaySettings
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectUiEvent
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.navigation.RevealResult
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.buildPathToProject
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.findAncestorsRecursive
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.BreadcrumbItem
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.ProjectUiEvent
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.navigation.RevealResult
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.utils.buildPathToProject
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.utils.findAncestorsRecursive
 import dagger.hilt.android.scopes.ViewModelScoped
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -27,9 +27,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainSubState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenSubState
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.MainSubState
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
 
 @ViewModelScoped
 class SearchUseCase @Inject constructor(

@@ -15,8 +15,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.romankozak.forwardappmobile.ui.navigation.NavTarget
-import com.romankozak.forwardappmobile.ui.navigation.NavTargetRouter
+import com.romankozak.forwardappmobile.features.navigation.NavTarget
+import com.romankozak.forwardappmobile.features.navigation.NavTargetRouter
 import java.net.URLEncoder
 
 @Composable

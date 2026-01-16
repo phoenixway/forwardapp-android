@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.hierarchy
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,12 +12,12 @@ import com.mohamedrejeb.compose.dnd.DragAndDropContainer
 import com.mohamedrejeb.compose.dnd.rememberDragAndDropState
 import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
 import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbItem
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DropPosition
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.FlatHierarchyItem
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.HierarchyDisplaySettings
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenEvent
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.BreadcrumbItem
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.DropPosition
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.FlatHierarchyItem
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.ProjectHierarchyScreenEvent
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.PlanningMode
 
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -85,7 +85,11 @@ fun ProjectHierarchyView(
         } else {
             val visibleItems =
                 remember(flattenedHierarchy, longDescendantsMap, hierarchy.childMap) {
-                    buildVisibleHierarchy(flattenedHierarchy, hierarchy.childMap, longDescendantsMap)
+                    buildVisibleHierarchy(
+                        flattenedHierarchy,
+                        hierarchy.childMap,
+                        longDescendantsMap
+                    )
                 }
 
             LazyColumn(

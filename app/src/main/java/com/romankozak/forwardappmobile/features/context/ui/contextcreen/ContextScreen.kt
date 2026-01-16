@@ -36,7 +36,7 @@ import com.romankozak.forwardappmobile.ui.common.components.ShareDialog
 import com.romankozak.forwardappmobile.ui.common.editor.UniversalEditorScreen
 import com.romankozak.forwardappmobile.ui.common.editor.components.FullScreenTextEditor
 import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEditorViewModel
-import com.romankozak.forwardappmobile.ui.reminders.dialogs.RemindersDialog
+import com.romankozak.forwardappmobile.features.reminders.dialogs.RemindersDialog
 import com.romankozak.forwardappmobile.config.FeatureFlag
 import com.romankozak.forwardappmobile.config.FeatureToggles
 
@@ -145,7 +145,7 @@ private fun ProjectScaffold(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
-    val reminderViewModel: com.romankozak.forwardappmobile.ui.reminders.viewmodel.ReminderViewModel = hiltViewModel()
+    val reminderViewModel: com.romankozak.forwardappmobile.features.reminders.viewmodel.ReminderViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
     val project by viewModel.project.collectAsStateWithLifecycle()

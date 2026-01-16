@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.models
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models
 
 enum class ProjectHierarchyScreenPlanningMode {
     All,

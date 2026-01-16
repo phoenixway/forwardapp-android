@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.chat
+package com.romankozak.forwardappmobile.features.ai.chat
 
 data class ChatMessage(
     val id: Long = 0,

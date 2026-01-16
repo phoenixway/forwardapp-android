@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases
 
 import android.net.Uri
 import android.util.Log
@@ -7,10 +7,10 @@ import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.data.repository.SyncRepository
 import com.romankozak.forwardappmobile.di.IoDispatcher
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DropPosition
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.findDescendantsForDeletion
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.getDescendantIds
-import com.romankozak.forwardappmobile.ui.navigation.NavTarget
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.DropPosition
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.utils.findDescendantsForDeletion
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.utils.getDescendantIds
+import com.romankozak.forwardappmobile.features.navigation.NavTarget
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext

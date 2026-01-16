@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.dialogs
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.dialogs
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*

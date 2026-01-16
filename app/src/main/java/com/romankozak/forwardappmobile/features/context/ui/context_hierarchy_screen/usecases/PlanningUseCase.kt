@@ -1,17 +1,16 @@
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases
 
+import android.util.Log
 import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.FilterState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainSubState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenSubState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningSettingsState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.state.PlanningModeManager
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.state.PlanningModeManager
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.FilterState
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.PlanningMode
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.PlanningSettingsState
 import dagger.hilt.android.scopes.ViewModelScoped
 import kotlinx.coroutines.CoroutineScope
 import javax.inject.Inject
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,8 +20,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 
 // ViewModel scope гарантує, що MainScreenViewModel та його use-case-и ділять один екземпляр.
 @ViewModelScoped
@@ -93,7 +90,7 @@ constructor(
         planningMode,
         planningSettingsState,
       ) { flatList, query, searchActive, mode, settings ->
-        android.util.Log.d(
+        Log.d(
           "HierarchyDebug",
           "baseFilterState combine flat=${flatList.size} query='$query' searchActive=$searchActive mode=$mode",
         )
@@ -112,13 +109,13 @@ constructor(
       .onEach { state ->
         var ready = _isReadyForFiltering.value
         if (state.flatList.isNotEmpty()) {
-          android.util.Log.d(
+          Log.d(
             "HierarchyDebug",
             "PlanningUseCase storing lastNonEmptyProjects size=${state.flatList.size}",
           )
           lastNonEmptyProjects.value = state.flatList
           if (!ready) {
-            android.util.Log.d(
+            Log.d(
               "HierarchyDebug",
               "PlanningUseCase marking ready due to non-empty flatList size=${state.flatList.size}",
             )
@@ -126,7 +123,7 @@ constructor(
             ready = true
           }
         } else if (!ready) {
-          android.util.Log.d(
+          Log.d(
             "HierarchyDebug",
             "PlanningUseCase still waiting for projects (current flatList empty)",
           )
@@ -140,7 +137,7 @@ constructor(
               state.mode == PlanningMode.All &&
               ready
           ) {
-            android.util.Log.d(
+            Log.d(
               "HierarchyDebug",
               "PlanningUseCase applying fallback with cached projects size=${lastNonEmptyProjects.value.size}",
             )
@@ -154,7 +151,7 @@ constructor(
             flatList = effectiveFlatList,
             isReady = ready,
           )
-        android.util.Log.d(
+        Log.d(
           "HierarchyDebug",
           "PlanningUseCase emitting ready=${emitted.isReady} flat=${emitted.flatList.size}",
         )

@@ -1,6 +1,9 @@
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases
 
 import androidx.compose.ui.text.input.TextFieldValue
+import com.romankozak.forwardappmobile.config.FeatureFlag
+import com.romankozak.forwardappmobile.config.FeatureToggles
+import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
 import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.RecentItem
@@ -8,27 +11,25 @@ import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.AppStatistics
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbItem
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DialogState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.FilterState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.FlatHierarchyItem
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenUiState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainSubState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenPlanningMode
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenSubState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenUiState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningSettingsState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.SearchResult
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.flattenHierarchyWithLevels
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.AppStatistics
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.BreadcrumbItem
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.DialogState
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.FilterState
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.FlatHierarchyItem
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.MainScreenUiState
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.PlanningMode
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.ProjectHierarchyScreenPlanningMode
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.PlanningSettingsState
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.SearchResult
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.utils.flattenHierarchyWithLevels
 import dagger.hilt.android.scopes.ViewModelScoped
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
@@ -199,7 +200,7 @@ constructor(
           obsidianVaultNameFlow,
           navigationSnapshot,
           contextHandler.contextMarkerToEmojiMap,
-          com.romankozak.forwardappmobile.config.FeatureToggles.overrides,
+          FeatureToggles.overrides,
         ) { values ->
           val coreState = values[0] as CoreUiState
           val dialogState = values[1] as DialogUiState
@@ -211,13 +212,13 @@ constructor(
           val isProcessingRevealValue = values[7] as Boolean
           val isReadyForFiltering = values[8] as Boolean
           val recordForReminder =
-            values[9] as com.romankozak.forwardappmobile.data.database.models.ActivityRecord?
+            values[9] as ActivityRecord?
           val obsidianVaultName = values[10] as String
           val navSnapshot = values[11] as NavigationSnapshot
           @Suppress("UNCHECKED_CAST")
           val contextMarkerToEmojiMap = values[12] as Map<String, String>
           @Suppress("UNCHECKED_CAST")
-          val featureToggles = values[13] as Map<com.romankozak.forwardappmobile.config.FeatureFlag, Boolean>
+          val featureToggles = values[13] as Map<FeatureFlag, Boolean>
 
           ProjectHierarchyScreenUiState(
             subStateStack = coreState.subStateStack,

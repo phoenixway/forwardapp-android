@@ -40,8 +40,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.data.database.models.StructurePreset
-import com.romankozak.forwardappmobile.ui.navigation.NavTarget
-import com.romankozak.forwardappmobile.ui.navigation.NavTargetRouter
+import com.romankozak.forwardappmobile.features.navigation.NavTarget
+import com.romankozak.forwardappmobile.features.navigation.NavTargetRouter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

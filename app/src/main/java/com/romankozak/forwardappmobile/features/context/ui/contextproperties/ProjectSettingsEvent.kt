@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.features.context.ui.contextproperties
 
-import com.romankozak.forwardappmobile.ui.navigation.NavTarget
+import com.romankozak.forwardappmobile.features.navigation.NavTarget
 
 sealed class ProjectSettingsEvent {
     data class NavigateBack(

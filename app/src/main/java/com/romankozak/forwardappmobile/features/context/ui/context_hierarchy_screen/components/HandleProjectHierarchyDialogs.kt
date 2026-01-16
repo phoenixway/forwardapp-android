@@ -1,17 +1,18 @@
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.components
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.components
 
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.text.input.TextFieldValue
+import com.romankozak.forwardappmobile.config.FeatureFlag
 import com.romankozak.forwardappmobile.ui.dialogs.AboutAppDialog
 import com.romankozak.forwardappmobile.ui.dialogs.AddProjectDialog
 import com.romankozak.forwardappmobile.ui.dialogs.WifiImportDialog
 import com.romankozak.forwardappmobile.ui.dialogs.WifiServerDialog
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.dialogs.ContextMenuDialog
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DialogState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenEvent
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenUiState
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.dialogs.ContextMenuDialog
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.DialogState
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.ProjectHierarchyScreenEvent
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
 
 
 @Composable
@@ -101,13 +102,13 @@ fun HandleProjectHierarchyDialogs(
     }
 
     
-    if (uiState.showWifiServerDialog && uiState.featureToggles[com.romankozak.forwardappmobile.config.FeatureFlag.WifiSync] == true) {
+    if (uiState.showWifiServerDialog && uiState.featureToggles[FeatureFlag.WifiSync] == true) {
         WifiServerDialog(
             address = uiState.wifiServerAddress,
             onDismiss = { onEvent(ProjectHierarchyScreenEvent.DismissWifiServerDialog) },
         )
     }
-    if (uiState.showWifiImportDialog && uiState.featureToggles[com.romankozak.forwardappmobile.config.FeatureFlag.WifiSync] == true) {
+    if (uiState.showWifiImportDialog && uiState.featureToggles[FeatureFlag.WifiSync] == true) {
         WifiImportDialog(
             desktopAddress = uiState.desktopAddress,
             onAddressChange = { onEvent(ProjectHierarchyScreenEvent.DesktopAddressChange(it)) },

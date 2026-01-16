@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.components
+package com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
@@ -25,7 +24,6 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.NorthEast
-import androidx.compose.material3.Badge
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -53,8 +51,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.sync.WifiSyncStatus
+import com.romankozak.forwardappmobile.features.sync.WifiSyncStatus
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -171,7 +170,7 @@ fun ProjectHierarchyScreenTopAppBar(
                 if (!isSearchActive) {
                     if (isFocusMode && focusedProjectMenuClick != null) {
                         IconButton(onClick = focusedProjectMenuClick) {
-                            Icon(Icons.Default.MoreVert, stringResource(id = com.romankozak.forwardappmobile.R.string.more_options))
+                            Icon(Icons.Default.MoreVert, stringResource(id = R.string.more_options))
                         }
                     } else {
                         if (featureToggles[FeatureFlag.WifiSync] == true) {
@@ -182,17 +181,17 @@ fun ProjectHierarchyScreenTopAppBar(
                         }
                         AnimatedVisibility(visible = false) {
                             IconButton(onClick = onGoBack) {
-                                Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(id = com.romankozak.forwardappmobile.R.string.back))
+                                Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(id = R.string.back))
                             }
                         }
                         AnimatedVisibility(visible = false) {
                             IconButton(onClick = onGoForward) {
-                                Icon(Icons.AutoMirrored.Outlined.ArrowForward, stringResource(id = com.romankozak.forwardappmobile.R.string.forward))
+                                Icon(Icons.AutoMirrored.Outlined.ArrowForward, stringResource(id = R.string.forward))
                             }
                         }
                         var menuExpanded by remember { mutableStateOf(false) }
                         IconButton(onClick = { menuExpanded = true }) {
-                            Icon(Icons.Default.MoreVert, stringResource(id = com.romankozak.forwardappmobile.R.string.more_options))
+                            Icon(Icons.Default.MoreVert, stringResource(id = R.string.more_options))
                         }
                         DropdownMenu(
                             expanded = menuExpanded,
@@ -204,7 +203,7 @@ fun ProjectHierarchyScreenTopAppBar(
                             if (showAttachmentsLibrary || showScriptsLibrary) {
                                 if (showAttachmentsLibrary) {
                                     DropdownMenuItem(
-                                        text = { Text(stringResource(id = com.romankozak.forwardappmobile.R.string.menu_attachments_library)) },
+                                        text = { Text(stringResource(id = R.string.menu_attachments_library)) },
                                         onClick = {
                                             onShowAttachmentsLibrary()
                                             menuExpanded = false
@@ -213,7 +212,7 @@ fun ProjectHierarchyScreenTopAppBar(
                                 }
                                 if (showScriptsLibrary) {
                                     DropdownMenuItem(
-                                        text = { Text(stringResource(id = com.romankozak.forwardappmobile.R.string.menu_scripts_library)) },
+                                        text = { Text(stringResource(id = R.string.menu_scripts_library)) },
                                         onClick = {
                                             onShowScriptsLibrary()
                                             menuExpanded = false
@@ -224,14 +223,14 @@ fun ProjectHierarchyScreenTopAppBar(
                             }
                             if (featureToggles[FeatureFlag.WifiSync] == true) {
                                 DropdownMenuItem(
-                                    text = { Text(stringResource(id = com.romankozak.forwardappmobile.R.string.menu_run_wifi_server)) },
+                                    text = { Text(stringResource(id = R.string.menu_run_wifi_server)) },
                                     onClick = {
                                         onShowWifiServer()
                                         menuExpanded = false
                                     },
                                 )
                                 DropdownMenuItem(
-                                    text = { Text(stringResource(id = com.romankozak.forwardappmobile.R.string.menu_import_wifi)) },
+                                    text = { Text(stringResource(id = R.string.menu_import_wifi)) },
                                     onClick = {
                                         onShowWifiImport()
                                         menuExpanded = false
@@ -247,7 +246,7 @@ fun ProjectHierarchyScreenTopAppBar(
                                 HorizontalDivider()
                             }
                             DropdownMenuItem(
-                                text = { Text(stringResource(id = com.romankozak.forwardappmobile.R.string.menu_import_export)) },
+                                text = { Text(stringResource(id = R.string.menu_import_export)) },
                                 onClick = {
                                     menuExpanded = false
                                     onShowImportExportSheet()

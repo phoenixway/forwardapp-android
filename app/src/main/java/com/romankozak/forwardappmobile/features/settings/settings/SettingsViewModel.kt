@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.settings
+package com.romankozak.forwardappmobile.features.settings.settings
 
 import android.content.Context
 import android.content.Intent
@@ -10,7 +10,6 @@ import com.romankozak.forwardappmobile.config.FeatureFlag
 import com.romankozak.forwardappmobile.config.FeatureToggles
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.data.repository.RolesRepository
-import com.romankozak.forwardappmobile.data.repository.RingtoneSettings
 import com.romankozak.forwardappmobile.domain.aichat.OllamaService
 import com.romankozak.forwardappmobile.domain.ner.NerManager
 import com.romankozak.forwardappmobile.domain.ner.NerState
@@ -18,7 +17,6 @@ import com.romankozak.forwardappmobile.domain.reminders.RingtoneType
 import com.romankozak.forwardappmobile.ui.ModelsState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.Job
@@ -26,6 +24,9 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 import com.romankozak.forwardappmobile.data.repository.ServerDiscoveryState
+import com.romankozak.forwardappmobile.ui.theme.ThemeMode
+import com.romankozak.forwardappmobile.ui.theme.ThemeName
+import com.romankozak.forwardappmobile.ui.theme.ThemeSettings
 
 data class SettingsUiState(
     val fastModel: String = "",
@@ -42,7 +43,7 @@ data class SettingsUiState(
     val ollamaPort: Int = 11434,
     val fastApiPort: Int = 8000,
     val serverDiscoveryState: ServerDiscoveryState = ServerDiscoveryState.Loading,
-    val themeSettings: com.romankozak.forwardappmobile.ui.theme.ThemeSettings = com.romankozak.forwardappmobile.ui.theme.ThemeSettings(),
+    val themeSettings: ThemeSettings = ThemeSettings(),
     val featureToggles: Map<FeatureFlag, Boolean> = FeatureFlag.values().associateWith { FeatureToggles.isEnabled(it) },
     val attachmentsLibraryEnabled: Boolean = FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary),
     val scriptsLibraryEnabled: Boolean = FeatureToggles.isEnabled(FeatureFlag.ScriptsLibrary),
@@ -137,7 +138,7 @@ class SettingsViewModel @Inject constructor(
                         nerTokenizerUri = values[3] as String,
                         nerLabelsUri = values[4] as String,
                         rolesFolderUri = values[5] as String,
-                        themeSettings = values[6] as com.romankozak.forwardappmobile.ui.theme.ThemeSettings,
+                        themeSettings = values[6] as ThemeSettings,
                         serverIpConfigurationMode = values[7] as String,
                         manualServerIp = values[8] as String,
                         wifiSyncPort = values[9] as Int,
@@ -244,15 +245,15 @@ class SettingsViewModel @Inject constructor(
         _uiState.update { it.copy(rolesFolderUri = uri.toString()) }
     }
 
-    fun onLightThemeSelected(themeName: com.romankozak.forwardappmobile.ui.theme.ThemeName) {
+    fun onLightThemeSelected(themeName: ThemeName) {
         _uiState.update { it.copy(themeSettings = it.themeSettings.copy(lightThemeName = themeName)) }
     }
 
-    fun onDarkThemeSelected(themeName: com.romankozak.forwardappmobile.ui.theme.ThemeName) {
+    fun onDarkThemeSelected(themeName: ThemeName) {
         _uiState.update { it.copy(themeSettings = it.themeSettings.copy(darkThemeName = themeName)) }
     }
 
-    fun onThemeModeSelected(themeMode: com.romankozak.forwardappmobile.ui.theme.ThemeMode) {
+    fun onThemeModeSelected(themeMode: ThemeMode) {
         _uiState.update { it.copy(themeSettings = it.themeSettings.copy(themeMode = themeMode)) }
     }
 

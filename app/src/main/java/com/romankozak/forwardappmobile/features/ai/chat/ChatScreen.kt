@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.chat
+package com.romankozak.forwardappmobile.features.ai.chat
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -64,7 +64,6 @@ import java.util.*
 import androidx.compose.ui.viewinterop.AndroidView
 import com.romankozak.forwardappmobile.ui.common.MatrixRainView
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.core.tween
 import kotlinx.coroutines.delay
 
 private const val TAG = "AI_CHAT_DEBUG"

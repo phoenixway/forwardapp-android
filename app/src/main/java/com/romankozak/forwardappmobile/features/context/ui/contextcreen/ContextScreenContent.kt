@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.Alignment
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
+import com.romankozak.forwardappmobile.features.context.toggled_features.backlog.BacklogListScreen
 import com.romankozak.forwardappmobile.features.context.ui.contextcreen.components.projectrealization.ProjectDashboardView
 import com.romankozak.forwardappmobile.features.context.ui.contextcreen.views.AttachmentsView
 import com.romankozak.forwardappmobile.features.context.ui.contextcreen.views.InboxView
@@ -59,7 +60,7 @@ fun GoalDetailContent(
     when (uiState.currentView) {
         ProjectViewMode.BACKLOG -> {
             val listContent by viewModel.listContent.collectAsStateWithLifecycle()
-            com.romankozak.forwardappmobile.ui.features.backlog.BacklogListScreen(
+            BacklogListScreen(
                 items = listContent,
                 modifier = modifier,
                 listState = listState,
@@ -73,8 +74,16 @@ fun GoalDetailContent(
                 onLongClick = { item -> viewModel.toggleSelection(item.listItem.id) },
                 onCheckedChange = { item, isChecked ->
                     when (item) {
-                        is ListItemContent.GoalItem -> viewModel.itemActionHandler.toggleGoalCompletedWithState(item.goal, isChecked)
-                        is ListItemContent.SublistItem -> viewModel.onSubprojectCompletedChanged(item.project, isChecked)
+                        is ListItemContent.GoalItem -> viewModel.itemActionHandler.toggleGoalCompletedWithState(
+                            item.goal,
+                            isChecked
+                        )
+
+                        is ListItemContent.SublistItem -> viewModel.onSubprojectCompletedChanged(
+                            item.project,
+                            isChecked
+                        )
+
                         else -> {}
                     }
                 },
@@ -83,7 +92,11 @@ fun GoalDetailContent(
                 onMoveToTop = { item -> viewModel.onMoveToTop(item) },
                 onAddToDayPlan = { item -> viewModel.addItemToDailyPlan(item) },
                 onStartTracking = { item -> viewModel.onStartTrackingRequest(item) },
-                onShowGoalTransportMenu = { item -> viewModel.itemActionHandler.onGoalTransportInitiated(item) {} },
+                onShowGoalTransportMenu = { item ->
+                    viewModel.itemActionHandler.onGoalTransportInitiated(
+                        item
+                    ) {}
+                },
                 onRelatedLinkClick = viewModel.itemActionHandler::onRelatedLinkClick,
                 onRemindersClick = onRemindersClick,
                 onCopyContent = viewModel.itemActionHandler::copyContentRequest,

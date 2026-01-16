@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs
+package com.romankozak.forwardappmobile.features.activitytracker.dialogs
 
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api

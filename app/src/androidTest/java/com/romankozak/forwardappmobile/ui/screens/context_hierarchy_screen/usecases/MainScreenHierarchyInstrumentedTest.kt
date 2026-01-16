@@ -2,9 +2,11 @@ package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.FilterState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningSettingsState
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases.HierarchyStateBuilder
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases.HierarchyUseCase
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.FilterState
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.PlanningMode
+import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.PlanningSettingsState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
