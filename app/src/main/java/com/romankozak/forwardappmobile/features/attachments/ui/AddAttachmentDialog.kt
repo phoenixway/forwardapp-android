@@ -9,7 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.ui.screens.contextcreen.components.attachments.AttachmentType
+import com.romankozak.forwardappmobile.features.attachments.ui.project.AttachmentType
 
 @Composable
 fun AddAttachmentDialog(

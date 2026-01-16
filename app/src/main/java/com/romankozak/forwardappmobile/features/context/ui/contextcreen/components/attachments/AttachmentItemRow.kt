@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.attachments.ui.project.components
+package com.romankozak.forwardappmobile.features.context.ui.contextcreen.components.attachments
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier

@@ -48,8 +48,8 @@ import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.data.database.models.Reminder
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
-import com.romankozak.forwardappmobile.ui.screens.contextcreen.components.backlogitems.MarkdownText
-import com.romankozak.forwardappmobile.ui.screens.contextcreen.components.backlogitems.StatusIconsRow
+import com.romankozak.forwardappmobile.features.context.ui.contextcreen.components.backlogitems.MarkdownText
+import com.romankozak.forwardappmobile.features.context.ui.contextcreen.components.backlogitems.StatusIconsRow
 import sh.calvin.reorderable.ReorderableCollectionItemScope
 
 @Composable
