@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.contexts.listchooser
+package com.romankozak.forwardappmobile.features.contexts.context_chooser
 
 import android.util.Log
 import androidx.compose.animation.*

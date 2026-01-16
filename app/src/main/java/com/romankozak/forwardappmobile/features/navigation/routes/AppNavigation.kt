@@ -37,8 +37,8 @@ import com.romankozak.forwardappmobile.features.globalsearch.GlobalSearchViewMod
 import com.romankozak.forwardappmobile.features.contexts.toggled_features.inbox.InboxEditorScreen
 import com.romankozak.forwardappmobile.features.ai.insights.AiInsightsScreen
 import com.romankozak.forwardappmobile.features.lifestate.LifeStateScreen
-import com.romankozak.forwardappmobile.features.contexts.listchooser.FilterableListChooserScreen
-import com.romankozak.forwardappmobile.features.contexts.listchooser.FilterableListChooserViewModel
+import com.romankozak.forwardappmobile.features.contexts.context_chooser.FilterableListChooserScreen
+import com.romankozak.forwardappmobile.features.contexts.context_chooser.FilterableListChooserViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ProjectHierarchyScreenViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.attachments.specific_types.notedocument.NoteDocumentEditorScreen
