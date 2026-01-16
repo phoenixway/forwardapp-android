@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.contextstructure
+package com.romankozak.forwardappmobile.features.context.ui.contextstructure
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -40,6 +40,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.data.database.models.StructurePreset
+import com.romankozak.forwardappmobile.ui.navigation.NavTarget
+import com.romankozak.forwardappmobile.ui.navigation.NavTargetRouter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,8 +53,8 @@ fun StructurePresetsScreen(
     var presetDialog by remember { mutableStateOf(false) }
     val navigateToEditor: (String?, String?) -> Unit = { presetId, copyFrom ->
         navController.navigate(
-            com.romankozak.forwardappmobile.ui.navigation.NavTargetRouter.routeOf(
-                com.romankozak.forwardappmobile.ui.navigation.NavTarget.StructurePresetEditor(
+            NavTargetRouter.routeOf(
+                NavTarget.StructurePresetEditor(
                     presetId = presetId,
                     copyFromPresetId = copyFrom,
                 )

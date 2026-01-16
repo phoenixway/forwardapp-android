@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.contextstructure
+package com.romankozak.forwardappmobile.features.context.ui.contextstructure
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -30,6 +30,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -210,7 +211,7 @@ private fun FeatureToggleRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(label)
-        androidx.compose.material3.Switch(checked = value, onCheckedChange = onChange)
+        Switch(checked = value, onCheckedChange = onChange)
     }
 }
 
@@ -305,12 +306,12 @@ private fun AddPresetItemDialog(
                         }
                     }
                 }
-                androidx.compose.material3.OutlinedTextField(
+                OutlinedTextField(
                     value = roleCode,
                     onValueChange = { roleCode = it },
                     label = { Text("Role code") }
                 )
-                androidx.compose.material3.OutlinedTextField(
+                OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
                     label = { Text("Title") }
@@ -321,7 +322,7 @@ private fun AddPresetItemDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text("Mandatory")
-                    androidx.compose.material3.Switch(checked = mandatory, onCheckedChange = { mandatory = it })
+                    Switch(checked = mandatory, onCheckedChange = { mandatory = it })
                 }
             }
         }

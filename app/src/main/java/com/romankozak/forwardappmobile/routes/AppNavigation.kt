@@ -48,7 +48,9 @@ import com.romankozak.forwardappmobile.features.context.ui.contextcreen.BacklogV
 import com.romankozak.forwardappmobile.features.context.ui.contextcreen.ProjectsScreen
 import com.romankozak.forwardappmobile.ui.screens.contextproperties.ProjectSettingsScreen
 import com.romankozak.forwardappmobile.ui.screens.script.ScriptChooserScreen
-import com.romankozak.forwardappmobile.ui.screens.contextstructure.ProjectStructureScreen
+import com.romankozak.forwardappmobile.features.context.ui.contextstructure.ProjectStructureScreen
+import com.romankozak.forwardappmobile.features.context.ui.contextstructure.StructurePresetEditorScreen
+import com.romankozak.forwardappmobile.features.context.ui.contextstructure.StructurePresetsScreen
 import com.romankozak.forwardappmobile.ui.screens.script.ScriptEditorScreen
 import com.romankozak.forwardappmobile.ui.screens.script.ScriptsLibraryScreen
 import com.romankozak.forwardappmobile.ui.screens.settings.SettingsScreen
@@ -186,7 +188,7 @@ private fun NavGraphBuilder.mainGraph(
   }
 
   composable("structure_presets_screen") {
-    com.romankozak.forwardappmobile.ui.screens.contextstructure.StructurePresetsScreen(navController = navController)
+      StructurePresetsScreen(navController = navController)
   }
 
   composable(
@@ -196,7 +198,7 @@ private fun NavGraphBuilder.mainGraph(
       navArgument("copyFromPresetId") { type = NavType.StringType; nullable = true; defaultValue = null },
     )
   ) {
-    com.romankozak.forwardappmobile.ui.screens.contextstructure.StructurePresetEditorScreen(navController = navController)
+      StructurePresetEditorScreen(navController = navController)
   }
 
   composable(GOAL_LISTS_ROUTE) { backStackEntry ->
