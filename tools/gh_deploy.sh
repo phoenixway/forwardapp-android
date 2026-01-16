@@ -217,5 +217,9 @@ else
     echo -e "${GREEN}Saved to: $DIST_DIR/$(basename "$APK_FILE")${NC}"
 fi
 
+cp "$APK_FILE" ~/storage/downloads
+
+~/bin/rish -c "cp /sdcard/Download/$(basename "$APK_FILE") /tmp/app.apk"
+…t ~/l/p/forwardapp-android (dev)> ~/bin/rish -c "pm install /tmp/app.apk"                               Success
 # Cleanup
 # rm -rf "$TMP_DL_DIR"
