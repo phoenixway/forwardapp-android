@@ -40,12 +40,12 @@ if (signingPropsFile.exists()) {
 
 android {
     namespace = "com.romankozak.forwardappmobile"
-    compileSdk = 36
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.romankozak.forwardappmobile"
         minSdk = 29
-        targetSdk = 36
+        targetSdk = 35
         versionCode = 54
         versionName = "1.20.0"
 
