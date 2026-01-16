@@ -23,8 +23,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.features.navigation.routes.MAIN_GRAPH_ROUTE
-import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.ProjectHierarchyScreenViewModel
-import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.ProjectHierarchyScreenEvent
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ProjectHierarchyScreenViewModel
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.lifestate.LifeStateChatViewModel
 import com.romankozak.forwardappmobile.features.lifestate.LifeStateViewModel
 import com.romankozak.forwardappmobile.features.lifestate.AnalysisContent

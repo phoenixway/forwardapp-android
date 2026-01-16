@@ -4,13 +4,13 @@ import android.util.Log
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.di.IoDispatcher
-import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
-import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.ProjectHierarchyScreenPlanningMode
-import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.ProjectUiEvent
-import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.state.ProjectHierarchyScreenPlanningModeManager
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenPlanningMode
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectUiEvent
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.state.ProjectHierarchyScreenPlanningModeManager
 
-import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases.ProjectHierarchyScreenPlanningUseCase
-import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases.ProjectHierarchyScreenSearchUseCase
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.ProjectHierarchyScreenPlanningUseCase
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.ProjectHierarchyScreenSearchUseCase
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel

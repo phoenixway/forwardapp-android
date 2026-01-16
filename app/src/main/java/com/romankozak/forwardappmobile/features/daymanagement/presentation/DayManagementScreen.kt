@@ -33,19 +33,15 @@ import com.romankozak.forwardappmobile.features.daymanagement.presentation.dayda
 import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.features.daymanagement.presentation.components.DayManagementBottomBar
 import com.romankozak.forwardappmobile.features.daymanagement.presentation.dayplan.DayPlanScreen
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.components.DayManagementBottomNav
+import com.romankozak.forwardappmobile.features.daymanagement.presentation.dayplan.components.DayManagementBottomNav
 import kotlinx.coroutines.launch
 
 import androidx.compose.foundation.layout.Column
 import com.romankozak.forwardappmobile.features.daymanagement.presentation.dayplan.DayPlanViewModel
+import com.romankozak.forwardappmobile.features.daymanagement.presentation.DayManagementTab
 
 
-enum class DayManagementTab(val title: String, val icon: ImageVector, val description: String) {
-  TRACK("Трекер", Icons.Outlined.Timeline, "Відстежувати активність"),
-  PLAN("План", Icons.AutoMirrored.Filled.ListAlt, "Створити та керувати завданнями"),
-  DASHBOARD("Дашборд", Icons.Default.Dashboard, "Переглянути прогрес дня"),
-  ANALYTICS("Аналітика", Icons.Default.Assessment, "Статистика та аналіз продуктивності"),
-}
+
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable

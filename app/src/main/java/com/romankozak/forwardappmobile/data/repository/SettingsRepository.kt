@@ -14,7 +14,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.romankozak.forwardappmobile.BuildConfig
 import com.romankozak.forwardappmobile.config.FeatureFlag
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
-import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases.PlanningSettingsProvider
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.PlanningSettingsProvider
 import com.romankozak.forwardappmobile.domain.reminders.RingtoneType
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers

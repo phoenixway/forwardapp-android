@@ -21,8 +21,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.features.navigation.routes.MAIN_GRAPH_ROUTE
 import com.romankozak.forwardappmobile.ui.screens.common.ProjectListItem
-import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.ProjectHierarchyScreenViewModel
-import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.ProjectHierarchyScreenEvent
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ProjectHierarchyScreenViewModel
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenEvent
 
 @Composable
 fun StrategicArcScreen(

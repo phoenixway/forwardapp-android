@@ -25,7 +25,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
-import com.romankozak.forwardappmobile.features.context.ui.contextcreen.components.backlogitems.SwipeableListItem
+import com.romankozak.forwardappmobile.features.contexts.ui.contextcreen.components.backlogitems.SwipeableListItem
 
 @Composable
 fun LinkItemRow(

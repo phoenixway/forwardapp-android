@@ -1,11 +1,11 @@
 package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
 
 import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases.HierarchyStateBuilder
-import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.usecases.HierarchyUseCase
-import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.FilterState
-import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.PlanningMode
-import com.romankozak.forwardappmobile.features.context.ui.context_hierarchy_screen.models.PlanningSettingsState
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.HierarchyStateBuilder
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.HierarchyUseCase
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FilterState
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningSettingsState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
