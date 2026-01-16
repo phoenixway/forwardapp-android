@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.notedocument.components
+package com.romankozak.forwardappmobile.features.attachments.specific_types.notedocument.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState

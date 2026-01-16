@@ -1,5 +1,6 @@
-package com.romankozak.forwardappmobile.ui.screens.listchooser
+package com.romankozak.forwardappmobile.features.context.listchooser
 
+import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -30,6 +31,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -60,7 +62,7 @@ fun FilterableListChooserScreen(
     showDescendants: Boolean,
     onToggleShowDescendants: () -> Unit,
 ) {
-    android.util.Log.d("ListChooserScreen", "onConfirm called")
+    Log.d("ListChooserScreen", "onConfirm called")
     var isCreatingMode by remember { mutableStateOf(false) }
     var newProjectName by remember { mutableStateOf("") }
     var parentForNewProject by remember { mutableStateOf<Project?>(null) }
@@ -390,7 +392,7 @@ fun FilterableListChooserScreen(
                                     onSelect = { id ->
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                         onConfirm(id)
-                                        android.util.Log.d("ListChooserScreen", "onConfirm called with id: $id")
+                                        Log.d("ListChooserScreen", "onConfirm called with id: $id")
                                     },
                                     disabledIds = disabledIds,
                                     highlightedProjectId = highlightedProjectId,
@@ -711,7 +713,7 @@ private fun RecursiveSelectableListItem(
 private fun highlightText(
     text: String,
     query: String,
-): androidx.compose.ui.text.AnnotatedString {
+): AnnotatedString {
     if (query.isBlank()) {
         return androidx.compose.ui.text
             .AnnotatedString(text)

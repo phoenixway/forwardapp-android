@@ -1,10 +1,9 @@
-package com.romankozak.forwardappmobile.ui.screens.notedocument
+package com.romankozak.forwardappmobile.features.attachments.specific_types.notedocument
 
 import android.app.Application
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.util.Log
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle

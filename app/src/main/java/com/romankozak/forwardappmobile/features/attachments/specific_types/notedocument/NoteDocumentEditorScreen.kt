@@ -1,12 +1,10 @@
-package com.romankozak.forwardappmobile.ui.screens.notedocument
+package com.romankozak.forwardappmobile.features.attachments.specific_types.notedocument
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.ui.common.editor.UniversalEditorScreen
-import androidx.compose.ui.res.stringResource
-import com.romankozak.forwardappmobile.R
 
 import android.content.Context
 import android.view.inputmethod.InputMethodManager

@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.listchooser
+package com.romankozak.forwardappmobile.features.context.listchooser
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

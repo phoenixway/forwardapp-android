@@ -1,12 +1,12 @@
-package com.romankozak.forwardappmobile.ui.screens.noteedit
+package com.romankozak.forwardappmobile.features.attachments.specific_types.noteedit
 
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
+import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
-import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,7 +34,7 @@ data class NoteEditUiState(
 class NoteEditViewModel
     @Inject
     constructor(
-        private val noteRepository: com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository,
+        private val noteRepository: LegacyNoteRepository,
         private val recentItemsRepository: RecentItemsRepository,
         private val savedStateHandle: SavedStateHandle,
     ) : ViewModel() {

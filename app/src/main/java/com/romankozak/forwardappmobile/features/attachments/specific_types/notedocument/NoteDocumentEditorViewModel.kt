@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.notedocument
+package com.romankozak.forwardappmobile.features.attachments.specific_types.notedocument
 
 import android.app.Application
 import android.util.Log
@@ -36,7 +36,7 @@ class NoteDocumentEditorViewModel
     listId = id
     viewModelScope.launch {
       noteDocumentRepository.getDocumentById(id)?.let { document ->
-        android.util.Log.d("CursorDebug", "Loaded document with lastCursorPosition: ${document.lastCursorPosition}")
+        Log.d("CursorDebug", "Loaded document with lastCursorPosition: ${document.lastCursorPosition}")
         // Встановлюємо projectId для "Show Location"
         universalEditorViewModel.setProjectId(document.projectId)
         universalEditorViewModel.setInitialContent(
@@ -48,7 +48,7 @@ class NoteDocumentEditorViewModel
   }
 
   fun saveDocument(content: String, cursorPosition: Int) {
-    android.util.Log.d("CursorDebug", "saveDocument called with cursorPosition: $cursorPosition")
+    Log.d("CursorDebug", "saveDocument called with cursorPosition: $cursorPosition")
     listId?.let {
       viewModelScope.launch {
         noteDocumentRepository.getDocumentById(it)?.let { document ->
