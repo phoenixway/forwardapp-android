@@ -44,8 +44,8 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.ProjectHierarchyScr
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenEvent
 import com.romankozak.forwardappmobile.ui.screens.notedocument.NoteDocumentEditorScreen
 import com.romankozak.forwardappmobile.ui.screens.notedocument.NoteDocumentScreen
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.ProjectsScreen
+import com.romankozak.forwardappmobile.ui.screens.contextcreen.BacklogViewModel
+import com.romankozak.forwardappmobile.ui.screens.contextcreen.ProjectsScreen
 import com.romankozak.forwardappmobile.ui.screens.contextproperties.ProjectSettingsScreen
 import com.romankozak.forwardappmobile.ui.screens.script.ScriptChooserScreen
 import com.romankozak.forwardappmobile.ui.screens.contextstructure.ProjectStructureScreen

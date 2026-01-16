@@ -34,16 +34,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.data.database.models.Goal
-import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.ui.reminders.dialogs.ReminderPropertiesDialog
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.ProjectItem
+import com.romankozak.forwardappmobile.ui.screens.contextcreen.components.backlogitems.ProjectItem
 import com.romankozak.forwardappmobile.ui.reminders.components.ReminderAction
 import com.romankozak.forwardappmobile.ui.reminders.components.ReminderActionsDialog
 import com.romankozak.forwardappmobile.ui.reminders.viewmodel.ReminderListItem
-import com.romankozak.forwardappmobile.ui.reminders.viewmodel.ReminderViewModel
 import com.romankozak.forwardappmobile.ui.reminders.viewmodel.RemindersUiEvent
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.GoalItem
+import com.romankozak.forwardappmobile.ui.screens.contextcreen.components.backlogitems.GoalItem
 import com.romankozak.forwardappmobile.ui.navigation.NavTargetRouter
 
 @OptIn(ExperimentalMaterial3Api::class)
