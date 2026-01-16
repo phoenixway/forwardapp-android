@@ -220,6 +220,7 @@ fi
 cp "$APK_FILE" ~/storage/downloads
 
 ~/bin/rish -c "cp /sdcard/Download/$(basename "$APK_FILE") /tmp/app.apk"
-…t ~/l/p/forwardapp-android (dev)> ~/bin/rish -c "pm install /tmp/app.apk"                               Success
+
+~/bin/rish -c "pm install /tmp/app.apk"                               
 # Cleanup
 # rm -rf "$TMP_DL_DIR"
