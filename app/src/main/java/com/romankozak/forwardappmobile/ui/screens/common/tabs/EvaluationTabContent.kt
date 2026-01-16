@@ -36,8 +36,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
-import com.romankozak.forwardappmobile.ui.screens.contextproperties.components.ParameterSlider
-import com.romankozak.forwardappmobile.ui.screens.contextproperties.components.Scales
+import com.romankozak.forwardappmobile.features.context.ui.contextproperties.components.ParameterSlider
+import com.romankozak.forwardappmobile.features.context.ui.contextproperties.components.Scales
 import kotlinx.coroutines.launch
 
 @Composable

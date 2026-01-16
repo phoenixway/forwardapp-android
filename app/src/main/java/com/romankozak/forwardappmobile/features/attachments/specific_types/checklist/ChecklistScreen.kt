@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.checklist
+package com.romankozak.forwardappmobile.features.attachments.specific_types.checklist
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -40,13 +39,10 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -72,8 +68,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.stringResource
@@ -85,25 +79,23 @@ import androidx.compose.material3.Surface
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Checkbox
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import com.romankozak.forwardappmobile.R
 
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableCollectionItemScope
+import sh.calvin.reorderable.ReorderableLazyListState
 
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
@@ -293,8 +285,8 @@ fun ChecklistScreen(
 private fun ChecklistContent(
     modifier: Modifier,
     uiState: ChecklistUiState,
-    reorderState: sh.calvin.reorderable.ReorderableLazyListState,
-    listState: androidx.compose.foundation.lazy.LazyListState,
+    reorderState: ReorderableLazyListState,
+    listState: LazyListState,
     onContentChange: (String, String) -> Unit,
     onCheckedChange: (String, Boolean) -> Unit,
     onAddBelow: (String?) -> Unit,
@@ -607,7 +599,7 @@ private fun ChecklistItemRow(
 
                         Surface(
 
-                            shape = androidx.compose.foundation.shape.CircleShape,
+                            shape = CircleShape,
 
                             color = if (item.isChecked) 
 
@@ -617,9 +609,9 @@ private fun ChecklistItemRow(
 
                                 Color.Transparent,
 
-                            border = if (!item.isChecked) 
+                            border = if (!item.isChecked)
 
-                                androidx.compose.foundation.BorderStroke(
+                                BorderStroke(
 
                                     2.dp, 
 

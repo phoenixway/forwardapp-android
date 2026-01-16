@@ -19,7 +19,7 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Link
-import com.romankozak.forwardappmobile.ui.screens.contextproperties.ProjectSettingsEvent
+import com.romankozak.forwardappmobile.features.context.ui.contextproperties.ProjectSettingsEvent
 import com.romankozak.forwardappmobile.ui.navigation.NavTargetRouter
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.DisposableEffect

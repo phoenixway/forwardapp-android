@@ -21,6 +21,7 @@ import androidx.navigation.navArgument
 import androidx.navigation.navigation
 import com.romankozak.forwardappmobile.data.database.models.RecentItem
 import com.romankozak.forwardappmobile.data.database.models.RecentItemType
+import com.romankozak.forwardappmobile.features.attachments.specific_types.checklist.ChecklistScreen
 import com.romankozak.forwardappmobile.features.attachments.ui.library.AttachmentsLibraryScreen
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
 import com.romankozak.forwardappmobile.ui.navigation.AppNavigationViewModel
@@ -46,7 +47,7 @@ import com.romankozak.forwardappmobile.ui.screens.notedocument.NoteDocumentEdito
 import com.romankozak.forwardappmobile.ui.screens.notedocument.NoteDocumentScreen
 import com.romankozak.forwardappmobile.features.context.ui.contextcreen.BacklogViewModel
 import com.romankozak.forwardappmobile.features.context.ui.contextcreen.ProjectsScreen
-import com.romankozak.forwardappmobile.ui.screens.contextproperties.ProjectSettingsScreen
+import com.romankozak.forwardappmobile.features.context.ui.contextproperties.ProjectSettingsScreen
 import com.romankozak.forwardappmobile.ui.screens.script.ScriptChooserScreen
 import com.romankozak.forwardappmobile.features.context.ui.contextstructure.ProjectStructureScreen
 import com.romankozak.forwardappmobile.features.context.ui.contextstructure.StructurePresetEditorScreen
@@ -419,9 +420,9 @@ private fun NavGraphBuilder.mainGraph(
         },
       ),
   ) {
-    com.romankozak.forwardappmobile.ui.screens.checklist.ChecklistScreen(
-      navController = navController
-    )
+      ChecklistScreen(
+          navController = navController
+      )
   }
 
   composable(

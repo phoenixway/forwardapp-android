@@ -1,7 +1,8 @@
-package com.romankozak.forwardappmobile.ui.screens.contextproperties
+package com.romankozak.forwardappmobile.features.context.ui.contextproperties
 
 import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
+import com.romankozak.forwardappmobile.data.database.models.StructurePreset
 
 data class ProjectSettingsUiState(
     val title: TextFieldValue = TextFieldValue(""),
@@ -27,7 +28,7 @@ data class ProjectSettingsUiState(
     val showCheckboxes: Boolean = true,
     val isProjectManagementEnabled: Boolean = false,
     val currentPresetLabel: String? = null,
-    val availablePresets: List<com.romankozak.forwardappmobile.data.database.models.StructurePreset> = emptyList(),
+    val availablePresets: List<StructurePreset> = emptyList(),
     val autoLinkSubprojects: Boolean = true,
     val features: Map<String, Boolean> = mapOf(
         "Inbox" to true,

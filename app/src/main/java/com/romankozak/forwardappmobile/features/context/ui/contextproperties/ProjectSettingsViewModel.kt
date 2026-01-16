@@ -1,11 +1,16 @@
-package com.romankozak.forwardappmobile.ui.screens.contextproperties
+package com.romankozak.forwardappmobile.features.context.ui.contextproperties
 
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.romankozak.forwardappmobile.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
+import com.romankozak.forwardappmobile.data.repository.ProjectStructureRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
+import com.romankozak.forwardappmobile.domain.structure.StructurePresetService
+import com.romankozak.forwardappmobile.ui.navigation.NavTarget
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.RemindersTabActions
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.EvaluationTabActions
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,16 +21,20 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.Calendar
 import javax.inject.Inject
+import kotlin.plus
+import kotlin.sequences.ifEmpty
+import kotlin.text.get
 
 @HiltViewModel
 class ProjectSettingsViewModel @Inject constructor(
     private val projectRepository: ProjectRepository,
     private val reminderRepository: ReminderRepository,
     private val savedStateHandle: SavedStateHandle,
-    private val structurePresetDao: com.romankozak.forwardappmobile.data.dao.StructurePresetDao,
-    private val projectStructureRepository: com.romankozak.forwardappmobile.data.repository.ProjectStructureRepository,
-    private val structurePresetService: com.romankozak.forwardappmobile.domain.structure.StructurePresetService,
+    private val structurePresetDao: StructurePresetDao,
+    private val projectStructureRepository: ProjectStructureRepository,
+    private val structurePresetService: StructurePresetService,
 ) : ViewModel(), EvaluationTabActions, RemindersTabActions {
 
     private val projectId: String? = savedStateHandle["projectId"]
@@ -143,9 +152,9 @@ class ProjectSettingsViewModel @Inject constructor(
         persistFeatureFlags()
     }
 
-    fun onTextChange(newValue: androidx.compose.ui.text.input.TextFieldValue) = _uiState.update { it.copy(title = newValue) }
+    fun onTextChange(newValue: TextFieldValue) = _uiState.update { it.copy(title = newValue) }
 
-    fun onDescriptionChange(newValue: androidx.compose.ui.text.input.TextFieldValue) = _uiState.update { it.copy(description = newValue) }
+    fun onDescriptionChange(newValue: TextFieldValue) = _uiState.update { it.copy(description = newValue) }
 
     override fun onValueImportanceChange(value: Float) = _uiState.update { it.copy(valueImportance = value) }
 
@@ -278,7 +287,7 @@ class ProjectSettingsViewModel @Inject constructor(
         minute: Int,
     ) {
         val calendar =
-            java.util.Calendar.getInstance().apply {
+            Calendar.getInstance().apply {
                 set(year, month, day, hour, minute, 0)
             }
         val newReminderTime = calendar.timeInMillis
@@ -303,7 +312,7 @@ class ProjectSettingsViewModel @Inject constructor(
     fun onOpenStructure() {
         projectId?.let {
             viewModelScope.launch {
-                _events.send(ProjectSettingsEvent.Navigate(com.romankozak.forwardappmobile.ui.navigation.NavTarget.ProjectStructure(it)))
+                _events.send(ProjectSettingsEvent.Navigate(NavTarget.ProjectStructure(it)))
             }
         }
     }

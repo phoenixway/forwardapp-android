@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.checklist
+package com.romankozak.forwardappmobile.features.attachments.specific_types.checklist
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel

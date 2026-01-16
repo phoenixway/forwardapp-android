@@ -1,6 +1,8 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
-package com.romankozak.forwardappmobile.ui.screens.contextproperties
 
+package com.romankozak.forwardappmobile.features.context.ui.contextproperties
+
+import android.widget.Toast
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -57,10 +59,12 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.ui.navigation.NavTargetRouter
 import com.romankozak.forwardappmobile.data.database.models.StructurePreset
+import com.romankozak.forwardappmobile.ui.navigation.NavTarget
 
 @Composable
 fun ProjectSettingsScreen(
@@ -77,7 +81,7 @@ fun ProjectSettingsScreen(
             when (event) {
                 is ProjectSettingsEvent.NavigateBack -> {
                     event.message?.let {
-                        android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
                     }
                     navController.previousBackStackEntry
                         ?.savedStateHandle
@@ -171,8 +175,8 @@ fun ProjectSettingsScreen(
             onEditPresets = {
                 showPresetPicker = false
                 navController.navigate(
-                    com.romankozak.forwardappmobile.ui.navigation.NavTargetRouter.routeOf(
-                        com.romankozak.forwardappmobile.ui.navigation.NavTarget.StructurePresets
+                    NavTargetRouter.routeOf(
+                        NavTarget.StructurePresets
                     )
                 )
             },
@@ -196,7 +200,7 @@ private fun FeaturesTabContent(
     onToggleFeature: (String, Boolean) -> Unit,
 ) {
     Column(
-        modifier = androidx.compose.ui.Modifier
+        modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
             .fillMaxHeight(),
@@ -217,7 +221,7 @@ private fun PresetCard(
     onApplyPreset: () -> Unit,
 ) {
     Surface(
-        modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
@@ -225,7 +229,7 @@ private fun PresetCard(
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
     ) {
         Column(
-            modifier = androidx.compose.ui.Modifier
+            modifier = Modifier
                 .fillMaxWidth()
                 .background(
                     Brush.linearGradient(
@@ -245,15 +249,15 @@ private fun PresetCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Row(
-                modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
                 Button(
                     onClick = onApplyPreset,
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                 ) {
-                    Icon(Icons.Outlined.Refresh, contentDescription = "Apply preset", modifier = androidx.compose.ui.Modifier.size(18.dp))
-                    Spacer(modifier = androidx.compose.ui.Modifier.width(6.dp))
+                    Icon(Icons.Outlined.Refresh, contentDescription = "Apply preset", modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text("Choose", maxLines = 1)
                 }
             }
@@ -277,7 +281,7 @@ private fun FeatureFlagCard(
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
     ) {
         Column(
-            modifier = androidx.compose.ui.Modifier
+            modifier = Modifier
                 .fillMaxWidth()
                 .background(
                     Brush.linearGradient(
@@ -292,19 +296,19 @@ private fun FeatureFlagCard(
         ) {
             Text("Feature toggles", style = MaterialTheme.typography.titleMedium)
             Column(
-                modifier = androidx.compose.ui.Modifier
+                modifier = Modifier
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 features.toList().forEach { (key, value) ->
                     Surface(
-                        modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f)
                     ) {
         Row(
-            modifier = androidx.compose.ui.Modifier
+            modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -350,7 +354,7 @@ private fun PresetChooserDialog(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 presets.forEach { preset ->
                     Row(
-                        modifier = androidx.compose.ui.Modifier
+                        modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 4.dp)
                             .clickable { selected = preset },
@@ -363,17 +367,17 @@ private fun PresetChooserDialog(
                         }
                     }
                 }
-                HorizontalDivider(modifier = androidx.compose.ui.Modifier.padding(top = 6.dp, bottom = 4.dp))
+                HorizontalDivider(modifier = Modifier.padding(top = 6.dp, bottom = 4.dp))
                 Row(
-                    modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
                     OutlinedButton(
                         onClick = onEditPresets,
                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
                     ) {
-                        Icon(Icons.Default.Edit, contentDescription = null, modifier = androidx.compose.ui.Modifier.size(18.dp))
-                        Spacer(modifier = androidx.compose.ui.Modifier.width(6.dp))
+                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text("Редагувати пресети", maxLines = 1)
                     }
                 }
@@ -403,9 +407,9 @@ private fun AddPresetDialog(
         title = { Text("Новий пресет") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                androidx.compose.material3.OutlinedTextField(value = code, onValueChange = { code = it }, label = { Text("Code") })
-                androidx.compose.material3.OutlinedTextField(value = label, onValueChange = { label = it }, label = { Text("Label") })
-                androidx.compose.material3.OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description") })
+                OutlinedTextField(value = code, onValueChange = { code = it }, label = { Text("Code") })
+                OutlinedTextField(value = label, onValueChange = { label = it }, label = { Text("Label") })
+                OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description") })
             }
         }
     )

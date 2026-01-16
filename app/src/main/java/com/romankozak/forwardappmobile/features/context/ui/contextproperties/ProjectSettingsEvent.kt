@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.contextproperties
+package com.romankozak.forwardappmobile.features.context.ui.contextproperties
 
 import com.romankozak.forwardappmobile.ui.navigation.NavTarget
 

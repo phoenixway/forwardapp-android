@@ -10,7 +10,7 @@ import com.romankozak.forwardappmobile.data.logic.GoalScoringManager
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
-import com.romankozak.forwardappmobile.ui.screens.contextproperties.ProjectSettingsEvent
+import com.romankozak.forwardappmobile.features.context.ui.contextproperties.ProjectSettingsEvent
 import com.romankozak.forwardappmobile.features.context.ui.contextcreen.components.utils.TagUtils
 import com.romankozak.forwardappmobile.ui.navigation.NavTarget
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.RemindersTabActions
