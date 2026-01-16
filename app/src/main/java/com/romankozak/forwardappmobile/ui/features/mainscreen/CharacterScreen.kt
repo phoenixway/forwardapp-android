@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.commanddeck
+package com.romankozak.forwardappmobile.ui.features.mainscreen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,6 +11,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -135,7 +136,7 @@ private fun calculateDailyStats(entries: List<Triple<Long, Int, Int>>): Map<Long
 
 @Composable
 private fun rememberDateFormatter(): SimpleDateFormat {
-    return androidx.compose.runtime.remember {
+    return remember {
         SimpleDateFormat("dd MMM", Locale.getDefault())
     }
 }

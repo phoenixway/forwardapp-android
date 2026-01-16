@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.commanddeck
+package com.romankozak.forwardappmobile.ui.features.mainscreen
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring

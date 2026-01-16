@@ -29,8 +29,8 @@ import com.romankozak.forwardappmobile.ui.recent.RecentViewModel
 import com.romankozak.forwardappmobile.ui.reminders.list.RemindersScreen
 import com.romankozak.forwardappmobile.ui.screens.ManageContextsScreen
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.ActivityTrackerScreen
-import com.romankozak.forwardappmobile.ui.screens.commanddeck.SharedCommandDeckLayout
-import com.romankozak.forwardappmobile.ui.screens.commanddeck.CharacterScreen
+import com.romankozak.forwardappmobile.ui.features.mainscreen.MainScreenLayout
+import com.romankozak.forwardappmobile.ui.features.mainscreen.CharacterScreen
 import com.romankozak.forwardappmobile.features.daymanagement.presentation.dayplan.EditTaskScreen
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchScreen
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchViewModel
@@ -46,9 +46,9 @@ import com.romankozak.forwardappmobile.ui.screens.notedocument.NoteDocumentEdito
 import com.romankozak.forwardappmobile.ui.screens.notedocument.NoteDocumentScreen
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.ProjectsScreen
-import com.romankozak.forwardappmobile.ui.screens.projectsettings.ProjectSettingsScreen
+import com.romankozak.forwardappmobile.ui.screens.contextproperties.ProjectSettingsScreen
 import com.romankozak.forwardappmobile.ui.screens.script.ScriptChooserScreen
-import com.romankozak.forwardappmobile.ui.screens.projectstructure.ProjectStructureScreen
+import com.romankozak.forwardappmobile.ui.screens.contextstructure.ProjectStructureScreen
 import com.romankozak.forwardappmobile.ui.screens.script.ScriptEditorScreen
 import com.romankozak.forwardappmobile.ui.screens.script.ScriptsLibraryScreen
 import com.romankozak.forwardappmobile.ui.screens.settings.SettingsScreen
@@ -126,11 +126,11 @@ private fun NavGraphBuilder.mainGraph(
       val viewModel: ProjectHierarchyScreenViewModel = hiltViewModel(parentEntry)
       val scope = rememberCoroutineScope()
 
-      SharedCommandDeckLayout(
+      MainScreenLayout(
         navController = navController,
         onNavigateToProjectHierarchy = { navController.navigate(GOAL_LISTS_ROUTE) },
         onNavigateToPresets = {
-          navController.navigate(NavTargetRouter.routeOf(com.romankozak.forwardappmobile.ui.navigation.NavTarget.StructurePresets))
+          navController.navigate(NavTargetRouter.routeOf(NavTarget.StructurePresets))
         },
       onNavigateToCharacter = { navController.navigate(CHARACTER_SCREEN_ROUTE) },
       onNavigateToGlobalSearch = { navController.navigate("global_search") },
@@ -186,7 +186,7 @@ private fun NavGraphBuilder.mainGraph(
   }
 
   composable("structure_presets_screen") {
-    com.romankozak.forwardappmobile.ui.screens.projectstructure.StructurePresetsScreen(navController = navController)
+    com.romankozak.forwardappmobile.ui.screens.contextstructure.StructurePresetsScreen(navController = navController)
   }
 
   composable(
@@ -196,7 +196,7 @@ private fun NavGraphBuilder.mainGraph(
       navArgument("copyFromPresetId") { type = NavType.StringType; nullable = true; defaultValue = null },
     )
   ) {
-    com.romankozak.forwardappmobile.ui.screens.projectstructure.StructurePresetEditorScreen(navController = navController)
+    com.romankozak.forwardappmobile.ui.screens.contextstructure.StructurePresetEditorScreen(navController = navController)
   }
 
   composable(GOAL_LISTS_ROUTE) { backStackEntry ->

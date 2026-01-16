@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.projectsettings.components
+package com.romankozak.forwardappmobile.ui.screens.contextproperties.components
 
 object Scales {
     val effort = listOf(0f, 1f, 2f, 3f, 5f, 8f, 13f, 21f)

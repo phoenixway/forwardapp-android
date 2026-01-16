@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.projectstructure
+package com.romankozak.forwardappmobile.ui.screens.contextstructure
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -19,7 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.SubdirectoryArrowRight
@@ -43,7 +42,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -51,7 +49,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.data.database.models.ProjectStructureItem
 import com.romankozak.forwardappmobile.data.database.models.StructurePreset
-import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.commanddeck
+package com.romankozak.forwardappmobile.ui.features.mainscreen
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -23,7 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.romankozak.forwardappmobile.ui.screens.commanddeck.LifeManagementState
+import kotlinx.coroutines.delay
 
 // ---------------------------------------------
 // DATA MODELS
@@ -321,7 +321,7 @@ fun AnimatedDeckAction(action: DeckAction, index: Int) {
   var visible by remember { mutableStateOf(false) }
 
   LaunchedEffect(Unit) {
-    kotlinx.coroutines.delay(delay.toLong())
+    delay(delay.toLong())
     visible = true
   }
 
@@ -392,7 +392,7 @@ fun AnalyticsOverviewBar(analytics: List<DeckAnalytics>) {
       var visible by remember { mutableStateOf(false) }
 
       LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay((index * 60).toLong())
+        delay((index * 60).toLong())
         visible = true
       }
 

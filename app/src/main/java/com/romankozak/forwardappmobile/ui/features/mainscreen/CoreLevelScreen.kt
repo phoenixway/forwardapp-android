@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.commanddeck
+package com.romankozak.forwardappmobile.ui.features.mainscreen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,9 +25,9 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.ProjectHierarchyScr
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectHierarchyScreenEvent
 
 @Composable
-fun StrategicArcScreen(
+fun CoreLevelScreen(
     navController: NavController,
-    viewModel: StrategicArcViewModel = hiltViewModel()
+    viewModel: CoreLevelViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val mainScreenViewModel: ProjectHierarchyScreenViewModel =
@@ -51,7 +51,7 @@ fun StrategicArcScreen(
         ) {
             item {
                 Text(
-                    text = "Related Projects",
+                    text = "Related",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(bottom = 8.dp),

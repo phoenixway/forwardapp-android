@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.projectsettings
+package com.romankozak.forwardappmobile.ui.screens.contextproperties
 
 import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues

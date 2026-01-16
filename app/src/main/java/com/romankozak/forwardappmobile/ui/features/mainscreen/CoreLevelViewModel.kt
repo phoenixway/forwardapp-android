@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.commanddeck
+package com.romankozak.forwardappmobile.ui.features.mainscreen
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -11,28 +11,28 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
-data class StrategicArcUiState(
+data class CoreLevelUiState(
     val projects: List<Project> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null
 )
 
 @HiltViewModel
-class StrategicArcViewModel @Inject constructor(
+class CoreLevelViewModel @Inject constructor(
     private val projectRepository: ProjectRepository
 ) : ViewModel() {
 
-    val uiState: StateFlow<StrategicArcUiState> =
+    val uiState: StateFlow<CoreLevelUiState> =
         projectRepository.getAllProjectsFlow()
             .map { projects ->
-                val arcProjects = projects.filter {
-                    it.tags?.contains("arc") == true
+                val coreProjects = projects.filter {
+                    it.tags?.contains("main-beacons") == true || it.tags?.contains("core") == true
                 }
-                StrategicArcUiState(projects = arcProjects)
+                CoreLevelUiState(projects = coreProjects)
             }
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5000),
-                initialValue = StrategicArcUiState(isLoading = true)
+                initialValue = CoreLevelUiState(isLoading = true)
             )
 }

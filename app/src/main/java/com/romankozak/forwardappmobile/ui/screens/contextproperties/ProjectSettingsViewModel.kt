@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.projectsettings
+package com.romankozak.forwardappmobile.ui.screens.contextproperties
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel

@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.commanddeck
+package com.romankozak.forwardappmobile.ui.features.mainscreen
 
 import android.util.Log
 import androidx.compose.foundation.background
@@ -44,7 +44,6 @@ import com.romankozak.forwardappmobile.routes.GOAL_LISTS_ROUTE
 import com.romankozak.forwardappmobile.features.daymanagement.presentation.DayManagementScreen
 import com.romankozak.forwardappmobile.features.daymanagement.presentation.dayplan.DayPlanViewModel
 import com.romankozak.forwardappmobile.ui.screens.strategicmanagement.StrategicManagementScreen
-import com.romankozak.forwardappmobile.ui.screens.commanddeck.components.DashboardBottomBar
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
 import com.romankozak.forwardappmobile.data.database.models.RecentItem
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.ActivityTrackerViewModel
@@ -52,17 +51,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.util.Calendar
 import com.romankozak.forwardappmobile.ui.recent.RecentViewModel
 
-const val COMMAND_DECK_DASHBOARD_ROUTE = "command_deck_dashboard"
-const val COMMAND_DECK_CORE_ROUTE = "command_deck_core"
-const val COMMAND_DECK_STRATEGIC_ARC_ROUTE = "command_deck_strategic_arc"
-const val COMMAND_DECK_TACTICS_ROUTE = "command_deck_tactics"
-const val COMMAND_DECK_TODAY_ROUTE = "command_deck_today"
-
-
-
+const val MAIN_SCREEN_DASHBOARD_ROUTE = "command_deck_dashboard"
+const val MAIN_SCREEN_CORE_ROUTE = "command_deck_core"
+const val MAIN_SCREEN_STRATEGIC_ARC_ROUTE = "command_deck_strategic_arc"
+const val MAIN_SCREEN_TACTICS_ROUTE = "command_deck_tactics"
+const val MAIN_SCREEN_TODAY_ROUTE = "command_deck_today"
 
 @Composable
-fun SharedCommandDeckLayout(
+fun MainScreenLayout(
     navController: NavController,
     onNavigateToProjectHierarchy: () -> Unit,
     onNavigateToPresets: () -> Unit,
@@ -100,12 +96,12 @@ fun SharedCommandDeckLayout(
     val selectedTabIndex = remember(currentRoute) {
         tabs.indexOfFirst { tab ->
             when (tab) {
-                CommandDeckTab.Dashboard -> currentRoute == COMMAND_DECK_DASHBOARD_ROUTE
-                CommandDeckTab.Core -> currentRoute == COMMAND_DECK_CORE_ROUTE
+                CommandDeckTab.Dashboard -> currentRoute == MAIN_SCREEN_DASHBOARD_ROUTE
+                CommandDeckTab.Core -> currentRoute == MAIN_SCREEN_CORE_ROUTE
                 CommandDeckTab.Strategy -> currentRoute == STRATEGIC_MANAGEMENT_ROUTE
-                CommandDeckTab.StrategicArc -> currentRoute == COMMAND_DECK_STRATEGIC_ARC_ROUTE
-                CommandDeckTab.Tactics -> currentRoute == COMMAND_DECK_TACTICS_ROUTE
-                CommandDeckTab.Today -> currentRoute == COMMAND_DECK_TODAY_ROUTE
+                CommandDeckTab.StrategicArc -> currentRoute == MAIN_SCREEN_STRATEGIC_ARC_ROUTE
+                CommandDeckTab.Tactics -> currentRoute == MAIN_SCREEN_TACTICS_ROUTE
+                CommandDeckTab.Today -> currentRoute == MAIN_SCREEN_TODAY_ROUTE
             }
         }.coerceAtLeast(0)
     }
@@ -115,7 +111,7 @@ fun SharedCommandDeckLayout(
             containerColor = Color.Transparent,
             topBar = {
                 when (currentRoute) {
-                    COMMAND_DECK_DASHBOARD_ROUTE -> {
+                    MAIN_SCREEN_DASHBOARD_ROUTE -> {
                         val showBadge = com.romankozak.forwardappmobile.BuildConfig.DEBUG || com.romankozak.forwardappmobile.BuildConfig.IS_EXPERIMENTAL_BUILD
                         FAHeader(
                             layout = CommandDeckHeaderPreset(
@@ -140,15 +136,15 @@ fun SharedCommandDeckLayout(
                         )
                     }
 
-                    COMMAND_DECK_CORE_ROUTE -> FAHeader(
+                    MAIN_SCREEN_CORE_ROUTE -> FAHeader(
                         layout = CoreHeader(),
                         backgroundStyle = FAHeaderBackground.CommandDeck,
                         modifier = headerModifier
                     )
 
-                    COMMAND_DECK_TODAY_ROUTE -> {
+                    MAIN_SCREEN_TODAY_ROUTE -> {
                         val dayPlanBackStackEntry = remember(innerNavController.currentBackStackEntry) {
-                            innerNavController.getBackStackEntry(COMMAND_DECK_TODAY_ROUTE)
+                            innerNavController.getBackStackEntry(MAIN_SCREEN_TODAY_ROUTE)
                         }
                         val dayPlanViewModel: DayPlanViewModel = hiltViewModel(dayPlanBackStackEntry)
                         val dayPlanUiState by dayPlanViewModel.uiState.collectAsState()
@@ -192,13 +188,13 @@ fun SharedCommandDeckLayout(
                         modifier = headerModifier
                     )
 
-                    COMMAND_DECK_STRATEGIC_ARC_ROUTE -> FAHeader(
+                    MAIN_SCREEN_STRATEGIC_ARC_ROUTE -> FAHeader(
                         layout = StrategicArcHeader(onModeClick = {}),
                         backgroundStyle = FAHeaderBackground.CommandDeck,
                         modifier = headerModifier
                     )
 
-                    COMMAND_DECK_TACTICS_ROUTE -> FAHeader(
+                    MAIN_SCREEN_TACTICS_ROUTE -> FAHeader(
                         layout = TacticsHeader(),
                         backgroundStyle = FAHeaderBackground.CommandDeck,
                         modifier = headerModifier
@@ -212,7 +208,7 @@ fun SharedCommandDeckLayout(
                 }
             },
             bottomBar = {
-                if (currentRoute == COMMAND_DECK_DASHBOARD_ROUTE) {
+                if (currentRoute == MAIN_SCREEN_DASHBOARD_ROUTE) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -259,12 +255,12 @@ fun SharedCommandDeckLayout(
                     selectedTabIndex = selectedTabIndex,
                     onTabSelected = { index ->
                         val newRoute = when (tabs[index]) {
-                            CommandDeckTab.Dashboard -> COMMAND_DECK_DASHBOARD_ROUTE
-                            CommandDeckTab.Core -> COMMAND_DECK_CORE_ROUTE
+                            CommandDeckTab.Dashboard -> MAIN_SCREEN_DASHBOARD_ROUTE
+                            CommandDeckTab.Core -> MAIN_SCREEN_CORE_ROUTE
                             CommandDeckTab.Strategy -> STRATEGIC_MANAGEMENT_ROUTE
-                            CommandDeckTab.StrategicArc -> COMMAND_DECK_STRATEGIC_ARC_ROUTE
-                            CommandDeckTab.Tactics -> COMMAND_DECK_TACTICS_ROUTE
-                            CommandDeckTab.Today -> COMMAND_DECK_TODAY_ROUTE
+                            CommandDeckTab.StrategicArc -> MAIN_SCREEN_STRATEGIC_ARC_ROUTE
+                            CommandDeckTab.Tactics -> MAIN_SCREEN_TACTICS_ROUTE
+                            CommandDeckTab.Today -> MAIN_SCREEN_TODAY_ROUTE
                         }
                         if (newRoute != currentRoute) {
                             innerNavController.navigate(newRoute) {
@@ -282,9 +278,9 @@ fun SharedCommandDeckLayout(
 
                 NavHost(
                     navController = innerNavController,
-                    startDestination = COMMAND_DECK_DASHBOARD_ROUTE
+                    startDestination = MAIN_SCREEN_DASHBOARD_ROUTE
                 ) {
-                    composable(COMMAND_DECK_DASHBOARD_ROUTE) {
+                    composable(MAIN_SCREEN_DASHBOARD_ROUTE) {
                 AnimatedCommandDeck(
                     onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
                     onNavigateToGlobalSearch = onNavigateToGlobalSearch,
@@ -303,16 +299,16 @@ fun SharedCommandDeckLayout(
                     composable(STRATEGIC_MANAGEMENT_ROUTE) {
                         StrategicManagementScreen(navController = navController)
                     }
-                    composable(COMMAND_DECK_CORE_ROUTE) {
+                    composable(MAIN_SCREEN_CORE_ROUTE) {
                         CoreLevelScreen(navController = navController)
                     }
-                    composable(COMMAND_DECK_STRATEGIC_ARC_ROUTE) {
+                    composable(MAIN_SCREEN_STRATEGIC_ARC_ROUTE) {
                         StrategicArcScreen(navController = navController)
                     }
-                    composable(COMMAND_DECK_TACTICS_ROUTE) {
+                    composable(MAIN_SCREEN_TACTICS_ROUTE) {
                         TacticalManagementScreen()
                     }
-                    composable(COMMAND_DECK_TODAY_ROUTE) {
+                    composable(MAIN_SCREEN_TODAY_ROUTE) {
                         DayManagementScreen(mainNavController = navController, startTab = "PLAN")
                     }
                 }

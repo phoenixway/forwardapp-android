@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.projectsettings.components
+package com.romankozak.forwardappmobile.ui.screens.contextproperties.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
