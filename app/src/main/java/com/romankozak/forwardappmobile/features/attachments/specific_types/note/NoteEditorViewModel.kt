@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.note
+package com.romankozak.forwardappmobile.features.attachments.specific_types.note
 
 import android.app.Application
 import androidx.lifecycle.ViewModel
@@ -6,13 +6,14 @@ import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEditorViewModel
 import androidx.lifecycle.SavedStateHandle
+import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class NoteEditorViewModel @Inject constructor(
-    private val noteRepository: com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository,
+    private val noteRepository: LegacyNoteRepository,
     private val application: Application,
     private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {

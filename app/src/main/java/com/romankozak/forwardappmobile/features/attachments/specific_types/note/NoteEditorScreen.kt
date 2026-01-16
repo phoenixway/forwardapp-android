@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.note
+package com.romankozak.forwardappmobile.features.attachments.specific_types.note
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
