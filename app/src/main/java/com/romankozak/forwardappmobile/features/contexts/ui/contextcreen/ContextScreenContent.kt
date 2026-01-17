@@ -26,7 +26,7 @@ import androidx.compose.ui.Alignment
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemContent
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectViewMode
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
-import com.romankozak.forwardappmobile.data.database.models.ProjectArtifact
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectArtifact
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.features.contexts.toggled_features.backlog.BacklogListScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.contextcreen.components.projectrealization.ProjectDashboardView

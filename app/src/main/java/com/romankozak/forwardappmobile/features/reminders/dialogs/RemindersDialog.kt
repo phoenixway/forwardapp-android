@@ -22,7 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.Reminder
 import com.romankozak.forwardappmobile.features.reminders.util.ReminderTextUtil
 import com.romankozak.forwardappmobile.features.reminders.viewmodel.ReminderViewModel

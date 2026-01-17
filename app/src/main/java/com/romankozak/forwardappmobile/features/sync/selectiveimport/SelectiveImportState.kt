@@ -1,13 +1,13 @@
 package com.romankozak.forwardappmobile.features.sync.selectiveimport
 
 import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
-import com.romankozak.forwardappmobile.data.database.models.ChecklistEntity
-import com.romankozak.forwardappmobile.data.database.models.ChecklistItemEntity
+import com.romankozak.forwardappmobile.features.contexts.data.models.ChecklistEntity
+import com.romankozak.forwardappmobile.features.contexts.data.models.ChecklistItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
-import com.romankozak.forwardappmobile.data.database.models.NoteDocumentEntity
+import com.romankozak.forwardappmobile.features.contexts.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.data.database.models.NoteDocumentItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder

@@ -38,6 +38,7 @@ import com.romankozak.forwardappmobile.data.database.models.RecurringTaskFts
 import com.romankozak.forwardappmobile.data.database.models.Reminder
 import com.romankozak.forwardappmobile.data.database.models.ScriptEntity
 import com.romankozak.forwardappmobile.data.database.models.SystemAppEntity
+
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.ai.data.models.AiInsightEntity

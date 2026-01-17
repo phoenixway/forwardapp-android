@@ -1,9 +1,9 @@
 package com.romankozak.forwardappmobile.data.sync
 
-import com.romankozak.forwardappmobile.data.database.models.ChecklistEntity
-import com.romankozak.forwardappmobile.data.database.models.ChecklistItemEntity
-import com.romankozak.forwardappmobile.data.database.models.LinkItemEntity
-import com.romankozak.forwardappmobile.data.database.models.NoteDocumentEntity
+import com.romankozak.forwardappmobile.features.contexts.data.models.ChecklistEntity
+import com.romankozak.forwardappmobile.features.contexts.data.models.ChecklistItemEntity
+import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
+import com.romankozak.forwardappmobile.features.contexts.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.data.database.models.NoteDocumentItemEntity
 import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentEntity
 import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRef

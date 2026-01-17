@@ -10,7 +10,7 @@ import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.NoteDocumentItemEntity
+import com.romankozak.forwardappmobile.data.database.models.NoteDocumentItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
 import com.romankozak.forwardappmobile.data.database.models.ScriptEntity

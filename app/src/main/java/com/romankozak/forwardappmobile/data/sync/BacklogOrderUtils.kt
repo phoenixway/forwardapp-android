@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.data.sync
 
-import com.romankozak.forwardappmobile.data.database.models.BacklogOrder
-import com.romankozak.forwardappmobile.data.database.models.ListItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
+import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
 
 object BacklogOrderUtils {
     private fun orderKey(order: BacklogOrder): String = order.id ?: "${order.listId}:${order.itemId}"

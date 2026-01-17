@@ -124,12 +124,8 @@ import com.romankozak.forwardappmobile.data.database.MIGRATION_89_90
 import com.romankozak.forwardappmobile.data.database.MIGRATION_90_91
 import com.romankozak.forwardappmobile.data.database.MIGRATION_91_92
 import com.romankozak.forwardappmobile.data.database.MIGRATION_92_93
-import com.romankozak.forwardappmobile.data.database.MIGRATION_89_90
-import com.romankozak.forwardappmobile.data.database.MIGRATION_89_90
 import com.romankozak.forwardappmobile.data.repository.SystemAppRepository
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
-
-private lateinit var db: AppDatabase
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -145,27 +141,12 @@ object DatabaseModule {
             override fun onOpen(dbSupport: SupportSQLiteDatabase) {
                 super.onOpen(dbSupport)
                 scope.launch(Dispatchers.IO) {
-                    val attachmentRepository = AttachmentRepository(db.attachmentDao(), db.linkItemDao())
-                    val systemAppRepository = SystemAppRepository(db.systemAppDao(), db.projectDao(), db.noteDocumentDao(), attachmentRepository)
-                    val databaseInitializer = com.romankozak.forwardappmobile.features.contexts.data.DatabaseInitializer(db.projectDao(), systemAppRepository)
-                    databaseInitializer.prePopulate()
                     migrateSpecialProjects(dbSupport)
-                    runCatching {
-                        val projects = db.projectDao().getAll()
-                        val missingSystemKey = projects.count { it.systemKey == null }
-                        val missingReserved = projects.count { it.reservedGroup == null }
-                        Log.d(
-                            "DB_INIT",
-                            "After prePopulate/migrate: total=${projects.size}, missingSystemKey=$missingSystemKey, missingReserved=$missingReserved, dbVersion=${db.openHelper.readableDatabase.version}"
-                        )
-                    }.onFailure {
-                        Log.w("DB_INIT", "Failed to log systemKey state", it)
-                    }
                 }
             }
         }
 
-        db = Room.databaseBuilder(
+        return Room.databaseBuilder(
             context,
             AppDatabase::class.java,
             "forward_app_database"
@@ -251,7 +232,6 @@ object DatabaseModule {
             MIGRATION_91_92,
             MIGRATION_92_93,
         ).addCallback(callback).build()
-        return db
     }
 
     @Provides
