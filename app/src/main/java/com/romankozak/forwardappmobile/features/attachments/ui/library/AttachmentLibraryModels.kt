@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.features.attachments.ui.library
 
-import com.romankozak.forwardappmobile.data.database.models.RelatedLink
+import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 
 enum class AttachmentLibraryType {
     NOTE_DOCUMENT,

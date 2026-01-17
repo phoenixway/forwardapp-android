@@ -31,8 +31,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.data.database.models.ProjectStatusValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStatusValues
 import com.romankozak.forwardappmobile.data.database.models.ProjectTimeMetrics
 import com.romankozak.forwardappmobile.ui.utils.formatDurationForUi
 

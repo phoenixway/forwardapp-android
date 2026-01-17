@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.features.strategicmanagement.usecases
 
-import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.data.database.models.ReservedGroup
+import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedGroup
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import javax.inject.Inject
 

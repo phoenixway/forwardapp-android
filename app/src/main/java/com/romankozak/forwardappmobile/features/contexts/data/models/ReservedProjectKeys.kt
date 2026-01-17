@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.data.database.models
+package com.romankozak.forwardappmobile.features.contexts.data.models
 
 object ReservedProjectKeys {
     const val PERSONAL_MANAGEMENT = "personal-management"

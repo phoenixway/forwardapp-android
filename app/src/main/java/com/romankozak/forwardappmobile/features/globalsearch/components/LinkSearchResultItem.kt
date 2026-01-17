@@ -27,8 +27,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.data.database.models.GlobalLinkSearchResult
-import com.romankozak.forwardappmobile.data.database.models.LinkType
+import com.romankozak.forwardappmobile.features.contexts.data.models.GlobalLinkSearchResult
+import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
 
 @Composable
 fun LinkSearchResultItem(

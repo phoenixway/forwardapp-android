@@ -13,7 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemContent
 import androidx.compose.material.icons.filled.Notifications
 import com.romankozak.forwardappmobile.features.contexts.ui.contextcreen.GoalActionType
 

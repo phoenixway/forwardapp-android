@@ -23,8 +23,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.data.database.models.LinkType
-import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
+import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemContent
 import com.romankozak.forwardappmobile.features.contexts.ui.contextcreen.components.backlogitems.SwipeableListItem
 
 @Composable

@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.data.dao
+package com.romankozak.forwardappmobile.features.contexts.data.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
@@ -6,8 +6,8 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
-import com.romankozak.forwardappmobile.data.database.models.ProjectStructure
-import com.romankozak.forwardappmobile.data.database.models.ProjectStructureItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructure
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructureItem
 import kotlinx.coroutines.flow.Flow
 
 data class ProjectStructureWithItems(

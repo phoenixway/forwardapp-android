@@ -27,7 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.data.database.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 
 @Composable
 fun ProjectListItem(

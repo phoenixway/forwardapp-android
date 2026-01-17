@@ -1,8 +1,8 @@
 package com.romankozak.forwardappmobile.data.logic
 
-import com.romankozak.forwardappmobile.data.database.models.Goal
-import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
+import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
 
 object GoalScoringManager {
     private val effortScale = listOf(0f, 1f, 2f, 3f, 5f, 8f, 13f, 21f)

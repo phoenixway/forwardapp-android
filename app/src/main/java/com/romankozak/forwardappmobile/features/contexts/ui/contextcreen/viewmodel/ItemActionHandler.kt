@@ -1,7 +1,9 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.contextcreen.viewmodel
 
-import com.romankozak.forwardappmobile.data.database.models.Goal
-import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
+import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemContent
+import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
+import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.features.contexts.ui.contextcreen.BacklogViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.contextcreen.GoalActionDialogState
@@ -68,7 +70,8 @@ class ItemActionHandler
                             }
                         }
                         is ListItemContent.LinkItem -> {
-                            if (item.link.linkData.type == com.romankozak.forwardappmobile.data.database.models.LinkType.OBSIDIAN) {
+                            if (item.link.linkData.type == LinkType.OBSIDIAN) {
+        fun onRelatedLinkClick(link: RelatedLink) {
                                 recentItemsRepository.logObsidianLinkAccess(item.link.linkData)
                             }
                         }

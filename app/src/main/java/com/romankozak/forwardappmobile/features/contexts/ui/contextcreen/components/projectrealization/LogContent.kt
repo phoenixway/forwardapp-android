@@ -33,8 +33,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog
-import com.romankozak.forwardappmobile.data.database.models.ProjectLogEntryTypeValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectLogEntryTypeValues
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.abs

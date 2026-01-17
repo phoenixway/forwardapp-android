@@ -3,9 +3,10 @@ package com.romankozak.forwardappmobile.data.repository
 import android.util.Log
 import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
-import com.romankozak.forwardappmobile.data.database.models.BacklogOrder
-import com.romankozak.forwardappmobile.data.database.models.ListItem
-import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
+import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
 import com.romankozak.forwardappmobile.data.sync.bumpSync
 import com.romankozak.forwardappmobile.data.sync.softDelete
 import java.util.UUID
@@ -127,19 +128,19 @@ class ListItemRepository @Inject constructor(
         listItemDao.deleteItemByEntityId(entityId)
     }
 
-    fun getItemsForProjectStream(projectId: String): kotlinx.coroutines.flow.Flow<List<com.romankozak.forwardappmobile.data.database.models.ListItem>> {
+    fun getItemsForProjectStream(projectId: String): kotlinx.coroutines.flow.Flow<List<ListItem>> {
         return listItemDao.getItemsForProjectStream(projectId)
     }
 
-    fun getAllEntitiesAsFlow(): kotlinx.coroutines.flow.Flow<List<com.romankozak.forwardappmobile.data.database.models.LinkItemEntity>> {
+    fun getAllEntitiesAsFlow(): kotlinx.coroutines.flow.Flow<List<LinkItemEntity>> {
         return linkItemDao.getAllEntitiesAsFlow()
     }
 
-    suspend fun getAll(): List<com.romankozak.forwardappmobile.data.database.models.ListItem> {
+    suspend fun getAll(): List<ListItem> {
         return listItemDao.getAll()
     }
 
-    suspend fun getLinkItemById(id: String): com.romankozak.forwardappmobile.data.database.models.LinkItemEntity? {
+    suspend fun getLinkItemById(id: String): LinkItemEntity? {
         return linkItemDao.getLinkItemById(id)
     }
 

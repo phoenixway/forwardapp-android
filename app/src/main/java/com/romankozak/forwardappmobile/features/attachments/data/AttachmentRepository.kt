@@ -2,9 +2,9 @@ package com.romankozak.forwardappmobile.features.attachments.data
 
 import android.util.Log
 import com.romankozak.forwardappmobile.data.dao.LinkItemDao
-import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
-import com.romankozak.forwardappmobile.data.database.models.LinkItemEntity
-import com.romankozak.forwardappmobile.data.database.models.RelatedLink
+import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
+import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentEntity
 import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentWithProject
 import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRef

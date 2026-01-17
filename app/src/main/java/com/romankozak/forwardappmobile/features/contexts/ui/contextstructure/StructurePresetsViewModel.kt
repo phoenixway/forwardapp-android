@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.data.dao.StructurePresetItemDao
-import com.romankozak.forwardappmobile.data.database.models.StructurePreset
+import com.romankozak.forwardappmobile.features.contexts.data.models.StructurePreset
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow

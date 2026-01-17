@@ -14,8 +14,8 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.data.database.models.ListItemContent
-import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
+import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemContent
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectViewMode
 
 import com.romankozak.forwardappmobile.features.contexts.ui.contextcreen.components.utils.handleRelatedLinkClick
 import com.romankozak.forwardappmobile.features.navigation.NavTargetRouter

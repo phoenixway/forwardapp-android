@@ -51,7 +51,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectViewMode
 import com.romankozak.forwardappmobile.domain.ner.ReminderParseResult
 import com.romankozak.forwardappmobile.ui.theme.LocalInputPanelColors
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Button

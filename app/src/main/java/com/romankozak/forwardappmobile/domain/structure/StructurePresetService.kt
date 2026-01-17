@@ -1,9 +1,9 @@
 package com.romankozak.forwardappmobile.domain.structure
 
-import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
-import com.romankozak.forwardappmobile.data.database.models.LinkType
-import com.romankozak.forwardappmobile.data.database.models.RelatedLink
-import com.romankozak.forwardappmobile.data.database.models.ProjectStructureItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
+import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructureItem
 import com.romankozak.forwardappmobile.data.repository.ProjectStructureRepository
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository

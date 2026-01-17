@@ -1,10 +1,10 @@
 package com.romankozak.forwardappmobile.data.database
 
 import com.romankozak.forwardappmobile.data.dao.ProjectDao
-import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.data.database.models.ProjectType
-import com.romankozak.forwardappmobile.data.database.models.ReservedGroup
-import com.romankozak.forwardappmobile.data.database.models.ReservedProjectKeys
+import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectType
+import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedGroup
+import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedProjectKeys
 import com.romankozak.forwardappmobile.data.database.models.ReservedSystemAppKeys
 import com.romankozak.forwardappmobile.data.repository.SystemAppRepository
 import java.util.UUID

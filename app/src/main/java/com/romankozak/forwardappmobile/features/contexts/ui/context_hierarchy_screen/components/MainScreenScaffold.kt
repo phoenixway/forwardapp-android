@@ -78,7 +78,7 @@ fun ProjectHierarchyScreenScaffold(
     uiState: ProjectHierarchyScreenUiState,
     onEvent: (ProjectHierarchyScreenEvent) -> Unit,
     enhancedNavigationManager: EnhancedNavigationManager,
-    lastOngoingActivity: com.romankozak.forwardappmobile.data.database.models.ActivityRecord?,
+    lastOngoingActivity: ActivityRecord?,
     viewModel: ProjectHierarchyScreenViewModel,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
@@ -474,7 +474,7 @@ fun ProjectHierarchyScreenScaffold(
             onDismiss = { viewModel.onReminderDialogDismiss() },
             onSetReminder = { timestamp -> viewModel.onSetReminder(timestamp) },
             onRemoveReminder = if (record.reminderTime != null) { { _: String -> viewModel.onClearReminder() } } else null,
-            currentReminders = listOfNotNull(record.reminderTime).map { com.romankozak.forwardappmobile.data.database.models.Reminder(entityId = record.id, entityType = "TASK", reminderTime = it, status = "SCHEDULED", creationTime = System.currentTimeMillis()) },
+            currentReminders = listOfNotNull(record.reminderTime).map { Reminder(entityId = record.id, entityType = "TASK", reminderTime = it, status = "SCHEDULED", creationTime = System.currentTimeMillis()) },
         )
     }
 

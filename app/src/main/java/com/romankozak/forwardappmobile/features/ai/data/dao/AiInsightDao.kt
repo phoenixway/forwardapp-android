@@ -1,10 +1,10 @@
-package com.romankozak.forwardappmobile.data.dao
+package com.romankozak.forwardappmobile.features.ai.data.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import com.romankozak.forwardappmobile.data.database.models.AiInsightEntity
+import com.romankozak.forwardappmobile.features.ai.data.models.AiInsightEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao

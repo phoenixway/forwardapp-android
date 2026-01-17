@@ -2,8 +2,10 @@ package com.romankozak.forwardappmobile.features.contexts.ui.contextcreen.compon
 
 import android.util.Log
 import androidx.compose.ui.text.input.TextFieldValue
-import com.romankozak.forwardappmobile.data.database.models.LinkType
-import com.romankozak.forwardappmobile.data.database.models.RelatedLink
+import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
+import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
+import com.romankozak.forwardappmobile.data.database.models.RecentItem
+import com.romankozak.forwardappmobile.data.database.models.RecentItemType
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.domain.ner.ReminderParser
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
@@ -315,19 +317,19 @@ class InputHandler(
 
     fun onRecentListSelected(item: com.romankozak.forwardappmobile.data.database.models.RecentItem) {
         when (item.type) {
-            com.romankozak.forwardappmobile.data.database.models.RecentItemType.PROJECT -> {
+            RecentItemType.PROJECT -> {
                 resultListener.requestNavigation("goal_detail_screen/${item.target}")
             }
-            com.romankozak.forwardappmobile.data.database.models.RecentItemType.NOTE -> {
+            RecentItemType.NOTE -> {
                 resultListener.requestNavigation("note_edit_screen?noteId=${item.target}")
             }
-            com.romankozak.forwardappmobile.data.database.models.RecentItemType.NOTE_DOCUMENT -> {
+            RecentItemType.NOTE_DOCUMENT -> {
                 resultListener.requestNavigation("note_document_screen/${item.target}")
             }
-            com.romankozak.forwardappmobile.data.database.models.RecentItemType.CHECKLIST -> {
+            RecentItemType.CHECKLIST -> {
                 resultListener.requestNavigation("checklist_screen?checklistId=${item.target}")
             }
-            com.romankozak.forwardappmobile.data.database.models.RecentItemType.OBSIDIAN_LINK -> {
+            RecentItemType.OBSIDIAN_LINK -> {
                 resultListener.createObsidianNote(item.target)
             }
         }

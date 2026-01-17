@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases
 
-import com.romankozak.forwardappmobile.data.database.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.features.navigation.ClearAndNavigateHomeUseCase
 import com.romankozak.forwardappmobile.features.navigation.ClearCommand
 import com.romankozak.forwardappmobile.features.navigation.ClearResult

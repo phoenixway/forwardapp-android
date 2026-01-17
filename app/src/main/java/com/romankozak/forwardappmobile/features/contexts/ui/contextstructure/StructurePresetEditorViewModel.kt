@@ -3,8 +3,8 @@ package com.romankozak.forwardappmobile.features.contexts.ui.contextstructure
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.data.database.models.StructurePreset
-import com.romankozak.forwardappmobile.data.database.models.StructurePresetItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.StructurePreset
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructureItem
 import com.romankozak.forwardappmobile.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.data.dao.StructurePresetItemDao
 import dagger.hilt.android.lifecycle.HiltViewModel

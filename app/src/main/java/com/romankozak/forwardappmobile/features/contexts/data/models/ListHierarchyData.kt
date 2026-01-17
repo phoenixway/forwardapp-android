@@ -1,5 +1,6 @@
-package com.romankozak.forwardappmobile.data.database.models
+package com.romankozak.forwardappmobile.features.contexts.data.models
 
+import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 
 data class ListHierarchyData(
     val allProjects: List<Project> = emptyList(),

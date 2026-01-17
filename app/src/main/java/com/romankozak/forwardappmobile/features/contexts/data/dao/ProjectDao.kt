@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.data.dao
+package com.romankozak.forwardappmobile.features.contexts.data.dao
 
 import androidx.room.Dao
 import androidx.room.Delete
@@ -7,9 +7,9 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
-import com.romankozak.forwardappmobile.data.database.models.GlobalProjectSearchResult
-import com.romankozak.forwardappmobile.data.database.models.GlobalSubprojectSearchResult
-import com.romankozak.forwardappmobile.data.database.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.GlobalProjectSearchResult
+import com.romankozak.forwardappmobile.features.contexts.data.models.GlobalSubprojectSearchResult
+import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import kotlinx.coroutines.flow.Flow
 
 @Dao

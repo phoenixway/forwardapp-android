@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.features.contexts.toggled_features.backlog
 
-import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemContent
 
 fun ListItemContent.isCompleted(): Boolean =
     when (this) {

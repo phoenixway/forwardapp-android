@@ -48,8 +48,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.data.database.models.ProjectStructureItem
-import com.romankozak.forwardappmobile.data.database.models.StructurePreset
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructureItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.StructurePreset
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

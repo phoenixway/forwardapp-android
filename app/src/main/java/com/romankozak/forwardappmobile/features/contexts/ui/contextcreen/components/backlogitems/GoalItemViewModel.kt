@@ -1,9 +1,9 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.contextcreen.components.backlogitems
 
 import androidx.lifecycle.ViewModel
-import com.romankozak.forwardappmobile.data.database.models.Goal
+import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.Reminder
-import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.ui.common.ParsedTextData
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

@@ -63,7 +63,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.features.navigation.NavTargetRouter
-import com.romankozak.forwardappmobile.data.database.models.StructurePreset
+import com.romankozak.forwardappmobile.features.contexts.data.models.StructurePreset
 import com.romankozak.forwardappmobile.features.navigation.NavTarget
 
 @Composable

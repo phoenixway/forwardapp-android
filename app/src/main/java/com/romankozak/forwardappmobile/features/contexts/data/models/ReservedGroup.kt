@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.data.database.models
+package com.romankozak.forwardappmobile.features.contexts.data.models
 
 sealed class ReservedGroup(val groupName: String) {
     object Strategic : ReservedGroup("strategic")

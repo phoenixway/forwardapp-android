@@ -1,8 +1,13 @@
-package com.romankozak.forwardappmobile.data.database.models
+package com.romankozak.forwardappmobile.features.contexts.data.models
+
+import com.romankozak.forwardappmobile.data.database.models.ChecklistEntity
+import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
+import com.romankozak.forwardappmobile.data.database.models.NoteDocumentEntity
+import com.romankozak.forwardappmobile.data.database.models.Reminder
 
 sealed class ListItemContent {
-    
-    
+
+
     abstract val listItem: ListItem
 
     data class GoalItem(val goal: Goal, val reminders: List<Reminder>, override val listItem: ListItem) : ListItemContent()

@@ -1,8 +1,10 @@
 package com.romankozak.forwardappmobile.data.sync
 
 import com.google.gson.annotations.SerializedName
-import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
-import com.romankozak.forwardappmobile.data.database.models.*
+import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
+import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
 
 data class DesktopGoal(
     val id: String,

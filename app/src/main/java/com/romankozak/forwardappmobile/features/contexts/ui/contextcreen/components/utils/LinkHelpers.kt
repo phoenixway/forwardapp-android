@@ -6,8 +6,8 @@ import android.widget.Toast
 import androidx.core.net.toUri
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.data.database.models.LinkType
-import com.romankozak.forwardappmobile.data.database.models.RelatedLink
+import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
+import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 import java.net.URLEncoder
 
 fun handleRelatedLinkClick(

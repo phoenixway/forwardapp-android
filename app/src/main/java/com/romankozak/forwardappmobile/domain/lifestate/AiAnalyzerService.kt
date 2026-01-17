@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.domain.lifestate
 
 import android.util.Log
 import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
-import com.romankozak.forwardappmobile.data.database.models.ReservedProjectKeys
+import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedProjectKeys
 import com.romankozak.forwardappmobile.data.database.models.ReservedSystemAppKeys
 import com.romankozak.forwardappmobile.data.repository.ActivityRecordRepository
 import com.romankozak.forwardappmobile.data.repository.SystemAppRepository

@@ -1,8 +1,8 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.contextproperties
 
 import androidx.compose.ui.text.input.TextFieldValue
-import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
-import com.romankozak.forwardappmobile.data.database.models.StructurePreset
+import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.StructurePreset
 
 data class ProjectSettingsUiState(
     val title: TextFieldValue = TextFieldValue(""),

@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.contextcreen.viewmodel
 
 import android.util.Log
-import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemContent
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.features.contexts.ui.contextcreen.GoalActionType
 import kotlinx.coroutines.CoroutineScope
