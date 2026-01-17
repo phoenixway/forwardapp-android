@@ -29,37 +29,12 @@ enum class ProjectType {
     }
 }
 
-class ProjectTypeConverter {
-    @TypeConverter
-    fun fromProjectType(projectType: ProjectType?): String {
-        return (projectType ?: ProjectType.DEFAULT).name
-    }
-
-    @TypeConverter
-    fun toProjectType(value: String?): ProjectType {
-        return ProjectType.fromString(value)
-    }
-}
-
-class ReservedGroupConverter {
-    @TypeConverter
-    fun fromReservedGroup(reservedGroup: ReservedGroup?): String? {
-        return reservedGroup?.groupName
-    }
-
-    @TypeConverter
-    fun toReservedGroup(groupName: String?): ReservedGroup? {
-        return ReservedGroup.fromString(groupName)
-    }
-}
-
 @Entity(
     tableName = "projects",
     indices = [
         Index("system_key", unique = true, name = "idx_projects_systemkey_unique")
     ]
 )
-@TypeConverters(ProjectTypeConverter::class, ReservedGroupConverter::class)
 data class Project(
     @PrimaryKey val id: String,
     val name: String,

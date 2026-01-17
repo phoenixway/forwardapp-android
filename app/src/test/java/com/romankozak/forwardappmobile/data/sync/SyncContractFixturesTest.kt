@@ -4,47 +4,26 @@ import android.net.Uri
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.google.gson.Gson
-import com.romankozak.forwardappmobile.data.dao.*
-import com.romankozak.forwardappmobile.data.database.AppDatabase
-import com.romankozak.forwardappmobile.data.database.models.*
-import com.romankozak.forwardappmobile.data.repository.SettingsRepository
-import com.romankozak.forwardappmobile.data.repository.SyncRepository
+import com.romankozak.forwardappmobile.database.AppDatabase
+import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectManagementDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.BacklogOrderDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectStructureDao
+import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
+import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
-import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
-import io.mockk.MockKAnnotations
-import io.mockk.coEvery
-import io.mockk.every
-import io.mockk.mockk
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.runTest
-import org.junit.After
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Before
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
+import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
 
-@OptIn(ExperimentalCoroutinesApi::class)
-@RunWith(RobolectricTestRunner::class)
-class SyncContractFixturesTest {
-    private lateinit var db: AppDatabase
-    private lateinit var repo: SyncRepository
-    private val gson = Gson()
+// ...
 
-    private val settingsRepository: SettingsRepository = mockk(relaxed = true) {
-        every { wifiSyncPortFlow } returns kotlinx.coroutines.flow.flowOf(8080)
-        coEvery { wifiSyncPortFlow } returns kotlinx.coroutines.flow.flowOf(8080)
-    }
-    private val attachmentRepository: AttachmentRepository = mockk(relaxed = true)
-
-    @Before
-    fun setup() {
-        MockKAnnotations.init(this)
-        val ctx = ApplicationProvider.getApplicationContext<android.content.Context>()
-        db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
-            .allowMainThreadQueries()
-            .build()
         repo = SyncRepository(
             appDatabase = db,
             context = ctx,
@@ -65,6 +44,21 @@ class SyncContractFixturesTest {
             attachmentRepository = attachmentRepository,
             attachmentDao = db.attachmentDao(),
             systemAppDao = db.systemAppDao(),
+            dayPlanDao = db.dayPlanDao(),
+            dayTaskDao = db.dayTaskDao(),
+            dailyMetricDao = db.dailyMetricDao(),
+            chatDao = db.chatDao(),
+            conversationFolderDao = db.conversationFolderDao(),
+            reminderDao = db.reminderDao(),
+            recurringTaskDao = db.recurringTaskDao(),
+            projectArtifactDao = db.projectArtifactDao(),
+            tacticalMissionDao = db.tacticalMissionDao(),
+            aiEventDao = db.aiEventDao(),
+            lifeSystemStateDao = db.lifeSystemStateDao(),
+            aiInsightDao = db.aiInsightDao(),
+            structurePresetDao = db.structurePresetDao(),
+            structurePresetItemDao = db.structurePresetItemDao(),
+            projectStructureDao = db.projectStructureDao(),
         )
     }
 

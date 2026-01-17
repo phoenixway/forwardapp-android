@@ -321,7 +321,7 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideProjectArtifactDao(appDatabase: AppDatabase) = appDatabase.projectArtifactDao()
+    fun provideProjectArtifactDao(appDatabase: AppDatabase): com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectArtifactDao = appDatabase.projectArtifactDao()
 
     @Provides
     @Singleton

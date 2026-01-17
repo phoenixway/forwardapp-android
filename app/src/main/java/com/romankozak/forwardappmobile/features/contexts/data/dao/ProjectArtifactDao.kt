@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.data.dao
+package com.romankozak.forwardappmobile.features.contexts.data.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
