@@ -1,10 +1,13 @@
-  app/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/components/DashboardBottomBar.kt
-  app/src/main/java/com/romankozak/forwardappmobile/ui/screens/commanddeck/SharedCommandDeckLayout.kt
-  app/src/main/java/com/romankozak/forwardappmobile/routes/AppNavigation.kt
-  app/src/main/java/com/romankozak/forwardappmobile/ui/recent/RecentViewModel.kt
-  app/src/main/java/com/romankozak/forwardappmobile/data/database/models/RecentItem.kt
-  app/src/main/java/com/romankozak/forwardappmobile/data/dao/RecentItemDao.kt
-  app/src/main/java/com/romankozak/forwardappmobile/data/repository/RecentItemsRepository.kt
-  app/src/main/java/com/romankozak/forwardappmobile/ui/components/NewRecentListsSheet.kt
-  app/src/main/java/com/romankozak/forwardappmobile/ui/recent/RecentUiEvent.kt
-app/src/main/java/com/romankozak/forwardappmobile/ui/navigation/NavigationDispatcher.kt 
+app/src/main/java/com/romankozak/forwardappmobile/database/AppDatabase.kt
+app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/models/ContextModelsUtil.kt
+app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/models/Project.kt
+app/src/main/java/com/romankozak/forwardappmobile/data/repository/SyncRepository.kt
+app/src/main/java/com/romankozak/forwardappmobile/features/missions/data/model/TacticalMissionModels.kt
+app/src/main/java/com/romankozak/forwardappmobile/features/missions/data/TacticalMissionDao.kt
+app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/dao/NoteDocumentDao.kt
+app/src/main/java/com/romankozak/forwardappmobile/data/dao/DayPlanDao.kt
+app/src/main/java/com/romankozak/forwardappmobile/data/dao/DayTaskDao.kt
+app/src/main/java/com/romankozak/forwardappmobile/data/database/models/LegacyNoteEntity.kt
+app/src/main/java/com/romankozak/forwardappmobile/data/database/models/ScriptEntity.kt
+app/src/main/java/com/romankozak/forwardappmobile/data/database/models/RecurringTask.kt
+app/src/main/java/com/romankozak/forwardappmobile/data/database/models/SystemAppEntity.

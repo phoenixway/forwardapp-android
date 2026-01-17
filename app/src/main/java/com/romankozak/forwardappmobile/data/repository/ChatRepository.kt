@@ -6,7 +6,7 @@ import com.romankozak.forwardappmobile.data.database.models.ChatMessageEntity
 import com.romankozak.forwardappmobile.data.database.models.ConversationEntity
 import com.romankozak.forwardappmobile.data.database.models.ConversationFolderEntity
 import com.romankozak.forwardappmobile.data.database.models.ConversationWithLastMessage
-import com.romankozak.forwardappmobile.ui.screens.chat.DrawerItem
+import com.romankozak.forwardappmobile.features.ai.chat.DrawerItem
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest

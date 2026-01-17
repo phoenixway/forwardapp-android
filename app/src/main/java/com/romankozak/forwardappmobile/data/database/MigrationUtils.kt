@@ -2,8 +2,8 @@ package com.romankozak.forwardappmobile.data.database
 
 import android.util.Log
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.romankozak.forwardappmobile.data.database.models.ReservedGroup
-import com.romankozak.forwardappmobile.data.database.models.ReservedProjectKeys
+import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedGroup
+import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedProjectKeys
 import java.text.Normalizer
 import java.util.UUID
 

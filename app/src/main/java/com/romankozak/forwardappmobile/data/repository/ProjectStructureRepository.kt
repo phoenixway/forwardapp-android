@@ -1,12 +1,12 @@
 package com.romankozak.forwardappmobile.data.repository
 
-import com.romankozak.forwardappmobile.data.dao.ProjectStructureDao
-import com.romankozak.forwardappmobile.data.dao.ProjectStructureWithItems
-import com.romankozak.forwardappmobile.data.dao.StructurePresetDao
-import com.romankozak.forwardappmobile.data.dao.StructurePresetItemDao
-import com.romankozak.forwardappmobile.data.database.models.ProjectStructure
-import com.romankozak.forwardappmobile.data.database.models.ProjectStructureItem
-import com.romankozak.forwardappmobile.data.database.models.StructurePresetItem
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectStructureDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructure
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectStructureWithItems
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructureItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.StructurePresetItem
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import java.util.UUID

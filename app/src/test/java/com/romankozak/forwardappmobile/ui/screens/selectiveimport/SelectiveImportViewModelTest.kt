@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.ui.screens.selectiveimport
 import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
-import com.romankozak.forwardappmobile.data.database.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.data.database.models.ScriptEntity
 import com.romankozak.forwardappmobile.data.repository.SyncRepository
 import com.romankozak.forwardappmobile.data.sync.BackupDiff
@@ -13,6 +13,7 @@ import com.romankozak.forwardappmobile.data.sync.FullAppBackup
 import com.romankozak.forwardappmobile.data.sync.RecentProjectEntry
 import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentEntity
 import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRef
+import com.romankozak.forwardappmobile.features.sync.selectiveimport.SelectiveImportViewModel
 import io.mockk.coEvery
 import io.mockk.mockk
 import io.mockk.slot

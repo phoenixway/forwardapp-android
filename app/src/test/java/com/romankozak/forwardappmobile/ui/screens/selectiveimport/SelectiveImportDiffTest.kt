@@ -5,6 +5,7 @@ import com.romankozak.forwardappmobile.data.sync.BackupDiff
 import com.romankozak.forwardappmobile.data.sync.DiffResult
 import com.romankozak.forwardappmobile.data.sync.DiffStatus
 import com.romankozak.forwardappmobile.data.sync.UpdatedItem
+import com.romankozak.forwardappmobile.features.sync.selectiveimport.toSelectable
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

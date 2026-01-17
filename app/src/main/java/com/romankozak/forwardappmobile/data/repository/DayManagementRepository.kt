@@ -3,8 +3,22 @@ package com.romankozak.forwardappmobile.data.repository
 
 import androidx.room.Transaction
 import com.romankozak.forwardappmobile.data.dao.*
-import com.romankozak.forwardappmobile.data.database.models.*
-import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.data.database.models.DailyAnalytics
+import com.romankozak.forwardappmobile.data.database.models.DailyMetric
+import com.romankozak.forwardappmobile.data.database.models.DayPlan
+import com.romankozak.forwardappmobile.data.database.models.DayStatus
+import com.romankozak.forwardappmobile.data.database.models.DayTask
+import com.romankozak.forwardappmobile.data.database.models.NewTaskParameters
+import com.romankozak.forwardappmobile.data.database.models.RecurrenceFrequency
+import com.romankozak.forwardappmobile.data.database.models.RecurrenceRule
+import com.romankozak.forwardappmobile.data.database.models.RecurringTask
+import com.romankozak.forwardappmobile.data.database.models.TaskPriority
+import com.romankozak.forwardappmobile.data.database.models.TaskStatus
+import com.romankozak.forwardappmobile.data.database.models.WeeklyInsights
+import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
+import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.domain.ai.events.TaskCreatedEvent
@@ -28,10 +42,10 @@ class DayManagementRepository
         private val dayPlanDao: DayPlanDao,
         private val dayTaskDao: DayTaskDao,
         private val dailyMetricDao: DailyMetricDao,
-        private val goalDao: GoalDao,
-        private val projectDao: ProjectDao,
+        private val goalDao: com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao,
+        private val projectDao: com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectDao,
         private val recurringTaskDao: RecurringTaskDao,
-        private val listItemDao: ListItemDao, 
+        private val listItemDao: com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao,
         private val activityRepository: ActivityRepository,
         private val alarmScheduler: javax.inject.Provider<AlarmScheduler>,
         private val aiEventRepository: AiEventRepository,

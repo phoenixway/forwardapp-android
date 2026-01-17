@@ -93,3 +93,129 @@
 ### 🕒 2025-12-14 21:30
 
 я хотів би щоб була реакція ui через записи в ai insights screen. для початтку - якщо в трекері активності за день нема подій. давати рекомендації. якщо рівень xp -xp низький за минулий день. все це має працювати без великих модей мовних
+
+### ***
+
+> дай список цілей які необхідно досягти щоб проект компілювався. і список файлів які ще слід оновити
+
+✦ Добре, ось список цілей для успішної компіляції та файли, що потребують оновлення:
+
+  Цілі для компіляції:
+
+   1. Оновити посилання: Замінити всі старі посилання на сутності (com.romankozak.forwardappmobile.data.database.models) на нові (com.romankozak.forwardappmobile.features.contexts.data.models) у файлах, що залишилися.
+   2. Оновити `AppDatabase`: Включити переміщені сутності до AppDatabase, щоб Room знав про них.
+   3. Оновити DAO: Виправити Data Access Objects (DAO), щоб вони використовували сутності з нового місця.
+   4. Оновити репозиторії: Адаптувати репозиторії для роботи з сутностями за новими шляхами.
+   5. Виправити помилки: Усунути будь-які інші помилки компіляції, що виникли внаслідок рефакторингу.
+
+  Файли, які ще слід оновити:
+
+  Ось список файлів, які все ще містять посилання на старий пакет і потребують вашої уваги:
+   * app/src/main/java/com/romankozak/forwardappmobile/features/sync/selectiveimport/SelectiveImportState.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/features/strategicmanagement/StrategicManagementUiState.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/features/strategicmanagement/StrategicManagementScreen.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/features/strategicmanagement/usecases/GetStrategicProjectsUseCase.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/features/attachments/data/AttachmentRepository.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/domain/reminders/AlarmScheduler.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/features/attachments/data/model/AttachmentModels.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/features/reminders/viewmodel/ReminderViewModel.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/features/mainscreen/CoreLevelViewModel.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/features/navigation/ClearAndNavigateHomeUseCase.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/features/globalsearch/GlobalSearchViewModel.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/features/globalsearch/components/SearchResultItem.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/features/globalsearch/components/SubprojectSearchResultItem.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/features/globalsearch/components/ProjectSearchResultItem.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/features/globalsearch/components/LinkSearchResultItem.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/features/globalsearch/components/InboxSearchResultItem.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/domain/lifestate/AiAnalyzerService.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/features/globalsearch/GlobalSearchScreen.kt
+
+   * app/src/main/java/com/romankozak/forwardappmobile/features/daymanagement/presentation/DayManagementViewModel.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/features/missions/data/model/TacticalMissionModels.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/sync/SyncModel.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/repository/SearchRepository.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/repository/BacklogOrderRepository.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/repository/LegacyNoteRepository.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/repository/DayManagementRepository.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/repository/NoteDocumentRepository.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/repository/ScriptRepository.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/repository/ProjectStructureRepository.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/repository/ProjectRepository.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/repository/ProjectLogRepository.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/repository/ListItemRepository.kt
+
+   * app/src/main/java/com/romankozak/forwardappmobile/data/repository/InboxRepository.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/repository/GoalRepository.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/sync/SyncBump.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/repository/RecentItemsRepository.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/sync/GoalDeserializer.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/repository/SyncRepository.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/sync/BacklogOrderUtils.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/sync/ReservedGroupAdapter.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/sync/DataConverter.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/sync/BackupDiff.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/logic/GoalScoringManager.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/database/DatabaseInitializer.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/database/MigrationUtils.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/database/AppDatabase.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/database/Migrations.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/dao/ProjectDao.kt
+
+   * app/src/main/java/com/romankozak/forwardappmobile/data/dao/ProjectStructureDao.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/dao/StructurePresetItemDao.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/dao/ListItemDao.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/dao/GoalDao.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/dao/BacklogOrderDao.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/dao/ProjectManagementDao.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/dao/LinkItemDao.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/data/dao/InboxRecordDao.kt
+
+***
+
+
+ дай список цілей які необхідно досягти щоб проект компілювався. і список файлів які ще слід оновити
+
+✦ Користувач знову запитує список цілей та файлів. Я повинен надати список і продовжити з того місця, де зупинився, а саме, зі створення каталогу contexts/data/dao.
+
+  Цілі:
+
+   1. Оновити всі посилання на переміщені сутності у файлах, що залишилися.
+   2. Створити нові файли DAO для переміщених сутностей у features.contexts.data.dao.
+   3. Перемістити інтерфейси DAO для переміщених сутностей з app/src/main/java/com/romankozak/forwardappmobile/data/dao до нового файлу ContextsDao.kt.
+   4. Оновити AppDatabase для використання нових DAO з ContextsDao.kt.
+   5. Оновити DatabaseModule для надання нових DAO.
+   6. Виправити будь-які інші помилки компіляції, що виникнуть під час рефакторингу.
+   7. Скомпілювати проект.
+
+  Файли, які все ще потребують оновлення (з попереднього запуску):
+
+   * app/src/main/java/com/romankozak/forwardappmobile/di/DatabaseModule.kt (потребує оновлення для надання нових DAO)
+
+   ***
+
+    не треба один файл дао для десятків сутностей. треба одна сутність - один обєкт дао
+
+✦ Гаразд, зрозумів. Один DAO на одну сутність. Змінюю план.
+
+  Новий план:
+
+   1. Створюю окремі файли DAO для кожної переміщеної сутності в app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/dao/.
+       * ProjectDao.kt
+       * GoalDao.kt
+       * ListItemDao.kt
+       * BacklogOrderDao.kt
+       * LinkItemDao.kt
+       * InboxRecordDao.kt
+       * ProjectManagementDao.kt
+       * NoteDocumentDao.kt
+       * ChecklistDao.kt
+       * StructurePresetDao.kt
+       * StructurePresetItemDao.kt
+       * ProjectStructureDao.kt
+   2. Переношу вміст оригінальних файлів DAO до нових.
+   3. Оновлюю назви пакетів та імпорти в нових файлах DAO.
+   4. Видаляю оригінальні файли DAO.
+   5. Оновлюю AppDatabase для використання нових DAO.
+   6. Оновлюю DatabaseModule для надання нових DAO.
+   7. Компілюю проект.
+   

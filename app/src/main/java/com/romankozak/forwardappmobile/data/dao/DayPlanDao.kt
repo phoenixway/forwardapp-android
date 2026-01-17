@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.data.dao
 
 import androidx.room.*
 import com.romankozak.forwardappmobile.data.database.models.DayPlan
-import com.romankozak.forwardappmobile.data.database.models.DayStatus
+import com.romankozak.forwardappmobile.features.contexts.data.models.DayStatus
 import kotlinx.coroutines.flow.Flow
 
 @Dao

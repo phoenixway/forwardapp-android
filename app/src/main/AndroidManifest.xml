@@ -50,7 +50,7 @@ android:theme="@style/Theme.Cyberpunk.Day"
         </activity>
 
         <activity
-            android:name=".ShareReceiverActivity"
+            android:name=".features.sharing.ShareReceiverActivity"
             android:exported="true"
             android:label="ForwardApp WiFi"
             android:theme="@style/Theme.ForwardAppMobile.Translucent">

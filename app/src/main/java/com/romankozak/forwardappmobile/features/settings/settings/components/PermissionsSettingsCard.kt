@@ -1,0 +1,159 @@
+package com.romankozak.forwardappmobile.features.settings.settings.components
+
+import android.Manifest
+import android.app.AlarmManager
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.os.PowerManager
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.BatteryFull
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material3.Button
+import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.compose.ui.res.stringResource
+import com.romankozak.forwardappmobile.R
+
+@Composable
+fun PermissionsSettingsCard() {
+    val context = LocalContext.current
+    var permissionUpdateTrigger by remember { mutableIntStateOf(0) }
+
+    val hasNotificationPermission = remember(permissionUpdateTrigger) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+    }
+
+    val canScheduleExactAlarms = remember(permissionUpdateTrigger) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            alarmManager.canScheduleExactAlarms()
+        } else {
+            true
+        }
+    }
+
+    val ignoresBatteryOptimizations = remember(permissionUpdateTrigger) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+            powerManager.isIgnoringBatteryOptimizations(context.packageName)
+        } else {
+            true
+        }
+    }
+
+    val notificationLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { permissionUpdateTrigger++ }
+    )
+
+    SettingsCard(title = stringResource(id = R.string.settings_permissions_title), icon = Icons.Default.Security) {
+        PermissionRow(
+            icon = Icons.Default.Notifications,
+            name = stringResource(id = R.string.settings_permission_notifications_title),
+            description = stringResource(id = R.string.settings_permission_notifications_desc),
+            isGranted = hasNotificationPermission,
+            onGrantClick = {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+        )
+        Divider(modifier = Modifier.padding(vertical = 8.dp))
+        PermissionRow(
+            icon = Icons.Default.Alarm,
+            name = stringResource(id = R.string.settings_permission_exact_alarms_title),
+            description = stringResource(id = R.string.settings_permission_exact_alarms_desc),
+            isGranted = canScheduleExactAlarms,
+            onGrantClick = {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                        data = Uri.fromParts("package", context.packageName, null)
+                    }
+                    context.startActivity(intent)
+                }
+            }
+        )
+        Divider(modifier = Modifier.padding(vertical = 8.dp))
+        PermissionRow(
+            icon = Icons.Default.BatteryFull,
+            name = stringResource(id = R.string.settings_permission_battery_title),
+            description = stringResource(id = R.string.settings_permission_battery_desc),
+            isGranted = ignoresBatteryOptimizations,
+            onGrantClick = {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                        data = Uri.parse("package:${context.packageName}")
+                    }
+                    context.startActivity(intent)
+                }
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PermissionRow(
+    icon: ImageVector,
+    name: String,
+    description: String,
+    isGranted: Boolean,
+    onGrantClick: () -> Unit
+) {
+    ListItem(
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        leadingContent = {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+        },
+        headlineContent = { Text(name) },
+        supportingContent = { Text(description) },
+        trailingContent = {
+            if (isGranted) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = stringResource(id = R.string.settings_permission_granted),
+                    tint = Color(0xFF388E3C)
+                )
+            } else {
+                Button(onClick = onGrantClick, contentPadding = PaddingValues(horizontal = 16.dp)) {
+                    Text(stringResource(id = R.string.settings_permission_grant_action))
+                }
+            }
+        }
+    )
+}

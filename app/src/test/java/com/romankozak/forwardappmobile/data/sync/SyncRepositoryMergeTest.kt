@@ -2,82 +2,39 @@ package com.romankozak.forwardappmobile.data.sync
 
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import com.romankozak.forwardappmobile.data.dao.*
-import com.romankozak.forwardappmobile.data.database.AppDatabase
-import com.romankozak.forwardappmobile.data.database.models.*
-import com.romankozak.forwardappmobile.data.repository.SettingsRepository
-import com.romankozak.forwardappmobile.data.repository.SyncRepository
+import com.romankozak.forwardappmobile.database.AppDatabase
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
+import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectManagementDao
+import com.romankozak.forwardappmobile.data.dao.ScriptDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
-import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
-import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentEntity
-import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRef
-import io.mockk.coEvery
-import io.mockk.every
-import io.mockk.mockk
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.runTest
-import org.junit.After
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Before
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
+import com.romankozak.forwardappmobile.features.contexts.data.dao.BacklogOrderDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectStructureDao
+import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
+import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao
+import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
+import com.romankozak.forwardappmobile.data.dao.RecentItemDao
+import com.romankozak.forwardappmobile.data.dao.SystemAppDao
+import com.romankozak.forwardappmobile.data.dao.DayPlanDao
+import com.romankozak.forwardappmobile.data.dao.DayTaskDao
+import com.romankozak.forwardappmobile.data.dao.DailyMetricDao
+import com.romankozak.forwardappmobile.data.dao.ChatDao
+import com.romankozak.forwardappmobile.data.dao.ConversationFolderDao
+import com.romankozak.forwardappmobile.data.dao.ReminderDao
+import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
+import com.romankozak.forwardappmobile.data.dao.ProjectArtifactDao
+import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
+import com.romankozak.forwardappmobile.data.dao.LifeSystemStateDao
 
-@OptIn(ExperimentalCoroutinesApi::class)
-@RunWith(RobolectricTestRunner::class)
-class SyncRepositoryMergeTest {
-
-    private lateinit var db: AppDatabase
-    private lateinit var syncRepository: SyncRepository
-
-    private lateinit var projectDao: ProjectDao
-    private lateinit var goalDao: GoalDao
-    private lateinit var listItemDao: ListItemDao
-    private lateinit var legacyNoteDao: LegacyNoteDao
-    private lateinit var noteDocumentDao: NoteDocumentDao
-    private lateinit var checklistDao: ChecklistDao
-    private lateinit var activityDao: ActivityRecordDao
-    private lateinit var inboxDao: InboxRecordDao
-    private lateinit var linkItemDao: LinkItemDao
-    private lateinit var projectLogDao: ProjectManagementDao
-    private lateinit var scriptDao: ScriptDao
-    private lateinit var attachmentDao: AttachmentDao
-    private lateinit var backlogOrderDao: BacklogOrderDao
-    private lateinit var recentItemDao: RecentItemDao
-    private lateinit var projectManagementDao: ProjectManagementDao
-    private lateinit var systemAppDao: SystemAppDao
-
-    private val settingsRepository: SettingsRepository = mockk(relaxed = true) {
-        coEvery { wifiSyncPortFlow } returns kotlinx.coroutines.flow.flowOf(8080)
-        every { wifiSyncPortFlow } returns kotlinx.coroutines.flow.flowOf(8080)
-    }
-    private val attachmentRepository: AttachmentRepository = mockk(relaxed = true)
-
-    @Before
-    fun setUp() {
-        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
-        db =
-            Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
-                .allowMainThreadQueries()
-                .build()
-
-        projectDao = db.projectDao()
-        goalDao = db.goalDao()
-        listItemDao = db.listItemDao()
-        legacyNoteDao = db.legacyNoteDao()
-        noteDocumentDao = db.noteDocumentDao()
-        checklistDao = db.checklistDao()
-        activityDao = db.activityRecordDao()
-        inboxDao = db.inboxRecordDao()
-        linkItemDao = db.linkItemDao()
-        projectLogDao = db.projectManagementDao()
-        scriptDao = db.scriptDao()
-        attachmentDao = db.attachmentDao()
-        backlogOrderDao = db.backlogOrderDao()
-        recentItemDao = db.recentItemDao()
-        projectManagementDao = db.projectManagementDao()
-        systemAppDao = db.systemAppDao()
+// ...
 
         syncRepository =
             SyncRepository(
@@ -100,8 +57,22 @@ class SyncRepositoryMergeTest {
                 attachmentRepository = attachmentRepository,
                 attachmentDao = attachmentDao,
                 systemAppDao = systemAppDao,
+                dayPlanDao = db.dayPlanDao(),
+                dayTaskDao = db.dayTaskDao(),
+                dailyMetricDao = db.dailyMetricDao(),
+                chatDao = db.chatDao(),
+                conversationFolderDao = db.conversationFolderDao(),
+                reminderDao = db.reminderDao(),
+                recurringTaskDao = db.recurringTaskDao(),
+                projectArtifactDao = db.projectArtifactDao(),
+                tacticalMissionDao = db.tacticalMissionDao(),
+                aiEventDao = db.aiEventDao(),
+                lifeSystemStateDao = db.lifeSystemStateDao(),
+                aiInsightDao = db.aiInsightDao(),
+                structurePresetDao = db.structurePresetDao(),
+                structurePresetItemDao = db.structurePresetItemDao(),
+                projectStructureDao = db.projectStructureDao(),
             )
-    }
 
     @After
     fun tearDown() {

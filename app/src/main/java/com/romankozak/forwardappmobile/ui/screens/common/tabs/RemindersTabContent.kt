@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.ui.screens.common.tabs
 
 import androidx.compose.runtime.Composable
-import com.romankozak.forwardappmobile.ui.reminders.components.ReminderSection
+import com.romankozak.forwardappmobile.features.reminders.components.ReminderSection
 
 @Composable
 fun RemindersTabContent(

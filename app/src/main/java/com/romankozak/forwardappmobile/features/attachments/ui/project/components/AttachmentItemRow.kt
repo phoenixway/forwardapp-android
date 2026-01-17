@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.features.attachments.ui.project.componen
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.SwipeableListItem
+import com.romankozak.forwardappmobile.features.contexts.ui.contextcreen.components.backlogitems.SwipeableListItem
 
 @Composable
 fun AttachmentItemRow(

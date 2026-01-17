@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.di
 
-import com.romankozak.forwardappmobile.ui.navigation.DefaultNavigationDispatcher
-import com.romankozak.forwardappmobile.ui.navigation.NavigationDispatcher
+import com.romankozak.forwardappmobile.features.navigation.DefaultNavigationDispatcher
+import com.romankozak.forwardappmobile.features.navigation.NavigationDispatcher
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
