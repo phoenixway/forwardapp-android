@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.data.repository
 
 import android.util.Log
 import androidx.room.Transaction
-import com.romankozak.forwardappmobile.data.dao.NoteDocumentDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
 import com.romankozak.forwardappmobile.data.legacy.toNoteDocument
 import com.romankozak.forwardappmobile.data.database.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity

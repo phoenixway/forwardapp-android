@@ -10,60 +10,59 @@ import androidx.core.net.toUri
 import androidx.room.withTransaction
 import com.google.gson.GsonBuilder
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
-import com.romankozak.forwardappmobile.data.dao.AiEventDao
-import com.romankozak.forwardappmobile.data.dao.AiInsightDao
-import com.romankozak.forwardappmobile.data.dao.BacklogOrderDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.AiInsightDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.BacklogOrderDao
 import com.romankozak.forwardappmobile.data.dao.ChatDao
-import com.romankozak.forwardappmobile.data.dao.ChecklistDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
 import com.romankozak.forwardappmobile.data.dao.ConversationFolderDao
 import com.romankozak.forwardappmobile.data.dao.DailyMetricDao
 import com.romankozak.forwardappmobile.data.dao.DayPlanDao
 import com.romankozak.forwardappmobile.data.dao.DayTaskDao
-import com.romankozak.forwardappmobile.data.dao.GoalDao
-import com.romankozak.forwardappmobile.data.dao.InboxRecordDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
 import com.romankozak.forwardappmobile.data.dao.LifeSystemStateDao
-import com.romankozak.forwardappmobile.data.dao.LinkItemDao
-import com.romankozak.forwardappmobile.data.dao.ListItemDao
-import com.romankozak.forwardappmobile.data.dao.NoteDocumentDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
 import com.romankozak.forwardappmobile.data.dao.ProjectArtifactDao
-import com.romankozak.forwardappmobile.data.dao.ProjectDao
-import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
-import com.romankozak.forwardappmobile.data.dao.ProjectStructureDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectManagementDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectStructureDao
 import com.romankozak.forwardappmobile.data.dao.RecentItemDao
 import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
 import com.romankozak.forwardappmobile.data.dao.ReminderDao
 import com.romankozak.forwardappmobile.data.dao.ScriptDao
-import com.romankozak.forwardappmobile.data.dao.StructurePresetDao
-import com.romankozak.forwardappmobile.data.dao.StructurePresetItemDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
 import com.romankozak.forwardappmobile.data.dao.SystemAppDao
-import com.romankozak.forwardappmobile.data.database.AppDatabase
+import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
 import dagger.hilt.android.qualifiers.ApplicationContext
 import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
-import com.romankozak.forwardappmobile.data.database.models.BacklogOrder
-import com.romankozak.forwardappmobile.data.database.models.ChecklistEntity
-import com.romankozak.forwardappmobile.data.database.models.ChecklistItemEntity
-import com.romankozak.forwardappmobile.data.database.models.Goal
-import com.romankozak.forwardappmobile.data.database.models.InboxRecord
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
+import com.romankozak.forwardappmobile.features.contexts.data.models.ChecklistEntity
+import com.romankozak.forwardappmobile.features.contexts.data.models.ChecklistItemEntity
+import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
+import com.romankozak.forwardappmobile.features.contexts.data.models.InboxRecord
 import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
-import com.romankozak.forwardappmobile.data.database.models.ListItem
-import com.romankozak.forwardappmobile.data.database.models.LinkItemEntity
-import com.romankozak.forwardappmobile.data.database.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.data.database.models.NoteDocumentItemEntity
-import com.romankozak.forwardappmobile.data.database.models.Project;
-import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues;
-import com.romankozak.forwardappmobile.data.database.models.ProjectLogLevelValues;
-import com.romankozak.forwardappmobile.data.database.models.ProjectStatusValues;
-import com.romankozak.forwardappmobile.data.database.models.ProjectType;
-import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
-import com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog
-import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
+import com.romankozak.forwardappmobile.features.contexts.data.models.NoteDocumentEntity
+import com.romankozak.forwardappmobile.features.contexts.data.models.NoteDocumentItemEntity
+import com.romankozak.forwardappmobile.features.contexts.data.models.Project;
+import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues;
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectLogLevelValues;
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStatusValues;
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectType;
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectViewMode
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
+import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.data.database.models.ScriptEntity
-import com.romankozak.forwardappmobile.data.database.models.ReservedGroup
-import com.romankozak.forwardappmobile.data.database.models.ReservedProjectKeys
+import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedGroup
+import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedProjectKeys
 import com.romankozak.forwardappmobile.data.sync.DatabaseContent
 import com.romankozak.forwardappmobile.data.sync.FullAppBackup
 import com.romankozak.forwardappmobile.data.sync.AttachmentsBackup
@@ -136,19 +135,19 @@ class SyncRepository
 constructor(
     private val appDatabase: AppDatabase,
     @param:ApplicationContext private val context: Context,
-    private val goalDao: GoalDao,
-    private val projectDao: ProjectDao,
-    private val listItemDao: ListItemDao,
-    private val linkItemDao: LinkItemDao,
+    private val goalDao: com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao,
+    private val projectDao: com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectDao,
+    private val listItemDao: com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao,
+    private val linkItemDao: com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao,
     private val activityRecordDao: ActivityRecordDao,
-    private val inboxRecordDao: InboxRecordDao,
+    private val inboxRecordDao: com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao,
     private val settingsRepository: SettingsRepository,
-    private val projectManagementDao: ProjectManagementDao,
+    private val projectManagementDao: com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectManagementDao,
     private val legacyNoteDao: LegacyNoteDao,
-    private val noteDocumentDao: NoteDocumentDao,
-    private val checklistDao: ChecklistDao,
+    private val noteDocumentDao: com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao,
+    private val checklistDao: com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao,
     private val recentItemDao: RecentItemDao,
-    private val backlogOrderDao: BacklogOrderDao,
+    private val backlogOrderDao: com.romankozak.forwardappmobile.features.contexts.data.dao.BacklogOrderDao,
     private val scriptDao: ScriptDao,
     private val attachmentRepository: AttachmentRepository,
     private val attachmentDao: AttachmentDao,
@@ -165,10 +164,10 @@ constructor(
     private val tacticalMissionDao: TacticalMissionDao,
     private val aiEventDao: AiEventDao,
     private val lifeSystemStateDao: LifeSystemStateDao,
-    private val aiInsightDao: AiInsightDao,
-    private val structurePresetDao: StructurePresetDao,
-    private val structurePresetItemDao: StructurePresetItemDao,
-    private val projectStructureDao: ProjectStructureDao,
+    private val aiInsightDao: com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao,
+    private val structurePresetDao: com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao,
+    private val structurePresetItemDao: com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao,
+    private val projectStructureDao: com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectStructureDao,
 ) {
     private val TAG = "SyncRepository"
     private val WIFI_SYNC_LOG_TAG = "FWD_SYNC_TEST"

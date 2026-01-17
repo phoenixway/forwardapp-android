@@ -1,7 +1,6 @@
 package com.romankozak.forwardappmobile.features.attachments.data
 
 import android.util.Log
-import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
@@ -9,6 +8,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.model.Attachmen
 import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentWithProject
 import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRef
 import com.romankozak.forwardappmobile.data.sync.softDelete
+import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject

@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.data.repository
 
-import com.romankozak.forwardappmobile.data.dao.ChecklistDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
 import com.romankozak.forwardappmobile.features.contexts.data.models.ChecklistEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.ChecklistItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues

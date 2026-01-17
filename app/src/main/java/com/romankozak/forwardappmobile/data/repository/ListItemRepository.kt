@@ -1,8 +1,8 @@
 package com.romankozak.forwardappmobile.data.repository
 
 import android.util.Log
-import com.romankozak.forwardappmobile.data.dao.LinkItemDao
-import com.romankozak.forwardappmobile.data.dao.ListItemDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues

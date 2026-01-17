@@ -1,19 +1,20 @@
 package com.romankozak.forwardappmobile.di
 
-import com.romankozak.forwardappmobile.data.dao.ChecklistDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
 import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
-import com.romankozak.forwardappmobile.data.dao.LinkItemDao
-import com.romankozak.forwardappmobile.data.dao.ListItemDao
-import com.romankozak.forwardappmobile.data.dao.NoteDocumentDao
-import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectManagementDao
 import com.romankozak.forwardappmobile.data.dao.RecentItemDao
 import com.romankozak.forwardappmobile.data.dao.ReminderDao
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
-import com.romankozak.forwardappmobile.data.dao.ProjectDao
-import com.romankozak.forwardappmobile.data.dao.ProjectStructureDao
-import com.romankozak.forwardappmobile.data.dao.StructurePresetDao
-import com.romankozak.forwardappmobile.data.dao.StructurePresetItemDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectStructureDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
 import com.romankozak.forwardappmobile.data.dao.SystemAppDao
+import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
@@ -24,10 +25,10 @@ import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.data.repository.ActivityRecordRepository
 import com.romankozak.forwardappmobile.data.repository.SystemAppRepository
-import com.romankozak.forwardappmobile.data.repository.AiInsightRepository
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
+import com.romankozak.forwardappmobile.features.ai.data.repository.AiInsightRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -51,7 +52,7 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideProjectLogRepository(
-        projectManagementDao: ProjectManagementDao
+        projectManagementDao: com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectManagementDao
     ): ProjectLogRepository {
         return ProjectLogRepository(projectManagementDao)
     }
@@ -68,7 +69,7 @@ object RepositoryModule {
     @Singleton
     fun provideLegacyNoteRepository(
         noteDao: LegacyNoteDao,
-        listItemDao: ListItemDao,
+        listItemDao: com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao,
         recentItemsRepository: RecentItemsRepository
     ): LegacyNoteRepository = LegacyNoteRepository(noteDao, listItemDao, recentItemsRepository)
 
@@ -76,19 +77,19 @@ object RepositoryModule {
     @Singleton
     fun provideAttachmentRepository(
         attachmentDao: AttachmentDao,
-        linkItemDao: LinkItemDao,
+        linkItemDao: com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao,
     ): AttachmentRepository = AttachmentRepository(attachmentDao, linkItemDao)
 
     @Provides
     @Singleton
     fun provideAiInsightRepository(
-        aiInsightDao: com.romankozak.forwardappmobile.data.dao.AiInsightDao,
+        aiInsightDao: com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao,
     ): AiInsightRepository = AiInsightRepository(aiInsightDao)
 
     @Provides
     @Singleton
     fun provideNoteDocumentRepository(
-        noteDocumentDao: NoteDocumentDao,
+        noteDocumentDao: com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao,
         attachmentRepository: AttachmentRepository,
         recentItemsRepository: RecentItemsRepository,
         aiEventRepository: AiEventRepository,
@@ -98,7 +99,7 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideChecklistRepository(
-        checklistDao: ChecklistDao,
+        checklistDao: com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao,
         attachmentRepository: AttachmentRepository,
         recentItemsRepository: RecentItemsRepository,
     ): ChecklistRepository = ChecklistRepository(checklistDao, attachmentRepository, recentItemsRepository)
@@ -113,16 +114,16 @@ object RepositoryModule {
     @Singleton
     fun provideSystemAppRepository(
         systemAppDao: SystemAppDao,
-        projectDao: ProjectDao,
-        noteDocumentDao: NoteDocumentDao,
+        projectDao: com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectDao,
+        noteDocumentDao: com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao,
         attachmentRepository: AttachmentRepository,
     ): SystemAppRepository = SystemAppRepository(systemAppDao, projectDao, noteDocumentDao, attachmentRepository)
 
     @Provides
     @Singleton
     fun provideProjectStructureRepository(
-        projectStructureDao: ProjectStructureDao,
-        structurePresetDao: StructurePresetDao,
-        structurePresetItemDao: StructurePresetItemDao,
+        projectStructureDao: com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectStructureDao,
+        structurePresetDao: com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao,
+        structurePresetItemDao: com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao,
     ): ProjectStructureRepository = ProjectStructureRepository(projectStructureDao, structurePresetDao, structurePresetItemDao)
 }

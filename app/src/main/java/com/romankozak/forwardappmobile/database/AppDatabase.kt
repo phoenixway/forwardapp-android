@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.data.database
+package com.romankozak.forwardappmobile.database
 
 import androidx.room.AutoMigration
 import androidx.room.Database
@@ -25,7 +25,6 @@ import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
 import com.romankozak.forwardappmobile.data.dao.ReminderDao
 import com.romankozak.forwardappmobile.data.dao.ScriptDao
 import com.romankozak.forwardappmobile.data.dao.SystemAppDao
-import com.romankozak.forwardappmobile.data.dao.AiEventDao
 import com.romankozak.forwardappmobile.data.dao.LifeSystemStateDao
 import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
@@ -53,6 +52,7 @@ import com.romankozak.forwardappmobile.data.database.models.RecurringTaskFts
 import com.romankozak.forwardappmobile.data.database.models.Reminder
 import com.romankozak.forwardappmobile.data.database.models.ScriptEntity
 import com.romankozak.forwardappmobile.data.database.models.SystemAppEntity
+import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao
 import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentEntity
 import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRef
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
@@ -65,7 +65,6 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.InboxRecord
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.NoteDocumentItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectFts
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructure
@@ -124,7 +123,7 @@ import com.romankozak.forwardappmobile.features.missions.data.model.TacticalMiss
     version = 93,
     exportSchema = true,
 )
-@TypeConverters(com.romankozak.forwardappmobile.features.contexts.data.models.Converters::class, DailyPlanConverters::class, com.romankozak.forwardappmobile.features.contexts.data.models.ProjectTypeConverter::class)
+@TypeConverters(com.romankozak.forwardappmobile.features.contexts.data.models.Converters::class, com.romankozak.forwardappmobile.data.database.DailyPlanConverters::class, com.romankozak.forwardappmobile.features.contexts.data.models.ProjectTypeConverter::class)
 abstract class AppDatabase : RoomDatabase() {
         abstract fun projectDao(): com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectDao
         abstract fun goalDao(): com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao

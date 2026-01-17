@@ -5,12 +5,12 @@ import androidx.lifecycle.viewModelScope
 import android.util.Log
 import com.romankozak.forwardappmobile.config.FeatureFlag
 import com.romankozak.forwardappmobile.config.FeatureToggles
-import com.romankozak.forwardappmobile.data.dao.ProjectDao
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRef
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectDao
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableSharedFlow

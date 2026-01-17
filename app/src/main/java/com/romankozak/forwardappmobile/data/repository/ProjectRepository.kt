@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.data.repository
 
 import android.util.Log
 import androidx.room.Transaction
-import com.romankozak.forwardappmobile.data.dao.*
+import com.romankozak.forwardappmobile.features.contexts.data.dao.*
 import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.data.database.models.ProjectArtifact
 import com.romankozak.forwardappmobile.data.database.models.ProjectTimeMetrics

@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.data.repository
 
 import androidx.room.Transaction
-import com.romankozak.forwardappmobile.data.dao.InboxRecordDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.features.contexts.data.models.InboxRecord
 import com.romankozak.forwardappmobile.data.sync.bumpSync
 import com.romankozak.forwardappmobile.data.sync.softDelete

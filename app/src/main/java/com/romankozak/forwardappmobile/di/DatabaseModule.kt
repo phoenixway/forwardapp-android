@@ -5,7 +5,7 @@ import android.util.Log
 import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.romankozak.forwardappmobile.data.database.AppDatabase
+import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectDao
@@ -148,7 +148,7 @@ object DatabaseModule {
                 scope.launch(Dispatchers.IO) {
                     val attachmentRepository = AttachmentRepository(db.attachmentDao(), db.linkItemDao())
                     val systemAppRepository = SystemAppRepository(db.systemAppDao(), db.projectDao(), db.noteDocumentDao(), attachmentRepository)
-                    val databaseInitializer = com.romankozak.forwardappmobile.data.database.DatabaseInitializer(db.projectDao(), systemAppRepository)
+                    val databaseInitializer = com.romankozak.forwardappmobile.features.contexts.data.DatabaseInitializer(db.projectDao(), systemAppRepository)
                     databaseInitializer.prePopulate()
                     migrateSpecialProjects(dbSupport)
                     runCatching {

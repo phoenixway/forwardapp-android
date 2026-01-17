@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.data.repository
 
-import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectManagementDao
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectLogEntryTypeValues
 import com.romankozak.forwardappmobile.data.sync.bumpSync

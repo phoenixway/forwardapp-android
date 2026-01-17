@@ -42,7 +42,7 @@ import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
 import com.romankozak.forwardappmobile.data.database.models.AiInsightEntity
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
-import com.romankozak.forwardappmobile.data.repository.AiInsightRepository
+import com.romankozak.forwardappmobile.features.ai.data.repository.AiInsightRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
