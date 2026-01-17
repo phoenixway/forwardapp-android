@@ -1,6 +1,6 @@
-package com.romankozak.forwardappmobile.data.database
+package com.romankozak.forwardappmobile.features.contexts.data
 
-import com.romankozak.forwardappmobile.data.dao.ProjectDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectDao
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectType
 import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedGroup

@@ -155,4 +155,4 @@ abstract class AppDatabase : RoomDatabase() {
         abstract fun lifeSystemStateDao(): LifeSystemStateDao
         abstract fun tacticalMissionDao(): TacticalMissionDao
         abstract fun attachmentDao(): AttachmentDao
-        abstract fun aiInsightDao(): AiInsightDao    }
+        abstract fun aiInsightDao(): com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao    }
