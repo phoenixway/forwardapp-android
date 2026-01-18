@@ -9,12 +9,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
 
 @Composable
 fun ItemTypeBadge(taskType: String) {
     val (text, backgroundColor, textColor) = when (taskType) {
-        ListItemTypeValues.SUBLIST -> Triple(
+        BacklogItemTypeValues.SUBLIST -> Triple(
             "Sublist",
             MaterialTheme.colorScheme.secondaryContainer,
             MaterialTheme.colorScheme.onSecondaryContainer

@@ -15,7 +15,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectViewMode
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextViewMode
 
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.utils.handleRelatedLinkClick
 import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
@@ -289,10 +289,10 @@ fun GoalDetailEffects(
     LaunchedEffect(uiState.inboxRecordToHighlight, inboxRecords.isNotEmpty()) {
         val recordId = uiState.inboxRecordToHighlight
         val recordsAreLoaded = inboxRecords.isNotEmpty()
-        if (recordId != null && recordsAreLoaded && uiState.currentView != ProjectViewMode.INBOX) {
+        if (recordId != null && recordsAreLoaded && uiState.currentView != ContextViewMode.INBOX) {
             if (inboxRecords.any { it.id == recordId }) {
                 Log.d(TAG, "Highlight requested. Switching to INBOX view.")
-                viewModel.onProjectViewChange(ProjectViewMode.INBOX)
+                viewModel.onProjectViewChange(ContextViewMode.INBOX)
             }
         }
     }
@@ -300,7 +300,7 @@ fun GoalDetailEffects(
     
     LaunchedEffect(uiState.inboxRecordToHighlight, uiState.currentView, inboxRecords) {
         val recordId = uiState.inboxRecordToHighlight
-        if (recordId != null && uiState.currentView == ProjectViewMode.INBOX && inboxRecords.isNotEmpty()) {
+        if (recordId != null && uiState.currentView == ContextViewMode.INBOX && inboxRecords.isNotEmpty()) {
             val indexToScroll = inboxRecords.indexOfFirst { it.id == recordId }
             Log.d(TAG, "INBOX view is active. Searching for record. Found index: $indexToScroll")
             if (indexToScroll != -1) {

@@ -135,7 +135,8 @@ object DatabaseModule {
     @Singleton
     fun provideAppDatabase(
         @ApplicationContext context: Context,
-        scope: CoroutineScope
+        //scope: CoroutineScope
+        @ApplicationScope scope: CoroutineScope
     ): AppDatabase {
         val callback = object : RoomDatabase.Callback() {
             override fun onOpen(dbSupport: SupportSQLiteDatabase) {

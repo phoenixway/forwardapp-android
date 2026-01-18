@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectViewMode
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextViewMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.GoalActionType
 
 @Composable
@@ -24,7 +24,7 @@ fun AdaptiveTopBar(
     onMarkAsIncomplete: () -> Unit,
     onMoreActions: (GoalActionType) -> Unit,
     onInboxClick: () -> Unit,
-    currentViewMode: ProjectViewMode? = null,
+    currentViewMode: ContextViewMode? = null,
     modifier: Modifier = Modifier,
     windowInsets: WindowInsets = WindowInsets.statusBars,
 ) {

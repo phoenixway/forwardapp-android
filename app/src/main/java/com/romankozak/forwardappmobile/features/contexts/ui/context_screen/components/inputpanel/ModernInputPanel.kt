@@ -51,7 +51,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectViewMode
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextViewMode
 import com.romankozak.forwardappmobile.domain.ner.ReminderParseResult
 import com.romankozak.forwardappmobile.core.theme.LocalInputPanelColors
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Button
@@ -77,7 +77,7 @@ data class NavPanelState(
   val canGoBack: Boolean,
   val canGoForward: Boolean,
   val menuExpanded: Boolean,
-  val currentView: ProjectViewMode,
+  val currentView: ContextViewMode,
   val isProjectManagementEnabled: Boolean,
   val enableInbox: Boolean,
   val enableLog: Boolean,
@@ -95,7 +95,7 @@ data class NavPanelActions(
   val onNavigateHome: () -> Unit,
   val onRecentsClick: () -> Unit,
   val onCloseSearch: () -> Unit,
-  val onViewChange: (ProjectViewMode) -> Unit,
+  val onViewChange: (ContextViewMode) -> Unit,
   val onInputModeSelected: (InputMode) -> Unit,
   val onMenuExpandedChange: (Boolean) -> Unit,
   val onAddProjectToDayPlan: () -> Unit,
@@ -123,9 +123,9 @@ data class OptionsMenuActions(
 
 @Composable
 private fun ViewModeToggle(
-  currentView: ProjectViewMode,
+  currentView: ContextViewMode,
   isProjectManagementEnabled: Boolean,
-  onViewChange: (ProjectViewMode) -> Unit,
+  onViewChange: (ContextViewMode) -> Unit,
   onInputModeSelected: (InputMode) -> Unit,
   contentColor: Color,
   holdMenuController: HoldMenu2Controller,
@@ -137,24 +137,24 @@ private fun ViewModeToggle(
   enableAttachments: Boolean = true,
 ) {
     val availableViews = remember(isProjectManagementEnabled, enableInbox, enableLog, enableArtifact, enableBacklog, enableDashboard, enableAttachments) {
-        ProjectViewMode.values()
+        ContextViewMode.values()
             .filter {
                 when (it) {
-                    ProjectViewMode.INBOX -> enableInbox
-                    ProjectViewMode.ADVANCED -> isProjectManagementEnabled && enableLog
-                    ProjectViewMode.ATTACHMENTS -> enableAttachments
-                    ProjectViewMode.BACKLOG -> enableBacklog
-                    ProjectViewMode.DASHBOARD -> enableDashboard
+                    ContextViewMode.INBOX -> enableInbox
+                    ContextViewMode.ADVANCED -> isProjectManagementEnabled && enableLog
+                    ContextViewMode.ATTACHMENTS -> enableAttachments
+                    ContextViewMode.BACKLOG -> enableBacklog
+                    ContextViewMode.DASHBOARD -> enableDashboard
                     else -> true
                 }
             }
             .sortedBy {
                 when (it) {
-                    ProjectViewMode.DASHBOARD -> 0
-                    ProjectViewMode.BACKLOG -> 1
-                    ProjectViewMode.INBOX -> 2
-                    ProjectViewMode.ADVANCED -> 3
-                    ProjectViewMode.ATTACHMENTS -> 4
+                    ContextViewMode.DASHBOARD -> 0
+                    ContextViewMode.BACKLOG -> 1
+                    ContextViewMode.INBOX -> 2
+                    ContextViewMode.ADVANCED -> 3
+                    ContextViewMode.ATTACHMENTS -> 4
                 }
             }
             .reversed()
@@ -164,18 +164,18 @@ private fun ViewModeToggle(
         availableViews.map { viewMode ->
             HoldMenuItem(
             label = when (viewMode) {
-                ProjectViewMode.DASHBOARD -> "Dashboard"
-                ProjectViewMode.BACKLOG -> "Backlog"
-                ProjectViewMode.INBOX -> "Inbox"
-                ProjectViewMode.ADVANCED -> "Advanced"
-                ProjectViewMode.ATTACHMENTS -> "Attachments"
+                ContextViewMode.DASHBOARD -> "Dashboard"
+                ContextViewMode.BACKLOG -> "Backlog"
+                ContextViewMode.INBOX -> "Inbox"
+                ContextViewMode.ADVANCED -> "Advanced"
+                ContextViewMode.ATTACHMENTS -> "Attachments"
             },
                 icon = when (viewMode) {
-                    ProjectViewMode.BACKLOG -> Icons.AutoMirrored.Outlined.ListAlt
-                    ProjectViewMode.INBOX -> Icons.AutoMirrored.Outlined.Notes
-                    ProjectViewMode.ADVANCED -> Icons.Outlined.Dashboard
-                    ProjectViewMode.ATTACHMENTS -> Icons.Default.Attachment
-                    ProjectViewMode.DASHBOARD -> Icons.Outlined.ViewModule
+                    ContextViewMode.BACKLOG -> Icons.AutoMirrored.Outlined.ListAlt
+                    ContextViewMode.INBOX -> Icons.AutoMirrored.Outlined.Notes
+                    ContextViewMode.ADVANCED -> Icons.Outlined.Dashboard
+                    ContextViewMode.ATTACHMENTS -> Icons.Default.Attachment
+                    ContextViewMode.DASHBOARD -> Icons.Outlined.ViewModule
                 }
             )
         }
@@ -195,8 +195,8 @@ private fun ViewModeToggle(
                 val selectedViewMode = availableViews[index]
                 onViewChange(selectedViewMode)
                 val newMode = when (selectedViewMode) {
-                    ProjectViewMode.INBOX, ProjectViewMode.ADVANCED -> InputMode.AddQuickRecord
-                    ProjectViewMode.DASHBOARD -> InputMode.AddGoal
+                    ContextViewMode.INBOX, ContextViewMode.ADVANCED -> InputMode.AddQuickRecord
+                    ContextViewMode.DASHBOARD -> InputMode.AddGoal
                     else -> InputMode.AddGoal
                 }
                 onInputModeSelected(newMode)
@@ -204,11 +204,11 @@ private fun ViewModeToggle(
             modifier = Modifier.size(40.dp).padding(2.dp)
         ) {
             val currentIcon = when (currentView) {
-                ProjectViewMode.DASHBOARD -> Icons.Outlined.ViewModule
-                ProjectViewMode.BACKLOG -> Icons.AutoMirrored.Outlined.ListAlt
-                ProjectViewMode.INBOX -> Icons.AutoMirrored.Outlined.Notes
-                ProjectViewMode.ADVANCED -> Icons.Outlined.Dashboard
-                ProjectViewMode.ATTACHMENTS -> Icons.Default.Attachment
+                ContextViewMode.DASHBOARD -> Icons.Outlined.ViewModule
+                ContextViewMode.BACKLOG -> Icons.AutoMirrored.Outlined.ListAlt
+                ContextViewMode.INBOX -> Icons.AutoMirrored.Outlined.Notes
+                ContextViewMode.ADVANCED -> Icons.Outlined.Dashboard
+                ContextViewMode.ATTACHMENTS -> Icons.Default.Attachment
             }
             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                 Icon(
@@ -328,7 +328,7 @@ private fun OptionsMenu(state: NavPanelState, actions: NavPanelActions, contentC
                   menu.onImportFromMarkdown()
                   actions.onMenuExpandedChange(false)
                 },
-                isVisible = state.currentView == ProjectViewMode.INBOX,
+                isVisible = state.currentView == ContextViewMode.INBOX,
               ),
               MenuItem(
                 "Експортувати в Markdown",
@@ -337,7 +337,7 @@ private fun OptionsMenu(state: NavPanelState, actions: NavPanelActions, contentC
                   menu.onExportToMarkdown()
                   actions.onMenuExpandedChange(false)
                 },
-                isVisible = state.currentView == ProjectViewMode.INBOX,
+                isVisible = state.currentView == ContextViewMode.INBOX,
               ),
               MenuItem(
                 "Імпортувати беклог з Markdown",
@@ -346,7 +346,7 @@ private fun OptionsMenu(state: NavPanelState, actions: NavPanelActions, contentC
                   menu.onImportBacklogFromMarkdown()
                   actions.onMenuExpandedChange(false)
                 },
-                isVisible = state.currentView == ProjectViewMode.BACKLOG,
+                isVisible = state.currentView == ContextViewMode.BACKLOG,
               ),
               MenuItem(
                 "Експортувати беклог в Markdown",
@@ -355,7 +355,7 @@ private fun OptionsMenu(state: NavPanelState, actions: NavPanelActions, contentC
                   menu.onExportBacklogToMarkdown()
                   actions.onMenuExpandedChange(false)
                 },
-                isVisible = state.currentView == ProjectViewMode.BACKLOG,
+                isVisible = state.currentView == ContextViewMode.BACKLOG,
               ),
               MenuItem(
                 "Експортувати історію і стан",
@@ -712,8 +712,8 @@ fun ModernInputPanel(
   onSetReminder: () -> Unit,
   menuExpanded: Boolean,
   onMenuExpandedChange: (Boolean) -> Unit,
-  currentView: ProjectViewMode,
-  onViewChange: (ProjectViewMode) -> Unit,
+  currentView: ContextViewMode,
+  onViewChange: (ContextViewMode) -> Unit,
   onImportFromMarkdown: () -> Unit,
   onExportToMarkdown: () -> Unit,
   onImportBacklogFromMarkdown: () -> Unit,
@@ -792,7 +792,7 @@ fun ModernInputPanel(
         InputMode.AddGoal,
         InputMode.AddQuickRecord,
         if (isProjectManagementEnabled) InputMode.AddProjectLog else null,
-        if (isProjectManagementEnabled && currentView == ProjectViewMode.ADVANCED) InputMode.AddMilestone else null,
+        if (isProjectManagementEnabled && currentView == ContextViewMode.ADVANCED) InputMode.AddMilestone else null,
         InputMode.SearchGlobal,
         InputMode.SearchInList,
       )

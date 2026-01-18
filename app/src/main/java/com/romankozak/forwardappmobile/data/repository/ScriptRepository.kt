@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.data.repository
 
 import com.romankozak.forwardappmobile.data.dao.ScriptDao
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEntity
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 import kotlinx.coroutines.flow.Flow
@@ -44,7 +44,7 @@ class ScriptRepository @Inject constructor(
 
         if (projectId != null) {
             attachmentRepository.ensureAttachmentLinkedToProject(
-                attachmentType = ListItemTypeValues.SCRIPT,
+                attachmentType = BacklogItemTypeValues.SCRIPT,
                 entityId = script.id,
                 projectId = projectId,
                 ownerProjectId = projectId,

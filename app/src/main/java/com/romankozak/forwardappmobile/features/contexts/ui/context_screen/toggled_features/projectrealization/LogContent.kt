@@ -35,7 +35,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectLogEntryTypeValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLogEntryTypeValues
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.abs
@@ -56,11 +56,11 @@ fun LogContent(
     var searchQuery by remember { mutableStateOf("") }
     val allTypes = remember {
         listOf(
-            ProjectLogEntryTypeValues.STATUS_CHANGE,
-            ProjectLogEntryTypeValues.COMMENT,
-            ProjectLogEntryTypeValues.AUTOMATIC,
-            ProjectLogEntryTypeValues.INSIGHT,
-            ProjectLogEntryTypeValues.MILESTONE,
+            ContextLogEntryTypeValues.STATUS_CHANGE,
+            ContextLogEntryTypeValues.COMMENT,
+            ContextLogEntryTypeValues.AUTOMATIC,
+            ContextLogEntryTypeValues.INSIGHT,
+            ContextLogEntryTypeValues.MILESTONE,
         )
     }
     val typeStates = remember { allTypes.associateWith { mutableStateOf(true) } }
@@ -289,29 +289,29 @@ private fun LogEntryItem(
 /*                       UTILITIES                             */
 /* ---------------------------------------------------------- */
 private fun typeToColor(type: String?): Color = when (type) {
-    ProjectLogEntryTypeValues.STATUS_CHANGE -> Color(0xFF00695C)
-    ProjectLogEntryTypeValues.COMMENT -> Color(0xFF1565C0)
-    ProjectLogEntryTypeValues.AUTOMATIC -> Color(0xFF6A1B9A)
-    ProjectLogEntryTypeValues.INSIGHT -> Color(0xFFF57C00)
-    ProjectLogEntryTypeValues.MILESTONE -> Color(0xFFD32F2F)
+    ContextLogEntryTypeValues.STATUS_CHANGE -> Color(0xFF00695C)
+    ContextLogEntryTypeValues.COMMENT -> Color(0xFF1565C0)
+    ContextLogEntryTypeValues.AUTOMATIC -> Color(0xFF6A1B9A)
+    ContextLogEntryTypeValues.INSIGHT -> Color(0xFFF57C00)
+    ContextLogEntryTypeValues.MILESTONE -> Color(0xFFD32F2F)
     else -> Color(0xFF546E7A)
 }
 
 private fun typeToIcon(type: String?) = when (type) {
-    ProjectLogEntryTypeValues.STATUS_CHANGE -> Icons.Default.TrendingUp
-    ProjectLogEntryTypeValues.COMMENT -> Icons.Default.Comment
-    ProjectLogEntryTypeValues.AUTOMATIC -> Icons.Default.ReceiptLong
-    ProjectLogEntryTypeValues.INSIGHT -> Icons.Default.Lightbulb
-    ProjectLogEntryTypeValues.MILESTONE -> Icons.Default.Flag
+    ContextLogEntryTypeValues.STATUS_CHANGE -> Icons.Default.TrendingUp
+    ContextLogEntryTypeValues.COMMENT -> Icons.Default.Comment
+    ContextLogEntryTypeValues.AUTOMATIC -> Icons.Default.ReceiptLong
+    ContextLogEntryTypeValues.INSIGHT -> Icons.Default.Lightbulb
+    ContextLogEntryTypeValues.MILESTONE -> Icons.Default.Flag
     else -> Icons.Default.Info
 }
 
 private fun typeToLabel(type: String?): String = when (type) {
-    ProjectLogEntryTypeValues.STATUS_CHANGE -> "Статус"
-    ProjectLogEntryTypeValues.COMMENT -> "Коментар"
-    ProjectLogEntryTypeValues.AUTOMATIC -> "Системний"
-    ProjectLogEntryTypeValues.INSIGHT -> "Ідея"
-    ProjectLogEntryTypeValues.MILESTONE -> "Віха"
+    ContextLogEntryTypeValues.STATUS_CHANGE -> "Статус"
+    ContextLogEntryTypeValues.COMMENT -> "Коментар"
+    ContextLogEntryTypeValues.AUTOMATIC -> "Системний"
+    ContextLogEntryTypeValues.INSIGHT -> "Ідея"
+    ContextLogEntryTypeValues.MILESTONE -> "Віха"
     else -> "Інше"
 }
 
@@ -364,9 +364,9 @@ internal fun PlaceholderContent(text: String) {
 private fun LogContentPreview() {
     val now = System.currentTimeMillis()
     val sample = listOf(
-        ContextLog(id = "1", projectId = "0", timestamp = now - 20 * 60_000, type = ProjectLogEntryTypeValues.STATUS_CHANGE, description = "Перенесено до 'Робота'", details = "Завершено перевірку"),
-        ContextLog(id = "2", projectId = "0", timestamp = now - 120 * 60_000, type = ProjectLogEntryTypeValues.COMMENT, description = "Коментар", details = "Потрібно уточнити терміни"),
-        ContextLog(id = "3", projectId = "0", timestamp = now - 3_600_000 * 5, type = ProjectLogEntryTypeValues.INSIGHT, description = "Ідея: кешування", details = "Зменшить навантаження"),
+        ContextLog(id = "1", projectId = "0", timestamp = now - 20 * 60_000, type = ContextLogEntryTypeValues.STATUS_CHANGE, description = "Перенесено до 'Робота'", details = "Завершено перевірку"),
+        ContextLog(id = "2", projectId = "0", timestamp = now - 120 * 60_000, type = ContextLogEntryTypeValues.COMMENT, description = "Коментар", details = "Потрібно уточнити терміни"),
+        ContextLog(id = "3", projectId = "0", timestamp = now - 3_600_000 * 5, type = ContextLogEntryTypeValues.INSIGHT, description = "Ідея: кешування", details = "Зменшить навантаження"),
     )
     MaterialTheme {
         LogContent(sample, true, {}, {})

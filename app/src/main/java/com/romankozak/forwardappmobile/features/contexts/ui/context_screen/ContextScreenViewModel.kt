@@ -17,8 +17,8 @@ import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
 import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectArtifact
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectTimeMetrics
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextArtifact
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextTimeMetrics
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 
 import com.romankozak.forwardappmobile.features.recent.data.models.RecentItem
@@ -26,10 +26,10 @@ import com.romankozak.forwardappmobile.features.recent.data.models.RecentItemTyp
 import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectLogEntryTypeValues
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectViewMode
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLogEntryTypeValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextViewMode
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
@@ -146,7 +146,7 @@ data class UiState(
   val enableDashboard: Boolean = true,
   val enableAttachments: Boolean = true,
   val enableAutoLinkSubprojects: Boolean = true,
-  val currentView: ProjectViewMode = ProjectViewMode.BACKLOG,
+  val currentView: ContextViewMode = ContextViewMode.BACKLOG,
   val showRecentProjectsSheet: Boolean = false,
   val showImportFromMarkdownDialog: Boolean = false,
   val showImportBacklogFromMarkdownDialog: Boolean = false,
@@ -155,14 +155,14 @@ data class UiState(
   val detectedReminderCalendar: Calendar? = null,
   val nerState: NerState = NerState.NotInitialized,
   val recordForReminderDialog: ActivityRecord? = null,
-  val projectTimeMetrics: ProjectTimeMetrics? = null,
+  val contextTimeMetrics: ContextTimeMetrics? = null,
   val showShareDialog: Boolean = false,
   val showCreateNoteDocumentDialog: Boolean = false,
   val showRemindersDialog: Boolean = false,
   val itemForRemindersDialog: BacklogItemContent? = null,
   val remindersForDialog: List<Reminder> = emptyList(),
   val logEntryToEdit: ContextLog? = null,
-  val artifactToEdit: ProjectArtifact? = null,
+  val artifactToEdit: ContextArtifact? = null,
   val selectedDashboardTab: ProjectManagementTab = ProjectManagementTab.Dashboard,
   val showNoteDocumentEditor: Boolean = false,
   val showDisplayPropertiesDialog: Boolean = false,
@@ -371,7 +371,7 @@ constructor(
       }
       .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-  val projectArtifact: StateFlow<ProjectArtifact?> =
+  val contextArtifact: StateFlow<ContextArtifact?> =
     projectIdFlow
       .flatMapLatest { id ->
         if (id.isNotEmpty()) {
@@ -532,11 +532,11 @@ constructor(
                         if (it.selectedDashboardTab in availableTabs) it.selectedDashboardTab else availableTabs.firstOrNull()
                     val adjustedView =
                         when {
-                            !enableBacklog && currentView == ProjectViewMode.BACKLOG && enableDashboard -> ProjectViewMode.DASHBOARD
-                            !enableInbox && currentView == ProjectViewMode.INBOX -> if (enableBacklog) ProjectViewMode.BACKLOG else ProjectViewMode.DASHBOARD
-                            !enableAttachments && currentView == ProjectViewMode.ATTACHMENTS -> if (enableBacklog) ProjectViewMode.BACKLOG else ProjectViewMode.DASHBOARD
-                            (!enableLog || !(it.isProjectManagementEnabled || enableAdvanced)) && currentView == ProjectViewMode.ADVANCED -> if (enableBacklog) ProjectViewMode.BACKLOG else ProjectViewMode.DASHBOARD
-                            !enableDashboard && currentView == ProjectViewMode.DASHBOARD && enableBacklog -> ProjectViewMode.BACKLOG
+                            !enableBacklog && currentView == ContextViewMode.BACKLOG && enableDashboard -> ContextViewMode.DASHBOARD
+                            !enableInbox && currentView == ContextViewMode.INBOX -> if (enableBacklog) ContextViewMode.BACKLOG else ContextViewMode.DASHBOARD
+                            !enableAttachments && currentView == ContextViewMode.ATTACHMENTS -> if (enableBacklog) ContextViewMode.BACKLOG else ContextViewMode.DASHBOARD
+                            (!enableLog || !(it.isProjectManagementEnabled || enableAdvanced)) && currentView == ContextViewMode.ADVANCED -> if (enableBacklog) ContextViewMode.BACKLOG else ContextViewMode.DASHBOARD
+                            !enableDashboard && currentView == ContextViewMode.DASHBOARD && enableBacklog -> ContextViewMode.BACKLOG
                             else -> currentView
                         }
                     it.copy(
@@ -558,7 +558,7 @@ constructor(
 
     savedStateHandle.get<String>("initialViewMode")?.let { modeName ->
       try {
-        val viewMode = ProjectViewMode.valueOf(modeName)
+        val viewMode = ContextViewMode.valueOf(modeName)
         _uiState.update { it.copy(currentView = viewMode) }
         Log.d(TAG, "Initial view mode set to $viewMode from navigation argument.")
       } catch (e: IllegalArgumentException) {
@@ -572,12 +572,12 @@ constructor(
           _uiState.update { it.copy(showCheckboxes = proj.showCheckboxes, isProjectManagementEnabled = proj.isProjectManagementEnabled == true || it.isProjectManagementEnabled) }
           val isManagementEnabled = _uiState.value.isProjectManagementEnabled
           val currentView = uiState.value.currentView
-          if (!isManagementEnabled && currentView == ProjectViewMode.ADVANCED) {
+          if (!isManagementEnabled && currentView == ContextViewMode.ADVANCED) {
             Log.d(
               TAG,
               "Inconsistency detected: Project management is OFF but view is DASHBOARD. Switching to BACKLOG.",
             )
-            onProjectViewChange(ProjectViewMode.BACKLOG)
+            onProjectViewChange(ContextViewMode.BACKLOG)
           }
 
           val currentInputMode = uiState.value.inputMode
@@ -606,9 +606,9 @@ constructor(
         .collect { savedModeName ->
           val viewMode =
             try {
-              ProjectViewMode.valueOf(savedModeName ?: ProjectViewMode.BACKLOG.name)
+              ContextViewMode.valueOf(savedModeName ?: ContextViewMode.BACKLOG.name)
             } catch (e: Exception) {
-              ProjectViewMode.BACKLOG
+              ContextViewMode.BACKLOG
             }
           _uiState.update {
             it.copy(currentView = viewMode, inputMode = getInputModeForView(viewMode))
@@ -769,7 +769,7 @@ constructor(
       withContext(Dispatchers.Main) {
           _uiState.update { it.copy(
               inputValue = TextFieldValue(""),
-              currentView = ProjectViewMode.ADVANCED,
+              currentView = ContextViewMode.ADVANCED,
               selectedDashboardTab = ProjectManagementTab.Log
           ) }
       }
@@ -781,7 +781,7 @@ constructor(
       viewModelScope.launch(Dispatchers.IO) {
           projectLogRepository.addProjectLogEntry(
               projectId = projectIdFlow.value,
-              type = ProjectLogEntryTypeValues.MILESTONE,
+              type = ContextLogEntryTypeValues.MILESTONE,
               description = text,
           )
           withContext(Dispatchers.Main) {
@@ -792,11 +792,11 @@ constructor(
           }
       }
   }
-  private fun getInputModeForView(viewMode: ProjectViewMode): InputMode =
+  private fun getInputModeForView(viewMode: ContextViewMode): InputMode =
     when (viewMode) {
-      ProjectViewMode.INBOX -> InputMode.AddQuickRecord
-      ProjectViewMode.ADVANCED -> InputMode.AddProjectLog
-      ProjectViewMode.DASHBOARD -> InputMode.AddGoal
+      ContextViewMode.INBOX -> InputMode.AddQuickRecord
+      ContextViewMode.ADVANCED -> InputMode.AddProjectLog
+      ContextViewMode.DASHBOARD -> InputMode.AddGoal
       else -> InputMode.AddGoal
     }
 
@@ -1218,9 +1218,9 @@ constructor(
           listToSave.mapIndexedNotNull { index, content ->
             val order = index.toLong()
             when (content.backlogItem.itemType) {
-              ListItemTypeValues.LINK_ITEM,
-              ListItemTypeValues.NOTE_DOCUMENT,
-              ListItemTypeValues.CHECKLIST -> {
+              BacklogItemTypeValues.LINK_ITEM,
+              BacklogItemTypeValues.NOTE_DOCUMENT,
+              BacklogItemTypeValues.CHECKLIST -> {
                 attachmentOrders += content.backlogItem.id to order
                 null
               }
@@ -1402,13 +1402,13 @@ constructor(
     viewModelScope.launch { _uiEventFlow.send(UiEvent.ScrollToLatestInboxRecord) }
   }
 
-  fun onProjectViewChange(newView: ProjectViewMode) {
+  fun onProjectViewChange(newView: ContextViewMode) {
     val flags = uiState.value
-    if (newView == ProjectViewMode.INBOX && !flags.enableInbox) return
-    if (newView == ProjectViewMode.ADVANCED && (!flags.isProjectManagementEnabled || !flags.enableLog)) return
-    if (newView == ProjectViewMode.ATTACHMENTS && !flags.enableAttachments) return
-    if (newView == ProjectViewMode.DASHBOARD && !flags.enableDashboard) return
-    if (newView == ProjectViewMode.BACKLOG && !flags.enableBacklog) return
+    if (newView == ContextViewMode.INBOX && !flags.enableInbox) return
+    if (newView == ContextViewMode.ADVANCED && (!flags.isProjectManagementEnabled || !flags.enableLog)) return
+    if (newView == ContextViewMode.ATTACHMENTS && !flags.enableAttachments) return
+    if (newView == ContextViewMode.DASHBOARD && !flags.enableDashboard) return
+    if (newView == ContextViewMode.BACKLOG && !flags.enableBacklog) return
     Log.d("ATTACHMENT_DEBUG", "VM: onProjectViewChange(newView = $newView) called.")
     _uiState.update {
       Log.d("ATTACHMENT_DEBUG", "VM: Updating uiState.currentView to $newView.")
@@ -1672,8 +1672,8 @@ constructor(
       projectRepository.toggleProjectManagement(proj.id, newState)
 
       if (newState) {
-                    onProjectViewChange(ProjectViewMode.ADVANCED)        } else if (currentView == ProjectViewMode.ADVANCED) {
-        onProjectViewChange(ProjectViewMode.BACKLOG)
+                    onProjectViewChange(ContextViewMode.ADVANCED)        } else if (currentView == ContextViewMode.ADVANCED) {
+        onProjectViewChange(ContextViewMode.BACKLOG)
       }
     }
   }
@@ -1683,7 +1683,7 @@ constructor(
     if (currentProjectId.isNotBlank()) {
       viewModelScope.launch {
         val metrics = projectRepository.calculateProjectTimeMetrics(currentProjectId)
-        _uiState.update { it.copy(projectTimeMetrics = metrics) }
+        _uiState.update { it.copy(contextTimeMetrics = metrics) }
 
         projectRepository.recalculateAndLogProjectTime(currentProjectId)
       }
@@ -2125,7 +2125,7 @@ constructor(
         viewModelScope.launch {
             projectLogRepository.addProjectLogEntry(
                 projectId = projectIdFlow.value,
-                type = ProjectLogEntryTypeValues.MILESTONE,
+                type = ContextLogEntryTypeValues.MILESTONE,
                 description = "New Milestone",
             )
         }
@@ -2133,10 +2133,10 @@ constructor(
 
     fun onSaveArtifact(content: String) {
         viewModelScope.launch {
-            val currentArtifact = projectArtifact.value
+            val currentArtifact = contextArtifact.value
             if (currentArtifact == null) {
                 projectRepository.createProjectArtifact(
-                    ProjectArtifact(
+                    ContextArtifact(
                         id = UUID.randomUUID().toString(),
                         projectId = projectIdFlow.value,
                         content = content,
@@ -2153,7 +2153,7 @@ constructor(
 
     fun onAutoSaveArtifact(content: String) {
         viewModelScope.launch {
-            val currentArtifact = projectArtifact.value ?: return@launch
+            val currentArtifact = contextArtifact.value ?: return@launch
             projectRepository.updateProjectArtifact(
                 currentArtifact.copy(
                     content = content,
@@ -2163,7 +2163,7 @@ constructor(
         }
     }
 
-    fun onEditArtifact(artifact: ProjectArtifact) {
+    fun onEditArtifact(artifact: ContextArtifact) {
         _uiState.update { it.copy(artifactToEdit = artifact) }
     }
 

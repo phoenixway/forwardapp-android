@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.features.attachments.data
 
 import android.util.Log
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentEntity
@@ -152,7 +152,7 @@ class AttachmentRepository @Inject constructor(
          val attachment =
              AttachmentEntity(
                  id = UUID.randomUUID().toString(),
-                 attachmentType = ListItemTypeValues.LINK_ITEM,
+                 attachmentType = BacklogItemTypeValues.LINK_ITEM,
                  entityId = linkEntity.id,
                  ownerProjectId = projectId,
                 roleCode = roleCode,
@@ -217,7 +217,7 @@ class AttachmentRepository @Inject constructor(
             attachmentDao.insertAttachment(
                 attachment.softDelete(now),
             )
-            if (attachment.attachmentType == ListItemTypeValues.LINK_ITEM) {
+            if (attachment.attachmentType == BacklogItemTypeValues.LINK_ITEM) {
                 linkItemDao.deleteById(attachment.entityId)
             }
         }
@@ -242,7 +242,7 @@ class AttachmentRepository @Inject constructor(
             attachmentDao.deleteAllLinksForAttachment(attachmentId)
             attachmentDao.deleteAttachment(attachmentId)
         }
-        if (attachment != null && attachment.attachmentType == ListItemTypeValues.LINK_ITEM) {
+        if (attachment != null && attachment.attachmentType == BacklogItemTypeValues.LINK_ITEM) {
             linkItemDao.deleteById(attachment.entityId)
         }
     }

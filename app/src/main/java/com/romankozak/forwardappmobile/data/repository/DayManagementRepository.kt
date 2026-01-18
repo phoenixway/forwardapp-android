@@ -14,7 +14,7 @@ import com.romankozak.forwardappmobile.features.daymanagement.data.models.Recurr
 import com.romankozak.forwardappmobile.features.daymanagement.data.models.RecurringTask
 import com.romankozak.forwardappmobile.features.ai.data.models.WeeklyInsights
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
@@ -138,9 +138,9 @@ class DayManagementRepository
                 val resolvedTaskType =
                     taskType
                         ?: when {
-                            goalId != null -> ListItemTypeValues.GOAL
-                            projectId != null -> ListItemTypeValues.SUBLIST
-                            else -> ListItemTypeValues.GOAL
+                            goalId != null -> BacklogItemTypeValues.GOAL
+                            projectId != null -> BacklogItemTypeValues.SUBLIST
+                            else -> BacklogItemTypeValues.GOAL
                         }
 
                 val recurringTask = RecurringTask(
@@ -196,7 +196,7 @@ class DayManagementRepository
                     scheduledTime = params.scheduledTime,
                     estimatedDurationMinutes = params.estimatedDurationMinutes,
                     order = order,
-                    taskType = params.taskType ?: ListItemTypeValues.GOAL,
+                    taskType = params.taskType ?: BacklogItemTypeValues.GOAL,
                     points = params.points,
                     syncedAt = null,
                     version = 1,
@@ -237,7 +237,7 @@ class DayManagementRepository
 
                     scheduledTime = scheduledTime,
                     priority = mapImportanceToPriority(goal.valueImportance),
-                    taskType = ListItemTypeValues.GOAL,
+                    taskType = BacklogItemTypeValues.GOAL,
                 )
             addTaskToDayPlan(taskParams)
         }
@@ -260,7 +260,7 @@ class DayManagementRepository
                         projectId = projectId,
                         scheduledTime = scheduledTime,
                         priority = mapImportanceToPriority(project.valueImportance),
-                        taskType = ListItemTypeValues.SUBLIST,
+                        taskType = BacklogItemTypeValues.SUBLIST,
                     )
                 addTaskToDayPlan(taskParams)
             }
@@ -642,9 +642,9 @@ class DayManagementRepository
                                 val resolvedTaskType =
                                     templateTask?.taskType
                                         ?: when {
-                                            goalId != null -> ListItemTypeValues.GOAL
-                                            projectId != null -> ListItemTypeValues.SUBLIST
-                                            else -> ListItemTypeValues.GOAL
+                                            goalId != null -> BacklogItemTypeValues.GOAL
+                                            projectId != null -> BacklogItemTypeValues.SUBLIST
+                                            else -> BacklogItemTypeValues.GOAL
                                         }
 
                                 val taskParams = NewTaskParameters(

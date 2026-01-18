@@ -31,9 +31,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectTimeMetrics
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextTimeMetrics
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStatusValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextStatusValues
 import com.romankozak.forwardappmobile.core.utils.formatDurationForUi
 
 @OptIn(ExperimentalAnimationApi::class)
@@ -43,7 +43,7 @@ fun DashboardContent(
     onStatusUpdate: (String, String?) -> Unit,
     onToggleProjectManagement: (Boolean) -> Unit,
     onRecalculateTime: () -> Unit,
-    projectTimeMetrics: ProjectTimeMetrics?,
+    contextTimeMetrics: ContextTimeMetrics?,
 ) {
     var showStatusDialog by remember { mutableStateOf(false) }
 
@@ -65,11 +65,11 @@ fun DashboardContent(
                 if (!isManagementEnabled) {
                     EnableSupportCard(onEnable = { onToggleProjectManagement(true) })
                 } else {
-                    StatusDisplayCard(status = project.projectStatus ?: ProjectStatusValues.NO_PLAN, statusText = project.projectStatusText, onClick = {
+                    StatusDisplayCard(status = project.projectStatus ?: ContextStatusValues.NO_PLAN, statusText = project.projectStatusText, onClick = {
                         showStatusDialog = true
                     })
 
-                    projectTimeMetrics?.let { metrics ->
+                    contextTimeMetrics?.let { metrics ->
                         Spacer(modifier = Modifier.height(8.dp))
                         MetricsDisplayCard(metrics = metrics)
                     }
@@ -89,7 +89,7 @@ fun DashboardContent(
 
     if (showStatusDialog) {
         UpdateStatusDialog(
-            currentStatus = project.projectStatus ?: ProjectStatusValues.NO_PLAN,
+            currentStatus = project.projectStatus ?: ContextStatusValues.NO_PLAN,
             currentStatusText = project.projectStatusText ?: "",
             onDismissRequest = {
                 showStatusDialog = false
@@ -122,7 +122,7 @@ private fun StatusDisplayCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text("Поточний статус", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(ProjectStatusValues.getDisplayName(status), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(ContextStatusValues.getDisplayName(status), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 if (!statusText.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
@@ -170,7 +170,7 @@ private fun EnableSupportCard(onEnable: () -> Unit) {
 }
 
 @Composable
-private fun MetricsDisplayCard(metrics: ProjectTimeMetrics) {
+private fun MetricsDisplayCard(metrics: ContextTimeMetrics) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(2.dp),

@@ -8,7 +8,7 @@ import androidx.room.PrimaryKey
     tableName = "project_artifacts",
     indices = [Index(value = ["projectId"])]
 )
-data class ProjectArtifact(
+data class ContextArtifact(
     @PrimaryKey val id: String,
     val projectId: String,
     val content: String,

@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.view
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStatusValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextStatusValues
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.BacklogMarkdownHandlerResultListener
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -30,7 +30,7 @@ class ProjectMarkdownExporter
                     appendLine()
 
                     appendLine("## Поточний стан проекту")
-                    appendLine("- **Статус:** ${ProjectStatusValues.getDisplayName(project.projectStatus) ?: "Не визначено"}")
+                    appendLine("- **Статус:** ${ContextStatusValues.getDisplayName(project.projectStatus) ?: "Не визначено"}")
                     project.projectStatusText?.takeIf { it.isNotBlank() }?.let {
                         appendLine("- **Коментар до статусу:** $it")
                     }

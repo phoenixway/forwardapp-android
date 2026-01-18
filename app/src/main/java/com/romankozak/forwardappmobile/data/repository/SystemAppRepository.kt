@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.data.repository
 import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectDao
 import com.romankozak.forwardappmobile.data.dao.SystemAppDao
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.SystemAppEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.SystemAppType
@@ -63,7 +63,7 @@ class SystemAppRepository @Inject constructor(
         val targetProjectId = projectDao.getProjectBySystemKey(targetProjectSystemKey)?.id ?: return
 
         attachmentRepository.ensureAttachmentLinkedToProject(
-            attachmentType = ListItemTypeValues.NOTE_DOCUMENT,
+            attachmentType = BacklogItemTypeValues.NOTE_DOCUMENT,
             entityId = noteId,
             projectId = targetProjectId,
             ownerProjectId = systemApp.projectId,
@@ -81,7 +81,7 @@ class SystemAppRepository @Inject constructor(
             )
         noteDocumentDao.insertDocument(noteDocument)
         attachmentRepository.ensureAttachmentLinkedToProject(
-            attachmentType = ListItemTypeValues.NOTE_DOCUMENT,
+            attachmentType = BacklogItemTypeValues.NOTE_DOCUMENT,
             entityId = noteDocument.id,
             projectId = projectId,
             ownerProjectId = projectId,

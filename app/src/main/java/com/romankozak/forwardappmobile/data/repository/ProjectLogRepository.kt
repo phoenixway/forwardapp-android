@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.data.repository
 
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectManagementDao
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectLogEntryTypeValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLogEntryTypeValues
 import com.romankozak.forwardappmobile.data.sync.bumpSync
 import com.romankozak.forwardappmobile.data.sync.softDelete
 import kotlinx.coroutines.flow.Flow
@@ -21,7 +21,7 @@ class ProjectLogRepository @Inject constructor(
         val status = if (isEnabled) "активовано" else "деактивовано"
         addProjectLogEntry(
             projectId = projectId,
-            type = ProjectLogEntryTypeValues.AUTOMATIC,
+            type = ContextLogEntryTypeValues.AUTOMATIC,
             description = "Управління проектом було $status.",
         )
     }
@@ -32,7 +32,7 @@ class ProjectLogRepository @Inject constructor(
                 (statusText?.let { "\nКоментар: $it" } ?: "")
         addProjectLogEntry(
             projectId = projectId,
-            type = ProjectLogEntryTypeValues.STATUS_CHANGE,
+            type = ContextLogEntryTypeValues.STATUS_CHANGE,
             description = logDescription,
         )
     }
@@ -43,7 +43,7 @@ class ProjectLogRepository @Inject constructor(
     ) {
         addProjectLogEntry(
             projectId = projectId,
-            type = ProjectLogEntryTypeValues.COMMENT,
+            type = ContextLogEntryTypeValues.COMMENT,
             description = comment,
         )
     }

@@ -4,8 +4,8 @@ import android.util.Log
 import androidx.room.Transaction
 import com.romankozak.forwardappmobile.features.contexts.data.dao.*
 import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectArtifact
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectTimeMetrics
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextArtifact
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextTimeMetrics
 
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextType
 import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
@@ -15,11 +15,11 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectViewMode
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextViewMode
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -108,7 +108,7 @@ constructor(
 
     suspend fun updateProjectViewMode(
         projectId: String,
-        viewMode: ProjectViewMode,
+        viewMode: ContextViewMode,
     ) {
         projectDao.updateViewMode(projectId, viewMode.name)
     }
@@ -208,29 +208,29 @@ constructor(
 
         val backlogItems = combinedItems.mapNotNull { item ->
             when (item.itemType) {
-                ListItemTypeValues.GOAL ->
+                BacklogItemTypeValues.GOAL ->
                     goalsMap[item.entityId]?.let { goal ->
                         val itemReminders = remindersMap[goal.id] ?: emptyList()
                         BacklogItemContent.GoalItem(goal, itemReminders, item)
                     }
-                ListItemTypeValues.SUBLIST ->
+                BacklogItemTypeValues.SUBLIST ->
                     projectsMap[item.entityId]?.let { project ->
                         val itemReminders = remindersMap[project.id] ?: emptyList()
                         BacklogItemContent.SublistItem(project, itemReminders, item)
                     }
-                ListItemTypeValues.LINK_ITEM ->
+                BacklogItemTypeValues.LINK_ITEM ->
                     linksMap[item.entityId]?.let { link ->
                         BacklogItemContent.LinkItem(link, item)
                     }
-                ListItemTypeValues.NOTE ->
+                BacklogItemTypeValues.NOTE ->
                     notesMap[item.entityId]?.let { note ->
                         BacklogItemContent.NoteItem(note, item)
                     }
-                ListItemTypeValues.NOTE_DOCUMENT ->
+                BacklogItemTypeValues.NOTE_DOCUMENT ->
                     noteDocumentsMap[item.entityId]?.let { document ->
                         BacklogItemContent.NoteDocumentItem(document, item)
                     }
-                ListItemTypeValues.CHECKLIST ->
+                BacklogItemTypeValues.CHECKLIST ->
                     checklistsMap[item.entityId]?.let { checklist ->
                         BacklogItemContent.ChecklistItem(checklist, item)
                     }
@@ -264,11 +264,11 @@ constructor(
             val attachment = attachmentRepository.getAttachmentById(itemId)
             if (attachment != null) {
                 when (attachment.attachmentType) {
-                    ListItemTypeValues.NOTE_DOCUMENT ->
+                    BacklogItemTypeValues.NOTE_DOCUMENT ->
                         noteDocumentRepository.deleteDocument(attachment.entityId)
-                    ListItemTypeValues.CHECKLIST ->
+                    BacklogItemTypeValues.CHECKLIST ->
                         checklistRepository.deleteChecklist(attachment.entityId)
-                    ListItemTypeValues.LINK_ITEM ->
+                    BacklogItemTypeValues.LINK_ITEM ->
                         attachmentRepository.unlinkAttachmentFromProject(itemId, projectId)
                     else ->
                         attachmentRepository.unlinkAttachmentFromProject(itemId, projectId)
@@ -488,8 +488,8 @@ constructor(
     suspend fun deleteAttachmentEverywhere(attachmentId: String) {
         val attachment = attachmentRepository.getAttachmentById(attachmentId) ?: return
         when (attachment.attachmentType) {
-            ListItemTypeValues.NOTE_DOCUMENT -> noteDocumentRepository.deleteDocument(attachment.entityId)
-            ListItemTypeValues.CHECKLIST -> checklistRepository.deleteChecklist(attachment.entityId)
+            BacklogItemTypeValues.NOTE_DOCUMENT -> noteDocumentRepository.deleteDocument(attachment.entityId)
+            BacklogItemTypeValues.CHECKLIST -> checklistRepository.deleteChecklist(attachment.entityId)
             else -> attachmentRepository.deleteAttachment(attachmentId)
         }
     }
@@ -513,7 +513,7 @@ constructor(
 
     suspend fun recalculateAndLogProjectTime(projectId: String) = projectTimeTrackingRepository.recalculateAndLogProjectTime(projectId)
 
-    suspend fun calculateProjectTimeMetrics(projectId: String): ProjectTimeMetrics = projectTimeTrackingRepository.calculateProjectTimeMetrics(projectId)
+    suspend fun calculateProjectTimeMetrics(projectId: String): ContextTimeMetrics = projectTimeTrackingRepository.calculateProjectTimeMetrics(projectId)
 
 
 
@@ -523,12 +523,12 @@ constructor(
 
         allListItems.forEach { item ->
             val entityExists = when (item.itemType) {
-                ListItemTypeValues.GOAL -> goalRepository.getGoalById(item.entityId) != null
-                ListItemTypeValues.SUBLIST -> projectDao.getProjectById(item.entityId) != null
-                ListItemTypeValues.LINK_ITEM -> listItemRepository.getLinkItemById(item.entityId) != null
-                ListItemTypeValues.NOTE -> legacyNoteRepository.getNoteById(item.entityId) != null
-                ListItemTypeValues.NOTE_DOCUMENT -> noteDocumentRepository.getDocumentById(item.entityId) != null
-                ListItemTypeValues.CHECKLIST -> checklistRepository.getChecklistById(item.entityId) != null
+                BacklogItemTypeValues.GOAL -> goalRepository.getGoalById(item.entityId) != null
+                BacklogItemTypeValues.SUBLIST -> projectDao.getProjectById(item.entityId) != null
+                BacklogItemTypeValues.LINK_ITEM -> listItemRepository.getLinkItemById(item.entityId) != null
+                BacklogItemTypeValues.NOTE -> legacyNoteRepository.getNoteById(item.entityId) != null
+                BacklogItemTypeValues.NOTE_DOCUMENT -> noteDocumentRepository.getDocumentById(item.entityId) != null
+                BacklogItemTypeValues.CHECKLIST -> checklistRepository.getChecklistById(item.entityId) != null
                 else -> true // Assume unknown types are valid to avoid deleting them
             }
             if (!entityExists) {
@@ -542,11 +542,11 @@ constructor(
         }
     }
 
-    fun getProjectArtifactStream(projectId: String): Flow<ProjectArtifact?> = projectArtifactRepository.getProjectArtifactStream(projectId)
+    fun getProjectArtifactStream(projectId: String): Flow<ContextArtifact?> = projectArtifactRepository.getProjectArtifactStream(projectId)
 
-    suspend fun updateProjectArtifact(artifact: ProjectArtifact) = projectArtifactRepository.updateProjectArtifact(artifact)
+    suspend fun updateProjectArtifact(artifact: ContextArtifact) = projectArtifactRepository.updateProjectArtifact(artifact)
 
-    suspend fun createProjectArtifact(artifact: ProjectArtifact) = projectArtifactRepository.createProjectArtifact(artifact)
+    suspend fun createProjectArtifact(artifact: ContextArtifact) = projectArtifactRepository.createProjectArtifact(artifact)
 
     suspend fun ensureSubprojectByRole(
         parentProjectId: String,
@@ -578,7 +578,7 @@ constructor(
     suspend fun ensureChildProjectListItemsExist(projectId: String) {
         val children = projectDao.getProjectsByParentId(projectId)
         val backlogItems = listItemRepository.getItemsForProjectStream(projectId).first()
-        val backlogSubprojectIds = backlogItems.filter { it.itemType == ListItemTypeValues.SUBLIST }.map { it.entityId }.toSet()
+        val backlogSubprojectIds = backlogItems.filter { it.itemType == BacklogItemTypeValues.SUBLIST }.map { it.entityId }.toSet()
 
         children.forEach { child ->
             if (child.id !in backlogSubprojectIds) {

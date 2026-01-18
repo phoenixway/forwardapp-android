@@ -25,8 +25,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStatusValues
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectViewMode
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextStatusValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextViewMode
 import kotlinx.coroutines.delay
 
 import androidx.compose.material.icons.Icons
@@ -41,24 +41,24 @@ private data class StatusVisuals(
 )
 
 @Composable
-internal fun getViewModeText(viewMode: ProjectViewMode): String =
+internal fun getViewModeText(viewMode: ContextViewMode): String =
     when (viewMode) {
-        ProjectViewMode.BACKLOG -> "Backlog"
-        ProjectViewMode.INBOX -> "Inbox"
-        ProjectViewMode.ADVANCED -> "Advanced View"
-        ProjectViewMode.ATTACHMENTS -> "Attachments"
-        ProjectViewMode.DASHBOARD -> "Dashboard"
+        ContextViewMode.BACKLOG -> "Backlog"
+        ContextViewMode.INBOX -> "Inbox"
+        ContextViewMode.ADVANCED -> "Advanced View"
+        ContextViewMode.ATTACHMENTS -> "Attachments"
+        ContextViewMode.DASHBOARD -> "Dashboard"
     }
 
 @Composable
 private fun getStatusVisuals(status: String): StatusVisuals =
     when (status) {
-        ProjectStatusValues.NO_PLAN -> StatusVisuals("⚠️", Color(0xFFFF9800).copy(alpha = 0.3f))
-        ProjectStatusValues.PLANNING -> StatusVisuals("📝", Color(0xFF9C27B0).copy(alpha = 0.3f))
-        ProjectStatusValues.IN_PROGRESS -> StatusVisuals("▶️", Color(0xFF2196F3).copy(alpha = 0.3f))
-        ProjectStatusValues.COMPLETED -> StatusVisuals("✅", Color(0xFF4CAF50).copy(alpha = 0.3f))
-        ProjectStatusValues.ON_HOLD -> StatusVisuals("⏸️", Color(0xFFFF9800).copy(alpha = 0.3f))
-        ProjectStatusValues.PAUSED -> StatusVisuals("⏳", Color(0xFFFFC107).copy(alpha = 0.3f))
+        ContextStatusValues.NO_PLAN -> StatusVisuals("⚠️", Color(0xFFFF9800).copy(alpha = 0.3f))
+        ContextStatusValues.PLANNING -> StatusVisuals("📝", Color(0xFF9C27B0).copy(alpha = 0.3f))
+        ContextStatusValues.IN_PROGRESS -> StatusVisuals("▶️", Color(0xFF2196F3).copy(alpha = 0.3f))
+        ContextStatusValues.COMPLETED -> StatusVisuals("✅", Color(0xFF4CAF50).copy(alpha = 0.3f))
+        ContextStatusValues.ON_HOLD -> StatusVisuals("⏸️", Color(0xFFFF9800).copy(alpha = 0.3f))
+        ContextStatusValues.PAUSED -> StatusVisuals("⏳", Color(0xFFFFC107).copy(alpha = 0.3f))
         else -> StatusVisuals("", Color.Transparent)
     }
 
@@ -88,27 +88,27 @@ private fun BriefStatusIndicator(
 
 @Composable
 private fun ViewModeIndicator(
-    viewMode: ProjectViewMode,
+    viewMode: ContextViewMode,
     modifier: Modifier = Modifier,
 ) {
     val (backgroundColor, textColor) = when (viewMode) {
-        ProjectViewMode.BACKLOG -> Pair(
+        ContextViewMode.BACKLOG -> Pair(
             Color(0xFFE8F5E9).copy(alpha = 0.7f),
             Color(0xFF2E7D32).copy(alpha = 0.8f)
         )
-        ProjectViewMode.INBOX -> Pair(
+        ContextViewMode.INBOX -> Pair(
             Color(0xFFE3F2FD).copy(alpha = 0.7f),
             Color(0xFF1565C0).copy(alpha = 0.8f)
         )
-        ProjectViewMode.ADVANCED -> Pair(
+        ContextViewMode.ADVANCED -> Pair(
             Color(0xFFF3E5F5).copy(alpha = 0.7f),
             Color(0xFF7B1FA2).copy(alpha = 0.8f)
         )
-        ProjectViewMode.ATTACHMENTS -> Pair(
+        ContextViewMode.ATTACHMENTS -> Pair(
             Color(0xFFF5F5F5).copy(alpha = 0.7f),
             Color(0xFF616161).copy(alpha = 0.8f)
         )
-        ProjectViewMode.DASHBOARD -> Pair(
+        ContextViewMode.DASHBOARD -> Pair(
             Color(0xFFFFF3E0).copy(alpha = 0.7f),
             Color(0xFFEF6C00).copy(alpha = 0.8f)
         )
@@ -200,7 +200,7 @@ private fun ProjectStatusIndicator(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                     )
                     Text(
-                        text = ProjectStatusValues.getDisplayName(status),
+                        text = ContextStatusValues.getDisplayName(status),
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Medium,
                             fontSize = 13.sp,
@@ -254,7 +254,7 @@ private fun ProjectStatusIndicator(
 fun ListTitleBar(
     modifier: Modifier = Modifier,
     project: Context?,
-    currentViewMode: ProjectViewMode? = null,
+    currentViewMode: ContextViewMode? = null,
     onInboxClick: () -> Unit,
 ) {
     var isStatusExpanded by remember { mutableStateOf(false) }

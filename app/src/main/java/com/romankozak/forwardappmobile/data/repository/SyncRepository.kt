@@ -70,11 +70,11 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.data.models.InboxRecord
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectLogLevelValues
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStatusValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLogLevelValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextStatusValues
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextType
 import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedGroup
 import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
@@ -266,7 +266,7 @@ constructor(
                 reminders = reminderDao.getAllRemindersSync(),
                 recurringTasks = recurringTaskDao.getAll(),
                 systemApps = systemAppDao.getAll(),
-                projectArtifacts = projectArtifactDao.getAll(),
+                contextArtifacts = projectArtifactDao.getAll(),
                 tacticalMissions = tacticalMissionDao.getAllMissionsSync(),
                 tacticalMissionAttachments = tacticalMissionDao.getAllMissionAttachmentCrossRefs(),
                 aiEvents = aiEventDao.getAll(),
@@ -656,9 +656,9 @@ constructor(
                     // Do NOT force BACKLOG; keep incoming view mode
                     defaultViewModeName = projectFromBackup.defaultViewModeName,
                     isProjectManagementEnabled = projectFromBackup.isProjectManagementEnabled ?: false,
-                    projectStatus = projectFromBackup.projectStatus ?: ProjectStatusValues.NO_PLAN,
+                    projectStatus = projectFromBackup.projectStatus ?: ContextStatusValues.NO_PLAN,
                     projectStatusText = projectFromBackup.projectStatusText ?: "",
-                    projectLogLevel = projectFromBackup.projectLogLevel ?: ProjectLogLevelValues.NORMAL,
+                    projectLogLevel = projectFromBackup.projectLogLevel ?: ContextLogLevelValues.NORMAL,
                     totalTimeSpentMinutes = projectFromBackup.totalTimeSpentMinutes ?: 0,
                     scoringStatus = projectFromBackup.scoringStatus ?: ScoringStatusValues.NOT_ASSESSED,
                     valueImportance = projectFromBackup.valueImportance,
@@ -809,7 +809,7 @@ constructor(
                     } else {
                         item.copy(
                             projectId = projectIdMap[item.projectId] ?: item.projectId,
-                            entityId = if (item.itemType == ListItemTypeValues.SUBLIST) {
+                            entityId = if (item.itemType == BacklogItemTypeValues.SUBLIST) {
                                 projectIdMap[item.entityId] ?: item.entityId
                             } else {
                                 item.entityId
@@ -818,7 +818,7 @@ constructor(
                     }
                 }.filter {
                     val projectOk = it.projectId in projectIds
-                    val goalOk = it.itemType != ListItemTypeValues.GOAL || it.entityId in goalIds
+                    val goalOk = it.itemType != BacklogItemTypeValues.GOAL || it.entityId in goalIds
                     if (!projectOk || !goalOk) {
                         Log.w(IMPORT_TAG, "Skipping ListItem due to missing references. projectOk=$projectOk goalOk=$goalOk item=$it")
                     }
@@ -1064,7 +1064,7 @@ constructor(
                 backup.reminders.forEach { reminderDao.insert(it) }
 
                 cleanedSystemApps.forEach { systemAppDao.upsert(it) }
-                backup.projectArtifacts.forEach { projectArtifactDao.insert(it) }
+                backup.contextArtifacts.forEach { projectArtifactDao.insert(it) }
 
                 val cleanedTacticalMissions = backup.tacticalMissions.filter { !it.title.isNullOrBlank() }
                 cleanedTacticalMissions.forEach { tacticalMissionDao.insertMission(it) }
@@ -1097,7 +1097,7 @@ constructor(
                     Log.d(IMPORT_TAG, "Спроба створити відсутні записи вкладень для старих бекапів...")
                     cleanedDocuments.forEach {
                         attachmentRepository.ensureAttachmentLinkedToProject(
-                            attachmentType = ListItemTypeValues.NOTE_DOCUMENT,
+                            attachmentType = BacklogItemTypeValues.NOTE_DOCUMENT,
                             entityId = it.id,
                             projectId = it.projectId,
                             ownerProjectId = it.projectId,
@@ -1106,7 +1106,7 @@ constructor(
                     }
                     cleanedChecklists.forEach {
                         attachmentRepository.ensureAttachmentLinkedToProject(
-                            attachmentType = ListItemTypeValues.CHECKLIST,
+                            attachmentType = BacklogItemTypeValues.CHECKLIST,
                             entityId = it.id,
                             projectId = it.projectId,
                             ownerProjectId = it.projectId,
@@ -1991,7 +1991,7 @@ constructor(
     ) {
         val all = listItemDao.getAll()
         val valid = dedupListItems(
-            all.filter { it.projectId in projectIds && (it.itemType != ListItemTypeValues.GOAL || it.entityId in goalIds) && (it.itemType != ListItemTypeValues.SUBLIST || it.entityId in projectIds) },
+            all.filter { it.projectId in projectIds && (it.itemType != BacklogItemTypeValues.GOAL || it.entityId in goalIds) && (it.itemType != BacklogItemTypeValues.SUBLIST || it.entityId in projectIds) },
         )
         val keepIds = valid.map { it.id }.toSet()
         val toDelete = all.map { it.id }.filterNot { it in keepIds }
@@ -2115,7 +2115,7 @@ constructor(
                     },
                     backlogItems = normalized.backlogItems.map { li ->
                         val newProjectId = idRedirects[li.projectId] ?: li.projectId
-                        val newEntityId = if (li.itemType == ListItemTypeValues.SUBLIST) idRedirects[li.entityId] ?: li.entityId else li.entityId
+                        val newEntityId = if (li.itemType == BacklogItemTypeValues.SUBLIST) idRedirects[li.entityId] ?: li.entityId else li.entityId
                         li.copy(projectId = newProjectId, entityId = newEntityId)
                     },
                     backlogOrders = normalized.backlogOrders.map { bo ->
@@ -2184,7 +2184,7 @@ constructor(
                 val localOrderByKey = local.backlogOrders.associateBy { it.listId to it.itemId }
 
                 val incomingListItemsPrepared = correctedChanges.backlogItems
-                    .filter { it.projectId in projectIds && (it.itemType != ListItemTypeValues.GOAL || it.entityId in goalIds) && (it.itemType != ListItemTypeValues.SUBLIST || it.entityId in projectIds) }
+                    .filter { it.projectId in projectIds && (it.itemType != BacklogItemTypeValues.GOAL || it.entityId in goalIds) && (it.itemType != BacklogItemTypeValues.SUBLIST || it.entityId in projectIds) }
                     .map { li ->
                         val key = li.projectId to li.entityId
                         val localOrder = localOrderByKey[key]
@@ -2547,9 +2547,9 @@ constructor(
             defaultViewModeName = project.defaultViewModeName,
             isCompleted = project.isCompleted,
             isProjectManagementEnabled = project.isProjectManagementEnabled ?: false,
-            projectStatus = project.projectStatus ?: ProjectStatusValues.NO_PLAN,
+            projectStatus = project.projectStatus ?: ContextStatusValues.NO_PLAN,
             projectStatusText = project.projectStatusText ?: "",
-            projectLogLevel = project.projectLogLevel ?: ProjectLogLevelValues.NORMAL,
+            projectLogLevel = project.projectLogLevel ?: ContextLogLevelValues.NORMAL,
             totalTimeSpentMinutes = project.totalTimeSpentMinutes ?: 0,
             valueImportance = project.valueImportance,
             valueImpact = project.valueImpact,

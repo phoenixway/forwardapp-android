@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.data.sync
 
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -30,7 +30,7 @@ class BacklogOrderUtilsTest {
             BacklogItem(
                 id = "li1",
                 projectId = "p1",
-                itemType = ListItemTypeValues.GOAL,
+                itemType = BacklogItemTypeValues.GOAL,
                 entityId = "g1",
                 order = 1,
                 version = 1,
@@ -54,7 +54,7 @@ class BacklogOrderUtilsTest {
             BacklogItem(
                 id = "li1",
                 projectId = "p1",
-                itemType = ListItemTypeValues.GOAL,
+                itemType = BacklogItemTypeValues.GOAL,
                 entityId = "g1",
                 order = 5,
                 version = 7,
@@ -77,7 +77,7 @@ class BacklogOrderUtilsTest {
             BacklogItem(
                 id = "li1",
                 projectId = "p1",
-                itemType = ListItemTypeValues.GOAL,
+                itemType = BacklogItemTypeValues.GOAL,
                 entityId = "g1",
                 order = 1,
                 version = 1,

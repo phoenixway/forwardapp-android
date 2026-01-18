@@ -1,9 +1,7 @@
 package com.romankozak.forwardappmobile.ui.common.editor
 
 import android.app.Activity
-import android.content.Intent
 import androidx.compose.animation.*
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -58,7 +56,6 @@ import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import android.util.Log
 import com.romankozak.forwardappmobile.ui.common.components.ShareDialog
 import com.romankozak.forwardappmobile.ui.common.editor.components.ExperimentalEnhancedListToolbar
 import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEditorEvent
@@ -66,7 +63,7 @@ import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEdito
 
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectViewMode
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextViewMode
 
 import kotlinx.coroutines.delay
 
@@ -151,7 +148,7 @@ fun UniversalEditorScreen(
         is UniversalEditorEvent.ShowLocation -> {
           val projectId = it.projectId
           android.util.Log.d("ProjectRevealDebug", "Navigating to project screen for projectId: $projectId in ATTACHMENTS mode")
-          navController.navigate("goal_detail_screen/$projectId?initialViewMode=${ProjectViewMode.ATTACHMENTS.name}")
+          navController.navigate("goal_detail_screen/$projectId?initialViewMode=${ContextViewMode.ATTACHMENTS.name}")
         }
 
         is UniversalEditorEvent.ShowError -> {

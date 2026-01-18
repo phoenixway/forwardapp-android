@@ -20,7 +20,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocu
 import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.SystemAppEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectArtifact
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextArtifact
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextConfiguration
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructureItem
@@ -103,7 +103,7 @@ data class DatabaseContent(
     @SerializedName("systemApps")
     val systemApps: List<SystemAppEntity> = emptyList(),
     @SerializedName("projectArtifacts")
-    val projectArtifacts: List<ProjectArtifact> = emptyList(),
+    val contextArtifacts: List<ContextArtifact> = emptyList(),
 
     @SerializedName("tacticalMissions")
     val tacticalMissions: List<com.romankozak.forwardappmobile.features.missions.data.model.TacticalMission> = emptyList(),

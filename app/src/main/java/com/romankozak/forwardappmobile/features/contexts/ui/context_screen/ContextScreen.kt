@@ -66,7 +66,7 @@ fun ProjectsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val recordToEdit by viewModel.inboxHandler.recordToEdit.collectAsStateWithLifecycle()
     val editorViewModel: UniversalEditorViewModel = hiltViewModel()
-    val currentProjectArtifact by viewModel.projectArtifact.collectAsStateWithLifecycle()
+    val currentProjectArtifact by viewModel.contextArtifact.collectAsStateWithLifecycle()
 
     // Router logic to decide which screen to show
     when {

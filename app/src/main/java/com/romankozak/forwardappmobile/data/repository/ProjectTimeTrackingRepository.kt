@@ -1,8 +1,8 @@
 package com.romankozak.forwardappmobile.data.repository
 
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectTimeMetrics
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextTimeMetrics
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectLogEntryTypeValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLogEntryTypeValues
 import java.util.Calendar
 import java.util.Locale
 import java.util.concurrent.TimeUnit
@@ -66,7 +66,7 @@ class ProjectTimeTrackingRepository @Inject constructor(
         val description = "Загальний час за день: $totalFormattedDuration."
         val details = detailsBuilder.toString()
 
-        projectLogRepository.addProjectLogEntry(projectId = projectId, type = ProjectLogEntryTypeValues.AUTOMATIC, description = description, details = details)
+        projectLogRepository.addProjectLogEntry(projectId = projectId, type = ContextLogEntryTypeValues.AUTOMATIC, description = description, details = details)
     }
 
     private fun formatDuration(millis: Long): String {
@@ -98,7 +98,7 @@ class ProjectTimeTrackingRepository @Inject constructor(
 
         projectLogRepository.addProjectLogEntry(
             projectId = projectId,
-            type = ProjectLogEntryTypeValues.AUTOMATIC,
+            type = ContextLogEntryTypeValues.AUTOMATIC,
             description = description,
             details = "Розраховано на запит користувача.",
         )
@@ -109,7 +109,7 @@ class ProjectTimeTrackingRepository @Inject constructor(
         logTotalProjectTimeSummary(projectId)
     }
 
-    suspend fun calculateProjectTimeMetrics(projectId: String): ProjectTimeMetrics {
+    suspend fun calculateProjectTimeMetrics(projectId: String): ContextTimeMetrics {
         val todayCalendar = Calendar.getInstance()
         todayCalendar.set(Calendar.HOUR_OF_DAY, 0)
         todayCalendar.set(Calendar.MINUTE, 0)
@@ -124,6 +124,6 @@ class ProjectTimeTrackingRepository @Inject constructor(
         val allActivities = activityRepository.getAllCompletedActivitiesForProject(projectId, goalIds)
         val timeTotal = allActivities.sumOf { (it.endTime ?: 0) - (it.startTime ?: 0) }
 
-        return ProjectTimeMetrics(timeToday = timeToday, timeTotal = timeTotal)
+        return ContextTimeMetrics(timeToday = timeToday, timeTotal = timeTotal)
     }
 }

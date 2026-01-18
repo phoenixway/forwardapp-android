@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import android.util.Log
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.config.FeatureToggles
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
@@ -62,9 +62,9 @@ class AttachmentsLibraryViewModel @Inject constructor(
                                 queryResults.mapNotNull { result ->
                                     val type =
                                         when (result.attachmentType) {
-                                            ListItemTypeValues.NOTE_DOCUMENT -> AttachmentLibraryType.NOTE_DOCUMENT
-                                            ListItemTypeValues.CHECKLIST -> AttachmentLibraryType.CHECKLIST
-                                            ListItemTypeValues.LINK_ITEM -> AttachmentLibraryType.LINK
+                                            BacklogItemTypeValues.NOTE_DOCUMENT -> AttachmentLibraryType.NOTE_DOCUMENT
+                                            BacklogItemTypeValues.CHECKLIST -> AttachmentLibraryType.CHECKLIST
+                                            BacklogItemTypeValues.LINK_ITEM -> AttachmentLibraryType.LINK
                                             else -> return@mapNotNull null
                                         }
                 

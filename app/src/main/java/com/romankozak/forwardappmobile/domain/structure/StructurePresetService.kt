@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.domain.structure
 
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructureItem
@@ -62,7 +62,7 @@ class StructurePresetService @Inject constructor(
 
         val entityId =
             when (attachmentType) {
-                ListItemTypeValues.NOTE_DOCUMENT ->
+                BacklogItemTypeValues.NOTE_DOCUMENT ->
                     noteDocumentRepository.createDocument(
                         name = item.title,
                         projectId = projectId,
@@ -70,14 +70,14 @@ class StructurePresetService @Inject constructor(
                         roleCode = item.roleCode,
                         isSystem = true,
                     )
-                ListItemTypeValues.CHECKLIST ->
+                BacklogItemTypeValues.CHECKLIST ->
                     checklistRepository.createChecklist(
                         name = item.title,
                         projectId = projectId,
                         roleCode = item.roleCode,
                         isSystem = true,
                     )
-                ListItemTypeValues.LINK_ITEM -> {
+                BacklogItemTypeValues.LINK_ITEM -> {
                     val linkType =
                         when (item.containerType?.uppercase(Locale.US)) {
                             "PROJECT_LINK" -> LinkType.PROJECT
@@ -131,9 +131,9 @@ class StructurePresetService @Inject constructor(
 
     private fun mapContainerType(containerType: String?): String =
         when (containerType?.uppercase(Locale.US)) {
-            "NOTE" -> ListItemTypeValues.NOTE_DOCUMENT
-            "CHECKLIST" -> ListItemTypeValues.CHECKLIST
-            "URL", "PROJECT_LINK" -> ListItemTypeValues.LINK_ITEM
-            else -> containerType ?: ListItemTypeValues.NOTE_DOCUMENT
+            "NOTE" -> BacklogItemTypeValues.NOTE_DOCUMENT
+            "CHECKLIST" -> BacklogItemTypeValues.CHECKLIST
+            "URL", "PROJECT_LINK" -> BacklogItemTypeValues.LINK_ITEM
+            else -> containerType ?: BacklogItemTypeValues.NOTE_DOCUMENT
         }
 }

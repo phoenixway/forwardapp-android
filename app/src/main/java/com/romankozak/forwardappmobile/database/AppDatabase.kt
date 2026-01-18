@@ -30,7 +30,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNo
 import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteFts
 import com.romankozak.forwardappmobile.features.lifestate.data.models.LifeSystemStateEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentItemEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectArtifact
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextArtifact
 import com.romankozak.forwardappmobile.features.recent.data.models.RecentItem
 import com.romankozak.forwardappmobile.features.daymanagement.data.models.RecurringTask
 import com.romankozak.forwardappmobile.features.daymanagement.data.models.RecurringTaskFts
@@ -110,7 +110,7 @@ import com.romankozak.forwardappmobile.features.missions.data.model.TacticalMiss
         ConversationFolderEntity::class,
         RecurringTask::class,
         Reminder::class,
-        ProjectArtifact::class,
+        ContextArtifact::class,
         ProjectAttachmentCrossRef::class,
         SystemAppEntity::class,
         TacticalMission::class,

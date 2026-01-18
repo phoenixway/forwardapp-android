@@ -5,7 +5,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
 import com.romankozak.forwardappmobile.data.sync.bumpSync
 import com.romankozak.forwardappmobile.data.sync.softDelete
@@ -31,7 +31,7 @@ class ListItemRepository @Inject constructor(
             BacklogItem(
                 id = UUID.randomUUID().toString(),
                 projectId = currentProjectId,
-                itemType = ListItemTypeValues.SUBLIST,
+                itemType = BacklogItemTypeValues.SUBLIST,
                 entityId = targetProjectId,
                 order = -System.currentTimeMillis(),
             )

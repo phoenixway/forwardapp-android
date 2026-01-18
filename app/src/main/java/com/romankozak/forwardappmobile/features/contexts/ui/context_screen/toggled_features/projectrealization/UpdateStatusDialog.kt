@@ -22,7 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStatusValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextStatusValues
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,12 +36,12 @@ fun UpdateStatusDialog(
     var statusText by remember { mutableStateOf(currentStatusText) }
     var isDropdownExpanded by remember { mutableStateOf(false) }
     val statuses = listOf(
-        ProjectStatusValues.NO_PLAN,
-        ProjectStatusValues.PLANNING,
-        ProjectStatusValues.IN_PROGRESS,
-        ProjectStatusValues.ON_HOLD,
-        ProjectStatusValues.PAUSED,
-        ProjectStatusValues.COMPLETED
+        ContextStatusValues.NO_PLAN,
+        ContextStatusValues.PLANNING,
+        ContextStatusValues.IN_PROGRESS,
+        ContextStatusValues.ON_HOLD,
+        ContextStatusValues.PAUSED,
+        ContextStatusValues.COMPLETED
     )
 
     AlertDialog(
@@ -56,7 +56,7 @@ fun UpdateStatusDialog(
                     onExpandedChange = { isDropdownExpanded = !isDropdownExpanded },
                 ) {
                     OutlinedTextField(
-                        value = ProjectStatusValues.getDisplayName(selectedStatus),
+                        value = ContextStatusValues.getDisplayName(selectedStatus),
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Статус") },
@@ -82,7 +82,7 @@ fun UpdateStatusDialog(
                     ) {
                         statuses.forEach { status ->
                             DropdownMenuItem(
-                                text = { Text(ProjectStatusValues.getDisplayName(status)) },
+                                text = { Text(ContextStatusValues.getDisplayName(status)) },
                                 onClick = {
                                     selectedStatus = status
                                     isDropdownExpanded = false

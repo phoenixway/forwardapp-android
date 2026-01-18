@@ -5,7 +5,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectDao
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.sync.bumpSync
 import com.romankozak.forwardappmobile.data.sync.softDelete
@@ -50,7 +50,7 @@ class GoalRepository @Inject constructor(
             BacklogItem(
                 id = UUID.randomUUID().toString(),
                 projectId = projectId,
-                itemType = ListItemTypeValues.GOAL,
+                itemType = BacklogItemTypeValues.GOAL,
                 entityId = newGoal.id,
                 order = -currentTime,
             )
@@ -82,7 +82,7 @@ class GoalRepository @Inject constructor(
             BacklogItem(
                 id = UUID.randomUUID().toString(),
                 projectId = projectId,
-                itemType = ListItemTypeValues.GOAL,
+                itemType = BacklogItemTypeValues.GOAL,
                 entityId = newGoal.id,
                 order = -currentTime,
             )
@@ -105,7 +105,7 @@ class GoalRepository @Inject constructor(
                     BacklogItem(
                         id = UUID.randomUUID().toString(),
                         projectId = targetProjectId,
-                        itemType = ListItemTypeValues.GOAL,
+                        itemType = BacklogItemTypeValues.GOAL,
                         entityId = it,
                         order = -System.currentTimeMillis(),
                     )
@@ -130,7 +130,7 @@ class GoalRepository @Inject constructor(
                     BacklogItem(
                         id = UUID.randomUUID().toString(),
                         projectId = targetProjectId,
-                        itemType = ListItemTypeValues.GOAL,
+                        itemType = BacklogItemTypeValues.GOAL,
                         entityId = newGoal.id,
                         order = -System.currentTimeMillis(),
                     ),

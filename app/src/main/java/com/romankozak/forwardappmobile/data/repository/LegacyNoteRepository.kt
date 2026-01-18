@@ -4,7 +4,7 @@ import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.data.sync.bumpSync
 import com.romankozak.forwardappmobile.data.sync.softDelete
 import kotlinx.coroutines.flow.Flow
@@ -36,7 +36,7 @@ class LegacyNoteRepository @Inject constructor(
                 BacklogItem(
                     id = UUID.randomUUID().toString(),
                     projectId = note.projectId,
-                    itemType = ListItemTypeValues.NOTE,
+                    itemType = BacklogItemTypeValues.NOTE,
                     entityId = note.id,
                     order = -now,
                     updatedAt = now,

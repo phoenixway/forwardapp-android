@@ -9,23 +9,23 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
 
 
 import androidx.compose.ui.graphics.Color
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectArtifact
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectTimeMetrics
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextArtifact
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextTimeMetrics
 
 @Composable
 fun ProjectDashboardView(
     modifier: Modifier = Modifier,
     project: Context?,
     projectLogs: List<ContextLog>,
-    projectArtifact: ProjectArtifact?,
+    contextArtifact: ContextArtifact?,
     onStatusUpdate: (String, String?) -> Unit,
     onToggleProjectManagement: (Boolean) -> Unit,
     onRecalculateTime: () -> Unit,
-    projectTimeMetrics: ProjectTimeMetrics?,
+    contextTimeMetrics: ContextTimeMetrics?,
     onEditLog: (ContextLog) -> Unit,
     onDeleteLog: (ContextLog) -> Unit,
     onSaveArtifact: (String) -> Unit,
-    onEditArtifact: (ProjectArtifact) -> Unit,
+    onEditArtifact: (ContextArtifact) -> Unit,
     selectedTab: ProjectManagementTab,
     onTabSelected: (ProjectManagementTab) -> Unit,
     enableDashboard: Boolean,
@@ -77,11 +77,11 @@ fun ProjectDashboardView(
                     onStatusUpdate = onStatusUpdate,
                     onToggleProjectManagement = onToggleProjectManagement,
                     onRecalculateTime = onRecalculateTime,
-                    projectTimeMetrics = projectTimeMetrics,
+                    contextTimeMetrics = contextTimeMetrics,
                 )
             ProjectManagementTab.Artifact -> {
                 ArtifactContent(
-                    artifact = projectArtifact,
+                    artifact = contextArtifact,
                     isManagementEnabled = project.isProjectManagementEnabled == true,
                     onEditArtifact = onEditArtifact,
                     onSaveArtifact = { onSaveArtifact("") }

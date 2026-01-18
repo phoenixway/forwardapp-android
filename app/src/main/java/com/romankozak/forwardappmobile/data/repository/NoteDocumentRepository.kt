@@ -7,7 +7,7 @@ import com.romankozak.forwardappmobile.data.legacy.toNoteDocument
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentItemEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 import com.romankozak.forwardappmobile.data.sync.bumpSync
 import com.romankozak.forwardappmobile.data.sync.softDelete
@@ -26,7 +26,7 @@ class NoteDocumentRepository @Inject constructor(
     private val TAG = "NoteDocumentRepository"
 
     fun getDocumentsForProject(projectId: String): Flow<List<NoteDocumentEntity>> =
-        noteDocumentDao.getDocumentsForProject(projectId, ListItemTypeValues.NOTE_DOCUMENT)
+        noteDocumentDao.getDocumentsForProject(projectId, BacklogItemTypeValues.NOTE_DOCUMENT)
 
     fun getAllDocumentsAsFlow(): Flow<List<NoteDocumentEntity>> =
         noteDocumentDao.getAllDocumentsAsFlow()
@@ -48,7 +48,7 @@ class NoteDocumentRepository @Inject constructor(
         Log.d(TAG, "Inserting new note document: $document")
         noteDocumentDao.insertDocument(document)
         attachmentRepository.ensureAttachmentLinkedToProject(
-            attachmentType = ListItemTypeValues.NOTE_DOCUMENT,
+            attachmentType = BacklogItemTypeValues.NOTE_DOCUMENT,
             entityId = document.id,
             projectId = projectId,
             ownerProjectId = projectId,
@@ -71,7 +71,7 @@ class NoteDocumentRepository @Inject constructor(
         } else {
             noteDocumentDao.deleteDocumentById(documentId)
         }
-        attachmentRepository.findAttachmentByEntity(ListItemTypeValues.NOTE_DOCUMENT, documentId)?.let {
+        attachmentRepository.findAttachmentByEntity(BacklogItemTypeValues.NOTE_DOCUMENT, documentId)?.let {
             attachmentRepository.deleteAttachment(it.id)
         }
     }
@@ -118,7 +118,7 @@ class NoteDocumentRepository @Inject constructor(
         val document = note.toNoteDocument()
         noteDocumentDao.insertDocument(document)
         attachmentRepository.ensureAttachmentLinkedToProject(
-            attachmentType = ListItemTypeValues.NOTE_DOCUMENT,
+            attachmentType = BacklogItemTypeValues.NOTE_DOCUMENT,
             entityId = document.id,
             projectId = document.projectId,
             ownerProjectId = document.projectId,

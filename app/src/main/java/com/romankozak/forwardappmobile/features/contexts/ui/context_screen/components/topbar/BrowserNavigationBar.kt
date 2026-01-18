@@ -23,7 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectViewMode
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextViewMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,8 +39,8 @@ fun BrowserNavigationBar(
     onDeleteList: () -> Unit,
     menuExpanded: Boolean,
     onMenuExpandedChange: (Boolean) -> Unit,
-    currentView: ProjectViewMode,
-    onViewChange: (ProjectViewMode) -> Unit,
+    currentView: ContextViewMode,
+    onViewChange: (ContextViewMode) -> Unit,
     onImportFromMarkdown: () -> Unit,
     onExportToMarkdown: () -> Unit,
     modifier: Modifier = Modifier,
@@ -134,8 +134,8 @@ private fun RightButtons(
     onEditList: () -> Unit,
     onShareList: () -> Unit,
     onDeleteList: () -> Unit,
-    currentView: ProjectViewMode,
-    onViewChange: (ProjectViewMode) -> Unit,
+    currentView: ContextViewMode,
+    onViewChange: (ContextViewMode) -> Unit,
     onImportFromMarkdown: () -> Unit,
     onExportToMarkdown: () -> Unit,
 ) {
@@ -145,7 +145,7 @@ private fun RightButtons(
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
         ) {
             Row(modifier = Modifier.height(36.dp), verticalAlignment = Alignment.CenterVertically) {
-                val views = listOf(ProjectViewMode.BACKLOG, ProjectViewMode.INBOX)
+                val views = listOf(ContextViewMode.BACKLOG, ContextViewMode.INBOX)
                 views.forEach { viewMode ->
                     val isSelected = currentView == viewMode
                     Box(
@@ -160,8 +160,8 @@ private fun RightButtons(
                     ) {
                         Icon(
                             imageVector = when (viewMode) {
-                                ProjectViewMode.BACKLOG -> Icons.AutoMirrored.Outlined.List
-                                ProjectViewMode.INBOX -> Icons.Outlined.Inbox
+                                ContextViewMode.BACKLOG -> Icons.AutoMirrored.Outlined.List
+                                ContextViewMode.INBOX -> Icons.Outlined.Inbox
                                 else -> Icons.Default.Error // Should not happen
                             },
                             contentDescription = viewMode.name,
@@ -245,7 +245,7 @@ private fun RightButtons(
                     },
                 )
 
-                if (currentView == ProjectViewMode.INBOX) {
+                if (currentView == ContextViewMode.INBOX) {
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = 4.dp),
                         color = MaterialTheme.colorScheme.outlineVariant,

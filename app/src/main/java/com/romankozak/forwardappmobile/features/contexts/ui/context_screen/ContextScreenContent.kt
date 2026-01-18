@@ -23,9 +23,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.Alignment
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectArtifact
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextArtifact
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectViewMode
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextViewMode
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.toggled_features.backlog.BacklogListScreen
@@ -45,23 +45,23 @@ fun GoalDetailContent(
     onEditLog: (ContextLog) -> Unit,
     onDeleteLog: (ContextLog) -> Unit,
     onSaveArtifact: (String) -> Unit,
-    onEditArtifact: (ProjectArtifact) -> Unit,
+    onEditArtifact: (ContextArtifact) -> Unit,
     onRemindersClick: (BacklogItemContent) -> Unit,
     onShowProjectProperties: () -> Unit,
-    onSwitchView: (ProjectViewMode) -> Unit,
+    onSwitchView: (ContextViewMode) -> Unit,
 ) {
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
     val inboxRecords by viewModel.inboxHandler.inboxRecords.collectAsStateWithLifecycle()
     val goalList by viewModel.project.collectAsStateWithLifecycle()
     val projectLogs by viewModel.projectLogs.collectAsStateWithLifecycle()
-    val projectArtifact by viewModel.projectArtifact.collectAsStateWithLifecycle()
+    val projectArtifact by viewModel.contextArtifact.collectAsStateWithLifecycle()
     val isSelectionModeActive by viewModel.isSelectionModeActive.collectAsStateWithLifecycle()
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
 
 
 
     when (uiState.currentView) {
-        ProjectViewMode.BACKLOG -> {
+        ContextViewMode.BACKLOG -> {
             val listContent by viewModel.listContent.collectAsStateWithLifecycle()
             BacklogListScreen(
                 items = listContent,
@@ -106,7 +106,7 @@ fun GoalDetailContent(
                 onResetSwipe = viewModel::resetSwipeStatesExcept
             )
         }
-        ProjectViewMode.INBOX -> {
+        ContextViewMode.INBOX -> {
             InboxView(
                 modifier = modifier,
                 viewModel = viewModel,
@@ -116,15 +116,15 @@ fun GoalDetailContent(
                 navigationManager = viewModel.enhancedNavigationManager,
             )
         }
-        ProjectViewMode.ADVANCED -> {
+        ContextViewMode.ADVANCED -> {
             ProjectDashboardView(
                 modifier = modifier,
                 project = goalList,
                 projectLogs = projectLogs,
-                projectArtifact = projectArtifact,
+                contextArtifact = projectArtifact,
                 onToggleProjectManagement = viewModel::onToggleProjectManagement,
                 onStatusUpdate = viewModel::onProjectStatusUpdate,
-                projectTimeMetrics = uiState.projectTimeMetrics,
+                contextTimeMetrics = uiState.contextTimeMetrics,
                 onRecalculateTime = viewModel::onRecalculateTime,
                 onEditLog = onEditLog,
                 onDeleteLog = onDeleteLog,
@@ -137,14 +137,14 @@ fun GoalDetailContent(
                 enableArtifact = uiState.enableArtifact,
             )
         }
-        ProjectViewMode.ATTACHMENTS -> {
+        ContextViewMode.ATTACHMENTS -> {
             AttachmentsView(
                 modifier = modifier,
                 viewModel = viewModel,
                 listContent = listContent
             )
         }
-        ProjectViewMode.DASHBOARD -> {
+        ContextViewMode.DASHBOARD -> {
             val attachments = listContent.filter {
                 it is BacklogItemContent.LinkItem || it is BacklogItemContent.NoteDocumentItem || it is BacklogItemContent.ChecklistItem
             }

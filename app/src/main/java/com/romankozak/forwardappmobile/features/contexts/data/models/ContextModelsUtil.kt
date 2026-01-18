@@ -1,10 +1,6 @@
 package com.romankozak.forwardappmobile.features.contexts.data.models
 
 import androidx.room.TypeConverter
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
-import com.romankozak.forwardappmobile.features.missions.domain.model.MissionPriority
-import com.romankozak.forwardappmobile.features.missions.domain.model.MissionStatus
 
 class PathSegmentsConverter {
     private val pathSeparator = " / "
@@ -20,7 +16,7 @@ class PathSegmentsConverter {
     }
 }
 
-object ProjectStatusValues {
+object ContextStatusValues {
     const val NO_PLAN = "NO_PLAN"
     const val PLANNING = "PLANNING"
     const val IN_PROGRESS = "IN_PROGRESS"
@@ -47,12 +43,12 @@ object ScoringStatusValues {
     const val ASSESSED = "ASSESSED"
 }
 
-object ProjectLogLevelValues {
+object ContextLogLevelValues {
     const val DETAILED = "DETAILED"
     const val NORMAL = "NORMAL"
 }
 
-object ProjectLogEntryTypeValues {
+object ContextLogEntryTypeValues {
     const val STATUS_CHANGE = "STATUS_CHANGE"
     const val COMMENT = "COMMENT"
     const val AUTOMATIC = "AUTOMATIC"
@@ -60,7 +56,7 @@ object ProjectLogEntryTypeValues {
     const val MILESTONE = "MILESTONE"
 }
 
-object ListItemTypeValues {
+object BacklogItemTypeValues {
     const val GOAL = "GOAL"
     const val SUBLIST = "SUBLIST"
     const val LINK_ITEM = "LINK_ITEM"
@@ -70,7 +66,7 @@ object ListItemTypeValues {
     const val SCRIPT = "SCRIPT"
 }
 
-enum class ProjectViewMode { BACKLOG, INBOX, ADVANCED, ATTACHMENTS, DASHBOARD }
+enum class ContextViewMode { BACKLOG, INBOX, ADVANCED, ATTACHMENTS, DASHBOARD }
 
 enum class LinkType { PROJECT, URL, OBSIDIAN }
 

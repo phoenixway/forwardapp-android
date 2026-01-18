@@ -20,14 +20,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.viewinterop.AndroidView
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectArtifact
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextArtifact
 import com.romankozak.forwardappmobile.ui.components.notesEditors.WebViewMarkdownViewer
 
 @Composable
 fun ArtifactContent(
-    artifact: ProjectArtifact?,
+    artifact: ContextArtifact?,
     isManagementEnabled: Boolean,
-    onEditArtifact: (ProjectArtifact) -> Unit,
+    onEditArtifact: (ContextArtifact) -> Unit,
     onSaveArtifact: () -> Unit,
 ) {
     if (!isManagementEnabled) {

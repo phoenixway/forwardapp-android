@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.data.repository
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
 import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistItemEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 import com.romankozak.forwardappmobile.data.sync.bumpSync
 import com.romankozak.forwardappmobile.data.sync.softDelete
@@ -19,7 +19,7 @@ class ChecklistRepository @Inject constructor(
 ) {
 
     fun getChecklistsForProject(projectId: String): Flow<List<ChecklistEntity>> =
-        checklistDao.getChecklistsForProject(projectId, ListItemTypeValues.CHECKLIST)
+        checklistDao.getChecklistsForProject(projectId, BacklogItemTypeValues.CHECKLIST)
 
     fun getAllChecklistsAsFlow(): Flow<List<ChecklistEntity>> = checklistDao.getAllChecklistsAsFlow()
 
@@ -37,7 +37,7 @@ class ChecklistRepository @Inject constructor(
         val checklist = ChecklistEntity(projectId = projectId, name = name, updatedAt = now)
         checklistDao.insertChecklist(checklist)
         attachmentRepository.ensureAttachmentLinkedToProject(
-            attachmentType = ListItemTypeValues.CHECKLIST,
+            attachmentType = BacklogItemTypeValues.CHECKLIST,
             entityId = checklist.id,
             projectId = projectId,
             ownerProjectId = projectId,
@@ -65,7 +65,7 @@ class ChecklistRepository @Inject constructor(
         } else {
             checklistDao.deleteChecklistById(checklistId)
         }
-        attachmentRepository.findAttachmentByEntity(ListItemTypeValues.CHECKLIST, checklistId)?.let {
+        attachmentRepository.findAttachmentByEntity(BacklogItemTypeValues.CHECKLIST, checklistId)?.let {
             attachmentRepository.deleteAttachment(it.id)
         }
     }
