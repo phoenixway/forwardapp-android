@@ -5,35 +5,35 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
-import com.romankozak.forwardappmobile.features.contexts.data.models.StructurePresetItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfileItem
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface StructurePresetItemDao {
     @Query("SELECT * FROM structure_preset_items WHERE presetId = :presetId")
-    fun getItemsByPreset(presetId: String): Flow<List<StructurePresetItem>>
+    fun getItemsByPreset(presetId: String): Flow<List<ContextRoleProfileItem>>
 
     @Query("SELECT * FROM structure_preset_items WHERE presetId = :presetId")
-    suspend fun getItemsByPresetOnce(presetId: String): List<StructurePresetItem>
+    suspend fun getItemsByPresetOnce(presetId: String): List<ContextRoleProfileItem>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertItem(item: StructurePresetItem)
+    suspend fun insertItem(item: ContextRoleProfileItem)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertItems(items: List<StructurePresetItem>)
+    suspend fun insertItems(items: List<ContextRoleProfileItem>)
 
     @Query("DELETE FROM structure_preset_items WHERE presetId = :presetId")
     suspend fun deleteItemsByPreset(presetId: String)
 
     @Transaction
-    suspend fun replaceItems(presetId: String, items: List<StructurePresetItem>) {
+    suspend fun replaceItems(presetId: String, items: List<ContextRoleProfileItem>) {
         deleteItemsByPreset(presetId)
         insertItems(items)
     }
 
     // --- Backup Methods ---
     @Query("SELECT * FROM structure_preset_items")
-    suspend fun getAllItems(): List<StructurePresetItem>
+    suspend fun getAllItems(): List<ContextRoleProfileItem>
 
     @Query("DELETE FROM structure_preset_items")
     suspend fun deleteAllItems()

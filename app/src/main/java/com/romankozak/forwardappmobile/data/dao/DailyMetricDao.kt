@@ -2,7 +2,7 @@
 package com.romankozak.forwardappmobile.data.dao
 
 import androidx.room.*
-import com.romankozak.forwardappmobile.data.database.models.DailyMetric
+import com.romankozak.forwardappmobile.features.daymanagement.data.models.DailyMetric
 import kotlinx.coroutines.flow.Flow
 
 @Dao

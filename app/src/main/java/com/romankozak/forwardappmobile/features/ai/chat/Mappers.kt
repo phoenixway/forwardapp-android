@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.features.ai.chat
 
-import com.romankozak.forwardappmobile.data.database.models.ChatMessageEntity
+import com.romankozak.forwardappmobile.features.ai.data.models.ChatMessageEntity
 
 fun ChatMessageEntity.toChatMessage(conversationId: Long) =
     ChatMessage(

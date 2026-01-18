@@ -5,8 +5,8 @@ import com.romankozak.forwardappmobile.data.dao.RecentItemDao
 import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
-import com.romankozak.forwardappmobile.data.database.models.RecentItem
-import com.romankozak.forwardappmobile.data.database.models.RecentItemType
+import com.romankozak.forwardappmobile.features.recent.data.models.RecentItem
+import com.romankozak.forwardappmobile.features.recent.data.models.RecentItemType
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
 import kotlinx.coroutines.flow.Flow

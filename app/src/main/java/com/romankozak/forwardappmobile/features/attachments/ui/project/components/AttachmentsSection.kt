@@ -52,18 +52,18 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemContent
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.features.attachments.ui.project.AttachmentType
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun AttachmentsSection(
-    attachments: List<ListItemContent>,
+    attachments: List<BacklogItemContent>,
     isExpanded: Boolean,
     onAddAttachment: (AttachmentType) -> Unit,
-    onDeleteItem: (ListItemContent) -> Unit,
-    onItemClick: (ListItemContent) -> Unit,
-    onCopyContentRequest: (ListItemContent) -> Unit,
+    onDeleteItem: (BacklogItemContent) -> Unit,
+    onItemClick: (BacklogItemContent) -> Unit,
+    onCopyContentRequest: (BacklogItemContent) -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current
 
@@ -163,10 +163,10 @@ fun AttachmentsSection(
 
 @Composable
 private fun AttachmentItemCard(
-    item: ListItemContent,
-    onItemClick: (ListItemContent) -> Unit,
-    onDeleteItem: (ListItemContent) -> Unit,
-    onCopyContentRequest: (ListItemContent) -> Unit,
+    item: BacklogItemContent,
+    onItemClick: (BacklogItemContent) -> Unit,
+    onDeleteItem: (BacklogItemContent) -> Unit,
+    onCopyContentRequest: (BacklogItemContent) -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -190,7 +190,7 @@ private fun AttachmentItemCard(
         }
 
         when (item) {
-            is ListItemContent.LinkItem -> {
+            is BacklogItemContent.LinkItem -> {
                 LinkItemRow(
                     linkItem = item,
                     isSelected = false,
@@ -202,14 +202,14 @@ private fun AttachmentItemCard(
                     onCopyContentRequest = onCopyContentRequest,
                 )
             }
-            is ListItemContent.NoteDocumentItem -> {
+            is BacklogItemContent.NoteDocumentItem -> {
                 NoteDocumentItemRow(
                     noteDocumentItem = item,
                     onClick = { onItemClick(item) },
                     onDelete = { onDeleteItem(item) },
                 )
             }
-            is ListItemContent.ChecklistItem -> {
+            is BacklogItemContent.ChecklistItem -> {
                 ChecklistItemRow(
                     checklistItem = item,
                     onClick = { onItemClick(item) },

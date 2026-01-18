@@ -27,8 +27,8 @@ import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemContent
+import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.domain.ner.NerState
 import com.romankozak.forwardappmobile.domain.ner.ReminderParseResult
@@ -160,7 +160,7 @@ private fun ProjectScaffold(
     val coroutineScope = rememberCoroutineScope()
     var menuExpanded by remember { mutableStateOf(false) }
     var showRemindersListDialog by remember { mutableStateOf(false) }
-    var selectedItemForReminders by remember { mutableStateOf<ListItemContent?>(null) }
+    var selectedItemForReminders by remember { mutableStateOf<BacklogItemContent?>(null) }
 
     val holdMenuController = rememberHoldMenu2()
 
@@ -201,7 +201,7 @@ private fun ProjectScaffold(
     }
 
     val draggableItems = remember(listContent) {
-        listContent.filterNot { it is ListItemContent.LinkItem }
+        listContent.filterNot { it is BacklogItemContent.LinkItem }
     }
 
     GoalDetailEffects(

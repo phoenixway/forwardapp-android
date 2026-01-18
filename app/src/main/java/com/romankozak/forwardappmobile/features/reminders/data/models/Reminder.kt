@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.data.database.models
+package com.romankozak.forwardappmobile.features.reminders.data.models
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey

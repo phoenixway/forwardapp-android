@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases
 
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListHierarchyData
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextHierarchyData
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FilterState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
@@ -23,7 +23,7 @@ class HierarchyUseCase @Inject constructor() {
         expandedDaily: Set<String>?,
         expandedMedium: Set<String>?,
         expandedLong: Set<String>?,
-    ): ListHierarchyData {
+    ): ContextHierarchyData {
         HierarchyDebugLogger.d {
             "createProjectHierarchy: flatSize=${filterState.flatList.size}, mode=${filterState.mode}, searchActive=${filterState.searchActive}"
         }
@@ -51,15 +51,15 @@ class HierarchyUseCase @Inject constructor() {
                 hierarchy
             } catch (e: Exception) {
                 HierarchyDebugLogger.e("Exception in createProjectHierarchy", e)
-                ListHierarchyData()
+                ContextHierarchyData()
             }
         return result
     }
 
-    private fun createRegularHierarchy(flatList: List<Project>): ListHierarchyData {
+    private fun createRegularHierarchy(flatList: List<Project>): ContextHierarchyData {
         if (flatList.isEmpty()) {
             HierarchyDebugLogger.d { "createRegularHierarchy: empty flat list" }
-            return ListHierarchyData(
+            return ContextHierarchyData(
                 allProjects = flatList,
                 topLevelProjects = emptyList(),
                 childMap = emptyMap(),
@@ -88,7 +88,7 @@ class HierarchyUseCase @Inject constructor() {
             "createRegularHierarchy: flat=${flatList.size}, topLevel=${topLevel.size}, childParents=${childMap.size}, orphans=$orphanCount"
         }
 
-        return ListHierarchyData(
+        return ContextHierarchyData(
             allProjects = flatList,
             topLevelProjects = topLevel.sortedBy { it.order },
             childMap = childMap.mapValues { (_, projects) -> projects.sortedBy { it.order } },
@@ -102,7 +102,7 @@ class HierarchyUseCase @Inject constructor() {
         expandedDaily: Set<String>?,
         expandedMedium: Set<String>?,
         expandedLong: Set<String>?,
-    ): ListHierarchyData {
+    ): ContextHierarchyData {
         val projectLookup = flatList.associateBy { it.id }
 
         val targetTag =
@@ -173,7 +173,7 @@ class HierarchyUseCase @Inject constructor() {
             }
         }
 
-        return ListHierarchyData(
+        return ContextHierarchyData(
             allProjects = flatList,
             topLevelProjects = topLevel.sortedBy { it.order },
             childMap = childMap.mapValues { (_, projects) -> projects.sortedBy { it.order } },
@@ -224,7 +224,7 @@ class HierarchyUseCase @Inject constructor() {
     
     fun createSearchResults(
         filterState: FilterState,
-        fullHierarchy: ListHierarchyData,
+        fullHierarchy: ContextHierarchyData,
     ): List<SearchResult> {
         if (!filterState.searchActive || filterState.query.isBlank()) {
             return emptyList()
@@ -254,9 +254,9 @@ class HierarchyUseCase @Inject constructor() {
         allProjects: List<Project>,
         filterText: String,
         movingId: String?,
-    ): ListHierarchyData {
+    ): ContextHierarchyData {
         if (movingId == null) {
-            return ListHierarchyData()
+            return ContextHierarchyData()
         }
 
         val filteredProjects =
@@ -272,7 +272,7 @@ class HierarchyUseCase @Inject constructor() {
         val topLevel = filteredProjects.filter { it.parentId == null }.sortedBy { it.order }
         val childMap = filteredProjects.filter { it.parentId != null }.groupBy { it.parentId!! }
 
-        return ListHierarchyData(
+        return ContextHierarchyData(
             allProjects = filteredProjects,
             topLevelProjects = topLevel,
             childMap = childMap,

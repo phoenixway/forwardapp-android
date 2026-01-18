@@ -1,13 +1,13 @@
 package com.romankozak.forwardappmobile.core.utils
 
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListHierarchyData
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextHierarchyData
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 
 object HierarchyFilter {
     fun filter(
-        originalHierarchy: ListHierarchyData,
+        originalHierarchy: ContextHierarchyData,
         query: String,
-    ): ListHierarchyData {
+    ): ContextHierarchyData {
         if (query.isBlank()) {
             return originalHierarchy
         }
@@ -31,7 +31,7 @@ object HierarchyFilter {
                     children.filter { it.id in allRelevantIds }
                 }.filterValues { it.isNotEmpty() }
 
-        return ListHierarchyData(
+        return ContextHierarchyData(
             allProjects = filteredProjects,
             topLevelProjects = topLevelProjects,
             childMap = childMap,
@@ -40,7 +40,7 @@ object HierarchyFilter {
 
     private fun findParentIds(
         project: Project,
-        hierarchy: ListHierarchyData,
+        hierarchy: ContextHierarchyData,
     ): Set<String> {
         val parents = mutableSetOf<String>()
         var currentParentId = project.parentId

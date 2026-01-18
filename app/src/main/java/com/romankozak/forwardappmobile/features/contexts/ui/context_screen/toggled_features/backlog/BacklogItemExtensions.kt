@@ -1,15 +1,15 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.toggled_features.backlog
 
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemContent
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 
-fun ListItemContent.isCompleted(): Boolean =
+fun BacklogItemContent.isCompleted(): Boolean =
     when (this) {
-        is ListItemContent.GoalItem -> goal.completed
-        is ListItemContent.SublistItem -> project.isCompleted
+        is BacklogItemContent.GoalItem -> goal.completed
+        is BacklogItemContent.SublistItem -> project.isCompleted
         else -> false
     }
 
-fun List<ListItemContent>.withCompletedAtEnd(): List<ListItemContent> {
+fun List<BacklogItemContent>.withCompletedAtEnd(): List<BacklogItemContent> {
     val (completed, active) = partition { it.isCompleted() }
     return active + completed
 }

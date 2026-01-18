@@ -1,8 +1,12 @@
 package com.romankozak.forwardappmobile.data.sync
 
 import com.google.gson.annotations.SerializedName
-import com.romankozak.forwardappmobile.data.database.models.*
+import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
+import com.romankozak.forwardappmobile.features.ai.data.models.AiEventEntity
 import com.romankozak.forwardappmobile.features.ai.data.models.AiInsightEntity
+import com.romankozak.forwardappmobile.features.ai.data.models.ChatMessageEntity
+import com.romankozak.forwardappmobile.features.ai.data.models.ConversationEntity
+import com.romankozak.forwardappmobile.features.ai.data.models.ConversationFolderEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
 import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistItemEntity
@@ -20,8 +24,14 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectArti
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructure
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructureItem
-import com.romankozak.forwardappmobile.features.contexts.data.models.StructurePreset
-import com.romankozak.forwardappmobile.features.contexts.data.models.StructurePresetItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfile
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfileItem
+import com.romankozak.forwardappmobile.features.daymanagement.data.models.DailyMetric
+import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayPlan
+import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask
+import com.romankozak.forwardappmobile.features.daymanagement.data.models.RecurringTask
+import com.romankozak.forwardappmobile.features.lifestate.data.models.LifeSystemStateEntity
+import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 
 data class FullAppBackup(
     @SerializedName(value = "backupSchemaVersion", alternate = ["a"])
@@ -108,9 +118,9 @@ data class DatabaseContent(
     val lifeSystemStates: List<LifeSystemStateEntity> = emptyList(),
 
     @SerializedName("structurePresets")
-    val structurePresets: List<StructurePreset> = emptyList(),
+    val contextRoleProfiles: List<ContextRoleProfile> = emptyList(),
     @SerializedName("structurePresetItems")
-    val structurePresetItems: List<StructurePresetItem> = emptyList(),
+    val contextRoleProfileItems: List<ContextRoleProfileItem> = emptyList(),
     @SerializedName("projectStructures")
     val projectStructures: List<ProjectStructure> = emptyList(),
     @SerializedName("projectStructureItems")

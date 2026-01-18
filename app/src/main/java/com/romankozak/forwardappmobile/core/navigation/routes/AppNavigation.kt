@@ -19,8 +19,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
-import com.romankozak.forwardappmobile.data.database.models.RecentItem
-import com.romankozak.forwardappmobile.data.database.models.RecentItemType
+import com.romankozak.forwardappmobile.features.recent.data.models.RecentItem
+import com.romankozak.forwardappmobile.features.recent.data.models.RecentItemType
 import com.romankozak.forwardappmobile.features.attachments.specific_types.checklist.ChecklistScreen
 import com.romankozak.forwardappmobile.features.attachments.ui.library.AttachmentsLibraryScreen
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen

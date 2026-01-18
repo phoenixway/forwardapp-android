@@ -35,7 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.delay
 
-import com.romankozak.forwardappmobile.data.database.models.Reminder
+import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 import com.romankozak.forwardappmobile.features.reminders.util.ReminderTextUtil
 
 @Composable

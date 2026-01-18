@@ -39,7 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.features.contexts.data.models.StructurePreset
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfile
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
 
@@ -121,7 +121,7 @@ fun StructurePresetsScreen(
 
 @Composable
 private fun PresetRow(
-    preset: StructurePreset,
+    preset: ContextRoleProfile,
     onSelect: () -> Unit,
     onEdit: () -> Unit,
     onRemove: () -> Unit,

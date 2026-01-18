@@ -10,7 +10,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import com.mohamedrejeb.compose.dnd.DragAndDropContainer
 import com.mohamedrejeb.compose.dnd.rememberDragAndDropState
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListHierarchyData
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextHierarchyData
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
@@ -27,7 +27,7 @@ import androidx.compose.animation.SharedTransitionScope
 @Composable
 fun ProjectHierarchyView(
     modifier: Modifier = Modifier,
-    hierarchy: ListHierarchyData,
+    hierarchy: ContextHierarchyData,
     flattenedHierarchy: List<FlatHierarchyItem>,
     breadcrumbs: List<BreadcrumbItem>,
     focusedProjectId: String?,
@@ -39,7 +39,7 @@ fun ProjectHierarchyView(
     listState: LazyListState,
     longDescendantsMap: Map<String, Boolean>,
     onEvent: (ProjectHierarchyScreenEvent) -> Unit,
-    
+
     onProjectClicked: (String) -> Unit,
     onToggleExpanded: (Project) -> Unit,
     onMenuRequested: (Project) -> Unit,

@@ -15,7 +15,7 @@ import javax.inject.Inject
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemContent
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 
 class ItemActionHandler
@@ -33,10 +33,10 @@ constructor(
 
         fun toggleSelection(itemId: String)
 
-        fun requestAttachmentShare(item: ListItemContent)
+        fun requestAttachmentShare(item: BacklogItemContent)
     }
 
-    private var recentlyDeletedItems: List<ListItemContent>? = null
+    private var recentlyDeletedItems: List<BacklogItemContent>? = null
 
     private val _goalActionDialogState = MutableStateFlow<GoalActionDialogState>(GoalActionDialogState.Hidden)
     val goalActionDialogState = _goalActionDialogState.asStateFlow()
@@ -44,14 +44,14 @@ constructor(
     private val _showGoalTransportMenu = MutableStateFlow(false)
     val showGoalTransportMenu = _showGoalTransportMenu.asStateFlow()
 
-    private val _itemForTransportMenu = MutableStateFlow<ListItemContent?>(null)
+    private val _itemForTransportMenu = MutableStateFlow<BacklogItemContent?>(null)
     val itemForTransportMenu = _itemForTransportMenu.asStateFlow()
 
     private val _onCopyContentToClipboard = MutableStateFlow<() -> Unit>({  })
     val onCopyContentToClipboard = _onCopyContentToClipboard.asStateFlow()
 
-    fun onItemClick(item: ListItemContent) {
-        if (item is ListItemContent.GoalItem) {
+    fun onItemClick(item: BacklogItemContent) {
+        if (item is BacklogItemContent.GoalItem) {
             // Одразу відкриваємо редагування цілі по тапу
             resultListener.requestNavigation("goal_settings_screen/${item.goal.id}")
             return
@@ -62,51 +62,51 @@ constructor(
         } else {
             scope.launch {
                 when (item) {
-                    is ListItemContent.NoteItem -> recentItemsRepository.logNoteAccess(item.note)
-                    is ListItemContent.NoteDocumentItem -> recentItemsRepository.logNoteDocumentAccess(item.document)
-                    is ListItemContent.SublistItem -> {
+                    is BacklogItemContent.NoteItem -> recentItemsRepository.logNoteAccess(item.note)
+                    is BacklogItemContent.NoteDocumentItem -> recentItemsRepository.logNoteDocumentAccess(item.document)
+                    is BacklogItemContent.SublistItem -> {
                         projectRepository.getProjectById(item.project.id)?.let {
                             recentItemsRepository.logProjectAccess(it)
                         }
                     }
-                    is ListItemContent.LinkItem -> {
+                    is BacklogItemContent.LinkItem -> {
                         if (item.link.linkData.type == LinkType.OBSIDIAN) {
                             recentItemsRepository.logObsidianLinkAccess(item.link.linkData)
                         }
                     }
-                    is ListItemContent.ChecklistItem -> recentItemsRepository.logChecklistAccess(item.checklist)
+                    is BacklogItemContent.ChecklistItem -> recentItemsRepository.logChecklistAccess(item.checklist)
                     else -> {}
                 }
             }
 
             val currentProjectId = projectIdFlow.value
             when (item) {
-                is ListItemContent.GoalItem ->
+                is BacklogItemContent.GoalItem ->
                     resultListener.requestNavigation(
                         "goal_settings_screen/${item.goal.id}",
                     )
-                is ListItemContent.SublistItem ->
+                is BacklogItemContent.SublistItem ->
                     resultListener.requestNavigation("goal_detail_screen/${item.project.id}")
-                is ListItemContent.LinkItem ->
+                is BacklogItemContent.LinkItem ->
                     resultListener.requestNavigation(BacklogViewModel.HANDLE_LINK_CLICK_ROUTE + "/${item.link.linkData.target}")
-                is ListItemContent.NoteItem ->
+                is BacklogItemContent.NoteItem ->
                     resultListener.showSnackbar("Застарілі нотатки недоступні для редагування", null)
-                is ListItemContent.NoteDocumentItem ->
+                is BacklogItemContent.NoteDocumentItem ->
                     resultListener.requestNavigation("note_document_screen/${item.document.id}")
-                is ListItemContent.ChecklistItem ->
+                is BacklogItemContent.ChecklistItem ->
                     resultListener.requestNavigation("checklist_screen?checklistId=${item.checklist.id}")
             }
         }
     }
 
-    fun deleteItem(item: ListItemContent) {
+    fun deleteItem(item: BacklogItemContent) {
         scope.launch {
             recentlyDeletedItems = listOf(item)
             val currentProjectId = projectIdFlow.value
             val isAttachment =
-                item is ListItemContent.LinkItem ||
-                        item is ListItemContent.NoteDocumentItem ||
-                        item is ListItemContent.ChecklistItem
+                item is BacklogItemContent.LinkItem ||
+                        item is BacklogItemContent.NoteDocumentItem ||
+                        item is BacklogItemContent.ChecklistItem
             if (isAttachment) {
                 projectRepository.unlinkAttachmentFromProject(currentProjectId, item.listItem.id)
                 resultListener.forceRefresh()
@@ -118,11 +118,11 @@ constructor(
         }
     }
 
-    fun shareAttachmentToProject(item: ListItemContent) {
+    fun shareAttachmentToProject(item: BacklogItemContent) {
         resultListener.requestAttachmentShare(item)
     }
 
-    fun onGoalActionInitiated(item: ListItemContent) {
+    fun onGoalActionInitiated(item: BacklogItemContent) {
         _goalActionDialogState.value = GoalActionDialogState.AwaitingActionChoice(item)
     }
 
@@ -132,7 +132,7 @@ constructor(
 
     fun onGoalActionSelected(
         actionType: GoalActionType,
-        item: ListItemContent,
+        item: BacklogItemContent,
     ) {
 
         onItemActionSelected(actionType, item)
@@ -150,19 +150,19 @@ constructor(
         }
     }
 
-    fun copyContentRequest(content: ListItemContent) {
+    fun copyContentRequest(content: BacklogItemContent) {
         scope.launch {
             val (message, text) =
                 when (content) {
-                    is ListItemContent.GoalItem -> Pair("Текст скопійовано", content.goal.text)
-                    is ListItemContent.LinkItem -> {
+                    is BacklogItemContent.GoalItem -> Pair("Текст скопійовано", content.goal.text)
+                    is BacklogItemContent.LinkItem -> {
                         val linkText = content.link.linkData.displayName ?: content.link.linkData.target
                         Pair("Посилання скопійовано", linkText)
                     }
-                    is ListItemContent.SublistItem -> Pair("Назва проекту скопійована", content.project.name)
-                    is ListItemContent.NoteItem -> Pair("Текст нотатки скопійовано", content.note.content)
-                    is ListItemContent.NoteDocumentItem -> Pair("Назва списку скопійована", content.document.name)
-                    is ListItemContent.ChecklistItem -> Pair("Назва чекліста скопійована", content.checklist.name)
+                    is BacklogItemContent.SublistItem -> Pair("Назва проекту скопійована", content.project.name)
+                    is BacklogItemContent.NoteItem -> Pair("Текст нотатки скопійовано", content.note.content)
+                    is BacklogItemContent.NoteDocumentItem -> Pair("Назва списку скопійована", content.document.name)
+                    is BacklogItemContent.ChecklistItem -> Pair("Назва чекліста скопійована", content.checklist.name)
                 }
 
             resultListener.copyToClipboard(text)
@@ -171,11 +171,11 @@ constructor(
     }
 
     fun onGoalTransportInitiated(
-        item: ListItemContent,
+        item: BacklogItemContent,
         onCopyContentToClipboard: () -> Unit,
     ) {
         _onCopyContentToClipboard.value = onCopyContentToClipboard
-        if (item is ListItemContent.GoalItem || item is ListItemContent.SublistItem) {
+        if (item is BacklogItemContent.GoalItem || item is BacklogItemContent.SublistItem) {
             _itemForTransportMenu.value = item
             _showGoalTransportMenu.value = true
         } else {
@@ -195,17 +195,17 @@ constructor(
 
     fun onItemActionSelected(
         actionType: GoalActionType,
-        item: ListItemContent,
+        item: BacklogItemContent,
     ) {
         when (item) {
-            is ListItemContent.GoalItem -> {
+            is BacklogItemContent.GoalItem -> {
                 resultListener.setPendingAction(
                     actionType,
                     itemIds = setOf(item.listItem.id),
                     goalIds = setOf(item.goal.id),
                 )
             }
-            is ListItemContent.SublistItem -> {
+            is BacklogItemContent.SublistItem -> {
                 when (actionType) {
                     GoalActionType.CreateInstance -> {
                         resultListener.showSnackbar("Дія 'Створити посилання' недоступна для під-проектів.", null)

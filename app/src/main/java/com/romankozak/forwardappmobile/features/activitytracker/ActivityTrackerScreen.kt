@@ -37,7 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
+import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
 import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
 import com.romankozak.forwardappmobile.features.activitytracker.dialogs.TimePickerDialog
 import com.romankozak.forwardappmobile.features.activitytracker.dialogs.formatDuration
@@ -56,7 +56,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 
 import androidx.compose.ui.text.style.TextOverflow
-import com.romankozak.forwardappmobile.data.database.models.Reminder
+import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.IconPosition
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.MenuAlignment

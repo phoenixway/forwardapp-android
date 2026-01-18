@@ -21,10 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.romankozak.forwardappmobile.data.database.models.WeeklyInsights
-import com.romankozak.forwardappmobile.features.daymanagement.presentation.dayanalitics.DayAnalyticsUiState
-import com.romankozak.forwardappmobile.features.daymanagement.presentation.dayanalitics.DayAnalyticsViewModel
-import com.romankozak.forwardappmobile.features.daymanagement.presentation.dayanalitics.TimeRange
+import com.romankozak.forwardappmobile.features.ai.data.models.WeeklyInsights
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale

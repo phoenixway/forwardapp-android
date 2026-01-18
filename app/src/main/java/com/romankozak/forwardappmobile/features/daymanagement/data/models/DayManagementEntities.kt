@@ -1,5 +1,4 @@
-
-package com.romankozak.forwardappmobile.data.database.models
+package com.romankozak.forwardappmobile.features.daymanagement.data.models
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
@@ -9,9 +8,13 @@ import androidx.room.PrimaryKey
 import androidx.room.TypeConverter
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
 import com.romankozak.forwardappmobile.features.contexts.data.models.DayStatus
+import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
+import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.features.contexts.data.models.TaskPriority
 import com.romankozak.forwardappmobile.features.contexts.data.models.TaskStatus
+import java.time.DayOfWeek
 import java.util.UUID
 
 data class NewTaskParameters(
@@ -60,13 +63,13 @@ data class DayPlan(
             onDelete = ForeignKey.CASCADE,
         ),
         ForeignKey(
-            entity = com.romankozak.forwardappmobile.features.contexts.data.models.Goal::class,
+            entity = Goal::class,
             parentColumns = ["id"],
             childColumns = ["goalId"],
             onDelete = ForeignKey.SET_NULL,
         ),
         ForeignKey(
-            entity = com.romankozak.forwardappmobile.features.contexts.data.models.Project::class,
+            entity = Project::class,
             parentColumns = ["id"],
             childColumns = ["projectId"],
             onDelete = ForeignKey.SET_NULL,
@@ -200,12 +203,12 @@ class DailyPlanConverters {
     }
 
     @TypeConverter
-    fun fromDayOfWeekList(days: List<java.time.DayOfWeek>?): String? {
+    fun fromDayOfWeekList(days: List<DayOfWeek>?): String? {
         return days?.joinToString(",") { it.name }
     }
 
     @TypeConverter
-    fun toDayOfWeekList(data: String?): List<java.time.DayOfWeek>? {
-        return data?.split(",")?.map { java.time.DayOfWeek.valueOf(it) }
+    fun toDayOfWeekList(data: String?): List<DayOfWeek>? {
+        return data?.split(",")?.map { DayOfWeek.valueOf(it) }
     }
 }

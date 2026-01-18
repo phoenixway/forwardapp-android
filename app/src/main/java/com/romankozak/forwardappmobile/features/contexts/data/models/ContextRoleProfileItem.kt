@@ -10,7 +10,7 @@ import androidx.room.PrimaryKey
     tableName = "structure_preset_items",
     foreignKeys = [
         ForeignKey(
-            entity = StructurePreset::class,
+            entity = ContextRoleProfile::class,
             parentColumns = ["id"],
             childColumns = ["presetId"],
             onDelete = ForeignKey.CASCADE
@@ -21,7 +21,7 @@ import androidx.room.PrimaryKey
         Index(value = ["presetId", "roleCode"], unique = true),
     ]
 )
-data class StructurePresetItem(
+data class ContextRoleProfileItem(
     @PrimaryKey val id: String,
     val presetId: String,
     val entityType: String,

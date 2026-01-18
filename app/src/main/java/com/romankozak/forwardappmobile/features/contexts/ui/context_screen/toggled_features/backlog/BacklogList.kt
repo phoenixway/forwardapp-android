@@ -23,14 +23,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemContent
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
 @Composable
 fun BacklogListScreen(
-    items: List<ListItemContent>,
+    items: List<BacklogItemContent>,
     modifier: Modifier = Modifier,
     listState: LazyListState,
     showCheckboxes: Boolean,
@@ -39,23 +39,23 @@ fun BacklogListScreen(
     swipedItemId: String?,
     swipeResetCounter: Int,
     onMove: (from: Int, to: Int) -> Unit,
-    onItemClick: (ListItemContent) -> Unit,
-    onLongClick: (ListItemContent) -> Unit,
-    onCheckedChange: (ListItemContent, Boolean) -> Unit,
-    onDelete: (ListItemContent) -> Unit,
-    onDeleteEverywhere: (ListItemContent) -> Unit,
-    onMoveToTop: (ListItemContent) -> Unit,
-    onAddToDayPlan: (ListItemContent) -> Unit,
-    onStartTracking: (ListItemContent) -> Unit,
-    onShowGoalTransportMenu: (ListItemContent) -> Unit,
+    onItemClick: (BacklogItemContent) -> Unit,
+    onLongClick: (BacklogItemContent) -> Unit,
+    onCheckedChange: (BacklogItemContent, Boolean) -> Unit,
+    onDelete: (BacklogItemContent) -> Unit,
+    onDeleteEverywhere: (BacklogItemContent) -> Unit,
+    onMoveToTop: (BacklogItemContent) -> Unit,
+    onAddToDayPlan: (BacklogItemContent) -> Unit,
+    onStartTracking: (BacklogItemContent) -> Unit,
+    onShowGoalTransportMenu: (BacklogItemContent) -> Unit,
     onRelatedLinkClick: (RelatedLink) -> Unit,
-    onRemindersClick: (ListItemContent) -> Unit,
-    onCopyContent: (ListItemContent) -> Unit,
+    onRemindersClick: (BacklogItemContent) -> Unit,
+    onCopyContent: (BacklogItemContent) -> Unit,
     onResetSwipe: (String) -> Unit,
 ) {
     val reorderableState = rememberReorderableLazyListState(listState) { from, to -> onMove(from.index, to.index) }
     var showBottomSheet by remember { mutableStateOf(false) }
-    var selectedItemForActions by remember { mutableStateOf<ListItemContent?>(null) }
+    var selectedItemForActions by remember { mutableStateOf<BacklogItemContent?>(null) }
     val sortedItems = remember(items) { items.withCompletedAtEnd() }
     val completedStartIndex = remember(sortedItems) { sortedItems.indexOfFirst { it.isCompleted() } }
     val completedCount = remember(sortedItems) {

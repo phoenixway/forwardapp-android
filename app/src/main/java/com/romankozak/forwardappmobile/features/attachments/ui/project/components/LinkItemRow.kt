@@ -24,18 +24,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemContent
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.SwipeableListItem
 
 @Composable
 fun LinkItemRow(
-    linkItem: ListItemContent.LinkItem,
+    linkItem: BacklogItemContent.LinkItem,
     isSelected: Boolean,
     isHighlighted: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     onDelete: () -> Unit,
-    onCopyContentRequest: (ListItemContent) -> Unit,
+    onCopyContentRequest: (BacklogItemContent) -> Unit,
     modifier: Modifier = Modifier,
     endAction: @Composable () -> Unit = {},
 ) {

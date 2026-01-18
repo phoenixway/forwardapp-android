@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.data.database
 import android.util.Log
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedGroup
-import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedProjectKeys
+import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedContextKeys
 import java.text.Normalizer
 import java.util.UUID
 
@@ -197,7 +197,7 @@ private fun migrateSpecialProjectsLegacy(db: SupportSQLiteDatabase) {
 private fun migrateSpecialProjectsWithSystemKeys(db: SupportSQLiteDatabase) {
     val personalManagementId = ensureProjectWithKey(
         db = db,
-        key = ReservedProjectKeys.PERSONAL_MANAGEMENT,
+        key = ReservedContextKeys.PERSONAL_MANAGEMENT,
         defaultName = "personal-management",
         projectType = "SYSTEM",
         reservedGroup = null,
@@ -207,7 +207,7 @@ private fun migrateSpecialProjectsWithSystemKeys(db: SupportSQLiteDatabase) {
 
     val strategicId = ensureProjectWithKey(
         db = db,
-        key = ReservedProjectKeys.STRATEGIC,
+        key = ReservedContextKeys.STRATEGIC,
         defaultName = "strategic",
         projectType = "RESERVED",
         reservedGroup = ReservedGroup.StrategicGroup.groupName,
@@ -217,7 +217,7 @@ private fun migrateSpecialProjectsWithSystemKeys(db: SupportSQLiteDatabase) {
 
     val strategicBeaconsId = ensureProjectWithKey(
         db = db,
-        key = ReservedProjectKeys.STRATEGIC_BEACONS,
+        key = ReservedContextKeys.STRATEGIC_BEACONS,
         defaultName = "strategic-beacons",
         projectType = "RESERVED",
         reservedGroup = ReservedGroup.MainBeaconsGroup.groupName,
@@ -230,7 +230,7 @@ private fun migrateSpecialProjectsWithSystemKeys(db: SupportSQLiteDatabase) {
 
     val weekId = ensureProjectWithKey(
         db = db,
-        key = ReservedProjectKeys.WEEK,
+        key = ReservedContextKeys.WEEK,
         defaultName = "week",
         projectType = "RESERVED",
         reservedGroup = ReservedGroup.Strategic.groupName,
@@ -242,7 +242,7 @@ private fun migrateSpecialProjectsWithSystemKeys(db: SupportSQLiteDatabase) {
     val todayId =
         ensureProjectWithKey(
             db = db,
-            key = ReservedProjectKeys.TODAY,
+            key = ReservedContextKeys.TODAY,
             defaultName = "today",
             projectType = "RESERVED",
             reservedGroup = ReservedGroup.Inbox.groupName,
@@ -253,7 +253,7 @@ private fun migrateSpecialProjectsWithSystemKeys(db: SupportSQLiteDatabase) {
     val mainBeaconsId =
         ensureProjectWithKey(
             db = db,
-            key = ReservedProjectKeys.MAIN_BEACONS,
+            key = ReservedContextKeys.MAIN_BEACONS,
             defaultName = "main-beacons",
             projectType = "RESERVED",
             reservedGroup = ReservedGroup.MainBeacons.groupName,
@@ -265,7 +265,7 @@ private fun migrateSpecialProjectsWithSystemKeys(db: SupportSQLiteDatabase) {
 
     val mediumTermId = ensureProjectWithKey(
         db = db,
-        key = ReservedProjectKeys.MEDIUM_TERM_STRATEGY,
+        key = ReservedContextKeys.MEDIUM_TERM_STRATEGY,
         defaultName = "medium-term-strategy",
         projectType = "RESERVED",
         reservedGroup = ReservedGroup.Strategic.groupName,
@@ -277,7 +277,7 @@ private fun migrateSpecialProjectsWithSystemKeys(db: SupportSQLiteDatabase) {
 
     ensureProjectWithKey(
         db = db,
-        key = ReservedProjectKeys.INBOX,
+        key = ReservedContextKeys.INBOX,
         defaultName = "inbox",
         projectType = "RESERVED",
         reservedGroup = ReservedGroup.Inbox.groupName,
@@ -295,13 +295,13 @@ private fun migrateSpecialProjectsWithSystemKeys(db: SupportSQLiteDatabase) {
              WHERE system_key = ?
                AND (parentId IS NULL OR parentId = ?)
             """.trimIndent(),
-            arrayOf(todayId, ReservedProjectKeys.INBOX, personalManagementId),
+            arrayOf(todayId, ReservedContextKeys.INBOX, personalManagementId),
         )
     }
 
     ensureProjectWithKey(
         db = db,
-        key = ReservedProjectKeys.STRATEGIC_INBOX,
+        key = ReservedContextKeys.STRATEGIC_INBOX,
         defaultName = "strategic-inbox",
         projectType = "RESERVED",
         reservedGroup = ReservedGroup.Strategic.groupName,
@@ -311,7 +311,7 @@ private fun migrateSpecialProjectsWithSystemKeys(db: SupportSQLiteDatabase) {
 
     ensureProjectWithKey(
         db = db,
-        key = ReservedProjectKeys.STRATEGIC_REVIEW,
+        key = ReservedContextKeys.STRATEGIC_REVIEW,
         defaultName = "strategic-review",
         projectType = "RESERVED",
         reservedGroup = ReservedGroup.Strategic.groupName,
@@ -321,7 +321,7 @@ private fun migrateSpecialProjectsWithSystemKeys(db: SupportSQLiteDatabase) {
 
     ensureProjectWithKey(
         db = db,
-        key = ReservedProjectKeys.MISSION,
+        key = ReservedContextKeys.MISSION,
         defaultName = "mission",
         projectType = "RESERVED",
         reservedGroup = ReservedGroup.MainBeacons.groupName,
@@ -333,7 +333,7 @@ private fun migrateSpecialProjectsWithSystemKeys(db: SupportSQLiteDatabase) {
 
     ensureProjectWithKey(
         db = db,
-        key = ReservedProjectKeys.LONG_TERM_STRATEGY,
+        key = ReservedContextKeys.LONG_TERM_STRATEGY,
         defaultName = "long-term-strategy",
         projectType = "RESERVED",
         reservedGroup = ReservedGroup.Strategic.groupName,
@@ -344,7 +344,7 @@ private fun migrateSpecialProjectsWithSystemKeys(db: SupportSQLiteDatabase) {
 
     val strategicProgramsId = ensureProjectWithKey(
         db = db,
-        key = ReservedProjectKeys.STRATEGIC_PROGRAMS,
+        key = ReservedContextKeys.STRATEGIC_PROGRAMS,
         defaultName = "strategic-programs",
         projectType = "RESERVED",
         reservedGroup = ReservedGroup.Strategic.groupName,
@@ -356,7 +356,7 @@ private fun migrateSpecialProjectsWithSystemKeys(db: SupportSQLiteDatabase) {
 
     val activeQuestsId = ensureProjectWithKey(
         db = db,
-        key = ReservedProjectKeys.ACTIVE_QUESTS,
+        key = ReservedContextKeys.ACTIVE_QUESTS,
         defaultName = "active-quests",
         projectType = "RESERVED",
         reservedGroup = ReservedGroup.Strategic.groupName,

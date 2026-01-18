@@ -26,7 +26,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
 import dagger.hilt.android.qualifiers.ApplicationContext
-import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
+import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
 import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentItemEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEntity
@@ -40,10 +40,10 @@ import com.romankozak.forwardappmobile.data.sync.LongDeserializer
 import com.romankozak.forwardappmobile.data.sync.BackupDiff
 import com.romankozak.forwardappmobile.data.sync.DiffResult
 import com.romankozak.forwardappmobile.data.sync.UpdatedItem
-import com.romankozak.forwardappmobile.data.database.models.DayPlan
-import com.romankozak.forwardappmobile.data.database.models.DayTask
-import com.romankozak.forwardappmobile.data.database.models.DailyMetric
-import com.romankozak.forwardappmobile.data.database.models.Reminder
+import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayPlan
+import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask
+import com.romankozak.forwardappmobile.features.daymanagement.data.models.DailyMetric
+import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
@@ -79,6 +79,8 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStat
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectType
 import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedGroup
 import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
+import com.romankozak.forwardappmobile.features.recent.data.models.RecentItem
+import com.romankozak.forwardappmobile.features.recent.data.models.RecentItemType
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
@@ -271,8 +273,8 @@ constructor(
                 aiEvents = aiEventDao.getAll(),
                 aiInsights = aiInsightDao.getAllSync(),
                 lifeSystemStates = lifeSystemStateDao.getAll(),
-                structurePresets = structurePresetDao.getAllSync(),
-                structurePresetItems = structurePresetItemDao.getAllItems(),
+                contextRoleProfiles = structurePresetDao.getAllSync(),
+                contextRoleProfileItems = structurePresetItemDao.getAllItems(),
                 projectStructures = projectStructureDao.getAllStructures(),
                 projectStructureItems = projectStructureDao.getAllItems(),
             )
@@ -892,9 +894,9 @@ constructor(
                 val targetId = projectIdMap[entry.projectId] ?: entry.projectId
                 val project = cleanedProjectsWithParents.find { it.id == targetId }
                 if (project != null) {
-                    com.romankozak.forwardappmobile.data.database.models.RecentItem(
+                    RecentItem(
                         id = project.id,
-                        type = com.romankozak.forwardappmobile.data.database.models.RecentItemType.PROJECT,
+                        type = RecentItemType.PROJECT,
                         lastAccessed = entry.timestamp,
                         displayName = project.name,
                         target = project.id
@@ -1073,8 +1075,8 @@ constructor(
                 if (backup.aiInsights.isNotEmpty()) aiInsightDao.upsertAll(backup.aiInsights)
                 backup.lifeSystemStates.forEach { lifeSystemStateDao.upsert(it) }
 
-                backup.structurePresets.forEach { structurePresetDao.insertPreset(it) }
-                if (backup.structurePresetItems.isNotEmpty()) structurePresetItemDao.insertItems(backup.structurePresetItems)
+                backup.contextRoleProfiles.forEach { structurePresetDao.insertPreset(it) }
+                if (backup.contextRoleProfileItems.isNotEmpty()) structurePresetItemDao.insertItems(backup.contextRoleProfileItems)
 
                 backup.projectStructures.forEach { projectStructureDao.insertStructure(it) }
                 if (backup.projectStructureItems.isNotEmpty()) projectStructureDao.insertItems(backup.projectStructureItems)

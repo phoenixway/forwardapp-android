@@ -30,10 +30,10 @@ import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.channels.Channel
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
-import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
+import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
-import com.romankozak.forwardappmobile.data.database.models.RecentItem
-import com.romankozak.forwardappmobile.data.database.models.RecentItemType
+import com.romankozak.forwardappmobile.features.recent.data.models.RecentItem
+import com.romankozak.forwardappmobile.features.recent.data.models.RecentItemType
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -44,7 +44,7 @@ import kotlinx.coroutines.withContext
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.SearchUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.DialogUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.PlanningUseCase
-import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedProjectKeys
+import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedContextKeys
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
@@ -654,9 +654,9 @@ constructor(
       is ProjectHierarchyScreenEvent.OpenInboxProject -> {
         viewModelScope.launch {
           val inboxProject =
-              _allProjectsFlat.value.firstOrNull { it.systemKey == ReservedProjectKeys.INBOX }
+              _allProjectsFlat.value.firstOrNull { it.systemKey == ReservedContextKeys.INBOX }
                   ?: _allProjectsFlat.value.firstOrNull {
-                      it.name.equals("Inbox", ignoreCase = true) && it.systemKey != ReservedProjectKeys.TODAY
+                      it.name.equals("Inbox", ignoreCase = true) && it.systemKey != ReservedContextKeys.TODAY
                   }
           if (inboxProject == null) {
             _uiEventChannel.send(ProjectUiEvent.ShowToast("Inbox project not found"))
@@ -778,7 +778,7 @@ constructor(
 
   private fun createNoteInInbox() {
     val inboxProjectId =
-      _allProjectsFlat.value.firstOrNull { it.systemKey == ReservedProjectKeys.INBOX }?.id
+      _allProjectsFlat.value.firstOrNull { it.systemKey == ReservedContextKeys.INBOX }?.id
     if (inboxProjectId == null) {
       viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.ShowToast("Inbox проект не знайдено")) }
       return
@@ -799,7 +799,7 @@ constructor(
 
   private fun createChecklistInInbox() {
     val inboxProjectId =
-      _allProjectsFlat.value.firstOrNull { it.systemKey == ReservedProjectKeys.INBOX }?.id
+      _allProjectsFlat.value.firstOrNull { it.systemKey == ReservedContextKeys.INBOX }?.id
     if (inboxProjectId == null) {
       viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.ShowToast("Inbox проект не знайдено")) }
       return
@@ -861,9 +861,9 @@ constructor(
   suspend fun getInboxProjectId(): String? = withContext(ioDispatcher) {
     val allProjects = _allProjectsFlat.first()
     val inboxProject =
-        allProjects.firstOrNull { it.systemKey == ReservedProjectKeys.INBOX }
+        allProjects.firstOrNull { it.systemKey == ReservedContextKeys.INBOX }
             ?: allProjects.firstOrNull {
-                it.name.equals("Inbox", ignoreCase = true) && it.systemKey != ReservedProjectKeys.TODAY
+                it.name.equals("Inbox", ignoreCase = true) && it.systemKey != ReservedContextKeys.TODAY
             }
     inboxProject?.id
   }

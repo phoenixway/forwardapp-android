@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.features.contexts.data.models
 
 import androidx.room.TypeConverter
 
-class ProjectTypeConverter {
+class ContextTypeConverter {
     @TypeConverter
     fun fromProjectType(projectType: ProjectType?): String {
         return (projectType ?: ProjectType.DEFAULT).name

@@ -1,9 +1,8 @@
-package com.romankozak.forwardappmobile.data.database.models
+package com.romankozak.forwardappmobile.features.ai.data.models
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-import androidx.room.ForeignKey
 import androidx.room.Index
 
 @Entity(

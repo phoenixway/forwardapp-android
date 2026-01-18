@@ -3,11 +3,11 @@ package com.romankozak.forwardappmobile.features.daymanagement.presentation.dayp
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.data.database.models.DayPlan
-import com.romankozak.forwardappmobile.data.database.models.DayTask
-import com.romankozak.forwardappmobile.data.database.models.RecurrenceFrequency
-import com.romankozak.forwardappmobile.data.database.models.RecurrenceRule
-import com.romankozak.forwardappmobile.data.database.models.NewTaskParameters
+import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayPlan
+import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask
+import com.romankozak.forwardappmobile.features.daymanagement.data.models.RecurrenceFrequency
+import com.romankozak.forwardappmobile.features.daymanagement.data.models.RecurrenceRule
+import com.romankozak.forwardappmobile.features.daymanagement.data.models.NewTaskParameters
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
 import java.util.Calendar
 import javax.inject.Inject
 
-import com.romankozak.forwardappmobile.data.database.models.Reminder
+import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.features.contexts.data.models.TaskPriority
 import kotlinx.coroutines.FlowPreview

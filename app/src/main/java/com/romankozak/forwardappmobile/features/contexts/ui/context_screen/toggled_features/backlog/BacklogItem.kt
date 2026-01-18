@@ -42,10 +42,10 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemContent
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
-import com.romankozak.forwardappmobile.data.database.models.Reminder
+import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.MarkdownText
@@ -54,20 +54,20 @@ import sh.calvin.reorderable.ReorderableCollectionItemScope
 
 @Composable
 fun BacklogItem(
-    item: ListItemContent,
+    item: BacklogItemContent,
     reorderableScope: ReorderableCollectionItemScope,
     modifier: Modifier = Modifier,
     onItemClick: () -> Unit,
-                onLongClick: () -> Unit,
-                onMoreClick: () -> Unit,
-                onCheckedChange: (Boolean) -> Unit,
-                onRelatedLinkClick: (RelatedLink) -> Unit,
-                showCheckbox: Boolean,
-                isSelected: Boolean,
-                contextMarkerToEmojiMap: Map<String, String>,
+    onLongClick: () -> Unit,
+    onMoreClick: () -> Unit,
+    onCheckedChange: (Boolean) -> Unit,
+    onRelatedLinkClick: (RelatedLink) -> Unit,
+    showCheckbox: Boolean,
+    isSelected: Boolean,
+    contextMarkerToEmojiMap: Map<String, String>,
 ) {
     when (item) {
-        is ListItemContent.GoalItem -> {
+        is BacklogItemContent.GoalItem -> {
             InternalGoalItem(
                 goal = item.goal,
                 reminders = item.reminders,
@@ -83,7 +83,7 @@ fun BacklogItem(
                 contextMarkerToEmojiMap = contextMarkerToEmojiMap
             )
         }
-        is ListItemContent.SublistItem -> {
+        is BacklogItemContent.SublistItem -> {
             InternalSubprojectItem(
                 subproject = item.project,
                 reorderableScope = reorderableScope,

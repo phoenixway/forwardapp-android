@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel
 
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemContent
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStatusValues
@@ -15,7 +15,7 @@ class ProjectMarkdownExporter
     constructor() {
         fun exportProjectStateToMarkdown(
             project: Project?,
-            backlog: List<ListItemContent>,
+            backlog: List<BacklogItemContent>,
             logs: List<ProjectExecutionLog>,
             listener: BacklogMarkdownHandlerResultListener,
         ) {
@@ -48,18 +48,18 @@ class ProjectMarkdownExporter
                         backlog.forEach { item ->
                             val line =
                                 when (item) {
-                                    is ListItemContent.GoalItem -> {
+                                    is BacklogItemContent.GoalItem -> {
                                         val checkbox = if (item.goal.completed) "- [x]" else "- [ ]"
                                         "$checkbox ${item.goal.text}"
                                     }
-                                    is ListItemContent.SublistItem -> "- [С] ${item.project.name}"
-                                    is ListItemContent.LinkItem -> {
+                                    is BacklogItemContent.SublistItem -> "- [С] ${item.project.name}"
+                                    is BacklogItemContent.LinkItem -> {
                                         val displayName = item.link.linkData.displayName ?: item.link.linkData.target
                                         "- [Л] [$displayName](${item.link.linkData.target})"
                                     }
-                                    is ListItemContent.NoteItem -> "- [Н] ${item.note.title}"
-                                    is ListItemContent.NoteDocumentItem -> "- [К] ${item.document.name}"
-                                    is ListItemContent.ChecklistItem -> "- [Ч] ${item.checklist.name}"
+                                    is BacklogItemContent.NoteItem -> "- [Н] ${item.note.title}"
+                                    is BacklogItemContent.NoteDocumentItem -> "- [К] ${item.document.name}"
+                                    is BacklogItemContent.ChecklistItem -> "- [Ч] ${item.checklist.name}"
                                 }
                             appendLine(line)
                         }

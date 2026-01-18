@@ -23,7 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mohamedrejeb.compose.dnd.DragAndDropState
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListHierarchyData
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextHierarchyData
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
@@ -40,7 +40,7 @@ import androidx.compose.animation.SharedTransitionScope
 @Composable
 fun FocusedProjectView(
     focusedProjectId: String,
-    hierarchy: ListHierarchyData,
+    hierarchy: ContextHierarchyData,
     breadcrumbs: List<BreadcrumbItem>,
     dragAndDropState: DragAndDropState<Project>,
     isSearchActive: Boolean,

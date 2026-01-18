@@ -5,8 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
-import com.romankozak.forwardappmobile.features.contexts.data.models.StructurePreset
-import com.romankozak.forwardappmobile.features.contexts.data.models.StructurePresetItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfile
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfileItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.channels.Channel
@@ -134,7 +134,7 @@ class StructurePresetEditorViewModel @Inject constructor(
             val state = _uiState.value
             if (state.code.isBlank() || state.label.isBlank()) return@launch
             val presetId = state.presetId ?: UUID.randomUUID().toString()
-            val preset = StructurePreset(
+            val preset = ContextRoleProfile(
                 id = presetId,
                 code = state.code,
                 label = state.label,
@@ -150,7 +150,7 @@ class StructurePresetEditorViewModel @Inject constructor(
             )
             presetDao.insertPreset(preset)
             val items = state.items.map {
-                StructurePresetItem(
+                ContextRoleProfileItem(
                     id = it.id,
                     presetId = presetId,
                     entityType = it.entityType,

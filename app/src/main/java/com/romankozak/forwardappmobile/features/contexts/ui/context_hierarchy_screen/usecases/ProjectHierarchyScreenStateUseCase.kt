@@ -3,10 +3,10 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.config.FeatureToggles
-import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListHierarchyData
+import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextHierarchyData
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
-import com.romankozak.forwardappmobile.data.database.models.RecentItem
+import com.romankozak.forwardappmobile.features.recent.data.models.RecentItem
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
@@ -59,11 +59,11 @@ constructor(
   )
 
   private val defaultUiState = MutableStateFlow(ProjectHierarchyScreenUiState())
-  private val defaultHierarchy = MutableStateFlow(ListHierarchyData())
+  private val defaultHierarchy = MutableStateFlow(ContextHierarchyData())
   private val defaultSearchResults = MutableStateFlow(emptyList<SearchResult>())
 
   private var uiStateInternal: StateFlow<ProjectHierarchyScreenUiState> = defaultUiState
-  private var projectHierarchyInternal: StateFlow<ListHierarchyData> = defaultHierarchy
+  private var projectHierarchyInternal: StateFlow<ContextHierarchyData> = defaultHierarchy
   private var searchResultsInternal: StateFlow<List<SearchResult>> = defaultSearchResults
 
   private var isInitialized = false
@@ -265,7 +265,7 @@ constructor(
   val uiState: StateFlow<ProjectHierarchyScreenUiState>
     get() = uiStateInternal
 
-  val projectHierarchy: StateFlow<ListHierarchyData>
+  val projectHierarchy: StateFlow<ContextHierarchyData>
     get() = projectHierarchyInternal
 
   val searchResults: StateFlow<List<SearchResult>>
@@ -280,7 +280,7 @@ constructor(
   private data class CoreUiState(
     val subStateStack: List<ProjectHierarchyScreenSubState>,
     val searchQuery: TextFieldValue,
-    val projectHierarchy: ListHierarchyData,
+    val projectHierarchy: ContextHierarchyData,
     val currentBreadcrumbs: List<BreadcrumbItem>,
     val planningMode: PlanningMode,
     val flattenedHierarchy: List<FlatHierarchyItem>,
@@ -313,13 +313,13 @@ internal class HierarchyStateBuilder(
   private val hierarchyUseCase: HierarchyUseCase,
 ) {
   private var lastNonEmptyFlatList: List<Project> = emptyList()
-  private var lastNonEmptyHierarchy: ListHierarchyData? = null
+  private var lastNonEmptyHierarchy: ContextHierarchyData? = null
 
   fun buildHierarchyState(
     scope: CoroutineScope,
     filterStates: StateFlow<FilterState>,
     expansionStates: StateFlow<ProjectHierarchyScreenStateUseCase.ExpansionState>,
-  ): StateFlow<ListHierarchyData> {
+  ): StateFlow<ContextHierarchyData> {
     val readyFilterState = prepareReadyFilterState(filterStates)
 
     return combine(readyFilterState, expansionStates) { filterState, expansion ->
@@ -350,7 +350,7 @@ internal class HierarchyStateBuilder(
           hierarchy
         }
       }
-      .stateIn(scope, SharingStarted.Eagerly, ListHierarchyData())
+      .stateIn(scope, SharingStarted.Eagerly, ContextHierarchyData())
   }
 
   internal fun prepareReadyFilterState(

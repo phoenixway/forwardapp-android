@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.comp
 
 import androidx.lifecycle.ViewModel
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
-import com.romankozak.forwardappmobile.data.database.models.Reminder
+import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.ui.common.ParsedTextData
 import kotlinx.coroutines.flow.MutableStateFlow

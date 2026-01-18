@@ -66,8 +66,8 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.OptimizedExpandingProjectHierarchyBottomNav
 import com.romankozak.forwardappmobile.ui.shared.InProgressIndicator
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
-import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
-import com.romankozak.forwardappmobile.data.database.models.Reminder
+import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
+import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 import com.romankozak.forwardappmobile.core.navigation.NavigationHistoryMenu
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
 

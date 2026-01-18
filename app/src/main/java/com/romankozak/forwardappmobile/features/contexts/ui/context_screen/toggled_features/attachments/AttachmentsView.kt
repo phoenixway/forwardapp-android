@@ -29,7 +29,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemContent
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.BacklogViewModel
 import com.romankozak.forwardappmobile.features.attachments.ui.project.components.ChecklistItemRow
 import com.romankozak.forwardappmobile.features.attachments.ui.project.components.LinkItemRow
@@ -40,10 +40,10 @@ import androidx.compose.ui.graphics.Color
 fun AttachmentsView(
     modifier: Modifier = Modifier,
     viewModel: BacklogViewModel,
-    listContent: List<ListItemContent>
+    listContent: List<BacklogItemContent>
 ) {
     val attachments = listContent.filter {
-        it is ListItemContent.LinkItem || it is ListItemContent.NoteDocumentItem || it is ListItemContent.ChecklistItem
+        it is BacklogItemContent.LinkItem || it is BacklogItemContent.NoteDocumentItem || it is BacklogItemContent.ChecklistItem
     }
 
     Column(
@@ -97,12 +97,12 @@ fun AttachmentsView(
 
 @Composable
 private fun AttachmentItemCard(
-    item: ListItemContent,
-    onItemClick: (ListItemContent) -> Unit,
-    onDeleteItem: (ListItemContent) -> Unit,
-    onCopyContentRequest: (ListItemContent) -> Unit,
-    onShareAttachment: (ListItemContent) -> Unit,
-    onDeleteCompletely: (ListItemContent) -> Unit,
+    item: BacklogItemContent,
+    onItemClick: (BacklogItemContent) -> Unit,
+    onDeleteItem: (BacklogItemContent) -> Unit,
+    onCopyContentRequest: (BacklogItemContent) -> Unit,
+    onShareAttachment: (BacklogItemContent) -> Unit,
+    onDeleteCompletely: (BacklogItemContent) -> Unit,
 ) {
     Surface(
         modifier = Modifier
@@ -116,7 +116,7 @@ private fun AttachmentItemCard(
     ) {
         Column(modifier = Modifier.padding(vertical = 8.dp)) {
             when (item) {
-                is ListItemContent.LinkItem -> {
+                is BacklogItemContent.LinkItem -> {
                     LinkItemRow(
                         linkItem = item,
                         isSelected = false,
@@ -128,7 +128,7 @@ private fun AttachmentItemCard(
                         onCopyContentRequest = onCopyContentRequest,
                     )
                 }
-                is ListItemContent.NoteDocumentItem -> {
+                is BacklogItemContent.NoteDocumentItem -> {
                     NoteDocumentItemRow(
                         noteDocumentItem = item,
                         onClick = { onItemClick(item) },
@@ -136,7 +136,7 @@ private fun AttachmentItemCard(
                         trailingContent = {},
                     )
                 }
-                is ListItemContent.ChecklistItem -> {
+                is BacklogItemContent.ChecklistItem -> {
                     ChecklistItemRow(
                         checklistItem = item,
                         onClick = { onItemClick(item) },

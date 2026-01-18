@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.data.database.models
+package com.romankozak.forwardappmobile.features.ai.data.models
 
 import androidx.room.Embedded
 import androidx.room.Relation

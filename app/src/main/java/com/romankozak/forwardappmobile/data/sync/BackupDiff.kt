@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.data.sync
 
-import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
+import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
 import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistItemEntity

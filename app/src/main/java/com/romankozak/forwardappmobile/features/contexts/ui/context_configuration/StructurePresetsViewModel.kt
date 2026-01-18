@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
-import com.romankozak.forwardappmobile.features.contexts.data.models.StructurePreset
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfile
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,8 +16,8 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 
 data class StructurePresetsUiState(
-    val presets: List<StructurePreset> = emptyList(),
-    val selectedPreset: StructurePreset? = null,
+    val presets: List<ContextRoleProfile> = emptyList(),
+    val selectedPreset: ContextRoleProfile? = null,
 )
 
 @HiltViewModel
@@ -43,13 +43,13 @@ class StructurePresetsViewModel @Inject constructor(
         }
     }
 
-    fun selectPreset(preset: StructurePreset) {
+    fun selectPreset(preset: ContextRoleProfile) {
         _uiState.update { it.copy(selectedPreset = preset) }
     }
 
     fun addPreset(code: String, label: String, description: String?) {
         viewModelScope.launch {
-            val preset = StructurePreset(
+            val preset = ContextRoleProfile(
                 id = UUID.randomUUID().toString(),
                 code = code,
                 label = label,

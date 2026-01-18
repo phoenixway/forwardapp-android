@@ -4,7 +4,7 @@ import android.util.Log
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListHierarchyData
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextHierarchyData
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
@@ -180,7 +180,7 @@ class SearchUseCase @Inject constructor(
 
     fun navigateToProject(
         projectId: String,
-        currentHierarchy: ListHierarchyData,
+        currentHierarchy: ContextHierarchyData,
     ) {
         scope.launch {
             projectRepository.getProjectById(projectId)?.let {
@@ -227,7 +227,7 @@ class SearchUseCase @Inject constructor(
         scope.launch { uiEventChannel.send(ProjectUiEvent.HideKeyboard) }
     }
 
-    fun onSearchResultClick(projectId: String, currentHierarchy: ListHierarchyData) {
+    fun onSearchResultClick(projectId: String, currentHierarchy: ContextHierarchyData) {
         scope.launch {
             when (val result = revealProjectInHierarchy(projectId)) {
                 is RevealResult.Success -> {
@@ -313,7 +313,7 @@ class SearchUseCase @Inject constructor(
         }
     }
 
-    fun handleNavigationResult(key: String, value: String, projectHierarchy: ListHierarchyData, onProjectToReveal: (String) -> Unit) {
+    fun handleNavigationResult(key: String, value: String, projectHierarchy: ContextHierarchyData, onProjectToReveal: (String) -> Unit) {
         when (key) {
             "project_to_reveal" -> {
                 scope.launch {

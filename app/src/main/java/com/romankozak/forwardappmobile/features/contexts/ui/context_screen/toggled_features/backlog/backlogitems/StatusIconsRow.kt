@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
-import com.romankozak.forwardappmobile.data.database.models.Reminder
+import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 import com.romankozak.forwardappmobile.ui.common.ParsedTextData
 import kotlinx.coroutines.delay
 

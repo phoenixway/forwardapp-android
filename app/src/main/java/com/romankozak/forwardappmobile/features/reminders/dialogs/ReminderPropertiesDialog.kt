@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.ui.components.AdaptiveSegmentedControl
 import com.romankozak.forwardappmobile.ui.components.SegmentedTab
 import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.data.database.models.Reminder
+import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
 

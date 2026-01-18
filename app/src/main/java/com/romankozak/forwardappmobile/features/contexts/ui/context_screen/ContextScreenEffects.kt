@@ -14,7 +14,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemContent
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectViewMode
 
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.utils.handleRelatedLinkClick
@@ -71,8 +71,8 @@ fun GoalDetailEffects(
 
     val displayList =
         remember(listContent, list?.isAttachmentsExpanded) {
-            val attachmentItems = listContent.filterIsInstance<ListItemContent.LinkItem>()
-            val draggableItems = listContent.filterNot { it is ListItemContent.LinkItem }
+            val attachmentItems = listContent.filterIsInstance<BacklogItemContent.LinkItem>()
+            val draggableItems = listContent.filterNot { it is BacklogItemContent.LinkItem }
             if (list?.isAttachmentsExpanded == true) attachmentItems + draggableItems else draggableItems
         }
 
@@ -264,7 +264,7 @@ fun GoalDetailEffects(
 
         val displayIndex =
             when {
-                goalId != null -> displayList.indexOfFirst { it is ListItemContent.GoalItem && it.goal.id == goalId }.takeIf { it != -1 }
+                goalId != null -> displayList.indexOfFirst { it is BacklogItemContent.GoalItem && it.goal.id == goalId }.takeIf { it != -1 }
                 itemId != null -> displayList.indexOfFirst { it.listItem.id == itemId }.takeIf { it != -1 }
                 else -> null
             }
@@ -324,7 +324,7 @@ fun GoalDetailEffects(
         if (itemId != null && displayList.isNotEmpty()) {
             var index = displayList.indexOfFirst { it.listItem.id == itemId }
             if (index == -1) {
-                index = displayList.indexOfFirst { it is ListItemContent.GoalItem && it.goal.id == itemId }
+                index = displayList.indexOfFirst { it is BacklogItemContent.GoalItem && it.goal.id == itemId }
                 Log.d("AutoScrollDebug", "Trying goal.id search, found index: $index")
             }
             Log.d("AutoScrollDebug", "Final index: $index for itemId: $itemId")

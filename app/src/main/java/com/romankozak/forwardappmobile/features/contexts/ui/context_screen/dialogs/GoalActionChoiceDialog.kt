@@ -13,13 +13,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemContent
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 import androidx.compose.material.icons.filled.Notifications
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.GoalActionType
 
 @Composable
 fun GoalActionChoiceDialog(
-    itemContent: ListItemContent,
+    itemContent: BacklogItemContent,
     onDismiss: () -> Unit,
     onActionSelected: (GoalActionType) -> Unit,
     onSetReminder: () -> Unit,
@@ -40,7 +40,7 @@ fun GoalActionChoiceDialog(
                     },
                 )
 
-                if (itemContent is ListItemContent.GoalItem) {
+                if (itemContent is BacklogItemContent.GoalItem) {
                     HorizontalDivider()
                     DialogActionItem(
                         text = "Створити посилання (ярлик)",

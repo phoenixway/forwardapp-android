@@ -1,12 +1,9 @@
 package com.romankozak.forwardappmobile.features.attachments.ui.project.components
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -23,11 +20,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemContent
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 
 @Composable
 fun ChecklistItemRow(
-    checklistItem: ListItemContent.ChecklistItem,
+    checklistItem: BacklogItemContent.ChecklistItem,
     onClick: () -> Unit,
     onDelete: () -> Unit,
     trailingContent: (@Composable () -> Unit)? = null,

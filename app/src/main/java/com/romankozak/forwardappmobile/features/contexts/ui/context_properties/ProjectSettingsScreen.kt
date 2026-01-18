@@ -63,7 +63,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
-import com.romankozak.forwardappmobile.features.contexts.data.models.StructurePreset
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfile
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 
 @Composable
@@ -326,7 +326,7 @@ private fun FeatureFlagCard(
 
 @Composable
 private fun PresetChooserDialog(
-    presets: List<StructurePreset>,
+    presets: List<ContextRoleProfile>,
     onDismiss: () -> Unit,
     onSelect: (String) -> Unit,
     onEditPresets: () -> Unit,

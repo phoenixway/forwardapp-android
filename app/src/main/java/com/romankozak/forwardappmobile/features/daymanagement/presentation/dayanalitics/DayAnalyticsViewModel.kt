@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.features.daymanagement.presentation.daya
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.data.database.models.WeeklyInsights
+import com.romankozak.forwardappmobile.features.ai.data.models.WeeklyInsights
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow

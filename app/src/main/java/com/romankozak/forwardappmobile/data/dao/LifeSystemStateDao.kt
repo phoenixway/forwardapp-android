@@ -4,7 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import com.romankozak.forwardappmobile.data.database.models.LifeSystemStateEntity
+import com.romankozak.forwardappmobile.features.lifestate.data.models.LifeSystemStateEntity
 
 @Dao
 interface LifeSystemStateDao {

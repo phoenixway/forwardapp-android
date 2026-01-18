@@ -9,7 +9,7 @@ import com.google.mlkit.common.model.DownloadConditions
 import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.TranslatorOptions
-import com.romankozak.forwardappmobile.data.database.models.ConversationEntity
+import com.romankozak.forwardappmobile.features.ai.data.models.ConversationEntity
 import com.romankozak.forwardappmobile.data.repository.ChatRepository
 import com.romankozak.forwardappmobile.data.repository.RolesRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository

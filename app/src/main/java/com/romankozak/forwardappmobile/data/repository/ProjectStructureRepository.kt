@@ -6,7 +6,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePrese
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructure
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectStructureWithItems
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructureItem
-import com.romankozak.forwardappmobile.features.contexts.data.models.StructurePresetItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfileItem
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import java.util.UUID
@@ -85,7 +85,7 @@ class ProjectStructureRepository @Inject constructor(
         return ProjectStructureWithItems(structure, items)
     }
 
-    private fun StructurePresetItem.toProjectStructureItem(structureId: String): ProjectStructureItem =
+    private fun ContextRoleProfileItem.toProjectStructureItem(structureId: String): ProjectStructureItem =
         ProjectStructureItem(
             id = UUID.randomUUID().toString(),
             projectStructureId = structureId,

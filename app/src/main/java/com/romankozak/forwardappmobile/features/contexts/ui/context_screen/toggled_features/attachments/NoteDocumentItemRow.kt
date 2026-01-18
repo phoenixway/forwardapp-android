@@ -12,12 +12,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemContent
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.R
 
 @Composable
 fun NoteDocumentItemRow(
-    noteDocumentItem: ListItemContent.NoteDocumentItem,
+    noteDocumentItem: BacklogItemContent.NoteDocumentItem,
     onClick: () -> Unit,
     onDelete: () -> Unit,
 ) {

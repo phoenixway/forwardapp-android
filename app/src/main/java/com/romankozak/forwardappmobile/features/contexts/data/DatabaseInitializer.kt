@@ -4,7 +4,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectDao
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectType
 import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedGroup
-import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedProjectKeys
+import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedContextKeys
 import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedSystemAppKeys
 import com.romankozak.forwardappmobile.data.repository.SystemAppRepository
 import java.util.UUID
@@ -22,20 +22,20 @@ class DatabaseInitializer @Inject constructor(
     }
 
     private suspend fun prePopulateProjects(projectDao: ProjectDao) {
-        val personalManagementProjectId = ensureProjectExists(projectDao, ReservedProjectKeys.PERSONAL_MANAGEMENT, "personal-management", null, ProjectType.SYSTEM, null)
-        val strategicGroupId = ensureProjectExists(projectDao, ReservedProjectKeys.STRATEGIC, "strategic", personalManagementProjectId, ProjectType.RESERVED, ReservedGroup.StrategicGroup)
-        val strategicBeaconsGroupId = ensureProjectExists(projectDao, ReservedProjectKeys.STRATEGIC_BEACONS, "strategic-beacons", strategicGroupId, ProjectType.RESERVED, ReservedGroup.MainBeaconsGroup)
-        val weekProjectId = ensureProjectExists(projectDao, ReservedProjectKeys.WEEK, "week", personalManagementProjectId, ProjectType.RESERVED, ReservedGroup.Strategic)
-        val todayProjectId = ensureProjectExists(projectDao, ReservedProjectKeys.TODAY, "today", personalManagementProjectId, ProjectType.RESERVED, ReservedGroup.Inbox)
-        ensureProjectExists(projectDao, ReservedProjectKeys.MAIN_BEACONS, "main-beacons", personalManagementProjectId, ProjectType.RESERVED, ReservedGroup.MainBeacons)
-        ensureProjectExists(projectDao, ReservedProjectKeys.MISSION, "mission", strategicBeaconsGroupId, ProjectType.RESERVED, ReservedGroup.MainBeacons)
-        ensureProjectExists(projectDao, ReservedProjectKeys.LONG_TERM_STRATEGY, "long-term-strategy", strategicBeaconsGroupId, ProjectType.RESERVED, ReservedGroup.Strategic)
-        ensureProjectExists(projectDao, ReservedProjectKeys.STRATEGIC_PROGRAMS, "strategic-programs", strategicBeaconsGroupId, ProjectType.RESERVED, ReservedGroup.Strategic)
-        ensureProjectExists(projectDao, ReservedProjectKeys.MEDIUM_TERM_STRATEGY, "medium-term-strategy", personalManagementProjectId, ProjectType.RESERVED, ReservedGroup.Strategic)
-        ensureProjectExists(projectDao, ReservedProjectKeys.ACTIVE_QUESTS, "active-quests", weekProjectId, ProjectType.RESERVED, ReservedGroup.Strategic)
-        ensureProjectExists(projectDao, ReservedProjectKeys.STRATEGIC_INBOX, "strategic-inbox", strategicGroupId, ProjectType.RESERVED, ReservedGroup.Strategic)
-        ensureProjectExists(projectDao, ReservedProjectKeys.STRATEGIC_REVIEW, "strategic-review", strategicGroupId, ProjectType.RESERVED, ReservedGroup.Strategic)
-        ensureProjectExists(projectDao, ReservedProjectKeys.INBOX, "inbox", todayProjectId, ProjectType.RESERVED, ReservedGroup.Inbox)
+        val personalManagementProjectId = ensureProjectExists(projectDao, ReservedContextKeys.PERSONAL_MANAGEMENT, "personal-management", null, ProjectType.SYSTEM, null)
+        val strategicGroupId = ensureProjectExists(projectDao, ReservedContextKeys.STRATEGIC, "strategic", personalManagementProjectId, ProjectType.RESERVED, ReservedGroup.StrategicGroup)
+        val strategicBeaconsGroupId = ensureProjectExists(projectDao, ReservedContextKeys.STRATEGIC_BEACONS, "strategic-beacons", strategicGroupId, ProjectType.RESERVED, ReservedGroup.MainBeaconsGroup)
+        val weekProjectId = ensureProjectExists(projectDao, ReservedContextKeys.WEEK, "week", personalManagementProjectId, ProjectType.RESERVED, ReservedGroup.Strategic)
+        val todayProjectId = ensureProjectExists(projectDao, ReservedContextKeys.TODAY, "today", personalManagementProjectId, ProjectType.RESERVED, ReservedGroup.Inbox)
+        ensureProjectExists(projectDao, ReservedContextKeys.MAIN_BEACONS, "main-beacons", personalManagementProjectId, ProjectType.RESERVED, ReservedGroup.MainBeacons)
+        ensureProjectExists(projectDao, ReservedContextKeys.MISSION, "mission", strategicBeaconsGroupId, ProjectType.RESERVED, ReservedGroup.MainBeacons)
+        ensureProjectExists(projectDao, ReservedContextKeys.LONG_TERM_STRATEGY, "long-term-strategy", strategicBeaconsGroupId, ProjectType.RESERVED, ReservedGroup.Strategic)
+        ensureProjectExists(projectDao, ReservedContextKeys.STRATEGIC_PROGRAMS, "strategic-programs", strategicBeaconsGroupId, ProjectType.RESERVED, ReservedGroup.Strategic)
+        ensureProjectExists(projectDao, ReservedContextKeys.MEDIUM_TERM_STRATEGY, "medium-term-strategy", personalManagementProjectId, ProjectType.RESERVED, ReservedGroup.Strategic)
+        ensureProjectExists(projectDao, ReservedContextKeys.ACTIVE_QUESTS, "active-quests", weekProjectId, ProjectType.RESERVED, ReservedGroup.Strategic)
+        ensureProjectExists(projectDao, ReservedContextKeys.STRATEGIC_INBOX, "strategic-inbox", strategicGroupId, ProjectType.RESERVED, ReservedGroup.Strategic)
+        ensureProjectExists(projectDao, ReservedContextKeys.STRATEGIC_REVIEW, "strategic-review", strategicGroupId, ProjectType.RESERVED, ReservedGroup.Strategic)
+        ensureProjectExists(projectDao, ReservedContextKeys.INBOX, "inbox", todayProjectId, ProjectType.RESERVED, ReservedGroup.Inbox)
     }
 
     private suspend fun ensureProjectExists(
@@ -71,12 +71,12 @@ class DatabaseInitializer @Inject constructor(
     private suspend fun prePopulateSystemApps() {
         val lifeStateApp = systemAppRepository.ensureNoteApp(
             systemKey = ReservedSystemAppKeys.MY_LIFE_CURRENT_STATE,
-            projectSystemKey = ReservedProjectKeys.STRATEGIC,
+            projectSystemKey = ReservedContextKeys.STRATEGIC,
             documentName = "my-life-current-state",
         )
         systemAppRepository.linkSystemNoteToProject(
             systemKey = ReservedSystemAppKeys.MY_LIFE_CURRENT_STATE,
-            targetProjectSystemKey = ReservedProjectKeys.TODAY,
+            targetProjectSystemKey = ReservedContextKeys.TODAY,
         )
     }
 }

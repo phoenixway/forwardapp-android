@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.data.repository
 
 import com.romankozak.forwardappmobile.data.dao.LifeSystemStateDao
-import com.romankozak.forwardappmobile.data.database.models.LifeSystemStateEntity
+import com.romankozak.forwardappmobile.features.lifestate.data.models.LifeSystemStateEntity
 import com.romankozak.forwardappmobile.domain.ai.state.EntropyLevel
 import com.romankozak.forwardappmobile.domain.ai.state.ExecutionMode
 import com.romankozak.forwardappmobile.domain.ai.state.LifeSystemState

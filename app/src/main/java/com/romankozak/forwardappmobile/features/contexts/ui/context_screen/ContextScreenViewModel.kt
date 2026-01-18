@@ -14,18 +14,18 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.lifecycle.viewModelScope
 
 
-import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
+import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
 import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectArtifact
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectTimeMetrics
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 
-import com.romankozak.forwardappmobile.data.database.models.RecentItem
-import com.romankozak.forwardappmobile.data.database.models.RecentItemType
-import com.romankozak.forwardappmobile.data.database.models.Reminder
+import com.romankozak.forwardappmobile.features.recent.data.models.RecentItem
+import com.romankozak.forwardappmobile.features.recent.data.models.RecentItemType
+import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemContent
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
@@ -121,7 +121,7 @@ enum class GoalActionType {
 sealed class GoalActionDialogState {
   object Hidden : GoalActionDialogState()
 
-  data class AwaitingActionChoice(val itemContent: ListItemContent) : GoalActionDialogState()
+  data class AwaitingActionChoice(val itemContent: BacklogItemContent) : GoalActionDialogState()
 }
 
 data class UiState(
@@ -160,7 +160,7 @@ data class UiState(
   val showShareDialog: Boolean = false,
   val showCreateNoteDocumentDialog: Boolean = false,
   val showRemindersDialog: Boolean = false,
-  val itemForRemindersDialog: ListItemContent? = null,
+  val itemForRemindersDialog: BacklogItemContent? = null,
   val remindersForDialog: List<Reminder> = emptyList(),
   val logEntryToEdit: ProjectExecutionLog? = null,
   val artifactToEdit: ProjectArtifact? = null,
@@ -187,7 +187,7 @@ constructor(
   private val scope: CoroutineScope,
   private val listener: BacklogMarkdownHandlerResultListener,
 ) {
-  fun exportToMarkdown(content: List<ListItemContent>) {
+  fun exportToMarkdown(content: List<BacklogItemContent>) {
     if (content.isEmpty()) {
       listener.showSnackbar("Backlog is empty. Nothing to export.", null)
       return
@@ -196,19 +196,19 @@ constructor(
     content.forEach { item ->
       val line =
         when (item) {
-          is ListItemContent.GoalItem -> {
+          is BacklogItemContent.GoalItem -> {
             val checkbox = if (item.goal.completed) "- [x]" else "- [ ]"
             "$checkbox ${item.goal.text}"
           }
 
-          is ListItemContent.SublistItem -> "- [C] ${item.project.name}"
-          is ListItemContent.LinkItem -> {
+          is BacklogItemContent.SublistItem -> "- [C] ${item.project.name}"
+          is BacklogItemContent.LinkItem -> {
             val displayName = item.link.linkData.displayName ?: item.link.linkData.target
             "- [L] [$displayName](${item.link.linkData.target})"
           }
-          is ListItemContent.NoteItem -> "- [N] ${item.note.title}"
-          is ListItemContent.NoteDocumentItem -> "- [D] ${item.document.name}"
-          is ListItemContent.ChecklistItem -> "- [Ch] ${item.checklist.name}"
+          is BacklogItemContent.NoteItem -> "- [N] ${item.note.title}"
+          is BacklogItemContent.NoteDocumentItem -> "- [D] ${item.document.name}"
+          is BacklogItemContent.ChecklistItem -> "- [Ch] ${item.checklist.name}"
         }
       markdownBuilder.appendLine(line)
     }
@@ -332,8 +332,8 @@ constructor(
 
   private var batchSaveJob: Job? = null
   private val projectIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("listId", "")
-  private val _listContent = MutableStateFlow<List<ListItemContent>>(emptyList())
-  val listContent: StateFlow<List<ListItemContent>> = _listContent.asStateFlow()
+  private val _listContent = MutableStateFlow<List<BacklogItemContent>>(emptyList())
+  val listContent: StateFlow<List<BacklogItemContent>> = _listContent.asStateFlow()
 
   val itemActionHandler = ItemActionHandler(projectRepository, goalRepository, recentItemsRepository, viewModelScope, projectIdFlow, this)
   val selectionHandler = SelectionHandler(projectRepository, goalRepository, viewModelScope, projectIdFlow, _listContent, this)
@@ -343,7 +343,7 @@ constructor(
 
   private lateinit var lazyListState: LazyListState
 
-  private var pendingAttachmentShare: ListItemContent? = null
+  private var pendingAttachmentShare: BacklogItemContent? = null
 
 
 
@@ -443,7 +443,7 @@ constructor(
       }
       .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-  private val databaseContentStream: Flow<List<ListItemContent>> =
+  private val databaseContentStream: Flow<List<BacklogItemContent>> =
     combine(
         projectIdFlow,
         _uiState.map { it.localSearchQuery }.distinctUntilChanged(),
@@ -460,13 +460,13 @@ constructor(
               content.filter { itemContent ->
                 val textToSearch =
                   when (itemContent) {
-                    is ListItemContent.GoalItem -> itemContent.goal.text
-                    is ListItemContent.SublistItem -> itemContent.project.name
-                    is ListItemContent.LinkItem ->
+                    is BacklogItemContent.GoalItem -> itemContent.goal.text
+                    is BacklogItemContent.SublistItem -> itemContent.project.name
+                    is BacklogItemContent.LinkItem ->
                       itemContent.link.linkData.displayName ?: itemContent.link.linkData.target
-                    is ListItemContent.NoteItem -> itemContent.note.title
-                    is ListItemContent.NoteDocumentItem -> itemContent.document.name
-                    is ListItemContent.ChecklistItem -> itemContent.checklist.name
+                    is BacklogItemContent.NoteItem -> itemContent.note.title
+                    is BacklogItemContent.NoteDocumentItem -> itemContent.document.name
+                    is BacklogItemContent.ChecklistItem -> itemContent.checklist.name
                   }
                 textToSearch.contains(query, ignoreCase = true)
               }
@@ -652,7 +652,7 @@ constructor(
       for (project in projects) {
         val content = projectRepository.getProjectContentStream(project.id).first()
         content.forEach { item ->
-          if (item is ListItemContent.GoalItem) {
+          if (item is BacklogItemContent.GoalItem) {
             goalTags.addAll(TagUtils.extractTags(item.goal.text).map { it.fullTag })
           }
         }
@@ -822,7 +822,7 @@ constructor(
         val target = route.substringAfter(HANDLE_LINK_CLICK_ROUTE + "/")
         val link =
           listContent.value
-            .filterIsInstance<ListItemContent.LinkItem>()
+            .filterIsInstance<BacklogItemContent.LinkItem>()
             .map { it.link.linkData }
             .find { it.target == target }
         if (link != null) {
@@ -939,7 +939,7 @@ constructor(
     }
   }
 
-  override fun requestAttachmentShare(item: ListItemContent) {
+  override fun requestAttachmentShare(item: BacklogItemContent) {
     pendingAttachmentShare = item
     navigateToListChooser("Select context for attachment")
   }
@@ -1122,14 +1122,14 @@ constructor(
   }
 
   private fun shareAttachmentToProject(
-    attachment: ListItemContent,
+    attachment: BacklogItemContent,
     targetProjectId: String,
   ) {
     viewModelScope.launch(Dispatchers.IO) {
       val isAttachmentSupported =
-        attachment is ListItemContent.LinkItem ||
-          attachment is ListItemContent.NoteDocumentItem ||
-          attachment is ListItemContent.ChecklistItem
+        attachment is BacklogItemContent.LinkItem ||
+          attachment is BacklogItemContent.NoteDocumentItem ||
+          attachment is BacklogItemContent.ChecklistItem
       if (!isAttachmentSupported) {
         withContext(Dispatchers.Main) {
           showSnackbar("This attachment type does not support copying", null)
@@ -1163,11 +1163,11 @@ constructor(
     }
   }
 
-  fun deleteAttachmentEverywhere(attachment: ListItemContent) {
+  fun deleteAttachmentEverywhere(attachment: BacklogItemContent) {
     val isAttachment =
-      attachment is ListItemContent.LinkItem ||
-        attachment is ListItemContent.NoteDocumentItem ||
-        attachment is ListItemContent.ChecklistItem
+      attachment is BacklogItemContent.LinkItem ||
+        attachment is BacklogItemContent.NoteDocumentItem ||
+        attachment is BacklogItemContent.ChecklistItem
     if (!isAttachment) return
 
     viewModelScope.launch(Dispatchers.IO) {
@@ -1202,7 +1202,7 @@ constructor(
     }
   }
 
-  fun onMoveToTop(item: ListItemContent) {
+  fun onMoveToTop(item: BacklogItemContent) {
     val fromIndex = _listContent.value.indexOf(item)
     if (fromIndex != -1) {
         onMove(fromIndex, 0)
@@ -1210,7 +1210,7 @@ constructor(
     }
   }
 
-  private suspend fun saveListOrder(listToSave: List<ListItemContent>) =
+  private suspend fun saveListOrder(listToSave: List<BacklogItemContent>) =
     withContext(Dispatchers.IO) {
       Log.d(TAG, "[saveListOrder] Starting to save order for ${listToSave.size} items.")
       try {
@@ -1485,24 +1485,24 @@ constructor(
     inputHandler.onClearDetectedReminder()
   }
 
-  fun onStartTrackingRequest(item: ListItemContent) {
+  fun onStartTrackingRequest(item: BacklogItemContent) {
     viewModelScope.launch {
       val result =
         when (item) {
-          is ListItemContent.GoalItem -> {
+          is BacklogItemContent.GoalItem -> {
             val record = activityRepository.startGoalActivity(item.goal.id)
             record to "Відстежую ціль"
           }
 
-          is ListItemContent.SublistItem -> {
+          is BacklogItemContent.SublistItem -> {
             val record = activityRepository.startProjectActivity(item.project.id)
             record to "Відстежую проєкт"
           }
 
-          is ListItemContent.LinkItem,
-          is ListItemContent.NoteItem,
-          is ListItemContent.NoteDocumentItem,
-          is ListItemContent.ChecklistItem -> null to null
+          is BacklogItemContent.LinkItem,
+          is BacklogItemContent.NoteItem,
+          is BacklogItemContent.NoteDocumentItem,
+          is BacklogItemContent.ChecklistItem -> null to null
         }
 
       val (newRecord, message) = result
@@ -1581,10 +1581,10 @@ constructor(
       forceRefresh()
     }
 
-  fun onSetReminderForItem(item: ListItemContent) {
+  fun onSetReminderForItem(item: BacklogItemContent) {
     viewModelScope.launch {
         when (item) {
-            is ListItemContent.GoalItem -> {
+            is BacklogItemContent.GoalItem -> {
                 val entityId = item.goal.id
                 val reminders = reminderRepository.getRemindersForEntityFlow(entityId).firstOrNull().orEmpty()
                 val record =
@@ -1598,7 +1598,7 @@ constructor(
                     )
                 _uiState.update { it.copy(recordForReminderDialog = record, remindersForDialog = reminders) }
             }
-            is ListItemContent.SublistItem -> {
+            is BacklogItemContent.SublistItem -> {
                 val entityId = item.project.id
                 val reminders = reminderRepository.getRemindersForEntityFlow(entityId).firstOrNull().orEmpty()
                 val record =
@@ -1691,32 +1691,32 @@ constructor(
     }
   }
 
-  fun onDeleteEverywhere(item: ListItemContent) {
+  fun onDeleteEverywhere(item: BacklogItemContent) {
     viewModelScope.launch {
-        if (item is ListItemContent.GoalItem) {
+        if (item is BacklogItemContent.GoalItem) {
             goalRepository.deleteGoal(item.goal.id)
         }
     }
   }
 
 
-  fun addItemToDailyPlan(itemContent: ListItemContent) {
+  fun addItemToDailyPlan(itemContent: BacklogItemContent) {
     viewModelScope.launch {
       val today = System.currentTimeMillis()
       val dayPlan = dayManagementRepository.createOrUpdateDayPlan(today)
 
       val task =
         when (itemContent) {
-          is ListItemContent.GoalItem -> {
+          is BacklogItemContent.GoalItem -> {
             dayManagementRepository.addGoalToDayPlan(dayPlan.id, itemContent.goal.id)
           }
-          is ListItemContent.SublistItem -> {
+          is BacklogItemContent.SublistItem -> {
             dayManagementRepository.addProjectToDayPlan(dayPlan.id, itemContent.project.id)
           }
-          is ListItemContent.LinkItem -> null
-          is ListItemContent.NoteItem -> null
-          is ListItemContent.NoteDocumentItem -> null
-          is ListItemContent.ChecklistItem -> null
+          is BacklogItemContent.LinkItem -> null
+          is BacklogItemContent.NoteItem -> null
+          is BacklogItemContent.NoteDocumentItem -> null
+          is BacklogItemContent.ChecklistItem -> null
         }
 
       if (task != null) {
@@ -1755,18 +1755,18 @@ constructor(
     listContent.value.forEach { item ->
         val line =
             when (item) {
-                is ListItemContent.GoalItem -> {
+                is BacklogItemContent.GoalItem -> {
                     val checkbox = if (item.goal.completed) "- [x]" else "- [ ]"
                     "$checkbox ${item.goal.text}"
                 }
-                is ListItemContent.SublistItem -> "- [С] ${item.project.name}"
-                is ListItemContent.LinkItem -> {
+                is BacklogItemContent.SublistItem -> "- [С] ${item.project.name}"
+                is BacklogItemContent.LinkItem -> {
                     val displayName = item.link.linkData.displayName ?: item.link.linkData.target
                     "- [Л] [$displayName](${item.link.linkData.target})"
                 }
-                is ListItemContent.NoteItem -> "- [Н] ${item.note.title}"
-                is ListItemContent.NoteDocumentItem -> "- [К] ${item.document.name}"
-                is ListItemContent.ChecklistItem -> "- [Ч] ${item.checklist.name}"
+                is BacklogItemContent.NoteItem -> "- [Н] ${item.note.title}"
+                is BacklogItemContent.NoteDocumentItem -> "- [К] ${item.document.name}"
+                is BacklogItemContent.ChecklistItem -> "- [Ч] ${item.checklist.name}"
             }
         markdownBuilder.appendLine(line)
     }
@@ -1976,7 +1976,7 @@ constructor(
 
 
 
-  fun onOpenRemindersDialog(item: ListItemContent) {
+  fun onOpenRemindersDialog(item: BacklogItemContent) {
     _uiState.update { it.copy(showRemindersDialog = true, itemForRemindersDialog = item) }
   }
 
@@ -1984,7 +1984,7 @@ constructor(
     _uiState.update { it.copy(showRemindersDialog = false, itemForRemindersDialog = null) }
   }
 
-  fun onSubprojectClick(subproject: ListItemContent.SublistItem) {
+  fun onSubprojectClick(subproject: BacklogItemContent.SublistItem) {
     viewModelScope.launch {
       enhancedNavigationManager.navigateToProject(subproject.project.id, subproject.project.name)
     }

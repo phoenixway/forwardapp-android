@@ -1,13 +1,14 @@
-package com.romankozak.forwardappmobile.data.database.models
+package com.romankozak.forwardappmobile.features.daymanagement.data.models
 
 import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.Fts4
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.romankozak.forwardappmobile.features.contexts.data.models.TaskPriority
 import java.util.UUID
 
-@Entity(tableName = "recurring_tasks", indices = [androidx.room.Index(value = ["goalId"])])
+@Entity(tableName = "recurring_tasks", indices = [Index(value = ["goalId"])])
 data class RecurringTask(
     @PrimaryKey
     val id: String = UUID.randomUUID().toString(),

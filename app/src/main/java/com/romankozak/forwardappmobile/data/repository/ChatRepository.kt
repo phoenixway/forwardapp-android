@@ -2,10 +2,10 @@ package com.romankozak.forwardappmobile.data.repository
 
 import com.romankozak.forwardappmobile.data.dao.ChatDao
 import com.romankozak.forwardappmobile.data.dao.ConversationFolderDao
-import com.romankozak.forwardappmobile.data.database.models.ChatMessageEntity
-import com.romankozak.forwardappmobile.data.database.models.ConversationEntity
-import com.romankozak.forwardappmobile.data.database.models.ConversationFolderEntity
-import com.romankozak.forwardappmobile.data.database.models.ConversationWithLastMessage
+import com.romankozak.forwardappmobile.features.ai.data.models.ChatMessageEntity
+import com.romankozak.forwardappmobile.features.ai.data.models.ConversationEntity
+import com.romankozak.forwardappmobile.features.ai.data.models.ConversationFolderEntity
+import com.romankozak.forwardappmobile.features.ai.data.models.ConversationWithLastMessage
 import com.romankozak.forwardappmobile.features.ai.chat.DrawerItem
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine

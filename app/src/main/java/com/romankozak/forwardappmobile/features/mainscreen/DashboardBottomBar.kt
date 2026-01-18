@@ -18,7 +18,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.romankozak.forwardappmobile.data.database.models.RecentItem
+import com.romankozak.forwardappmobile.features.recent.data.models.RecentItem
 import com.romankozak.forwardappmobile.ui.components.NewRecentListsSheet
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import kotlinx.coroutines.launch

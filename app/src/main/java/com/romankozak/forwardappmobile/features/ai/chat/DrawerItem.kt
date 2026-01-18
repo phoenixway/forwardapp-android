@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.features.ai.chat
 
-import com.romankozak.forwardappmobile.data.database.models.ConversationFolderEntity
-import com.romankozak.forwardappmobile.data.database.models.ConversationWithLastMessage
+import com.romankozak.forwardappmobile.features.ai.data.models.ConversationFolderEntity
+import com.romankozak.forwardappmobile.features.ai.data.models.ConversationWithLastMessage
 
 sealed class DrawerItem {
     data class Folder(

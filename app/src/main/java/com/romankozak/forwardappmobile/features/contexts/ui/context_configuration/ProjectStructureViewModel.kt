@@ -4,7 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructureItem
-import com.romankozak.forwardappmobile.features.contexts.data.models.StructurePreset
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfile
 import com.romankozak.forwardappmobile.data.repository.ProjectStructureRepository
 import com.romankozak.forwardappmobile.domain.structure.StructurePresetService
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
@@ -21,7 +21,7 @@ data class ProjectStructureUiState(
     val projectId: String,
     val basePresetCode: String? = null,
     val items: List<ProjectStructureItem> = emptyList(),
-    val presets: List<StructurePreset> = emptyList(),
+    val presets: List<ContextRoleProfile> = emptyList(),
     val featureFlags: Map<String, Boolean> = mapOf(
         "Inbox" to true,
         "Log" to true,

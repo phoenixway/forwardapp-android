@@ -52,7 +52,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemContent
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 import sh.calvin.reorderable.ReorderableCollectionItemScope
 import kotlin.math.roundToInt
@@ -62,22 +62,22 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun SwipeableBacklogItem(
-    item: ListItemContent,
+    item: BacklogItemContent,
     reorderableScope: ReorderableCollectionItemScope,
     showCheckboxes: Boolean,
     isDragging: Boolean,
     isSelected: Boolean,
     contextMarkerToEmojiMap: Map<String, String>,
-    onItemClick: (ListItemContent) -> Unit,
-    onLongClick: (ListItemContent) -> Unit,
-    onMoreClick: (ListItemContent) -> Unit,
-    onCheckedChange: (ListItemContent, Boolean) -> Unit,
-    onDelete: (ListItemContent) -> Unit,
-    onRemindersClick: (ListItemContent) -> Unit,
-    onMoveToTop: (ListItemContent) -> Unit,
-    onAddToDayPlan: (ListItemContent) -> Unit,
-    onStartTracking: (ListItemContent) -> Unit,
-    onShowGoalTransportMenu: (ListItemContent) -> Unit,
+    onItemClick: (BacklogItemContent) -> Unit,
+    onLongClick: (BacklogItemContent) -> Unit,
+    onMoreClick: (BacklogItemContent) -> Unit,
+    onCheckedChange: (BacklogItemContent, Boolean) -> Unit,
+    onDelete: (BacklogItemContent) -> Unit,
+    onRemindersClick: (BacklogItemContent) -> Unit,
+    onMoveToTop: (BacklogItemContent) -> Unit,
+    onAddToDayPlan: (BacklogItemContent) -> Unit,
+    onStartTracking: (BacklogItemContent) -> Unit,
+    onShowGoalTransportMenu: (BacklogItemContent) -> Unit,
     onRelatedLinkClick: (RelatedLink) -> Unit,
     onRequestCloseOthers: () -> Unit,
     swipedItemId: String?,
@@ -110,8 +110,8 @@ fun SwipeableBacklogItem(
     }
 
     val isCompleted = when (item) {
-        is ListItemContent.GoalItem -> item.goal.completed
-        is ListItemContent.SublistItem -> item.project.isCompleted
+        is BacklogItemContent.GoalItem -> item.goal.completed
+        is BacklogItemContent.SublistItem -> item.project.isCompleted
         else -> false
     }
 

@@ -5,7 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asFlow
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemContent
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
@@ -123,11 +123,11 @@ class AttachmentsViewModel @Inject constructor(
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val attachments: StateFlow<List<ListItemContent>> = projectId.flatMapLatest { projectId ->
+    val attachments: StateFlow<List<BacklogItemContent>> = projectId.flatMapLatest { projectId ->
         if (projectId.isNotEmpty()) {
             projectRepository.getProjectContentStream(projectId).map { content ->
                 content.filter { item ->
-                    item is ListItemContent.LinkItem || item is ListItemContent.NoteDocumentItem || item is ListItemContent.ChecklistItem
+                    item is BacklogItemContent.LinkItem || item is BacklogItemContent.NoteDocumentItem || item is BacklogItemContent.ChecklistItem
                 }
             }
         } else {
@@ -135,7 +135,7 @@ class AttachmentsViewModel @Inject constructor(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun deleteAttachment(attachment: ListItemContent) {
+    fun deleteAttachment(attachment: BacklogItemContent) {
         viewModelScope.launch {
             val currentProjectId = projectId.value
             if (currentProjectId.isNotEmpty()) {

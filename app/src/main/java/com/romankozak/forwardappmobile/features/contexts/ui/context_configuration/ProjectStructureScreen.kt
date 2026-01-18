@@ -49,7 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructureItem
-import com.romankozak.forwardappmobile.features.contexts.data.models.StructurePreset
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfile
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -152,7 +152,7 @@ fun ProjectStructureScreen(
 
 @Composable
 private fun PresetSelector(
-    presets: List<StructurePreset>,
+    presets: List<ContextRoleProfile>,
     selectedPresetCode: String?,
     onPresetSelect: (String) -> Unit,
     onApplyClick: () -> Unit,

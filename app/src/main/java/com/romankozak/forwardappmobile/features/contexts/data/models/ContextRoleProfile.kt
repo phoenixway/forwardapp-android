@@ -9,7 +9,7 @@ import androidx.room.ColumnInfo
     tableName = "structure_presets",
     indices = [Index(value = ["code"], unique = true)]
 )
-data class StructurePreset(
+data class ContextRoleProfile(
     @PrimaryKey val id: String,
     val code: String,
     val label: String,

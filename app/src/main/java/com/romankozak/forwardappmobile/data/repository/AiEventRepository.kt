@@ -1,11 +1,10 @@
 package com.romankozak.forwardappmobile.data.repository
 
-import com.romankozak.forwardappmobile.data.database.models.AiEventEntity
+import com.romankozak.forwardappmobile.features.ai.data.models.AiEventEntity
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao
 import com.romankozak.forwardappmobile.domain.ai.events.AiEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.time.Instant
 import java.util.UUID

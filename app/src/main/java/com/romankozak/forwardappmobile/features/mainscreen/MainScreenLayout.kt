@@ -45,7 +45,7 @@ import com.romankozak.forwardappmobile.features.daymanagement.presentation.DayMa
 import com.romankozak.forwardappmobile.features.daymanagement.presentation.dayplan.DayPlanViewModel
 import com.romankozak.forwardappmobile.features.strategicmanagement.StrategicManagementScreen
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
-import com.romankozak.forwardappmobile.data.database.models.RecentItem
+import com.romankozak.forwardappmobile.features.recent.data.models.RecentItem
 import com.romankozak.forwardappmobile.features.activitytracker.ActivityTrackerViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.util.Calendar

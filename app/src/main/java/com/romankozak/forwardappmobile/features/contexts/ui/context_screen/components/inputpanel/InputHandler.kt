@@ -4,11 +4,12 @@ import android.util.Log
 import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
-import com.romankozak.forwardappmobile.data.database.models.RecentItemType
+import com.romankozak.forwardappmobile.features.recent.data.models.RecentItemType
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.domain.ner.ReminderParser
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.GoalActionType
+import com.romankozak.forwardappmobile.features.recent.data.models.RecentItem
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -314,7 +315,7 @@ class InputHandler(
 
     fun onDismissRecentLists() = resultListener.showRecentListsSheet(false)
 
-    fun onRecentListSelected(item: com.romankozak.forwardappmobile.data.database.models.RecentItem) {
+    fun onRecentListSelected(item: RecentItem) {
         when (item.type) {
             RecentItemType.PROJECT -> {
                 resultListener.requestNavigation("goal_detail_screen/${item.target}")

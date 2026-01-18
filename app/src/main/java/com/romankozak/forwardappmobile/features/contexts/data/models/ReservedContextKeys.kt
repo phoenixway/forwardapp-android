@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.features.contexts.data.models
 
-object ReservedProjectKeys {
+object ReservedContextKeys {
     const val PERSONAL_MANAGEMENT = "personal-management"
     const val STRATEGIC = "strategic"
     const val STRATEGIC_BEACONS = "strategic-beacons"

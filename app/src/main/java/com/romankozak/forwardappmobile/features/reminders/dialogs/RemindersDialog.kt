@@ -22,16 +22,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemContent
-import com.romankozak.forwardappmobile.data.database.models.Reminder
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
+import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 import com.romankozak.forwardappmobile.features.reminders.util.ReminderTextUtil
 import com.romankozak.forwardappmobile.features.reminders.viewmodel.ReminderViewModel
-import java.util.*
 
- @Composable
+@Composable
 fun RemindersDialog(
      viewModel: ReminderViewModel,
-     item: ListItemContent,
+     item: BacklogItemContent,
      onDismiss: () -> Unit,
 ) {
     val reminders by viewModel.reminders.collectAsState()
@@ -57,13 +56,13 @@ fun RemindersDialog(
 
     LaunchedEffect(item) {
         val entityId = when (item) {
-            is ListItemContent.GoalItem -> item.goal.id
-            is ListItemContent.SublistItem -> item.project.id
+            is BacklogItemContent.GoalItem -> item.goal.id
+            is BacklogItemContent.SublistItem -> item.project.id
             else -> null
         }
         val entityType = when (item) {
-            is ListItemContent.GoalItem -> "GOAL"
-            is ListItemContent.SublistItem -> "PROJECT"
+            is BacklogItemContent.GoalItem -> "GOAL"
+            is BacklogItemContent.SublistItem -> "PROJECT"
             else -> null
         }
 
@@ -89,8 +88,8 @@ fun RemindersDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val title = when (item) {
-                        is ListItemContent.GoalItem -> item.goal.text
-                        is ListItemContent.SublistItem -> item.project.name
+                        is BacklogItemContent.GoalItem -> item.goal.text
+                        is BacklogItemContent.SublistItem -> item.project.name
                         else -> "Нагадування"
                     }
                     Text(

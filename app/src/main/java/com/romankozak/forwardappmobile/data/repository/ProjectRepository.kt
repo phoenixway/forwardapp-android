@@ -8,13 +8,13 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectArti
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectTimeMetrics
 
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectType
-import com.romankozak.forwardappmobile.data.database.models.Reminder
+import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
 import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemContent
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
@@ -113,7 +113,7 @@ constructor(
         projectDao.updateViewMode(projectId, viewMode.name)
     }
 
-    fun getProjectContentStream(projectId: String): Flow<List<ListItemContent>> {
+    fun getProjectContentStream(projectId: String): Flow<List<BacklogItemContent>> {
         return combine(
             listItemRepository.getItemsForProjectStream(projectId),
             backlogOrderRepository.observeAll(),
@@ -174,7 +174,7 @@ constructor(
         notes: List<LegacyNoteEntity>,
         noteDocuments: List<NoteDocumentEntity>,
         checklists: List<ChecklistEntity>,
-    ): List<ListItemContent> {
+    ): List<BacklogItemContent> {
         val attachmentListItems =
             attachments.map { attachment ->
                 val order = attachment.attachmentOrder ?: -attachment.attachment.createdAt
@@ -211,28 +211,28 @@ constructor(
                 ListItemTypeValues.GOAL ->
                     goalsMap[item.entityId]?.let { goal ->
                         val itemReminders = remindersMap[goal.id] ?: emptyList()
-                        ListItemContent.GoalItem(goal, itemReminders, item)
+                        BacklogItemContent.GoalItem(goal, itemReminders, item)
                     }
                 ListItemTypeValues.SUBLIST ->
                     projectsMap[item.entityId]?.let { project ->
                         val itemReminders = remindersMap[project.id] ?: emptyList()
-                        ListItemContent.SublistItem(project, itemReminders, item)
+                        BacklogItemContent.SublistItem(project, itemReminders, item)
                     }
                 ListItemTypeValues.LINK_ITEM ->
                     linksMap[item.entityId]?.let { link ->
-                        ListItemContent.LinkItem(link, item)
+                        BacklogItemContent.LinkItem(link, item)
                     }
                 ListItemTypeValues.NOTE ->
                     notesMap[item.entityId]?.let { note ->
-                        ListItemContent.NoteItem(note, item)
+                        BacklogItemContent.NoteItem(note, item)
                     }
                 ListItemTypeValues.NOTE_DOCUMENT ->
                     noteDocumentsMap[item.entityId]?.let { document ->
-                        ListItemContent.NoteDocumentItem(document, item)
+                        BacklogItemContent.NoteDocumentItem(document, item)
                     }
                 ListItemTypeValues.CHECKLIST ->
                     checklistsMap[item.entityId]?.let { checklist ->
-                        ListItemContent.ChecklistItem(checklist, item)
+                        BacklogItemContent.ChecklistItem(checklist, item)
                     }
                 else -> null
             }

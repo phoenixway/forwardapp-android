@@ -21,11 +21,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemContent
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 
 @Composable
 fun ChecklistItemRow(
-    checklistItem: ListItemContent.ChecklistItem,
+    checklistItem: BacklogItemContent.ChecklistItem,
     onClick: () -> Unit,
     onDelete: () -> Unit,
 ) {

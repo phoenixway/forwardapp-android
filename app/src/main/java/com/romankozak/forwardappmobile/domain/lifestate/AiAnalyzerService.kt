@@ -1,8 +1,8 @@
 package com.romankozak.forwardappmobile.domain.lifestate
 
 import android.util.Log
-import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
-import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedProjectKeys
+import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
+import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedContextKeys
 import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedSystemAppKeys
 import com.romankozak.forwardappmobile.data.repository.ActivityRecordRepository
 import com.romankozak.forwardappmobile.data.repository.SystemAppRepository
@@ -88,7 +88,7 @@ class AiAnalyzerService @Inject constructor(
         val systemApp =
             systemAppRepository.ensureNoteApp(
                 systemKey = ReservedSystemAppKeys.MY_LIFE_CURRENT_STATE,
-                projectSystemKey = ReservedProjectKeys.STRATEGIC,
+                projectSystemKey = ReservedContextKeys.STRATEGIC,
                 documentName = "my-life-current-state",
             )
         val note = systemApp.noteDocumentId?.let { systemAppRepository.getSystemNote(ReservedSystemAppKeys.MY_LIFE_CURRENT_STATE) }

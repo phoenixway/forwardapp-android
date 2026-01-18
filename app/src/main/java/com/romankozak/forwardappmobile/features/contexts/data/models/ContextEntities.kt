@@ -9,11 +9,7 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverters
 import com.google.gson.annotations.SerializedName
-import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
-import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
-import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
-import com.romankozak.forwardappmobile.features.contexts.data.models.PathSegmentsConverter
+import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
 
 
 @Entity(

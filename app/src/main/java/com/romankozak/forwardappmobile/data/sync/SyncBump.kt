@@ -1,9 +1,9 @@
 package com.romankozak.forwardappmobile.data.sync
 
-import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
-import com.romankozak.forwardappmobile.data.database.models.DailyMetric
-import com.romankozak.forwardappmobile.data.database.models.DayPlan
-import com.romankozak.forwardappmobile.data.database.models.DayTask
+import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
+import com.romankozak.forwardappmobile.features.daymanagement.data.models.DailyMetric
+import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayPlan
+import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask
 import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistItemEntity
@@ -14,7 +14,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEnt
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentItemEntity
-import com.romankozak.forwardappmobile.data.database.models.Reminder
+import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog

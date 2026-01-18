@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.data.database.models
+package com.romankozak.forwardappmobile.features.daymanagement.data.models
 
 import java.time.DayOfWeek
 

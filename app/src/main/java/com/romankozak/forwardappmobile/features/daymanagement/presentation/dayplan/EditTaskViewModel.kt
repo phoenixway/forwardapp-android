@@ -3,9 +3,9 @@ package com.romankozak.forwardappmobile.features.daymanagement.presentation.dayp
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.data.database.models.DayTask
-import com.romankozak.forwardappmobile.data.database.models.RecurrenceFrequency
-import com.romankozak.forwardappmobile.data.database.models.RecurrenceRule
+import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask
+import com.romankozak.forwardappmobile.features.daymanagement.data.models.RecurrenceFrequency
+import com.romankozak.forwardappmobile.features.daymanagement.data.models.RecurrenceRule
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.features.contexts.data.models.TaskPriority
 import dagger.hilt.android.lifecycle.HiltViewModel

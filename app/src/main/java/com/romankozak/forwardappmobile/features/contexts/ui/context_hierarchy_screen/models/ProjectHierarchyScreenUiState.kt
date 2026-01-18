@@ -2,9 +2,9 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 
 import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
-import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListHierarchyData
-import com.romankozak.forwardappmobile.data.database.models.RecentItem
+import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextHierarchyData
+import com.romankozak.forwardappmobile.features.recent.data.models.RecentItem
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 import com.romankozak.forwardappmobile.features.sync.WifiSyncStatus
 
@@ -18,7 +18,7 @@ data class ProjectHierarchyScreenUiState(
     val searchQuery: TextFieldValue = TextFieldValue(""),
     val searchHistory: List<String> = emptyList(),
 
-    val projectHierarchy: ListHierarchyData = ListHierarchyData(),
+    val projectHierarchy: ContextHierarchyData = ContextHierarchyData(),
     val flattenedHierarchy: List<FlatHierarchyItem> = emptyList(),
     val currentBreadcrumbs: List<BreadcrumbItem> = emptyList(),
     val areAnyProjectsExpanded: Boolean = false,
@@ -33,7 +33,7 @@ data class ProjectHierarchyScreenUiState(
     val recentItems: List<RecentItem> = emptyList(),
     val allContexts: List<UiContext> = emptyList(),
     val listChooserFinalExpandedIds: Set<String> = emptySet(),
-    val filteredListHierarchyForDialog: ListHierarchyData = ListHierarchyData(),
+    val filteredListHierarchyForDialog: ContextHierarchyData = ContextHierarchyData(),
 
     val canGoBack: Boolean = false,
     val canGoForward: Boolean = false,

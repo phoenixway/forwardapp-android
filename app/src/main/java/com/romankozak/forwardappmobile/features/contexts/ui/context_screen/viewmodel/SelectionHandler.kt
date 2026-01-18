@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel
 
 import android.util.Log
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemContent
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.GoalActionType
 import kotlinx.coroutines.CoroutineScope
@@ -13,7 +13,7 @@ class SelectionHandler(
     private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
     private val scope: CoroutineScope,
     private val projectIdFlow: StateFlow<String>,
-    private val listContentFlow: StateFlow<List<ListItemContent>>,
+    private val listContentFlow: StateFlow<List<BacklogItemContent>>,
     private val resultListener: ResultListener,
 ) {
     private val TAG = "SelectionHandler_DEBUG"
@@ -38,7 +38,7 @@ class SelectionHandler(
     fun selectAllItems() {
         val itemsToSelect =
             listContentFlow.value
-                .filterNot { it is ListItemContent.LinkItem }
+                .filterNot { it is BacklogItemContent.LinkItem }
                 .map { it.listItem.id }
                 .toSet()
         resultListener.updateSelectionState(itemsToSelect)
@@ -56,8 +56,8 @@ class SelectionHandler(
 
         val goalsToUpdate =
             listContentFlow.value
-                .filter { it.listItem.id in selectedIds && it is ListItemContent.GoalItem }
-                .map { (it as ListItemContent.GoalItem).goal }
+                .filter { it.listItem.id in selectedIds && it is BacklogItemContent.GoalItem }
+                .map { (it as BacklogItemContent.GoalItem).goal }
                 .distinctBy { it.id }
 
         clearSelection()
@@ -79,8 +79,8 @@ class SelectionHandler(
 
         val goalsToUpdate =
             listContentFlow.value
-                .filter { it.listItem.id in selectedIds && it is ListItemContent.GoalItem }
-                .map { (it as ListItemContent.GoalItem).goal }
+                .filter { it.listItem.id in selectedIds && it is BacklogItemContent.GoalItem }
+                .map { (it as BacklogItemContent.GoalItem).goal }
                 .distinctBy { it.id }
 
         clearSelection()
@@ -103,7 +103,7 @@ class SelectionHandler(
 
         val sourceGoalIds =
             listContentFlow.value
-                .filter { it.listItem.id in selectedIds && it is ListItemContent.GoalItem }
+                .filter { it.listItem.id in selectedIds && it is BacklogItemContent.GoalItem }
                 .map { it.listItem.entityId }
                 .toSet()
 

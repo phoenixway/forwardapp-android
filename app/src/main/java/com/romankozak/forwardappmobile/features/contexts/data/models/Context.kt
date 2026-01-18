@@ -4,13 +4,6 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import androidx.room.TypeConverter
-import androidx.room.TypeConverters
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectLogLevelValues
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStatusValues
-import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedGroup
-import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
-import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
 
 
 enum class ProjectType {

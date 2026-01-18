@@ -4,7 +4,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemContent
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.BacklogViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.GoalActionDialogState
@@ -87,7 +87,7 @@ fun GoalDetailDialogs(viewModel: BacklogViewModel) {
             }
         },
         onCopyContentToClipboardRequest = viewModel.itemActionHandler.onCopyContentToClipboard.collectAsStateWithLifecycle().value,
-        isGoalItem = itemForTransportMenu is ListItemContent.GoalItem,
+        isGoalItem = itemForTransportMenu is BacklogItemContent.GoalItem,
     )
 
     if (uiState.showRecentProjectsSheet) {
