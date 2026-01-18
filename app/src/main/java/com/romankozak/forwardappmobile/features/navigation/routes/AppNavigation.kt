@@ -43,8 +43,8 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.attachments.specific_types.notedocument.NoteDocumentEditorScreen
 import com.romankozak.forwardappmobile.features.attachments.specific_types.notedocument.NoteDocumentScreen
-import com.romankozak.forwardappmobile.features.contexts.ui.contextcreen.BacklogViewModel
-import com.romankozak.forwardappmobile.features.contexts.ui.contextcreen.ProjectsScreen
+import com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.BacklogViewModel
+import com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.ProjectsScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.contextproperties.ProjectSettingsScreen
 import com.romankozak.forwardappmobile.features.attachments.specific_types.script.ScriptChooserScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.contextstructure.ProjectStructureScreen
@@ -52,7 +52,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.contextstructure.Str
 import com.romankozak.forwardappmobile.features.contexts.ui.contextstructure.StructurePresetsScreen
 import com.romankozak.forwardappmobile.features.attachments.specific_types.script.ScriptEditorScreen
 import com.romankozak.forwardappmobile.features.attachments.specific_types.script.ScriptsLibraryScreen
-import com.romankozak.forwardappmobile.features.contexts.modes.projects.goalsettings.GoalSettingsScreen
+import com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.backlog.goalproperties.GoalSettingsScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ProjectHierarchyScreen
 import com.romankozak.forwardappmobile.features.sync.selectiveimport.SelectiveImportScreen
 import com.romankozak.forwardappmobile.features.settings.settings.SettingsScreen

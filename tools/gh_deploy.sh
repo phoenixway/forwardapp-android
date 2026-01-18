@@ -166,6 +166,8 @@ if [ "$HOST" == "device" ]; then
     if [ -n "$TERMUX_VERSION" ]; then
         if [ -f "$INSTALL_SCRIPT" ]; then
             bash "$INSTALL_SCRIPT" "$APK_FILE"
+            echo -e "${GREEN}Installation on Termux Successful!${NC}"
+            exit 0 # Exit after Termux installation
         else
             echo -e "${RED}Error: $INSTALL_SCRIPT not found!${NC}"
             exit 1
