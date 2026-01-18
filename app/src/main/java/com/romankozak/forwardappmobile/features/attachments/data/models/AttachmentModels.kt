@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.attachments.data.model
+package com.romankozak.forwardappmobile.features.attachments.data.models
 
 import androidx.room.ColumnInfo
 import androidx.room.Embedded

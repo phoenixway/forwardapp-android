@@ -1,6 +1,5 @@
 package com.romankozak.forwardappmobile.database
 
-import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
@@ -43,8 +42,8 @@ import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.ai.data.models.AiInsightEntity
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
-import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentEntity
-import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRef
+import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.ProjectAttachmentCrossRef
 import com.romankozak.forwardappmobile.features.contexts.data.dao.BacklogOrderDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
@@ -59,15 +58,15 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectStructu
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
-import com.romankozak.forwardappmobile.features.contexts.data.models.ChecklistEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.ChecklistItemEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Converters
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.data.models.GoalFts
 import com.romankozak.forwardappmobile.features.contexts.data.models.InboxRecord
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
-import com.romankozak.forwardappmobile.features.contexts.data.models.NoteDocumentEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectFts

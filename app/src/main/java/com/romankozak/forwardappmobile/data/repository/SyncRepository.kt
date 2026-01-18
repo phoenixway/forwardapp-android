@@ -36,8 +36,6 @@ import com.romankozak.forwardappmobile.data.sync.AttachmentsBackup
 import com.romankozak.forwardappmobile.data.sync.BacklogOrderUtils
 import com.romankozak.forwardappmobile.data.sync.NormalizedBacklogOrderResult
 import com.romankozak.forwardappmobile.data.sync.ReservedGroupAdapter
-import com.romankozak.forwardappmobile.data.sync.toGoal
-import com.romankozak.forwardappmobile.data.sync.toProject
 import com.romankozak.forwardappmobile.data.sync.LongDeserializer
 import com.romankozak.forwardappmobile.data.sync.BackupDiff
 import com.romankozak.forwardappmobile.data.sync.DiffResult
@@ -49,8 +47,8 @@ import com.romankozak.forwardappmobile.data.database.models.Reminder
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
-import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentEntity
-import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRef
+import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.ProjectAttachmentCrossRef
 import com.romankozak.forwardappmobile.features.contexts.data.DatabaseInitializer
 import com.romankozak.forwardappmobile.features.contexts.data.dao.BacklogOrderDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
@@ -66,14 +64,14 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectStructu
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
-import com.romankozak.forwardappmobile.features.contexts.data.models.ChecklistEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.ChecklistItemEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.data.models.InboxRecord
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
-import com.romankozak.forwardappmobile.features.contexts.data.models.NoteDocumentEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectLogLevelValues
@@ -102,11 +100,6 @@ import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.compareTo
-import kotlin.hashCode
-import kotlin.text.compareTo
-import kotlin.text.get
-import kotlin.text.insert
 
 
 enum class ChangeType {

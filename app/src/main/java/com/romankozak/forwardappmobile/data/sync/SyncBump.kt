@@ -5,22 +5,22 @@ import com.romankozak.forwardappmobile.data.database.models.DailyMetric
 import com.romankozak.forwardappmobile.data.database.models.DayPlan
 import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.ChecklistEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.ChecklistItemEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistItemEntity
 
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.data.models.InboxRecord
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
-import com.romankozak.forwardappmobile.features.contexts.data.models.NoteDocumentEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.data.database.models.NoteDocumentItemEntity
 import com.romankozak.forwardappmobile.data.database.models.Reminder
 import com.romankozak.forwardappmobile.data.database.models.ScriptEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
 
-import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentEntity
-import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRef
+import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.ProjectAttachmentCrossRef
 
 private inline fun bumpVersion(version: Long) = if (version == Long.MAX_VALUE) version else version + 1
 

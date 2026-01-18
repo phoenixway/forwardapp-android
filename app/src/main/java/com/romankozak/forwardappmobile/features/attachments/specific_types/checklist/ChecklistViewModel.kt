@@ -3,8 +3,8 @@ package com.romankozak.forwardappmobile.features.attachments.specific_types.chec
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.features.contexts.data.models.ChecklistEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.ChecklistItemEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistItemEntity
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel

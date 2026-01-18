@@ -49,7 +49,7 @@ data class TacticalMission(
             onDelete = ForeignKey.CASCADE
         ),
         ForeignKey(
-            entity = com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentEntity::class,
+            entity = com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentEntity::class,
             parentColumns = ["id"],
             childColumns = ["attachmentId"],
             onDelete = ForeignKey.CASCADE

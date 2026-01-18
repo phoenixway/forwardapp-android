@@ -4,13 +4,13 @@ import com.google.gson.annotations.SerializedName
 import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.features.ai.data.models.AiInsightEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
-import com.romankozak.forwardappmobile.features.contexts.data.models.ChecklistEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.ChecklistItemEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.data.models.InboxRecord
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
-import com.romankozak.forwardappmobile.features.contexts.data.models.NoteDocumentEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructure
@@ -61,9 +61,9 @@ data class DatabaseContent(
     @SerializedName(value = "projectExecutionLogs", alternate = ["m"])
     val projectExecutionLogs: List<ProjectExecutionLog> = emptyList(),
     @SerializedName(value = "attachments", alternate = ["attachment_items"])
-    val attachments: List<com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentEntity> = emptyList(),
+    val attachments: List<com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentEntity> = emptyList(),
     @SerializedName(value = "projectAttachmentCrossRefs", alternate = ["project_attachment_links"])
-    val projectAttachmentCrossRefs: List<com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRef> = emptyList(),
+    val projectAttachmentCrossRefs: List<com.romankozak.forwardappmobile.features.attachments.data.models.ProjectAttachmentCrossRef> = emptyList(),
 
     // --- Extended Entities ---
     @SerializedName("dayPlans")

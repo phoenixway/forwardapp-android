@@ -1,9 +1,11 @@
-package com.romankozak.forwardappmobile.features.contexts.data.models
+package com.romankozak.forwardappmobile.features.attachments.data.models
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import java.util.UUID
 
 @Entity(
@@ -13,7 +15,7 @@ import java.util.UUID
             entity = Project::class,
             parentColumns = ["id"],
             childColumns = ["projectId"],
-            onDelete = ForeignKey.CASCADE,
+            onDelete = ForeignKey.Companion.CASCADE,
         ),
     ],
     indices = [Index(value = ["projectId"], name = "index_note_documents_projectId")],
@@ -25,7 +27,7 @@ data class NoteDocumentEntity(
     val createdAt: Long = System.currentTimeMillis(),
     var updatedAt: Long = System.currentTimeMillis(),
     val content: String? = null,
-    @androidx.room.ColumnInfo(defaultValue = "0") val lastCursorPosition: Int = 0,
+    @ColumnInfo(defaultValue = "0") val lastCursorPosition: Int = 0,
     val syncedAt: Long? = null,
     val isDeleted: Boolean = false,
     val version: Long = 0,

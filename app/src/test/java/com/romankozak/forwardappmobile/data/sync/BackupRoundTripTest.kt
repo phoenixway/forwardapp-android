@@ -2,8 +2,8 @@ package com.romankozak.forwardappmobile.data.sync
 
 import com.google.gson.Gson
 import com.romankozak.forwardappmobile.data.database.models.*
-import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentEntity
-import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRef
+import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.ProjectAttachmentCrossRef
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

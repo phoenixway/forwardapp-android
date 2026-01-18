@@ -9,7 +9,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTyp
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
-import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRef
+import com.romankozak.forwardappmobile.features.attachments.data.models.ProjectAttachmentCrossRef
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectDao
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
