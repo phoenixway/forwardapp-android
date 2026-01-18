@@ -140,7 +140,7 @@ data class InboxRecord(
         ),
     ],
 )
-data class ListItem(
+data class BacklogItem(
     @PrimaryKey val id: String,
     @SerializedName(value = "projectId", alternate = ["listId"])
     @ColumnInfo(name = "project_id", index = true)
@@ -209,12 +209,12 @@ sealed class GlobalSearchResultItem {
 
     data class GoalItem(
         val goal: Goal,
-        val listItem: ListItem,
+        val backlogItem: BacklogItem,
         val projectName: String,
         val pathSegments: List<String>
     ) : GlobalSearchResultItem() {
         override val timestamp: Long get() = goal.updatedAt ?: goal.createdAt
-        override val uniqueId: String get() = "goal_${goal.id}_${listItem.projectId}"
+        override val uniqueId: String get() = "goal_${goal.id}_${backlogItem.projectId}"
     }
 
     data class LinkItem(val searchResult: GlobalLinkSearchResult) : GlobalSearchResultItem() {

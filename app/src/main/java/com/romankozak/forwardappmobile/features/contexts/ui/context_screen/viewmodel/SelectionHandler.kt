@@ -39,7 +39,7 @@ class SelectionHandler(
         val itemsToSelect =
             listContentFlow.value
                 .filterNot { it is BacklogItemContent.LinkItem }
-                .map { it.listItem.id }
+                .map { it.backlogItem.id }
                 .toSet()
         resultListener.updateSelectionState(itemsToSelect)
     }
@@ -56,7 +56,7 @@ class SelectionHandler(
 
         val goalsToUpdate =
             listContentFlow.value
-                .filter { it.listItem.id in selectedIds && it is BacklogItemContent.GoalItem }
+                .filter { it.backlogItem.id in selectedIds && it is BacklogItemContent.GoalItem }
                 .map { (it as BacklogItemContent.GoalItem).goal }
                 .distinctBy { it.id }
 
@@ -79,7 +79,7 @@ class SelectionHandler(
 
         val goalsToUpdate =
             listContentFlow.value
-                .filter { it.listItem.id in selectedIds && it is BacklogItemContent.GoalItem }
+                .filter { it.backlogItem.id in selectedIds && it is BacklogItemContent.GoalItem }
                 .map { (it as BacklogItemContent.GoalItem).goal }
                 .distinctBy { it.id }
 
@@ -103,8 +103,8 @@ class SelectionHandler(
 
         val sourceGoalIds =
             listContentFlow.value
-                .filter { it.listItem.id in selectedIds && it is BacklogItemContent.GoalItem }
-                .map { it.listItem.entityId }
+                .filter { it.backlogItem.id in selectedIds && it is BacklogItemContent.GoalItem }
+                .map { it.backlogItem.entityId }
                 .toSet()
 
         resultListener.setPendingAction(actionType, selectedIds, sourceGoalIds)

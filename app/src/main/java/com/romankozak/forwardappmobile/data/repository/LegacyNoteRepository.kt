@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.data.repository
 import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.data.sync.bumpSync
 import com.romankozak.forwardappmobile.data.sync.softDelete
@@ -32,8 +32,8 @@ class LegacyNoteRepository @Inject constructor(
             val newNote = note.bumpSync(now)
             legacyNoteDao.insert(newNote)
 
-            val newListItem =
-                ListItem(
+            val newBacklogItem =
+                BacklogItem(
                     id = UUID.randomUUID().toString(),
                     projectId = note.projectId,
                     itemType = ListItemTypeValues.NOTE,
@@ -43,7 +43,7 @@ class LegacyNoteRepository @Inject constructor(
                     syncedAt = null,
                     version = 1,
                 )
-            listItemDao.insertItem(newListItem)
+            listItemDao.insertItem(newBacklogItem)
         } else {
             val now = System.currentTimeMillis()
             val bumped = note.copy(

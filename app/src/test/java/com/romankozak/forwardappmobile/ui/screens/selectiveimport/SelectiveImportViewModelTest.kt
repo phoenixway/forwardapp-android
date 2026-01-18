@@ -58,7 +58,7 @@ class SelectiveImportViewModelTest {
         val databaseContent = DatabaseContent(
             projects = listOf(project1, project2),
             goals = emptyList(),
-            listItems = emptyList(),
+            backlogItems = emptyList(),
             legacyNotes = emptyList(),
             documents = emptyList(),
             documentItems = emptyList(),
@@ -77,7 +77,7 @@ class SelectiveImportViewModelTest {
         val backupDiff = BackupDiff(
             projects = DiffResult(added = databaseContent.projects),
             goals = DiffResult(),
-            listItems = DiffResult(),
+            backlogItems = DiffResult(),
             legacyNotes = DiffResult(),
             activityRecords = DiffResult(),
             documents = DiffResult(),

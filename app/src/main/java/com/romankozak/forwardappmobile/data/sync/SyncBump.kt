@@ -11,7 +11,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.models.Checklis
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.data.models.InboxRecord
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentItemEntity
 import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
@@ -38,10 +38,10 @@ fun Goal.bumpSync(now: Long = System.currentTimeMillis()) =
 fun Goal.softDelete(now: Long = System.currentTimeMillis()) =
     copy(isDeleted = true, updatedAt = now, syncedAt = null, version = bumpVersion(version))
 
-fun ListItem.bumpSync(now: Long = System.currentTimeMillis()) =
+fun BacklogItem.bumpSync(now: Long = System.currentTimeMillis()) =
     copy(updatedAt = now, syncedAt = null, version = bumpVersion(version))
 
-fun ListItem.softDelete(now: Long = System.currentTimeMillis()) =
+fun BacklogItem.softDelete(now: Long = System.currentTimeMillis()) =
     copy(isDeleted = true, updatedAt = now, syncedAt = null, version = bumpVersion(version))
 
 fun ChecklistEntity.bumpSync(now: Long = System.currentTimeMillis()) =

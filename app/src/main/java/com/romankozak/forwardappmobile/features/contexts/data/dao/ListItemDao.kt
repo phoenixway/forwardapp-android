@@ -5,21 +5,21 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ListItemDao {
   @Query("SELECT * FROM list_items WHERE project_id = :projectId AND is_deleted = 0 ORDER BY item_order ASC, id ASC")
-  fun getItemsForProjectStream(projectId: String): Flow<List<ListItem>>
+  fun getItemsForProjectStream(projectId: String): Flow<List<BacklogItem>>
 
-  @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertItem(item: ListItem)
+  @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertItem(item: BacklogItem)
 
-  @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertItems(items: List<ListItem>)
+  @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertItems(items: List<BacklogItem>)
 
-  @Update suspend fun updateItem(item: ListItem)
+  @Update suspend fun updateItem(item: BacklogItem)
 
-  @Update suspend fun updateItems(items: List<ListItem>)
+  @Update suspend fun updateItems(items: List<BacklogItem>)
 
   @Query("DELETE FROM list_items WHERE id IN (:itemIds)")
   suspend fun deleteItemsByIds(itemIds: List<String>)
@@ -27,7 +27,7 @@ interface ListItemDao {
   @Query("DELETE FROM list_items WHERE project_id IN (:projectIds)")
   suspend fun deleteItemsForProjects(projectIds: List<String>)
 
-  @Query("SELECT * FROM list_items") suspend fun getAll(): List<ListItem>
+  @Query("SELECT * FROM list_items") suspend fun getAll(): List<BacklogItem>
 
   @Query("SELECT COUNT(*) FROM list_items WHERE entityId = :entityId AND project_id = :projectId")
   suspend fun getLinkCount(entityId: String, projectId: String): Int
@@ -39,7 +39,7 @@ interface ListItemDao {
   suspend fun updateListItemProjectIds(itemIds: List<String>, targetProjectId: String)
 
   @Query("SELECT * FROM list_items WHERE project_id = :projectId AND is_deleted = 0 ORDER BY item_order ASC, id ASC")
-  suspend fun getItemsForProjectSyncForDebug(projectId: String): List<ListItem>
+  suspend fun getItemsForProjectSyncForDebug(projectId: String): List<BacklogItem>
 
   @Query("DELETE FROM list_items") suspend fun deleteAll()
 
@@ -50,10 +50,10 @@ interface ListItemDao {
   suspend fun deleteItemByEntityId(entityId: String)
 
   @Query("SELECT * FROM list_items WHERE entityId = :entityId LIMIT 1")
-  suspend fun getListItemByEntityId(entityId: String): ListItem?
+  suspend fun getListItemByEntityId(entityId: String): BacklogItem?
 
   @Query("SELECT * FROM list_items WHERE id IN (:ids)")
-  suspend fun getItemsByIds(ids: List<String>): List<ListItem>
+  suspend fun getItemsByIds(ids: List<String>): List<BacklogItem>
 
   /**
    * Знаходить ID проєкту, до якого належить певна сутність (наприклад, ціль).

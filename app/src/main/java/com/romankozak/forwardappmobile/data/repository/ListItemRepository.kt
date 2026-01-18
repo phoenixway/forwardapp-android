@@ -4,7 +4,7 @@ import android.util.Log
 import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
 import com.romankozak.forwardappmobile.data.sync.bumpSync
@@ -27,24 +27,24 @@ class ListItemRepository @Inject constructor(
         currentProjectId: String,
     ): String {
         Log.d(TAG, "addProjectLinkToProject: targetProjectId=$targetProjectId, currentProjectId=$currentProjectId")
-        val newListItem =
-            ListItem(
+        val newBacklogItem =
+            BacklogItem(
                 id = UUID.randomUUID().toString(),
                 projectId = currentProjectId,
                 itemType = ListItemTypeValues.SUBLIST,
                 entityId = targetProjectId,
                 order = -System.currentTimeMillis(),
             )
-        Log.d(TAG, "Constructed ListItem to insert: $newListItem")
+        Log.d(TAG, "Constructed ListItem to insert: $newBacklogItem")
         try {
             Log.d(TAG, "Attempting to insert via listItemDao.insertItems...")
-            listItemDao.insertItems(listOf(newListItem))
-            Log.d(TAG, "Insertion successful for ListItem ID: ${newListItem.id}")
+            listItemDao.insertItems(listOf(newBacklogItem))
+            Log.d(TAG, "Insertion successful for ListItem ID: ${newBacklogItem.id}")
         } catch (e: Exception) {
-            Log.e(TAG, "DATABASE INSERTION FAILED for ListItem: $newListItem", e)
+            Log.e(TAG, "DATABASE INSERTION FAILED for ListItem: $newBacklogItem", e)
             throw e
         }
-        return newListItem.id
+        return newBacklogItem.id
     }
 
     suspend fun moveListItems(
@@ -78,13 +78,13 @@ class ListItemRepository @Inject constructor(
         }
     }
 
-    suspend fun restoreListItems(items: List<ListItem>) {
+    suspend fun restoreListItems(items: List<BacklogItem>) {
         if (items.isNotEmpty()) {
             listItemDao.insertItems(items)
         }
     }
 
-    suspend fun updateListItemsOrder(items: List<ListItem>) {
+    suspend fun updateListItemsOrder(items: List<BacklogItem>) {
         if (items.isNotEmpty()) {
             val now = System.currentTimeMillis()
             val bumped = items.map {
@@ -128,7 +128,7 @@ class ListItemRepository @Inject constructor(
         listItemDao.deleteItemByEntityId(entityId)
     }
 
-    fun getItemsForProjectStream(projectId: String): kotlinx.coroutines.flow.Flow<List<ListItem>> {
+    fun getItemsForProjectStream(projectId: String): kotlinx.coroutines.flow.Flow<List<BacklogItem>> {
         return listItemDao.getItemsForProjectStream(projectId)
     }
 
@@ -136,7 +136,7 @@ class ListItemRepository @Inject constructor(
         return linkItemDao.getAllEntitiesAsFlow()
     }
 
-    suspend fun getAll(): List<ListItem> {
+    suspend fun getAll(): List<BacklogItem> {
         return listItemDao.getAll()
     }
 

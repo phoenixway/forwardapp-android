@@ -4,7 +4,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectDao
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.sync.bumpSync
@@ -46,19 +46,19 @@ class GoalRepository @Inject constructor(
         goalDao.insertGoal(newGoal)
         syncContextMarker(newGoal.id, projectId, ContextTextAction.ADD)
 
-        val newListItem =
-            ListItem(
+        val newBacklogItem =
+            BacklogItem(
                 id = UUID.randomUUID().toString(),
                 projectId = projectId,
                 itemType = ListItemTypeValues.GOAL,
                 entityId = newGoal.id,
                 order = -currentTime,
             )
-        listItemDao.insertItem(newListItem)
+        listItemDao.insertItem(newBacklogItem)
 
         val finalGoalState = goalDao.getGoalById(newGoal.id)!!
         contextHandler.handleContextsOnCreate(finalGoalState)
-        return newListItem.id
+        return newBacklogItem.id
     }
 
     @androidx.room.Transaction
@@ -78,15 +78,15 @@ class GoalRepository @Inject constructor(
             )
         goalDao.insertGoal(newGoal)
 
-        val newListItem =
-            ListItem(
+        val newBacklogItem =
+            BacklogItem(
                 id = UUID.randomUUID().toString(),
                 projectId = projectId,
                 itemType = ListItemTypeValues.GOAL,
                 entityId = newGoal.id,
                 order = -currentTime,
             )
-        listItemDao.insertItem(newListItem)
+        listItemDao.insertItem(newBacklogItem)
 
         reminderRepository.createReminder(newGoal.id, "GOAL", reminderTime)
 
@@ -102,7 +102,7 @@ class GoalRepository @Inject constructor(
         if (goalIds.isNotEmpty()) {
             val newItems =
                 goalIds.map {
-                    ListItem(
+                    BacklogItem(
                         id = UUID.randomUUID().toString(),
                         projectId = targetProjectId,
                         itemType = ListItemTypeValues.GOAL,
@@ -121,13 +121,13 @@ class GoalRepository @Inject constructor(
         if (goalIds.isNotEmpty()) {
             val originalGoals = goalDao.getGoalsByIdsSuspend(goalIds)
             val newGoals = mutableListOf<Goal>()
-            val newItems = mutableListOf<ListItem>()
+            val newItems = mutableListOf<BacklogItem>()
 
             originalGoals.forEach {
                 val newGoal = it.copy(id = UUID.randomUUID().toString())
                 newGoals.add(newGoal)
                 newItems.add(
-                    ListItem(
+                    BacklogItem(
                         id = UUID.randomUUID().toString(),
                         projectId = targetProjectId,
                         itemType = ListItemTypeValues.GOAL,

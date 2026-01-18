@@ -31,12 +31,12 @@ class SelectiveImportDiffTest {
         val local = listItem(id = "1", order = 1)
         val incoming = listItem(id = "1", order = 3)
         val diff = BackupDiff(
-            listItems = DiffResult(
+            backlogItems = DiffResult(
                 updated = listOf(UpdatedItem(local = local, incoming = incoming))
             )
         )
 
-        val selectable = diff.toSelectable().listItems.single()
+        val selectable = diff.toSelectable().backlogItems.single()
 
         assertEquals(DiffStatus.UPDATED, selectable.status)
         assertEquals("Порядок: 1 → 3", selectable.changeInfo)
@@ -47,12 +47,12 @@ class SelectiveImportDiffTest {
         val local = listItem(id = "1", order = 1, entityId = "old")
         val incoming = listItem(id = "1", order = 2, entityId = "new")
         val diff = BackupDiff(
-            listItems = DiffResult(
+            backlogItems = DiffResult(
                 updated = listOf(UpdatedItem(local = local, incoming = incoming))
             )
         )
 
-        val selectable = diff.toSelectable().listItems.single()
+        val selectable = diff.toSelectable().backlogItems.single()
 
         assertEquals(DiffStatus.UPDATED, selectable.status)
         assertEquals("Порядок: 1 → 2, інші зміни", selectable.changeInfo)
@@ -62,12 +62,12 @@ class SelectiveImportDiffTest {
     fun `new list item has no change message`() {
         val incoming = listItem(id = "1", order = 5)
         val diff = BackupDiff(
-            listItems = DiffResult(
+            backlogItems = DiffResult(
                 added = listOf(incoming)
             )
         )
 
-        val selectable = diff.toSelectable().listItems.single()
+        val selectable = diff.toSelectable().backlogItems.single()
 
         assertEquals(DiffStatus.NEW, selectable.status)
         assertNull(selectable.changeInfo)
@@ -77,12 +77,12 @@ class SelectiveImportDiffTest {
     fun `deleted list item is marked and disabled`() {
         val local = listItem(id = "1", order = 7)
         val diff = BackupDiff(
-            listItems = DiffResult(
+            backlogItems = DiffResult(
                 deleted = listOf(local)
             )
         )
 
-        val selectable = diff.toSelectable().listItems.single()
+        val selectable = diff.toSelectable().backlogItems.single()
 
         assertEquals(DiffStatus.DELETED, selectable.status)
         assertEquals(false, selectable.isSelected)

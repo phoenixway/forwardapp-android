@@ -91,7 +91,7 @@ class SelectiveImportViewModel @Inject constructor(
              val selectedGoals = contentToImport.goals.filter { it.isSelected && it.isSelectable }.map { it.item }
              val selectedLegacyNotes = contentToImport.legacyNotes.filter { it.isSelected && it.isSelectable }.map { it.item }
              val selectedActivityRecords = contentToImport.activityRecords.filter { it.isSelected && it.isSelectable }.map { it.item }
-             val selectedListItems = contentToImport.listItems.filter { it.isSelected && it.isSelectable }.map { it.item }
+             val selectedListItems = contentToImport.backlogItems.filter { it.isSelected && it.isSelectable }.map { it.item }
              val selectedBacklogOrders = contentToImport.backlogOrders.filter { it.isSelected && it.isSelectable }.map { it.item }
              val selectedDocuments = contentToImport.documents.filter { it.isSelected && it.isSelectable }.map { it.item }
              val selectedChecklists = contentToImport.checklists.filter { it.isSelected && it.isSelectable }.map { it.item }
@@ -160,7 +160,7 @@ class SelectiveImportViewModel @Inject constructor(
             }
 
             // Filter list items to only those linked to selected projects, goals, documents, checklists, legacy notes, scripts, inbox records
-            val allListItems = currentState.backupContent?.listItems?.map { it.item } ?: emptyList()
+            val allListItems = currentState.backupContent?.backlogItems?.map { it.item } ?: emptyList()
             val filteredListItems = allListItems.filter { listItem ->
                 listItem.projectId in selectedProjectIds ||
                 listItem.entityId in selectedGoalIds ||
@@ -195,7 +195,7 @@ class SelectiveImportViewModel @Inject constructor(
                 goals = selectedGoals,
                 legacyNotes = selectedLegacyNotes,
                 activityRecords = selectedActivityRecords,
-                listItems = filteredListItems,
+                backlogItems = filteredListItems,
                 backlogOrders = selectedBacklogOrdersFiltered,
                 documents = selectedDocuments,
                 documentItems = filteredDocumentItems,
@@ -262,10 +262,10 @@ class SelectiveImportViewModel @Inject constructor(
 
     fun toggleListItemSelection(itemId: String, isSelected: Boolean) {
         _uiState.update { currentState ->
-            val updatedItems = currentState.backupContent?.listItems?.map {
+            val updatedItems = currentState.backupContent?.backlogItems?.map {
                 if (it.item.id == itemId && it.isSelectable) it.copy(isSelected = isSelected) else it
             }
-            currentState.copy(backupContent = currentState.backupContent?.copy(listItems = updatedItems ?: emptyList()))
+            currentState.copy(backupContent = currentState.backupContent?.copy(backlogItems = updatedItems ?: emptyList()))
         }
     }
 
@@ -340,7 +340,7 @@ class SelectiveImportViewModel @Inject constructor(
                 EntityType.GOAL -> content.copy(goals = content.goals.map { if (it.isSelectable) it.copy(isSelected = selectAll) else it })
                 EntityType.LEGACY_NOTE -> content.copy(legacyNotes = content.legacyNotes.map { if (it.isSelectable) it.copy(isSelected = selectAll) else it })
                 EntityType.ACTIVITY_RECORD -> content.copy(activityRecords = content.activityRecords.map { if (it.isSelectable) it.copy(isSelected = selectAll) else it })
-                EntityType.LIST_ITEM -> content.copy(listItems = content.listItems.map { if (it.isSelectable) it.copy(isSelected = selectAll) else it })
+                EntityType.LIST_ITEM -> content.copy(backlogItems = content.backlogItems.map { if (it.isSelectable) it.copy(isSelected = selectAll) else it })
                 EntityType.DOCUMENT -> content.copy(documents = content.documents.map { if (it.isSelectable) it.copy(isSelected = selectAll) else it })
                 EntityType.CHECKLIST -> content.copy(checklists = content.checklists.map { if (it.isSelectable) it.copy(isSelected = selectAll) else it })
                 EntityType.LINK_ITEM -> content.copy(linkItems = content.linkItems.map { if (it.isSelectable) it.copy(isSelected = selectAll) else it })

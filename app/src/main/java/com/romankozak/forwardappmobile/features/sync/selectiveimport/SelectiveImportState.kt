@@ -6,7 +6,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.models.Checklis
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
@@ -32,7 +32,7 @@ data class SelectableDatabaseContent(
     val goals: List<SelectableDiffItem<Goal>> = emptyList(),
     val legacyNotes: List<SelectableDiffItem<LegacyNoteEntity>> = emptyList(),
     val activityRecords: List<SelectableDiffItem<ActivityRecord>> = emptyList(),
-    val listItems: List<SelectableDiffItem<ListItem>> = emptyList(),
+    val backlogItems: List<SelectableDiffItem<BacklogItem>> = emptyList(),
     val backlogOrders: List<SelectableDiffItem<BacklogOrder>> = emptyList(),
     val documents: List<SelectableDiffItem<NoteDocumentEntity>> = emptyList(),
     val documentItems: List<SelectableDiffItem<NoteDocumentItemEntity>> = emptyList(), // Dependent, not directly selectable
@@ -77,7 +77,7 @@ fun BackupDiff.toSelectable(): SelectableDatabaseContent {
         return newItems + updatedItems + deletedItems
     }
 
-    fun mapListItemDiff(diff: DiffResult<ListItem>): List<SelectableDiffItem<ListItem>> {
+    fun mapListItemDiff(diff: DiffResult<BacklogItem>): List<SelectableDiffItem<BacklogItem>> {
         return mapDiff(diff) { updated ->
             val oldOrder = updated.local.order
             val newOrder = updated.incoming.order
@@ -96,7 +96,7 @@ fun BackupDiff.toSelectable(): SelectableDatabaseContent {
         goals = mapDiff(this.goals),
         legacyNotes = mapDiff(this.legacyNotes),
         activityRecords = mapDiff(this.activityRecords),
-        listItems = mapListItemDiff(this.listItems),
+        backlogItems = mapListItemDiff(this.backlogItems),
         documents = mapDiff(this.documents),
         documentItems = mapDiff(this.documentItems),
         checklists = mapDiff(this.checklists),

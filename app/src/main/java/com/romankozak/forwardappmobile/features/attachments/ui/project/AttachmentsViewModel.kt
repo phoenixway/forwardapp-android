@@ -155,7 +155,7 @@ class AttachmentsViewModel @Inject constructor(
         viewModelScope.launch {
             val currentProjectId = projectId.value
             if (currentProjectId.isNotEmpty()) {
-                projectRepository.deleteListItems(currentProjectId, listOf(attachment.listItem.id))
+                projectRepository.deleteListItems(currentProjectId, listOf(attachment.backlogItem.id))
             }
         }
     }

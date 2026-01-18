@@ -118,10 +118,10 @@ fun SwipeableBacklogItem(
     LaunchedEffect(resetCounter, swipedItemId) {
         val shouldReset =
             resetCounter != lastResetCounter.value &&
-                swipedItemId != item.listItem.id
+                swipedItemId != item.backlogItem.id
         lastResetCounter.value = resetCounter
         if (shouldReset) {
-            val delayMs = (item.listItem.id.hashCode().absoluteValue % 160) + 80
+            val delayMs = (item.backlogItem.id.hashCode().absoluteValue % 160) + 80
             delay(delayMs.toLong())
             animateTo(0f)
         }

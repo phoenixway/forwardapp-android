@@ -337,7 +337,7 @@ private fun SearchResultsContent(
                         is GlobalSearchResultItem.GoalItem -> {
                             val searchResult = GlobalGoalSearchResult(
                                 goal = result.goal,
-                                projectId = result.listItem.projectId,
+                                projectId = result.backlogItem.projectId,
                                 projectName = result.projectName,
                                 pathSegments = result.pathSegments
                             )

@@ -211,7 +211,7 @@ package com.romankozak.forwardappmobile.data.sync
     ) = DatabaseContent(
         projects = projects,
         goals = goals,
-        listItems = listItems,
+        backlogItems = listItems,
         legacyNotes = legacyNotes,
         documents = documents,
         documentItems = documentItems,
@@ -447,7 +447,7 @@ package com.romankozak.forwardappmobile.data.sync
         val res = syncRepository.applyServerChanges(
             DatabaseContent(
                 projects = incomingProjects,
-                listItems = listOf(incomingDup1, incomingDup2),
+                backlogItems = listOf(incomingDup1, incomingDup2),
                 backlogOrders = emptyList(),
             ),
         )

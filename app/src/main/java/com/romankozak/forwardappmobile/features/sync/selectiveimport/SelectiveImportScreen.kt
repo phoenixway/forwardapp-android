@@ -50,7 +50,7 @@ private fun SelectableDatabaseContent.allSections(): List<List<SelectableDiffIte
         goals,
         legacyNotes,
         activityRecords,
-        listItems,
+        backlogItems,
         documents,
         checklists,
         linkItems,
@@ -379,16 +379,16 @@ private fun BackupContentList(
             }
         }
 
-        if (content.listItems.isNotEmpty()) {
+        if (content.backlogItems.isNotEmpty()) {
             item {
                 Spacer(modifier = Modifier.height(16.dp))
                 SectionHeader(
-                    title = "Елементи списку (${content.listItems.size})",
+                    title = "Елементи списку (${content.backlogItems.size})",
                     onSelectAll = { viewModel.toggleAllSelection(EntityType.LIST_ITEM, true) },
                     onDeselectAll = { viewModel.toggleAllSelection(EntityType.LIST_ITEM, false) }
                 )
             }
-            items(content.listItems, key = { it.item.id }) { selectableItem ->
+            items(content.backlogItems, key = { it.item.id }) { selectableItem ->
                 SelectableRow(
                     label = "ListItem #${selectableItem.item.order} → ${selectableItem.item.entityId}",
                     subtitle = selectableItem.changeInfo,

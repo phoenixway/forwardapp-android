@@ -8,17 +8,17 @@ import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocu
 sealed class BacklogItemContent {
 
 
-    abstract val listItem: ListItem
+    abstract val backlogItem: BacklogItem
 
-    data class GoalItem(val goal: Goal, val reminders: List<Reminder>, override val listItem: ListItem) : BacklogItemContent()
+    data class GoalItem(val goal: Goal, val reminders: List<Reminder>, override val backlogItem: BacklogItem) : BacklogItemContent()
 
-    data class SublistItem(val project: Context, val reminders: List<Reminder>, override val listItem: ListItem) : BacklogItemContent()
+    data class SublistItem(val project: Context, val reminders: List<Reminder>, override val backlogItem: BacklogItem) : BacklogItemContent()
 
-    data class LinkItem(val link: LinkItemEntity, override val listItem: ListItem) : BacklogItemContent()
+    data class LinkItem(val link: LinkItemEntity, override val backlogItem: BacklogItem) : BacklogItemContent()
 
-    data class NoteItem(val note: LegacyNoteEntity, override val listItem: ListItem) : BacklogItemContent()
+    data class NoteItem(val note: LegacyNoteEntity, override val backlogItem: BacklogItem) : BacklogItemContent()
 
-    data class NoteDocumentItem(val document: NoteDocumentEntity, override val listItem: ListItem) : BacklogItemContent()
+    data class NoteDocumentItem(val document: NoteDocumentEntity, override val backlogItem: BacklogItem) : BacklogItemContent()
 
-    data class ChecklistItem(val checklist: ChecklistEntity, override val listItem: ListItem) : BacklogItemContent()
+    data class ChecklistItem(val checklist: ChecklistEntity, override val backlogItem: BacklogItem) : BacklogItemContent()
 }

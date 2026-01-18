@@ -74,7 +74,7 @@ fun GoalDetailContent(
                 swipeResetCounter = uiState.swipeResetCounter,
                 onMove = { from, to -> viewModel.onMove(from, to) },
                 onItemClick = { item -> viewModel.itemActionHandler.onItemClick(item) },
-                onLongClick = { item -> viewModel.toggleSelection(item.listItem.id) },
+                onLongClick = { item -> viewModel.toggleSelection(item.backlogItem.id) },
                 onCheckedChange = { item, isChecked ->
                     when (item) {
                         is BacklogItemContent.GoalItem -> viewModel.itemActionHandler.toggleGoalCompletedWithState(

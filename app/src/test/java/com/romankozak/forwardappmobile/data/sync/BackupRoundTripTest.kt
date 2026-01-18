@@ -37,19 +37,19 @@ class BackupRoundTripTest {
             backupSchemaVersion = 2,
             database = DatabaseContent(
                 projects = listOf(project),
-                listItems = listOf(listItem)
+                backlogItems = listOf(listItem)
             )
         )
 
         val json = gson.toJson(original)
         val parsed = gson.fromJson(json, FullAppBackup::class.java)
 
-        assertEquals(listItem.order, parsed.database.listItems.single().order)
+        assertEquals(listItem.order, parsed.database.backlogItems.single().order)
         assertEquals(original.database, parsed.database)
 
         val diff = buildDiff(
-            local = original.database.listItems,
-            incoming = parsed.database.listItems
+            local = original.database.backlogItems,
+            incoming = parsed.database.backlogItems
         ) { it.id }
 
         assertTrue(diff.added.isEmpty())
@@ -139,7 +139,7 @@ class BackupRoundTripTest {
 
         val originalDb = DatabaseContent(
             projects = listOf(project),
-            listItems = listOf(listItem),
+            backlogItems = listOf(listItem),
             documents = listOf(doc),
             documentItems = listOf(docItem),
             checklists = listOf(checklist),
@@ -166,7 +166,7 @@ class BackupRoundTripTest {
         val diffChecklistItems = buildDiff(originalDb.checklistItems, parsed.database.checklistItems) { it.id }
         val diffAttachments = buildDiff(originalDb.attachments, parsed.database.attachments) { it.id }
         val diffCrossRefs = buildDiff(originalDb.projectAttachmentCrossRefs, parsed.database.projectAttachmentCrossRefs) { "${it.projectId}-${it.attachmentId}" }
-        val diffListItems = buildDiff(originalDb.listItems, parsed.database.listItems) { it.id }
+        val diffListItems = buildDiff(originalDb.backlogItems, parsed.database.backlogItems) { it.id }
         val diffScripts = buildDiff(originalDb.scripts, parsed.database.scripts) { it.id }
         val diffRecentEntries = buildDiff(originalDb.recentProjectEntries, parsed.database.recentProjectEntries) { it.projectId }
 

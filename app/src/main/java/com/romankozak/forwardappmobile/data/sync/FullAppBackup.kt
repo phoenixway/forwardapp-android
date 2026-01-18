@@ -14,7 +14,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNo
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.data.models.InboxRecord
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentItemEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEntity
@@ -50,7 +50,7 @@ data class DatabaseContent(
     @SerializedName(value = "projects", alternate = ["goalLists"])
     val projects: List<Context> = emptyList(),
     @SerializedName(value = "listItems", alternate = ["c"])
-    val listItems: List<ListItem> = emptyList(),
+    val backlogItems: List<BacklogItem> = emptyList(),
     @SerializedName(value = "backlogOrders", alternate = ["order"])
     val backlogOrders: List<BacklogOrder> = emptyList(),
     @SerializedName(value = "legacyNotes", alternate = ["notes"])

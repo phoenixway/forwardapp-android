@@ -13,7 +13,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrde
 import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
@@ -127,7 +127,7 @@ constructor(
             attachmentRepository.getAttachmentsForProject(projectId),
         ) { array ->
             @Suppress("UNCHECKED_CAST")
-            val items = array[0] as List<ListItem>
+            val items = array[0] as List<BacklogItem>
             @Suppress("UNCHECKED_CAST")
             val backlogOrders = array[1] as List<BacklogOrder>
             @Suppress("UNCHECKED_CAST")
@@ -164,7 +164,7 @@ constructor(
 
     private fun mapToListItemContent(
         projectId: String,
-        items: List<ListItem>,
+        items: List<BacklogItem>,
         backlogOrders: List<BacklogOrder>,
         attachments: List<AttachmentWithProject>,
         reminders: List<Reminder>,
@@ -175,10 +175,10 @@ constructor(
         noteDocuments: List<NoteDocumentEntity>,
         checklists: List<ChecklistEntity>,
     ): List<BacklogItemContent> {
-        val attachmentListItems =
+        val attachmentBacklogItems =
             attachments.map { attachment ->
                 val order = attachment.attachmentOrder ?: -attachment.attachment.createdAt
-                ListItem(
+                BacklogItem(
                     id = attachment.attachment.id,
                     projectId = projectId,
                     itemType = attachment.attachment.attachmentType,
@@ -188,8 +188,8 @@ constructor(
             }
         val orderOverrideMap = backlogOrders.associateBy { it.itemId to it.listId }
 
-        val combinedItems = (items + attachmentListItems).sortedWith(
-            Comparator<ListItem> { a, b ->
+        val combinedItems = (items + attachmentBacklogItems).sortedWith(
+            Comparator<BacklogItem> { a, b ->
                 val keyA = orderOverrideMap[a.entityId to a.projectId]
                 val keyB = orderOverrideMap[b.entityId to b.projectId]
                 val orderA = keyA?.order ?: a.order
@@ -283,9 +283,9 @@ constructor(
         }
     }
 
-    suspend fun restoreListItems(items: List<ListItem>) = listItemRepository.restoreListItems(items)
+    suspend fun restoreListItems(items: List<BacklogItem>) = listItemRepository.restoreListItems(items)
 
-    suspend fun updateListItemsOrder(items: List<ListItem>) = listItemRepository.updateListItemsOrder(items)
+    suspend fun updateListItemsOrder(items: List<BacklogItem>) = listItemRepository.updateListItemsOrder(items)
 
     suspend fun updateAttachmentOrders(
         projectId: String,

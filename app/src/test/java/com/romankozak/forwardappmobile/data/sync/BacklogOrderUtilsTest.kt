@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.data.sync
 
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -26,8 +26,8 @@ class BacklogOrderUtilsTest {
 
     @Test
     fun `applyBacklogOrders bumps version and updatedAt`() {
-        val listItems = listOf(
-            ListItem(
+        val backlogItems = listOf(
+            BacklogItem(
                 id = "li1",
                 projectId = "p1",
                 itemType = ListItemTypeValues.GOAL,
@@ -42,7 +42,7 @@ class BacklogOrderUtilsTest {
         val orders = listOf(
             BacklogOrder(id = "li1", listId = "p1", itemId = "g1", order = 9, orderVersion = 10, updatedAt = 8, syncedAt = 0, isDeleted = false),
         )
-        val applied = BacklogOrderUtils.applyBacklogOrders(listItems, orders)
+        val applied = BacklogOrderUtils.applyBacklogOrders(backlogItems, orders)
         assertEquals(9, applied[0].order)
         assertEquals(10, applied[0].version)
         assertEquals(10, applied[0].updatedAt)
@@ -50,8 +50,8 @@ class BacklogOrderUtilsTest {
 
     @Test
     fun `normalizeBacklogOrderSets seeds missing orders and keeps consistency`() {
-        val listItems = listOf(
-            ListItem(
+        val backlogItems = listOf(
+            BacklogItem(
                 id = "li1",
                 projectId = "p1",
                 itemType = ListItemTypeValues.GOAL,
@@ -63,18 +63,18 @@ class BacklogOrderUtilsTest {
                 isDeleted = false,
             ),
         )
-        val normalized = BacklogOrderUtils.normalizeBacklogOrderSets(listItems, emptyList(), now = 100)
+        val normalized = BacklogOrderUtils.normalizeBacklogOrderSets(backlogItems, emptyList(), now = 100)
         assertEquals(1, normalized.backlogOrders.size)
         assertEquals("li1", normalized.backlogOrders[0].id)
         assertEquals(5, normalized.backlogOrders[0].order)
         assertEquals(7, normalized.backlogOrders[0].orderVersion)
-        assertEquals(5, normalized.listItems[0].order)
+        assertEquals(5, normalized.backlogItems[0].order)
     }
 
     @Test
     fun `tombstone in backlog order marks list item deleted`() {
-        val listItems = listOf(
-            ListItem(
+        val backlogItems = listOf(
+            BacklogItem(
                 id = "li1",
                 projectId = "p1",
                 itemType = ListItemTypeValues.GOAL,
@@ -89,7 +89,7 @@ class BacklogOrderUtilsTest {
         val orders = listOf(
             BacklogOrder(id = "li1", listId = "p1", itemId = "g1", order = 1, orderVersion = 5, updatedAt = 5, syncedAt = 0, isDeleted = true),
         )
-        val applied = BacklogOrderUtils.applyBacklogOrders(listItems, orders)
+        val applied = BacklogOrderUtils.applyBacklogOrders(backlogItems, orders)
         assertTrue(applied[0].isDeleted)
         assertEquals(5, applied[0].version)
     }

@@ -1139,10 +1139,10 @@ constructor(
       val attachmentId =
         try {
           projectRepository.ensureAttachmentLinkedToProject(
-            attachmentType = attachment.listItem.itemType,
-            entityId = attachment.listItem.entityId,
+            attachmentType = attachment.backlogItem.itemType,
+            entityId = attachment.backlogItem.entityId,
             targetProjectId = targetProjectId,
-            ownerProjectId = attachment.listItem.projectId.takeIf { it.isNotBlank() }
+            ownerProjectId = attachment.backlogItem.projectId.takeIf { it.isNotBlank() }
               ?: projectIdFlow.value,
           )
         } catch (e: Exception) {
@@ -1171,7 +1171,7 @@ constructor(
 
     viewModelScope.launch(Dispatchers.IO) {
       runCatching {
-        projectRepository.deleteAttachmentEverywhere(attachment.listItem.id)
+        projectRepository.deleteAttachmentEverywhere(attachment.backlogItem.id)
       }.onSuccess {
         withContext(Dispatchers.Main) {
           forceRefresh()
@@ -1194,7 +1194,7 @@ constructor(
         currentContent.add(toIndex, movedItem)
         val reorderedContent = currentContent.withCompletedAtEnd()
         Log.d(TAG, "onMove before save: " + reorderedContent.mapIndexed { idx, item ->
-            "[$idx:${item.listItem.id} order=${item.listItem.order} v=${item.listItem.version} syncedAt=${item.listItem.syncedAt}]"
+            "[$idx:${item.backlogItem.id} order=${item.backlogItem.order} v=${item.backlogItem.version} syncedAt=${item.backlogItem.syncedAt}]"
         }.joinToString(","))
         _listContent.value = reorderedContent
         saveListOrder(reorderedContent)
@@ -1217,16 +1217,16 @@ constructor(
         val updatedItems =
           listToSave.mapIndexedNotNull { index, content ->
             val order = index.toLong()
-            when (content.listItem.itemType) {
+            when (content.backlogItem.itemType) {
               ListItemTypeValues.LINK_ITEM,
               ListItemTypeValues.NOTE_DOCUMENT,
               ListItemTypeValues.CHECKLIST -> {
-                attachmentOrders += content.listItem.id to order
+                attachmentOrders += content.backlogItem.id to order
                 null
               }
               else -> {
-                Log.d(TAG, "[saveListOrder] prepare id=${content.listItem.id} orderOld=${content.listItem.order} orderNew=$order v=${content.listItem.version} syncedAt=${content.listItem.syncedAt}")
-                content.listItem.copy(order = order)
+                Log.d(TAG, "[saveListOrder] prepare id=${content.backlogItem.id} orderOld=${content.backlogItem.order} orderNew=$order v=${content.backlogItem.version} syncedAt=${content.backlogItem.syncedAt}")
+                content.backlogItem.copy(order = order)
               }
             }
           }
@@ -1592,7 +1592,7 @@ constructor(
                         text = item.goal.text,
                         reminderTime = reminders.firstOrNull()?.reminderTime,
                         createdAt = item.goal.createdAt,
-                        projectId = item.listItem.projectId,
+                        projectId = item.backlogItem.projectId,
                         goalId = item.goal.id,
                     )
                 _uiState.update { it.copy(recordForReminderDialog = record, remindersForDialog = reminders) }

@@ -265,14 +265,14 @@ fun GoalDetailEffects(
         val displayIndex =
             when {
                 goalId != null -> displayList.indexOfFirst { it is BacklogItemContent.GoalItem && it.goal.id == goalId }.takeIf { it != -1 }
-                itemId != null -> displayList.indexOfFirst { it.listItem.id == itemId }.takeIf { it != -1 }
+                itemId != null -> displayList.indexOfFirst { it.backlogItem.id == itemId }.takeIf { it != -1 }
                 else -> null
             }
 
         if (displayIndex != null) {
             val targetItem = displayList.getOrNull(displayIndex)
             val actualIndex = targetItem?.let { item ->
-                listContent.indexOfFirst { it.listItem.id == item.listItem.id }
+                listContent.indexOfFirst { it.backlogItem.id == item.backlogItem.id }
             } ?: -1
 
             if (actualIndex != -1) {
@@ -322,7 +322,7 @@ fun GoalDetailEffects(
         val itemId = uiState.newlyAddedItemId
         Log.d("AutoScrollDebug", "newlyAddedItemId: $itemId, displayList size: ${displayList.size}")
         if (itemId != null && displayList.isNotEmpty()) {
-            var index = displayList.indexOfFirst { it.listItem.id == itemId }
+            var index = displayList.indexOfFirst { it.backlogItem.id == itemId }
             if (index == -1) {
                 index = displayList.indexOfFirst { it is BacklogItemContent.GoalItem && it.goal.id == itemId }
                 Log.d("AutoScrollDebug", "Trying goal.id search, found index: $index")
@@ -331,7 +331,7 @@ fun GoalDetailEffects(
             if (index != -1) {
                 val targetItem = displayList.getOrNull(index)
                 val actualIndex = targetItem?.let { item ->
-                    listContent.indexOfFirst { it.listItem.id == item.listItem.id }
+                    listContent.indexOfFirst { it.backlogItem.id == item.backlogItem.id }
                 } ?: -1
 
                 if (actualIndex != -1) {

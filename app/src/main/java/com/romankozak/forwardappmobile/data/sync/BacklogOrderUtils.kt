@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.data.sync
 
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
-import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
 
 object BacklogOrderUtils {
     private fun orderKey(order: BacklogOrder): String = order.id ?: "${order.listId}:${order.itemId}"
@@ -40,18 +40,18 @@ object BacklogOrderUtils {
                     )
             }
 
-    fun listItemToBacklogOrder(listItem: ListItem, now: Long = System.currentTimeMillis()): BacklogOrder {
-        val updated = listItem.updatedAt ?: listItem.version ?: now
-        val orderVersion = listItem.version ?: updated
+    fun listItemToBacklogOrder(backlogItem: BacklogItem, now: Long = System.currentTimeMillis()): BacklogOrder {
+        val updated = backlogItem.updatedAt ?: backlogItem.version ?: now
+        val orderVersion = backlogItem.version ?: updated
         return BacklogOrder(
-            id = listItem.id,
-            listId = listItem.projectId,
-            itemId = listItem.entityId,
-            order = listItem.order,
+            id = backlogItem.id,
+            listId = backlogItem.projectId,
+            itemId = backlogItem.entityId,
+            order = backlogItem.order,
             orderVersion = orderVersion,
             updatedAt = updated,
-            syncedAt = listItem.syncedAt,
-            isDeleted = listItem.isDeleted,
+            syncedAt = backlogItem.syncedAt,
+            isDeleted = backlogItem.isDeleted,
         )
     }
 
@@ -59,12 +59,12 @@ object BacklogOrderUtils {
         dedupBacklogOrders(orders).associateBy { it.id ?: "${it.listId}:${it.itemId}" }
 
     fun applyBacklogOrders(
-        listItems: List<ListItem>,
+        backlogItems: List<BacklogItem>,
         backlogOrders: List<BacklogOrder>,
-    ): List<ListItem> {
-        if (backlogOrders.isEmpty()) return listItems
+    ): List<BacklogItem> {
+        if (backlogOrders.isEmpty()) return backlogItems
         val map = buildOrderMap(backlogOrders)
-        return listItems.map { li ->
+        return backlogItems.map { li ->
             val override = map[li.id] ?: map["${li.projectId}:${li.entityId}"] ?: return@map li
             val updated = maxOf(li.updatedAt.orZero(), override.updatedAt.orZero(), override.orderVersion.orZero())
             val version = maxOf(li.version.orZero(), override.orderVersion.orZero(), li.updatedAt.orZero(), override.updatedAt.orZero())
@@ -79,33 +79,33 @@ object BacklogOrderUtils {
     }
 
     fun normalizeBacklogOrderSets(
-        listItems: List<ListItem>,
+        backlogItems: List<BacklogItem>,
         backlogOrders: List<BacklogOrder>,
         now: Long = System.currentTimeMillis(),
     ): NormalizedBacklogOrderResult {
         val dedupedOrders = dedupBacklogOrders(backlogOrders)
         val orderMap = buildOrderMap(dedupedOrders).toMutableMap()
-        listItems.forEach { li ->
+        backlogItems.forEach { li ->
             val key = orderKey(li.projectId, li.entityId, li.id)
             if (!orderMap.containsKey(key)) {
                 orderMap[key] = listItemToBacklogOrder(li, now)
             }
         }
         val seededOrders = orderMap.values.toList()
-        val listWithOrders = applyBacklogOrders(listItems, seededOrders)
+        val listWithOrders = applyBacklogOrders(backlogItems, seededOrders)
         // regenerate orders from applied listItems to keep freshness aligned
         val normalizedOrders = dedupBacklogOrders(
             seededOrders + listWithOrders.map { listItemToBacklogOrder(it, now) },
         )
         val appliedList = applyBacklogOrders(listWithOrders, normalizedOrders)
         return NormalizedBacklogOrderResult(
-            listItems = appliedList,
+            backlogItems = appliedList,
             backlogOrders = normalizedOrders,
         )
     }
 }
 
 data class NormalizedBacklogOrderResult(
-    val listItems: List<ListItem>,
+    val backlogItems: List<BacklogItem>,
     val backlogOrders: List<BacklogOrder>,
 )

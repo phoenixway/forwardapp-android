@@ -58,7 +58,7 @@ constructor(
         }
 
         if (resultListener.isSelectionModeActive()) {
-            resultListener.toggleSelection(item.listItem.id)
+            resultListener.toggleSelection(item.backlogItem.id)
         } else {
             scope.launch {
                 when (item) {
@@ -108,11 +108,11 @@ constructor(
                         item is BacklogItemContent.NoteDocumentItem ||
                         item is BacklogItemContent.ChecklistItem
             if (isAttachment) {
-                projectRepository.unlinkAttachmentFromProject(currentProjectId, item.listItem.id)
+                projectRepository.unlinkAttachmentFromProject(currentProjectId, item.backlogItem.id)
                 resultListener.forceRefresh()
                 resultListener.showSnackbar("Вкладення видалено з проєкту", null)
             } else {
-                projectRepository.deleteListItems(currentProjectId, listOf(item.listItem.id))
+                projectRepository.deleteListItems(currentProjectId, listOf(item.backlogItem.id))
                 resultListener.showSnackbar("Елемент видалено", "Скасувати")
             }
         }
@@ -201,7 +201,7 @@ constructor(
             is BacklogItemContent.GoalItem -> {
                 resultListener.setPendingAction(
                     actionType,
-                    itemIds = setOf(item.listItem.id),
+                    itemIds = setOf(item.backlogItem.id),
                     goalIds = setOf(item.goal.id),
                 )
             }
@@ -214,7 +214,7 @@ constructor(
                     else -> {
                         resultListener.setPendingAction(
                             actionType,
-                            itemIds = setOf(item.listItem.id),
+                            itemIds = setOf(item.backlogItem.id),
                             goalIds = setOf(item.project.id),
                         )
                     }
@@ -231,7 +231,7 @@ constructor(
     fun undoDelete() {
         scope.launch {
             recentlyDeletedItems?.let { itemsToRestore ->
-                val listItemsToRestore = itemsToRestore.map { it.listItem }
+                val listItemsToRestore = itemsToRestore.map { it.backlogItem }
                 projectRepository.restoreListItems(listItemsToRestore)
                 resultListener.forceRefresh()
             }

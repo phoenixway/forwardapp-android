@@ -37,7 +37,7 @@ constructor(
                 listItem?.let {
                     GlobalSearchResultItem.GoalItem(
                         goal = searchResult.goal,
-                        listItem = it,
+                        backlogItem = it,
                         projectName = searchResult.projectName,
                         pathSegments = searchResult.pathSegments,
                     )

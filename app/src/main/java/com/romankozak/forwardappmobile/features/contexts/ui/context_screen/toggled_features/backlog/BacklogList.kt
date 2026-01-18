@@ -75,14 +75,14 @@ fun BacklogListScreen(
         state = listState,
         modifier = modifier
     ) {
-        itemsIndexed(sortedItems, key = { _, item -> item.listItem.id }) { index, item ->
+        itemsIndexed(sortedItems, key = { _, item -> item.backlogItem.id }) { index, item ->
             val showCompletedHeader = completedStartIndex != -1 && index == completedStartIndex
             Column {
                 if (showCompletedHeader) {
                     CompletedSectionHeader(completedCount = completedCount)
                 }
-                ReorderableItem(reorderableState, key = item.listItem.id) { isDragging ->
-                    val isSelected = item.listItem.id in selectedItemIds
+                ReorderableItem(reorderableState, key = item.backlogItem.id) { isDragging ->
+                    val isSelected = item.backlogItem.id in selectedItemIds
                     SwipeableBacklogItem(
                         item = item,
                         reorderableScope = this,
@@ -90,7 +90,7 @@ fun BacklogListScreen(
                         isDragging = isDragging,
                         isSelected = isSelected,
                         contextMarkerToEmojiMap = contextMarkerToEmojiMap,
-                        onRequestCloseOthers = { onResetSwipe(item.listItem.id) },
+                        onRequestCloseOthers = { onResetSwipe(item.backlogItem.id) },
                         swipedItemId = swipedItemId,
                         resetCounter = swipeResetCounter,
                         onItemClick = { onItemClick(item) },
