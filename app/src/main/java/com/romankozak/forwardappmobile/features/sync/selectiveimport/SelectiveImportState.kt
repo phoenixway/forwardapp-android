@@ -13,7 +13,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
 import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.InboxRecord
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
 import com.romankozak.forwardappmobile.data.sync.BackupDiff
 import com.romankozak.forwardappmobile.data.sync.DiffResult
 import com.romankozak.forwardappmobile.data.sync.DiffStatus
@@ -40,7 +40,7 @@ data class SelectableDatabaseContent(
     val checklistItems: List<SelectableDiffItem<ChecklistItemEntity>> = emptyList(), // Dependent, not directly selectable
     val linkItems: List<SelectableDiffItem<LinkItemEntity>> = emptyList(),
     val inboxRecords: List<SelectableDiffItem<InboxRecord>> = emptyList(),
-    val projectExecutionLogs: List<SelectableDiffItem<ProjectExecutionLog>> = emptyList(),
+    val contextLogs: List<SelectableDiffItem<ContextLog>> = emptyList(),
     val scripts: List<SelectableDiffItem<ScriptEntity>> = emptyList(),
     val attachments: List<SelectableDiffItem<AttachmentEntity>> = emptyList(),
     val allProjectAttachmentCrossRefs: List<ProjectAttachmentCrossRef> = emptyList() // Dependent, not directly selectable
@@ -103,7 +103,7 @@ fun BackupDiff.toSelectable(): SelectableDatabaseContent {
         checklistItems = mapDiff(this.checklistItems),
         linkItems = mapDiff(this.linkItems),
         inboxRecords = mapDiff(this.inboxRecords),
-        projectExecutionLogs = mapDiff(this.projectExecutionLogs),
+        contextLogs = mapDiff(this.contextLogs),
         scripts = mapDiff(this.scripts),
         attachments = mapDiff(this.attachments),
         backlogOrders = mapDiff(this.backlogOrders),

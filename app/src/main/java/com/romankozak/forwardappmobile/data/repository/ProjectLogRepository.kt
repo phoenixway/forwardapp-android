@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.data.repository
 
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectManagementDao
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectLogEntryTypeValues
 import com.romankozak.forwardappmobile.data.sync.bumpSync
 import com.romankozak.forwardappmobile.data.sync.softDelete
@@ -14,7 +14,7 @@ import javax.inject.Singleton
 class ProjectLogRepository @Inject constructor(
     private val projectManagementDao: ProjectManagementDao
 ) {
-    fun getProjectLogsStream(projectId: String): Flow<List<ProjectExecutionLog>> =
+    fun getProjectLogsStream(projectId: String): Flow<List<ContextLog>> =
         projectManagementDao.getLogsForProjectStream(projectId)
 
     suspend fun addToggleProjectManagementLog(projectId: String, isEnabled: Boolean) {
@@ -56,7 +56,7 @@ class ProjectLogRepository @Inject constructor(
     ) {
         val now = System.currentTimeMillis()
         val logEntry = 
-            ProjectExecutionLog(
+            ContextLog(
                 id = UUID.randomUUID().toString(),
                 projectId = projectId,
                 timestamp = now,
@@ -70,11 +70,11 @@ class ProjectLogRepository @Inject constructor(
         projectManagementDao.insertLog(logEntry)
     }
 
-    suspend fun updateProjectExecutionLog(log: ProjectExecutionLog) {
+    suspend fun updateProjectExecutionLog(log: ContextLog) {
         projectManagementDao.updateLog(log.bumpSync())
     }
 
-    suspend fun deleteProjectExecutionLog(log: ProjectExecutionLog) {
+    suspend fun deleteProjectExecutionLog(log: ContextLog) {
         projectManagementDao.insertLog(log.softDelete())
     }
 }

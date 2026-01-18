@@ -27,8 +27,7 @@ import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
-import com.romankozak.forwardappmobile.features.contexts.data.models.Context
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectLogEntryTypeValues
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectViewMode
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
@@ -162,7 +161,7 @@ data class UiState(
   val showRemindersDialog: Boolean = false,
   val itemForRemindersDialog: BacklogItemContent? = null,
   val remindersForDialog: List<Reminder> = emptyList(),
-  val logEntryToEdit: ProjectExecutionLog? = null,
+  val logEntryToEdit: ContextLog? = null,
   val artifactToEdit: ProjectArtifact? = null,
   val selectedDashboardTab: ProjectManagementTab = ProjectManagementTab.Dashboard,
   val showNoteDocumentEditor: Boolean = false,
@@ -361,7 +360,7 @@ constructor(
   private val _isLoading = MutableStateFlow(false)
   val isLoading = _isLoading.asStateFlow()
 
-  val projectLogs: StateFlow<List<ProjectExecutionLog>> =
+  val projectLogs: StateFlow<List<ContextLog>> =
     projectIdFlow
       .flatMapLatest { id ->
         if (id.isNotEmpty()) {
@@ -2082,11 +2081,11 @@ constructor(
     }
   }
 
-    fun onEditLogEntry(log: ProjectExecutionLog) {
+    fun onEditLogEntry(log: ContextLog) {
         _uiState.update { it.copy(logEntryToEdit = log) }
     }
 
-    fun onDeleteLogEntry(log: ProjectExecutionLog) {
+    fun onDeleteLogEntry(log: ContextLog) {
         viewModelScope.launch {
             projectLogRepository.deleteProjectExecutionLog(log)
         }

@@ -12,7 +12,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
 import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.ProjectAttachmentCrossRef
@@ -40,7 +40,7 @@ data class BackupDiff(
     val checklistItems: DiffResult<ChecklistItemEntity> = DiffResult(),
     val linkItems: DiffResult<LinkItemEntity> = DiffResult(),
     val inboxRecords: DiffResult<InboxRecord> = DiffResult(),
-    val projectExecutionLogs: DiffResult<ProjectExecutionLog> = DiffResult(),
+    val contextLogs: DiffResult<ContextLog> = DiffResult(),
     val scripts: DiffResult<ScriptEntity> = DiffResult(),
     val attachments: DiffResult<AttachmentEntity> = DiffResult(),
     val projectAttachmentCrossRefs: DiffResult<ProjectAttachmentCrossRef> = DiffResult(),

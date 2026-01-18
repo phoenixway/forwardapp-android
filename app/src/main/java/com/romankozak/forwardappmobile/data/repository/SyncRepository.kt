@@ -72,7 +72,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEnt
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectLogLevelValues
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStatusValues
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextType
@@ -251,7 +251,7 @@ constructor(
                 activityRecords = activityRecordDao.getAllRecordsStream().first(),
                 linkItemEntities = linkItemDao.getAllEntities(),
                 inboxRecords = inboxRecordDao.getAll(),
-                projectExecutionLogs = projectManagementDao.getAllLogs(),
+                contextLogs = projectManagementDao.getAllLogs(),
                 recentProjectEntries = recentProjectEntries,
                 scripts = scripts,
                 attachments = allAttachments,
@@ -582,7 +582,7 @@ constructor(
                         "  - LinkItems: ${backup.linkItemEntities.size}\n" +
                         "  - InboxRecords: ${backup.inboxRecords.size}\n" +
                         "  - ActivityRecords: ${backup.activityRecords.size}\n" +
-                        "  - ProjectLogs: ${backup.projectExecutionLogs.size}\n" +
+                        "  - ProjectLogs: ${backup.contextLogs.size}\n" +
                         "  - RecentEntries: ${backup.recentProjectEntries.size}"
             )
 
@@ -854,13 +854,13 @@ constructor(
             Log.d(IMPORT_TAG, "  InboxRecords: ${backup.inboxRecords.size} -> ${cleanedInboxRecords.size}")
 
             // ProjectLogs - переіндексація projectId
-            val cleanedProjectLogs = backup.projectExecutionLogs.map { log ->
+            val cleanedProjectLogs = backup.contextLogs.map { log ->
                 log.copy(projectId = projectIdMap[log.projectId] ?: log.projectId)
             }.filter { it.projectId in projectIds }.also {
-                val skipped = backup.projectExecutionLogs.size - it.size
+                val skipped = backup.contextLogs.size - it.size
                 if (skipped > 0) Log.w(IMPORT_TAG, "  ProjectLogs: пропущено $skipped з невалідними посиланнями")
             }
-            Log.d(IMPORT_TAG, "  ProjectLogs: ${backup.projectExecutionLogs.size} -> ${cleanedProjectLogs.size}")
+            Log.d(IMPORT_TAG, "  ProjectLogs: ${backup.contextLogs.size} -> ${cleanedProjectLogs.size}")
 
             // Attachments - переіндексація ownerProjectId
             val cleanedAttachments = backup.attachments.map { att ->
@@ -1232,7 +1232,7 @@ constructor(
             linkItemDao.insertAll(content.linkItemEntities.map { it.copy(syncedAt = ts) })
 
             inboxRecordDao.insertAll(content.inboxRecords.map { it.copy(syncedAt = ts) })
-            projectManagementDao.insertAllLogs(content.projectExecutionLogs.map { it.copy(syncedAt = ts) })
+            projectManagementDao.insertAllLogs(content.contextLogs.map { it.copy(syncedAt = ts) })
             content.scripts.forEach { scriptDao.insert(it.copy(syncedAt = ts)) }
 
             Log.d(WIFI_SYNC_LOG_TAG, "[markSyncedNow] Marking ${content.attachments.size} attachments synced")
@@ -1444,7 +1444,7 @@ constructor(
             activityRecords = activityRecordDao.getAllRecordsStream().first(),
             linkItemEntities = linkItemDao.getAllEntities(),
             inboxRecords = inboxRecordDao.getAll(),
-            projectExecutionLogs = projectManagementDao.getAllLogs(),
+            contextLogs = projectManagementDao.getAllLogs(),
             recentProjectEntries = recentProjectEntries,
             scripts = scripts,
             attachments = attachmentDao.getAll(),
@@ -1618,7 +1618,7 @@ constructor(
             activityRecords = filterByUpdated(local.activityRecords) { it.updatedTs() },
             linkItemEntities = linkItemsResult,
             inboxRecords = filterByUpdated(local.inboxRecords) { it.updatedTs() },
-            projectExecutionLogs = filterByUpdated(local.projectExecutionLogs) { it.updatedTs() },
+            contextLogs = filterByUpdated(local.contextLogs) { it.updatedTs() },
             scripts = filterByUpdated(local.scripts) { it.updatedTs() },
             attachments = attachmentsResult,
             projectAttachmentCrossRefs = crossRefsResult,
@@ -1903,7 +1903,7 @@ constructor(
             activityRecords = diffEntities(incoming.activityRecords, local.activityRecords, { it.id }, { it.version }, { it.updatedTs() }, { it.isDeleted }),
             linkItems = diffEntities(incoming.linkItemEntities, local.linkItemEntities, { it.id }, { it.version }, { it.updatedTs() }, { it.isDeleted }),
             inboxRecords = diffEntities(incoming.inboxRecords, local.inboxRecords, { it.id }, { it.version }, { it.updatedTs() }, { it.isDeleted }),
-            projectExecutionLogs = diffEntities(incoming.projectExecutionLogs, local.projectExecutionLogs, { it.id }, { it.version }, { it.updatedTs() }, { it.isDeleted }),
+            contextLogs = diffEntities(incoming.contextLogs, local.contextLogs, { it.id }, { it.version }, { it.updatedTs() }, { it.isDeleted }),
             scripts = diffEntities(incoming.scripts, local.scripts, { it.id }, { it.version }, { it.updatedTs() }, { it.isDeleted }),
             attachments = diffEntities(incoming.attachments, local.attachments, { it.id }, { it.version }, { it.updatedTs() }, { it.isDeleted }),
             projectAttachmentCrossRefs = diffEntities(
@@ -1950,7 +1950,7 @@ constructor(
     private fun LinkItemEntity.updatedTs(): Long = this.updatedAt ?: this.createdAt
     private fun ListItem.updatedTs(): Long = this.updatedAt ?: this.version
     private fun BacklogOrder.updatedTs(): Long = this.updatedAt ?: this.orderVersion
-    private fun ProjectExecutionLog.updatedTs(): Long = this.updatedAt ?: this.timestamp
+    private fun ContextLog.updatedTs(): Long = this.updatedAt ?: this.timestamp
     private fun ScriptEntity.updatedTs(): Long = this.updatedAt
     private fun AttachmentEntity.updatedTs(): Long = this.updatedAt
     private fun ProjectAttachmentCrossRef.updatedTs(): Long = this.updatedAt ?: this.attachmentOrder.toLong()
@@ -2047,7 +2047,7 @@ constructor(
             linkItemEntities = local.linkItemEntities.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) }
                 .also { logUnsynced("linkItems", it, { it.id }, { it.updatedTs() }, { it.syncedAt }, { it.isDeleted }) },
             inboxRecords = local.inboxRecords.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
-            projectExecutionLogs = local.projectExecutionLogs.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
+            contextLogs = local.contextLogs.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
             scripts = local.scripts.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
             attachments = local.attachments.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) }
                 .also { logUnsynced("attachments", it, { it.id }, { it.updatedTs() }, { it.syncedAt }, { it.isDeleted }) },
@@ -2135,7 +2135,7 @@ constructor(
                     inboxRecords = normalized.inboxRecords.map { r ->
                         idRedirects[r.projectId]?.let { r.copy(projectId = it) } ?: r
                     },
-                    projectExecutionLogs = normalized.projectExecutionLogs.map { log ->
+                    contextLogs = normalized.contextLogs.map { log ->
                         idRedirects[log.projectId]?.let { log.copy(projectId = it) } ?: log
                     },
                     attachments = attachmentsAfterRedirect
@@ -2308,7 +2308,7 @@ constructor(
                 if (incomingInbox.isNotEmpty()) inboxRecordDao.insertAll(incomingInbox)
 
                 val incomingLogs = mergeAndMark(
-                    correctedChanges.projectExecutionLogs, local.projectExecutionLogs.associateBy { it.id },
+                    correctedChanges.contextLogs, local.contextLogs.associateBy { it.id },
                     { it.id }, { it.version }, { it.updatedTs() }, { log, synced -> log.copy(syncedAt = synced) },
                     ts
                 )

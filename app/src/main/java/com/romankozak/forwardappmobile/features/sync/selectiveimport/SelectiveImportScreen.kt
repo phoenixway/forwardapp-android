@@ -55,7 +55,7 @@ private fun SelectableDatabaseContent.allSections(): List<List<SelectableDiffIte
         checklists,
         linkItems,
         inboxRecords,
-        projectExecutionLogs,
+        contextLogs,
         scripts,
         attachments,
     )
@@ -490,16 +490,16 @@ private fun BackupContentList(
             }
         }
 
-        if (content.projectExecutionLogs.isNotEmpty()) {
+        if (content.contextLogs.isNotEmpty()) {
             item {
                 Spacer(modifier = Modifier.height(16.dp))
                 SectionHeader(
-                    title = "Логи виконання проектів (${content.projectExecutionLogs.size})",
+                    title = "Логи виконання проектів (${content.contextLogs.size})",
                     onSelectAll = { viewModel.toggleAllSelection(EntityType.PROJECT_EXECUTION_LOG, true) },
                     onDeselectAll = { viewModel.toggleAllSelection(EntityType.PROJECT_EXECUTION_LOG, false) }
                 )
             }
-            items(content.projectExecutionLogs, key = { it.item.id }) { selectableItem ->
+            items(content.contextLogs, key = { it.item.id }) { selectableItem ->
                 SelectableRow(
                     label = selectableItem.item.description.ifBlank { "Без опису" },
                     isSelected = selectableItem.isSelected,

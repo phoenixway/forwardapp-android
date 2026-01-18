@@ -17,7 +17,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocu
 import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
 
 import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.ProjectAttachmentCrossRef
@@ -92,10 +92,10 @@ fun LinkItemEntity.bumpSync(now: Long = System.currentTimeMillis()) =
 fun LinkItemEntity.softDelete(now: Long = System.currentTimeMillis()) =
     copy(isDeleted = true, updatedAt = now, syncedAt = null, version = bumpVersion(version))
 
-fun ProjectExecutionLog.bumpSync(now: Long = System.currentTimeMillis()) =
+fun ContextLog.bumpSync(now: Long = System.currentTimeMillis()) =
     copy(updatedAt = now, syncedAt = null, version = bumpVersion(version))
 
-fun ProjectExecutionLog.softDelete(now: Long = System.currentTimeMillis()) =
+fun ContextLog.softDelete(now: Long = System.currentTimeMillis()) =
     copy(isDeleted = true, updatedAt = now, syncedAt = null, version = bumpVersion(version))
 
 fun ScriptEntity.bumpSync(now: Long = System.currentTimeMillis()) =

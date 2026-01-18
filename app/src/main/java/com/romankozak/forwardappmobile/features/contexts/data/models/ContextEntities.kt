@@ -93,7 +93,7 @@ data class Goal(
         ),
     ],
 )
-data class ProjectExecutionLog(
+data class ContextLog(
     @PrimaryKey val id: String,
     @ColumnInfo(index = true) val projectId: String,
     val timestamp: Long,

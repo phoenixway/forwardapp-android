@@ -26,7 +26,7 @@ import androidx.compose.ui.Alignment
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectArtifact
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectViewMode
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.toggled_features.backlog.BacklogListScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.toggled_features.projectrealization.ProjectDashboardView
@@ -42,8 +42,8 @@ fun GoalDetailContent(
     uiState: UiState,
     listState: LazyListState,
     inboxListState: LazyListState,
-    onEditLog: (ProjectExecutionLog) -> Unit,
-    onDeleteLog: (ProjectExecutionLog) -> Unit,
+    onEditLog: (ContextLog) -> Unit,
+    onDeleteLog: (ContextLog) -> Unit,
     onSaveArtifact: (String) -> Unit,
     onEditArtifact: (ProjectArtifact) -> Unit,
     onRemindersClick: (BacklogItemContent) -> Unit,

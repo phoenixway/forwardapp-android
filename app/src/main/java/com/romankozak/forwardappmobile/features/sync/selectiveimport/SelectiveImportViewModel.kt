@@ -97,7 +97,7 @@ class SelectiveImportViewModel @Inject constructor(
              val selectedChecklists = contentToImport.checklists.filter { it.isSelected && it.isSelectable }.map { it.item }
              val selectedLinkItems = contentToImport.linkItems.filter { it.isSelected && it.isSelectable }.map { it.item }
             val selectedInboxRecords = contentToImport.inboxRecords.filter { it.isSelected && it.isSelectable }.map { it.item }
-            val selectedProjectExecutionLogs = contentToImport.projectExecutionLogs.filter { it.isSelected && it.isSelectable }.map { it.item }
+            val selectedProjectExecutionLogs = contentToImport.contextLogs.filter { it.isSelected && it.isSelectable }.map { it.item }
             val selectedScripts = contentToImport.scripts.filter { it.isSelected && it.isSelectable }.map { it.item }
             val selectedAttachments = contentToImport.attachments.filter { it.isSelected && it.isSelectable }.map { it.item }
              
@@ -203,7 +203,7 @@ class SelectiveImportViewModel @Inject constructor(
                 checklistItems = filteredChecklistItems,
                 linkItemEntities = selectedLinkItems,
                 inboxRecords = selectedInboxRecords,
-                projectExecutionLogs = selectedProjectExecutionLogs,
+                contextLogs = selectedProjectExecutionLogs,
                 recentProjectEntries = emptyList(), // Not directly selectable, derived from projects
                 attachments = selectedAttachments,
                 projectAttachmentCrossRefs = filteredCrossRefs,
@@ -307,10 +307,10 @@ class SelectiveImportViewModel @Inject constructor(
 
     fun toggleProjectExecutionLogSelection(logId: String, isSelected: Boolean) {
         _uiState.update { currentState ->
-            val updatedLogs = currentState.backupContent?.projectExecutionLogs?.map {
+            val updatedLogs = currentState.backupContent?.contextLogs?.map {
                 if (it.item.id == logId && it.isSelectable) it.copy(isSelected = isSelected) else it
             }
-            currentState.copy(backupContent = currentState.backupContent?.copy(projectExecutionLogs = updatedLogs ?: emptyList()))
+            currentState.copy(backupContent = currentState.backupContent?.copy(contextLogs = updatedLogs ?: emptyList()))
         }
     }
 
@@ -345,7 +345,7 @@ class SelectiveImportViewModel @Inject constructor(
                 EntityType.CHECKLIST -> content.copy(checklists = content.checklists.map { if (it.isSelectable) it.copy(isSelected = selectAll) else it })
                 EntityType.LINK_ITEM -> content.copy(linkItems = content.linkItems.map { if (it.isSelectable) it.copy(isSelected = selectAll) else it })
                 EntityType.INBOX_RECORD -> content.copy(inboxRecords = content.inboxRecords.map { if (it.isSelectable) it.copy(isSelected = selectAll) else it })
-                EntityType.PROJECT_EXECUTION_LOG -> content.copy(projectExecutionLogs = content.projectExecutionLogs.map { if (it.isSelectable) it.copy(isSelected = selectAll) else it })
+                EntityType.PROJECT_EXECUTION_LOG -> content.copy(contextLogs = content.contextLogs.map { if (it.isSelectable) it.copy(isSelected = selectAll) else it })
                 EntityType.SCRIPT -> content.copy(scripts = content.scripts.map { if (it.isSelectable) it.copy(isSelected = selectAll) else it })
                 EntityType.ATTACHMENT -> content.copy(attachments = content.attachments.map { if (it.isSelectable) it.copy(isSelected = selectAll) else it })
             }

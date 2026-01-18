@@ -34,7 +34,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectLogEntryTypeValues
 import java.text.SimpleDateFormat
 import java.util.*
@@ -42,10 +42,10 @@ import kotlin.math.abs
 
  @Composable
 fun LogContent(
-    logs: List<ProjectExecutionLog>,
-    isManagementEnabled: Boolean,
-    onEditLog: (ProjectExecutionLog) -> Unit,
-    onDeleteLog: (ProjectExecutionLog) -> Unit,
+     logs: List<ContextLog>,
+     isManagementEnabled: Boolean,
+     onEditLog: (ContextLog) -> Unit,
+     onDeleteLog: (ContextLog) -> Unit,
 ) {
     if (!isManagementEnabled) {
         PlaceholderContent(text = "Увімкніть підтримку реалізації на Дашборді, щоб бачити історію.")
@@ -172,7 +172,7 @@ private fun FilterPanel(
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 private fun LogEntryItem(
-    log: ProjectExecutionLog,
+    log: ContextLog,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onToggleSearch: () -> Unit,
@@ -364,9 +364,9 @@ internal fun PlaceholderContent(text: String) {
 private fun LogContentPreview() {
     val now = System.currentTimeMillis()
     val sample = listOf(
-        ProjectExecutionLog(id = "1", projectId = "0", timestamp = now - 20 * 60_000, type = ProjectLogEntryTypeValues.STATUS_CHANGE, description = "Перенесено до 'Робота'", details = "Завершено перевірку"),
-        ProjectExecutionLog(id = "2", projectId = "0", timestamp = now - 120 * 60_000, type = ProjectLogEntryTypeValues.COMMENT, description = "Коментар", details = "Потрібно уточнити терміни"),
-        ProjectExecutionLog(id = "3", projectId = "0", timestamp = now - 3_600_000 * 5, type = ProjectLogEntryTypeValues.INSIGHT, description = "Ідея: кешування", details = "Зменшить навантаження"),
+        ContextLog(id = "1", projectId = "0", timestamp = now - 20 * 60_000, type = ProjectLogEntryTypeValues.STATUS_CHANGE, description = "Перенесено до 'Робота'", details = "Завершено перевірку"),
+        ContextLog(id = "2", projectId = "0", timestamp = now - 120 * 60_000, type = ProjectLogEntryTypeValues.COMMENT, description = "Коментар", details = "Потрібно уточнити терміни"),
+        ContextLog(id = "3", projectId = "0", timestamp = now - 3_600_000 * 5, type = ProjectLogEntryTypeValues.INSIGHT, description = "Ідея: кешування", details = "Зменшить навантаження"),
     )
     MaterialTheme {
         LogContent(sample, true, {}, {})

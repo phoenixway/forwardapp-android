@@ -5,7 +5,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
 
 
 import androidx.compose.ui.graphics.Color
@@ -16,14 +16,14 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectTime
 fun ProjectDashboardView(
     modifier: Modifier = Modifier,
     project: Context?,
-    projectLogs: List<ProjectExecutionLog>,
+    projectLogs: List<ContextLog>,
     projectArtifact: ProjectArtifact?,
     onStatusUpdate: (String, String?) -> Unit,
     onToggleProjectManagement: (Boolean) -> Unit,
     onRecalculateTime: () -> Unit,
     projectTimeMetrics: ProjectTimeMetrics?,
-    onEditLog: (ProjectExecutionLog) -> Unit,
-    onDeleteLog: (ProjectExecutionLog) -> Unit,
+    onEditLog: (ContextLog) -> Unit,
+    onDeleteLog: (ContextLog) -> Unit,
     onSaveArtifact: (String) -> Unit,
     onEditArtifact: (ProjectArtifact) -> Unit,
     selectedTab: ProjectManagementTab,

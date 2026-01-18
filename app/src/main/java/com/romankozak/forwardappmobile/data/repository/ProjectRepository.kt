@@ -18,7 +18,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectViewMode
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import kotlinx.coroutines.flow.Flow
@@ -67,7 +67,7 @@ constructor(
     private val contextHandler: ContextHandler by lazy { contextHandlerProvider.get() }
     private val TAG = "NOTE_DOCUMENT_DEBUG"
 
-    fun getProjectLogsStream(projectId: String): Flow<List<ProjectExecutionLog>> =
+    fun getProjectLogsStream(projectId: String): Flow<List<ContextLog>> =
         projectLogRepository.getProjectLogsStream(projectId)
 
     suspend fun toggleProjectManagement(

@@ -66,7 +66,7 @@ class SelectiveImportViewModelTest {
             checklistItems = emptyList(),
             linkItemEntities = emptyList(),
             inboxRecords = emptyList(),
-            projectExecutionLogs = emptyList(),
+            contextLogs = emptyList(),
             scripts = listOf(scriptForP1, scriptForP2),
             activityRecords = emptyList(),
             attachments = listOf(attachment),
@@ -86,7 +86,7 @@ class SelectiveImportViewModelTest {
             checklistItems = DiffResult(),
             linkItems = DiffResult(),
             inboxRecords = DiffResult(),
-            projectExecutionLogs = DiffResult(),
+            contextLogs = DiffResult(),
             scripts = DiffResult(added = databaseContent.scripts),
             attachments = DiffResult(added = databaseContent.attachments),
             projectAttachmentCrossRefs = DiffResult(added = databaseContent.projectAttachmentCrossRefs)

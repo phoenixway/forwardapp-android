@@ -1,39 +1,5 @@
 package com.romankozak.forwardappmobile.data.sync
 
-import androidx.room.Room
-import androidx.test.core.app.ApplicationProvider
-import com.romankozak.forwardappmobile.database.AppDatabase
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
-import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectManagementDao
-import com.romankozak.forwardappmobile.data.dao.ScriptDao
-import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.BacklogOrderDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectStructureDao
-import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
-import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao
-import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
-import com.romankozak.forwardappmobile.data.dao.RecentItemDao
-import com.romankozak.forwardappmobile.data.dao.SystemAppDao
-import com.romankozak.forwardappmobile.data.dao.DayPlanDao
-import com.romankozak.forwardappmobile.data.dao.DayTaskDao
-import com.romankozak.forwardappmobile.data.dao.DailyMetricDao
-import com.romankozak.forwardappmobile.data.dao.ChatDao
-import com.romankozak.forwardappmobile.data.dao.ConversationFolderDao
-import com.romankozak.forwardappmobile.data.dao.ReminderDao
-import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
-import com.romankozak.forwardappmobile.data.dao.ProjectArtifactDao
-import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
-import com.romankozak.forwardappmobile.data.dao.LifeSystemStateDao
-
 // ...
 
         syncRepository =
@@ -254,7 +220,7 @@ import com.romankozak.forwardappmobile.data.dao.LifeSystemStateDao
         activityRecords = activityRecords,
         linkItemEntities = linkItems,
         inboxRecords = inboxRecords,
-        projectExecutionLogs = projectLogs,
+        contextLogs = projectLogs,
         scripts = scripts,
         attachments = attachments,
         projectAttachmentCrossRefs = crossRefs,

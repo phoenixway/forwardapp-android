@@ -21,7 +21,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEn
 import com.romankozak.forwardappmobile.features.contexts.data.models.SystemAppEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectArtifact
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextConfiguration
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructureItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfile
@@ -74,7 +74,7 @@ data class DatabaseContent(
     @SerializedName(value = "inboxRecords", alternate = ["l"])
     val inboxRecords: List<InboxRecord> = emptyList(),
     @SerializedName(value = "projectExecutionLogs", alternate = ["m"])
-    val projectExecutionLogs: List<ProjectExecutionLog> = emptyList(),
+    val contextLogs: List<ContextLog> = emptyList(),
     @SerializedName(value = "attachments", alternate = ["attachment_items"])
     val attachments: List<com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentEntity> = emptyList(),
     @SerializedName(value = "projectAttachmentCrossRefs", alternate = ["project_attachment_links"])

@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.view
 
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStatusValues
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.BacklogMarkdownHandlerResultListener
 import java.text.SimpleDateFormat
@@ -16,7 +16,7 @@ class ProjectMarkdownExporter
         fun exportProjectStateToMarkdown(
             project: Context?,
             backlog: List<BacklogItemContent>,
-            logs: List<ProjectExecutionLog>,
+            logs: List<ContextLog>,
             listener: BacklogMarkdownHandlerResultListener,
         ) {
             if (project == null) {

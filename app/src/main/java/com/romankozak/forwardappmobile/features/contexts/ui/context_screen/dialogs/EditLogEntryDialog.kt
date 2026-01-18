@@ -10,11 +10,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
 
 @Composable
 fun EditLogEntryDialog(
-    logEntry: ProjectExecutionLog,
+    logEntry: ContextLog,
     onDismiss: () -> Unit,
     onConfirm: (String, String?) -> Unit
 ) {

@@ -68,7 +68,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEnt
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectFts
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextConfiguration
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructureItem
@@ -92,7 +92,7 @@ import com.romankozak.forwardappmobile.features.missions.data.model.TacticalMiss
         AttachmentEntity::class,
         InboxRecord::class,
         ChatMessageEntity::class,
-        ProjectExecutionLog::class,
+        ContextLog::class,
         DayPlan::class,
         DayTask::class,
         DailyMetric::class,
