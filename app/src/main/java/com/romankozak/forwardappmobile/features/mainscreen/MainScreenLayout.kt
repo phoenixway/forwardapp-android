@@ -41,8 +41,8 @@ import com.romankozak.forwardappmobile.ui.components.header.StrategyHeader
 import com.romankozak.forwardappmobile.ui.components.header.TacticsHeader
 import com.romankozak.forwardappmobile.ui.components.header.TodayHeader
 import com.romankozak.forwardappmobile.core.navigation.routes.GOAL_LISTS_ROUTE
-import com.romankozak.forwardappmobile.features.daymanagement.presentation.DayManagementScreen
-import com.romankozak.forwardappmobile.features.daymanagement.presentation.dayplan.DayPlanViewModel
+import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementScreen
+import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
 import com.romankozak.forwardappmobile.features.strategicmanagement.StrategicManagementScreen
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
 import com.romankozak.forwardappmobile.features.recent.data.models.RecentItem
