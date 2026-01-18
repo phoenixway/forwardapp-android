@@ -28,10 +28,10 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextViewMode
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.toggled_features.backlog.BacklogListScreen
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.toggled_features.projectrealization.ProjectDashboardView
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.toggled_features.attachments.AttachmentsView
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.toggled_features.inbox.InboxView
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.BacklogListScreen
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ProjectDashboardView
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.attachments.AttachmentsView
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.inbox.InboxView
 
 private const val TAG = "BACKLOG_UI_DEBUG"
 

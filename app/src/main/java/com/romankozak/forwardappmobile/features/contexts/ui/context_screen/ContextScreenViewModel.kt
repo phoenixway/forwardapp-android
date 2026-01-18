@@ -46,7 +46,7 @@ import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.domain.wifirestapi.FileDataRequest
 import com.romankozak.forwardappmobile.domain.wifirestapi.RetrofitClient
 import com.romankozak.forwardappmobile.core.navigation.ClearAndNavigateHomeUseCase
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.toggled_features.backlog.withCompletedAtEnd
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.withCompletedAtEnd
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.utils.TagUtils
@@ -78,7 +78,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.toggled_features.projectrealization.ProjectManagementTab
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ProjectManagementTab
 import com.romankozak.forwardappmobile.core.navigation.ClearCommand
 import com.romankozak.forwardappmobile.core.navigation.ClearExecutionContext
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState

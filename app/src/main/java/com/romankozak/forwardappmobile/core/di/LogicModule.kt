@@ -6,7 +6,7 @@ import com.romankozak.forwardappmobile.domain.lifecontext.LifeContextProcessor
 import com.romankozak.forwardappmobile.domain.lifecontext.LifeContextRule
 import com.romankozak.forwardappmobile.core.capability.CapabilityRegistry
 import com.romankozak.forwardappmobile.core.capability.InMemoryCapabilityRegistry
-import com.romankozak.forwardappmobile.features.contexts.data.models.capabilities.NotesCapability
+import com.romankozak.forwardappmobile.features.contexts.data.models.capabilities.notes.NotesCapability
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

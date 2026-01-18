@@ -34,7 +34,7 @@ import com.romankozak.forwardappmobile.features.mainscreen.CharacterScreen
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.EditTaskScreen
 import com.romankozak.forwardappmobile.features.globalsearch.GlobalSearchScreen
 import com.romankozak.forwardappmobile.features.globalsearch.GlobalSearchViewModel
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.toggled_features.inbox.InboxEditorScreen
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.inbox.InboxEditorScreen
 import com.romankozak.forwardappmobile.features.ai.insights.AiInsightsScreen
 import com.romankozak.forwardappmobile.features.lifestate.LifeStateScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.context_chooser.FilterableListChooserScreen
@@ -52,7 +52,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_configuratio
 import com.romankozak.forwardappmobile.features.contexts.ui.context_configuration.StructurePresetsScreen
 import com.romankozak.forwardappmobile.features.attachments.specific_types.script.ScriptEditorScreen
 import com.romankozak.forwardappmobile.features.attachments.specific_types.script.ScriptsLibraryScreen
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.toggled_features.backlog.goalproperties.GoalSettingsScreen
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.goalproperties.GoalSettingsScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ProjectHierarchyScreen
 import com.romankozak.forwardappmobile.features.sync.selectiveimport.SelectiveImportScreen
 import com.romankozak.forwardappmobile.features.settings.settings.SettingsScreen

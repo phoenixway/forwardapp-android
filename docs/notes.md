@@ -161,3 +161,68 @@ class ContextFactory {
 чи є сенс його якось робити потомком чи просто створити фічі, види для проекту, профайл ролі проекту і все?
 
 твої рекомендації?
+
+***
+
+app/src/main/java/com/romankozak/forwardappmobile/core/navigation/ViewResolver.kt
+app/src/main/java/com/romankozak/forwardappmobile/core/context/ContextController.kt
+app/src/main/java/com/romankozak/forwardappmobile/core/context/ContextRoleProfile.kt
+app/src/main/java/com/romankozak/forwardappmobile/core/context/CoreEntities.kt
+app/src/main/java/com/romankozak/forwardappmobile/core/capability/CapabilityRegistry.kt
+app/src/main/java/com/romankozak/forwardappmobile/core/capability/CoreEntities.kt
+
+
+***
+
+розділ di wiring треба для хілт дай. Self-registration
+
+я зробив поки так
+package com.romankozak.forwardappmobile.core.di
+
+import com.romankozak.forwardappmobile.data.logic.GoalScoringManager
+import com.romankozak.forwardappmobile.domain.lifecontext.DefaultLifeContextProcessor
+import com.romankozak.forwardappmobile.domain.lifecontext.LifeContextProcessor
+import com.romankozak.forwardappmobile.domain.lifecontext.LifeContextRule
+import com.romankozak.forwardappmobile.core.capability.CapabilityRegistry
+import com.romankozak.forwardappmobile.core.capability.InMemoryCapabilityRegistry
+import com.romankozak.forwardappmobile.features.contexts.data.models.capabilities.notes.NotesCapability
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
+
+@Module
+@InstallIn(SingletonComponent::class)
+object LogicModule {
+
+    @Provides
+    @Singleton
+    fun provideGoalScoringManager(): GoalScoringManager = GoalScoringManager
+
+    @Provides
+    @Singleton
+    fun provideLifeContextRules(): List<LifeContextRule> = emptyList()
+
+    @Provides
+    @Singleton
+    fun provideLifeContextProcessor(
+        rules: @JvmSuppressWildcards List<LifeContextRule>
+    ): LifeContextProcessor = DefaultLifeContextProcessor(rules)
+
+    @Provides
+    @Singleton
+    fun provideFeatureRegistry(): CapabilityRegistry {
+        return InMemoryCapabilityRegistry(
+            setOf(NotesCapability)
+        )
+    }
+}
+
+***
+
+де має бути FeatureGate?
+не зрозумів як зробити RandomScreen доступним як view фічі
+
+фічі я перейменовую в capabilities
+дай загальний огляд всієї нашої системи з повним деревом файлів

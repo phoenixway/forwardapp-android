@@ -1,3 +1,7 @@
-app/src/main/java/com/romankozak/forwardappmobile/database/AppDatabase.kt
-app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/contextcreen/views/AttachmentsView.kt
-app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/contextcreen/viewmodel/ItemActionHandler.kt
+app/src/main/java/com/romankozak/forwardappmobile/core/navigation/ViewResolver.kt
+app/src/main/java/com/romankozak/forwardappmobile/core/context/ContextController.kt
+app/src/main/java/com/romankozak/forwardappmobile/core/context/ContextRoleProfile.kt
+app/src/main/java/com/romankozak/forwardappmobile/core/context/CoreEntities.kt
+app/src/main/java/com/romankozak/forwardappmobile/core/capability/CapabilityRegistry.kt
+app/src/main/java/com/romankozak/forwardappmobile/core/capability/CoreEntities.kt
+app/src/main/java/com/romankozak/forwardappmobile/core/di/LogicModule.kt
