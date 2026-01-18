@@ -163,7 +163,7 @@ data class GoalFts(
 
 @Fts4(contentEntity = Context::class)
 @Entity(tableName = "projects_fts")
-data class ProjectFts(
+data class ContextsFts(
     val name: String,
     val description: String?,
 )
@@ -187,7 +187,7 @@ data class GlobalLinkSearchResult(
     val pathSegments: List<String>,
 )
 
-data class GlobalSubprojectSearchResult(
+data class GlobalSubcontextSearchResult(
     @Embedded
     val subproject: Context,
     val parentProjectId: String,
@@ -196,7 +196,7 @@ data class GlobalSubprojectSearchResult(
     val pathSegments: List<String>,
 )
 
-data class GlobalProjectSearchResult(
+data class GlobalContextSearchResult(
     @Embedded
     val project: Context,
     @TypeConverters(PathSegmentsConverter::class)
@@ -222,13 +222,13 @@ sealed class GlobalSearchResultItem {
         override val uniqueId: String get() = "link_${searchResult.link.id}_${searchResult.projectId}"
     }
 
-    data class SublistItem(val searchResult: GlobalSubprojectSearchResult) : GlobalSearchResultItem() {
+    data class SubcontextItem(val searchResult: GlobalSubcontextSearchResult) : GlobalSearchResultItem() {
         override val timestamp: Long get() = searchResult.subproject.updatedAt ?: searchResult.subproject.createdAt
         override val uniqueId: String get() = "sublist_${searchResult.subproject.id}_${searchResult.parentProjectId}"
     }
 
-    data class ProjectItem(
-        val searchResult: GlobalProjectSearchResult,
+    data class ContextItem(
+        val searchResult: GlobalContextSearchResult,
     ) : GlobalSearchResultItem() {
         override val timestamp: Long get() = searchResult.project.updatedAt ?: searchResult.project.createdAt
         override val uniqueId: String get() = "project_${searchResult.project.id}"

@@ -384,7 +384,7 @@ private fun SearchResultsContent(
                                 },
                             )
                         }
-                        is GlobalSearchResultItem.SublistItem -> {
+                        is GlobalSearchResultItem.SubcontextItem -> {
                             val subproject = result.searchResult.subproject
                             SubprojectSearchResultItem(
                                 result = result.searchResult,
@@ -398,7 +398,7 @@ private fun SearchResultsContent(
                                 },
                             )
                         }
-                        is GlobalSearchResultItem.ProjectItem -> {
+                        is GlobalSearchResultItem.ContextItem -> {
                             val project = result.searchResult.project
                             ProjectSearchResultItem(
                                 result = result.searchResult,

@@ -12,8 +12,8 @@ import javax.inject.Singleton
 private val GlobalSearchResultItem.typeOrder: Int
     get() =
         when (this) {
-            is GlobalSearchResultItem.ProjectItem,
-            is GlobalSearchResultItem.SublistItem,
+            is GlobalSearchResultItem.ContextItem,
+            is GlobalSearchResultItem.SubcontextItem,
             -> 0
             is GlobalSearchResultItem.GoalItem -> 1
             else -> 2
@@ -49,11 +49,11 @@ constructor(
             }
         val subprojectResults =
             projectDao.searchSubprojectsGlobal(query).map {
-                GlobalSearchResultItem.SublistItem(it)
+                GlobalSearchResultItem.SubcontextItem(it)
             }
         val projectResults =
             projectDao.searchProjectsGlobal(query).map {
-                GlobalSearchResultItem.ProjectItem(it)
+                GlobalSearchResultItem.ContextItem(it)
             }
         val activityResults =
             activityRepository.searchActivities(query).map {

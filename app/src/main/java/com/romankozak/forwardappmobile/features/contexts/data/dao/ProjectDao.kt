@@ -6,8 +6,8 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
-import com.romankozak.forwardappmobile.features.contexts.data.models.GlobalProjectSearchResult
-import com.romankozak.forwardappmobile.features.contexts.data.models.GlobalSubprojectSearchResult
+import com.romankozak.forwardappmobile.features.contexts.data.models.GlobalContextSearchResult
+import com.romankozak.forwardappmobile.features.contexts.data.models.GlobalSubcontextSearchResult
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import kotlinx.coroutines.flow.Flow
 
@@ -103,7 +103,7 @@ interface ProjectDao {
     WHERE li.itemType = 'SUBLIST' AND subproject.name LIKE :query
     """,
     )
-    suspend fun searchSubprojectsGlobal(query: String): List<GlobalSubprojectSearchResult>
+    suspend fun searchSubprojectsGlobal(query: String): List<GlobalSubcontextSearchResult>
 
     @Query(
         """
@@ -119,7 +119,7 @@ interface ProjectDao {
     WHERE p.name LIKE :query
 """,
     )
-    suspend fun searchProjectsGlobal(query: String): List<GlobalProjectSearchResult>
+    suspend fun searchProjectsGlobal(query: String): List<GlobalContextSearchResult>
 
     @Query("DELETE FROM projects")
     suspend fun deleteAll()

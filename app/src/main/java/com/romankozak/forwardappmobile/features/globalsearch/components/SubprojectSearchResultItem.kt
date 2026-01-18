@@ -23,11 +23,11 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.features.contexts.data.models.GlobalSubprojectSearchResult
+import com.romankozak.forwardappmobile.features.contexts.data.models.GlobalSubcontextSearchResult
 
 @Composable
 fun SubprojectSearchResultItem(
-    result: GlobalSubprojectSearchResult,
+    result: GlobalSubcontextSearchResult,
     onClick: () -> Unit,
     onOpenInNavigation: () -> Unit,
 ) {

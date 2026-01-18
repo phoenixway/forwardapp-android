@@ -21,11 +21,11 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.features.contexts.data.models.GlobalProjectSearchResult
+import com.romankozak.forwardappmobile.features.contexts.data.models.GlobalContextSearchResult
 
 @Composable
 fun ProjectSearchResultItem(
-    result: GlobalProjectSearchResult,
+    result: GlobalContextSearchResult,
     onClick: () -> Unit,
     onOpenInNavigation: () -> Unit,
 ) {

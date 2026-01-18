@@ -69,7 +69,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectFts
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextsFts
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextConfiguration
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructureItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextTypeConverter
@@ -119,7 +119,7 @@ import com.romankozak.forwardappmobile.features.missions.data.model.TacticalMiss
         LifeSystemStateEntity::class,
         AiInsightEntity::class,
         GoalFts::class,
-        ProjectFts::class,
+        ContextsFts::class,
         ActivityRecordFts::class,
         LegacyNoteFts::class,
         RecurringTaskFts::class,
