@@ -8,6 +8,8 @@ RED='\033[0;31m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
+# Шлях до скрипта встановлення (припускаємо, що він у тій же папці)
+INSTALL_SCRIPT="$(dirname "$0")/install_apk.sh"
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DIST_DIR="$PROJECT_ROOT/dist"
 WORKFLOW_FILE="android_build.yml"
@@ -134,8 +136,6 @@ mkdir -p "$TMP_DL_DIR"
 
 gh run download "$RUN_ID" -n "$ARTIFACT_NAME" -D "$TMP_DL_DIR"
 
-# APK_FILE=$(find "$TMP_DL_DIR" -name "*.apk" | head -n 1)
-
 APK_FILE=$(find "$TMP_DL_DIR" -name "*universal*.apk" | head -n 1)
 
 if [ -z "$APK_FILE" ]; then
@@ -164,9 +164,12 @@ if [ "$HOST" == "device" ]; then
     echo -e "${YELLOW}Installing to device...${NC}"
 
     if [ -n "$TERMUX_VERSION" ]; then
-        echo -e "${BLUE}Termux detected. Launching system installer.${NC}"
-        termux-open "$APK_FILE"
-        sleep 2
+        if [ -f "$INSTALL_SCRIPT" ]; then
+            bash "$INSTALL_SCRIPT" "$APK_FILE"
+        else
+            echo -e "${RED}Error: $INSTALL_SCRIPT not found!${NC}"
+            exit 1
+        fi
     else
         if ! adb devices | grep -w "device" > /dev/null; then
             echo -e "${RED}No device connected (ADB).${NC}"
@@ -217,10 +220,5 @@ else
     echo -e "${GREEN}Saved to: $DIST_DIR/$(basename "$APK_FILE")${NC}"
 fi
 
-cp "$APK_FILE" ~/storage/downloads
-
-~/bin/rish -c "cp /sdcard/Download/$(basename "$APK_FILE") /tmp/app.apk"
-
-~/bin/rish -c "pm install /tmp/app.apk"                               
 # Cleanup
-# rm -rf "$TMP_DL_DIR"
+rm -rf "$TMP_DL_DIR"
