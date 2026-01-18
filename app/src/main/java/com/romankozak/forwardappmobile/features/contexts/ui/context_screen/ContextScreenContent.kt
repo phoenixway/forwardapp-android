@@ -23,7 +23,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.Alignment
-import com.romankozak.forwardappmobile.data.database.models.ProjectArtifact
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectArtifact
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemContent
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectViewMode
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog

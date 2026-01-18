@@ -13,7 +13,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocu
 import com.romankozak.forwardappmobile.data.database.models.NoteDocumentItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
-import com.romankozak.forwardappmobile.data.database.models.ScriptEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.ProjectAttachmentCrossRef
 

@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.data.database.models
+package com.romankozak.forwardappmobile.features.contexts.data.models
 
 data class ProjectTimeMetrics(
     val timeToday: Long,

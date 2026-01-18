@@ -5,7 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-import com.romankozak.forwardappmobile.data.database.models.ProjectArtifact
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectArtifact
 import kotlinx.coroutines.flow.Flow
 
 @Dao

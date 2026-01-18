@@ -30,12 +30,12 @@ import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.data.database.models.LegacyNoteFts
 import com.romankozak.forwardappmobile.data.database.models.LifeSystemStateEntity
 import com.romankozak.forwardappmobile.data.database.models.NoteDocumentItemEntity
-import com.romankozak.forwardappmobile.data.database.models.ProjectArtifact
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectArtifact
 import com.romankozak.forwardappmobile.data.database.models.RecentItem
 import com.romankozak.forwardappmobile.data.database.models.RecurringTask
 import com.romankozak.forwardappmobile.data.database.models.RecurringTaskFts
 import com.romankozak.forwardappmobile.data.database.models.Reminder
-import com.romankozak.forwardappmobile.data.database.models.ScriptEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEntity
 import com.romankozak.forwardappmobile.data.database.models.SystemAppEntity
 
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao

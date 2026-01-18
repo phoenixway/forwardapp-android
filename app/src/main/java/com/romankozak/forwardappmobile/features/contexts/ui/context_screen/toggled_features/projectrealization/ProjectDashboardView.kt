@@ -9,8 +9,8 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExec
 
 
 import androidx.compose.ui.graphics.Color
-import com.romankozak.forwardappmobile.data.database.models.ProjectArtifact
-import com.romankozak.forwardappmobile.data.database.models.ProjectTimeMetrics
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectArtifact
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectTimeMetrics
 
 @Composable
 fun ProjectDashboardView(

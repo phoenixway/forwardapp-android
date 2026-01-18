@@ -17,8 +17,8 @@ import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
 import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
 import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
-import com.romankozak.forwardappmobile.data.database.models.ProjectArtifact
-import com.romankozak.forwardappmobile.data.database.models.ProjectTimeMetrics
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectArtifact
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectTimeMetrics
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 
 import com.romankozak.forwardappmobile.data.database.models.RecentItem

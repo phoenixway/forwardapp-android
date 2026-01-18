@@ -4,7 +4,7 @@ import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
-import com.romankozak.forwardappmobile.data.database.models.ScriptEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEntity
 import com.romankozak.forwardappmobile.data.repository.SyncRepository
 import com.romankozak.forwardappmobile.data.sync.BackupDiff
 import com.romankozak.forwardappmobile.data.sync.DatabaseContent

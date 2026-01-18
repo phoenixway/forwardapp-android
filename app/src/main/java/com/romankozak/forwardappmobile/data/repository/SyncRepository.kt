@@ -29,7 +29,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
 import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.data.database.models.NoteDocumentItemEntity
-import com.romankozak.forwardappmobile.data.database.models.ScriptEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEntity
 import com.romankozak.forwardappmobile.data.sync.DatabaseContent
 import com.romankozak.forwardappmobile.data.sync.FullAppBackup
 import com.romankozak.forwardappmobile.data.sync.AttachmentsBackup

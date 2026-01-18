@@ -15,7 +15,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.data.database.models.NoteDocumentItemEntity
 import com.romankozak.forwardappmobile.data.database.models.Reminder
-import com.romankozak.forwardappmobile.data.database.models.ScriptEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
 

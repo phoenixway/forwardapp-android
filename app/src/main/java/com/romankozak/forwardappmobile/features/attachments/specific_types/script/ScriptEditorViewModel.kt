@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.features.attachments.specific_types.scri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.data.database.models.ScriptEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEntity
 import com.romankozak.forwardappmobile.data.repository.ScriptRepository
 import com.romankozak.forwardappmobile.domain.scripts.LuaScriptRunner
 import dagger.hilt.android.lifecycle.HiltViewModel

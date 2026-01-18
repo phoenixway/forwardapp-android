@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.data.database.models
+package com.romankozak.forwardappmobile.features.attachments.data.models
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
@@ -18,7 +18,7 @@ import java.util.UUID
             entity = Project::class,
             parentColumns = ["id"],
             childColumns = ["projectId"],
-            onDelete = ForeignKey.SET_NULL,
+            onDelete = ForeignKey.Companion.SET_NULL,
         ),
     ],
 )
