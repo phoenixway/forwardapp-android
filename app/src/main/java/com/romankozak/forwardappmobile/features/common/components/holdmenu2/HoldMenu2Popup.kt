@@ -1,7 +1,6 @@
 package com.romankozak.forwardappmobile.features.common.components.holdmenu2
 
 import android.util.Log
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,8 +21,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.romankozak.forwardappmobile.ui.theme.HoldMenuColors
-import com.romankozak.forwardappmobile.ui.theme.LocalHoldMenuColors
+import com.romankozak.forwardappmobile.core.theme.HoldMenuColors
+import com.romankozak.forwardappmobile.core.theme.LocalHoldMenuColors
 
 @Composable
 fun HoldMenu2Popup(state: HoldMenu2State) {

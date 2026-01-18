@@ -13,7 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.ui.theme.LocalHoldMenuColors
+import com.romankozak.forwardappmobile.core.theme.LocalHoldMenuColors
 
 @Composable
 fun HoldMenu2Overlay(

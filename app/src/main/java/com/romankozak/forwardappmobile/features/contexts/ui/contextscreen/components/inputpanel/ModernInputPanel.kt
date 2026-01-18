@@ -53,13 +53,15 @@ import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectViewMode
 import com.romankozak.forwardappmobile.domain.ner.ReminderParseResult
-import com.romankozak.forwardappmobile.ui.theme.LocalInputPanelColors
+import com.romankozak.forwardappmobile.core.theme.LocalInputPanelColors
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Button
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenuItem
 import androidx.compose.material.icons.automirrored.outlined.ListAlt
 import androidx.compose.material.icons.automirrored.outlined.Notes
 import androidx.compose.material.icons.outlined.Dashboard
+import com.romankozak.forwardappmobile.core.config.FeatureFlag
+import com.romankozak.forwardappmobile.core.config.FeatureToggles
 import kotlinx.coroutines.delay
 
 // ------------------- STATE ---------------------
@@ -1157,7 +1159,7 @@ fun ModernInputPanel(
       onAddListShortcutClick = onAddListShortcutClick,
       onShowCreateNoteDocumentDialog = onShowCreateNoteDocumentDialog,
       onCreateChecklist = onCreateChecklist,
-      onAddScript = if (com.romankozak.forwardappmobile.config.FeatureToggles.isEnabled(com.romankozak.forwardappmobile.config.FeatureFlag.ScriptsLibrary)) {
+      onAddScript = if (FeatureToggles.isEnabled(FeatureFlag.ScriptsLibrary)) {
         onAddScript
       } else null,
     )

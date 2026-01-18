@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.utils
+package com.romankozak.forwardappmobile.core.utils
 
 import java.util.Locale
 import java.util.concurrent.TimeUnit

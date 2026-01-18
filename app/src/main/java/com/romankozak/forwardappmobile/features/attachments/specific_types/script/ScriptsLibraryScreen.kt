@@ -37,8 +37,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.config.FeatureFlag
-import com.romankozak.forwardappmobile.config.FeatureToggles
+import com.romankozak.forwardappmobile.core.config.FeatureFlag
+import com.romankozak.forwardappmobile.core.config.FeatureToggles
 import java.text.DateFormat
 import java.util.Date
 

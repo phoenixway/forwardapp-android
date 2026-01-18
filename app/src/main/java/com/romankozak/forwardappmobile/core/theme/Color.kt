@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.theme
+package com.romankozak.forwardappmobile.core.theme
 
 import androidx.compose.ui.graphics.Color
 

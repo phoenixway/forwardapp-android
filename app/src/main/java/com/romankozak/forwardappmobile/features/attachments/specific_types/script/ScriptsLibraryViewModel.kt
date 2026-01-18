@@ -2,8 +2,8 @@ package com.romankozak.forwardappmobile.features.attachments.specific_types.scri
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.config.FeatureFlag
-import com.romankozak.forwardappmobile.config.FeatureToggles
+import com.romankozak.forwardappmobile.core.config.FeatureFlag
+import com.romankozak.forwardappmobile.core.config.FeatureToggles
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.ScriptRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository

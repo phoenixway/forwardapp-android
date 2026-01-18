@@ -65,7 +65,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.OptimizedExpandingProjectHierarchyBottomNav
 import com.romankozak.forwardappmobile.ui.shared.InProgressIndicator
-import com.romankozak.forwardappmobile.config.FeatureFlag
+import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
 import com.romankozak.forwardappmobile.data.database.models.Reminder
 import com.romankozak.forwardappmobile.core.navigation.NavigationHistoryMenu
@@ -211,16 +211,16 @@ fun ProjectHierarchyScreenScaffold(
                             onGlobalSearchClick = { onEvent(ProjectHierarchyScreenEvent.ShowSearchDialog) },
                             onShowCommandDeck = { onEvent(ProjectHierarchyScreenEvent.CommandDeckClick) },
                             currentMode = uiState.planningMode,
-                            planningModesEnabled = uiState.featureToggles[com.romankozak.forwardappmobile.config.FeatureFlag.PlanningModes] == true,
+                            planningModesEnabled = uiState.featureToggles[FeatureFlag.PlanningModes] == true,
                             onPlanningModeChange = { mode -> onEvent(ProjectHierarchyScreenEvent.PlanningModeChange(mode)) },
                             onRecentsClick = { onEvent(ProjectHierarchyScreenEvent.ShowRecentLists) },
                             onDayPlanClick = { onEvent(ProjectHierarchyScreenEvent.DayPlanClick) },
                             onHomeClick = { onEvent(ProjectHierarchyScreenEvent.HomeClick) },
                             onStrManagementClick = { onEvent(ProjectHierarchyScreenEvent.NavigateToStrategicManagement) },
-                            strategicManagementEnabled = uiState.featureToggles[com.romankozak.forwardappmobile.config.FeatureFlag.StrategicManagement] == true,
-                            aiChatEnabled = uiState.featureToggles[com.romankozak.forwardappmobile.config.FeatureFlag.AiChat] == true,
-                            aiInsightsEnabled = uiState.featureToggles[com.romankozak.forwardappmobile.config.FeatureFlag.AiInsights] == true,
-                            aiLifeManagementEnabled = uiState.featureToggles[com.romankozak.forwardappmobile.config.FeatureFlag.AiLifeManagement] == true,
+                            strategicManagementEnabled = uiState.featureToggles[FeatureFlag.StrategicManagement] == true,
+                            aiChatEnabled = uiState.featureToggles[FeatureFlag.AiChat] == true,
+                            aiInsightsEnabled = uiState.featureToggles[FeatureFlag.AiInsights] == true,
+                            aiLifeManagementEnabled = uiState.featureToggles[FeatureFlag.AiLifeManagement] == true,
                             isExpanded = uiState.isBottomNavExpanded,
                             onExpandedChange = { expanded -> onEvent(ProjectHierarchyScreenEvent.BottomNavExpandedChange(expanded)) },
                             onAiChatClick = { onEvent(ProjectHierarchyScreenEvent.NavigateToChat) },

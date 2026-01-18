@@ -8,8 +8,8 @@ import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 
 
 import com.romankozak.forwardappmobile.features.settings.settings.models.PlanningSettings
-import com.romankozak.forwardappmobile.ui.theme.ThemeMode
-import com.romankozak.forwardappmobile.ui.theme.ThemeName
+import com.romankozak.forwardappmobile.core.theme.ThemeMode
+import com.romankozak.forwardappmobile.core.theme.ThemeName
 
 sealed interface ProjectHierarchyScreenEvent {
     

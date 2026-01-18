@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.theme
+package com.romankozak.forwardappmobile.core.theme
 
 import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme

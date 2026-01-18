@@ -30,7 +30,7 @@ import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.domain.reminders.ReminderBroadcastReceiver
 import com.romankozak.forwardappmobile.core.navigation.routes.AppNavigation
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
-import com.romankozak.forwardappmobile.ui.theme.ForwardAppMobileTheme
+import com.romankozak.forwardappmobile.core.theme.ForwardAppMobileTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -39,6 +39,7 @@ import javax.inject.Inject
 import com.romankozak.forwardappmobile.ui.common.LocalContextUtils
 import com.romankozak.forwardappmobile.ui.common.ContextUtils
 import androidx.compose.runtime.CompositionLocalProvider
+import com.romankozak.forwardappmobile.core.theme.ThemeSettings
 import com.romankozak.forwardappmobile.ui.common.RemoteConfigManager
 
 @AndroidEntryPoint
@@ -76,7 +77,7 @@ class MainActivity : ComponentActivity() {
         checkAndLogMissedDays()
 
         setContent {
-            val themeSettings by settingsRepository.themeSettings.collectAsState(initial = com.romankozak.forwardappmobile.ui.theme.ThemeSettings())
+            val themeSettings by settingsRepository.themeSettings.collectAsState(initial = ThemeSettings())
             ForwardAppMobileTheme(themeSettings = themeSettings) {
                 CompositionLocalProvider(LocalContextUtils provides contextUtils) {
                     AppNavigation(syncDataViewModel = syncDataViewModel)

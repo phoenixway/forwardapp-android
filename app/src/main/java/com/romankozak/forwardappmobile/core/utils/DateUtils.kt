@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.utils
+package com.romankozak.forwardappmobile.core.utils
 
 import java.text.SimpleDateFormat
 import java.util.Date

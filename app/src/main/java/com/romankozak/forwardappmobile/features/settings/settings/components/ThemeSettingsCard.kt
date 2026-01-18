@@ -15,9 +15,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.ui.theme.ThemeMode
-import com.romankozak.forwardappmobile.ui.theme.ThemeName
-import com.romankozak.forwardappmobile.ui.theme.ThemeSettings
+import com.romankozak.forwardappmobile.core.theme.ThemeMode
+import com.romankozak.forwardappmobile.core.theme.ThemeName
+import com.romankozak.forwardappmobile.core.theme.ThemeSettings
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable

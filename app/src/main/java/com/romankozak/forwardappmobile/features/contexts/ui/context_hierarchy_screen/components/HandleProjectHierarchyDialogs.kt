@@ -4,7 +4,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.text.input.TextFieldValue
-import com.romankozak.forwardappmobile.config.FeatureFlag
+import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.ui.dialogs.AboutAppDialog
 import com.romankozak.forwardappmobile.ui.dialogs.AddProjectDialog
 import com.romankozak.forwardappmobile.ui.dialogs.WifiImportDialog

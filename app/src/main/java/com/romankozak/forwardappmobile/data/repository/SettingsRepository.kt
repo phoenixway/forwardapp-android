@@ -12,7 +12,10 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.romankozak.forwardappmobile.BuildConfig
-import com.romankozak.forwardappmobile.config.FeatureFlag
+import com.romankozak.forwardappmobile.core.config.FeatureFlag
+import com.romankozak.forwardappmobile.core.theme.ThemeMode
+import com.romankozak.forwardappmobile.core.theme.ThemeName
+import com.romankozak.forwardappmobile.core.theme.ThemeSettings
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.PlanningSettingsProvider
 import com.romankozak.forwardappmobile.domain.reminders.RingtoneType
@@ -746,15 +749,15 @@ class SettingsRepository @Inject constructor(
         }
     }
 
-    val themeSettings: Flow<com.romankozak.forwardappmobile.ui.theme.ThemeSettings> = context.dataStore.data
+    val themeSettings: Flow<ThemeSettings> = context.dataStore.data
         .map { preferences ->
-            val lightThemeName = com.romankozak.forwardappmobile.ui.theme.ThemeName.valueOf(preferences[LIGHT_THEME_NAME] ?: com.romankozak.forwardappmobile.ui.theme.ThemeName.DEFAULT.name)
-            val darkThemeName = com.romankozak.forwardappmobile.ui.theme.ThemeName.valueOf(preferences[DARK_THEME_NAME] ?: com.romankozak.forwardappmobile.ui.theme.ThemeName.DEFAULT.name)
-            val themeMode = com.romankozak.forwardappmobile.ui.theme.ThemeMode.valueOf(preferences[THEME_MODE] ?: com.romankozak.forwardappmobile.ui.theme.ThemeMode.SYSTEM.name)
-            com.romankozak.forwardappmobile.ui.theme.ThemeSettings(lightThemeName, darkThemeName, themeMode)
+            val lightThemeName = ThemeName.valueOf(preferences[LIGHT_THEME_NAME] ?: ThemeName.DEFAULT.name)
+            val darkThemeName = ThemeName.valueOf(preferences[DARK_THEME_NAME] ?: ThemeName.DEFAULT.name)
+            val themeMode = ThemeMode.valueOf(preferences[THEME_MODE] ?: ThemeMode.SYSTEM.name)
+            ThemeSettings(lightThemeName, darkThemeName, themeMode)
         }
 
-    suspend fun saveThemeSettings(settings: com.romankozak.forwardappmobile.ui.theme.ThemeSettings) {
+    suspend fun saveThemeSettings(settings: ThemeSettings) {
         context.dataStore.edit { preferences ->
             preferences[LIGHT_THEME_NAME] = settings.lightThemeName.name
             preferences[DARK_THEME_NAME] = settings.darkThemeName.name

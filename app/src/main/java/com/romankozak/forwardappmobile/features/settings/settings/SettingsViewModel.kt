@@ -6,8 +6,8 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.config.FeatureFlag
-import com.romankozak.forwardappmobile.config.FeatureToggles
+import com.romankozak.forwardappmobile.core.config.FeatureFlag
+import com.romankozak.forwardappmobile.core.config.FeatureToggles
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.data.repository.RolesRepository
 import com.romankozak.forwardappmobile.domain.aichat.OllamaService
@@ -24,9 +24,9 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 import com.romankozak.forwardappmobile.data.repository.ServerDiscoveryState
-import com.romankozak.forwardappmobile.ui.theme.ThemeMode
-import com.romankozak.forwardappmobile.ui.theme.ThemeName
-import com.romankozak.forwardappmobile.ui.theme.ThemeSettings
+import com.romankozak.forwardappmobile.core.theme.ThemeMode
+import com.romankozak.forwardappmobile.core.theme.ThemeName
+import com.romankozak.forwardappmobile.core.theme.ThemeSettings
 
 data class SettingsUiState(
     val fastModel: String = "",

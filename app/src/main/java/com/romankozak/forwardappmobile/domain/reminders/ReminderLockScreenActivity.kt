@@ -1,6 +1,5 @@
 package com.romankozak.forwardappmobile.domain.reminders
 
-import android.app.KeyguardManager
 import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
@@ -54,11 +53,8 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import com.romankozak.forwardappmobile.data.repository.RingtoneSettings
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
-import com.romankozak.forwardappmobile.ui.theme.ForwardAppMobileTheme
-import com.romankozak.forwardappmobile.domain.reminders.RingtoneType
+import com.romankozak.forwardappmobile.core.theme.ForwardAppMobileTheme
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking

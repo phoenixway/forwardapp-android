@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.config
+package com.romankozak.forwardappmobile.core.config
 
 enum class FeatureFlag(val storageKey: String) {
     AttachmentsLibrary("attachments_library"),

@@ -67,8 +67,8 @@ import com.romankozak.forwardappmobile.features.settings.settings.components.Ani
 import com.romankozak.forwardappmobile.features.settings.settings.components.SettingsCard
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.BuildConfig
-import com.romankozak.forwardappmobile.config.FeatureFlag
-import com.romankozak.forwardappmobile.config.FeatureToggles
+import com.romankozak.forwardappmobile.core.config.FeatureFlag
+import com.romankozak.forwardappmobile.core.config.FeatureToggles
 import kotlinx.coroutines.flow.first
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)

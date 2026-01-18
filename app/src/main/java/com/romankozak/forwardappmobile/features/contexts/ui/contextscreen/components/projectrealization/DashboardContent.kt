@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.ProjectTimeMetrics
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStatusValues
-import com.romankozak.forwardappmobile.ui.utils.formatDurationForUi
+import com.romankozak.forwardappmobile.core.utils.formatDurationForUi
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable

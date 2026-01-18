@@ -37,8 +37,8 @@ import com.romankozak.forwardappmobile.ui.common.editor.UniversalEditorScreen
 import com.romankozak.forwardappmobile.ui.common.editor.components.FullScreenTextEditor
 import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEditorViewModel
 import com.romankozak.forwardappmobile.features.reminders.dialogs.RemindersDialog
-import com.romankozak.forwardappmobile.config.FeatureFlag
-import com.romankozak.forwardappmobile.config.FeatureToggles
+import com.romankozak.forwardappmobile.core.config.FeatureFlag
+import com.romankozak.forwardappmobile.core.config.FeatureToggles
 
 import com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.components.inputpanel.ModernInputPanel
 import com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.components.topbar.AdaptiveTopBar

@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.config
+package com.romankozak.forwardappmobile.core.config
 
 import com.romankozak.forwardappmobile.BuildConfig
 import kotlinx.coroutines.flow.MutableStateFlow

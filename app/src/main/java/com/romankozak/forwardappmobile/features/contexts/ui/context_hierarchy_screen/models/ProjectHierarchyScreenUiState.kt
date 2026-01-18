@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models
 
 import androidx.compose.ui.text.input.TextFieldValue
-import com.romankozak.forwardappmobile.config.FeatureFlag
+import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListHierarchyData
 import com.romankozak.forwardappmobile.data.database.models.RecentItem
