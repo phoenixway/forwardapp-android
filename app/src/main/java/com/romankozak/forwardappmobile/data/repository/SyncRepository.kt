@@ -72,7 +72,6 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEnt
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectLogLevelValues
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStatusValues
@@ -275,7 +274,7 @@ constructor(
                 lifeSystemStates = lifeSystemStateDao.getAll(),
                 contextRoleProfiles = structurePresetDao.getAllSync(),
                 contextRoleProfileItems = structurePresetItemDao.getAllItems(),
-                projectStructures = projectStructureDao.getAllStructures(),
+                contextConfigurations = projectStructureDao.getAllStructures(),
                 projectStructureItems = projectStructureDao.getAllItems(),
             )
         val settingsMap = settingsRepository.getPreferencesSnapshot().asMap().mapKeys { it.key.name }
@@ -1078,7 +1077,7 @@ constructor(
                 backup.contextRoleProfiles.forEach { structurePresetDao.insertPreset(it) }
                 if (backup.contextRoleProfileItems.isNotEmpty()) structurePresetItemDao.insertItems(backup.contextRoleProfileItems)
 
-                backup.projectStructures.forEach { projectStructureDao.insertStructure(it) }
+                backup.contextConfigurations.forEach { projectStructureDao.insertStructure(it) }
                 if (backup.projectStructureItems.isNotEmpty()) projectStructureDao.insertItems(backup.projectStructureItems)
 
                 Log.d(IMPORT_TAG, "Транзакція: відновлення settings. Entries=${backupSettingsMap.size}")

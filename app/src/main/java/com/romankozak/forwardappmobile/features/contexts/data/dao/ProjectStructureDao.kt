@@ -6,12 +6,12 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructure
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextConfiguration
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructureItem
 import kotlinx.coroutines.flow.Flow
 
 data class ProjectStructureWithItems(
-    val structure: ProjectStructure,
+    val structure: ContextConfiguration,
     val items: List<ProjectStructureItem>
 )
 
@@ -19,10 +19,10 @@ data class ProjectStructureWithItems(
 interface ProjectStructureDao {
 
     @Query("SELECT * FROM project_structures WHERE projectId = :projectId LIMIT 1")
-    suspend fun getStructureByProject(projectId: String): ProjectStructure?
+    suspend fun getStructureByProject(projectId: String): ContextConfiguration?
 
     @Query("SELECT * FROM project_structures WHERE projectId = :projectId LIMIT 1")
-    fun observeStructureByProject(projectId: String): Flow<ProjectStructure?>
+    fun observeStructureByProject(projectId: String): Flow<ContextConfiguration?>
 
     @Query(
         """
@@ -41,13 +41,13 @@ interface ProjectStructureDao {
     suspend fun getItems(structureId: String): List<ProjectStructureItem>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertStructure(structure: ProjectStructure)
+    suspend fun insertStructure(structure: ContextConfiguration)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertItems(items: List<ProjectStructureItem>)
 
     @Update
-    suspend fun updateStructure(structure: ProjectStructure)
+    suspend fun updateStructure(structure: ContextConfiguration)
 
     @Update
     suspend fun updateItem(item: ProjectStructureItem)
@@ -63,7 +63,7 @@ interface ProjectStructureDao {
 
     // --- Backup Methods ---
     @Query("SELECT * FROM project_structures")
-    suspend fun getAllStructures(): List<ProjectStructure>
+    suspend fun getAllStructures(): List<ContextConfiguration>
 
     @Query("SELECT * FROM project_structure_items")
     suspend fun getAllItems(): List<ProjectStructureItem>

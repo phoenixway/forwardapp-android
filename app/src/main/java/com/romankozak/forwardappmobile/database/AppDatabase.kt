@@ -70,7 +70,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocu
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectFts
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructure
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextConfiguration
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructureItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextTypeConverter
 import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedGroupConverter
@@ -104,7 +104,7 @@ import com.romankozak.forwardappmobile.features.missions.data.model.TacticalMiss
         ScriptEntity::class,
         ContextRoleProfile::class,
         ContextRoleProfileItem::class,
-        ProjectStructure::class,
+        ContextConfiguration::class,
         ProjectStructureItem::class,
         RecentItem::class,
         ConversationFolderEntity::class,

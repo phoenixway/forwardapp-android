@@ -10,7 +10,7 @@ import androidx.room.PrimaryKey
     tableName = "project_structures",
     indices = [Index(value = ["projectId"], unique = true)]
 )
-data class ProjectStructure(
+data class ContextConfiguration(
     @PrimaryKey val id: String,
     val projectId: String,
     @ColumnInfo(name = "base_preset_code") val basePresetCode: String? = null,
@@ -29,7 +29,7 @@ data class ProjectStructure(
     tableName = "project_structure_items",
     foreignKeys = [
         ForeignKey(
-            entity = ProjectStructure::class,
+            entity = ContextConfiguration::class,
             parentColumns = ["id"],
             childColumns = ["projectStructureId"],
             onDelete = ForeignKey.CASCADE

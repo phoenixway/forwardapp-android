@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.data.repository
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectStructureDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructure
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextConfiguration
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectStructureWithItems
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructureItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfileItem
@@ -20,10 +20,10 @@ class ProjectStructureRepository @Inject constructor(
     private val structurePresetItemDao: StructurePresetItemDao,
 ) {
 
-    suspend fun ensureStructure(projectId: String, basePresetCode: String? = null): ProjectStructure {
+    suspend fun ensureStructure(projectId: String, basePresetCode: String? = null): ContextConfiguration {
         val existing = projectStructureDao.getStructureByProject(projectId)
         if (existing != null) return existing
-        val structure = ProjectStructure(
+        val structure = ContextConfiguration(
             id = UUID.randomUUID().toString(),
             projectId = projectId,
             basePresetCode = basePresetCode,
@@ -33,7 +33,7 @@ class ProjectStructureRepository @Inject constructor(
         return structure
     }
 
-    suspend fun getStructureByProject(projectId: String): ProjectStructure? =
+    suspend fun getStructureByProject(projectId: String): ContextConfiguration? =
         projectStructureDao.getStructureByProject(projectId)
 
     fun observeStructure(projectId: String): Flow<ProjectStructureWithItems?> =
@@ -44,10 +44,10 @@ class ProjectStructureRepository @Inject constructor(
             if (structure == null) null else ProjectStructureWithItems(structure, items)
         }
 
-    fun observeStructureOnly(projectId: String): Flow<ProjectStructure?> =
+    fun observeStructureOnly(projectId: String): Flow<ContextConfiguration?> =
         projectStructureDao.observeStructureByProject(projectId)
 
-    suspend fun updateStructure(structure: ProjectStructure) {
+    suspend fun updateStructure(structure: ContextConfiguration) {
         projectStructureDao.updateStructure(structure)
     }
 

@@ -22,7 +22,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.SystemAppEn
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectArtifact
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructure
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextConfiguration
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructureItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfile
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfileItem
@@ -122,7 +122,7 @@ data class DatabaseContent(
     @SerializedName("structurePresetItems")
     val contextRoleProfileItems: List<ContextRoleProfileItem> = emptyList(),
     @SerializedName("projectStructures")
-    val projectStructures: List<ProjectStructure> = emptyList(),
+    val contextConfigurations: List<ContextConfiguration> = emptyList(),
     @SerializedName("projectStructureItems")
     val projectStructureItems: List<ProjectStructureItem> = emptyList(),
 )
