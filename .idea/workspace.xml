@@ -10,15 +10,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="dec4991f-6ae0-4b6d-adb7-135ff1c91165" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/capability/CapabilityRegistry.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/context/ContextController.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/context/ContextRoleProfile.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/models/capabilities/Notes.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/context/CoreEntities.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/context/CoreEntities.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/di/LogicModule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/di/LogicModule.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/feature/CoreEntities.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/capability/CoreEntities.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/feature/FeatureRegistry.kt" beforeDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/navigation/ViewResolver.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
