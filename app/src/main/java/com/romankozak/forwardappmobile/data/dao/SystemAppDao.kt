@@ -4,7 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import com.romankozak.forwardappmobile.data.database.models.SystemAppEntity
+import com.romankozak.forwardappmobile.features.contexts.data.models.SystemAppEntity
 
 @Dao
 interface SystemAppDao {

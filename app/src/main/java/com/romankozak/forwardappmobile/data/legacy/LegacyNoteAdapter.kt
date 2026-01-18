@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.data.legacy
 
-import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 
 /**

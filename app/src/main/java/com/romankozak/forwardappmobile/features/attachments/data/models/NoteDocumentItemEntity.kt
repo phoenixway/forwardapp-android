@@ -1,10 +1,9 @@
-package com.romankozak.forwardappmobile.data.database.models
+package com.romankozak.forwardappmobile.features.attachments.data.models
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 import java.util.UUID
 
 @Entity(
@@ -14,13 +13,13 @@ import java.util.UUID
             entity = NoteDocumentEntity::class,
             parentColumns = ["id"],
             childColumns = ["listId"],
-            onDelete = ForeignKey.CASCADE,
+            onDelete = ForeignKey.Companion.CASCADE,
         ),
         ForeignKey(
             entity = NoteDocumentItemEntity::class,
             parentColumns = ["id"],
             childColumns = ["parentId"],
-            onDelete = ForeignKey.CASCADE,
+            onDelete = ForeignKey.Companion.CASCADE,
         ),
     ],
     indices = [

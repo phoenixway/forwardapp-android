@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.features.contexts.data.models
 
 import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
-import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.data.database.models.Reminder
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 

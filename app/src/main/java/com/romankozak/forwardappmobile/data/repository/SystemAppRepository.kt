@@ -5,8 +5,8 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectDao
 import com.romankozak.forwardappmobile.data.dao.SystemAppDao
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.data.database.models.SystemAppEntity
-import com.romankozak.forwardappmobile.data.database.models.SystemAppType
+import com.romankozak.forwardappmobile.features.contexts.data.models.SystemAppEntity
+import com.romankozak.forwardappmobile.features.contexts.data.models.SystemAppType
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 import javax.inject.Inject
 import javax.inject.Singleton

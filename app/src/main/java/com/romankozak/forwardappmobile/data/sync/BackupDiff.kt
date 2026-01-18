@@ -6,11 +6,11 @@ import com.romankozak.forwardappmobile.features.attachments.data.models.Checklis
 import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.data.models.InboxRecord
-import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.data.database.models.NoteDocumentItemEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
 import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEntity

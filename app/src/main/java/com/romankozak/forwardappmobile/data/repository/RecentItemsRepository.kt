@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.data.repository
 
 import android.util.Log
 import com.romankozak.forwardappmobile.data.dao.RecentItemDao
-import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.data.database.models.RecentItem

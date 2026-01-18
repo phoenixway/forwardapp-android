@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.data.database.models
+package com.romankozak.forwardappmobile.features.contexts.data.models
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
@@ -6,7 +6,6 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import java.util.UUID
 
 @Entity(

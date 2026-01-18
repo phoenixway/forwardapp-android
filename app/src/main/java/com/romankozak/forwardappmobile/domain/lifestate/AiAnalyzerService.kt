@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.domain.lifestate
 import android.util.Log
 import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
 import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedProjectKeys
-import com.romankozak.forwardappmobile.data.database.models.ReservedSystemAppKeys
+import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedSystemAppKeys
 import com.romankozak.forwardappmobile.data.repository.ActivityRecordRepository
 import com.romankozak.forwardappmobile.data.repository.SystemAppRepository
 import com.romankozak.forwardappmobile.domain.lifestate.model.AiAnalysis
@@ -16,10 +16,8 @@ import com.romankozak.forwardappmobile.domain.lifestate.model.LifeStateTrackerEn
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.serialization.SerializationException
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.JsonElement
