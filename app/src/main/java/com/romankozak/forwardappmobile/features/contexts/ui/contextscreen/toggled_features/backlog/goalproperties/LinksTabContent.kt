@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.backlog.goalproperties
+package com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.toggled_features.backlog.goalproperties
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -32,7 +32,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
-import com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.backlog.goalproperties.LinkItem
 
 @Composable
 fun LinksTabContent(

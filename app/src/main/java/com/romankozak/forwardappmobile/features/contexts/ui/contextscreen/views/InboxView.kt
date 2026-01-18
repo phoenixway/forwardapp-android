@@ -7,7 +7,7 @@ import androidx.compose.ui.Modifier
 import com.romankozak.forwardappmobile.features.contexts.data.models.InboxRecord
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.BacklogViewModel
-import com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.components.InboxScreen
+import com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.toggled_features.inbox.InboxScreen
 
 @Composable
 fun InboxView(

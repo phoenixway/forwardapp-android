@@ -52,7 +52,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.contextstructure.Str
 import com.romankozak.forwardappmobile.features.contexts.ui.contextstructure.StructurePresetsScreen
 import com.romankozak.forwardappmobile.features.attachments.specific_types.script.ScriptEditorScreen
 import com.romankozak.forwardappmobile.features.attachments.specific_types.script.ScriptsLibraryScreen
-import com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.backlog.goalproperties.GoalSettingsScreen
+import com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.toggled_features.backlog.goalproperties.GoalSettingsScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ProjectHierarchyScreen
 import com.romankozak.forwardappmobile.features.sync.selectiveimport.SelectiveImportScreen
 import com.romankozak.forwardappmobile.features.settings.settings.SettingsScreen

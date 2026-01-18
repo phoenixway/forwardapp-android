@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 
-package com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.backlog.goalproperties
+package com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.toggled_features.backlog.goalproperties
 
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable

@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.backlog.goalproperties
+package com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.toggled_features.backlog.goalproperties
 
 import android.util.Log
 import androidx.compose.ui.text.input.TextFieldValue
