@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.attachments.ui.project.components
+package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.toggled_features.attachments
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier

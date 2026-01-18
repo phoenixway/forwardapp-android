@@ -34,8 +34,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.components.backlogitems.ProjectItem
-import com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.components.backlogitems.GoalItem
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.ProjectItem
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.GoalItem
 import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
 import com.romankozak.forwardappmobile.features.reminders.components.ReminderAction
 import com.romankozak.forwardappmobile.features.reminders.components.ReminderActionsDialog
