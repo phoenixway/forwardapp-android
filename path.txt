@@ -1,15 +1,3 @@
 app/src/main/java/com/romankozak/forwardappmobile/database/AppDatabase.kt
-app/src/main/java/com/romankozak/forwardappmobile/data/dao/DayTaskDao.kt
-app/src/main/java/com/romankozak/forwardappmobile/data/dao/DailyMetricDao.kt
-app/src/main/java/com/romankozak/forwardappmobile/data/dao/RecurringTaskDao.kt
-app/src/main/java/com/romankozak/forwardappmobile/data/dao/DayPlanDao.kt
-app/src/main/java/com/romankozak/forwardappmobile/data/dao/ChatDao.kt
-app/src/main/java/com/romankozak/forwardappmobile/data/dao/ConversationFolderDao.kt
-app/src/main/java/com/romankozak/forwardappmobile/data/dao/ReminderDao.kt
-app/src/main/java/com/romankozak/forwardappmobile/data/dao/SystemAppDao.kt
-app/src/main/java/com/romankozak/forwardappmobile/data/dao/ScriptDao.kt
-app/src/main/java/com/romankozak/forwardappmobile/data/dao/ActivityRecordDao.kt
-app/src/main/java/com/romankozak/forwardappmobile/data/dao/DayTaskDao.kt
-app/src/main/java/com/romankozak/forwardappmobile/data/dao/LegacyNoteDao.kt
-app/src/main/java/com/romankozak/forwardappmobile/data/dao/LifeSystemStateDao.kt
-app/src/main/java/com/romankozak/forwardappmobile/data/dao/RecentItemDao.kt
+app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/contextcreen/views/AttachmentsView.kt
+app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/contextcreen/viewmodel/ItemActionHandler.kt

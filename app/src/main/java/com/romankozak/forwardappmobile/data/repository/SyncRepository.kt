@@ -51,6 +51,7 @@ import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentEntity
 import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRef
+import com.romankozak.forwardappmobile.features.contexts.data.DatabaseInitializer
 import com.romankozak.forwardappmobile.features.contexts.data.dao.BacklogOrderDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
@@ -64,12 +65,21 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectManagem
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectStructureDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
+import com.romankozak.forwardappmobile.features.contexts.data.models.ChecklistEntity
+import com.romankozak.forwardappmobile.features.contexts.data.models.ChecklistItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
+import com.romankozak.forwardappmobile.features.contexts.data.models.InboxRecord
+import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectLogLevelValues
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStatusValues
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectType
+import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedGroup
 import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -173,9 +183,9 @@ constructor(
 
     private val gson = GsonBuilder()
         .registerTypeAdapter(Long::class.java, LongDeserializer())
-        .registerTypeAdapter(Long.TYPE, LongDeserializer())
+        //.registerTypeAdapter(Long.TYPE, LongDeserializer())
         .registerTypeAdapter(
-            com.romankozak.forwardappmobile.data.database.models.ReservedGroup::class.java,
+            ReservedGroup::class.java,
             ReservedGroupAdapter()
         )
         .create()
@@ -648,7 +658,7 @@ constructor(
             val cleanedProjects = projectsToImport.map { projectFromBackup ->
                 val normalizedIncoming = projectFromBackup.copy(
                     projectType = projectFromBackup.projectType ?: ProjectType.DEFAULT,
-                    reservedGroup = com.romankozak.forwardappmobile.data.database.models.ReservedGroup.fromString(projectFromBackup.reservedGroup?.groupName),
+                    reservedGroup = ReservedGroup.fromString(projectFromBackup.reservedGroup?.groupName),
                     // Do NOT force BACKLOG; keep incoming view mode
                     defaultViewModeName = projectFromBackup.defaultViewModeName,
                     isProjectManagementEnabled = projectFromBackup.isProjectManagementEnabled ?: false,
@@ -1085,7 +1095,7 @@ constructor(
                     noteDocumentDao = noteDocumentDao,
                     attachmentRepository = attachmentRepository,
                 )
-                com.romankozak.forwardappmobile.data.database.DatabaseInitializer(projectDao, systemAppRepository).prePopulate()
+                DatabaseInitializer(projectDao, systemAppRepository).prePopulate()
 
                 // Create attachment records for documents and checklists if they don't have attachments yet
                 // This ensures backward compatibility with older backup files
