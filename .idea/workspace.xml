@@ -10,28 +10,15 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="dec4991f-6ae0-4b6d-adb7-135ff1c91165" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/context/CoreEntities.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/feature/CoreEntities.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/feature/FeatureRegistry.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/capability/CapabilityRegistry.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/context/ContextController.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/context/ContextRoleProfile.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/models/capabilities/Notes.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/navigation/ClearAndNavigateHomeUseCase.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/navigation/ClearAndNavigateHomeUseCase.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/repository/DayManagementRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/repository/DayManagementRepository.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/repository/ReminderRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/repository/ReminderRepository.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/di/AiModule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/di/AiModule.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/di/DatabaseModule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/di/DatabaseModule.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/di/DispatchersModule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/di/DispatchersModule.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/di/IoDispatcher.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/di/IoDispatcher.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/di/LogicModule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/di/LogicModule.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/di/NavigationModule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/di/NavigationModule.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/di/NetworkModule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/di/NetworkModule.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/di/RepositoryModule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/di/RepositoryModule.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/di/ScriptsModule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/di/ScriptsModule.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/di/ViewModelModule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/di/ViewModelModule.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/ProjectHierarchyScreenViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/ProjectHierarchyScreenViewModel.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/usecases/ProjectActionsUseCase.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/usecases/ProjectActionsUseCase.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreenViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreenViewModel.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/daymanagement/ui/DayManagementViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/daymanagement/ui/DayManagementViewModel.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/context/CoreEntities.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/context/CoreEntities.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/di/LogicModule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/di/LogicModule.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/feature/CoreEntities.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/capability/CoreEntities.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/feature/FeatureRegistry.kt" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
