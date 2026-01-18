@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.contexts.toggled_features.inbox
+package com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.toggled_features.inbox
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect

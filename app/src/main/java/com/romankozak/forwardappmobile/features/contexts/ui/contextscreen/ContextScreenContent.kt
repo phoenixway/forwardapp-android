@@ -28,7 +28,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemCon
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectViewMode
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
-import com.romankozak.forwardappmobile.features.contexts.toggled_features.backlog.BacklogListScreen
+import com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.toggled_features.backlog.BacklogListScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.components.projectrealization.ProjectDashboardView
 import com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.views.AttachmentsView
 import com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.views.InboxView

@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.contexts.toggled_features.inbox
+package com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.toggled_features.inbox
 
 import android.app.Application
 import androidx.lifecycle.SavedStateHandle

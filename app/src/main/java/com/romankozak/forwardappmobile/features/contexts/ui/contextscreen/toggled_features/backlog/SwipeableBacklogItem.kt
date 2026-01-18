@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalFoundationApi::class)
 
-package com.romankozak.forwardappmobile.features.contexts.toggled_features.backlog
+package com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.toggled_features.backlog
 
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.LinearOutSlowInEasing

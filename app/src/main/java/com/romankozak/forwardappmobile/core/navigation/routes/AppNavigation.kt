@@ -34,7 +34,7 @@ import com.romankozak.forwardappmobile.features.mainscreen.CharacterScreen
 import com.romankozak.forwardappmobile.features.daymanagement.presentation.dayplan.EditTaskScreen
 import com.romankozak.forwardappmobile.features.globalsearch.GlobalSearchScreen
 import com.romankozak.forwardappmobile.features.globalsearch.GlobalSearchViewModel
-import com.romankozak.forwardappmobile.features.contexts.toggled_features.inbox.InboxEditorScreen
+import com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.toggled_features.inbox.InboxEditorScreen
 import com.romankozak.forwardappmobile.features.ai.insights.AiInsightsScreen
 import com.romankozak.forwardappmobile.features.lifestate.LifeStateScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.context_chooser.FilterableListChooserScreen

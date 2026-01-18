@@ -47,7 +47,7 @@ import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.domain.wifirestapi.FileDataRequest
 import com.romankozak.forwardappmobile.domain.wifirestapi.RetrofitClient
 import com.romankozak.forwardappmobile.core.navigation.ClearAndNavigateHomeUseCase
-import com.romankozak.forwardappmobile.features.contexts.toggled_features.backlog.withCompletedAtEnd
+import com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.toggled_features.backlog.withCompletedAtEnd
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.components.utils.TagUtils
