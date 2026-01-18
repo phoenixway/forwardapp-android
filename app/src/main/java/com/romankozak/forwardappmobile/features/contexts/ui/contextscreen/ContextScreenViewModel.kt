@@ -46,10 +46,10 @@ import com.romankozak.forwardappmobile.domain.ner.ReminderParser
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.domain.wifirestapi.FileDataRequest
 import com.romankozak.forwardappmobile.domain.wifirestapi.RetrofitClient
-import com.romankozak.forwardappmobile.features.navigation.ClearAndNavigateHomeUseCase
+import com.romankozak.forwardappmobile.core.navigation.ClearAndNavigateHomeUseCase
 import com.romankozak.forwardappmobile.features.contexts.toggled_features.backlog.withCompletedAtEnd
-import com.romankozak.forwardappmobile.features.navigation.EnhancedNavigationManager
-import com.romankozak.forwardappmobile.features.navigation.NavTarget
+import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
+import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.components.utils.TagUtils
 import com.romankozak.forwardappmobile.features.attachments.ui.project.AttachmentType
 import com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.components.inputpanel.InputHandler
@@ -80,8 +80,8 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.components.projectrealization.ProjectManagementTab
-import com.romankozak.forwardappmobile.features.navigation.ClearCommand
-import com.romankozak.forwardappmobile.features.navigation.ClearExecutionContext
+import com.romankozak.forwardappmobile.core.navigation.ClearCommand
+import com.romankozak.forwardappmobile.core.navigation.ClearExecutionContext
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectUiEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.state.PlanningModeManager
@@ -1869,7 +1869,7 @@ constructor(
 
   private fun createClearExecutionContext():
     ClearExecutionContext {
-    return com.romankozak.forwardappmobile.features.navigation.createClearExecutionContext(
+    return com.romankozak.forwardappmobile.core.navigation.createClearExecutionContext(
         currentProjects = _allProjects.value,
         subStateStack =
             MutableStateFlow(
@@ -1879,7 +1879,7 @@ constructor(
             ),
         searchUseCase = searchUseCase,
         planningModeManager =
-          PlanningModeManager(),
+            PlanningModeManager(),
         enhancedNavigationManager = enhancedNavigationManager,
         uiEventChannel =
             Channel<ProjectUiEvent>(),

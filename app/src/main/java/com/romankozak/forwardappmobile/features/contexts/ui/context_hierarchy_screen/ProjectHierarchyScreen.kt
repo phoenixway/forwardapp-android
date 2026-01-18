@@ -13,10 +13,10 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.features.navigation.routes.navigateToDayManagement
-import com.romankozak.forwardappmobile.features.navigation.routes.navigateToStrategicManagement
+import com.romankozak.forwardappmobile.core.navigation.routes.navigateToDayManagement
+import com.romankozak.forwardappmobile.core.navigation.routes.navigateToStrategicManagement
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
-import com.romankozak.forwardappmobile.features.navigation.NavTargetRouter
+import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
 import kotlinx.coroutines.flow.collectLatest
 
 import androidx.compose.animation.AnimatedVisibilityScope

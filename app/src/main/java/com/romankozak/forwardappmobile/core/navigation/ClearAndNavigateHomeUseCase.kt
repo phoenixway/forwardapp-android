@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.navigation
+package com.romankozak.forwardappmobile.core.navigation
 
 import android.util.Log
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project

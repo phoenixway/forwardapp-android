@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.navigation.routes
+package com.romankozak.forwardappmobile.core.navigation.routes
 
 import android.util.Log
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -24,8 +24,8 @@ import com.romankozak.forwardappmobile.data.database.models.RecentItemType
 import com.romankozak.forwardappmobile.features.attachments.specific_types.checklist.ChecklistScreen
 import com.romankozak.forwardappmobile.features.attachments.ui.library.AttachmentsLibraryScreen
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
-import com.romankozak.forwardappmobile.features.navigation.AppNavigationViewModel
-import com.romankozak.forwardappmobile.features.navigation.NavigationCommand
+import com.romankozak.forwardappmobile.core.navigation.AppNavigationViewModel
+import com.romankozak.forwardappmobile.core.navigation.NavigationCommand
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.features.settings.ManageContextsScreen
 import com.romankozak.forwardappmobile.features.activitytracker.ActivityTrackerScreen
@@ -37,8 +37,8 @@ import com.romankozak.forwardappmobile.features.globalsearch.GlobalSearchViewMod
 import com.romankozak.forwardappmobile.features.contexts.toggled_features.inbox.InboxEditorScreen
 import com.romankozak.forwardappmobile.features.ai.insights.AiInsightsScreen
 import com.romankozak.forwardappmobile.features.lifestate.LifeStateScreen
-import com.romankozak.forwardappmobile.features.contexts.context_chooser.FilterableListChooserScreen
-import com.romankozak.forwardappmobile.features.contexts.context_chooser.FilterableListChooserViewModel
+import com.romankozak.forwardappmobile.features.contexts.ui.context_chooser.FilterableListChooserScreen
+import com.romankozak.forwardappmobile.features.contexts.ui.context_chooser.FilterableListChooserViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ProjectHierarchyScreenViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.attachments.specific_types.notedocument.NoteDocumentEditorScreen
@@ -60,8 +60,8 @@ import com.romankozak.forwardappmobile.features.sync.SyncScreen
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import java.net.URLDecoder
 import kotlinx.coroutines.launch
-import com.romankozak.forwardappmobile.features.navigation.NavTarget
-import com.romankozak.forwardappmobile.features.navigation.NavTargetRouter
+import com.romankozak.forwardappmobile.core.navigation.NavTarget
+import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
 import com.romankozak.forwardappmobile.features.reminders.list.RemindersScreen
 
 

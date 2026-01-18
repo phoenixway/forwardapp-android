@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.features.contexts.data.models.GlobalSearchResultItem
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
-import com.romankozak.forwardappmobile.features.navigation.EnhancedNavigationManager
+import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted

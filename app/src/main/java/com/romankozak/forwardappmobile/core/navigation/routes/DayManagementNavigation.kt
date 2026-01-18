@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.navigation.routes
+package com.romankozak.forwardappmobile.core.navigation.routes
 
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder

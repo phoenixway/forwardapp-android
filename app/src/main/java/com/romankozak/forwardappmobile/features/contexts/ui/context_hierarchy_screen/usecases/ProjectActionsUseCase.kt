@@ -10,7 +10,7 @@ import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.findDescendantsForDeletion
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.getDescendantIds
-import com.romankozak.forwardappmobile.features.navigation.NavTarget
+import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext

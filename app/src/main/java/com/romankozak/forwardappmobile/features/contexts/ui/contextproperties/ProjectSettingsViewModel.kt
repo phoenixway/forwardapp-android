@@ -10,7 +10,7 @@ import com.romankozak.forwardappmobile.data.repository.ProjectStructureRepositor
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.domain.structure.StructurePresetService
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
-import com.romankozak.forwardappmobile.features.navigation.NavTarget
+import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.RemindersTabActions
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.EvaluationTabActions
 import dagger.hilt.android.lifecycle.HiltViewModel

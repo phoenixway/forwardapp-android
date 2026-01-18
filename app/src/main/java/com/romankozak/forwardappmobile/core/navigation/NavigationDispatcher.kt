@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.navigation
+package com.romankozak.forwardappmobile.core.navigation
 
 interface NavigationDispatcher {
     fun navigate(route: String)

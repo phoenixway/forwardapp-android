@@ -18,7 +18,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemCon
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectViewMode
 
 import com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.components.utils.handleRelatedLinkClick
-import com.romankozak.forwardappmobile.features.navigation.NavTargetRouter
+import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch

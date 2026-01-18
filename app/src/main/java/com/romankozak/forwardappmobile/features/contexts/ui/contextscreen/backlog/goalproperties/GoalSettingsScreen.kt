@@ -21,7 +21,7 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Link
 import com.romankozak.forwardappmobile.features.contexts.ui.contextproperties.ProjectSettingsEvent
-import com.romankozak.forwardappmobile.features.navigation.NavTargetRouter
+import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.DisposableEffect
 import androidx.lifecycle.Lifecycle

@@ -31,7 +31,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
-import com.romankozak.forwardappmobile.features.navigation.routes.STRATEGIC_MANAGEMENT_ROUTE
+import com.romankozak.forwardappmobile.core.navigation.routes.STRATEGIC_MANAGEMENT_ROUTE
 import com.romankozak.forwardappmobile.ui.components.header.CoreHeader
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckHeaderPreset
 import com.romankozak.forwardappmobile.ui.components.header.FAHeader
@@ -40,7 +40,7 @@ import com.romankozak.forwardappmobile.ui.components.header.StrategicArcHeader
 import com.romankozak.forwardappmobile.ui.components.header.StrategyHeader
 import com.romankozak.forwardappmobile.ui.components.header.TacticsHeader
 import com.romankozak.forwardappmobile.ui.components.header.TodayHeader
-import com.romankozak.forwardappmobile.features.navigation.routes.GOAL_LISTS_ROUTE
+import com.romankozak.forwardappmobile.core.navigation.routes.GOAL_LISTS_ROUTE
 import com.romankozak.forwardappmobile.features.daymanagement.presentation.DayManagementScreen
 import com.romankozak.forwardappmobile.features.daymanagement.presentation.dayplan.DayPlanViewModel
 import com.romankozak.forwardappmobile.features.strategicmanagement.StrategicManagementScreen

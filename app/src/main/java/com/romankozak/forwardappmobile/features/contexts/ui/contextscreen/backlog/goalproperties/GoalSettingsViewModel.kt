@@ -16,7 +16,7 @@ import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.features.contexts.ui.contextproperties.ProjectSettingsEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.contextscreen.components.utils.TagUtils
-import com.romankozak.forwardappmobile.features.navigation.NavTarget
+import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.RemindersTabActions
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.EvaluationTabActions
 import dagger.hilt.android.lifecycle.HiltViewModel

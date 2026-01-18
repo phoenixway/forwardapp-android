@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.navigation
+package com.romankozak.forwardappmobile.core.navigation
 
 import androidx.navigation.NavHostController
 import javax.inject.Inject

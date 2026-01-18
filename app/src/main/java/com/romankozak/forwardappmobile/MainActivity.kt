@@ -28,7 +28,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.domain.reminders.ReminderBroadcastReceiver
-import com.romankozak.forwardappmobile.features.navigation.routes.AppNavigation
+import com.romankozak.forwardappmobile.core.navigation.routes.AppNavigation
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import com.romankozak.forwardappmobile.ui.theme.ForwardAppMobileTheme
 import dagger.hilt.android.AndroidEntryPoint

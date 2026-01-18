@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.navigation
+package com.romankozak.forwardappmobile.core.navigation
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
