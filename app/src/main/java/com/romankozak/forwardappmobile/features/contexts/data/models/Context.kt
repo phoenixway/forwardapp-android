@@ -6,17 +6,17 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 
 
-enum class ProjectType {
+enum class ContextType {
     DEFAULT,
     RESERVED,
     SYSTEM;
 
     companion object {
-        fun fromString(value: String?): ProjectType {
+        fun fromString(value: String?): ContextType {
             return try {
-                if (value == null) ProjectType.DEFAULT else valueOf(value)
+                if (value == null) ContextType.DEFAULT else valueOf(value)
             } catch (e: IllegalArgumentException) {
-                ProjectType.DEFAULT
+                ContextType.DEFAULT
             }
         }
     }
@@ -63,7 +63,7 @@ data class Project(
     @ColumnInfo(defaultValue = "0") val displayScore: Int = 0,
     @ColumnInfo(name = "scoring_status") val scoringStatus: String = ScoringStatusValues.NOT_ASSESSED,
     @ColumnInfo(name = "show_checkboxes", defaultValue = "0") val showCheckboxes: Boolean = false,
-    @ColumnInfo(name = "project_type", defaultValue = "'DEFAULT'") val projectType: ProjectType = ProjectType.DEFAULT,
+    @ColumnInfo(name = "project_type", defaultValue = "'DEFAULT'") val projectType: ContextType = ContextType.DEFAULT,
     @ColumnInfo(name = "reserved_group") val reservedGroup: ReservedGroup? = null,
     @ColumnInfo(name = "role_code") val roleCode: String? = null,
 )

@@ -7,7 +7,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNo
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectArtifact
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectTimeMetrics
 
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectType
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextType
 import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
 import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
@@ -496,7 +496,7 @@ constructor(
 
     suspend fun findProjectIdsByTag(tag: String): List<String> = projectDao.getProjectIdsByTag(tag)
 
-    suspend fun getProjectsByType(projectType: ProjectType): List<Project> = projectDao.getProjectsByType(projectType.name)
+    suspend fun getProjectsByType(projectType: ContextType): List<Project> = projectDao.getProjectsByType(projectType.name)
 
     suspend fun getProjectsByReservedGroup(reservedGroup: String): List<Project> = projectDao.getProjectsByReservedGroup(reservedGroup)
 

@@ -76,7 +76,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectLogLevelValues
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStatusValues
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectType
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextType
 import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedGroup
 import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.features.recent.data.models.RecentItem
@@ -652,7 +652,7 @@ constructor(
 
             val cleanedProjects = projectsToImport.map { projectFromBackup ->
                 val normalizedIncoming = projectFromBackup.copy(
-                    projectType = projectFromBackup.projectType ?: ProjectType.DEFAULT,
+                    projectType = projectFromBackup.projectType ?: ContextType.DEFAULT,
                     reservedGroup = ReservedGroup.fromString(projectFromBackup.reservedGroup?.groupName),
                     // Do NOT force BACKLOG; keep incoming view mode
                     defaultViewModeName = projectFromBackup.defaultViewModeName,
@@ -2564,7 +2564,7 @@ constructor(
             displayScore = project.displayScore,
             scoringStatus = project.scoringStatus ?: ScoringStatusValues.NOT_ASSESSED,
             showCheckboxes = project.showCheckboxes,
-            projectType = project.projectType ?: ProjectType.DEFAULT,
+            projectType = project.projectType ?: ContextType.DEFAULT,
             reservedGroup = project.reservedGroup,
         )
     }

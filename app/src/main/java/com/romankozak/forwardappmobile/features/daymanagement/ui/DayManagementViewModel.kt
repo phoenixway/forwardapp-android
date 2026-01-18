@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.features.daymanagement.ui
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectType
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextType
 import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedGroup
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
@@ -73,7 +73,7 @@ constructor(
     fun onInboxClicked() {
         viewModelScope.launch(ioDispatcher) {
             val projects = projectRepository.getAllProjects()
-            val specialProject = projects.find { it.projectType == ProjectType.SYSTEM }
+            val specialProject = projects.find { it.projectType == ContextType.SYSTEM }
             if (specialProject != null) {
                 val inboxProject = projects.find { it.reservedGroup == ReservedGroup.Inbox && it.parentId == specialProject.id }
                 inboxProject?.let {
