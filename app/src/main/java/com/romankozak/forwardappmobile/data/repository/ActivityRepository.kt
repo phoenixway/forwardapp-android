@@ -9,6 +9,8 @@ import com.romankozak.forwardappmobile.data.sync.softDelete
 import com.romankozak.forwardappmobile.domain.ai.events.ActivityFinishedEvent
 import com.romankozak.forwardappmobile.domain.ai.events.ActivityLoggedEvent
 import com.romankozak.forwardappmobile.data.repository.AiEventRepository
+import com.romankozak.forwardappmobile.data.sync.bumpSync
+
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject

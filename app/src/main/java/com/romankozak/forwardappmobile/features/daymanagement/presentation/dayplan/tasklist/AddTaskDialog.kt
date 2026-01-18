@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import com.google.accompanist.flowlayout.FlowRow
 import com.romankozak.forwardappmobile.data.database.models.RecurrenceRule
-import com.romankozak.forwardappmobile.data.database.models.TaskPriority
+import com.romankozak.forwardappmobile.features.contexts.data.models.TaskPriority
 import com.romankozak.forwardappmobile.features.daymanagement.presentation.dayplan.components.AdvancedRecurrencePickerDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -33,12 +33,12 @@ fun AddTaskDialog(
   onDismissRequest: () -> Unit,
   onConfirm:
     (
-      title: String,
-      description: String,
-      duration: Long?,
-      priority: TaskPriority,
-      recurrenceRule: RecurrenceRule?,
-      points: Int,
+    title: String,
+    description: String,
+    duration: Long?,
+    priority: TaskPriority,
+    recurrenceRule: RecurrenceRule?,
+    points: Int,
     ) -> Unit,
   initialPriority: TaskPriority = TaskPriority.MEDIUM,
 ) {

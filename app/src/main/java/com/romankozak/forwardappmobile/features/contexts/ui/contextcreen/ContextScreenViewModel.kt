@@ -17,9 +17,10 @@ import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
 import com.romankozak.forwardappmobile.features.contexts.data.models.ChecklistEntity
 import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
+import com.romankozak.forwardappmobile.data.database.models.ProjectArtifact
+import com.romankozak.forwardappmobile.data.database.models.ProjectTimeMetrics
 import com.romankozak.forwardappmobile.features.contexts.data.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectArtifact
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectTimeMetrics
+
 import com.romankozak.forwardappmobile.data.database.models.RecentItem
 import com.romankozak.forwardappmobile.data.database.models.RecentItemType
 import com.romankozak.forwardappmobile.data.database.models.Reminder
@@ -164,13 +165,13 @@ data class UiState(
   val showCreateNoteDocumentDialog: Boolean = false,
   val showRemindersDialog: Boolean = false,
   val itemForRemindersDialog: ListItemContent? = null,
-      val remindersForDialog: List<Reminder> = emptyList(),
-      val logEntryToEdit: ProjectExecutionLog? = null,
-      val artifactToEdit: ProjectArtifact? = null,
-      val selectedDashboardTab: ProjectManagementTab = ProjectManagementTab.Dashboard,
-      val showNoteDocumentEditor: Boolean = false,
-      val showDisplayPropertiesDialog: Boolean = false,
-      val showCheckboxes: Boolean = false,
+  val remindersForDialog: List<Reminder> = emptyList(),
+  val logEntryToEdit: ProjectExecutionLog? = null,
+  val artifactToEdit: ProjectArtifact? = null,
+  val selectedDashboardTab: ProjectManagementTab = ProjectManagementTab.Dashboard,
+  val showNoteDocumentEditor: Boolean = false,
+  val showDisplayPropertiesDialog: Boolean = false,
+  val showCheckboxes: Boolean = false,
   ) {
       val isSelectionModeActive: Boolean get() = selectedItemIds.isNotEmpty()
   }

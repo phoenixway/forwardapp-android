@@ -67,6 +67,10 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePrese
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectLogLevelValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStatusValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectType
+import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO

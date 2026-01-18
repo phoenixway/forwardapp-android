@@ -66,6 +66,7 @@ import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEdito
 
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectViewMode
 
 import kotlinx.coroutines.delay
 

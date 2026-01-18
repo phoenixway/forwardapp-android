@@ -1,6 +1,5 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.contextcreen.components.backlogitems
 
-import com.romankozak.forwardappmobile.data.database.models.Reminder
 import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring

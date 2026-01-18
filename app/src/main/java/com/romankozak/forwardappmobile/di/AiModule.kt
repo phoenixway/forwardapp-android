@@ -1,6 +1,5 @@
 package com.romankozak.forwardappmobile.di
 
-import com.romankozak.forwardappmobile.data.dao.AiEventDao
 import com.romankozak.forwardappmobile.data.dao.LifeSystemStateDao
 import com.romankozak.forwardappmobile.data.repository.AiEventRepository
 import com.romankozak.forwardappmobile.data.repository.AiEventRepositoryImpl

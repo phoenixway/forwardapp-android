@@ -2,7 +2,9 @@ package com.romankozak.forwardappmobile.features.ai.data.repository
 
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.ai.data.models.AiInsightEntity
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class AiInsightRepository @Inject constructor(
@@ -19,4 +21,12 @@ class AiInsightRepository @Inject constructor(
     suspend fun markRead(id: String) = aiInsightDao.markRead(id)
 
     suspend fun getAllSync(): List<AiInsightEntity> = aiInsightDao.getAllSync()
+
+    fun observeInsights(): Flow<List<AiInsightEntity>> = aiInsightDao.getAll()
+
+    suspend fun upsertInsights(items: List<AiInsightEntity>) = withContext(Dispatchers.IO) {
+        if (items.isNotEmpty()) {
+            aiInsightDao.upsertAll(items)
+        }
+    }
 }

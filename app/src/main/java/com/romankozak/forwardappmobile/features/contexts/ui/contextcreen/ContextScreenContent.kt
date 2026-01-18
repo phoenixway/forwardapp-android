@@ -23,10 +23,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.Alignment
+import com.romankozak.forwardappmobile.data.database.models.ProjectArtifact
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemContent
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectViewMode
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectArtifact
 import com.romankozak.forwardappmobile.features.contexts.data.models.Project
 import com.romankozak.forwardappmobile.features.contexts.toggled_features.backlog.BacklogListScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.contextcreen.components.projectrealization.ProjectDashboardView
@@ -37,18 +37,18 @@ private const val TAG = "BACKLOG_UI_DEBUG"
 
 @Composable
 fun GoalDetailContent(
-  modifier: Modifier = Modifier,
-  viewModel: BacklogViewModel,
-  uiState: UiState,
-  listState: LazyListState,
-  inboxListState: LazyListState,
-  onEditLog: (ProjectExecutionLog) -> Unit,
-  onDeleteLog: (ProjectExecutionLog) -> Unit,
-  onSaveArtifact: (String) -> Unit,
-  onEditArtifact: (ProjectArtifact) -> Unit,
-  onRemindersClick: (ListItemContent) -> Unit,
-  onShowProjectProperties: () -> Unit,
-  onSwitchView: (ProjectViewMode) -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: BacklogViewModel,
+    uiState: UiState,
+    listState: LazyListState,
+    inboxListState: LazyListState,
+    onEditLog: (ProjectExecutionLog) -> Unit,
+    onDeleteLog: (ProjectExecutionLog) -> Unit,
+    onSaveArtifact: (String) -> Unit,
+    onEditArtifact: (ProjectArtifact) -> Unit,
+    onRemindersClick: (ListItemContent) -> Unit,
+    onShowProjectProperties: () -> Unit,
+    onSwitchView: (ProjectViewMode) -> Unit,
 ) {
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
     val inboxRecords by viewModel.inboxHandler.inboxRecords.collectAsStateWithLifecycle()

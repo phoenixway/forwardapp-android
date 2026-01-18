@@ -2,6 +2,21 @@ package com.romankozak.forwardappmobile.data.sync
 
 import com.google.gson.annotations.SerializedName
 import com.romankozak.forwardappmobile.data.database.models.*
+import com.romankozak.forwardappmobile.features.ai.data.models.AiInsightEntity
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
+import com.romankozak.forwardappmobile.features.contexts.data.models.ChecklistEntity
+import com.romankozak.forwardappmobile.features.contexts.data.models.ChecklistItemEntity
+import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
+import com.romankozak.forwardappmobile.features.contexts.data.models.InboxRecord
+import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
+import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.NoteDocumentEntity
+import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructure
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructureItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.StructurePreset
+import com.romankozak.forwardappmobile.features.contexts.data.models.StructurePresetItem
 
 data class FullAppBackup(
     @SerializedName(value = "backupSchemaVersion", alternate = ["a"])

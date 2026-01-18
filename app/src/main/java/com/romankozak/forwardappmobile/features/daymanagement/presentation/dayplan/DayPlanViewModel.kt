@@ -8,7 +8,6 @@ import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.RecurrenceFrequency
 import com.romankozak.forwardappmobile.data.database.models.RecurrenceRule
 import com.romankozak.forwardappmobile.data.database.models.NewTaskParameters
-import com.romankozak.forwardappmobile.data.database.models.TaskPriority
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -20,6 +19,7 @@ import javax.inject.Inject
 
 import com.romankozak.forwardappmobile.data.database.models.Reminder
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
+import com.romankozak.forwardappmobile.features.contexts.data.models.TaskPriority
 import kotlinx.coroutines.FlowPreview
 
 data class ParentInfo(

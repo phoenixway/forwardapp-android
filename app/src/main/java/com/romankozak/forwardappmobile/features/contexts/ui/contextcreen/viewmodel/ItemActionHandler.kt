@@ -189,7 +189,7 @@ class ItemActionHandler
             _itemForTransportMenu.value = null
         }
 
-        fun onRelatedLinkClick(link: com.romankozak.forwardappmobile.data.database.models.RelatedLink) {
+        fun onRelatedLinkClick(link: RelatedLink) {
             resultListener.requestNavigation(BacklogViewModel.HANDLE_LINK_CLICK_ROUTE + "/${link.target}")
         }
 

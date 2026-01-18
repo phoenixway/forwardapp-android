@@ -66,6 +66,8 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.OptimizedExpandingProjectHierarchyBottomNav
 import com.romankozak.forwardappmobile.ui.shared.InProgressIndicator
 import com.romankozak.forwardappmobile.config.FeatureFlag
+import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
+import com.romankozak.forwardappmobile.data.database.models.Reminder
 import com.romankozak.forwardappmobile.features.navigation.NavigationHistoryMenu
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
 
@@ -474,7 +476,15 @@ fun ProjectHierarchyScreenScaffold(
             onDismiss = { viewModel.onReminderDialogDismiss() },
             onSetReminder = { timestamp -> viewModel.onSetReminder(timestamp) },
             onRemoveReminder = if (record.reminderTime != null) { { _: String -> viewModel.onClearReminder() } } else null,
-            currentReminders = listOfNotNull(record.reminderTime).map { Reminder(entityId = record.id, entityType = "TASK", reminderTime = it, status = "SCHEDULED", creationTime = System.currentTimeMillis()) },
+            currentReminders = listOfNotNull(record.reminderTime).map {
+                Reminder(
+                    entityId = record.id,
+                    entityType = "TASK",
+                    reminderTime = it,
+                    status = "SCHEDULED",
+                    creationTime = System.currentTimeMillis()
+                )
+            },
         )
     }
 

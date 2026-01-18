@@ -4,11 +4,11 @@ import android.util.Log
 import androidx.room.Transaction
 import com.romankozak.forwardappmobile.features.contexts.data.dao.*
 import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectArtifact
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectTimeMetrics
+import com.romankozak.forwardappmobile.data.database.models.ProjectArtifact
+import com.romankozak.forwardappmobile.data.database.models.ProjectTimeMetrics
+
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectType
 import com.romankozak.forwardappmobile.data.database.models.Reminder
-import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentWithProject
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
 import com.romankozak.forwardappmobile.features.contexts.data.models.ChecklistEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
@@ -40,6 +40,8 @@ import com.romankozak.forwardappmobile.data.sync.bumpSync
 import com.romankozak.forwardappmobile.data.sync.softDelete
 import com.romankozak.forwardappmobile.domain.ai.events.ProjectActivatedEvent
 import com.romankozak.forwardappmobile.data.repository.AiEventRepository
+import com.romankozak.forwardappmobile.features.contexts.data.models.GlobalSearchResultItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 import javax.inject.Singleton
 
 internal enum class ContextTextAction { ADD, REMOVE }

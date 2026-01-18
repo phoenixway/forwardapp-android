@@ -3,17 +3,15 @@ package com.romankozak.forwardappmobile.data.repository
 
 import androidx.room.Transaction
 import com.romankozak.forwardappmobile.data.dao.*
+import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
 import com.romankozak.forwardappmobile.data.database.models.DailyAnalytics
 import com.romankozak.forwardappmobile.data.database.models.DailyMetric
 import com.romankozak.forwardappmobile.data.database.models.DayPlan
-import com.romankozak.forwardappmobile.data.database.models.DayStatus
 import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.NewTaskParameters
 import com.romankozak.forwardappmobile.data.database.models.RecurrenceFrequency
 import com.romankozak.forwardappmobile.data.database.models.RecurrenceRule
 import com.romankozak.forwardappmobile.data.database.models.RecurringTask
-import com.romankozak.forwardappmobile.data.database.models.TaskPriority
-import com.romankozak.forwardappmobile.data.database.models.TaskStatus
 import com.romankozak.forwardappmobile.data.database.models.WeeklyInsights
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
@@ -25,6 +23,9 @@ import com.romankozak.forwardappmobile.domain.ai.events.TaskCreatedEvent
 import com.romankozak.forwardappmobile.domain.ai.events.TaskCompletedEvent
 import com.romankozak.forwardappmobile.domain.ai.events.TaskDeferredEvent
 import com.romankozak.forwardappmobile.data.repository.AiEventRepository
+import com.romankozak.forwardappmobile.features.contexts.data.models.DayStatus
+import com.romankozak.forwardappmobile.features.contexts.data.models.TaskPriority
+import com.romankozak.forwardappmobile.features.contexts.data.models.TaskStatus
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
