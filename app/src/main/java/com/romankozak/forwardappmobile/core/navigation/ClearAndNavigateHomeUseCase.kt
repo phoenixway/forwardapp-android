@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.core.navigation
 import android.util.Log
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
-import com.romankozak.forwardappmobile.di.IoDispatcher
+import com.romankozak.forwardappmobile.core.di.IoDispatcher
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenPlanningMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectUiEvent

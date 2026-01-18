@@ -1,6 +1,7 @@
-package com.romankozak.forwardappmobile.di
+package com.romankozak.forwardappmobile.core.di
 
 import android.content.Context
+import com.google.gson.Gson
 import com.romankozak.forwardappmobile.domain.network.NetworkDiscoveryManager
 import dagger.Module
 import dagger.Provides
@@ -21,7 +22,7 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideGson(): com.google.gson.Gson {
-        return com.google.gson.Gson()
+    fun provideGson(): Gson {
+        return Gson()
     }
 }

@@ -16,7 +16,7 @@ import com.romankozak.forwardappmobile.features.ai.data.models.WeeklyInsights
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
-import com.romankozak.forwardappmobile.di.IoDispatcher
+import com.romankozak.forwardappmobile.core.di.IoDispatcher
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.domain.ai.events.TaskCreatedEvent
 import com.romankozak.forwardappmobile.domain.ai.events.TaskCompletedEvent

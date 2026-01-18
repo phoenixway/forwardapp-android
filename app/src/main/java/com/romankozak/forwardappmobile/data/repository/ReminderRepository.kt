@@ -3,15 +3,13 @@ package com.romankozak.forwardappmobile.data.repository
 import com.romankozak.forwardappmobile.data.dao.ReminderDao
 import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
-import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.sync.bumpSync
 import com.romankozak.forwardappmobile.data.sync.softDelete
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import com.romankozak.forwardappmobile.di.IoDispatcher
+import com.romankozak.forwardappmobile.core.di.IoDispatcher
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 

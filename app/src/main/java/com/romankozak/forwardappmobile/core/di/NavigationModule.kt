@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.di
+package com.romankozak.forwardappmobile.core.di
 
 import com.romankozak.forwardappmobile.core.navigation.DefaultNavigationDispatcher
 import com.romankozak.forwardappmobile.core.navigation.NavigationDispatcher

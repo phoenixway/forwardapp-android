@@ -1,9 +1,7 @@
-package com.romankozak.forwardappmobile.di
+package com.romankozak.forwardappmobile.core.di
 
 import android.content.Context
-import android.util.Log
 import androidx.room.Room
-import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
@@ -12,18 +10,9 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectDao
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
-import com.romankozak.forwardappmobile.data.dao.RecentItemDao
-import com.romankozak.forwardappmobile.data.dao.ReminderDao
-import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectManagementDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
-import com.romankozak.forwardappmobile.data.dao.DayPlanDao
-import com.romankozak.forwardappmobile.data.dao.DayTaskDao
-import com.romankozak.forwardappmobile.data.dao.DailyMetricDao
-import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
-import com.romankozak.forwardappmobile.data.dao.ChatDao
-import com.romankozak.forwardappmobile.data.dao.ConversationFolderDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
 import com.romankozak.forwardappmobile.data.dao.ScriptDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.BacklogOrderDao
@@ -42,7 +31,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import androidx.room.RoomDatabase
-import com.romankozak.forwardappmobile.features.contexts.data.DatabaseInitializer
 import com.romankozak.forwardappmobile.data.database.migrateSpecialProjects
 import com.romankozak.forwardappmobile.data.database.MIGRATION_8_9
 import com.romankozak.forwardappmobile.data.database.MIGRATION_10_11
@@ -124,8 +112,7 @@ import com.romankozak.forwardappmobile.data.database.MIGRATION_89_90
 import com.romankozak.forwardappmobile.data.database.MIGRATION_90_91
 import com.romankozak.forwardappmobile.data.database.MIGRATION_91_92
 import com.romankozak.forwardappmobile.data.database.MIGRATION_92_93
-import com.romankozak.forwardappmobile.data.repository.SystemAppRepository
-import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectArtifactDao
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -237,15 +224,15 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideProjectDao(appDatabase: AppDatabase): com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectDao = appDatabase.projectDao()
+    fun provideProjectDao(appDatabase: AppDatabase): ProjectDao = appDatabase.projectDao()
 
     @Provides
     @Singleton
-    fun provideGoalDao(appDatabase: AppDatabase): com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao = appDatabase.goalDao()
+    fun provideGoalDao(appDatabase: AppDatabase): GoalDao = appDatabase.goalDao()
 
     @Provides
     @Singleton
-    fun provideListItemDao(appDatabase: AppDatabase): com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao = appDatabase.listItemDao()
+    fun provideListItemDao(appDatabase: AppDatabase): ListItemDao = appDatabase.listItemDao()
 
     @Provides
     @Singleton
@@ -269,7 +256,7 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideProjectManagementDao(appDatabase: AppDatabase): com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectManagementDao = appDatabase.projectManagementDao()
+    fun provideProjectManagementDao(appDatabase: AppDatabase): ProjectManagementDao = appDatabase.projectManagementDao()
 
     @Provides
     @Singleton
@@ -281,27 +268,27 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideAiInsightDao(appDatabase: AppDatabase): com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao = appDatabase.aiInsightDao()
+    fun provideAiInsightDao(appDatabase: AppDatabase): AiInsightDao = appDatabase.aiInsightDao()
 
     @Provides
     @Singleton
-    fun provideLinkItemDao(appDatabase: AppDatabase): com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao = appDatabase.linkItemDao()
+    fun provideLinkItemDao(appDatabase: AppDatabase): LinkItemDao = appDatabase.linkItemDao()
 
     @Provides
     @Singleton
-    fun provideInboxRecordDao(appDatabase: AppDatabase): com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao = appDatabase.inboxRecordDao()
+    fun provideInboxRecordDao(appDatabase: AppDatabase): InboxRecordDao = appDatabase.inboxRecordDao()
 
     @Provides
     @Singleton
-    fun provideNoteDocumentDao(appDatabase: AppDatabase): com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao = appDatabase.noteDocumentDao()
+    fun provideNoteDocumentDao(appDatabase: AppDatabase): NoteDocumentDao = appDatabase.noteDocumentDao()
 
     @Provides
     @Singleton
-    fun provideChecklistDao(appDatabase: AppDatabase): com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao = appDatabase.checklistDao()
+    fun provideChecklistDao(appDatabase: AppDatabase): ChecklistDao = appDatabase.checklistDao()
 
     @Provides
     @Singleton
-    fun provideProjectArtifactDao(appDatabase: AppDatabase): com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectArtifactDao = appDatabase.projectArtifactDao()
+    fun provideProjectArtifactDao(appDatabase: AppDatabase): ProjectArtifactDao = appDatabase.projectArtifactDao()
 
     @Provides
     @Singleton
@@ -337,7 +324,7 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideBacklogOrderDao(appDatabase: AppDatabase): com.romankozak.forwardappmobile.features.contexts.data.dao.BacklogOrderDao = appDatabase.backlogOrderDao()
+    fun provideBacklogOrderDao(appDatabase: AppDatabase): BacklogOrderDao = appDatabase.backlogOrderDao()
 
     @Provides
     @Singleton
@@ -345,13 +332,13 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideStructurePresetDao(appDatabase: AppDatabase): com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao = appDatabase.structurePresetDao()
+    fun provideStructurePresetDao(appDatabase: AppDatabase): StructurePresetDao = appDatabase.structurePresetDao()
 
     @Provides
     @Singleton
-    fun provideStructurePresetItemDao(appDatabase: AppDatabase): com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao = appDatabase.structurePresetItemDao()
+    fun provideStructurePresetItemDao(appDatabase: AppDatabase): StructurePresetItemDao = appDatabase.structurePresetItemDao()
 
     @Provides
     @Singleton
-    fun provideProjectStructureDao(appDatabase: AppDatabase): com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectStructureDao = appDatabase.projectStructureDao()
+    fun provideProjectStructureDao(appDatabase: AppDatabase): ProjectStructureDao = appDatabase.projectStructureDao()
     }
