@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.state
 
 import android.net.Uri
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DialogState
 import dagger.hilt.android.scopes.ViewModelScoped
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,15 +21,15 @@ class DialogStateManager
             _dialogState.value = DialogState.AddProject(null)
         }
 
-        fun onAddSubprojectRequest(parentProject: Project) {
+        fun onAddSubprojectRequest(parentProject: Context) {
             _dialogState.value = DialogState.AddProject(parentProject.id)
         }
 
-        fun onMenuRequested(project: Project) {
+        fun onMenuRequested(project: Context) {
             _dialogState.value = DialogState.ProjectMenu(project)
         }
 
-        fun onDeleteRequest(project: Project) {
+        fun onDeleteRequest(project: Context) {
             _dialogState.value = DialogState.ConfirmDelete(project)
         }
 

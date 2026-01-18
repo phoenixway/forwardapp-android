@@ -5,7 +5,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextHierarchyData
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
@@ -38,12 +38,12 @@ class SearchUseCase @Inject constructor(
 ): PlanningSearchAdapter {
     private lateinit var scope: CoroutineScope
     private lateinit var uiEventChannel: Channel<ProjectUiEvent>
-    private lateinit var allProjectsFlat: StateFlow<List<Project>>
+    private lateinit var allProjectsFlat: StateFlow<List<Context>>
 
     fun initialize(
         scope: CoroutineScope,
         uiEventChannel: Channel<ProjectUiEvent>,
-        allProjectsFlat: StateFlow<List<Project>>
+        allProjectsFlat: StateFlow<List<Context>>
     ) {
         this.scope = scope
         this.uiEventChannel = uiEventChannel

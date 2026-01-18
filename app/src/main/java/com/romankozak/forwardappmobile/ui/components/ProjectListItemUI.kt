@@ -27,22 +27,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 
 @Composable
 fun ProjectRow(
-    list: Project,
+    list: Context,
     level: Int,
     hasChildren: Boolean,
     onListClick: (String) -> Unit,
-    onToggleExpanded: (list: Project) -> Unit,
-    onMenuRequested: (list: Project) -> Unit,
+    onToggleExpanded: (list: Context) -> Unit,
+    onMenuRequested: (list: Context) -> Unit,
     isCurrentlyDragging: Boolean,
     isHovered: Boolean,
     isDraggingDown: Boolean,
     isHighlighted: Boolean,
     showFocusButton: Boolean,
-    onFocusRequested: (list: Project) -> Unit,
+    onFocusRequested: (list: Context) -> Unit,
     modifier: Modifier = Modifier,
     displayName: AnnotatedString? = null,
 ) {

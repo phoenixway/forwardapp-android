@@ -4,7 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
@@ -24,7 +24,7 @@ sealed class ReminderListItem {
     abstract val reminder: Reminder
 
     data class GoalReminder(override val reminder: Reminder, val goal: Goal) : ReminderListItem()
-    data class ProjectReminder(override val reminder: Reminder, val project: Project) : ReminderListItem()
+    data class ProjectReminder(override val reminder: Reminder, val project: Context) : ReminderListItem()
     data class SimpleReminder(override val reminder: Reminder) : ReminderListItem()
 }
 

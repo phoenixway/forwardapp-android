@@ -4,7 +4,7 @@ import android.util.Log
 import com.romankozak.forwardappmobile.data.dao.RecentItemDao
 import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.recent.data.models.RecentItem
 import com.romankozak.forwardappmobile.features.recent.data.models.RecentItemType
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
@@ -19,7 +19,7 @@ class RecentItemsRepository @Inject constructor(
 ) {
     fun getRecentItems(limit: Int = 20): Flow<List<RecentItem>> = recentItemDao.getRecentItems(limit)
 
-    suspend fun logProjectAccess(project: Project) {
+    suspend fun logProjectAccess(project: Context) {
         val existingItem = recentItemDao.getRecentItemById(project.id)
         val recentItem = if (existingItem != null) {
             existingItem.copy(lastAccessed = System.currentTimeMillis())

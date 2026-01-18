@@ -24,7 +24,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStatusValues
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectViewMode
 import kotlinx.coroutines.delay
@@ -253,7 +253,7 @@ private fun ProjectStatusIndicator(
 @Composable
 fun ListTitleBar(
     modifier: Modifier = Modifier,
-    project: Project?,
+    project: Context?,
     currentViewMode: ProjectViewMode? = null,
     onInboxClick: () -> Unit,
 ) {

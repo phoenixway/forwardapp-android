@@ -44,7 +44,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
@@ -55,13 +55,13 @@ import kotlinx.coroutines.delay
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun ProjectItem(
-    project: Project,
-    childProjects: List<Project>,
+    project: Context,
+    childProjects: List<Context>,
     onCheckedChange: (Boolean) -> Unit,
     onItemClick: () -> Unit,
     onLongClick: () -> Unit,
     onTagClick: (String) -> Unit,
-    onChildProjectClick: (Project) -> Unit,
+    onChildProjectClick: (Context) -> Unit,
     onRelatedLinkClick: (RelatedLink) -> Unit,
     modifier: Modifier = Modifier,
     emojiToHide: String? = null,

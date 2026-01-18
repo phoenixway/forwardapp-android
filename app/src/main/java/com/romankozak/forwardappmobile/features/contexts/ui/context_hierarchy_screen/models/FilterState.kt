@@ -1,9 +1,9 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models
 
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 
 data class FilterState(
-    val flatList: List<Project>,
+    val flatList: List<Context>,
     val query: String,
     val searchActive: Boolean,
     val mode: PlanningMode,

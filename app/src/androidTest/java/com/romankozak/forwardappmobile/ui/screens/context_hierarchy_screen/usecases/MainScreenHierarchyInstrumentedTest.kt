@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.HierarchyStateBuilder
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.HierarchyUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FilterState
@@ -113,7 +113,7 @@ class MainScreenHierarchyInstrumentedTest {
   }
 
   private fun baseFilterState(
-    flatList: List<Project> = emptyList(),
+    flatList: List<Context> = emptyList(),
   ): FilterState =
     FilterState(
       flatList = flatList,
@@ -124,14 +124,14 @@ class MainScreenHierarchyInstrumentedTest {
       isReady = false,
     )
 
-  private fun readyState(flatList: List<Project>): FilterState = baseFilterState(flatList).copy(isReady = true)
+  private fun readyState(flatList: List<Context>): FilterState = baseFilterState(flatList).copy(isReady = true)
 
   private fun project(
     id: String,
     parentId: String? = null,
     order: Long = 0,
   ) =
-    Project(
+    Context(
       id = id,
       name = id,
       description = null,

@@ -5,14 +5,14 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import java.util.UUID
 
 @Entity(
     tableName = "note_documents",
     foreignKeys = [
         ForeignKey(
-            entity = Project::class,
+            entity = Context::class,
             parentColumns = ["id"],
             childColumns = ["projectId"],
             onDelete = ForeignKey.Companion.CASCADE,

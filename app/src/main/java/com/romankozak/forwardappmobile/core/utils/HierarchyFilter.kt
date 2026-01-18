@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.core.utils
 
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextHierarchyData
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 
 object HierarchyFilter {
     fun filter(
@@ -39,7 +39,7 @@ object HierarchyFilter {
     }
 
     private fun findParentIds(
-        project: Project,
+        project: Context,
         hierarchy: ContextHierarchyData,
     ): Set<String> {
         val parents = mutableSetOf<String>()

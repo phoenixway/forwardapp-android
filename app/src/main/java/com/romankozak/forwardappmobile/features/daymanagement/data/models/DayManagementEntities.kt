@@ -11,7 +11,7 @@ import com.google.gson.reflect.TypeToken
 import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
 import com.romankozak.forwardappmobile.features.contexts.data.models.DayStatus
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.TaskPriority
 import com.romankozak.forwardappmobile.features.contexts.data.models.TaskStatus
 import java.time.DayOfWeek
@@ -69,7 +69,7 @@ data class DayPlan(
             onDelete = ForeignKey.SET_NULL,
         ),
         ForeignKey(
-            entity = Project::class,
+            entity = Context::class,
             parentColumns = ["id"],
             childColumns = ["projectId"],
             onDelete = ForeignKey.SET_NULL,

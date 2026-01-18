@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
 
 
@@ -15,7 +15,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectTime
 @Composable
 fun ProjectDashboardView(
     modifier: Modifier = Modifier,
-    project: Project?,
+    project: Context?,
     projectLogs: List<ProjectExecutionLog>,
     projectArtifact: ProjectArtifact?,
     onStatusUpdate: (String, String?) -> Unit,

@@ -33,7 +33,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import kotlinx.coroutines.delay
 import java.util.UUID
 
@@ -42,8 +42,8 @@ fun FilterableListChooser(
     title: String,
     filterText: String,
     onFilterTextChanged: (String) -> Unit,
-    topLevelLists: List<Project>,
-    childMap: Map<String, List<Project>>,
+    topLevelLists: List<Context>,
+    childMap: Map<String, List<Context>>,
     expandedIds: Set<String>,
     onToggleExpanded: (String) -> Unit,
     onDismiss: () -> Unit,
@@ -54,7 +54,7 @@ fun FilterableListChooser(
 ) {
     var isCreatingMode by remember { mutableStateOf(false) }
     var newListName by remember { mutableStateOf("") }
-    var parentForNewList by remember { mutableStateOf<Project?>(null) }
+    var parentForNewList by remember { mutableStateOf<Context?>(null) }
     var highlightedListId by remember { mutableStateOf<String?>(null) }
     val keyboardController = LocalSoftwareKeyboardController.current
     val searchFocusRequester = remember { FocusRequester() }
@@ -368,15 +368,15 @@ private fun SelectableRootItem(
 
 @Composable
 private fun RecursiveSelectableListItem(
-    list: Project,
-    childMap: Map<String, List<Project>>,
+    list: Context,
+    childMap: Map<String, List<Context>>,
     level: Int,
     expandedIds: Set<String>,
     onToggleExpanded: (String) -> Unit,
     onSelect: (String) -> Unit,
     disabledIds: Set<String>,
     highlightedListId: String?,
-    onAddSubProjectRequest: (parentList: Project) -> Unit,
+    onAddSubProjectRequest: (parentList: Context) -> Unit,
 ) {
     val isExpanded = list.id in expandedIds
     val children = childMap[list.id]?.sortedBy { it.order } ?: emptyList()

@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 
 import android.net.Uri
 import androidx.compose.ui.text.input.TextFieldValue
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.recent.data.models.RecentItem
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 
@@ -24,9 +24,9 @@ sealed interface ProjectHierarchyScreenEvent {
     
     data class ProjectClick(val projectId: String) : ProjectHierarchyScreenEvent
 
-    data class ProjectMenuRequest(val project: Project) : ProjectHierarchyScreenEvent
+    data class ProjectMenuRequest(val project: Context) : ProjectHierarchyScreenEvent
 
-    data class ToggleProjectExpanded(val project: Project) : ProjectHierarchyScreenEvent
+    data class ToggleProjectExpanded(val project: Context) : ProjectHierarchyScreenEvent
 
     data class ProjectReorder(val fromId: String, val toId: String, val position: DropPosition) : ProjectHierarchyScreenEvent
 
@@ -46,11 +46,11 @@ sealed interface ProjectHierarchyScreenEvent {
     data object AddChecklistRequest : ProjectHierarchyScreenEvent
     data class ListChooserResult(val projectId: String?) : ProjectHierarchyScreenEvent
 
-    data class DeleteRequest(val project: Project) : ProjectHierarchyScreenEvent
+    data class DeleteRequest(val project: Context) : ProjectHierarchyScreenEvent
 
-    data class MoveRequest(val project: Project) : ProjectHierarchyScreenEvent
+    data class MoveRequest(val project: Context) : ProjectHierarchyScreenEvent
 
-    data class DeleteConfirm(val project: Project) : ProjectHierarchyScreenEvent
+    data class DeleteConfirm(val project: Context) : ProjectHierarchyScreenEvent
 
     data class MoveConfirm(val newParentId: String?) : ProjectHierarchyScreenEvent
 
@@ -90,10 +90,10 @@ sealed interface ProjectHierarchyScreenEvent {
     data object CommandDeckClick : ProjectHierarchyScreenEvent
 
     
-    data class EditRequest(val project: Project) : ProjectHierarchyScreenEvent
-    data class AddToDayPlanRequest(val project: Project) : ProjectHierarchyScreenEvent
-    data class SetReminderRequest(val project: Project) : ProjectHierarchyScreenEvent
-    data class FocusProject(val project: Project) : ProjectHierarchyScreenEvent
+    data class EditRequest(val project: Context) : ProjectHierarchyScreenEvent
+    data class AddToDayPlanRequest(val project: Context) : ProjectHierarchyScreenEvent
+    data class SetReminderRequest(val project: Context) : ProjectHierarchyScreenEvent
+    data class FocusProject(val project: Context) : ProjectHierarchyScreenEvent
 
     data object GoToSettings : ProjectHierarchyScreenEvent
 
@@ -134,7 +134,7 @@ sealed interface ProjectHierarchyScreenEvent {
 
     data class AddProjectConfirm(val name: String, val parentId: String?) : ProjectHierarchyScreenEvent
 
-    data class AddSubprojectRequest(val parentProject: Project) : ProjectHierarchyScreenEvent
+    data class AddSubprojectRequest(val parentProject: Context) : ProjectHierarchyScreenEvent
 
     data object CloseSearch : ProjectHierarchyScreenEvent
 

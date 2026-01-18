@@ -5,7 +5,7 @@ import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.config.FeatureToggles
 import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextHierarchyData
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.recent.data.models.RecentItem
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
@@ -69,12 +69,12 @@ constructor(
   private var isInitialized = false
 
   fun initialize(
-    scope: CoroutineScope,
-    allProjectsFlat: StateFlow<List<Project>>,
-    showRecentListsSheet: StateFlow<Boolean>,
-    isBottomNavExpanded: StateFlow<Boolean>,
-    showSearchDialog: StateFlow<Boolean>,
-    navigationSnapshot: StateFlow<NavigationSnapshot>,
+      scope: CoroutineScope,
+      allProjectsFlat: StateFlow<List<Context>>,
+      showRecentListsSheet: StateFlow<Boolean>,
+      isBottomNavExpanded: StateFlow<Boolean>,
+      showSearchDialog: StateFlow<Boolean>,
+      navigationSnapshot: StateFlow<NavigationSnapshot>,
   ) {
     if (isInitialized) return
 
@@ -312,7 +312,7 @@ constructor(
 internal class HierarchyStateBuilder(
   private val hierarchyUseCase: HierarchyUseCase,
 ) {
-  private var lastNonEmptyFlatList: List<Project> = emptyList()
+  private var lastNonEmptyFlatList: List<Context> = emptyList()
   private var lastNonEmptyHierarchy: ContextHierarchyData? = null
 
   fun buildHierarchyState(

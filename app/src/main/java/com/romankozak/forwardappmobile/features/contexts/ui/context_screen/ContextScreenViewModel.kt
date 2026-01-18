@@ -5,7 +5,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import android.app.Application
 import android.content.ClipData
 import android.content.ClipboardManager
-import android.content.Context
+import android.content.Context as AndroidContext
 import android.util.Log
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
@@ -27,7 +27,7 @@ import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectLogEntryTypeValues
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectViewMode
@@ -325,7 +325,7 @@ constructor(
       .getAllProjectsFlow()
       .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-  val subprojectChildren: StateFlow<Map<String?, List<Project>>> =
+  val subprojectChildren: StateFlow<Map<String?, List<com.romankozak.forwardappmobile.features.contexts.data.models.Context>>> =
     _allProjects
       .map { allProjects -> allProjects.groupBy { it.parentId } }
       .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
@@ -408,7 +408,7 @@ constructor(
   val contextMarkerToEmojiMap: StateFlow<Map<String, String>> =
     contextHandler.contextMarkerToEmojiMap
 
-  val project: StateFlow<Project?> =
+  val project: StateFlow<com.romankozak.forwardappmobile.features.contexts.data.models.Context?> =
     combine(projectIdFlow, _refreshTrigger) { id, _ -> id }
       .flatMapLatest { id ->
         if (id.isNotEmpty()) projectRepository.getProjectByIdFlow(id) else flowOf(null)
@@ -1384,7 +1384,7 @@ constructor(
   }
 
   override fun copyToClipboard(text: String, label: String) {
-    val clipboard = application.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    val clipboard = application.getSystemService(AndroidContext.CLIPBOARD_SERVICE) as ClipboardManager
     val clip = ClipData.newPlainText(label, text)
     clipboard.setPrimaryClip(clip)
   }
@@ -1473,7 +1473,7 @@ constructor(
     )
   }
 
-  fun onSubprojectCompletedChanged(subproject: Project, isCompleted: Boolean) {
+  fun onSubprojectCompletedChanged(subproject: com.romankozak.forwardappmobile.features.contexts.data.models.Context, isCompleted: Boolean) {
     viewModelScope.launch {
       val updatedSubproject = subproject.copy(isCompleted = isCompleted)
       projectRepository.updateProject(updatedSubproject)
@@ -2035,7 +2035,7 @@ constructor(
     }
   }
 
-  fun onChildProjectClick(childProject: Project) {
+  fun onChildProjectClick(childProject: com.romankozak.forwardappmobile.features.contexts.data.models.Context) {
     viewModelScope.launch {
       enhancedNavigationManager.navigateToProject(childProject.id, childProject.name)
     }

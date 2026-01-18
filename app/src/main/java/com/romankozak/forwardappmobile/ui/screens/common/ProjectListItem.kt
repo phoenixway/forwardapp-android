@@ -27,11 +27,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 
 @Composable
 fun ProjectListItem(
-    project: Project,
+    project: Context,
     onItemClick: () -> Unit,
     onRevealClick: () -> Unit,
 ) {

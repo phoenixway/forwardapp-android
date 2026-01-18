@@ -1,10 +1,10 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases
 
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FilterState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
 
-internal fun FilterState.withHierarchyFallback(allProjects: List<Project>): FilterState {
+internal fun FilterState.withHierarchyFallback(allProjects: List<Context>): FilterState {
   if (!isReady) return this
   if (flatList.isNotEmpty()) return this
   if (allProjects.isEmpty()) return this

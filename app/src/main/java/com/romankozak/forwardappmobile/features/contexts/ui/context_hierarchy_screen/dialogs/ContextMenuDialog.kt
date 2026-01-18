@@ -14,19 +14,19 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 
 @Composable
 fun ContextMenuDialog(
-    project: Project,
+    project: Context,
     onDismissRequest: () -> Unit,
-    onMoveRequest: (Project) -> Unit,
-    onAddSubprojectRequest: (Project) -> Unit,
-    onDeleteRequest: (Project) -> Unit,
-    onEditRequest: (Project) -> Unit,
-    onAddToDayPlanRequest: (Project) -> Unit,
-    onSetReminderRequest: (Project) -> Unit,
-    onFocusRequest: (Project) -> Unit,
+    onMoveRequest: (Context) -> Unit,
+    onAddSubprojectRequest: (Context) -> Unit,
+    onDeleteRequest: (Context) -> Unit,
+    onEditRequest: (Context) -> Unit,
+    onAddToDayPlanRequest: (Context) -> Unit,
+    onSetReminderRequest: (Context) -> Unit,
+    onFocusRequest: (Context) -> Unit,
 ) {
     Dialog(onDismissRequest = onDismissRequest) {
         Card(

@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 
 import android.net.Uri
 import android.os.Parcelable
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import kotlinx.parcelize.Parcelize
 
 
@@ -40,13 +40,13 @@ sealed class DialogState {
     data class AddProject(val parentId: String?) : DialogState()
 
     
-    data class ProjectMenu(val project: Project) : DialogState()
+    data class ProjectMenu(val project: Context) : DialogState()
 
     
-    data class ConfirmDelete(val project: Project) : DialogState()
+    data class ConfirmDelete(val project: Context) : DialogState()
 
     
-    data class EditProject(val project: Project) : DialogState()
+    data class EditProject(val project: Context) : DialogState()
 
     
     data class ConfirmImport(val uri: Uri) : DialogState()

@@ -12,7 +12,7 @@ sealed class BacklogItemContent {
 
     data class GoalItem(val goal: Goal, val reminders: List<Reminder>, override val listItem: ListItem) : BacklogItemContent()
 
-    data class SublistItem(val project: Project, val reminders: List<Reminder>, override val listItem: ListItem) : BacklogItemContent()
+    data class SublistItem(val project: Context, val reminders: List<Reminder>, override val listItem: ListItem) : BacklogItemContent()
 
     data class LinkItem(val link: LinkItemEntity, override val listItem: ListItem) : BacklogItemContent()
 

@@ -16,7 +16,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocu
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentItemEntity
 import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
 
 import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentEntity
@@ -26,10 +26,10 @@ private inline fun bumpVersion(version: Long) = if (version == Long.MAX_VALUE) v
 
 // Generic bump/soft-delete helpers for entities with (updatedAt, syncedAt, isDeleted, version)
 
-fun Project.bumpSync(now: Long = System.currentTimeMillis()) =
+fun Context.bumpSync(now: Long = System.currentTimeMillis()) =
     copy(updatedAt = now, syncedAt = null, version = bumpVersion(version))
 
-fun Project.softDelete(now: Long = System.currentTimeMillis()) =
+fun Context.softDelete(now: Long = System.currentTimeMillis()) =
     copy(isDeleted = true, updatedAt = now, syncedAt = null, version = bumpVersion(version))
 
 fun Goal.bumpSync(now: Long = System.currentTimeMillis()) =

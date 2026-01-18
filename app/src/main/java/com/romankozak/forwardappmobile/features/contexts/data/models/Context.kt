@@ -28,7 +28,7 @@ enum class ContextType {
         Index("system_key", unique = true, name = "idx_projects_systemkey_unique")
     ]
 )
-data class Project(
+data class Context(
     @PrimaryKey val id: String,
     val name: String,
     val description: String?,

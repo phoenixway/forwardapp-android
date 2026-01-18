@@ -11,7 +11,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEnt
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentItemEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
 import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentEntity
@@ -28,7 +28,7 @@ data class DiffResult<T>(
 )
 
 data class BackupDiff(
-    val projects: DiffResult<Project> = DiffResult(),
+    val projects: DiffResult<Context> = DiffResult(),
     val goals: DiffResult<Goal> = DiffResult(),
     val listItems: DiffResult<ListItem> = DiffResult(),
     val backlogOrders: DiffResult<BacklogOrder> = DiffResult(),

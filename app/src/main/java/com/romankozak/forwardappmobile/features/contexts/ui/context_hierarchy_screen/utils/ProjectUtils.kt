@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils
 
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextHierarchyData
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FlatHierarchyItem
 
@@ -30,7 +30,7 @@ fun fuzzyMatch(
 
 fun findAncestorsRecursive(
     projectId: String?,
-    projectLookup: Map<String, Project>,
+    projectLookup: Map<String, Context>,
     ids: MutableSet<String>,
     visited: MutableSet<String>,
 ) {
@@ -44,9 +44,9 @@ fun findAncestorsRecursive(
 
 fun findDescendantsForDeletion(
     projectId: String,
-    childMap: Map<String, List<Project>>,
+    childMap: Map<String, List<Context>>,
     visited: MutableSet<String> = mutableSetOf(),
-): List<Project> {
+): List<Context> {
     if (!visited.add(projectId)) return emptyList()
     val children = childMap[projectId] ?: emptyList()
     return children + children.flatMap { findDescendantsForDeletion(it.id, childMap, visited) }
@@ -55,7 +55,7 @@ fun findDescendantsForDeletion(
 
 fun getDescendantIds(
     projectId: String,
-    childMap: Map<String, List<Project>>,
+    childMap: Map<String, List<Context>>,
 ): Set<String> {
     val descendants = mutableSetOf<String>()
     val queue = ArrayDeque<String>()
@@ -78,7 +78,7 @@ fun buildPathToProject(
     val path = mutableListOf<BreadcrumbItem>()
 
     fun findPath(
-        projects: List<Project>,
+        projects: List<Context>,
         level: Int,
     ): Boolean {
         val sortedProjects = projects.sortedBy { it.order }
@@ -98,10 +98,10 @@ fun buildPathToProject(
 
 
 fun flattenHierarchy(
-    currentProjects: List<Project>,
-    projectMap: Map<String, List<Project>>,
-): List<Project> {
-    val result = mutableListOf<Project>()
+    currentProjects: List<Context>,
+    projectMap: Map<String, List<Context>>,
+): List<Context> {
+    val result = mutableListOf<Context>()
     for (project in currentProjects) {
         result.add(project)
         if (project.isExpanded) {
@@ -115,15 +115,15 @@ fun flattenHierarchy(
 }
 
 fun flattenHierarchyWithLevels(
-    projects: List<Project>,
-    childMap: Map<String, List<Project>>,
+    projects: List<Context>,
+    childMap: Map<String, List<Context>>,
     expandedIds: Set<String>? = null,
     level: Int = 0,
 ): List<FlatHierarchyItem> {
     val result = mutableListOf<FlatHierarchyItem>()
 
     fun traverse(
-        current: List<Project>,
+        current: List<Context>,
         currentLevel: Int,
     ) {
         val sortedProjects = current.sortedBy { it.order }

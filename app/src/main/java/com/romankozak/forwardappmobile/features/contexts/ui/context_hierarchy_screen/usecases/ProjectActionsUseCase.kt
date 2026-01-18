@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 
 import android.net.Uri
 import android.util.Log
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.data.repository.SyncRepository
@@ -27,7 +27,7 @@ class ProjectActionsUseCase @Inject constructor(
         id: String,
         parentId: String?,
         name: String,
-        allProjects: List<Project>,
+        allProjects: List<Context>,
     ) = withContext(ioDispatcher) {
         if (name.isBlank()) return@withContext
         projectRepository.createProjectWithId(id, name, parentId)
@@ -40,16 +40,16 @@ class ProjectActionsUseCase @Inject constructor(
     }
 
     suspend fun onDeleteProjectConfirmed(
-        project: Project,
-        childMap: Map<String, List<Project>>,
+        project: Context,
+        childMap: Map<String, List<Context>>,
     ) = withContext(ioDispatcher) {
         val projectsToDelete = findDescendantsForDeletion(project.id, childMap)
         projectRepository.deleteProjectsAndSubProjects(listOf(project) + projectsToDelete)
     }
 
     fun getMoveProjectRoute(
-        project: Project,
-        allProjects: List<Project>,
+        project: Context,
+        allProjects: List<Context>,
     ): NavTarget.ListChooser {
         val title = "Move '${project.name}'"
         val childMap = allProjects.filter { it.parentId != null }.groupBy { it.parentId!! }
@@ -66,7 +66,7 @@ class ProjectActionsUseCase @Inject constructor(
     suspend fun onListChooserResult(
         newParentId: String?,
         projectBeingMovedId: String?,
-        allProjects: List<Project>,
+        allProjects: List<Context>,
     ) = withContext(ioDispatcher) {
         val projectToMoveId = projectBeingMovedId ?: return@withContext
         val projectToMove = allProjects.find { it.id == projectToMoveId } ?: return@withContext
@@ -90,7 +90,7 @@ class ProjectActionsUseCase @Inject constructor(
         toId: String,
         position: DropPosition,
         isSearchActive: Boolean,
-        allProjects: List<Project>,
+        allProjects: List<Context>,
     ) = withContext(ioDispatcher) {
         if (fromId == toId || isSearchActive) return@withContext
 
@@ -132,7 +132,7 @@ class ProjectActionsUseCase @Inject constructor(
         val movedProject = fromProject.copy(parentId = newParentId)
         targetList.add(insertionIndex, movedProject)
 
-        val updates = mutableListOf<Project>()
+        val updates = mutableListOf<Context>()
 
         if (newParentId == sourceParentId) {
             val reordered =
@@ -171,7 +171,7 @@ class ProjectActionsUseCase @Inject constructor(
         }
     }
 
-    suspend fun collapseAllProjects(allProjects: List<Project>) = withContext(ioDispatcher) {
+    suspend fun collapseAllProjects(allProjects: List<Context>) = withContext(ioDispatcher) {
         val projectsToCollapse =
             allProjects
                 .filter { it.isExpanded }
@@ -181,7 +181,7 @@ class ProjectActionsUseCase @Inject constructor(
         }
     }
 
-    suspend fun onToggleExpanded(project: Project) = withContext(ioDispatcher) {
+    suspend fun onToggleExpanded(project: Context) = withContext(ioDispatcher) {
         projectRepository.updateProject(project.copy(isExpanded = !project.isExpanded))
     }
 

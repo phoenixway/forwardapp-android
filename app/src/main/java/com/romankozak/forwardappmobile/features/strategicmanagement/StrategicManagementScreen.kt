@@ -21,7 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.core.navigation.routes.MAIN_GRAPH_ROUTE
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ProjectHierarchyScreenViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenEvent
@@ -88,11 +88,11 @@ fun StrategicManagementScreen(
 
 @Composable
 private fun DashboardContent(
-  projects: List<Project>,
-  navController: NavController,
-  onRevealProject: (String) -> Unit,
-  scaffoldPadding: PaddingValues, // New parameter for Scaffold's padding
-  modifier: Modifier = Modifier,
+    projects: List<Context>,
+    navController: NavController,
+    onRevealProject: (String) -> Unit,
+    scaffoldPadding: PaddingValues, // New parameter for Scaffold's padding
+    modifier: Modifier = Modifier,
 ) {
   val (missionProjects, otherProjects) = remember(projects) {
       projects.partition { it.tags?.contains("mission") == true }
@@ -261,10 +261,10 @@ private fun DashboardCard(title: String, value: String, modifier: Modifier = Mod
 
 @Composable
 private fun ProjectsLazyColumn(
-  projects: List<Project>,
-  navController: NavController,
-  onRevealProject: (String) -> Unit,
-  modifier: Modifier = Modifier,
+    projects: List<Context>,
+    navController: NavController,
+    onRevealProject: (String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
   LazyColumn(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
     items(projects) { project ->

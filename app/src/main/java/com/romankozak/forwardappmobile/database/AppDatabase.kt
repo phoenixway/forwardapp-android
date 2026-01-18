@@ -67,7 +67,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.InboxRecord
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectFts
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructure
@@ -84,7 +84,7 @@ import com.romankozak.forwardappmobile.features.missions.data.model.TacticalMiss
     entities = [
         ConversationEntity::class,
         Goal::class,
-        Project::class,
+        Context::class,
         ListItem::class,
         BacklogOrder::class,
         ActivityRecord::class,

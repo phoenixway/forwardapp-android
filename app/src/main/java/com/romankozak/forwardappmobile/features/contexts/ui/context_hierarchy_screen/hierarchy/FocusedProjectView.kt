@@ -24,7 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mohamedrejeb.compose.dnd.DragAndDropState
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextHierarchyData
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
@@ -42,7 +42,7 @@ fun FocusedProjectView(
     focusedProjectId: String,
     hierarchy: ContextHierarchyData,
     breadcrumbs: List<BreadcrumbItem>,
-    dragAndDropState: DragAndDropState<Project>,
+    dragAndDropState: DragAndDropState<Context>,
     isSearchActive: Boolean,
     planningMode: PlanningMode,
     highlightedProjectId: String?,
@@ -50,13 +50,13 @@ fun FocusedProjectView(
     searchQuery: String,
     longDescendantsMap: Map<String, Boolean>,
     onEvent: (ProjectHierarchyScreenEvent) -> Unit,
-    onFocusProject: (Project) -> Unit,
-    onAddSubproject: (Project) -> Unit,
-    onDeleteProject: (Project) -> Unit,
-    onEditProject: (Project) -> Unit,
+    onFocusProject: (Context) -> Unit,
+    onAddSubproject: (Context) -> Unit,
+    onDeleteProject: (Context) -> Unit,
+    onEditProject: (Context) -> Unit,
     onProjectClick: (String) -> Unit,
-    onToggleExpanded: (Project) -> Unit,
-    onMenuRequested: (Project) -> Unit,
+    onToggleExpanded: (Context) -> Unit,
+    onMenuRequested: (Context) -> Unit,
     onProjectReorder: (fromId: String, toId: String, position: DropPosition) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,

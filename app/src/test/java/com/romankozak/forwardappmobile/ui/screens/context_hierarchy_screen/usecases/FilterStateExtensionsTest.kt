@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
 
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.withHierarchyFallback
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FilterState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
@@ -55,8 +55,8 @@ class FilterStateExtensionsTest {
         assertTrue(otherModeState.flatList.isEmpty())
     }
 
-    private fun project(id: String, parentId: String? = null): Project =
-        Project(
+    private fun project(id: String, parentId: String? = null): Context =
+        Context(
             id = id,
             name = id,
             description = null,

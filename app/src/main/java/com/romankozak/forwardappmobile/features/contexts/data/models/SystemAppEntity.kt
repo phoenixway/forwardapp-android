@@ -12,7 +12,7 @@ import java.util.UUID
     tableName = "system_apps",
     foreignKeys = [
         ForeignKey(
-            entity = Project::class,
+            entity = Context::class,
             parentColumns = ["id"],
             childColumns = ["project_id"],
             onDelete = ForeignKey.CASCADE,

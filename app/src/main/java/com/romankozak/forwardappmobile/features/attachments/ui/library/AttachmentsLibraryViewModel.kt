@@ -6,7 +6,7 @@ import android.util.Log
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.config.FeatureToggles
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 import com.romankozak.forwardappmobile.features.attachments.data.models.ProjectAttachmentCrossRef
@@ -47,7 +47,7 @@ class AttachmentsLibraryViewModel @Inject constructor(
                             @Suppress("UNCHECKED_CAST")
                             val links = array[1] as List<ProjectAttachmentCrossRef>
                             @Suppress("UNCHECKED_CAST")
-                            val projects = array[2] as List<Project>
+                            val projects = array[2] as List<Context>
                             val query = array[3] as String
                             val filter = array[4] as AttachmentLibraryFilter
                             

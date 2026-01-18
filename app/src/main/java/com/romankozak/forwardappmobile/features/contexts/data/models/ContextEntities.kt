@@ -20,7 +20,7 @@ import com.romankozak.forwardappmobile.features.activitytracker.data.models.Acti
     ],
     foreignKeys = [
         ForeignKey(
-            entity = Project::class,
+            entity = Context::class,
             parentColumns = ["id"],
             childColumns = ["list_id"],
             onDelete = ForeignKey.CASCADE,
@@ -86,7 +86,7 @@ data class Goal(
     tableName = "project_execution_logs",
     foreignKeys = [
         ForeignKey(
-            entity = Project::class,
+            entity = Context::class,
             parentColumns = ["id"],
             childColumns = ["projectId"],
             onDelete = ForeignKey.CASCADE,
@@ -110,7 +110,7 @@ data class ProjectExecutionLog(
     tableName = "inbox_records",
     foreignKeys = [
         ForeignKey(
-            entity = Project::class,
+            entity = Context::class,
             parentColumns = ["id"],
             childColumns = ["projectId"],
             onDelete = ForeignKey.CASCADE,
@@ -133,7 +133,7 @@ data class InboxRecord(
     tableName = "list_items",
     foreignKeys = [
         ForeignKey(
-            entity = Project::class,
+            entity = Context::class,
             parentColumns = ["id"],
             childColumns = ["project_id"],
             onDelete = ForeignKey.CASCADE,
@@ -161,7 +161,7 @@ data class GoalFts(
     val description: String?,
 )
 
-@Fts4(contentEntity = Project::class)
+@Fts4(contentEntity = Context::class)
 @Entity(tableName = "projects_fts")
 data class ProjectFts(
     val name: String,
@@ -189,7 +189,7 @@ data class GlobalLinkSearchResult(
 
 data class GlobalSubprojectSearchResult(
     @Embedded
-    val subproject: Project,
+    val subproject: Context,
     val parentProjectId: String,
     val parentProjectName: String,
     @TypeConverters(PathSegmentsConverter::class)
@@ -198,7 +198,7 @@ data class GlobalSubprojectSearchResult(
 
 data class GlobalProjectSearchResult(
     @Embedded
-    val project: Project,
+    val project: Context,
     @TypeConverters(PathSegmentsConverter::class)
     val pathSegments: List<String>,
 )

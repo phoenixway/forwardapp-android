@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases
 
 import android.util.Log
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.state.PlanningModeManager
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FilterState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
@@ -52,10 +52,10 @@ constructor(
   val filterStateFlow: StateFlow<FilterState> = _filterStateFlow.asStateFlow()
 
   val planningMode = planningModeManager.planningMode
-  private val lastNonEmptyProjects = MutableStateFlow<List<Project>>(emptyList())
+  private val lastNonEmptyProjects = MutableStateFlow<List<Context>>(emptyList())
 
   @OptIn(FlowPreview::class)
-  fun initialize(scope: CoroutineScope, allProjectsFlat: StateFlow<List<Project>>) {
+  fun initialize(scope: CoroutineScope, allProjectsFlat: StateFlow<List<Context>>) {
     if (isInitialized) return
     isInitialized = true
 
@@ -168,7 +168,7 @@ constructor(
     planningModeManager.changeMode(mode)
   }
 
-  fun toggleExpandedInPlanningMode(project: Project) {
+  fun toggleExpandedInPlanningMode(project: Context) {
     planningModeManager.toggleExpandedInPlanningMode(project)
   }
 }

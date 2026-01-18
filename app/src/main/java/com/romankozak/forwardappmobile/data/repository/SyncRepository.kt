@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.data.repository
 
 import android.content.ContentValues
-import android.content.Context
+import android.content.Context as AndroidContext
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
@@ -72,7 +72,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEnt
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectLogLevelValues
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStatusValues
@@ -126,7 +126,7 @@ data class SyncReport(
 
 private data class LocalSyncState(
     val goals: Map<String, Goal>,
-    val goalLists: Map<String, Project>,
+    val goalLists: Map<String, com.romankozak.forwardappmobile.features.contexts.data.models.Context>,
     val listItems: Map<String, ListItem>,
 )
 
@@ -135,7 +135,7 @@ class SyncRepository
 @Inject
 constructor(
     private val appDatabase: AppDatabase,
-    @param:ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: AndroidContext,
     private val goalDao: GoalDao,
     private val projectDao: ProjectDao,
     private val listItemDao: ListItemDao,
@@ -624,7 +624,7 @@ constructor(
             if (backupDuplicateKeys.isNotEmpty()) {
                 Log.w(IMPORT_TAG, "WARNING: Backup has duplicate system keys: $backupDuplicateKeys (обробляємо)")
                 // Вибираємо "правильну" версію для кожного дублювального ключа
-                val cleanedBackupSystem = mutableMapOf<String?, Project>()
+                val cleanedBackupSystem = mutableMapOf<String?, com.romankozak.forwardappmobile.features.contexts.data.models.Context>()
                 backupDuplicateKeys.forEach { key ->
                     val duplicates = backupDuplicatesByKey[key]!!
                     val chosen = duplicates.maxByOrNull { it.updatedAt ?: 0 } ?: duplicates.first()
@@ -1399,7 +1399,7 @@ constructor(
 
         changesByType[ChangeType.Update]?.forEach { change ->
             when (change.entityType) {
-                "Список" -> projectDao.update(change.entity as Project)
+                "Список" -> projectDao.update(change.entity as com.romankozak.forwardappmobile.features.contexts.data.models.Context)
                 "Ціль" -> goalDao.updateGoal(change.entity as Goal)
             }
         }
@@ -1407,7 +1407,7 @@ constructor(
         val addsAndMoves = (changesByType[ChangeType.Add] ?: emptyList()) + (changesByType[ChangeType.Move] ?: emptyList())
         addsAndMoves.forEach { change ->
             when (change.entityType) {
-                "Список" -> projectDao.insert(change.entity as Project)
+                "Список" -> projectDao.insert(change.entity as com.romankozak.forwardappmobile.features.contexts.data.models.Context)
                 "Ціль" -> goalDao.insertGoal(change.entity as Goal)
                 "Привʼязка" -> listItemDao.insertItem(change.entity as ListItem)
             }
@@ -1939,7 +1939,7 @@ constructor(
         }
     }
 
-    private fun Project.updatedTs(): Long = this.updatedAt ?: this.createdAt
+    private fun com.romankozak.forwardappmobile.features.contexts.data.models.Context.updatedTs(): Long = this.updatedAt ?: this.createdAt
     private fun Goal.updatedTs(): Long = this.updatedAt ?: this.createdAt
     private fun NoteDocumentEntity.updatedTs(): Long = this.updatedAt
     private fun NoteDocumentItemEntity.updatedTs(): Long = this.updatedAt
@@ -2537,7 +2537,7 @@ constructor(
         )
     }
 
-    private fun normalizeProject(project: Project): Project {
+    private fun normalizeProject(project: com.romankozak.forwardappmobile.features.contexts.data.models.Context): com.romankozak.forwardappmobile.features.contexts.data.models.Context {
         return project.copy(
             tags = project.tags ?: emptyList(),
             relatedLinks = project.relatedLinks ?: emptyList(),
@@ -2570,10 +2570,10 @@ constructor(
     }
 
     private fun mergeSystemProjects(
-        localSystem: List<Project>,
-        incomingSystem: List<Project>,
+        localSystem: List<com.romankozak.forwardappmobile.features.contexts.data.models.Context>,
+        incomingSystem: List<com.romankozak.forwardappmobile.features.contexts.data.models.Context>,
         syncedAt: Long
-    ): List<Project> {
+    ): List<com.romankozak.forwardappmobile.features.contexts.data.models.Context> {
         val localMap = localSystem.associateBy { it.systemKey!! }
         val incomingMap = incomingSystem.associateBy { it.systemKey!! }
 

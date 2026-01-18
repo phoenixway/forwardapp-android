@@ -6,7 +6,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
@@ -694,7 +694,7 @@ constructor(
 
 
 
-  private fun onToggleExpanded(project: Project) {
+  private fun onToggleExpanded(project: Context) {
     viewModelScope.launch {
       if (uiState.value.planningMode == PlanningMode.All) {
         projectActionsUseCase.onToggleExpanded(project)

@@ -15,7 +15,7 @@ import com.romankozak.forwardappmobile.features.daymanagement.data.models.Recurr
 import com.romankozak.forwardappmobile.features.ai.data.models.WeeklyInsights
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.domain.ai.events.TaskCreatedEvent
@@ -752,7 +752,7 @@ class DayManagementRepository
             }
         }
 
-        suspend fun getProject(id: String): Project? {
+        suspend fun getProject(id: String): Context? {
             return withContext(ioDispatcher) {
                 projectDao.getProjectById(id)
             }

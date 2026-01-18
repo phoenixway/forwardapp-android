@@ -7,7 +7,7 @@ import androidx.lifecycle.asFlow
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.data.logic.GoalScoringManager
@@ -38,7 +38,7 @@ enum class PendingAttachmentType {
 }
 
 data class AttachmentsUiState(
-    val project: Project? = null,
+    val project: Context? = null,
     val name: String = "",
     val tags: List<String> = emptyList(),
     val reminderTime: Long? = null,
@@ -74,7 +74,7 @@ class AttachmentsViewModel @Inject constructor(
     private val _uiEventFlow = Channel<UiEvent>()
     val uiEventFlow = _uiEventFlow.receiveAsFlow()
 
-    private var originalProject: Project? = null
+    private var originalProject: Context? = null
 
     init {
         viewModelScope.launch {
@@ -292,7 +292,7 @@ class AttachmentsViewModel @Inject constructor(
         _uiState.update { it.copy(tags = newTags.filter { it.isNotBlank() }) }
     }
 
-    fun onSave(): Project? {
+    fun onSave(): Context? {
         if (_uiState.value.name.isBlank()) return null
 
         val state = _uiState.value

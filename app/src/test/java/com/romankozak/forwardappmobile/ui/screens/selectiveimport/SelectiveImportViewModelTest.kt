@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.ui.screens.selectiveimport
 import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEntity
 import com.romankozak.forwardappmobile.data.repository.SyncRepository
 import com.romankozak.forwardappmobile.data.sync.BackupDiff
@@ -37,8 +37,8 @@ class SelectiveImportViewModelTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         Dispatchers.setMain(dispatcher)
         try {
-        val project1 = Project(id = "p1", name = "P1", description = null, parentId = null, createdAt = 1L, updatedAt = 2L)
-        val project2 = Project(id = "p2", name = "P2", description = null, parentId = null, createdAt = 1L, updatedAt = 2L)
+        val project1 = Context(id = "p1", name = "P1", description = null, parentId = null, createdAt = 1L, updatedAt = 2L)
+        val project2 = Context(id = "p2", name = "P2", description = null, parentId = null, createdAt = 1L, updatedAt = 2L)
         val attachment = AttachmentEntity(
             id = "att1",
             attachmentType = "NOTE_DOCUMENT",

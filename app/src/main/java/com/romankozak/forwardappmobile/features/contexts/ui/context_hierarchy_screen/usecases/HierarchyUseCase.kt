@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases
 
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextHierarchyData
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FilterState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningSettingsState
@@ -56,7 +56,7 @@ class HierarchyUseCase @Inject constructor() {
         return result
     }
 
-    private fun createRegularHierarchy(flatList: List<Project>): ContextHierarchyData {
+    private fun createRegularHierarchy(flatList: List<Context>): ContextHierarchyData {
         if (flatList.isEmpty()) {
             HierarchyDebugLogger.d { "createRegularHierarchy: empty flat list" }
             return ContextHierarchyData(
@@ -67,8 +67,8 @@ class HierarchyUseCase @Inject constructor() {
         }
 
         val projectsById = flatList.associateBy { it.id }
-        val topLevel = mutableListOf<Project>()
-        val childMap = mutableMapOf<String, MutableList<Project>>()
+        val topLevel = mutableListOf<Context>()
+        val childMap = mutableMapOf<String, MutableList<Context>>()
         var orphanCount = 0
 
         flatList.forEach { project ->
@@ -96,7 +96,7 @@ class HierarchyUseCase @Inject constructor() {
     }
 
     private fun createPlanningHierarchy(
-        flatList: List<Project>,
+        flatList: List<Context>,
         mode: PlanningMode,
         settings: PlanningSettingsState,
         expandedDaily: Set<String>?,
@@ -120,7 +120,7 @@ class HierarchyUseCase @Inject constructor() {
                 emptyList()
             }
 
-        val childrenByParentId: Map<String?, List<Project>> =
+        val childrenByParentId: Map<String?, List<Context>> =
             flatList.groupBy { it.parentId.normalizedParentId() }
         val descendantIds = mutableSetOf<String>()
 
@@ -161,8 +161,8 @@ class HierarchyUseCase @Inject constructor() {
             }
 
         val projectsById = displayProjects.associateBy { it.id }
-        val topLevel = mutableListOf<Project>()
-        val childMap = mutableMapOf<String, MutableList<Project>>()
+        val topLevel = mutableListOf<Context>()
+        val childMap = mutableMapOf<String, MutableList<Context>>()
 
         displayProjects.forEach { project ->
             if (hasValidParent(project, projectsById)) {
@@ -181,7 +181,7 @@ class HierarchyUseCase @Inject constructor() {
     }
 
     
-    fun createLongDescendantsMap(allProjects: List<Project>): Map<String, Boolean> {
+    fun createLongDescendantsMap(allProjects: List<Context>): Map<String, Boolean> {
         if (allProjects.isEmpty()) return emptyMap()
 
         val childMap = allProjects.filter { it.parentId != null }.groupBy { it.parentId!! }
@@ -251,7 +251,7 @@ class HierarchyUseCase @Inject constructor() {
 
     
     fun createFilteredListHierarchyForDialog(
-        allProjects: List<Project>,
+        allProjects: List<Context>,
         filterText: String,
         movingId: String?,
     ): ContextHierarchyData {
@@ -280,8 +280,8 @@ class HierarchyUseCase @Inject constructor() {
     }
 
     private fun hasValidParent(
-        project: Project,
-        projectsById: Map<String, Project>,
+        project: Context,
+        projectsById: Map<String, Context>,
     ): Boolean {
         val firstParentId = project.parentId.normalizedParentId() ?: return false
         if (firstParentId == project.id) return false

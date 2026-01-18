@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
 
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.HierarchyUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FilterState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
@@ -69,8 +69,8 @@ class HierarchyUseCaseTest {
         name: String = id,
         tags: List<String>? = null,
         order: Long = 0,
-    ): Project =
-        Project(
+    ): Context =
+        Context(
             id = id,
             name = name,
             description = null,

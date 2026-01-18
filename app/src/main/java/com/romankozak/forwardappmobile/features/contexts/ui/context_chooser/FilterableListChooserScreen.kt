@@ -41,7 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import kotlinx.coroutines.delay
 import java.util.*
 
@@ -65,7 +65,7 @@ fun FilterableListChooserScreen(
     Log.d("ListChooserScreen", "onConfirm called")
     var isCreatingMode by remember { mutableStateOf(false) }
     var newProjectName by remember { mutableStateOf("") }
-    var parentForNewProject by remember { mutableStateOf<Project?>(null) }
+    var parentForNewProject by remember { mutableStateOf<Context?>(null) }
     var highlightedProjectId by remember { mutableStateOf<String?>(null) }
 
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -554,15 +554,15 @@ private fun EnhancedEmptyState(hasFilter: Boolean) {
 
 @Composable
 private fun RecursiveSelectableListItem(
-    project: Project,
-    childMap: Map<String, List<Project>>,
+    project: Context,
+    childMap: Map<String, List<Context>>,
     level: Int,
     expandedIds: Set<String>,
     onToggleExpanded: (String) -> Unit,
     onSelect: (String) -> Unit,
     disabledIds: Set<String>,
     highlightedProjectId: String?,
-    onAddSubprojectRequest: (parentProject: Project) -> Unit,
+    onAddSubprojectRequest: (parentProject: Context) -> Unit,
     filterText: String,
 ) {
     val isExpanded = project.id in expandedIds

@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.dp
 import com.mohamedrejeb.compose.dnd.DragAndDropState
 import com.mohamedrejeb.compose.dnd.drag.DraggableItem
 import com.mohamedrejeb.compose.dnd.drop.dropTarget
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
@@ -24,10 +24,10 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun LegacySmartHierarchyView(
-    project: Project,
-    childMap: Map<String, List<Project>>,
+    project: Context,
+    childMap: Map<String, List<Context>>,
     level: Int,
-    dragAndDropState: DragAndDropState<Project>,
+    dragAndDropState: DragAndDropState<Context>,
     isSearchActive: Boolean,
     planningMode: PlanningMode,
     highlightedProjectId: String?,
@@ -37,8 +37,8 @@ fun LegacySmartHierarchyView(
     focusedProjectId: String?,
     longDescendantsMap: Map<String, Boolean>,
     onProjectClick: (String) -> Unit,
-    onToggleExpanded: (Project) -> Unit,
-    onMenuRequested: (Project) -> Unit,
+    onToggleExpanded: (Context) -> Unit,
+    onMenuRequested: (Context) -> Unit,
     onProjectReorder: (fromId: String, toId: String, position: DropPosition) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope

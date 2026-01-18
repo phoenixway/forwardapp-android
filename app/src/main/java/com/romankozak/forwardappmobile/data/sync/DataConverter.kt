@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.data.sync
 
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
@@ -35,13 +35,13 @@ fun DesktopGoal.toGoal(): Goal {
     )
 }
 
-fun DesktopGoalList.toProject(): Project {
+fun DesktopGoalList.toProject(): Context {
     val updatedAtMillis = this.updatedAt?.let {
         try { OffsetDateTime.parse(it, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toInstant().toEpochMilli() } catch (e: Exception) { null }
     }
     val createdAtMillis = try { OffsetDateTime.parse(this.createdAt, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toInstant().toEpochMilli() } catch (e: Exception) { System.currentTimeMillis() }
 
-    return Project(
+    return Context(
         id = this.id,
         name = this.name,
         description = this.description,

@@ -17,7 +17,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectViewMode
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
@@ -135,7 +135,7 @@ constructor(
             @Suppress("UNCHECKED_CAST")
             val goals = array[3] as List<Goal>
             @Suppress("UNCHECKED_CAST")
-            val projects = array[4] as List<Project>
+            val projects = array[4] as List<Context>
             @Suppress("UNCHECKED_CAST")
             val links = array[5] as List<LinkItemEntity>
             @Suppress("UNCHECKED_CAST")
@@ -169,7 +169,7 @@ constructor(
         attachments: List<AttachmentWithProject>,
         reminders: List<Reminder>,
         goals: List<Goal>,
-        projects: List<Project>,
+        projects: List<Context>,
         links: List<LinkItemEntity>,
         notes: List<LegacyNoteEntity>,
         noteDocuments: List<NoteDocumentEntity>,
@@ -304,18 +304,18 @@ constructor(
         projectId: String,
     ) = listItemRepository.deleteLinkByEntityIdAndProjectId(entityId, projectId)
 
-    fun getAllProjectsFlow(): Flow<List<Project>> =
+    fun getAllProjectsFlow(): Flow<List<Context>> =
         projectDao
             .getAllProjects()
             .map { projects -> projects.map { it.withNormalizedParentId() } }
 
-    suspend fun getProjectById(id: String): Project? =
+    suspend fun getProjectById(id: String): Context? =
         projectDao.getProjectById(id)?.withNormalizedParentId()
 
-    fun getProjectByIdFlow(id: String): Flow<Project?> =
+    fun getProjectByIdFlow(id: String): Flow<Context?> =
         projectDao.getProjectByIdStream(id).map { project -> project?.withNormalizedParentId() }
 
-    private fun Project.withNormalizedParentId(): Project {
+    private fun Context.withNormalizedParentId(): Context {
         val normalizedParentId =
             parentId
                 ?.trim()
@@ -328,7 +328,7 @@ constructor(
         }
     }
 
-    suspend fun updateProject(project: Project) {
+    suspend fun updateProject(project: Context) {
         val now = System.currentTimeMillis()
         val bumped =
             project.bumpSync(now)
@@ -336,7 +336,7 @@ constructor(
         recentItemsRepository.updateRecentItemDisplayName(project.id, project.name)
     }
 
-    suspend fun updateProjects(projects: List<Project>): Int =
+    suspend fun updateProjects(projects: List<Context>): Int =
         if (projects.isNotEmpty()) {
             projectDao.update(projects.map { it.bumpSync() })
         } else {
@@ -344,7 +344,7 @@ constructor(
         }
 
     @Transaction
-    suspend fun deleteProjectsAndSubProjects(projectsToDelete: List<Project>) {
+    suspend fun deleteProjectsAndSubProjects(projectsToDelete: List<Context>) {
         if (projectsToDelete.isEmpty()) return
         val projectIds = projectsToDelete.map { it.id }
         listItemRepository.deleteItemsForProjects(projectIds)
@@ -364,7 +364,7 @@ constructor(
     ) {
         val now = System.currentTimeMillis()
         val newProject =
-            Project(
+            Context(
                 id = id,
                 name = name,
                 parentId = parentId,
@@ -397,7 +397,7 @@ constructor(
 
     @Transaction
     suspend fun moveProject(
-        projectToMove: Project,
+        projectToMove: Context,
         newParentId: String?,
         allowSystemProjectMoves: Boolean = false,
     ) {
@@ -496,11 +496,11 @@ constructor(
 
     suspend fun findProjectIdsByTag(tag: String): List<String> = projectDao.getProjectIdsByTag(tag)
 
-    suspend fun getProjectsByType(projectType: ContextType): List<Project> = projectDao.getProjectsByType(projectType.name)
+    suspend fun getProjectsByType(projectType: ContextType): List<Context> = projectDao.getProjectsByType(projectType.name)
 
-    suspend fun getProjectsByReservedGroup(reservedGroup: String): List<Project> = projectDao.getProjectsByReservedGroup(reservedGroup)
+    suspend fun getProjectsByReservedGroup(reservedGroup: String): List<Context> = projectDao.getProjectsByReservedGroup(reservedGroup)
 
-    suspend fun getAllProjects(): List<Project> = projectDao.getAll()
+    suspend fun getAllProjects(): List<Context> = projectDao.getAll()
 
 
 
@@ -552,7 +552,7 @@ constructor(
         parentProjectId: String,
         roleCode: String,
         title: String
-    ): Project {
+    ): Context {
         val existing = projectDao.findChildByRole(parentProjectId, roleCode)
         if (existing != null) return existing
         val newId = UUID.randomUUID().toString()
@@ -562,7 +562,7 @@ constructor(
             parentId = parentProjectId,
             roleCode = roleCode,
         )
-        return projectDao.getProjectById(newId) ?: Project(
+        return projectDao.getProjectById(newId) ?: Context(
             id = newId,
             name = title,
             parentId = parentProjectId,

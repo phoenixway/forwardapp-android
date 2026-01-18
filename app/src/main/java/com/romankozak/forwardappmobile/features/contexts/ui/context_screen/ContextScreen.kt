@@ -29,7 +29,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.domain.ner.NerState
 import com.romankozak.forwardappmobile.domain.ner.ReminderParseResult
 import com.romankozak.forwardappmobile.ui.common.components.ShareDialog
@@ -382,7 +382,7 @@ private fun ProjectBottomBar(
     onMenuExpandedChange: (Boolean) -> Unit,
     reminderParseResult: ReminderParseResult?,
     suggestions: List<String>,
-    project: Project?,
+    project: Context?,
     onShowDisplayPropertiesClick: () -> Unit,
     holdMenuController: com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller
 ) {

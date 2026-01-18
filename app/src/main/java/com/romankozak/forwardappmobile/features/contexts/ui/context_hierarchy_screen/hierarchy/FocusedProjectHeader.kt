@@ -17,11 +17,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 
 @Composable
 fun FocusedProjectHeader(
-    project: Project,
+    project: Context,
     onMoreActionsClick: () -> Unit,
     onProjectClick: () -> Unit,
     modifier: Modifier = Modifier,

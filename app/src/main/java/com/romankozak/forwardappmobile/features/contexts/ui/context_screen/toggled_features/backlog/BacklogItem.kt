@@ -43,7 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
@@ -266,17 +266,17 @@ private fun CompletedBadge(
 
 @Composable
 private fun InternalSubprojectItem(
-    subproject: Project,
+    subproject: Context,
     reorderableScope: ReorderableCollectionItemScope,
     modifier: Modifier = Modifier,
     onItemClick: () -> Unit,
-                                   onLongClick: () -> Unit,
-                                   onMoreClick: () -> Unit,
-                                   onCheckedChange: (Boolean) -> Unit,
-                                   onRelatedLinkClick: (RelatedLink) -> Unit,
-                                   showCheckbox: Boolean,
-                                   isSelected: Boolean,
-                                   contextMarkerToEmojiMap: Map<String, String>
+    onLongClick: () -> Unit,
+    onMoreClick: () -> Unit,
+    onCheckedChange: (Boolean) -> Unit,
+    onRelatedLinkClick: (RelatedLink) -> Unit,
+    showCheckbox: Boolean,
+    isSelected: Boolean,
+    contextMarkerToEmojiMap: Map<String, String>
 ) {
     val parsedData = rememberParsedText(subproject.name, contextMarkerToEmojiMap)
     val tagContextIcons = remember(subproject.tags, contextMarkerToEmojiMap) {

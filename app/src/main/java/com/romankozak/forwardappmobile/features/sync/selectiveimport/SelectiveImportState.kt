@@ -9,7 +9,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEnt
 import com.romankozak.forwardappmobile.features.contexts.data.models.ListItem
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentItemEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
 import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.InboxRecord
@@ -28,7 +28,7 @@ data class SelectiveImportState(
 )
 
 data class SelectableDatabaseContent(
-    val projects: List<SelectableDiffItem<Project>> = emptyList(),
+    val projects: List<SelectableDiffItem<Context>> = emptyList(),
     val goals: List<SelectableDiffItem<Goal>> = emptyList(),
     val legacyNotes: List<SelectableDiffItem<LegacyNoteEntity>> = emptyList(),
     val activityRecords: List<SelectableDiffItem<ActivityRecord>> = emptyList(),

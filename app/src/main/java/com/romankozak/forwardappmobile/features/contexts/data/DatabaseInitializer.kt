@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.features.contexts.data
 
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectDao
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextType
 import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedGroup
 import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedContextKeys
@@ -51,7 +51,7 @@ class DatabaseInitializer @Inject constructor(
             return existingProject.id
         }
 
-        val newProject = Project(
+        val newProject = Context(
             id = UUID.randomUUID().toString(),
             systemKey = systemKey,
             name = name,

@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.features.contexts.data.models
 
 data class ContextHierarchyData(
-    val allProjects: List<Project> = emptyList(),
-    val topLevelProjects: List<Project> = emptyList(),
-    val childMap: Map<String, List<Project>> = emptyMap(),
+    val allProjects: List<Context> = emptyList(),
+    val topLevelProjects: List<Context> = emptyList(),
+    val childMap: Map<String, List<Context>> = emptyMap(),
 )

@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel
 
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStatusValues
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.BacklogMarkdownHandlerResultListener
@@ -14,7 +14,7 @@ class ProjectMarkdownExporter
     @Inject
     constructor() {
         fun exportProjectStateToMarkdown(
-            project: Project?,
+            project: Context?,
             backlog: List<BacklogItemContent>,
             logs: List<ProjectExecutionLog>,
             listener: BacklogMarkdownHandlerResultListener,

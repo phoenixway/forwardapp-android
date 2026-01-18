@@ -19,7 +19,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocu
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentItemEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.SystemAppEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectArtifact
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructure
@@ -48,7 +48,7 @@ data class DatabaseContent(
     @SerializedName(value = "goals", alternate = ["a"])
     val goals: List<Goal> = emptyList(),
     @SerializedName(value = "projects", alternate = ["goalLists"])
-    val projects: List<Project> = emptyList(),
+    val projects: List<Context> = emptyList(),
     @SerializedName(value = "listItems", alternate = ["c"])
     val listItems: List<ListItem> = emptyList(),
     @SerializedName(value = "backlogOrders", alternate = ["order"])

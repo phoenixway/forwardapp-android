@@ -27,7 +27,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectArti
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectViewMode
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectExecutionLog
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.toggled_features.backlog.BacklogListScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.toggled_features.projectrealization.ProjectDashboardView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.toggled_features.attachments.AttachmentsView
@@ -163,7 +163,7 @@ fun GoalDetailContent(
 @Composable
 private fun DashboardOverview(
     modifier: Modifier = Modifier,
-    project: Project?,
+    project: Context?,
     attachments: List<BacklogItemContent>,
     onAttachmentClick: (BacklogItemContent) -> Unit,
     onShowProperties: () -> Unit,

@@ -7,7 +7,7 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverters
 import com.romankozak.forwardappmobile.features.contexts.data.models.Converters
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.missions.domain.model.MissionPriority
 import com.romankozak.forwardappmobile.features.missions.domain.model.MissionStatus
 
@@ -15,7 +15,7 @@ import com.romankozak.forwardappmobile.features.missions.domain.model.MissionSta
     tableName = "tactical_missions",
     foreignKeys = [
         ForeignKey(
-            entity = Project::class,
+            entity = Context::class,
             parentColumns = ["id"],
             childColumns = ["projectId"],
             onDelete = ForeignKey.SET_NULL

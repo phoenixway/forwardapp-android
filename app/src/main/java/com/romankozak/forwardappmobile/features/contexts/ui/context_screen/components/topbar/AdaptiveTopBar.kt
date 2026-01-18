@@ -7,14 +7,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectViewMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.GoalActionType
 
 @Composable
 fun AdaptiveTopBar(
     isSelectionModeActive: Boolean,
-    project: Project?,
+    project: Context?,
     selectedCount: Int,
     areAllSelected: Boolean,
     onClearSelection: () -> Unit,

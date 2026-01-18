@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 
 import android.net.Uri
 import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
@@ -32,15 +32,15 @@ class DialogUseCase @Inject constructor(
         dialogStateManager.onAddNewProjectRequest()
     }
 
-    fun onAddSubprojectRequest(parentProject: Project) {
+    fun onAddSubprojectRequest(parentProject: Context) {
         dialogStateManager.onAddSubprojectRequest(parentProject)
     }
 
-    fun onMenuRequested(project: Project) {
+    fun onMenuRequested(project: Context) {
         dialogStateManager.onMenuRequested(project)
     }
 
-    fun onDeleteRequest(project: Project) {
+    fun onDeleteRequest(project: Context) {
         dialogStateManager.onDeleteRequest(project)
     }
 
@@ -86,7 +86,7 @@ class DialogUseCase @Inject constructor(
             onReminderDialogDismiss()
         }
 
-    fun onSetReminderForProject(scope: CoroutineScope, project: Project) {
+    fun onSetReminderForProject(scope: CoroutineScope, project: Context) {
         scope.launch {
             val reminders = reminderRepository.getRemindersForEntityFlow(project.id).firstOrNull()
             val record = ActivityRecord(

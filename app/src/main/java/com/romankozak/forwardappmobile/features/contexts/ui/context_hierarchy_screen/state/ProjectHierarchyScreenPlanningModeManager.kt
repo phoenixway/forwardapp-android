@@ -2,7 +2,7 @@
 
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.state
 
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenPlanningMode
 import dagger.hilt.android.scopes.ViewModelScoped
@@ -34,7 +34,7 @@ class ProjectHierarchyScreenPlanningModeManager
             _planningMode.value = mode
         }
 
-        fun toggleExpandedInPlanningMode(project: Project) {
+        fun toggleExpandedInPlanningMode(project: Context) {
             val currentStateFlow =
                 when (_planningMode.value) {
                     PlanningMode.Today -> _expandedInDailyMode

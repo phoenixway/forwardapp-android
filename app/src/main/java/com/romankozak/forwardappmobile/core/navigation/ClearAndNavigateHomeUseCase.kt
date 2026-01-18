@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.core.navigation
 
 import android.util.Log
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
@@ -39,7 +39,7 @@ sealed class ClearResult {
 
 
 data class ClearExecutionContext(
-    val currentProjects: List<Project>,
+    val currentProjects: List<Context>,
     val subStateStack: StateFlow<List<ProjectHierarchyScreenSubState>>,
     val searchUseCase: ProjectHierarchyScreenSearchUseCase,
     val planningUseCase: ProjectHierarchyScreenPlanningUseCase?,
@@ -141,7 +141,7 @@ class ClearAndNavigateHomeUseCase
             }
         }
 
-        private suspend fun collapseExpandedProjects(currentProjects: List<Project>) {
+        private suspend fun collapseExpandedProjects(currentProjects: List<Context>) {
             withContext(ioDispatcher) {
                 val expandedProjects = currentProjects.filter { it.isExpanded }
                 Log.d(TAG, "Found ${expandedProjects.size} expanded projects to collapse")
@@ -187,7 +187,7 @@ class ClearAndNavigateHomeUseCase
 
         @Deprecated("Use execute() with ClearCommand instead")
         suspend operator fun invoke(
-            currentProjects: List<Project>,
+            currentProjects: List<Context>,
             onComplete: () -> Unit,
         ) {
             collapseExpandedProjects(currentProjects)
@@ -198,7 +198,7 @@ class ClearAndNavigateHomeUseCase
 
         @Deprecated("Use execute() with ClearCommand instead")
         suspend operator fun invoke(
-            currentProjects: List<Project>,
+            currentProjects: List<Context>,
             onSubStateCleared: () -> Unit,
             onNavigationCleared: () -> Unit,
             onNavigateHome: () -> Unit,
@@ -220,7 +220,7 @@ class ClearAndNavigateHomeUseCase
 
 
 fun createClearExecutionContext(
-    currentProjects: List<Project>,
+    currentProjects: List<Context>,
     subStateStack: StateFlow<List<ProjectHierarchyScreenSubState>>,
     searchUseCase: ProjectHierarchyScreenSearchUseCase,
     planningUseCase: ProjectHierarchyScreenPlanningUseCase? = null,

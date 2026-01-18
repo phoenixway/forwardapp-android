@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases
 
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.core.navigation.ClearAndNavigateHomeUseCase
 import com.romankozak.forwardappmobile.core.navigation.ClearCommand
 import com.romankozak.forwardappmobile.core.navigation.ClearResult
@@ -21,7 +21,7 @@ class NavigationUseCase @Inject constructor(
 ) {
     private var enhancedNavigationManager: EnhancedNavigationManager? = null
     private var uiEventChannel: Channel<ProjectUiEvent>? = null
-    private var allProjectsFlat: StateFlow<List<Project>>? = null
+    private var allProjectsFlat: StateFlow<List<Context>>? = null
 
     private val _isProcessingReveal = MutableStateFlow(false)
     val isProcessingReveal: StateFlow<Boolean> = _isProcessingReveal
@@ -32,7 +32,7 @@ class NavigationUseCase @Inject constructor(
     fun attach(
         enhancedNavigationManager: EnhancedNavigationManager,
         uiEventChannel: Channel<ProjectUiEvent>,
-        allProjectsFlat: StateFlow<List<Project>>,
+        allProjectsFlat: StateFlow<List<Context>>,
     ) {
         this.enhancedNavigationManager = enhancedNavigationManager
         this.uiEventChannel = uiEventChannel
@@ -48,7 +48,7 @@ class NavigationUseCase @Inject constructor(
         _isAttached.value = false
     }
 
-    private fun createClearContext(currentProjects: List<Project>) =
+    private fun createClearContext(currentProjects: List<Context>) =
         enhancedNavigationManager?.let { manager ->
             uiEventChannel?.let { channel ->
                 createClearExecutionContext(

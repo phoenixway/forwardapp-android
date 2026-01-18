@@ -54,7 +54,7 @@ import androidx.compose.ui.unit.dp
 import com.mohamedrejeb.compose.dnd.DragAndDropState
 import com.mohamedrejeb.compose.dnd.drag.DraggableItem
 import com.mohamedrejeb.compose.dnd.drop.dropTarget
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FlatHierarchyItem
@@ -148,18 +148,18 @@ fun highlightSubstring(
 
 @Composable
 fun ProjectRow(
-    project: Project,
+    project: Context,
     level: Int,
     hasChildren: Boolean,
     onProjectClick: (String) -> Unit,
-    onToggleExpanded: (project: Project) -> Unit,
-    onMenuRequested: (project: Project) -> Unit,
+    onToggleExpanded: (project: Context) -> Unit,
+    onMenuRequested: (project: Context) -> Unit,
     isCurrentlyDragging: Boolean,
     isHovered: Boolean,
     isDraggingDown: Boolean,
     isHighlighted: Boolean,
     showFocusButton: Boolean,
-    onFocusRequested: (project: Project) -> Unit,
+    onFocusRequested: (project: Context) -> Unit,
     modifier: Modifier = Modifier,
     displayName: AnnotatedString? = null,
     isFocused: Boolean = false,
@@ -285,21 +285,21 @@ fun ProjectRow(
 
 @Composable
 fun SwipeableProjectRow(
-    project: Project,
+    project: Context,
     level: Int,
     hasChildren: Boolean,
     onProjectClick: (String) -> Unit,
-    onToggleExpanded: (project: Project) -> Unit,
-    onMenuRequested: (project: Project) -> Unit,
+    onToggleExpanded: (project: Context) -> Unit,
+    onMenuRequested: (project: Context) -> Unit,
     isCurrentlyDragging: Boolean,
     isHovered: Boolean,
     isDraggingDown: Boolean,
     isHighlighted: Boolean,
     showFocusButton: Boolean,
-    onFocusRequested: (project: Project) -> Unit,
-    onAddSubproject: (project: Project) -> Unit,
-    onDelete: (project: Project) -> Unit,
-    onEdit: (project: Project) -> Unit,
+    onFocusRequested: (project: Context) -> Unit,
+    onAddSubproject: (project: Context) -> Unit,
+    onDelete: (project: Context) -> Unit,
+    onEdit: (project: Context) -> Unit,
     modifier: Modifier = Modifier,
     displayName: AnnotatedString? = null,
     isFocused: Boolean = false,
@@ -579,7 +579,7 @@ fun BreadcrumbNavigation(
 
 internal fun buildVisibleHierarchy(
     flattenedHierarchy: List<FlatHierarchyItem>,
-    childMap: Map<String, List<Project>>,
+    childMap: Map<String, List<Context>>,
     longDescendantsMap: Map<String, Boolean>,
 ): List<FlatHierarchyItem> {
     val visibleItems = mutableListOf<FlatHierarchyItem>()
@@ -611,8 +611,8 @@ internal fun buildVisibleHierarchy(
 @Composable
 fun HierarchyListItem(
     item: FlatHierarchyItem,
-    childMap: Map<String, List<Project>>,
-    dragAndDropState: DragAndDropState<Project>,
+    childMap: Map<String, List<Context>>,
+    dragAndDropState: DragAndDropState<Context>,
     isSearchActive: Boolean,
     planningMode: PlanningMode,
     highlightedProjectId: String?,
@@ -621,13 +621,13 @@ fun HierarchyListItem(
     focusedProjectId: String?,
     longDescendantsMap: Map<String, Boolean>,
     onProjectClick: (String) -> Unit,
-    onToggleExpanded: (Project) -> Unit,
-    onMenuRequested: (Project) -> Unit,
+    onToggleExpanded: (Context) -> Unit,
+    onMenuRequested: (Context) -> Unit,
     onProjectReorder: (fromId: String, toId: String, position: DropPosition) -> Unit,
-    onFocusProject: (Project) -> Unit,
-    onAddSubproject: (Project) -> Unit,
-    onDeleteProject: (Project) -> Unit,
-    onEditProject: (Project) -> Unit,
+    onFocusProject: (Context) -> Unit,
+    onAddSubproject: (Context) -> Unit,
+    onDeleteProject: (Context) -> Unit,
+    onEditProject: (Context) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {

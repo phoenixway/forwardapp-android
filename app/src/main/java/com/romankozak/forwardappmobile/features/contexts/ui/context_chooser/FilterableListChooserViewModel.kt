@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_chooser
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.features.contexts.data.models.Project
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -12,8 +12,8 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class ChooserUiState(
-    val topLevelProjects: List<Project> = emptyList(),
-    val childMap: Map<String, List<Project>> = emptyMap(),
+    val topLevelProjects: List<Context> = emptyList(),
+    val childMap: Map<String, List<Context>> = emptyMap(),
 )
 
 @HiltViewModel
@@ -64,7 +64,7 @@ class FilterableListChooserViewModel
 
                     matchingProjects.forEach { matchedProject ->
                         val path = mutableSetOf<String>()
-                        var current: Project? = matchedProject
+                        var current: Context? = matchedProject
                         while (current != null && current.id !in path) {
                             path.add(current.id)
                             visibleIds.add(current.id)
