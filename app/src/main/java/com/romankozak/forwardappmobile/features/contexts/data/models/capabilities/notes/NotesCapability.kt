@@ -4,14 +4,13 @@ import com.romankozak.forwardappmobile.core.capability.*
 
 object NotesCapability : Capability {
 
-    override val descriptor = CapabilityDescriptor(
-        id = CapabilityId("notes"),
-        title = "Notes",
-    )
+    override val descriptor = object : CapabilityDescriptor {
+        override val id = CapabilityId("notes")
+        override val title = "Notes"
+    }
 
     override fun register(runtime: CapabilityRuntime) {
-        // ПОКИ ПУСТО
-        // runtime.registerScreen(...)
-        // runtime.registerRule(...)
+        TODO("Not yet implemented")
     }
 }
+

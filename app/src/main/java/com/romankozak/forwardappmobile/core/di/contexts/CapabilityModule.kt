@@ -10,6 +10,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
+// core/di/CapabilityModule.kt
 @Module
 @InstallIn(SingletonComponent::class)
 object CapabilityModule {
@@ -24,9 +25,7 @@ object CapabilityModule {
     @Provides
     @Singleton
     fun provideCapabilityCatalog(
-        capabilities: Set<@JvmSuppressWildcards Capability>,
+        capabilities: Set<@JvmSuppressWildcards Capability>
     ): CapabilityCatalog =
-        InMemoryCapabilityCatalog(
-            capabilities.map { it.descriptor }.toSet(),
-        )
+        InMemoryCapabilityCatalog(capabilities)
 }

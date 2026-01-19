@@ -1,12 +1,22 @@
+// core/capability/InMemoryCapabilityCatalog.kt
 package com.romankozak.forwardappmobile.core.capability
 
-class InMemoryCapabilityCatalog(
-    private val descriptors: Set<CapabilityDescriptor>,
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+class InMemoryCapabilityCatalog @Inject constructor(
+    capabilities: Set<@JvmSuppressWildcards Capability>
 ) : CapabilityCatalog {
 
-    override fun all(): Set<CapabilityDescriptor> = descriptors
+    private val descriptors: Map<CapabilityId, CapabilityDescriptor> =
+        capabilities
+            .map { it.descriptor }
+            .associateBy { it.id }
+
+    override fun all(): Set<CapabilityDescriptor> =
+        descriptors.values.toSet()
 
     override fun get(id: CapabilityId): CapabilityDescriptor? =
-        descriptors.firstOrNull { it.id == id }
+        descriptors[id]
 }
-

@@ -1,6 +1,7 @@
+// core/capability/CapabilityDescriptor.kt
 package com.romankozak.forwardappmobile.core.capability
 
-data class CapabilityDescriptor(
-    val id: CapabilityId,
+interface CapabilityDescriptor {
+    val id: CapabilityId
     val title: String
-)
+}
