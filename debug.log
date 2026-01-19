@@ -1,0 +1,18 @@
+2026-01-19 10:13:13,459 - debug - INFO - DEBUG: print_system: '✨ Angelica AI (v0.1.0)
+Model: deepseek-coder
+Working Directory: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android'
+2026-01-19 10:13:13,459 - debug - INFO - DEBUG: _add_message called with classes: chat-message system-message
+2026-01-19 10:13:13,459 - debug - INFO - DEBUG: Message mounted and scrolled
+2026-01-19 10:13:17,933 - debug - INFO - DEBUG: on_history_input_submitted called with: '/models'
+2026-01-19 10:13:17,933 - debug - INFO - DEBUG: detected command '/models', spawning worker
+2026-01-19 10:13:17,933 - debug - INFO - Command triggered: /models
+2026-01-19 10:13:17,933 - debug - INFO - DEBUG: pick_option called with prompt: 'Select AI Model (Current: deepseek-coder)'
+2026-01-19 10:13:17,934 - debug - INFO - DEBUG: Entering _pick_screen_main_thread with screen: SelectionScreen()
+2026-01-19 10:13:17,960 - debug - INFO - DEBUG: Screen pushed, awaiting future
+2026-01-19 10:13:17,966 - debug - INFO - DEBUG: SelectionScreen mounted
+2026-01-19 10:13:30,345 - debug - INFO - DEBUG: Escape key pressed in SelectionScreen
+2026-01-19 10:13:30,347 - debug - INFO - DEBUG: Screen callback triggered with result: None
+2026-01-19 10:13:30,354 - debug - INFO - DEBUG: Future resolved in _pick_screen_main_thread: None
+2026-01-19 10:13:30,354 - debug - INFO - DEBUG: print_system: 'Model selection cancelled.'
+2026-01-19 10:13:30,354 - debug - INFO - DEBUG: _add_message called with classes: chat-message system-message
+2026-01-19 10:13:30,354 - debug - INFO - DEBUG: Message mounted and scrolled

@@ -1,8 +1,8 @@
 package com.romankozak.forwardappmobile.core.di.contexts
 
 import com.romankozak.forwardappmobile.core.capability.Capability
-import com.romankozak.forwardappmobile.core.capability.CapabilityCatalog
-import com.romankozak.forwardappmobile.core.capability.InMemoryCapabilityCatalog
+import com.romankozak.forwardappmobile.core.capability.CapabilityRegistry
+import com.romankozak.forwardappmobile.core.capability.InMemoryCapabilityRegistry
 import com.romankozak.forwardappmobile.features.contexts.data.models.capabilities.notes.NotesCapability
 import dagger.Module
 import dagger.Provides
@@ -26,6 +26,6 @@ object CapabilityModule {
     @Singleton
     fun provideCapabilityCatalog(
         capabilities: Set<@JvmSuppressWildcards Capability>
-    ): CapabilityCatalog =
-        InMemoryCapabilityCatalog(capabilities)
+    ): CapabilityRegistry =
+        InMemoryCapabilityRegistry(capabilities)
 }

@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.core.capability.navigation
+package com.romankozak.forwardappmobile.core.navigation.capability
 
 import androidx.compose.runtime.Composable
 import com.romankozak.forwardappmobile.core.context.ViewId

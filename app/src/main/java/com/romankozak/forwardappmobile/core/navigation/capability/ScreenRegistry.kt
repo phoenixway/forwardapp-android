@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.core.capability.navigation
+package com.romankozak.forwardappmobile.core.navigation.capability
 
 import javax.inject.Inject
 import javax.inject.Singleton
