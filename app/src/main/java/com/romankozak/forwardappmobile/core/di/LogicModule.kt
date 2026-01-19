@@ -4,9 +4,6 @@ import com.romankozak.forwardappmobile.data.logic.GoalScoringManager
 import com.romankozak.forwardappmobile.domain.lifecontext.DefaultLifeContextProcessor
 import com.romankozak.forwardappmobile.domain.lifecontext.LifeContextProcessor
 import com.romankozak.forwardappmobile.domain.lifecontext.LifeContextRule
-import com.romankozak.forwardappmobile.core.capability.CapabilityRegistry
-import com.romankozak.forwardappmobile.core.capability.InMemoryCapabilityRegistry
-import com.romankozak.forwardappmobile.features.contexts.data.models.capabilities.notes.NotesCapability
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -19,23 +16,18 @@ object LogicModule {
 
     @Provides
     @Singleton
-    fun provideGoalScoringManager(): GoalScoringManager = GoalScoringManager
+    fun provideGoalScoringManager(): GoalScoringManager =
+        GoalScoringManager
 
     @Provides
     @Singleton
-    fun provideLifeContextRules(): List<LifeContextRule> = emptyList()
+    fun provideLifeContextRules(): List<LifeContextRule> =
+        emptyList()
 
     @Provides
     @Singleton
     fun provideLifeContextProcessor(
-        rules: @JvmSuppressWildcards List<LifeContextRule>
-    ): LifeContextProcessor = DefaultLifeContextProcessor(rules)
-
-    @Provides
-    @Singleton
-    fun provideFeatureRegistry(): CapabilityRegistry {
-        return InMemoryCapabilityRegistry(
-            setOf(NotesCapability)
-        )
-    }
+        rules: @JvmSuppressWildcards List<LifeContextRule>,
+    ): LifeContextProcessor =
+        DefaultLifeContextProcessor(rules)
 }

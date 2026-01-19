@@ -2,11 +2,12 @@ package com.romankozak.forwardappmobile.core.gate
 
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.context.ContextId
+import com.romankozak.forwardappmobile.core.context.ContextRepository
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class DefaultFeatureGate @Inject constructor(
+class DefaultCapabilityGate @Inject constructor(
     private val contextRepository: ContextRepository
 ) : CapabilityGate {
 
@@ -14,7 +15,9 @@ class DefaultFeatureGate @Inject constructor(
         contextId: ContextId,
         capabilityId: CapabilityId
     ): Boolean {
-        val context = contextRepository.getContext(contextId)
-        return context.enabledCapabilities.contains(capabilityId)
+        val context = contextRepository.get(contextId)
+            ?: return false
+
+        return capabilityId in context.enabledCapabilities
     }
 }

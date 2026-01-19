@@ -5,12 +5,10 @@ import javax.inject.Singleton
 
 @Singleton
 class CapabilityBootstrapper @Inject constructor(
-    registry: CapabilityRegistry,
-    runtime: CapabilityRuntime
+    capabilities: Set<@JvmSuppressWildcards Capability>,
+    runtime: CapabilityRuntime,
 ) {
     init {
-        registry.capabilities.forEach {
-            it.register(runtime)
-        }
+        capabilities.forEach { it.register(runtime) }
     }
 }
