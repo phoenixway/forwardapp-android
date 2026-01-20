@@ -198,15 +198,6 @@ tasks.withType<Test> {
     systemProperties.put("mockk.mock-maker-inline", "true")
 }
 
-tasks.withType<Test>().configureEach {
-    if (name == "testProdDebugUnitTest" || name == "testExpDebugUnitTest") {
-        filter {
-            includeTestsMatching("com.romankozak.forwardappmobile.data.sync.SyncRepositoryMergeTest")
-            includeTestsMatching("com.romankozak.forwardappmobile.data.sync.SyncContractFixturesTest")
-        }
-    }
-}
-
 tasks.register("syncContractTest") {
     description = "Runs sync contract tests (Android<->Desktop roundtrip) via prodDebug unit tests"
     group = "verification"

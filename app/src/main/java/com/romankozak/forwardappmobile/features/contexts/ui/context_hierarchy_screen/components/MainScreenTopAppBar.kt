@@ -78,6 +78,8 @@ fun ProjectHierarchyScreenTopAppBar(
     onShowScriptsLibrary: () -> Unit,
     onShowContextLab: () -> Unit,
     syncStatus: WifiSyncStatus,
+    onSyncIndicatorClick: () -> Unit,
+    featureToggles: Map<FeatureFlag, Boolean>,
 ) {
     var swipeState by remember { mutableStateOf(0f) }
     Column(modifier = Modifier.fillMaxWidth()) {

@@ -25,7 +25,7 @@ object NotesCapabilityModule {
 
             override val navRoute = "notes_root"
             override val supportedViews: Set<ViewId>
-                get() = TODO("Not yet implemented")
+                get() = emptySet()
         }
     }
 }

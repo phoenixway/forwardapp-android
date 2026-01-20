@@ -16,9 +16,4 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 abstract class CapabilityModule {
 
-    @Binds
-    @Singleton
-    abstract fun bindRegistry(
-        impl: InMemoryCapabilityRegistry
-    ): CapabilityRegistry
 }
