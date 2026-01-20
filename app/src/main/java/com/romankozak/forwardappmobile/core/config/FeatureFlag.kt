@@ -10,4 +10,5 @@ enum class FeatureFlag(val storageKey: String) {
     AiChat("ai_chat"),
     AiInsights("ai_insights"),
     AiLifeManagement("ai_life_management"),
+    ContextLab("context_lab"),
 }

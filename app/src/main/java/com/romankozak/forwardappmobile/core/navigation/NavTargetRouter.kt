@@ -89,6 +89,8 @@ object NavTargetRouter {
 
             NavTarget.TacticalManagement ->
                 "tactical_management_screen"
+            NavTarget.ContextLab ->
+                "context_lab_screen"
 
             is NavTarget.GoalSettings ->
                 "goal_settings_screen/${target.goalId}"

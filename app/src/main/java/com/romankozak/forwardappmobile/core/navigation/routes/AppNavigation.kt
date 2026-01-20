@@ -60,6 +60,8 @@ import com.romankozak.forwardappmobile.features.sync.SyncScreen
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import java.net.URLDecoder
 import kotlinx.coroutines.launch
+import com.romankozak.forwardappmobile.features.context_lab.ContextLabScreen
+import com.romankozak.forwardappmobile.features.context_lab.ContextLabViewModel
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
 import com.romankozak.forwardappmobile.features.reminders.list.RemindersScreen
@@ -72,6 +74,7 @@ const val GOAL_LISTS_ROUTE = "goal_lists_screen"
 const val AI_INSIGHTS_ROUTE = "ai_insights_screen"
 const val LIFE_STATE_ROUTE = "life_state_screen"
 const val SELECTIVE_IMPORT_ROUTE = "selective_import_screen/{fileUri}"
+const val CONTEXT_LAB_ROUTE = "context_lab_screen"
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -490,6 +493,11 @@ private fun NavGraphBuilder.mainGraph(
   strategicManagementScreen(navController)
 
   composable("tactical_management_screen") { TacticalManagementScreen() }
+
+  composable(CONTEXT_LAB_ROUTE) {
+    val viewModel: ContextLabViewModel = hiltViewModel()
+    ContextLabScreen(viewModel = viewModel)
+  }
 
   composable(AI_INSIGHTS_ROUTE) { AiInsightsScreen(navController = navController) }
 
