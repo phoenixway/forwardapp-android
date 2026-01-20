@@ -54,6 +54,7 @@ sealed interface NavTarget {
     data object AttachmentsLibrary : NavTarget
     data object ScriptsLibrary : NavTarget
     data object TacticalManagement : NavTarget
+    data object ContextLab : NavTarget
 
     data class ScriptEditor(
         val projectId: String? = null,

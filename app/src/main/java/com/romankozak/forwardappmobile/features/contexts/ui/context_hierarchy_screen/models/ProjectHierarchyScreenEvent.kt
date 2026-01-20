@@ -153,4 +153,5 @@ sealed interface ProjectHierarchyScreenEvent {
     object OpenScriptsLibrary : ProjectHierarchyScreenEvent
     object AddScriptRequest : ProjectHierarchyScreenEvent
     object NavigateToTacticsScreen : ProjectHierarchyScreenEvent
+    object NavigateToContextLab : ProjectHierarchyScreenEvent
 }

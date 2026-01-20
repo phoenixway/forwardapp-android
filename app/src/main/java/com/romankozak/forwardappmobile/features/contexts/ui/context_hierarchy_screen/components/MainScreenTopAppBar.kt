@@ -76,9 +76,8 @@ fun ProjectHierarchyScreenTopAppBar(
     onShowReminders: () -> Unit,
     onShowAttachmentsLibrary: () -> Unit,
     onShowScriptsLibrary: () -> Unit,
+    onShowContextLab: () -> Unit,
     syncStatus: WifiSyncStatus,
-    onSyncIndicatorClick: () -> Unit,
-    featureToggles: Map<FeatureFlag, Boolean>,
 ) {
     var swipeState by remember { mutableStateOf(0f) }
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -218,7 +217,7 @@ fun ProjectHierarchyScreenTopAppBar(
                                             menuExpanded = false
                                         },
                                     )
-                                }
+                                 }
                                 HorizontalDivider()
                             }
                             if (featureToggles[FeatureFlag.WifiSync] == true) {
@@ -253,6 +252,16 @@ fun ProjectHierarchyScreenTopAppBar(
                                 },
                             )
                             HorizontalDivider()
+                            if (featureToggles[FeatureFlag.ContextLab] == true) {
+                                DropdownMenuItem(
+                                    text = { Text("Context Lab") },
+                                    onClick = {
+                                        onShowContextLab()
+                                        menuExpanded = false
+                                    },
+                                )
+                                HorizontalDivider()
+                            }
                             DropdownMenuItem(
                                 text = { Text("Settings") },
                                 onClick = {

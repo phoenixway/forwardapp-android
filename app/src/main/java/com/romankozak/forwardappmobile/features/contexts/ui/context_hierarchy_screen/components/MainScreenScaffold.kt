@@ -163,6 +163,7 @@ fun ProjectHierarchyScreenScaffold(
                 onShowReminders = { onEvent(ProjectHierarchyScreenEvent.GoToReminders) },
                 onShowAttachmentsLibrary = { onEvent(ProjectHierarchyScreenEvent.OpenAttachmentsLibrary) },
                 onShowScriptsLibrary = { onEvent(ProjectHierarchyScreenEvent.OpenScriptsLibrary) },
+                onShowContextLab = { onEvent(ProjectHierarchyScreenEvent.NavigateToContextLab) },
                 syncStatus = uiState.syncStatus,
                 onSyncIndicatorClick = { onEvent(ProjectHierarchyScreenEvent.ShowWifiServerDialog) },
                 featureToggles = uiState.featureToggles,

@@ -588,6 +588,12 @@ constructor(
         }
       }
 
+      is ProjectHierarchyScreenEvent.NavigateToContextLab -> {
+        viewModelScope.launch {
+            _uiEventChannel.send(ProjectUiEvent.Navigate(NavTarget.ContextLab))
+        }
+      }
+
       is ProjectHierarchyScreenEvent.NavigateToStrategicManagement -> {
         if (uiState.value.featureToggles[FeatureFlag.StrategicManagement] == true) {
           viewModelScope.launch {
