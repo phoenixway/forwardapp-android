@@ -1,7 +1,1 @@
 package com.romankozak.forwardappmobile.core.context
-
-import com.romankozak.forwardappmobile.core.capability.CapabilityId
-
-interface ContextRepository {
-    fun get(contextId: ContextId): ContextSnapshot?
-}
