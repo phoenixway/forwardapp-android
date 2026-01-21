@@ -1,171 +1,130 @@
-# Мануал: Перемикання контекстів та активація views
+# Мануал: Перемикання контекстів та керування станом
 
 ## Огляд архітектури
 
-Цей документ описує повний ланцюжок перемикання контекстів у додатку ForwardApp Mobile, зокрема як активуються потрібні views при зміні контексту.
+Цей документ описує повний ланцюжок перемикання контекстів, керування їх станом та активації потрібних views. Архітектура розроблена для забезпечення гнучкості та надійності, навіть при динамічних змінах конфігурації.
 
 ## Ключові компоненти
 
-1. **SwitchContextUseCase** - головний use case для перемикання контекстів
-2. **ViewResolver** та **ContextAwareViewResolver** - визначають, який екран показувати для контексту
-3. **NavigationDispatcher** та **DefaultNavigationDispatcher** - диспетчери навігації
-4. **NavigationDispatcherNavigator** - адаптер між Navigator інтерфейсом та NavigationDispatcher
-5. **ContextController** - глобальний контролер стану контекстів
-6. **ContextLabController** - контролер лабораторії контекстів
+1.  **ContextLabController** - керує створенням, конфігурацією та життєвим циклом контекстів в пам'яті. **Забезпечує консистентність стану.**
+2.  **SwitchContextUseCase** - головний use case для активації вибраного контексту. **Забезпечує безпечну навігацію.**
+3.  **ContextController** - глобальний Hilt-синглтон, що зберігає активний `ContextState`.
+4.  **ViewRegistry** - реєстр усіх можливих `ViewDescriptor`, що пов'язує `ViewId` з `ScreenId` та `CapabilityId`.
+5.  **ContextAwareViewResolver** - реалізація `ViewResolver`, яка визначає, чи доступний `ViewId` на основі активних "можливостей" (capabilities).
+6.  **CapabilityGate** - шлюз, що перевіряє, чи активна певна "можливість".
 
-## Повний ланцюжок перемикання
+---
 
-### 1. Запуск перемикання (ContextLabScreen)
+## Повний ланцюжок подій
 
-Коли користувач натискає кнопку "АКТИВУВАТИ КОНТЕКСТ" у `ContextLabScreen`, викликається:
+### 1. Керування станом у `ContextLab` (запобігання помилкам)
 
+Коли користувач змінює набір "можливостей" (capabilities) для контексту в `ContextLabScreen`, спрацьовує превентивна логіка.
+
+**`ContextLabController.toggleCapability()`:**
 ```kotlin
-// ContextLabViewModel.kt
-fun onActivateContext(contextId: ContextId) {
-    switchContextUseCase.execute(contextId)  // <-- Запуск use case
-    _activeContextId.value = contextId
+fun toggleCapability(contextId: ContextId, capId: CapabilityId) {
+    // ... розрахунок нового набору активних можливостей (newCaps) ...
+
+    // 1. ОТРИМАННЯ ДОСТУПНИХ VIEW
+    // На основі нового набору можливостей, збираємо всі доступні views з ViewRegistry.
+    val newAvailableViews = newCaps
+        .flatMap { capabilityId -> viewRegistry.getForCapability(capabilityId) }
+        .map { descriptor -> descriptor.id }
+        .toSet()
+
+    // 2. ВАЛІДАЦІЯ ТА ОНОВЛЕННЯ СТАРТОВОГО VIEW
+    // Перевіряємо, чи поточний стартовий view (currentView) досі доступний.
+    val currentViewIsValid = newAvailableViews.contains(context.config.currentView)
+    
+    val newStartView = if (currentViewIsValid) {
+        context.config.currentView
+    } else {
+        // Якщо ні, встановлюємо перший доступний view як новий стартовий.
+        // Якщо доступних view немає, залишаємо старий (невалідний), 
+        // покладаючись на захист у SwitchContextUseCase.
+        newAvailableViews.firstOrNull() ?: context.config.currentView
+    }
+
+    // 3. ОНОВЛЕННЯ КОНФІГУРАЦІЇ КОНТЕКСТУ
+    // Зберігаємо контекст з новим, консистентним набором activeViews та currentView.
+    contexts[contextId] = context.copy(
+        config = context.config.copy(
+            activeCapabilities = newCaps,
+            activeViews = newAvailableViews, 
+            currentView = newStartView
+        )
+    )
 }
 ```
+**`ContextLabScreen.kt` (покращення UX):**
+Кнопка "АКТИВУВАТИ" стає неактивною, якщо у контексту немає жодного доступного екрану (`activeViews.isEmpty()`), і користувачу показується підказка.
 
-### 2. SwitchContextUseCase - головна логіка
+---
 
+### 2. Активація контексту (безпечна навігація)
+
+Коли користувач натискає "АКТИВУВАТИ КОНТЕКСТ", запускається `SwitchContextUseCase`.
+
+**`SwitchContextUseCase.execute()`:**
 ```kotlin
-// SwitchContextUseCase.kt
 fun execute(contextId: ContextId) {
-    // 1. Знаходить контекст у лабораторії
-    val context = labController.getAllContexts().find { it.id == contextId }
-        ?: error("Context with id ${contextId.raw} not found")
-    
-    // 2. Створює новий стан контексту
-    val newState = object : ContextState {
-        override val id: ContextId = context.id
-        override val features: CapabilitySet = CapabilitySet(
-            active = context.config.activeCapabilities
-        )
-        override val views: ViewSet = ViewSet(
-            available = context.config.activeViews,
-            start = context.config.currentView  // <-- Стартовий view для цього контексту
-        )
-    }
-    
-    // 3. Оновлює глобальний контролер контекстів
-    systemController.update { newState }
-    
-    // 4. Синхронізує стан у лабораторії
-    labController.activate(contextId)
-    
-    // 5. Автоматична навігація на стартовий екран
-    val startViewId = newState.views.start  // <-- Отримуємо стартовий view
-    
-    // 6. Використовує ViewResolver для визначення екрану
-    val screenId = viewResolver.resolve(startViewId)  // <-- Перетворює view у screen
-    
-    // 7. Викликає навігацію через Navigator
-    navigator.navigateTo(screenId)  // <-- Навігація на потрібний екран
-}
-```
+    // 1. Пошук контексту та оновлення глобального стану (systemController)
+    // ...
 
-### 3. ViewResolver - визначення екрану для view
+    // 2. СПРОБА НАВІГАЦІЇ
+    val startViewId = newState.views.start
+    // Викликаємо функцію, що знаходить перший доступний для навігації екран.
+    val screenId = resolveValidScreen(startViewId, newState.views.available)
 
-```kotlin
-// ViewResolver.kt (інтерфейс)
-interface ViewResolver {
-    fun resolve(viewId: ViewId): ScreenId
-}
-
-// ContextAwareViewResolver.kt (реалізація)
-class ContextAwareViewResolver @Inject constructor(
-    private val contextController: ContextController
-) : ViewResolver {
-    
-    override fun resolve(viewId: ViewId): ScreenId {
-        // Отримуємо поточний контекст
-        val context = contextController.currentState()
-        
-        // Шукаємо view у доступних views поточного контексту
-        val view = context.views.available.find { it.id == viewId }
-            ?: error("View $viewId not available in current context")
-        
-        // Повертаємо ScreenId, пов'язаний з цим view
-        return view.screenId
+    if (screenId != null) {
+        // Якщо екран знайдено, виконуємо навігацію.
+        navigator.navigateTo(screenId)
+    } else {
+        // ЯКЩО ЖОДЕН ЕКРАН НЕ ДОСТУПНИЙ
+        // (напр., у контексті активні лише логічні можливості без UI)
+        // Логуємо попередження і нічого не робимо. Додаток не падає.
+        Log.w(TAG, "No accessible screen found... No navigation will occur.")
     }
 }
 ```
 
-### 4. Navigator - інтерфейс навігації
-
+**`SwitchContextUseCase.resolveValidScreen()` (ключ до надійності):**
 ```kotlin
-// NavigationDispatcherNavigator.kt
-class NavigationDispatcherNavigator @Inject constructor(
-    private val dispatcher: NavigationDispatcher
-) : Navigator {
-    
-    override fun navigateTo(screenId: ScreenId) {
-        // Делегує навігацію до NavigationDispatcher
-        dispatcher.navigateTo(screenId)
+private fun resolveValidScreen(preferredView: ViewId, availableViews: Set<ViewId>): ScreenId? {
+    // 1. Намагаємося обробити бажаний стартовий view.
+    runCatching { viewResolver.resolve(preferredView) }.onSuccess { return it }
+
+    // 2. Якщо не вдалося, перебираємо всі інші доступні views.
+    for (viewId in availableViews) {
+        runCatching { viewResolver.resolve(viewId) }.onSuccess { return it }
     }
+
+    // 3. Якщо жоден view не вдалося обробити, повертаємо null.
+    return null
 }
 ```
 
-### 5. NavigationDispatcher - диспетчер навігації
+### 3. `ContextAwareViewResolver` (перевірка доступу)
+
+Цей компонент є серцем безпеки. Він не довіряє списку `activeViews` з контексту, а перевіряє право доступу напряму.
 
 ```kotlin
-// NavigationDispatcher.kt (інтерфейс)
-interface NavigationDispatcher {
-    fun navigateTo(screenId: ScreenId)
-    fun attach(navController: NavHostController)  // <-- Прив'язка NavController
-}
+// ContextAwareViewResolver.kt
+override fun resolve(viewId: ViewId): ScreenId {
+    // 1. Знаходимо опис view в реєстрі.
+    val descriptor = viewRegistry.get(viewId)
+        ?: error("View $viewId not registered")
 
-// DefaultNavigationDispatcher.kt (реалізація)
-class DefaultNavigationDispatcher @Inject constructor() : NavigationDispatcher {
-    private var navController: NavHostController? = null
-    
-    override fun attach(navController: NavHostController) {
-        this.navController = navController
+    // 2. ПЕРЕВІРКА ДОСТУПУ ЧЕРЕЗ CAPABILITY_GATE
+    // Перевіряємо, чи "можливість", якій належить цей view, зараз активна.
+    if (!capabilityGate.isEnabled(descriptor.ownerCapability)) {
+        // Якщо ні - кидаємо виняток.
+        throw IllegalStateException("Access denied to view: ${viewId.raw}")
     }
-    
-    override fun navigateTo(screenId: ScreenId) {
-        val controller = navController ?: error("NavController not attached")
-        
-        // Виконує навігацію через NavController
-        controller.navigate(screenId.raw) {
-            // Налаштування навігації (popUpTo, launchSingleTop, тощо)
-        }
-    }
-}
-```
 
-### 6. AppNavigation - прив'язка NavController
-
-```kotlin
-// AppNavigation.kt (після виправлення)
-@Composable
-fun AppNavigation(appNavigationViewModel: AppNavigationViewModel) {
-    val navController = rememberNavController()
-    
-    // Після створення NavController прив'язуємо його до диспетчера
-    LaunchedEffect(Unit) {
-        appNavigationViewModel.attachNavController(navController)
-    }
-    
-    // Налаштування NavHost
-    NavHost(navController = navController, startDestination = "...") {
-        // ... декларація графа навігації
-    }
-}
-```
-
-### 7. AppNavigationViewModel - посередник
-
-```kotlin
-// AppNavigationViewModel.kt (після виправлення)
-class AppNavigationViewModel @Inject constructor(
-    private val navigationDispatcher: DefaultNavigationDispatcher
-) : ViewModel() {
-    
-    fun attachNavController(navController: NavHostController) {
-        navigationDispatcher.attach(navController)
-    }
+    // 3. Повертаємо ID екрану, якщо все гаразд.
+    return descriptor.screenId
 }
 ```
 
@@ -174,92 +133,43 @@ class AppNavigationViewModel @Inject constructor(
 ```
 Користувач (UI)
      ↓
-ContextLabScreen → натискання "АКТИВУВАТИ КОНТЕКСТ"
+ContextLabScreen → змінює можливості
      ↓
-ContextLabViewModel.onActivateContext()
+ContextLabController.toggleCapability()
+     ├── Оновлює activeViews
+     └── Оновлює currentView, забезпечуючи консистентність
+
+Користувач (UI)
+     ↓
+ContextLabScreen → натискає "АКТИВУВАТИ"
      ↓
 SwitchContextUseCase.execute()
-     ├── Знаходить контекст у лабораторії
-     ├── Створює новий ContextState
-     ├── Оновлює ContextController (глобальний стан)
-     ├── Синхронізує з ContextLabController
-     ├── Отримує стартовий viewId з контексту
-     ├── Викликає ViewResolver.resolve(viewId) → отримує screenId
-     └── Викликає Navigator.navigateTo(screenId)
-          ↓
-     NavigationDispatcherNavigator.navigateTo()
-          ↓
-     NavigationDispatcher.navigateTo()
-          ↓
-     DefaultNavigationDispatcher.navigateTo()
-          ↓ (через прив'язаний NavController)
-     NavHostController.navigate()
-          ↓
-     Екран змінюється на потрібний
+     ├── Оновлює глобальний ContextState
+     ├── resolveValidScreen()
+     │    ├── Намагається resolve(currentView)
+     │    └── Якщо невдача, перебирає activeViews
+     │         ↓
+     │    viewResolver.resolve(view)
+     │         ↓
+     │    ContextAwareViewResolver
+     │         ├── Знаходить ViewDescriptor
+     │         └── Перевіряє доступ через CapabilityGate
+     │
+     └── Якщо screenId знайдено → navigator.navigateTo(screenId)
+     └── Якщо ні → логує попередження
+
 ```
 
-## Ключові моменти архітектури
+## Ключові аспекти поточної архітектури
 
-### 1. Контекст визначає доступні views
-Кожен контекст має:
-- `activeViews` - список доступних views для цього контексту
-- `currentView` - стартовий view, який показується при активації контексту
-- `activeCapabilities` - активні можливості (capabilities) контексту
-
-### 2. ViewResolver контекстно-залежний
-`ContextAwareViewResolver` перевіряє, чи view доступний у поточному контексті перед тим, як повернути відповідний `ScreenId`. Це забезпечує безпеку та коректність навігації.
-
-### 3. Навігація через диспетчер
-Усі навігаційні запити проходять через `NavigationDispatcher`, який:
-- Інкапсулює логіку навігації
-- Має прив'язаний `NavHostController` через метод `attach()`
-- Забезпечує централізоване управління навігацією
-
-### 4. Автоматична активація views
-При перемиканні контексту автоматично відбувається навігація на стартовий view цього контексту. Це забезпечує плавний перехід між різними режимами роботи додатку.
-
-### 5. Розділення відповідальностей
-- **Контекстна логіка** - `SwitchContextUseCase`, `ContextController`
-- **Визначення екранів** - `ViewResolver`
-- **Навігація** - `NavigationDispatcher`, `Navigator`
-- **UI прив'язка** - `AppNavigation`, `AppNavigationViewModel`
-
-## Виправлення проблеми з навігацією
-
-### Проблема
-`DefaultNavigationDispatcher.attach()` не викликався, тому `NavHostController` не був прив'язаний до диспетчера навігації, що призводило до того, що навігація не працювала.
-
-### Рішення
-1. Додано залежність `DefaultNavigationDispatcher` до `AppNavigationViewModel` через конструктор
-2. Додано метод `attachNavController(navController: NavHostController)` у `AppNavigationViewModel`
-3. Модифіковано `AppNavigation.kt`, додавши `LaunchedEffect`, який прив'язує створений `NavHostController` до диспетчера навігації
-
-### Результат
-Тепер `DefaultNavigationDispatcher` має посилання на дійсний `NavHostController`, і навігація через `SwitchContextUseCase` працює коректно.
-
-## Файли, пов'язані з перемиканням контекстів
-
-1. `features/context_lab/domain/SwitchContextUseCase.kt` - головний use case
-2. `core/navigation/capability/ViewResolver.kt` - інтерфейс визначення екранів
-3. `core/navigation/capability/ContextAwareViewResolver.kt` - реалізація ViewResolver
-4. `core/navigation/capability/NavigationDispatcherNavigator.kt` - адаптер Navigator
-5. `core/navigation/NavigationDispatcher.kt` - інтерфейс диспетчера навігації
-6. `core/navigation/DefaultNavigationDispatcher.kt` - реалізація диспетчера
-7. `features/navigation/AppNavigation.kt` - головний навігаційний компонент
-8. `features/navigation/AppNavigationViewModel.kt` - ViewModel для навігації
-9. `features/context_lab/ContextLabViewModel.kt` - ViewModel лабораторії контекстів
-10. `features/context_lab/ContextLabController.kt` - контролер лабораторії
-
-## Тестування перемикання контекстів
-
-1. Запустіть додаток
-2. Перейдіть до "Лабораторія Контекстів"
-3. Створіть новий контекст з вибраною роллю
-4. Натисніть "АКТИВУВАТИ КОНТЕКСТ"
-5. Переконайтеся, що:
-   - Контекст активується (зелена галочка)
-   - Відбувається навігація на відповідний екран
-   - Екран відповідає вибраній ролі контексту
+1.  **Проактивна консистентність**: `ContextLabController` намагається підтримувати конфігурацію контексту правильною, оновлюючи `activeViews` та `currentView` при зміні можливостей.
+2.  **Реактивна безпека**: `SwitchContextUseCase` виступає як другий рівень захисту. Він не довіряє стану сліпо, а валідує його, знаходячи робочий варіант для навігації або граціозно відмовляючись від неї.
+3.  **Авторитетна перевірка доступу**: `ContextAwareViewResolver` разом з `CapabilityGate` є єдиним джерелом правди щодо того, чи можна показувати екран. Це робить систему стійкою до некоректних конфігурацій.
+4.  **Поділ відповідальностей**:
+    *   **Керування станом**: `ContextLabController`
+    *   **Активація та безпечна навігація**: `SwitchContextUseCase`
+    *   **Перевірка доступу**: `ContextAwareViewResolver` + `CapabilityGate`
+    *   **Виконання навігації**: `Navigator` та `NavigationDispatcher`
 
 ---
 
