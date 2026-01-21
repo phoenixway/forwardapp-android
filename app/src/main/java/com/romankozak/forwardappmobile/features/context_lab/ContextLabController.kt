@@ -5,11 +5,11 @@ import com.romankozak.forwardappmobile.core.context.Context
 import com.romankozak.forwardappmobile.core.context.ContextConfiguration
 import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.ContextRole
-
-// Файл: features/context_lab/ContextLabController.kt
+import com.romankozak.forwardappmobile.core.navigation.capability.ViewRegistry
 
 class ContextLabController(
-    private val roles: Map<String, ContextRole>
+    private val roles: Map<String, ContextRole>,
+    private val viewRegistry: ViewRegistry
 ) {
     // Список контекстів у пам'яті
     private var contexts = mutableMapOf<ContextId, Context>()
@@ -90,8 +90,34 @@ class ContextLabController(
             currentCaps + capId
         }
 
+        // --- Start of preventative fix ---
+
+        // 1. Get all views for the new set of active capabilities.
+        val newAvailableViews = newCaps
+            .flatMap { capabilityId -> viewRegistry.getForCapability(capabilityId) }
+            .map { descriptor -> descriptor.id }
+            .toSet()
+
+        // 2. Check if the current start view is still valid
+        val currentViewIsValid = newAvailableViews.contains(context.config.currentView)
+
+        val newStartView = if (currentViewIsValid) {
+            context.config.currentView
+        } else {
+            // If not, pick the first available view as the new start view.
+            // If the set is empty, this will fallback to the old (invalid) one.
+            // The safeguard in SwitchContextUseCase will prevent a crash on activation.
+            newAvailableViews.firstOrNull() ?: context.config.currentView
+        }
+
+        // --- End of preventative fix ---
+
         contexts[contextId] = context.copy(
-            config = context.config.copy(activeCapabilities = newCaps)
+            config = context.config.copy(
+                activeCapabilities = newCaps,
+                activeViews = newAvailableViews, // Also update activeViews
+                currentView = newStartView // Update the currentView
+            )
         )
     }
 

@@ -64,8 +64,11 @@ object LogicModule {
 
   @Provides
   @Singleton
-  fun provideContextLabController(roles: Map<String, ContextRole>): ContextLabController =
-      ContextLabController(roles)
+  fun provideContextLabController(
+      roles: Map<String, ContextRole>,
+      viewRegistry: ViewRegistry
+  ): ContextLabController =
+      ContextLabController(roles, viewRegistry)
 
   @Provides
   @Singleton

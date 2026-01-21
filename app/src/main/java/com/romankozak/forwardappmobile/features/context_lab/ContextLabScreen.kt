@@ -237,9 +237,17 @@ fun ContextItemCard(
             Button(
                 onClick = onActivate,
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !isActive
+                enabled = !isActive && context.config.activeViews.isNotEmpty()
             ) {
                 Text(if (isActive) "АКТИВНИЙ" else "АКТИВУВАТИ КОНТЕКСТ")
+            }
+            if (context.config.activeViews.isEmpty()) {
+                Text(
+                    text = "Цей контекст не має жодного екрану. Активуйте можливості з UI.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
             }
         }
     }
