@@ -24,6 +24,9 @@ class SwitchContextUseCase @Inject constructor(
             val context = labController.getAllContexts().find { it.id == contextId }
                 ?: error("Context with id ${contextId.raw} not found")
             Log.d(TAG, "Found context: ${context.role.label}")
+            Log.d(TAG, "Context config activeCapabilities: ${context.config.activeCapabilities}")
+            Log.d(TAG, "Context config activeViews: ${context.config.activeViews}")
+            Log.d(TAG, "Context config currentView: ${context.config.currentView}")
 
             // 2. Створення об'єкта стану [cite: 4, 5]
             val newState = object : ContextState { //
@@ -49,11 +52,16 @@ class SwitchContextUseCase @Inject constructor(
             val startViewId = newState.views.start
             Log.d(TAG, "Start viewId: ${startViewId.raw}")
 
-            val screenId = viewResolver.resolve(startViewId)
-            Log.d(TAG, "Resolved screenId: ${screenId.raw}")
+            try {
+                val screenId = viewResolver.resolve(startViewId)
+                Log.d(TAG, "Resolved screenId: ${screenId.raw}")
 
-            navigator.navigateTo(screenId)
-            Log.d(TAG, "Successfully navigated to screenId: ${screenId.raw}")
+                navigator.navigateTo(screenId)
+                Log.d(TAG, "Successfully navigated to screenId: ${screenId.raw}")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error during view resolution or navigation: ${e.message}", e)
+                throw e
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error during context switch for contextId: ${contextId.raw}", e)
             throw e // Re-throw the exception to ensure the app still crashes as before

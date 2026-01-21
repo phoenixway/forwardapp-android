@@ -92,6 +92,11 @@ fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
 
   val navigationManager = appNavigationViewModel.navigationManager
 
+  // Прив'язка NavHostController до NavigationDispatcher
+  LaunchedEffect(navController) {
+    appNavigationViewModel.attachNavController(navController)
+  }
+
   LaunchedEffect(navigationManager, navController) {
     navigationManager.navigationCommandFlow.collect { command ->
       when (command) {
