@@ -9,85 +9,84 @@ on:
         default: 'prod'
         type: choice
         options:
-        - prod
-        - exp
+          - prod
+          - exp
       build_type:
         description: 'Build Type'
         required: true
         default: 'release'
         type: choice
         options:
-        - release
-        - debug
+          - release
+          - debug
 
 jobs:
   build:
     name: Build ${{ inputs.flavor }} ${{ inputs.build_type }}
     runs-on: ubuntu-latest
-    
+
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        cache: gradle
+      - uses: actions/checkout@v4
 
-    - name: Check Java version
-      run: |
-        java -version
-        echo "JAVA_HOME=$JAVA_HOME"
+      # Встановлюємо Java правильно (з кешуванням)
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
 
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
 
-    - name: Prepare Signing
-      run: |
-        echo "${{ secrets.SIGNING_KEY_STORE_BASE64 }}" | base64 --decode > release.jks
-        echo "storeFile=$(pwd)/release.jks" > signing.properties
-        echo "storePassword=${{ secrets.SIGNING_STORE_PASSWORD }}" >> signing.properties
-        echo "keyAlias=${{ secrets.SIGNING_KEY_ALIAS }}" >> signing.properties
-        echo "keyPassword=${{ secrets.SIGNING_KEY_PASSWORD }}" >> signing.properties
-    - name: Generate debug keystore if not exists
-      run: |
-        if [ ! -f ~/.android/debug.keystore ]; then
-          mkdir -p ~/.android
-          keytool -genkey -v \
-            -keystore ~/.android/debug.keystore \
-            -alias androiddebugkey \
-            -keyalg RSA -keysize 2048 \
-            -validity 10000 \
-            -storepass android \
-            -keypass android \
-            -dname "CN=Android Debug,O=Android,C=US"
-        fi
-        
-    # Construct the task name properly: assembleProdRelease, assembleExpDebug
-    # Capitalize first letter of inputs
-    - name: Build with Gradle
-      run: |
-        FLAVOR="${{ inputs.flavor }}"
-        TYPE="${{ inputs.build_type }}"
-        # Capitalize
-        FLAVOR_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOR:0:1})${FLAVOR:1}"
-        TYPE_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${TYPE:0:1})${TYPE:1}"
-        
-        TASK="assemble${FLAVOR_CAP}${TYPE_CAP}"
-        echo "Running task: $TASK"
-        ./gradlew "$TASK" --stacktrace -Dorg.gradle.java.home=$JAVA_HOME
+      # Підготовка підпису тільки для Release
+      - name: Prepare Signing (release only)
+        if: ${{ inputs.build_type == 'release' }}
+        run: |
+          echo "${{ secrets.SIGNING_KEY_STORE_BASE64 }}" | base64 --decode > release.jks
+          echo "storeFile=$(pwd)/release.jks" > signing.properties
+          echo "storePassword=${{ secrets.SIGNING_STORE_PASSWORD }}" >> signing.properties
+          echo "keyAlias=${{ secrets.SIGNING_KEY_ALIAS }}" >> signing.properties
+          echo "keyPassword=${{ secrets.SIGNING_KEY_PASSWORD }}" >> signing.properties
 
-    - name: Hint for Failed Build Logs
-      if: failure()
-      run: |
-        echo "The build failed. For more detailed logs, use the GitHub CLI (gh) on your local machine:"
-        echo "gh run view --log-failed ${{ github.run_id }}"
-        echo "Replace ${{ github.run_id }} with the actual Run ID if you are looking at a different run."
+      # Генерація дебаг-ключа (корисно для стабільності збірки debug)
+      - name: Generate debug keystore if not exists
+        run: |
+          if [ ! -f ~/.android/debug.keystore ]; then
+            mkdir -p ~/.android
+            keytool -genkey -v \
+              -keystore ~/.android/debug.keystore \
+              -alias androiddebugkey \
+              -keyalg RSA -keysize 2048 \
+              -validity 10000 \
+              -storepass android \
+              -keypass android \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
 
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: apk-${{ inputs.flavor }}-${{ inputs.build_type }}
-        path: app/build/outputs/apk/${{ inputs.flavor }}/${{ inputs.build_type }}/*.apk
-        retention-days: 1
+      - name: Build with Gradle
+        run: |
+          FLAVOR="${{ inputs.flavor }}"
+          TYPE="${{ inputs.build_type }}"
+          
+          # Робимо першу літеру великою для назви таски Gradle
+          FLAVOR_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOR:0:1})${FLAVOR:1}"
+          TYPE_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${TYPE:0:1})${TYPE:1}"
+          
+          TASK="assemble${FLAVOR_CAP}${TYPE_CAP}"
+          echo "Running task: $TASK"
+          ./gradlew "$TASK" --stacktrace
+
+      # Ваша корисна порада при помилці
+      - name: Hint for Failed Build Logs
+        if: failure()
+        run: |
+          echo "The build failed. For more detailed logs, use the GitHub CLI (gh) on your local machine:"
+          echo "gh run view --log-failed ${{ github.run_id }}"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-${{ inputs.flavor }}-${{ inputs.build_type }}
+          path: app/build/outputs/apk/${{ inputs.flavor }}/${{ inputs.build_type }}/*.apk
+          retention-days: 1

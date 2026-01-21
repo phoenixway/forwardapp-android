@@ -164,6 +164,7 @@ if [ "$HOST" == "device" ]; then
     echo -e "${YELLOW}Installing to device...${NC}"
 
     if [ -n "$TERMUX_VERSION" ]; then
+<<<<<<< HEAD
         if [ -f "$INSTALL_SCRIPT" ]; then
             bash "$INSTALL_SCRIPT" "$APK_FILE"
             echo -e "${GREEN}Installation on Termux Successful!${NC}"
@@ -184,36 +185,19 @@ if [ "$HOST" == "device" ]; then
             PKG_NAME="$PKG_NAME.debug"
         fi
 
-        echo -e "${YELLOW}Installing...${NC}"
         INSTALL_OUTPUT=$(adb install -r "$APK_FILE" 2>&1)
-        
-        if echo "$INSTALL_OUTPUT" | grep -q "Success"; then
-             echo -e "${GREEN}Installation Successful!${NC}"
-        elif echo "$INSTALL_OUTPUT" | grep -q "INSTALL_FAILED_UPDATE_INCOMPATIBLE"; then
-             echo -e "${RED}Installation Failed: Signature Mismatch${NC}"
-             echo -e "${YELLOW}The installed version of '$PKG_NAME' is signed with a different key.${NC}"
-             echo -e "${YELLOW}To install this version, the old one must be UNINSTALLED. (Data will be lost!)${NC}"
-             
-             read -p "Uninstall and continue? (y/n): " uninstall_opt
-             if [[ "$uninstall_opt" == "y" || "$uninstall_opt" == "Y" ]]; then
-                 echo "Uninstalling $PKG_NAME..."
-                 adb uninstall "$PKG_NAME"
-                 echo "Retrying installation..."
-                 adb install -r "$APK_FILE"
-                 echo -e "${GREEN}Installation Successful!${NC}"
-             else
-                 echo -e "${RED}Aborted.${NC}"
-                 exit 1
-             fi
-        else
-             echo -e "${RED}Installation Failed with unknown error:${NC}"
-             echo "$INSTALL_OUTPUT"
-             exit 1
-        fi
 
-        read -p "Launch app? (y/n): " launch_opt
-        if [[ "$launch_opt" == "y" || "$launch_opt" == "Y" ]]; then
-             adb shell am start -n "$PKG_NAME/com.romankozak.forwardappmobile.MainActivity"
+        if echo "$INSTALL_OUTPUT" | grep -q "Success"; then
+            echo -e "${GREEN}Installation successful.${NC}"
+        elif echo "$INSTALL_OUTPUT" | grep -q "INSTALL_FAILED_UPDATE_INCOMPATIBLE"; then
+            echo -e "${RED}Signature mismatch detected.${NC}"
+            echo -e "${YELLOW}Uninstalling old version...${NC}"
+            adb uninstall "$PKG_NAME"
+            adb install -r "$APK_FILE"
+        else
+            echo -e "${RED}Installation failed:${NC}"
+            echo "$INSTALL_OUTPUT"
+            exit 1
         fi
     fi
 else
@@ -224,3 +208,4 @@ fi
 
 # Cleanup
 rm -rf "$TMP_DL_DIR"
+

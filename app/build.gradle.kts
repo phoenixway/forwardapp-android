@@ -1,6 +1,4 @@
 import org.gradle.api.tasks.testing.Test
-import org.gradle.kotlin.dsl.implementation
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.util.Properties
 
 plugins {
@@ -10,32 +8,16 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.23"
-    //kotlin("kapt")
-    //id("com.google.devtools.ksp")
     id("kotlin-parcelize")
 
     alias(libs.plugins.google.services.plugin)
     alias(libs.plugins.firebase.crashlytics.plugin)
-
-    //id("io.gitlab.arturbosch.detekt")
-
 }
 
-val localProperties = Properties().apply {
-    val file = rootProject.file("local.properties")
-    if (file.exists()) {
-        file.inputStream().use { load(it) }
-    } else {
-        // local.properties is optional (e.g. in CI/CD)
-        // logger.warn("local.properties not found")
-    }
-}
-
-val signingPropsFile = rootProject.file("signing.properties")
 val signingProps = Properties()
-
+val signingPropsFile = rootProject.file("signing.properties")
 if (signingPropsFile.exists()) {
-    signingProps.load(signingPropsFile.inputStream())
+    signingPropsFile.inputStream().use { signingProps.load(it) }
 }
 
 android {
@@ -48,73 +30,25 @@ android {
         targetSdk = 35
         versionCode = 54
         versionName = "1.20.0"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
     kotlinOptions {
         jvmTarget = "11"
     }
+
     buildFeatures {
         compose = true
         buildConfig = true
     }
-    ksp {
-        arg("room.schemaLocation", "$projectDir/schemas")
-    }
-
-    packaging {
-        jniLibs {
-            pickFirsts += listOf(
-                "**/libtokenizers.so",
-                "**/libjni_tokenizers.so",
-                "**/libtorch_android.so",
-                "**/libc++_shared.so"
-            )
-        }
-        resources {
-            excludes += "META-INF/INDEX.LIST"
-            excludes += "META-INF/io.netty.versions.properties"
-            excludes += "META-INF/LICENSE.md"
-            excludes += "META-INF/LICENSE-notice.md"
-
-        excludes += listOf(
-            "META-INF/DEPENDENCIES",
-            "META-INF/LICENSE",
-            "META-INF/LICENSE.txt",
-            "META-INF/NOTICE",
-            "META-INF/NOTICE.txt"
-        )
-        }
-
-    }
 
     signingConfigs {
-        getByName("debug") {
-            val debugKey = file("debug.keystore")
-            if (debugKey.exists()) {
-                storeFile = debugKey
-                storePassword = "android"
-                keyAlias = "androiddebugkey"
-                keyPassword = "android"
-            } else if (signingProps.isNotEmpty()) {
-                val storeFilePath = signingProps.getProperty("storeFile")
-                require(!storeFilePath.isNullOrBlank()) {
-                    "storeFile is missing in signing.properties"
-                }
-
-                storeFile = file(storeFilePath)
-                storePassword = signingProps.getProperty("storePassword")
-                keyAlias = signingProps.getProperty("keyAlias")
-                keyPassword = signingProps.getProperty("keyPassword")
-            }
-        }
         create("release") {
-
             if (signingProps.isNotEmpty()) {
                 val storeFilePath = signingProps.getProperty("storeFile")
                 require(!storeFilePath.isNullOrBlank()) {
@@ -130,67 +64,48 @@ android {
     }
 
     buildTypes {
-        getByName("debug") {
-            // Add .debug suffix to allow parallel installation with release
+        debug {
             applicationIdSuffix = ".debug"
-            
-            // DEBUG USES SIGNING CONFIG IF AVAILABLE
-            if (signingProps.isNotEmpty()) {
-                signingConfig = signingConfigs.getByName("debug")
-            }
         }
 
-        getByName("release") {
+        release {
             isMinifyEnabled = true
-	    isShrinkResources = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
 
-
-            // RELEASE ONLY SIGNED IF CONFIG EXISTS
             if (signingProps.isNotEmpty()) {
                 signingConfig = signingConfigs.getByName("release")
             } else {
-                logger.warn("⚠ No signing.properties found — RELEASE will be UNSIGNED")
+                logger.warn("⚠ RELEASE build is UNSIGNED (no signing.properties)")
             }
         }
     }
+
     flavorDimensions += "env"
     productFlavors {
         create("prod") {
             dimension = "env"
             isDefault = true
-            applicationId = "com.romankozak.forwardappmobile"
             buildConfigField("Boolean", "IS_EXPERIMENTAL_BUILD", "false")
         }
         create("exp") {
             dimension = "env"
-            // Використовуємо той самий applicationId як prod для google-services.json сумісності
-            applicationId = "com.romankozak.forwardappmobile"
             versionNameSuffix = "-exp"
             buildConfigField("Boolean", "IS_EXPERIMENTAL_BUILD", "true")
         }
     }
-    /*splits {
+
+    splits {
         abi {
             isEnable = true
             reset()
             include("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
-            isUniversalApk = false
+            isUniversalApk = true
         }
-    }*/
-    
-    splits {
-    abi {
-        isEnable = true
-        reset()
-        include("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
-        isUniversalApk = true
     }
-}
-
 }
 
 tasks.withType<Test> {
@@ -210,9 +125,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.datastore.preferences)
-    //implementation(libs.androidx.foundation.desktop)
 
-    // Compose BOM - це має бути першим
+    // Compose BOM
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
     androidTestImplementation(composeBom)
@@ -254,14 +168,11 @@ dependencies {
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)
     implementation(libs.hilt.work)
-    //kapt(libs.hilt.compiler)
     ksp(libs.hilt.compiler)
-
 
     // Ktor (Server & Client)
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
-    // --- ВИПРАВЛЕНО: Додано Ktor CIO Server Engine, необхідний для WifiSyncServer.kt ---
     implementation("io.ktor:ktor-server-cio-jvm:2.3.12")
     implementation(libs.ktor.server.content.negotiation)
     implementation(libs.ktor.serialization.gson)
@@ -299,14 +210,13 @@ dependencies {
 
     // Additional libraries
     implementation(libs.accompanist.flowlayout)
-
     implementation(libs.reorderable)
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.compose.material3:material3-window-size-class:1.1.1")
 
-    // OkHttp (для налаштування тайм-аутів, опціонально, але рекомендовано)
+    // OkHttp
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0") // Для дебагу
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
 
     // Retrofit
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
@@ -315,38 +225,23 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
     implementation("org.jmdns:jmdns:3.5.9")
 
-    // Jetpack DataStore (якщо ще не додано, для збереження налаштувань)
+    // Jetpack DataStore / Runtime
     implementation("androidx.compose.runtime:runtime-livedata")
 
-    // ONNX Runtime для Android
+    // AI & ONNX
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.18.0")
-
-    // DJL HuggingFace Tokenizer
     implementation("ai.djl.huggingface:tokenizers:0.27.0")
-
-    // DJL вимагає SLF4J, додаємо реалізацію без логування, щоб уникнути помилок
     implementation("org.slf4j:slf4j-nop:2.0.13")
-
-    // Додайте явно нативну бібліотеку
-    //implementation("ai.djl.huggingface:tokenizers:0.25.0:android-native")
-
     implementation("com.google.mlkit:translate:17.0.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
 
-    // Для безпечного зберігання даних
+    // Security & Auth
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
-
     implementation("androidx.credentials:credentials:1.2.2")
     implementation("androidx.credentials:credentials-play-services-auth:1.2.2")
-// Biometric authentication
     implementation("androidx.biometric:biometric:1.1.0")
-// Google Play Services (необхідно для Passkeys)
     implementation("com.google.android.gms:play-services-base:18.2.0")
-// Якщо ще немає
     implementation("com.google.android.gms:play-services-fido:20.1.0")
 
-
-
-    // Рекомендується використовувати останню версію бібліотеки
     implementation("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
 }
