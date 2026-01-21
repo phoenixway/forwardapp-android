@@ -62,6 +62,7 @@ import java.net.URLDecoder
 import kotlinx.coroutines.launch
 import com.romankozak.forwardappmobile.features.context_lab.ContextLabScreen
 import com.romankozak.forwardappmobile.features.context_lab.ContextLabViewModel
+import com.romankozak.forwardappmobile.features.context_lab.hierarchy_screen.ExperimentalHierarchyScreen
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
 import com.romankozak.forwardappmobile.core.navigation.ui.PlaceholderScreen
@@ -83,6 +84,7 @@ const val PLACEHOLDER_ROUTE = "placeholder_screen/{viewId}/{screenId}"
 const val KANBAN_ROUTE = "kanban_screen"
 const val VET_CASE_SUMMARY_ROUTE = "vet_case_summary_screen"
 const val VET_CASE_HISTORY_ROUTE = "vet_case_history_screen"
+const val EXPERIMENTAL_HIERARCHY_ROUTE = "experimental_hierarchy_screen"
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -509,7 +511,11 @@ private fun NavGraphBuilder.mainGraph(
 
   composable(CONTEXT_LAB_ROUTE) {
     val viewModel: ContextLabViewModel = hiltViewModel()
-    ContextLabScreen(viewModel = viewModel)
+    ContextLabScreen(viewModel = viewModel, navController = navController)
+  }
+
+  composable(EXPERIMENTAL_HIERARCHY_ROUTE) {
+    ExperimentalHierarchyScreen()
   }
 
   composable(AI_INSIGHTS_ROUTE) { AiInsightsScreen(navController = navController) }

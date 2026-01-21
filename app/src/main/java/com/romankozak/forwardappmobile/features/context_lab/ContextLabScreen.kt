@@ -7,28 +7,32 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material3.* // Використовуємо Material 3
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue // КРИТИЧНО для роботи 'by'
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.capability.CapabilityDescriptor
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.ContextRole
+import com.romankozak.forwardappmobile.core.navigation.routes.EXPERIMENTAL_HIERARCHY_ROUTE
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ContextLabScreen(viewModel: ContextLabViewModel) {
-    // collectAsState потребує імпорту getValue для делегування 'by'
+fun ContextLabScreen(
+    viewModel: ContextLabViewModel,
+    navController: NavController
+) {
     val contexts by viewModel.uiState.collectAsState()
     val activeId by viewModel.activeContextId.collectAsState()
     val allCaps = viewModel.allCapabilities
     val availableRoles = viewModel.availableRoles
 
-    // Стан для створення нового контексту
     var newContextName by remember { mutableStateOf("") }
     var selectedRoleCode by remember { mutableStateOf(availableRoles.firstOrNull()?.code ?: "") }
     var expanded by remember { mutableStateOf(false) }
@@ -36,7 +40,15 @@ fun ContextLabScreen(viewModel: ContextLabViewModel) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Лабораторія Контекстів") }
+                title = { Text("Лабораторія Контекстів") },
+                actions = {
+                    IconButton(onClick = { navController.navigate(EXPERIMENTAL_HIERARCHY_ROUTE) }) {
+                        Icon(
+                            imageVector = Icons.Default.List,
+                            contentDescription = "Open Experimental Hierarchy"
+                        )
+                    }
+                }
             )
         }
     ) { padding ->
@@ -54,7 +66,6 @@ fun ContextLabScreen(viewModel: ContextLabViewModel) {
                 )
             }
 
-            // Секція створення нового контексту
             item {
                 Card(
                     modifier = Modifier
@@ -79,7 +90,6 @@ fun ContextLabScreen(viewModel: ContextLabViewModel) {
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        // Вибір ролі
                         Box(modifier = Modifier.fillMaxWidth()) {
                             OutlinedTextField(
                                 value = availableRoles.find { it.code == selectedRoleCode }?.label ?: "",
