@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.* // Використовуємо Material 3
 import androidx.compose.runtime.*
@@ -16,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.capability.CapabilityDescriptor
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.context.ContextId
+import com.romankozak.forwardappmobile.core.context.ContextRole
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,13 +84,13 @@ fun ContextLabScreen(viewModel: ContextLabViewModel) {
                             OutlinedTextField(
                                 value = availableRoles.find { it.code == selectedRoleCode }?.label ?: "",
                                 onValueChange = {},
-                                label = { Text(Роль) },
+                                label = { Text("Роль") },
                                 modifier = Modifier.fillMaxWidth(),
                                 readOnly = true,
                                 trailingIcon = {
                                     IconButton(onClick = { expanded = true }) {
                                         Icon(
-                                            imageVector = Icons.Default.ArrowDropDown,
+                                            imageVector = Icons.Filled.ArrowDropDown,
                                             contentDescription = "Вибрати роль"
                                         )
                                     }
@@ -148,8 +150,10 @@ fun ContextItemCard(
     context: com.romankozak.forwardappmobile.core.context.Context,
     isActive: Boolean,
     allCapabilities: Set<CapabilityDescriptor>,
+    availableRoles: List<ContextRole>,
     onToggle: (CapabilityId) -> Unit,
-    onActivate: () -> Unit
+    onActivate: () -> Unit,
+    onChangeRole: (String) -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -166,7 +170,39 @@ fun ContextItemCard(
             ) {
                 Column {
                     Text(text = context.id.raw, style = MaterialTheme.typography.titleLarge)
-                    Text(text = "Роль: ${context.role.label}", color = Color.Gray, style = MaterialTheme.typography.bodySmall)
+                    // Випадаючий список для вибору ролі
+                    var expanded by remember { mutableStateOf(false) }
+                    Box(modifier = Modifier.fillMaxWidth(0.8f)) {
+                        OutlinedTextField(
+                            value = context.role.label,
+                            onValueChange = {},
+                            label = { Text("Роль") },
+                            modifier = Modifier.fillMaxWidth(),
+                            readOnly = true,
+                            trailingIcon = {
+                                IconButton(onClick = { expanded = true }) {
+                                    Icon(
+                                        imageVector = Icons.Filled.ArrowDropDown,
+                                        contentDescription = "Вибрати роль"
+                                    )
+                                }
+                            }
+                        )
+                        DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false }
+                        ) {
+                            availableRoles.forEach { role ->
+                                DropdownMenuItem(
+                                    text = { Text(role.label) },
+                                    onClick = {
+                                        onChangeRole(role.code)
+                                        expanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
                 }
                 if (isActive) {
                     Icon(
