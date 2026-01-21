@@ -17,6 +17,12 @@ class ContextLabController(
     // Поточний активний контекст
     private var activeContextId: ContextId? = null
 
+    // Отримати список доступних ролей
+    fun getAvailableRoles(): List<ContextRole> = roles.values.toList()
+
+    // Отримати роль за кодом
+    fun getRole(roleCode: String): ContextRole? = roles[roleCode]
+
     fun createAndActivate(roleCode: String, id: String) {
         val role = roles[roleCode] ?: error("Role not found")
         val contextId = ContextId(id)
@@ -35,6 +41,43 @@ class ContextLabController(
 
         contexts[contextId] = newContext
         activeContextId = contextId
+    }
+
+    // Створити контекст без активації
+    fun createContext(roleCode: String, id: String): Context {
+        val role = roles[roleCode] ?: error("Role not found")
+        val contextId = ContextId(id)
+
+        val newContext = Context(
+            id = contextId,
+            role = role,
+            config = ContextConfiguration(
+                activeCapabilities = role.defaultCapabilities,
+                activeViews = role.availableViews,
+                currentView = role.startView,
+                contextId = ContextId(id),
+                baseRoleCode = role.code
+            )
+        )
+
+        contexts[contextId] = newContext
+        return newContext
+    }
+
+    // Змінити роль контексту
+    fun changeRole(contextId: ContextId, newRoleCode: String) {
+        val context = contexts[contextId] ?: return
+        val newRole = roles[newRoleCode] ?: error("Role not found")
+
+        contexts[contextId] = context.copy(
+            role = newRole,
+            config = context.config.copy(
+                baseRoleCode = newRole.code,
+                activeCapabilities = newRole.defaultCapabilities,
+                activeViews = newRole.availableViews,
+                currentView = newRole.startView
+            )
+        )
     }
 
     fun toggleCapability(contextId: ContextId, capId: CapabilityId) {

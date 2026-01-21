@@ -21,6 +21,9 @@ class ContextLabViewModel @Inject constructor(
     // Всі зареєстровані в системі можливості (для списку чекбоксів)
     val allCapabilities = registry.all()
 
+    // Доступні ролі
+    val availableRoles = labController.getAvailableRoles()
+
     // Стан списку контекстів у лабораторії
     private val _uiState = MutableStateFlow(labController.getAllContexts())
     val uiState = _uiState.asStateFlow()
@@ -28,6 +31,16 @@ class ContextLabViewModel @Inject constructor(
     // Поточний активний контекст (для візуальної позначки)
     private val _activeContextId = MutableStateFlow(labController.getActiveContext()?.id)
     val activeContextId = _activeContextId.asStateFlow()
+
+    fun onCreateContext(id: String, roleCode: String) {
+        labController.createContext(roleCode, id)
+        _uiState.value = labController.getAllContexts()
+    }
+
+    fun onChangeRole(contextId: ContextId, newRoleCode: String) {
+        labController.changeRole(contextId, newRoleCode)
+        _uiState.value = labController.getAllContexts()
+    }
 
     fun onToggleCapability(contextId: ContextId, capId: CapabilityId) {
         labController.toggleCapability(contextId, capId)

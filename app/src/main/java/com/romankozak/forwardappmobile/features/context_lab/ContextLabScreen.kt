@@ -24,6 +24,12 @@ fun ContextLabScreen(viewModel: ContextLabViewModel) {
     val contexts by viewModel.uiState.collectAsState()
     val activeId by viewModel.activeContextId.collectAsState()
     val allCaps = viewModel.allCapabilities
+    val availableRoles = viewModel.availableRoles
+
+    // Стан для створення нового контексту
+    var newContextName by remember { mutableStateOf("") }
+    var selectedRoleCode by remember { mutableStateOf(availableRoles.firstOrNull()?.code ?: "") }
+    var expanded by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -46,13 +52,91 @@ fun ContextLabScreen(viewModel: ContextLabViewModel) {
                 )
             }
 
+            // Секція створення нового контексту
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Створити новий контекст",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+
+                        OutlinedTextField(
+                            value = newContextName,
+                            onValueChange = { newContextName = it },
+                            label = { Text("Ім'я контексту") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Вибір ролі
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            OutlinedTextField(
+                                value = availableRoles.find { it.code == selectedRoleCode }?.label ?: "",
+                                onValueChange = {},
+                                label = { Text(Роль) },
+                                modifier = Modifier.fillMaxWidth(),
+                                readOnly = true,
+                                trailingIcon = {
+                                    IconButton(onClick = { expanded = true }) {
+                                        Icon(
+                                            imageVector = Icons.Default.ArrowDropDown,
+                                            contentDescription = "Вибрати роль"
+                                        )
+                                    }
+                                }
+                            )
+                            DropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false }
+                            ) {
+                                availableRoles.forEach { role ->
+                                    DropdownMenuItem(
+                                        text = { Text(role.label) },
+                                        onClick = {
+                                            selectedRoleCode = role.code
+                                            expanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Button(
+                            onClick = {
+                                if (newContextName.isNotBlank() && selectedRoleCode.isNotBlank()) {
+                                    viewModel.onCreateContext(newContextName, selectedRoleCode)
+                                    newContextName = ""
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = newContextName.isNotBlank() && selectedRoleCode.isNotBlank()
+                        ) {
+                            Text("Створити контекст")
+                        }
+                    }
+                }
+            }
+
             items(contexts) { context ->
                 ContextItemCard(
                     context = context,
                     isActive = context.id == activeId,
                     allCapabilities = allCaps,
+                    availableRoles = availableRoles,
                     onToggle = { capId -> viewModel.onToggleCapability(context.id, capId) },
-                    onActivate = { viewModel.onActivateContext(context.id) }
+                    onActivate = { viewModel.onActivateContext(context.id) },
+                    onChangeRole = { newRoleCode -> viewModel.onChangeRole(context.id, newRoleCode) }
                 )
             }
         }
