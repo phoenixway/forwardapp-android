@@ -64,7 +64,11 @@ import com.romankozak.forwardappmobile.features.context_lab.ContextLabScreen
 import com.romankozak.forwardappmobile.features.context_lab.ContextLabViewModel
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
+import com.romankozak.forwardappmobile.core.navigation.ui.PlaceholderScreen
 import com.romankozak.forwardappmobile.features.reminders.list.RemindersScreen
+import com.romankozak.forwardappmobile.features.dev_task.KanbanScreen
+import com.romankozak.forwardappmobile.features.vet_case.VetCaseSummaryScreen
+import com.romankozak.forwardappmobile.features.vet_case.VetCaseHistoryScreen
 
 
 const val MAIN_GRAPH_ROUTE = "main_graph"
@@ -75,6 +79,10 @@ const val AI_INSIGHTS_ROUTE = "ai_insights_screen"
 const val LIFE_STATE_ROUTE = "life_state_screen"
 const val SELECTIVE_IMPORT_ROUTE = "selective_import_screen/{fileUri}"
 const val CONTEXT_LAB_ROUTE = "context_lab_screen"
+const val PLACEHOLDER_ROUTE = "placeholder_screen/{viewId}/{screenId}"
+const val KANBAN_ROUTE = "kanban_screen"
+const val VET_CASE_SUMMARY_ROUTE = "vet_case_summary_screen"
+const val VET_CASE_HISTORY_ROUTE = "vet_case_history_screen"
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -157,7 +165,7 @@ private fun NavGraphBuilder.mainGraph(
       onNavigateToAiInsights = { navController.navigate(AI_INSIGHTS_ROUTE) },
       onNavigateToAiLifeManagement = { navController.navigate(LIFE_STATE_ROUTE) },
       onNavigateToImportExport = {
-        navController.navigate(SELECTIVE_IMPORT_ROUTE.replace("/{fileUri}", ""))
+        navController.navigate("selective_import_screen")
       },
       onNavigateToAttachments = { navController.navigate("attachments_library_screen") },
       onNavigateToScripts = { navController.navigate("scripts_library_screen") },
@@ -517,21 +525,40 @@ private fun NavGraphBuilder.mainGraph(
     InboxEditorScreen(navController = navController)
   }
 
-  composable(
-    route = SELECTIVE_IMPORT_ROUTE,
-    arguments = listOf(navArgument("fileUri") { type = NavType.StringType }),
-  ) { backStackEntry ->
-    val fileUri =
-      backStackEntry.arguments?.getString("fileUri")?.let { URLDecoder.decode(it, "UTF-8") }
-    if (fileUri != null) {
-      SelectiveImportScreen(
-        onNavigateBack = { navController.popBackStack() }
-      )
-    } else {
-      // Handle error: URI is missing. Maybe pop back or show an error message.
-      navController.popBackStack()
-    }
+      composable(
+          route = SELECTIVE_IMPORT_ROUTE,
+          arguments = listOf(navArgument("fileUri") { 
+              type = NavType.StringType
+              nullable = true
+              defaultValue = null
+          }),
+      ) { backStackEntry ->
+          val fileUri =
+              backStackEntry.arguments?.getString("fileUri")?.let { URLDecoder.decode(it, "UTF-8") }
+          if (fileUri != null) {
+              SelectiveImportScreen(
+                  onNavigateBack = { navController.popBackStack() }
+              )
+          } else {
+              // Handle error: URI is missing. Maybe pop back or show an error message.
+              navController.popBackStack()
+          }
+      }
+  
+      composable(KANBAN_ROUTE) { KanbanScreen() }
+      composable(VET_CASE_SUMMARY_ROUTE) { VetCaseSummaryScreen() }
+      composable(VET_CASE_HISTORY_ROUTE) { VetCaseHistoryScreen() }
+  
+      composable(
+          route = "placeholder_screen/{viewId}/{screenId}",
+          arguments = listOf(
+              navArgument("viewId") { type = NavType.StringType; nullable = true },
+              navArgument("screenId") { type = NavType.StringType; nullable = true }
+          )
+      ) { backStackEntry ->
+          val viewId = backStackEntry.arguments?.getString("viewId")
+          val screenId = backStackEntry.arguments?.getString("screenId")
+          PlaceholderScreen(viewId = viewId, screenId = screenId)
+      }
   }
-}
-
 fun mapTargetToRoute(target: NavTarget): String = NavTargetRouter.routeOf(target)

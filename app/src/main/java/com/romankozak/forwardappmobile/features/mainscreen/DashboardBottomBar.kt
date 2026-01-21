@@ -34,6 +34,7 @@ fun DashboardBottomBar(
     onNavigateToPresets: () -> Unit,
     onNavigateToAiInsights: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToImportExport: () -> Unit,
     onNavigateToRecentItem: (RecentItem) -> Unit,
     recentViewModel: RecentViewModel = hiltViewModel()
 ) {
@@ -81,6 +82,14 @@ fun DashboardBottomBar(
                             showMoreBottomSheet = false
                         }
                         onNavigateToAiInsights()
+                    }
+                },
+                onNavigateToImportExport = {
+                    coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
+                        if (!modalSheetState.isVisible) {
+                            showMoreBottomSheet = false
+                        }
+                        onNavigateToImportExport()
                     }
                 },
                 onNavigateToSettings = {
@@ -151,6 +160,7 @@ private fun MoreBottomSheetContent(
     onNavigateToProjectSearch: () -> Unit,
     onNavigateToPresets: () -> Unit,
     onNavigateToAiInsights: () -> Unit,
+    onNavigateToImportExport: () -> Unit,
     onNavigateToSettings: () -> Unit,
 ) {
     Box(
@@ -205,6 +215,17 @@ private fun MoreBottomSheetContent(
                 Icon(Icons.Outlined.AutoAwesome, contentDescription = "AI Insights")
                 Spacer(modifier = Modifier.width(16.dp))
                 Text("AI Insights")
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onNavigateToImportExport)
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Outlined.SwapVert, contentDescription = "Import/Export")
+                Spacer(modifier = Modifier.width(16.dp))
+                Text("Import/Export")
             }
             Row(
                 modifier = Modifier

@@ -235,6 +235,7 @@ fun MainScreenLayout(
                             onNavigateToPresets = onNavigateToPresets,
                             onNavigateToAiInsights = onNavigateToAiInsights,
                             onNavigateToSettings = onNavigateToSettings,
+                            onNavigateToImportExport = onNavigateToImportExport,
                             onNavigateToRecentItem = onNavigateToRecentItem,
                             recentViewModel = recentViewModel
                         )

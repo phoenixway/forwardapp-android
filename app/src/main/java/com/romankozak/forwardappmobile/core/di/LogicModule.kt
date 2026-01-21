@@ -52,28 +52,6 @@ object LogicModule {
 
   @Provides
   @Singleton
-  fun provideViewRegistry(registry: CapabilityRegistry): ViewRegistry {
-    // Збираємо всі ViewDescriptor з усіх зареєстрованих можливостей
-    val descriptors =
-        registry
-            .all()
-            .flatMap { cap ->
-              cap.supportedViews.map { viewId ->
-                ViewDescriptor(
-                    id = viewId,
-                    ownerCapability = cap.id,
-                    screenId = ScreenId(cap.navRoute), // Або специфічний ScreenId для в'юхи
-                    label = cap.label,
-                )
-              }
-            }
-            .toSet()
-
-    return InMemoryViewRegistry(descriptors)
-  }
-
-  @Provides
-  @Singleton
   fun provideContextController(): ContextController {
     val initial =
         object : ContextState {
