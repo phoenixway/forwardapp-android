@@ -106,6 +106,12 @@ android {
             isUniversalApk = true
         }
     }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1,INDEX.LIST,io.netty.versions.properties}"
+        }
+    }
 }
 
 tasks.withType<Test> {

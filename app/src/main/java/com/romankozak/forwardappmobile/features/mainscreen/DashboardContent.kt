@@ -167,7 +167,7 @@ fun AnimatedCommandDeck(
             DeckAction(
               "Contexts",
               "Hierarchy view",
-              Icons.Outlined.AccountTree,
+              Icons.Outlined.AlternateEmail,
               Color(0xFF5DE2FF),
               onNavigateToProjectHierarchy,
             ),

@@ -128,7 +128,7 @@ fun DashboardBottomBar(
         )
 
         BarButton(
-            icon = Icons.Outlined.AccountTree,
+            icon = Icons.Outlined.AlternateEmail,
             onClick = onNavigateToProjectHierarchy,
             label = "Contexts",
         )

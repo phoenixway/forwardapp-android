@@ -1,7 +1,10 @@
 ## 1. Поточне завдання (CURRENT TASK)
-Рефакторинг, інтеграція та стилізація універсальної системи хедерів (FAHeader) у додаток ForwardApp, з урахуванням вирівнювання контенту, двослотової структури, уточнених стилів (`TodayHeader` bold, відступи) та збільшеного вертикального паддінгу.
+зроби щоб порядок елементів беклогу зберігався і оновлювався при синхронізації
 
 ## 2. Прогрес
+- **Виправлено помилку збірки, пов'язану з дублюванням файлів:**
+  - Додано `packagingOptions` до `app/build.gradle.kts` для виключення `META-INF/INDEX.LIST` та `META-INF/io.netty.versions.properties`.
+  - Додаток тепер успішно компілюється.
 - **Збільшено вертикальний паддінг для `TodayHeader`:**
   - Збільшено вертикальний паддінг для контенту `left` слота в `TodayHeader`.
 - **Удосконалено стилізацію `TodayHeader` (bold та відступи):**
@@ -30,6 +33,7 @@
 ## 6. Значимі файли і модулі (IMPORTANT FILES / MODULES)
 - `app/src/main/java/com/romankozak/forwardappmobile/ui/components/header/`
 - `app/src/main/java/com.romankozak/forwardappmobile/ui/screens/daymanagement/DayManagementScreen.kt`
+- `app/build.gradle.kts`
 
 ## 7. Інструкції та вимоги до стилю (INSTRUCTIONS)
 

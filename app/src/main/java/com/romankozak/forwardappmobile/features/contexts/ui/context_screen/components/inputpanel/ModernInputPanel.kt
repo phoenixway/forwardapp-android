@@ -551,7 +551,7 @@ private fun NavigationBar(
             BackForwardButton(state, actions, contentColor)
 
             Icon(
-                Icons.Outlined.AccountTree,
+                Icons.Outlined.AlternateEmail,
                 "Ієрархія проєктів",
                 tint = contentColor.copy(alpha = 0.7f),
                 modifier = Modifier

@@ -1,5 +1,13 @@
 # Progress Report
 
+## December 7, 2025
+
+### Completed Tasks:
+
+- **Fixed Gradle build issue with duplicate files:**
+  - Added `packagingOptions` to `app/build.gradle.kts` to exclude `META-INF/INDEX.LIST` and `META-INF/io.netty.versions.properties`.
+  - The application now builds successfully.
+
 ## December 6, 2025
 
 ### Completed Tasks:
