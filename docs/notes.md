@@ -164,65 +164,119 @@ class ContextFactory {
 
 ***
 
-app/src/main/java/com/romankozak/forwardappmobile/core/navigation/ViewResolver.kt
-app/src/main/java/com/romankozak/forwardappmobile/core/context/ContextController.kt
-app/src/main/java/com/romankozak/forwardappmobile/core/context/ContextRoleProfile.kt
-app/src/main/java/com/romankozak/forwardappmobile/core/context/CoreEntities.kt
-app/src/main/java/com/romankozak/forwardappmobile/core/capability/CapabilityRegistry.kt
-app/src/main/java/com/romankozak/forwardappmobile/core/capability/CoreEntities.kt
+Є екран в app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/ProjectHierarchyScreen.kt . це стабільний функціонал який я хочу оновити. Проекти зокрема мають стати контекстами. Гнучкою поліморфною сутністю. Є купа зввязаних з ними сутностей, коду. Все це треба адаптувати. 
+
+Є екран app/src/main/java/com/romankozak/forwardappmobile/features/context_lab/ContextLabScreen.kt . це полігон для розробки і  тестування нових версії сутностей. останні практично готові. Я хочу знати які сутності моделей даних використовують обидва екрани. мені треба знати кожну сутність яку треба змінити і її альтернативну еспериментальну сутність. стратегія яку я бачу в тому щоб поступово, точечно, з перевіркою компіляцією кожної зміни обєднати стабільні і експериментальні суттності і звязаний весь код адаптувати під це. Експериментальні сутності недороблені але мають фічі які неодмінно слід перенести на стабільну існуючу модель даних. 
+першою дією я бачу створити таблицю вичерпну сутностей даних - один рядок на дві сутності стабільна і альтернатива її експериментальна. коли це буде готово можна буде робити план уніфікації її
+
+Ключові ідеї:
+  * Створення адаптера: Це ключовий елемент, який дозволить системі функціонувати під час перехідного періоду.
+  * Поступова міграція даних: Оновлення бази даних без видалення старих полів дозволить уникнути "великого вибуху" і відкотитися в разі проблем.
+  * Поетапна рефакторинг фіч: Це правильний підхід, щоб контролювати процес та тестувати кожну зміну окремо.
+
+розроби конткретний план щодо цього?
+
+Тепер я маю дві ключові сутності для порівняння:
+
+   * Стабільна: com.romankozak.forwardappmobile.features.contexts.data.models.Context
+   * Експериментальна: com.romankozak.forwardappmobile.core.context.Context
+
+    core.context.ContextConfiguration.kt
+    core.context.ContextRole.kt
 
 
-***
 
-розділ di wiring треба для хілт дай. Self-registration
+ План імплементації
 
-я зробив поки так
-package com.romankozak.forwardappmobile.core.di
+  Фаза 1: Створення базових компонентів нової моделі
 
-import com.romankozak.forwardappmobile.data.logic.GoalScoringManager
-import com.romankozak.forwardappmobile.domain.lifecontext.DefaultLifeContextProcessor
-import com.romankozak.forwardappmobile.domain.lifecontext.LifeContextProcessor
-import com.romankozak.forwardappmobile.domain.lifecontext.LifeContextRule
-import com.romankozak.forwardappmobile.core.capability.CapabilityRegistry
-import com.romankozak.forwardappmobile.core.capability.InMemoryCapabilityRegistry
-import com.romankozak.forwardappmobile.features.contexts.data.models.capabilities.notes.NotesCapability
-import dagger.Module
-import dagger.Provides
-import dagger.hilt.InstallIn
-import dagger.hilt.components.SingletonComponent
-import javax.inject.Singleton
+   1. Оновлення `core.context.Context`:
+       * Додати поля val label: String та val description: String? до класу core.context.Context.
+   2. Перевірка `core.context.ContextId`:
+       * Переконатися, що value class ContextId коректно визначений.
+   3. Перевірка `core.context.ContextRole`:
+       * Переконатися, що ContextRole визначений і готовий для мапінгу projectType зі старої моделі.
+   4. Визначення базових інтерфейсів/класів `Capability`:
+       * Створити інтерфейс Capability та, можливо, базові реалізації для ActiveCapability (для JSON-зберігання) та PersistentCapability (для полів БД).
+   5. Перевірка `core.context.ContextConfiguration`:
+       * Переконатися, що ContextConfiguration визначений і може містити activeCapabilities та activeViews.
 
-@Module
-@InstallIn(SingletonComponent::class)
-object LogicModule {
+  Фаза 2: Імплементація "можливостей" (Capabilities)
 
-    @Provides
-    @Singleton
-    fun provideGoalScoringManager(): GoalScoringManager = GoalScoringManager
+   1. Реалізація `AuditingCapability` та `LinkingCapability` (JSON-зберігання):
+       * Визначити data-класи для AuditingCapability та LinkingCapability з відповідними CapabilityId.
+       * Реалізувати логіку серіалізації/десеріалізації цих можливостей до/з JSON-поля properties.
+   2. Реалізація `HierarchyCapability` (Окремі колонки БД):
+       * Визначити data-клас HierarchyCapability, який інкапсулює parentId та order.
+   3. Реалізація `ScoringCapability` (Окремі колонки БД):
+       * Визначити data-клас ScoringCapability, який інкапсулює всі поля скорингу.
+   4. Реалізація `ProjectManagementCapability` (Окремі колонки БД):
+       * Визначити data-клас ProjectManagementCapability, який інкапсулює isCompleted, projectStatus, projectStatusText та isProjectManagementEnabled.
+   5. Налаштування тегів (Окрема таблиця зв'язку):
+       * Створити сутності Tag та ContextTag (join-таблиця).
+       * Визначити DAOs та репозиторії для ефективної роботи з тегами.
 
-    @Provides
-    @Singleton
-    fun provideLifeContextRules(): List<LifeContextRule> = emptyList()
+  Фаза 3: Адаптація та міграція
 
-    @Provides
-    @Singleton
-    fun provideLifeContextProcessor(
-        rules: @JvmSuppressWildcards List<LifeContextRule>
-    ): LifeContextProcessor = DefaultLifeContextProcessor(rules)
+   1. Створення адаптера `features.contexts.data.models.Context` -> `core.context.Context`:
+       * Написати функцію/клас, що конвертує стару сутність у нову. Адаптер повинен мапити всі поля, заповнювати label, description, ContextRole, ContextConfiguration та екстрагувати дані для всіх "можливостей".
+   2. Рефакторинг `ProjectRepository`:
+       * Модифікувати ProjectRepository для повернення об'єктів core.context.Context.
+       * Використовувати адаптер всередині репозиторію для конвертації даних, отриманих зі старої схеми БД.
+   3. Оновлення `ProjectHierarchyScreenViewModel`:
+       * Модифікувати ProjectHierarchyScreenViewModel для безпосереднього використання об'єктів core.context.Context.
+       * Скоригувати логіку UI, яка отримує властивості контексту, використовуючи нові label, description, role та config.activeCapabilities.
+   4. Міграція схеми бази даних (Room):
+       * Додати нову колонку properties: String? (для JSON) до таблиці projects.
+       * Додати нові колонки для label, description, roleCode, parentId, order, всіх полів ScoringCapability, isCompleted, projectStatus, projectStatusText.
+       * Створити таблиці tags та context_tags.
+       * Реалізувати Room-міграції для заповнення цих нових колонок існуючими даними.
 
-    @Provides
-    @Singleton
-    fun provideFeatureRegistry(): CapabilityRegistry {
-        return InMemoryCapabilityRegistry(
-            setOf(NotesCapability)
-        )
-    }
-}
+  Фаза 4: Тестування та ітерація
 
-***
+   1. Unit- та інтеграційні тести:
+       * Написати тести для адаптера та нових компонентів моделі.
+       * Забезпечити повне покриття нової логіки тестами.
+   2. Поступова інтеграція:
+       * Впроваджувати зміни поступово, перевіряючи функціональність після кожного значного кроку.
 
-де має бути FeatureGate?
-не зрозумів як зробити RandomScreen доступним як view фічі
+  Я пропоную почати з Фази 1, кроку 1: оновити `core.context.Context`. Що скажете?
 
-фічі я перейменовую в capabilities
-дай загальний огляд всієї нашої системи з повним деревом файлів
+  ***
+
+    Ось зведений список:
+
+  Існуючі стабільні сутності (для довідки та адаптера):
+
+   * app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/models/Context.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/models/RelatedLink.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/models/ContextTypeConverter.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/models/ReservedContextKeys.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/models/ReservedGroup.kt
+
+  Існуючі експериментальні сутності (ядро нової моделі):
+
+   * app/src/main/java/com/romankozak/forwardappmobile/core/context/Context.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/core/context/ContextId.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/core/context/ContextRole.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/core/context/ContextConfiguration.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/core/capability/CapabilityId.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/core/capability/CapabilityDescriptor.kt
+   * app/src/main/java/com/romankozak/forwardappmobile/core/context/ViewId.kt
+
+  Нові сутності, які будуть створені (або існуючі, які будуть розширені/адаптовані):
+
+   * app/src/main/java/com/romankozak/forwardappmobile/core/capability/Capability.kt (Новий інтерфейс для можливостей)
+   * app/src/main/java/com/romankozak/forwardappmobile/core/capability/AuditingCapability.kt (Data-клас для можливості аудиту)
+   * app/src/main/java/com/romankozak/forwardappmobile/core/capability/LinkingCapability.kt (Data-клас для можливості посилань)
+   * app/src/main/java/com.romankozak/forwardappmobile/core/capability/HierarchyCapability.kt (Data-клас для можливості ієрархії)
+   * app/src/main/java/com/romankozak/forwardappmobile/core/capability/ScoringCapability.kt (Data-клас для можливості скорингу)
+   * app/src/main/java/com/romankozak/forwardappmobile/core/capability/ProjectManagementCapability.kt (Data-клас для можливості управління проектами)
+   * app/src/main/java/com/romankozak/forwardappmobile/data/models/Tag.kt (Нова сутність для тегів)
+   * app/src/main/java/com/romankozak/forwardappmobile/data/models/ContextTag.kt (Нова join-сутність для зв'язку Context-Tag)
+   * app/src/main/java/com/romankozak/forwardappmobile/data/daos/TagDao.kt (Новий DAO для тегів)
+   * app/src/main/java/com/romankozak/forwardappmobile/data/daos/ContextTagDao.kt (Новий DAO для ContextTag)
+   * app/src/main/java/com/romankozak/forwardappmobile/data/repository/TagRepository.kt (Новий репозиторій для тегів)
+   * app/src/main/java/com/romankozak/forwardappmobile/data/converters/CapabilityConverter.kt (Новий Room TypeConverter для JSON-можливостей)
+
+  Це буде наша дорожня карта по файлах.

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>План міграції сутності Context</title>
+<style>
+  body { font-family: sans-serif; line-height: 1.5; }
+  table { border-collapse: collapse; width: 100%; margin-bottom: 1rem; }
+  th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+  th { background-color: #f2f2f2; }
+  tr:nth-child(even) { background-color: #f9f9f9; }
+  h1, h2 { border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+</style>
+</head>
+<body>
+
+<h1>План міграції сутності Context</h1>
+<p>Цей документ описує план переходу від монолітної сутності <code>features.contexts.data.models.Context</code> до нової, гнучкої, поліморфної моделі, заснованої на ролях та можливостях (<code>core.context.Context</code>).</p>
+
+<h2>Крок 1: Таблиця відповідності полів</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Старе поле (<code>Context</code>)</th>
+      <th>Тип даних</th>
+      <th>Призначення</th>
+      <th>Нова модель (пропозиція)</th>
+      <th>Нотатки</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td colspan="5"><strong>Основні</strong></td>
+    </tr>
+    <tr>
+      <td><code>id</code></td>
+      <td><code>String</code></td>
+      <td>Унікальний ідентифікатор</td>
+      <td><code>id: ContextId</code> (ключове поле <code>core.context.Context</code>)</td>
+      <td>Використовувати value class <code>ContextId</code> для типізації.</td>
+    </tr>
+    <tr>
+      <td><code>name</code></td>
+      <td><code>String</code></td>
+      <td>Назва сутності</td>
+      <td><code>label: String</code> (ключове поле <code>core.context.Context</code>)</td>
+      <td>Поле <code>name</code> зі старої моделі перейменовується в <code>label</code> в новій.</td>
+    </tr>
+    <tr>
+      <td><code>description</code></td>
+      <td><code>String?</code></td>
+      <td>Детальний опис</td>
+      <td><code>description: String?</code> (ключове поле <code>core.context.Context</code>)</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><code>roleCode</code></td>
+      <td><code>String?</code></td>
+      <td>Код ролі (прямий аналог)</td>
+      <td><code>role: ContextRole</code> (ключове поле <code>core.context.Context</code>)</td>
+      <td>Це поле є прямим містком між двома моделями.</td>
+    </tr>
+    <tr>
+      <td><code>projectType</code></td>
+      <td><code>ContextType</code></td>
+      <td>Тип (<code>DEFAULT</code>, <code>RESERVED</code>, <code>SYSTEM</code>)</td>
+      <td><code>role: ContextRole</code></td>
+      <td><code>ContextType.SYSTEM</code> та <code>ContextType.RESERVED</code> стануть окремими <code>ContextRole</code> з відповідними можливостями.</td>
+    </tr>
+    <tr>
+      <td colspan="5"><strong>Ієрархія та порядок</strong></td>
+    </tr>
+    <tr>
+      <td><code>parentId</code></td>
+      <td><code>String?</code></td>
+      <td>ID батьківської сутності</td>
+      <td>Властивість у <code>HierarchyCapability</code></td>
+      <td>Створити <code>HierarchyCapability</code> для управління вкладеністю.</td>
+    </tr>
+    <tr>
+      <td><code>order</code></td>
+      <td><code>Long</code></td>
+      <td>Порядок сортування</td>
+      <td>Властивість у <code>HierarchyCapability</code></td>
+      <td></td>
+    </tr>
+    <tr>
+      <td colspan="5"><strong>Метадані та аудит</strong></td>
+    </tr>
+    <tr>
+      <td><code>createdAt</code>, <code>updatedAt</code></td>
+      <td><code>Long</code> / <code>Long?</code></td>
+      <td>Час створення та оновлення</td>
+      <td>Властивості у <code>AuditingCapability</code></td>
+      <td>Створити <code>AuditingCapability</code> для відстеження життєвого циклу.</td>
+    </tr>
+    <tr>
+      <td><code>syncedAt</code>, <code>version</code></td>
+      <td><code>Long?</code> / <code>Long</code></td>
+      <td>Час синхронізації та версія</td>
+      <td>Властивості у <code>SyncCapability</code></td>
+      <td>Можна об'єднати з <code>AuditingCapability</code> або винести в окрему <code>SyncCapability</code>.</td>
+    </tr>
+    <tr>
+      <td><code>isDeleted</code></td>
+      <td><code>Boolean</code></td>
+      <td>Прапорець м'якого видалення</td>
+      <td>Не є можливістю. Це має оброблятися на рівні репозиторію.</td>
+      <td>Логіка видалення не повинна бути частиною бізнес-моделі контексту.</td>
+    </tr>
+    <tr>
+      <td colspan="5"><strong>Зв'язки та теги</strong></td>
+    </tr>
+    <tr>
+      <td><code>tags</code></td>
+      <td><code>List&lt;String&gt;?</code></td>
+      <td>Список тегів</td>
+      <td>Окрема таблиця зв'язку <code>context_tags</code> (Many-to-Many)</td>
+      <td>Для ефективної фільтрації та запитів теги будуть винесені в реляційну структуру.</td>
+    </tr>
+    <tr>
+      <td><code>relatedLinks</code></td>
+      <td><code>List&lt;RelatedLink&gt;?</code></td>
+      <td>Пов'язані посилання</td>
+      <td>Властивість у <code>LinkingCapability</code></td>
+      <td>Створити <code>LinkingCapability</code>.</td>
+    </tr>
+    <tr>
+      <td colspan="5"><strong>Стан та статус</strong></td>
+    </tr>
+    <tr>
+      <td><code>isCompleted</code></td>
+      <td><code>Boolean</code></td>
+      <td>Чи завершено контекст (завдання)</td>
+      <td>Властивість у <code>ProjectManagementCapability</code></td>
+      <td>Завершення є ключовим аспектом управління проектами.</td>
+    </tr>
+    <tr>
+      <td><code>projectStatus</code></td>
+      <td><code>String?</code></td>
+      <td>Статус (<code>NO_PLAN</code>, <code>IN_PROGRESS</code>...)</td>
+      <td>Властивість у <code>ProjectManagementCapability</code></td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><code>projectStatusText</code></td>
+      <td><code>String?</code></td>
+      <td>Текстовий опис статусу</td>
+      <td>Властивість у <code>ProjectManagementCapability</code></td>
+      <td></td>
+    </tr>
+    <tr>
+      <td colspan="5"><strong>Проектний менеджмент</strong></td>
+    </tr>
+    <tr>
+      <td><code>isProjectManagementEnabled</code></td>
+      <td><code>Boolean?</code></td>
+      <td>Чи ввімкнено функції ПМ</td>
+      <td><code>config.activeCapabilities.contains(ProjectManagementCapability.ID)</code></td>
+      <td>Активація <code>ProjectManagementCapability</code> в конфігурації контексту.</td>
+    </tr>
+    <tr>
+      <td><code>totalTimeSpentMinutes</code></td>
+      <td><code>Long?</code></td>
+      <td>Загальний витрачений час</td>
+      <td>Властивість у <code>TimeTrackingCapability</code></td>
+      <td>Можна винести в окрему <code>TimeTrackingCapability</code>.</td>
+    </tr>
+    <tr>
+      <td colspan="5"><strong>Оцінка та скоринг</strong></td>
+    </tr>
+    <tr>
+      <td><code>valueImportance</code>, <code>effort</code>...</td>
+      <td><code>Float</code></td>
+      <td>Поля для скорингу (ICE, RICE)</td>
+      <td>Окремі колонки в таблиці Context</td>
+      <td>Ці поля є критичними для запитів і фільтрації, тому будуть окремими колонками БД.</td>
+    </tr>
+    <tr>
+      <td><code>scoringStatus</code></td>
+      <td><code>String</code></td>
+      <td>Статус оцінки</td>
+      <td>Окрема колонка в таблиці Context</td>
+      <td>Критично для запитів і фільтрації.</td>
+    </tr>
+    <tr>
+      <td colspan="5"><strong>Стан UI (не переносити)</strong></td>
+    </tr>
+    <tr>
+      <td><code>isExpanded</code></td>
+      <td><code>Boolean</code></td>
+      <td>Розгорнутий вузол у ієрархії</td>
+      <td><strong>Видалити з моделі.</strong> Має керуватися ViewModel або UI-стейтом.</td>
+      <td>Ця логіка не є частиною даних, а лише їх відображення.</td>
+    </tr>
+    <tr>
+      <td><code>isAttachmentsExpanded</code></td>
+      <td><code>Boolean</code></td>
+      <td>Розгорнутий список вкладень</td>
+      <td><strong>Видалити з моделі.</strong></td>
+      <td>Аналогічно до <code>isExpanded</code>.</td>
+    </tr>
+    <tr>
+      <td><code>showCheckboxes</code></td>
+      <td><code>Boolean</code></td>
+      <td>Показувати чекбокси для підзадач</td>
+      <td><strong>Видалити з моделі.</strong> Це стан UI.</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><code>defaultViewModeName</code></td>
+      <td><code>String?</code></td>
+      <td>Вигляд за замовчуванням</td>
+      <td><code>role.startView</code> або <code>config.currentView</code></td>
+      <td>Нова модель вже має цю концепцію в <code>ContextRole</code> та <code>ContextConfiguration</code>.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Крок 2: Пропонована структура нових сутностей</h2>
+
+<p><strong>Примітка щодо зберігання даних (Гібридний підхід):</strong><br>
+Для реалізації нової архітектури буде застосовано гібридний підхід до зберігання даних. Поля, за якими потрібні часті запити, фільтрація або індексація (наприклад, <code>id</code>, <code>label</code>, <code>description</code>, <code>parentId</code>, поля <code>ScoringCapability</code>, поля <code>ProjectManagementCapability</code>, а також <code>tags</code> через окрему таблицю), будуть зберігатися як окремі, індексовані колонки або таблиці. Дані менш критичних для запитів, але більш гнучких "можливостей" (наприклад, <code>AuditingCapability</code>, <code>LinkingCapability</code>) будуть серіалізовані в єдине JSON-поле (<code>properties</code>) в тій же таблиці. Це забезпечить оптимальний баланс між продуктивністю та гнучкістю схеми.</p>
+
+<h3>Перелік полів, що будуть окремими колонками БД:</h3>
+<ul>
+  <li><code>id</code> (<code>ContextId</code>)</li>
+  <li><code>label</code> (для відображення назви)</li>
+  <li><code>description</code></li>
+  <li><code>roleCode</code></li>
+  <li><code>parentId</code></li>
+  <li><code>order</code></li>
+  <li><code>tags</code> (реалізовано через окрему таблицю зв'язку <code>context_tags</code>)</li>
+  <li><code>valueImportance</code>, <code>valueImpact</code>, <code>effort</code>, <code>cost</code>, <code>risk</code></li>
+  <li><code>weightEffort</code>, <code>weightCost</code>, <code>weightRisk</code></li>
+  <li><code>rawScore</code>, <code>displayScore</code></li>
+  <li><code>scoringStatus</code></li>
+  <li><code>isCompleted</code></li>
+  <li><code>projectStatus</code></li>
+  <li><code>projectStatusText</code></li>
+</ul>
+
+<h3>Базові <code>ContextRole</code></h3>
+<ul>
+  <li><code>generic_context</code></li>
+  <li><code>system_inbox</code></li>
+  <li><code>system_today</code></li>
+  <li><code>task</code></li>
+  <li><code>note_collection</code></li>
+</ul>
+
+<h3>Базові <code>Capability</code></h3>
+<ul>
+  <li><code>HierarchyCapability</code></li>
+  <li><code>AuditingCapability</code></li>
+  <li><code>SyncCapability</code></li>
+  <li><code>TaggingCapability</code></li>
+  <li><code>LinkingCapability</code></li>
+  <li><code>ProjectManagementCapability</code></li>
+  <li><code>ScoringCapability</code></li>
+  <li><code>TimeTrackingCapability</code></li>
+</ul>
+
+</body>
+</html>
