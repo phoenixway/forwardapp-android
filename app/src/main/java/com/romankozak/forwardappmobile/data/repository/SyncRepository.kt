@@ -367,7 +367,7 @@ class SyncRepository
                     checklistItems = checklistItems,
                     linkItemEntities = linkItems,
                     attachments = attachments,
-                    projectAttachmentCrossRefs = synthesizedProjectAttachmentCrossRefs,
+                    contextAttachmentCrossRefs = synthesizedProjectAttachmentCrossRefs,
                 )
 
             Log.d(EXPORT_TAG, "=== ATTACHMENTS EXPORT DONE ===")
