@@ -38,7 +38,7 @@ class SearchRepository
                         GlobalSearchResultItem.GoalItem(
                             goal = searchResult.goal,
                             backlogItem = it,
-                            contextName = searchResult.contextName,
+                            projectName = searchResult.contextName,
                             pathSegments = searchResult.pathSegments,
                         )
                     }

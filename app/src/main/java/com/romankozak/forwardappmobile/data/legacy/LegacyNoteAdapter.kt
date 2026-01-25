@@ -10,7 +10,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocu
 fun LegacyNoteEntity.toNoteDocument(): NoteDocumentEntity =
     NoteDocumentEntity(
         id = id,
-        projectId = projectId,
+        contextId = contextId,
         name = title,
         createdAt = createdAt,
         updatedAt = updatedAt,

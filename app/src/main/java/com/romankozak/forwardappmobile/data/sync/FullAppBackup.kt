@@ -77,8 +77,8 @@ data class DatabaseContent(
     val contextLogs: List<ContextLog> = emptyList(),
     @SerializedName(value = "attachments", alternate = ["attachment_items"])
     val attachments: List<com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentEntity> = emptyList(),
-    @SerializedName(value = "projectAttachmentCrossRefs", alternate = ["project_attachment_links"])
-    val projectAttachmentCrossRefs: List<com.romankozak.forwardappmobile.features.attachments.data.models.ProjectAttachmentCrossRef> =
+    @SerializedName(value = "contextAttachmentCrossRefs", alternate = ["project_attachment_links", "projectAttachmentCrossRefs"])
+    val contextAttachmentCrossRefs: List<com.romankozak.forwardappmobile.features.attachments.data.models.ContextAttachmentCrossRef> =
         emptyList(),
     // --- Extended Entities ---
     @SerializedName("dayPlans")
@@ -127,6 +127,6 @@ data class SettingsContent(
 )
 
 data class RecentProjectEntry(
-    val projectId: String,
+    val contextId: String,
     val timestamp: Long,
 )

@@ -142,7 +142,7 @@ interface AttachmentDao {
             a.id,
             a.entity_id as entityId,
             a.attachment_type as attachmentType,
-            a.owner_project_id as ownerProjectId,
+            a.owner_context_id as ownerContextId,
             a.updatedAt as attachmentUpdatedAt,
             nd.name as noteName,
             nd.updatedAt as noteUpdatedAt,

@@ -10,21 +10,21 @@ import java.util.UUID
 @Entity(
     tableName = "scripts",
     indices = [
-        Index(value = ["projectId"], name = "index_scripts_projectId"),
+        Index(value = ["contextId"], name = "index_scripts_contextId"),
         Index(value = ["name"], name = "index_scripts_name"),
     ],
     foreignKeys = [
         ForeignKey(
             entity = Context::class,
             parentColumns = ["id"],
-            childColumns = ["projectId"],
+            childColumns = ["contextId"],
             onDelete = ForeignKey.Companion.SET_NULL,
         ),
     ],
 )
 data class ScriptEntity(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
-    val projectId: String? = null,
+    val contextId: String? = null,
     val name: String,
     val description: String? = null,
     val content: String,

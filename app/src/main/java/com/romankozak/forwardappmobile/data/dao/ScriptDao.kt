@@ -14,8 +14,8 @@ interface ScriptDao {
     @Query("SELECT * FROM scripts")
     fun getAll(): Flow<List<ScriptEntity>>
 
-    @Query("SELECT * FROM scripts WHERE projectId = :projectId")
-    fun getForProject(projectId: String): Flow<List<ScriptEntity>>
+    @Query("SELECT * FROM scripts WHERE contextId = :contextId")
+    fun getForContext(contextId: String): Flow<List<ScriptEntity>>
 
     @Query("SELECT * FROM scripts WHERE id = :id LIMIT 1")
     suspend fun getById(id: String): ScriptEntity?

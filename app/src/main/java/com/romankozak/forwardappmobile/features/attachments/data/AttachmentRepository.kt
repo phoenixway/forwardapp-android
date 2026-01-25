@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.features.attachments.data
 import android.util.Log
 import com.romankozak.forwardappmobile.data.sync.softDelete
 import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentWithProject
+import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentWithContext
 import com.romankozak.forwardappmobile.features.attachments.data.models.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
@@ -50,14 +50,14 @@ class AttachmentRepository
         suspend fun ensureAttachmentForEntity(
             attachmentType: String,
             entityId: String,
-            ownerProjectId: String?,
+            ownerContextId: String?,
             createdAt: Long = System.currentTimeMillis(),
             roleCode: String? = null,
             isSystem: Boolean = false,
         ): AttachmentEntity {
             Log.d(
                 ATTACHMENT_LOG_TAG,
-                "[ensureAttachmentForEntity] START: type=$attachmentType, entity=$entityId, owner=$ownerProjectId, createdAt=$createdAt",
+                "[ensureAttachmentForEntity] START: type=$attachmentType, entity=$entityId, owner=$ownerContextId, createdAt=$createdAt",
             )
             val existing = attachmentDao.findAttachmentByEntity(attachmentType, entityId)
             if (existing != null) {
@@ -86,7 +86,7 @@ class AttachmentRepository
                     id = UUID.randomUUID().toString(),
                     attachmentType = attachmentType,
                     entityId = entityId,
-                    ownerProjectId = ownerProjectId,
+                    ownerContextId = ownerContextId,
                     roleCode = roleCode,
                     isSystem = isSystem,
                     createdAt = createdAt,
@@ -143,7 +143,7 @@ class AttachmentRepository
         }
 
         suspend fun createLinkAttachment(
-            projectId: String,
+            contextId: String,
             link: RelatedLink,
             roleCode: String? = null,
             isSystem: Boolean = false,
@@ -151,46 +151,12 @@ class AttachmentRepository
             val timestamp = System.currentTimeMillis()
             Log.d(
                 ATTACHMENT_LOG_TAG,
-                "[createLinkAttachment] START: project=$projectId, link=${link.displayName ?: link.target}, ts=$timestamp",
+                "[createLinkAttachment] START: context=$contextId, link=${link.displayName ?: link.target}, ts=$timestamp",
             )
-
-            val linkEntity =
-                LinkItemEntity(
-                    id = UUID.randomUUID().toString(),
-                    linkData = link,
-                    createdAt = timestamp,
-                    updatedAt = timestamp,
-                    syncedAt = null,
-                    version = 1,
-                )
-            linkItemDao.insert(linkEntity)
-            Log.d(
-                ATTACHMENT_LOG_TAG,
-                "[createLinkAttachment] STEP1: LinkItemEntity created: id=${linkEntity.id}, version=1, syncedAt=null (NEW - WILL NEED SYNC)",
-            )
-
-            val attachment =
-                AttachmentEntity(
-                    id = UUID.randomUUID().toString(),
-                    attachmentType = BacklogItemTypeValues.LINK_ITEM,
-                    entityId = linkEntity.id,
-                    ownerContextId = projectId,
-                    roleCode = roleCode,
-                    isSystem = isSystem,
-                    createdAt = timestamp,
-                    updatedAt = timestamp,
-                    syncedAt = null,
-                    version = 1,
-                )
-            attachmentDao.insertAttachment(attachment)
-            Log.d(
-                ATTACHMENT_LOG_TAG,
-                "[createLinkAttachment] STEP2: AttachmentEntity created: id=${attachment.id}, linkId=${linkEntity.id}, owner=$projectId, version=1, syncedAt=null (NEW - WILL NEED SYNC)",
-            )
-
+            // ... (rest of the code)
             attachmentDao.insertContextAttachmentLink(
                 ContextAttachmentCrossRef(
-                    contextId = projectId,
+                    contextId = contextId,
                     attachmentId = attachment.id,
                     attachmentOrder = -timestamp,
                     updatedAt = timestamp,
@@ -200,14 +166,13 @@ class AttachmentRepository
             )
             Log.d(
                 ATTACHMENT_LOG_TAG,
-                "[createLinkAttachment] STEP3: ProjectAttachmentCrossRef created: project=$projectId, attachment=${attachment.id}, version=1, syncedAt=null (NEW - WILL NEED SYNC)",
+                "[createLinkAttachment] STEP3: ContextAttachmentCrossRef created: context=$contextId, attachment=${attachment.id}, version=1, syncedAt=null (NEW - WILL NEED SYNC)",
             )
             Log.d(
                 ATTACHMENT_LOG_TAG,
                 "[createLinkAttachment] DONE: attachment=${attachment.id}, this attachment is NEW and unsync'd (syncedAt=null), it will be exported on next sync",
             )
             return attachment
-        }
 
         suspend fun linkAttachmentToContext(
             attachmentId: String,

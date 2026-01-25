@@ -64,7 +64,7 @@ class SelectiveImportViewModel
                         Log.d("IMPORT_SELECTIVE", "Database attachments: ${fullAppBackup.database.attachments.size}")
                         Log.d(
                             "IMPORT_SELECTIVE",
-                            "Database projectAttachmentCrossRefs: ${fullAppBackup.database.projectAttachmentCrossRefs.size}",
+                            "Database contextAttachmentCrossRefs: ${fullAppBackup.database.contextAttachmentCrossRefs.size}",
                         )
                         val diff = syncRepository.createBackupDiff(fullAppBackup.database)
                         _uiState.update {
@@ -191,10 +191,10 @@ class SelectiveImportViewModel
                 val filteredChecklistItems = allChecklistItems.map { it.item }.filter { it.checklistId in selectedChecklistIds }
 
                 // Filter project attachment cross-refs to only those linked to selected projects and selected attachments
-                val allProjectAttachmentCrossRefs = currentState.backupContent?.allProjectAttachmentCrossRefs ?: emptyList()
+                val allContextAttachmentCrossRefs = currentState.backupContent?.allContextAttachmentCrossRefs ?: emptyList()
                 val filteredCrossRefs =
-                    allProjectAttachmentCrossRefs.filter { crossRef ->
-                        crossRef.projectId in selectedProjectIds && crossRef.attachmentId in selectedAttachmentIds
+                    allContextAttachmentCrossRefs.filter { crossRef ->
+                        crossRef.contextId in selectedProjectIds && crossRef.attachmentId in selectedAttachmentIds
                     }
 
                 // Filter scripts to those that are unassigned or belong to selected projects (to avoid FK issues)
@@ -220,7 +220,7 @@ class SelectiveImportViewModel
                         contextLogs = selectedProjectExecutionLogs,
                         recentProjectEntries = emptyList(), // Not directly selectable, derived from projects
                         attachments = selectedAttachments,
-                        projectAttachmentCrossRefs = filteredCrossRefs,
+                        contextAttachmentCrossRefs = filteredCrossRefs,
                         scripts = filteredScripts,
                     )
 

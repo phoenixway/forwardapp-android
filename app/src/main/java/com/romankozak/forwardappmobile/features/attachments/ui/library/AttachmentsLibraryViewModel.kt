@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.config.FeatureToggles
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
-import com.romankozak.forwardappmobile.features.attachments.data.models.ProjectAttachmentCrossRef
+import com.romankozak.forwardappmobile.features.attachments.data.models.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
@@ -47,7 +47,7 @@ class AttachmentsLibraryViewModel
                 val queryResults = array[0] as List<AttachmentLibraryQueryResult>
 
                 @Suppress("UNCHECKED_CAST")
-                val links = array[1] as List<ProjectAttachmentCrossRef>
+                val links = array[1] as List<ContextAttachmentCrossRef>
 
                 @Suppress("UNCHECKED_CAST")
                 val projects = array[2] as List<Context>
@@ -73,11 +73,11 @@ class AttachmentsLibraryViewModel
 
                         val associatedProjects =
                             linksByAttachment[result.id]
-                                ?.mapNotNull { link -> projectRefs[link.projectId] }
+                                ?.mapNotNull { link -> projectRefs[link.contextId] }
                                 ?.distinctBy { it.id }
                                 ?: emptyList()
 
-                        val ownerProject = result.ownerProjectId?.let { projectRefs[it] }
+                        val ownerProject = result.ownerContextId?.let { projectRefs[it] }
 
                         when (type) {
                             AttachmentLibraryType.NOTE_DOCUMENT -> {
@@ -188,9 +188,9 @@ class AttachmentsLibraryViewModel
             }
         }
 
-        fun onProjectChosen(projectId: String?) {
+        fun onProjectChosen(contextId: String?) {
             val attachment = pendingShareItem ?: return
-            if (projectId.isNullOrBlank() || projectId == "root") {
+            if (contextId.isNullOrBlank() || contextId == "root") {
                 pendingShareItem = null
                 return
             }
@@ -198,7 +198,7 @@ class AttachmentsLibraryViewModel
             viewModelScope.launch {
                 attachmentRepository.linkAttachmentToProject(
                     attachmentId = attachment.id,
-                    projectId = projectId,
+                    projectId = contextId,
                 )
                 _events.emit(AttachmentsLibraryEvent.ShowToast("Додано до проєкту"))
                 pendingShareItem = null

@@ -44,11 +44,11 @@ class ScriptRepository
             scriptDao.insert(script)
 
             if (projectId != null) {
-                attachmentRepository.ensureAttachmentLinkedToProject(
+                attachmentRepository.ensureAttachmentLinkedToContext(
                     attachmentType = BacklogItemTypeValues.SCRIPT,
                     entityId = script.id,
-                    projectId = projectId,
-                    ownerProjectId = projectId,
+                    contextId = projectId,
+                    ownerContextId = projectId,
                     createdAt = timestamp,
                 )
             }

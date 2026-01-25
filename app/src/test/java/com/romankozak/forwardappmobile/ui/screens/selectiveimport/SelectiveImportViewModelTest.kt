@@ -10,7 +10,7 @@ import com.romankozak.forwardappmobile.data.sync.DiffResult
 import com.romankozak.forwardappmobile.data.sync.FullAppBackup
 import com.romankozak.forwardappmobile.data.sync.RecentProjectEntry
 import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.ProjectAttachmentCrossRef
+import com.romankozak.forwardappmobile.features.attachments.data.models.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.sync.selectiveimport.SelectiveImportViewModel
@@ -44,20 +44,20 @@ class SelectiveImportViewModelTest {
                         id = "att1",
                         attachmentType = "NOTE_DOCUMENT",
                         entityId = "doc1",
-                        ownerProjectId = project1.id,
+                        ownerContextId = project1.id,
                         createdAt = 10L,
                         updatedAt = 11L,
                     )
                 val crossRef =
-                    ProjectAttachmentCrossRef(
-                        projectId = project1.id,
+                    ContextAttachmentCrossRef(
+                        contextId = project1.id,
                         attachmentId = attachment.id,
                         attachmentOrder = 0,
                     )
                 val scriptForP1 =
                     ScriptEntity(
                         id = "s1",
-                        projectId = project1.id,
+                        contextId = project1.id,
                         name = "Script 1",
                         content = "println(1)",
                         createdAt = 20L,
@@ -66,7 +66,7 @@ class SelectiveImportViewModelTest {
                 val scriptForP2 =
                     ScriptEntity(
                         id = "s2",
-                        projectId = project2.id,
+                        contextId = project2.id,
                         name = "Script 2",
                         content = "println(2)",
                         createdAt = 20L,
@@ -89,8 +89,8 @@ class SelectiveImportViewModelTest {
                         scripts = listOf(scriptForP1, scriptForP2),
                         activityRecords = emptyList(),
                         attachments = listOf(attachment),
-                        projectAttachmentCrossRefs = listOf(crossRef),
-                        recentProjectEntries = listOf(RecentProjectEntry(projectId = project1.id, timestamp = 30L)),
+                        contextAttachmentCrossRefs = listOf(crossRef),
+                        recentProjectEntries = listOf(RecentProjectEntry(contextId = project1.id, timestamp = 30L)),
                     )
 
                 val backupDiff =
@@ -109,7 +109,7 @@ class SelectiveImportViewModelTest {
                         contextLogs = DiffResult(),
                         scripts = DiffResult(added = databaseContent.scripts),
                         attachments = DiffResult(added = databaseContent.attachments),
-                        projectAttachmentCrossRefs = DiffResult(added = databaseContent.projectAttachmentCrossRefs),
+                        contextAttachmentCrossRefs = DiffResult(added = databaseContent.contextAttachmentCrossRefs),
                     )
 
                 val syncRepository: SyncRepository = mockk(relaxed = true)
@@ -141,7 +141,7 @@ class SelectiveImportViewModelTest {
                 assertEquals(setOf(project1.id), result.projects.map { it.id }.toSet())
                 assertTrue(result.scripts.any { it.id == scriptForP1.id })
                 assertFalse(result.scripts.any { it.id == scriptForP2.id })
-                assertEquals(listOf(crossRef), result.projectAttachmentCrossRefs)
+                assertEquals(listOf(crossRef), result.contextAttachmentCrossRefs)
                 assertEquals(listOf(attachment), result.attachments)
             } finally {
                 Dispatchers.resetMain()
