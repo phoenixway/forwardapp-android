@@ -3,10 +3,10 @@ package com.romankozak.forwardappmobile.core.navigation
 sealed interface NavTarget {
     // -------- HIGH LEVEL --------
 
-    data object ProjectHierarchy : NavTarget
+    data object ContextHierarchy : NavTarget
 
-    data class ProjectDetail(
-        val projectId: String,
+    data class ContextDetail(
+        val contextId: String,
         val goalId: String? = null,
         val itemIdToHighlight: String? = null,
         val inboxRecordIdToHighlight: String? = null,
@@ -21,13 +21,13 @@ sealed interface NavTarget {
     ) : NavTarget
 
     data class NoteDocumentEdit(
-        val projectId: String? = null,
+        val contextId: String? = null,
         val documentId: String? = null,
     ) : NavTarget
 
     data class Checklist(
         val id: String? = null,
-        val projectId: String? = null,
+        val contextId: String? = null,
     ) : NavTarget
 
     data class GlobalSearch(
@@ -54,6 +54,8 @@ sealed interface NavTarget {
 
     data object Chat : NavTarget
 
+    override fun toString(): String = this.javaClass.simpleName
+
     data object AttachmentsLibrary : NavTarget
 
     data object ScriptsLibrary : NavTarget
@@ -63,12 +65,12 @@ sealed interface NavTarget {
     data object ContextLab : NavTarget
 
     data class ScriptEditor(
-        val projectId: String? = null,
+        val contextId: String? = null,
         val scriptId: String? = null,
     ) : NavTarget
 
-    data class ProjectStructure(
-        val projectId: String,
+    data class ContextStructure(
+        val contextId: String,
     ) : NavTarget
 
     data object StructurePresets : NavTarget

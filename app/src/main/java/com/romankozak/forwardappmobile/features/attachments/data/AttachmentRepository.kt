@@ -153,7 +153,26 @@ class AttachmentRepository
                 ATTACHMENT_LOG_TAG,
                 "[createLinkAttachment] START: context=$contextId, link=${link.displayName ?: link.target}, ts=$timestamp",
             )
-            // ... (rest of the code)
+            val linkItem =
+                LinkItemEntity(
+                    id = UUID.randomUUID().toString(),
+                    linkData = link,
+                    createdAt = timestamp,
+                    updatedAt = timestamp,
+                    version = 1,
+                )
+            linkItemDao.insert(linkItem)
+
+            val attachment =
+                ensureAttachmentForEntity(
+                    attachmentType = BacklogItemTypeValues.LINK_ITEM,
+                    entityId = linkItem.id,
+                    ownerContextId = contextId,
+                    createdAt = timestamp,
+                    roleCode = roleCode,
+                    isSystem = isSystem,
+                )
+
             attachmentDao.insertContextAttachmentLink(
                 ContextAttachmentCrossRef(
                     contextId = contextId,
@@ -173,7 +192,7 @@ class AttachmentRepository
                 "[createLinkAttachment] DONE: attachment=${attachment.id}, this attachment is NEW and unsync'd (syncedAt=null), it will be exported on next sync",
             )
             return attachment
-        } // Missing closing brace here
+        }
 
         suspend fun linkAttachmentToContext(
             attachmentId: String,

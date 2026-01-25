@@ -54,7 +54,7 @@ object GoalScoringManager {
         )
     }
 
-    fun calculateScoresForProject(project: Context): Context {
+    fun calculateScoresForContext(project: Context): Context {
         if (project.scoringStatus != ScoringStatusValues.ASSESSED) {
             return project.copy(
                 rawScore = 0f,

@@ -24,7 +24,7 @@ enum class AttachmentLibraryFilter {
         }
 }
 
-data class AttachmentProjectRef(
+data class AttachmentContextRef(
     val id: String,
     val name: String,
 )
@@ -35,8 +35,8 @@ data class AttachmentLibraryItem(
     val title: String,
     val subtitle: String?,
     val type: AttachmentLibraryType,
-    val projects: List<AttachmentProjectRef>,
-    val ownerProject: AttachmentProjectRef?,
+    val contexts: List<AttachmentContextRef>,
+    val ownerContext: AttachmentContextRef?,
     val updatedAt: Long,
     val linkData: RelatedLink? = null,
 )
@@ -45,7 +45,7 @@ data class AttachmentLibraryQueryResult(
     val id: String,
     val entityId: String,
     val attachmentType: String,
-    val ownerProjectId: String?,
+    val ownerContextId: String?,
     val attachmentUpdatedAt: Long,
     val noteName: String?,
     val noteUpdatedAt: Long?,
@@ -65,7 +65,7 @@ data class AttachmentsLibraryUiState(
 )
 
 sealed interface AttachmentsLibraryEvent {
-    data class NavigateToProjectChooser(val title: String) : AttachmentsLibraryEvent
+    data class NavigateToContextChooser(val title: String) : AttachmentsLibraryEvent
 
     data class ShowToast(val message: String) : AttachmentsLibraryEvent
 }

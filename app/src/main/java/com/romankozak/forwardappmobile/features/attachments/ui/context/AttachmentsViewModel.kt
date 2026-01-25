@@ -17,6 +17,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
+import com.romankozak.forwardappmobile.features.attachments.ui.context.AttachmentType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel

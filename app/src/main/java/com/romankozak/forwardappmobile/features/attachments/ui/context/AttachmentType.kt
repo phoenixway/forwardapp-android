@@ -1,10 +1,10 @@
-package com.romankozak.forwardappmobile.features.attachments.ui.project
+package com.romankozak.forwardappmobile.features.attachments.ui.context
 
 enum class AttachmentType {
     NOTES,
     CHECKLIST,
     WEB_LINK,
     OBSIDIAN_LINK,
-    PROJECT_LINK,
-    PROJECT_SHORTCUT,
+    CONTEXT_LINK,
+    CONTEXT_SHORTCUT,
 }
