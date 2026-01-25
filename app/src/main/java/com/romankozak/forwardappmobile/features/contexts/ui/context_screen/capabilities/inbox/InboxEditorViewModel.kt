@@ -28,7 +28,7 @@ class InboxEditorViewModel
             viewModelScope.launch {
                 inboxRepository.getInboxRecordById(id)?.let { record ->
                     // Встановлюємо projectId для "Show Location"
-                    universalEditorViewModel.setProjectId(record.projectId)
+                    universalEditorViewModel.setProjectId(record.contextId)
                     universalEditorViewModel.setInitialContent(record.text)
                 }
             }

@@ -68,7 +68,7 @@ class GlobalSearchViewModel
             projectName: String?,
         ) {
             viewModelScope.launch {
-                val finalProjectName = projectName ?: contextRepository.getProjectById(projectId)?.name ?: "Context"
+                val finalProjectName = projectName ?: contextRepository.getContextById(projectId)?.name ?: "Context"
                 enhancedNavigationManager.navigateToProject(projectId, finalProjectName)
             }
         }

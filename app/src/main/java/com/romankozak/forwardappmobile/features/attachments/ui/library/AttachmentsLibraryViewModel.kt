@@ -39,7 +39,7 @@ class AttachmentsLibraryViewModel
             combine(
                 attachmentRepository.getAttachmentLibraryItems(),
                 attachmentRepository.getAllAttachmentLinks(),
-                contextDao.getAllProjects(),
+                contextDao.getAllContexts(),
                 queryState,
                 filterState,
             ) { array ->

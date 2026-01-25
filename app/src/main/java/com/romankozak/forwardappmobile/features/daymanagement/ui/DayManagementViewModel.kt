@@ -72,8 +72,8 @@ class DayManagementViewModel
 
         fun onInboxClicked() {
             viewModelScope.launch(ioDispatcher) {
-                val projects = contextRepository.getAllProjects()
-                val specialProject = projects.find { it.projectType == ContextType.SYSTEM }
+                val projects = contextRepository.getAllContexts()
+                val specialProject = projects.find { it.contextType == ContextType.SYSTEM }
                 if (specialProject != null) {
                     val inboxProject = projects.find { it.reservedGroup == ReservedGroup.Inbox && it.parentId == specialProject.id }
                     inboxProject?.let {

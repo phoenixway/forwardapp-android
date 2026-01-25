@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems
+package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems
 
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -46,7 +46,7 @@ internal fun EnhancedRelatedLinkChip(
         label = "chip_scale",
     )
 
-    val isSubProject = link.type == LinkType.PROJECT
+    val isSubProject = link.type == LinkType.CONTEXT
     val backgroundColor =
         if (isSubProject) {
             MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
@@ -94,7 +94,7 @@ internal fun EnhancedRelatedLinkChip(
             Icon(
                 imageVector =
                     when (link.type) {
-                        LinkType.PROJECT -> Icons.Default.AccountTree
+                        LinkType.CONTEXT -> Icons.Default.AccountTree
                         LinkType.URL -> Icons.Default.Link
                         LinkType.OBSIDIAN -> Icons.Default.Book
                         null -> Icons.Default.BrokenImage

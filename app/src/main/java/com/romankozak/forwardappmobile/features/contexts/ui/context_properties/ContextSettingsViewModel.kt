@@ -88,7 +88,7 @@ class ContextSettingsViewModel
                         isProjectManagementEnabled = project.isContextManagementEnabled ?: false,
                     )
                 }
-                val structure = contextStructureRepository.getStructureByProject(projectId)
+                val structure = contextStructureRepository.getStructureByContext(projectId)
                 val presetLabel = structure?.basePresetCode?.let { code -> structurePresetDao.getByCode(code)?.label }
                 val structureFeatures =
                     mapOf(

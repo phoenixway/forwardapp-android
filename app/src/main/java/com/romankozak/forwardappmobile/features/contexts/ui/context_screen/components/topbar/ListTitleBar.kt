@@ -142,9 +142,9 @@ private fun ViewModeIndicator(
     }
 }
 
-// Enhanced ProjectStatusIndicator with animations
+// Enhanced contextStatusIndicator with animations
 @Composable
-private fun ProjectStatusIndicator(
+private fun contextStatusIndicator(
     status: String,
     statusText: String?,
     modifier: Modifier = Modifier,
@@ -277,8 +277,8 @@ fun ListTitleBar(
     var isStatusExpanded by remember { mutableStateOf(false) }
 
     val isProjectManagementActive =
-        (project?.isProjectManagementEnabled == true) &&
-            (project.projectStatus != null)
+        (project?.isContextManagementEnabled == true) &&
+            (project.contextStatus != null)
 
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -333,7 +333,7 @@ fun ListTitleBar(
 
                 if (isProjectManagementActive) {
                     Spacer(Modifier.width(8.dp))
-                    BriefStatusIndicator(status = project.projectStatus!!)
+                    BriefStatusIndicator(status = project.contextStatus!!)
                 }
 
                 Spacer(Modifier.width(8.dp))
@@ -347,10 +347,10 @@ fun ListTitleBar(
             }
 
             AnimatedVisibility(visible = isStatusExpanded) {
-                if (project?.projectStatus != null) {
-                    ProjectStatusIndicator(
-                        status = project.projectStatus,
-                        statusText = project.projectStatusText,
+                if (project?.contextStatus != null) {
+                    contextStatusIndicator(
+                        status = project.contextStatus,
+                        statusText = project.contextStatusText,
                     )
                 }
             }

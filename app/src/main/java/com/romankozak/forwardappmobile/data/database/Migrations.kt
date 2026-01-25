@@ -130,7 +130,7 @@ val MIGRATION_14_15 =
                         val oldListIds: List<String> = gson.fromJson(jsonOld, listStringType)
                         val newRelatedLinks =
                             oldListIds.map { listId ->
-                                RelatedLink(type = LinkType.PROJECT, target = listId)
+                                RelatedLink(type = LinkType.CONTEXT, target = listId)
                             }
                         val jsonNew = gson.toJson(newRelatedLinks)
                         relatedLinkList.add(goalId to jsonNew)

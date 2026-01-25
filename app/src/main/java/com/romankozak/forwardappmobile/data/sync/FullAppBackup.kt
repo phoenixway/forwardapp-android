@@ -21,10 +21,10 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.ContextConf
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfile
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfileItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextStructureItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.data.models.InboxRecord
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructureItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.SystemAppEntity
 import com.romankozak.forwardappmobile.features.daymanagement.data.models.DailyMetric
 import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayPlan
@@ -119,7 +119,7 @@ data class DatabaseContent(
     @SerializedName("projectStructures")
     val contextConfigurations: List<ContextConfiguration> = emptyList(),
     @SerializedName("projectStructureItems")
-    val projectStructureItems: List<ProjectStructureItem> = emptyList(),
+    val projectStructureItems: List<ContextStructureItem> = emptyList(),
 )
 
 data class SettingsContent(

@@ -64,7 +64,7 @@ class ItemActionHandler
                         is BacklogItemContent.NoteItem -> recentItemsRepository.logNoteAccess(item.note)
                         is BacklogItemContent.NoteDocumentItem -> recentItemsRepository.logNoteDocumentAccess(item.document)
                         is BacklogItemContent.SublistItem -> {
-                            contextRepository.getProjectById(item.project.id)?.let {
+                            contextRepository.getContextById(item.project.id)?.let {
                                 recentItemsRepository.logProjectAccess(it)
                             }
                         }
@@ -107,11 +107,11 @@ class ItemActionHandler
                         item is BacklogItemContent.NoteDocumentItem ||
                         item is BacklogItemContent.ChecklistItem
                 if (isAttachment) {
-                    contextRepository.unlinkAttachmentFromProject(currentProjectId, item.backlogItem.id)
+                    contextRepository.unlinkAttachmentFromContext(currentProjectId, item.backlogItem.id)
                     resultListener.forceRefresh()
                     resultListener.showSnackbar("Вкладення видалено з проєкту", null)
                 } else {
-                    contextRepository.deleteListItems(currentProjectId, listOf(item.backlogItem.id))
+                    contextRepository.deleteListItemsFromContext(currentProjectId, listOf(item.backlogItem.id))
                     resultListener.showSnackbar("Елемент видалено", "Скасувати")
                 }
             }

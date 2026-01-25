@@ -338,19 +338,19 @@ private fun SearchResultsContent(
                             val searchResult =
                                 GlobalGoalSearchResult(
                                     goal = result.goal,
-                                    projectId = result.backlogItem.projectId,
-                                    projectName = result.projectName,
+                                    contextId = result.backlogItem.contextId,
+                                    contextName = result.projectName,
                                     pathSegments = result.pathSegments,
                                 )
                             SearchResultItem(
                                 result = searchResult,
                                 onOpenAsProject = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    viewModel.navigateToProjectForResult(searchResult.projectId, searchResult.projectName)
+                                    viewModel.navigateToProjectForResult(searchResult.contextId, searchResult.contextName)
                                 },
                                 onOpenInNavigation = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    viewModel.goBackToRevealProject(searchResult.projectId)
+                                    viewModel.goBackToRevealProject(searchResult.contextId)
                                 },
                             )
                         }
@@ -361,7 +361,7 @@ private fun SearchResultsContent(
                                 result = searchResult,
                                 onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    viewModel.navigateToProjectForResult(searchResult.projectId, searchResult.projectName)
+                                    viewModel.navigateToProjectForResult(searchResult.contextId, searchResult.contextName)
                                 },
                                 onGoToTargetProject = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -386,7 +386,7 @@ private fun SearchResultsContent(
                             )
                         }
                         is GlobalSearchResultItem.SubcontextItem -> {
-                            val subproject = result.searchResult.subproject
+                            val subproject = result.searchResult.subcontext
                             SubprojectSearchResultItem(
                                 result = result.searchResult,
                                 onClick = {
@@ -400,7 +400,7 @@ private fun SearchResultsContent(
                             )
                         }
                         is GlobalSearchResultItem.ContextItem -> {
-                            val project = result.searchResult.project
+                            val project = result.searchResult.context
                             ProjectSearchResultItem(
                                 result = result.searchResult,
                                 onClick = {
@@ -422,7 +422,7 @@ private fun SearchResultsContent(
                                 record = result.record,
                                 onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    viewModel.navigateToProjectForResult(result.record.projectId, null)
+                                    viewModel.navigateToProjectForResult(result.record.contextId, null)
                                 },
                             )
                         }

@@ -117,7 +117,7 @@ class SelectionHandler(
         clearSelection()
 
         scope.launch {
-            contextRepository.deleteListItems(projectIdFlow.value, selectedIds.toList())
+            contextRepository.deleteListItemsFromContext(projectIdFlow.value, selectedIds.toList())
             resultListener.showSnackbar("Видалено елементів: ${selectedIds.size}", "Скасувати")
         }
     }

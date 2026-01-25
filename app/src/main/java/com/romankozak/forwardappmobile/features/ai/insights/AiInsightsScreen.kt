@@ -131,19 +131,19 @@ class AiInsightsViewModel
             ) {
                 val grouped =
                     windowRecords
-                        .filter { it.projectId != null }
-                        .groupBy { it.projectId!! }
+                        .filter { it.contextId != null }
+                        .groupBy { it.contextId!! }
                         .mapValues { entry -> entry.value.sumOf { durationMinutes(it) } }
                         .toList()
                         .sortedByDescending { it.second }
                         .take(3)
                         .filter { it.second >= minMinutes }
 
-                grouped.forEachIndexed { index, (projectId, minutes) ->
+                grouped.forEachIndexed { index, (contextId, minutes) ->
                     messages.add(
                         AiInsightEntity(
-                            id = "${windowId}_${projectId}_$index",
-                            text = "Фокус за $windowLabel: проєкт $projectId ~ $minutes хв.",
+                            id = "${windowId}_${contextId}_$index",
+                            text = "Фокус за $windowLabel: проєкт $contextId ~ $minutes хв.",
                             type = MessageType.INFO.name,
                             timestamp = now,
                             isRead = false,

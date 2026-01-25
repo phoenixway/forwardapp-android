@@ -377,7 +377,7 @@ private fun LogContentPreview() {
         listOf(
             ContextLog(
                 id = "1",
-                projectId = "0",
+                contextId = "0",
                 timestamp = now - 20 * 60_000,
                 type = ContextLogEntryTypeValues.STATUS_CHANGE,
                 description = "Перенесено до 'Робота'",
@@ -385,7 +385,7 @@ private fun LogContentPreview() {
             ),
             ContextLog(
                 id = "2",
-                projectId = "0",
+                contextId = "0",
                 timestamp = now - 120 * 60_000,
                 type = ContextLogEntryTypeValues.COMMENT,
                 description = "Коментар",
@@ -393,7 +393,7 @@ private fun LogContentPreview() {
             ),
             ContextLog(
                 id = "3",
-                projectId = "0",
+                contextId = "0",
                 timestamp = now - 3_600_000 * 5,
                 type = ContextLogEntryTypeValues.INSIGHT,
                 description = "Ідея: кешування",

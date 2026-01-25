@@ -30,8 +30,8 @@ class ContextMarkdownExporter
                     appendLine()
 
                     appendLine("## Поточний стан проекту")
-                    appendLine("- **Статус:** ${ContextStatusValues.getDisplayName(project.projectStatus) ?: "Не визначено"}")
-                    project.projectStatusText?.takeIf { it.isNotBlank() }?.let {
+                    appendLine("- **Статус:** ${ContextStatusValues.getDisplayName(project.contextStatus) ?: "Не визначено"}")
+                    project.contextStatusText?.takeIf { it.isNotBlank() }?.let {
                         appendLine("- **Коментар до статусу:** $it")
                     }
                     project.totalTimeSpentMinutes?.let { minutes ->

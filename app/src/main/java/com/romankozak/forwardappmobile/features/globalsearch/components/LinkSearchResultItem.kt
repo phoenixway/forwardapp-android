@@ -133,7 +133,7 @@ fun LinkSearchResultItem(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = result.projectName,
+                        text = result.contextName,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -212,7 +212,7 @@ private fun getLinkDisplayData(
                 actionIcon = Icons.AutoMirrored.Filled.Note,
                 actionDescription = "Відкрити в Obsidian",
             )
-        LinkType.PROJECT ->
+        LinkType.CONTEXT ->
             LinkDisplayData(
                 icon = Icons.AutoMirrored.Filled.ListAlt,
                 colors =
@@ -244,7 +244,7 @@ private fun getLinkTypeLabel(linkType: LinkType?): String =
     when (linkType) {
         LinkType.URL -> "Attachment: web-url"
         LinkType.OBSIDIAN -> "Attachment: Obsidian note"
-        LinkType.PROJECT -> "Attachment: link to project"
+        LinkType.CONTEXT -> "Attachment: link to project"
         null -> "Attachment: Unknown"
     }
 

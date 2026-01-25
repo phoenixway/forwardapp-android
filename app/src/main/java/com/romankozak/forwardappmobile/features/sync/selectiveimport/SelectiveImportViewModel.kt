@@ -116,7 +116,7 @@ class SelectiveImportViewModel
 
                 // Get all available projects from backup to check for parent references
                 val allBackupProjects = contentToImport.projects.map { it.item }
-                val regularProjectIds = regularProjects.map { it.id }.toSet()
+                val regularcontextIds = regularProjects.map { it.id }.toSet()
 
                 // Build map of all projects by ID to check their system status
                 val allProjectsMap = allBackupProjects.associateBy { it.id }
@@ -127,11 +127,11 @@ class SelectiveImportViewModel
                 // 2. Its parent is a system project (exists in DB), OR
                 // 3. Its parent is a selected regular project whose parent is also valid
                 fun isProjectValidForImport(
-                    projectId: String,
+                    contextId: String,
                     visited: Set<String> = emptySet(),
                 ): Boolean {
-                    if (projectId in visited) return false // Circular reference protection
-                    val project = allProjectsMap[projectId] ?: return false
+                    if (contextId in visited) return false // Circular reference protection
+                    val project = allProjectsMap[contextId] ?: return false
 
                     if (project.parentId == null) return true // Root level is valid
 
@@ -144,7 +144,7 @@ class SelectiveImportViewModel
                             true
                         } else {
                             // Regular projects must be selected and have valid parents recursively
-                            project.parentId in regularProjectIds && isProjectValidForImport(project.parentId, visited + projectId)
+                            project.parentId in regularcontextIds && isProjectValidForImport(project.parentId, visited + contextId)
                         }
 
                     return isParentValid
@@ -155,7 +155,7 @@ class SelectiveImportViewModel
                         isProjectValidForImport(project.id)
                     }
 
-                val selectedProjectIds = projectsWithValidParents.map { it.id }.toSet()
+                val selectedcontextIds = projectsWithValidParents.map { it.id }.toSet()
                 val selectedGoalIds = selectedGoals.map { it.id }.toSet()
                 val selectedLegacyNoteIds = selectedLegacyNotes.map { it.id }.toSet()
                 val selectedDocumentIds = selectedDocuments.map { it.id }.toSet()
@@ -166,14 +166,14 @@ class SelectiveImportViewModel
                 val selectedAttachmentIds = selectedAttachments.map { it.id }.toSet()
                 val selectedBacklogOrdersFiltered =
                     selectedBacklogOrders.filter { order ->
-                        order.listId in selectedProjectIds && order.itemId in (selectedProjectIds + selectedGoalIds)
+                        order.listId in selectedcontextIds && order.itemId in (selectedcontextIds + selectedGoalIds)
                     }
 
                 // Filter list items to only those linked to selected projects, goals, documents, checklists, legacy notes, scripts, inbox records
                 val allListItems = currentState.backupContent?.backlogItems?.map { it.item } ?: emptyList()
                 val filteredListItems =
                     allListItems.filter { listItem ->
-                        listItem.projectId in selectedProjectIds ||
+                        listItem.contextId in selectedcontextIds ||
                             listItem.entityId in selectedGoalIds ||
                             listItem.entityId in selectedLegacyNoteIds ||
                             listItem.entityId in selectedDocumentIds ||
@@ -194,13 +194,13 @@ class SelectiveImportViewModel
                 val allContextAttachmentCrossRefs = currentState.backupContent?.allContextAttachmentCrossRefs ?: emptyList()
                 val filteredCrossRefs =
                     allContextAttachmentCrossRefs.filter { crossRef ->
-                        crossRef.contextId in selectedProjectIds && crossRef.attachmentId in selectedAttachmentIds
+                        crossRef.contextId in selectedcontextIds && crossRef.attachmentId in selectedAttachmentIds
                     }
 
                 // Filter scripts to those that are unassigned or belong to selected projects (to avoid FK issues)
                 val filteredScripts =
                     selectedScripts.filter { script ->
-                        script.projectId == null || script.projectId in selectedProjectIds
+                        script.contextId == null || script.contextId in selectedcontextIds
                     }
 
                 val databaseContent =
@@ -239,13 +239,13 @@ class SelectiveImportViewModel
         }
 
         fun toggleProjectSelection(
-            projectId: String,
+            contextId: String,
             isSelected: Boolean,
         ) {
             _uiState.update { currentState ->
                 val updatedProjects =
                     currentState.backupContent?.projects?.map {
-                        if (it.item.id == projectId && it.isSelectable) it.copy(isSelected = isSelected) else it
+                        if (it.item.id == contextId && it.isSelectable) it.copy(isSelected = isSelected) else it
                     }
                 currentState.copy(backupContent = currentState.backupContent?.copy(projects = updatedProjects ?: emptyList()))
             }

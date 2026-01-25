@@ -71,10 +71,10 @@ class DialogUseCase
             val entityType =
                 when {
                     record.goalId != null -> "GOAL"
-                    record.projectId != null -> "PROJECT"
+                    record.contextId != null -> "PROJECT"
                     else -> "TASK" // Assuming ActivityRecord can also be a task
                 }
-            val entityId = record.goalId ?: record.projectId ?: record.id
+            val entityId = record.goalId ?: record.contextId ?: record.id
 
             reminderRepository.createReminder(entityId, entityType, timestamp)
 
@@ -85,7 +85,7 @@ class DialogUseCase
             scope.launch {
                 val record = _recordForReminderDialog.value ?: return@launch
 
-                val entityId = record.goalId ?: record.projectId ?: record.id
+                val entityId = record.goalId ?: record.contextId ?: record.id
                 reminderRepository.clearRemindersForEntity(entityId)
 
                 onReminderDialogDismiss()
@@ -103,7 +103,7 @@ class DialogUseCase
                         text = project.name,
                         reminderTime = reminders?.firstOrNull()?.reminderTime,
                         createdAt = project.createdAt,
-                        projectId = project.id,
+                        contextId = project.id,
                         goalId = null,
                     )
                 _recordForReminderDialog.update { record }

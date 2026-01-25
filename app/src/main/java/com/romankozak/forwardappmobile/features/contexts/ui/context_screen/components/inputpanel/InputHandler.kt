@@ -203,7 +203,7 @@ class InputHandler(
                             val newGoal = goalRepository.addGoalWithReminder(textToSave, currentProjectId, reminderTime)
                             newItemIdentifier = newGoal.id
                         } else {
-                            newItemIdentifier = goalRepository.addGoalToProject(textToSave, currentProjectId)
+                            newItemIdentifier = goalRepository.addGoalToContext(textToSave, currentProjectId)
                         }
 
                         withContext(Dispatchers.Main) {
@@ -270,7 +270,7 @@ class InputHandler(
                     name
                 }
             val link = RelatedLink(type = LinkType.URL, target = url, displayName = displayName)
-            val newItemId = contextRepository.addLinkItemToProjectFromLink(projectIdFlow.value, link)
+            val newItemId = contextRepository.addLinkItemToContextFromLink(projectIdFlow.value, link)
             resultListener.updateInputState(newlyAddedItemId = newItemId)
         }
         onDismissLinkDialogs()
@@ -283,7 +283,7 @@ class InputHandler(
         }
         scope.launch(Dispatchers.IO) {
             val link = RelatedLink(type = LinkType.OBSIDIAN, target = noteName, displayName = noteName)
-            val newItemId = contextRepository.addLinkItemToProjectFromLink(projectIdFlow.value, link)
+            val newItemId = contextRepository.addLinkItemToContextFromLink(projectIdFlow.value, link)
             resultListener.updateInputState(newlyAddedItemId = newItemId)
         }
         onDismissLinkDialogs()

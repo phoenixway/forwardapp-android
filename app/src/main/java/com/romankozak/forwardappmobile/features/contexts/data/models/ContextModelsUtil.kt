@@ -68,7 +68,7 @@ object BacklogItemTypeValues {
 
 enum class ContextViewMode { BACKLOG, INBOX, ADVANCED, ATTACHMENTS, DASHBOARD }
 
-enum class LinkType { PROJECT, URL, OBSIDIAN }
+enum class LinkType { CONTEXT, URL, OBSIDIAN }
 
 enum class DayStatus { PLANNED, IN_PROGRESS, COMPLETED, MISSED, ARCHIVED }
 

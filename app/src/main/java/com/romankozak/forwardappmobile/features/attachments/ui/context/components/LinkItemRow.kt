@@ -76,7 +76,7 @@ fun LinkItemRow(
             ) {
                 val iconImageVector =
                     when (link.type) {
-                        LinkType.PROJECT -> Icons.AutoMirrored.Filled.ListAlt
+                        LinkType.CONTEXT -> Icons.AutoMirrored.Filled.ListAlt
                         LinkType.URL -> Icons.Default.Language
                         LinkType.OBSIDIAN -> Icons.AutoMirrored.Filled.Note
                         null -> Icons.Default.BrokenImage
@@ -99,7 +99,7 @@ fun LinkItemRow(
                     Text(
                         text =
                             when (link.type) {
-                                LinkType.PROJECT -> "Посилання на список"
+                                LinkType.CONTEXT -> "Посилання на список"
                                 LinkType.URL -> link.target
                                 LinkType.OBSIDIAN -> "Нотатка Obsidian"
                                 null -> "Broken"

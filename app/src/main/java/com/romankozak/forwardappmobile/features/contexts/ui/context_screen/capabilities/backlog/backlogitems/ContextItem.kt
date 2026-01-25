@@ -48,7 +48,6 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.AnimatedContextEmoji
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.EnhancedRelatedLinkChip
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.EnhancedReminderBadge
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.EnhancedScoreStatusBadge
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.ModernTagChip
@@ -233,7 +232,7 @@ fun ProjectItem(
                                         EnhancedRelatedLinkChip(
                                             link =
                                                 RelatedLink(
-                                                    type = LinkType.PROJECT,
+                                                    type = LinkType.CONTEXT,
                                                     target = childProject.id,
                                                     displayName = childProject.name,
                                                 ),

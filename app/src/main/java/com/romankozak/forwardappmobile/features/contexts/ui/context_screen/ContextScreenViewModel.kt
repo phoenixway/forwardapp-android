@@ -237,7 +237,7 @@ class BacklogMarkdownHandler
                             trimmedLine.startsWith("- [ ]") -> {
                                 val goalText = trimmedLine.removePrefix("- [ ]").trim()
                                 if (goalText.isNotEmpty()) {
-                                    goalRepository.addGoalToProject(goalText, projectId, completed = false)
+                                    goalRepository.addGoalToContext(goalText, projectId, completed = false)
                                     importedCount++
                                 }
                             }
@@ -245,7 +245,7 @@ class BacklogMarkdownHandler
                             trimmedLine.startsWith("- [x]") -> {
                                 val goalText = trimmedLine.removePrefix("- [x]").trim()
                                 if (goalText.isNotEmpty()) {
-                                    goalRepository.addGoalToProject(goalText, projectId, completed = true)
+                                    goalRepository.addGoalToContext(goalText, projectId, completed = true)
                                     importedCount++
                                 }
                             }
@@ -1069,13 +1069,13 @@ class BacklogViewModel
                 when (actionType) {
                     GoalActionType.CreateInstance -> goalRepository.createGoalLinks(goalIds, targetProjectId)
 
-                    GoalActionType.MoveInstance -> listItemRepository.moveListItems(itemIds, targetProjectId)
-                    GoalActionType.CopyGoal -> goalRepository.copyGoalsToProject(goalIds, targetProjectId)
+                    GoalActionType.MoveInstance -> listItemRepository.moveListItemsToContext(itemIds, targetProjectId)
+                    GoalActionType.CopyGoal -> goalRepository.copyGoalsToContext(goalIds, targetProjectId)
                     GoalActionType.AddLinkToList -> {
                         val targetProject = contextRepository.getContextById(targetProjectId)
                         val link =
                             RelatedLink(
-                                type = LinkType.PROJECT,
+                                type = LinkType.CONTEXT,
                                 target = targetProjectId,
                                 displayName = targetProject?.name ?: "Untitled context",
                             )
@@ -1089,13 +1089,13 @@ class BacklogViewModel
                         if (goalIds.isNotEmpty()) {
                             val subprojectToLinkId = goalIds.first()
                             val newItemId =
-                                listItemRepository.addProjectLinkToProject(subprojectToLinkId, targetProjectId)
+                                listItemRepository.addContextLinkToContext(subprojectToLinkId, targetProjectId)
                             withContext(Dispatchers.Main) {
                                 _uiState.update { it.copy(newlyAddedItemId = newItemId) }
                             }
                         } else {
                             val newItemId =
-                                listItemRepository.addProjectLinkToProject(targetProjectId, projectIdFlow.value)
+                                listItemRepository.addContextLinkToContext(targetProjectId, projectIdFlow.value)
                             withContext(Dispatchers.Main) {
                                 _uiState.update { it.copy(newlyAddedItemId = newItemId) }
                             }
@@ -1339,7 +1339,7 @@ class BacklogViewModel
             Log.d(TAG, "onLinkItemClick: Clicked link with type=${link.type}, target=${link.target}")
             viewModelScope.launch {
                 when (link.type) {
-                    LinkType.PROJECT -> {
+                    LinkType.CONTEXT -> {
                         val projectName = link.displayName ?: "Context"
                         enhancedNavigationManager.navigateToProject(link.target, projectName)
                     }

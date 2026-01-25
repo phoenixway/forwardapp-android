@@ -33,7 +33,7 @@ fun AdaptiveTopBar(
     Column(modifier = modifier.padding(top = topPadding)) {
         if (isSelectionModeActive) {
             ListTitleBar(
-                project = project?.copy(isProjectManagementEnabled = false),
+                project = project?.copy(isContextManagementEnabled = false),
                 currentViewMode = currentViewMode,
                 onInboxClick = onInboxClick,
             )

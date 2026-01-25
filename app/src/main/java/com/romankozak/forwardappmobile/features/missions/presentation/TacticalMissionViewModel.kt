@@ -43,7 +43,7 @@ class TacticalMissionViewModel
 
         init {
             loadMissions()
-            contextRepository.getAllProjectsFlow()
+            contextRepository.getAllContextsFlow()
                 .onEach { projects ->
                     _projectOptions.value = projects.map { ProjectOption(it.id, it.name) }
                 }

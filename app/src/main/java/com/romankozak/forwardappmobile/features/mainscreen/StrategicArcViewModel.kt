@@ -24,7 +24,7 @@ class StrategicArcViewModel
         private val contextRepository: ContextRepository,
     ) : ViewModel() {
         val uiState: StateFlow<StrategicArcUiState> =
-            contextRepository.getAllProjectsFlow()
+            contextRepository.getAllContextsFlow()
                 .map { projects ->
                     val arcProjects =
                         projects.filter {

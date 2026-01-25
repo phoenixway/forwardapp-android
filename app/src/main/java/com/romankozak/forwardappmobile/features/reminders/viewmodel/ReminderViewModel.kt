@@ -73,7 +73,7 @@ class ReminderViewModel
                                 goal?.let { ReminderListItem.GoalReminder(reminder, it) }
                             }
                             "PROJECT" -> {
-                                val project = contextRepository.getProjectById(reminder.entityId)
+                                val project = contextRepository.getContextById(reminder.entityId)
                                 project?.let { ReminderListItem.ProjectReminder(reminder, it) }
                             }
                             else -> ReminderListItem.SimpleReminder(reminder)
@@ -131,7 +131,7 @@ class ReminderViewModel
             viewModelScope.launch {
                 when (item) {
                     is ReminderListItem.GoalReminder -> {
-                        val projectId = goalRepository.findProjectIdForGoal(item.goal.id)
+                        val projectId = goalRepository.findContextIdForGoal(item.goal.id)
                         if (projectId != null) {
                             _uiEvent.send(
                                 RemindersUiEvent.Navigate(

@@ -49,7 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfile
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructureItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextStructureItem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -238,7 +238,7 @@ private fun FeatureFlagsSection(
 
 @Composable
 private fun StructureItemRow(
-    item: ProjectStructureItem,
+    item: ContextStructureItem,
     onToggle: (Boolean) -> Unit,
 ) {
     val disabledToggle = item.mandatory

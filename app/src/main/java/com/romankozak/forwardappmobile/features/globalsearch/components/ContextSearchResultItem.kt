@@ -54,7 +54,7 @@ fun ProjectSearchResultItem(
                 verticalAlignment = Alignment.Top,
             ) {
                 Text(
-                    text = result.project.name,
+                    text = result.context.name,
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 3,

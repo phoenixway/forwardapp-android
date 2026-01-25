@@ -802,7 +802,7 @@ class ContextHierarchyScreenViewModel
                 val documentId =
                     noteDocumentRepository.createDocument(
                         name = "Нова нотатка",
-                        projectId = inboxProjectId,
+                        contextId = inboxProjectId,
                         content = "",
                     )
                 _uiEventChannel.send(

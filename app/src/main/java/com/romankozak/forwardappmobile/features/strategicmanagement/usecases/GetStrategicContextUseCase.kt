@@ -11,6 +11,6 @@ class GetStrategicContextUseCase
         private val contextRepository: ContextRepository,
     ) {
         suspend operator fun invoke(): List<Context> {
-            return contextRepository.getProjectsByReservedGroup(ReservedGroup.Strategic.groupName)
+            return contextRepository.getContextsByReservedGroup(ReservedGroup.Strategic.groupName)
         }
     }

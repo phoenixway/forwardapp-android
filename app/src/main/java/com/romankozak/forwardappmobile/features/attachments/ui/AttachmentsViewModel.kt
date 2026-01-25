@@ -96,7 +96,7 @@ class AttachmentsViewModel
             }
 
             viewModelScope.launch {
-                val loadedProject = contextRepository.getProjectById(projectId.value)
+                val loadedProject = contextRepository.getContextById(projectId.value)
                 originalProject = loadedProject
                 _uiState.update {
                     if (loadedProject != null) {
@@ -127,7 +127,7 @@ class AttachmentsViewModel
         val attachments: StateFlow<List<BacklogItemContent>> =
             projectId.flatMapLatest { projectId ->
                 if (projectId.isNotEmpty()) {
-                    contextRepository.getProjectContentStream(projectId).map { content ->
+                    contextRepository.getContextContentStream(projectId).map { content ->
                         content.filter { item ->
                             item is BacklogItemContent.LinkItem || item is BacklogItemContent.NoteDocumentItem || item is BacklogItemContent.ChecklistItem
                         }
@@ -141,7 +141,7 @@ class AttachmentsViewModel
             viewModelScope.launch {
                 val currentProjectId = projectId.value
                 if (currentProjectId.isNotEmpty()) {
-                    contextRepository.deleteListItems(currentProjectId, listOf(attachment.backlogItem.id))
+                    contextRepository.deleteListItemsFromContext(currentProjectId, listOf(attachment.backlogItem.id))
                 }
             }
         }
@@ -204,7 +204,7 @@ class AttachmentsViewModel
         fun onLinkClick(link: RelatedLink) {
             viewModelScope.launch {
                 when (link.type) {
-                    LinkType.PROJECT -> {
+                    LinkType.CONTEXT -> {
                         _uiEventFlow.send(
                             UiEvent.Navigate(
                                 NavTarget.ProjectDetail(projectId = link.target),
@@ -244,7 +244,7 @@ class AttachmentsViewModel
                         displayName = name,
                     )
                 if (projectId.value.isNotEmpty()) {
-                    contextRepository.addLinkItemToProjectFromLink(projectId.value, link)
+                    contextRepository.addLinkItemToContextFromLink(projectId.value, link)
                 }
                 onDismissAddAttachmentDialog()
             }
@@ -262,7 +262,7 @@ class AttachmentsViewModel
                         displayName = name,
                     )
                 if (projectId.value.isNotEmpty()) {
-                    contextRepository.addLinkItemToProjectFromLink(projectId.value, link)
+                    contextRepository.addLinkItemToContextFromLink(projectId.value, link)
                 }
                 onDismissAddAttachmentDialog()
             }
@@ -271,17 +271,17 @@ class AttachmentsViewModel
         fun onAddProjectLink(projectId: String) {
             Log.d("AttachmentsViewModel", "onAddProjectLink called with projectId: $projectId")
             viewModelScope.launch {
-                val project = contextRepository.getProjectById(projectId)
+                val project = contextRepository.getContextById(projectId)
                 Log.d("AttachmentsViewModel", "project: $project")
                 if (project != null) {
                     val link =
                         RelatedLink(
-                            type = LinkType.PROJECT,
+                            type = LinkType.CONTEXT,
                             target = projectId,
                             displayName = project.name,
                         )
                     if (this@AttachmentsViewModel.projectId.value.isNotEmpty()) {
-                        projectRepository.addLinkItemToProjectFromLink(this@AttachmentsViewModel.projectId.value, link)
+                        contextRepository.addLinkItemToContextFromLink(this@AttachmentsViewModel.projectId.value, link)
                     }
                 }
                 _uiState.update { it.copy(pendingAttachmentType = PendingAttachmentType.NONE) }
@@ -290,7 +290,7 @@ class AttachmentsViewModel
 
         fun onAddProjectShortcut(projectId: String) {
             viewModelScope.launch {
-                contextRepository.addProjectLinkToProject(projectId, this@AttachmentsViewModel.projectId.value)
+                contextRepository.addContextLinkToContext(projectId, this@AttachmentsViewModel.projectId.value)
                 _uiState.update { it.copy(pendingAttachmentType = PendingAttachmentType.NONE) }
             }
         }
@@ -328,7 +328,7 @@ class AttachmentsViewModel
             val updatedProject = GoalScoringManager.calculateScoresForProject(tempProject)
 
             viewModelScope.launch {
-                contextRepository.updateProject(updatedProject)
+                contextRepository.updateContext(updatedProject)
             }
             return updatedProject
         }

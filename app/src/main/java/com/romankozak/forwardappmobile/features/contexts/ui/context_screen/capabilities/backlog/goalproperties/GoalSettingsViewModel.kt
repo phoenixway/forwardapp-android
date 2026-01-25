@@ -163,7 +163,7 @@ class GoalSettingsViewModel
                 contextHandler.syncContextsOnUpdate(oldGoal = currentGoal!!, newGoal = goalToSave)
             } else {
                 initialProjectId ?: return
-                goalRepository.addGoalToProject(goalToSave.text, initialProjectId)
+                goalRepository.addGoalToContext(goalToSave.text, initialProjectId)
             }
         }
 
@@ -240,7 +240,7 @@ class GoalSettingsViewModel
             viewModelScope.launch {
                 val disabledIds =
                     _uiState.value.relatedLinks
-                        .filter { it.type == LinkType.PROJECT }
+                        .filter { it.type == LinkType.CONTEXT }
                         .joinToString(",") { it.target }
                 _events.send(
                     ContextSettingsEvent.Navigate(
@@ -255,16 +255,16 @@ class GoalSettingsViewModel
 
         private fun onAddProjectAssociation(projectId: String) {
             viewModelScope.launch {
-                val projectName = contextRepository.getProjectById(projectId)?.name
+                val projectName = contextRepository.getContextById(projectId)?.name
                 val newLink =
                     RelatedLink(
-                        type = LinkType.PROJECT,
+                        type = LinkType.CONTEXT,
                         target = projectId,
                         displayName = projectName,
                     )
 
                 _uiState.update {
-                    if (it.relatedLinks.any { link -> link.target == projectId && link.type == LinkType.PROJECT }) {
+                    if (it.relatedLinks.any { link -> link.target == projectId && link.type == LinkType.CONTEXT }) {
                         it
                     } else {
                         it.copy(relatedLinks = it.relatedLinks + newLink)

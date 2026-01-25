@@ -22,7 +22,7 @@ fun handleRelatedLinkClick(
                 val intent = Intent(Intent.ACTION_VIEW, link.target.toUri())
                 context.startActivity(intent)
             }
-            LinkType.PROJECT -> {
+            LinkType.CONTEXT -> {
                 navController.navigate("project_detail_screen/${link.target}")
             }
             LinkType.OBSIDIAN -> {

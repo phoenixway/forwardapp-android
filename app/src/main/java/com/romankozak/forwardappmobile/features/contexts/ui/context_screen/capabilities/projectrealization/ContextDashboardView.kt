@@ -82,7 +82,7 @@ fun ProjectDashboardView(
             ContextManagementTab.Artifact -> {
                 ArtifactContent(
                     artifact = contextArtifact,
-                    isManagementEnabled = project.isProjectManagementEnabled == true,
+                    isManagementEnabled = project.isContextManagementEnabled == true,
                     onEditArtifact = onEditArtifact,
                     onSaveArtifact = { onSaveArtifact("") },
                 )
@@ -90,12 +90,12 @@ fun ProjectDashboardView(
             ContextManagementTab.Log ->
                 LogContent(
                     logs = projectLogs,
-                    isManagementEnabled = project.isProjectManagementEnabled == true,
+                    isManagementEnabled = project.isContextManagementEnabled == true,
                     onEditLog = onEditLog,
                     onDeleteLog = onDeleteLog,
                 )
             ContextManagementTab.Insights ->
-                InsightsContent(isManagementEnabled = project.isProjectManagementEnabled == true)
+                InsightsContent(isManagementEnabled = project.isContextManagementEnabled == true)
         }
     }
 }

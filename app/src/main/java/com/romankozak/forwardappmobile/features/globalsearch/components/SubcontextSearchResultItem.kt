@@ -33,7 +33,7 @@ fun SubprojectSearchResultItem(
 ) {
     Log.d(
         "PATH_DEBUG",
-        "[COMPOSABLE] Відображення SubprojectSearchResultItem: name='${result.subproject.name}', pathSegments=${result.pathSegments}",
+        "[COMPOSABLE] Відображення SubprojectSearchResultItem: name='${result.subcontext.name}', pathSegments=${result.pathSegments}",
     )
 
     val interactionSource = remember { MutableInteractionSource() }
@@ -77,7 +77,7 @@ fun SubprojectSearchResultItem(
                 verticalAlignment = Alignment.Top,
             ) {
                 Text(
-                    text = result.subproject.name,
+                    text = result.subcontext.name,
                     style =
                         MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.SemiBold,

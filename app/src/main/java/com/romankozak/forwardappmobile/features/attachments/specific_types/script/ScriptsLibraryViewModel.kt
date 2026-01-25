@@ -49,7 +49,7 @@ class ScriptsLibraryViewModel
         val uiState: StateFlow<ScriptsLibraryUiState> =
             combine(
                 scriptRepository.getAllScripts(),
-                contextRepository.getAllProjectsFlow(),
+                contextRepository.getAllContextsFlow(),
                 query,
                 filter,
                 settingsRepository.featureTogglesFlow,
@@ -66,13 +66,13 @@ class ScriptsLibraryViewModel
                             val matchesQuery =
                                 script.name.contains(normalizedQuery, ignoreCase = true) ||
                                     script.description?.contains(normalizedQuery, ignoreCase = true) == true ||
-                                    script.projectId?.let { id ->
+                                    script.contextId?.let { id ->
                                         projectNames[id]?.contains(normalizedQuery, ignoreCase = true)
                                     } == true
                             val matchesFilter =
                                 when (filterValue) {
                                     ScriptsFilter.ALL -> true
-                                    ScriptsFilter.WITHOUT_PROJECT -> script.projectId == null
+                                    ScriptsFilter.WITHOUT_PROJECT -> script.contextId == null
                                 }
                             matchesQuery && matchesFilter
                         }
@@ -87,7 +87,7 @@ class ScriptsLibraryViewModel
                                 id = script.id,
                                 name = script.name,
                                 description = script.description,
-                                projectName = script.projectId?.let { projectNames[it] },
+                                projectName = script.contextId?.let { projectNames[it] },
                                 updatedAt = script.updatedAt,
                             )
                         },

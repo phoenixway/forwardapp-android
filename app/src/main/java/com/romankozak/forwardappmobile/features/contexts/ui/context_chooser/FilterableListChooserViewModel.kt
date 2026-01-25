@@ -34,7 +34,7 @@ class FilterableListChooserViewModel
         val showDescendants: StateFlow<Boolean> = _showDescendants.asStateFlow()
         private val allProjects =
             contextRepository
-                .getAllProjectsFlow()
+                .getAllContextsFlow()
                 .stateIn(
                     scope = viewModelScope,
                     started = SharingStarted.WhileSubscribed(5000),
@@ -147,7 +147,7 @@ class FilterableListChooserViewModel
             name: String,
         ) {
             viewModelScope.launch {
-                contextRepository.createProjectWithId(id, name, parentId)
+                contextRepository.createContextWithId(id, name, parentId)
             }
         }
     }

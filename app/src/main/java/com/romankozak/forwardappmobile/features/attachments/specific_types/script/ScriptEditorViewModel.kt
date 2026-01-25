@@ -138,7 +138,7 @@ class ScriptEditorViewModel
                         scriptRepository.createScript(
                             name = state.name,
                             content = state.content,
-                            projectId = state.projectId,
+                            contextId = state.projectId,
                             description = state.description.ifBlank { null },
                         )
                     } else {

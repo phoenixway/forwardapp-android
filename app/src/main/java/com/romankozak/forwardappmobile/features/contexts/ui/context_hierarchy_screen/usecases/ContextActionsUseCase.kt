@@ -31,11 +31,11 @@ class ContextActionsUseCase
             allProjects: List<Context>,
         ) = withContext(ioDispatcher) {
             if (name.isBlank()) return@withContext
-            contextRepository.createProjectWithId(id, name, parentId)
+            contextRepository.createContextWithId(id, name, parentId)
             if (parentId != null) {
                 val parentProject = allProjects.find { it.id == parentId }
                 if (parentProject != null && !parentProject.isExpanded) {
-                    contextRepository.updateProject(parentProject.copy(isExpanded = true))
+                    contextRepository.updateContext(parentProject.copy(isExpanded = true))
                 }
             }
         }
@@ -45,7 +45,7 @@ class ContextActionsUseCase
             childMap: Map<String, List<Context>>,
         ) = withContext(ioDispatcher) {
             val projectsToDelete = findDescendantsForDeletion(project.id, childMap)
-            contextRepository.deleteProjectsAndSubProjects(listOf(project) + projectsToDelete)
+            contextRepository.deleteContextsAndSubContexts(listOf(project) + projectsToDelete)
         }
 
         fun getMoveProjectRoute(
@@ -76,12 +76,12 @@ class ContextActionsUseCase
             if (projectToMove.parentId == finalNewParentId) return@withContext
 
             val allowSystemMoves = settingsRepository.allowSystemProjectMovesFlow.first()
-            contextRepository.moveProject(projectToMove, finalNewParentId, allowSystemMoves)
+            contextRepository.moveContext(projectToMove, finalNewParentId, allowSystemMoves)
 
             if (finalNewParentId != null) {
                 val parentProject = allProjects.find { it.id == finalNewParentId }
                 if (parentProject != null && !parentProject.isExpanded) {
-                    contextRepository.updateProject(parentProject.copy(isExpanded = true))
+                    contextRepository.updateContext(parentProject.copy(isExpanded = true))
                 }
             }
         }
@@ -168,7 +168,7 @@ class ContextActionsUseCase
             }
 
             if (updates.isNotEmpty()) {
-                contextRepository.updateProjects(updates)
+                contextRepository.updateContexts(updates)
             }
         }
 
@@ -179,13 +179,13 @@ class ContextActionsUseCase
                         .filter { it.isExpanded }
                         .map { it.copy(isExpanded = false) }
                 if (projectsToCollapse.isNotEmpty()) {
-                    contextRepository.updateProjects(projectsToCollapse)
+                    contextRepository.updateContexts(projectsToCollapse)
                 }
             }
 
         suspend fun onToggleExpanded(project: Context) =
             withContext(ioDispatcher) {
-                contextRepository.updateProject(project.copy(isExpanded = !project.isExpanded))
+                contextRepository.updateContext(project.copy(isExpanded = !project.isExpanded))
             }
 
         suspend fun exportToFile() = withContext(ioDispatcher) { syncRepository.exportFullBackupToFile() }

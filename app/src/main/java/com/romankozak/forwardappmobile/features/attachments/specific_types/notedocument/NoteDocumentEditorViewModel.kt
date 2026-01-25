@@ -37,7 +37,7 @@ class NoteDocumentEditorViewModel
                 noteDocumentRepository.getDocumentById(id)?.let { document ->
                     Log.d("CursorDebug", "Loaded document with lastCursorPosition: ${document.lastCursorPosition}")
                     // Встановлюємо projectId для "Show Location"
-                    universalEditorViewModel.setProjectId(document.projectId)
+                    universalEditorViewModel.setProjectId(document.contextId)
                     universalEditorViewModel.setInitialContent(
                         document.content ?: "",
                         document.lastCursorPosition,

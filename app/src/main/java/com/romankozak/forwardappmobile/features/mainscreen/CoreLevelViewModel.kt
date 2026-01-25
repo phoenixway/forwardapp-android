@@ -24,7 +24,7 @@ class CoreLevelViewModel
         private val contextRepository: ContextRepository,
     ) : ViewModel() {
         val uiState: StateFlow<CoreLevelUiState> =
-            contextRepository.getAllProjectsFlow()
+            contextRepository.getAllContextsFlow()
                 .map { projects ->
                     val coreProjects =
                         projects.filter {

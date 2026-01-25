@@ -55,7 +55,7 @@ fun DashboardContent(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         AnimatedContent(
-            targetState = project.isProjectManagementEnabled == true,
+            targetState = project.isContextManagementEnabled == true,
             label = "DashboardContentAnimation",
         ) { isManagementEnabled ->
             Column(
@@ -65,7 +65,7 @@ fun DashboardContent(
                 if (!isManagementEnabled) {
                     EnableSupportCard(onEnable = { onToggleProjectManagement(true) })
                 } else {
-                    StatusDisplayCard(status = project.projectStatus ?: ContextStatusValues.NO_PLAN, statusText = project.projectStatusText, onClick = {
+                    StatusDisplayCard(status = project.contextStatus ?: ContextStatusValues.NO_PLAN, statusText = project.contextStatusText, onClick = {
                         showStatusDialog = true
                     })
 
@@ -89,8 +89,8 @@ fun DashboardContent(
 
     if (showStatusDialog) {
         UpdateStatusDialog(
-            currentStatus = project.projectStatus ?: ContextStatusValues.NO_PLAN,
-            currentStatusText = project.projectStatusText ?: "",
+            currentStatus = project.contextStatus ?: ContextStatusValues.NO_PLAN,
+            currentStatusText = project.contextStatusText ?: "",
             onDismissRequest = {
                 showStatusDialog = false
             },

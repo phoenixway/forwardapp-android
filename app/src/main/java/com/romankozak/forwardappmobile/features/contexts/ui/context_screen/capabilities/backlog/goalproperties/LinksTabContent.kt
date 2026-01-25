@@ -134,7 +134,7 @@ private fun LinkItem(
 @Composable
 private fun getIconForLinkType(type: LinkType?): ImageVector {
     return when (type) {
-        LinkType.PROJECT -> Icons.Default.AccountTree
+        LinkType.CONTEXT -> Icons.Default.AccountTree
         LinkType.URL -> Icons.Default.Language
         LinkType.OBSIDIAN -> Icons.Default.Description
         else -> Icons.Outlined.LinkOff

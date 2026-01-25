@@ -26,7 +26,7 @@ class NoteEditorViewModel
             viewModelScope.launch {
                 noteRepository.getNoteById(id)?.let { note ->
                     // Встановлюємо projectId для "Show Location"
-                    universalEditorViewModel.setProjectId(note.projectId)
+                    universalEditorViewModel.setProjectId(note.contextId)
                     universalEditorViewModel.setInitialContent(note.content)
                 }
             }

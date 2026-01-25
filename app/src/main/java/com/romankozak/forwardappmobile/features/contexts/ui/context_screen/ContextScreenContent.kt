@@ -189,8 +189,8 @@ private fun DashboardOverview(
                     overflow = TextOverflow.Ellipsis,
                 )
                 val statusText =
-                    project?.projectStatusText?.takeIf { it.isNotBlank() }
-                        ?: project?.projectStatus
+                    project?.contextStatusText?.takeIf { it.isNotBlank() }
+                        ?: project?.contextStatus
                 if (!statusText.isNullOrBlank()) {
                     Text(
                         text = statusText,

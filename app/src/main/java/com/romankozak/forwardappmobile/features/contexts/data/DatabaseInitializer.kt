@@ -144,7 +144,7 @@ class DatabaseInitializer
             projectType: ContextType,
             reservedGroup: ReservedGroup?,
         ): String {
-            val existingProject = contextDao.getProjectBySystemKey(systemKey)
+            val existingProject = contextDao.getContextBySystemKey(systemKey)
             if (existingProject != null) {
                 return existingProject.id
             }
@@ -155,7 +155,7 @@ class DatabaseInitializer
                     systemKey = systemKey,
                     name = name,
                     parentId = parentId,
-                    projectType = projectType,
+                    contextType = projectType,
                     reservedGroup = reservedGroup,
                     isExpanded = false,
                     description = null,

@@ -27,26 +27,26 @@ class SystemAppRepository
             projectSystemKey: String,
             documentName: String,
         ): SystemAppEntity {
-            val projectId =
-                contextDao.getProjectBySystemKey(projectSystemKey)?.id
+            val contextId =
+                contextDao.getContextBySystemKey(projectSystemKey)?.id
                     ?: throw IllegalStateException("System project $projectSystemKey не знайдено")
 
             val existingApp = systemAppDao.getBySystemKey(systemKey)
             val documentId =
                 existingApp?.noteDocumentId?.let { noteDocumentId ->
                     val existingDocument = noteDocumentDao.getDocumentById(noteDocumentId)
-                    existingDocument?.id ?: createNoteDocument(documentName, projectId)
-                } ?: createNoteDocument(documentName, projectId)
+                    existingDocument?.id ?: createNoteDocument(documentName, contextId)
+                } ?: createNoteDocument(documentName, contextId)
 
             val systemApp =
                 (
                     existingApp ?: SystemAppEntity(
                         systemKey = systemKey,
                         appType = SystemAppType.NOTE_DOCUMENT.name,
-                        projectId = projectId,
+                        contextId = contextId,
                     )
                 ).copy(
-                    projectId = projectId,
+                    contextId = contextId,
                     noteDocumentId = documentId,
                     updatedAt = System.currentTimeMillis(),
                 )
@@ -64,31 +64,31 @@ class SystemAppRepository
         ) {
             val systemApp = systemAppDao.getBySystemKey(systemKey) ?: return
             val noteId = systemApp.noteDocumentId ?: return
-            val targetProjectId = contextDao.getProjectBySystemKey(targetProjectSystemKey)?.id ?: return
+            val targetcontextId = contextDao.getContextBySystemKey(targetProjectSystemKey)?.id ?: return
 
-            attachmentRepository.ensureAttachmentLinkedToProject(
+            attachmentRepository.ensureAttachmentLinkedToContext(
                 attachmentType = BacklogItemTypeValues.NOTE_DOCUMENT,
                 entityId = noteId,
-                projectId = targetProjectId,
-                ownerProjectId = systemApp.projectId,
+                contextId = targetcontextId,
+                ownerContextId = systemApp.contextId,
             )
         }
 
         private suspend fun createNoteDocument(
             name: String,
-            projectId: String,
+            contextId: String,
         ): String {
             val noteDocument =
                 NoteDocumentEntity(
                     name = name,
-                    projectId = projectId,
+                    contextId = contextId,
                 )
             noteDocumentDao.insertDocument(noteDocument)
-            attachmentRepository.ensureAttachmentLinkedToProject(
+            attachmentRepository.ensureAttachmentLinkedToContext(
                 attachmentType = BacklogItemTypeValues.NOTE_DOCUMENT,
                 entityId = noteDocument.id,
-                projectId = projectId,
-                ownerProjectId = projectId,
+                contextId = contextId,
+                ownerContextId = contextId,
                 createdAt = noteDocument.createdAt,
             )
             return noteDocument.id

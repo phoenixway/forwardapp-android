@@ -7,7 +7,7 @@ import com.romankozak.forwardappmobile.data.repository.ContextStructureRepositor
 import com.romankozak.forwardappmobile.domain.structure.StructurePresetService
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfile
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructureItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextStructureItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +20,7 @@ import javax.inject.Inject
 data class ProjectStructureUiState(
     val projectId: String,
     val basePresetCode: String? = null,
-    val items: List<ProjectStructureItem> = emptyList(),
+    val items: List<ContextStructureItem> = emptyList(),
     val presets: List<ContextRoleProfile> = emptyList(),
     val featureFlags: Map<String, Boolean> =
         mapOf(
@@ -97,7 +97,7 @@ class ProjectStructureViewModel
         fun applyPreset(code: String) {
             viewModelScope.launch {
                 _uiState.update { it.copy(isLoading = true, message = null) }
-                structurePresetService.applyPresetToProject(projectId, code)
+                structurePresetService.applyPresetToContext(projectId, code)
                 _uiState.update { it.copy(isLoading = false, basePresetCode = code) }
             }
         }
@@ -105,19 +105,19 @@ class ProjectStructureViewModel
         fun applyStructure() {
             viewModelScope.launch {
                 _uiState.update { it.copy(isLoading = true, message = null) }
-                structurePresetService.applyProjectStructure(projectId)
+                structurePresetService.applyContextStructure(projectId)
                 _uiState.update { it.copy(isLoading = false) }
             }
         }
 
         fun toggleItem(
-            item: ProjectStructureItem,
+            item: ContextStructureItem,
             enabled: Boolean,
         ) {
             viewModelScope.launch {
                 contextStructureRepository.setItemEnabled(item, enabled)
                 if (enabled) {
-                    structurePresetService.applyProjectStructure(projectId)
+                    structurePresetService.applyContextStructure(projectId)
                 }
             }
         }
@@ -132,9 +132,9 @@ class ProjectStructureViewModel
             viewModelScope.launch {
                 val structure = contextStructureRepository.ensureStructure(projectId)
                 val newItem =
-                    ProjectStructureItem(
+                    ContextStructureItem(
                         id = UUID.randomUUID().toString(),
-                        projectStructureId = structure.id,
+                        contextStructureId = structure.id,
                         entityType = entityType,
                         roleCode = roleCode,
                         containerType = containerType,
@@ -143,7 +143,7 @@ class ProjectStructureViewModel
                         isEnabled = true,
                     )
                 contextStructureRepository.addOrUpdateItem(structure.id, newItem)
-                structurePresetService.applyProjectStructure(projectId)
+                structurePresetService.applyContextStructure(projectId)
             }
         }
 
