@@ -56,7 +56,7 @@ class NoteEditViewModel
                 if (noteId != null) {
                     noteRepository.getNoteById(noteId!!)?.let { note ->
                         recentItemsRepository.logNoteAccess(note)
-                        projectId = note.projectId
+                        projectId = note.contextId
                         initialTitle = note.title
                         initialContent = note.content
                         _uiState.update {
@@ -118,7 +118,7 @@ class NoteEditViewModel
                     if (_uiState.value.isNewNote) {
                         LegacyNoteEntity(
                             id = UUID.randomUUID().toString(),
-                            projectId = projectId!!,
+                            contextId = projectId!!,
                             title = title,
                             content = content,
                         )

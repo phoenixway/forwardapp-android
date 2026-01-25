@@ -35,6 +35,7 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.lang.reflect.Type
 import java.net.BindException
 import java.net.Inet4Address
@@ -43,7 +44,9 @@ import java.net.ServerSocket
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
+import java.text.SimpleDateFormat
 import java.time.Instant
+import java.util.Date
 import java.util.Locale
 
 class WifiSyncServer(
@@ -118,26 +121,23 @@ class WifiSyncServer(
                             content: String,
                         ) {
                             runCatching {
-                                val dir = Path.of(context.filesDir.path, "sync-dumps")
-                                Files.createDirectories(dir)
-                                val ts = Instant.now().toEpochMilli()
-                                val file = dir.resolve("$prefix-$ts.json")
-                                Files.write(
-                                    file,
-                                    content.toByteArray(),
-                                    StandardOpenOption.CREATE,
-                                    StandardOpenOption.TRUNCATE_EXISTING,
+                                // Використовуємо File для сумісності з API 29
+                                val dir = File(context.filesDir, "sync-dumps")
+
+                                if (!dir.exists()) {
+                                    dir.mkdirs() // Створюємо папку, якщо її немає
+                                }
+
+                                val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(
+                                    Date()
                                 )
-                                Files.list(dir)
-                                    .filter { it.fileName.toString().startsWith(prefix) }
-                                    .sorted()
-                                    .toList()
-                                    .let { list ->
-                                        if (list.size > 5) {
-                                            list.take(list.size - 5)
-                                                .forEach { Files.deleteIfExists(it) }
-                                        }
-                                    }
+                                val fileName = "${prefix}_$timestamp.json"
+                                val file = File(dir, fileName)
+
+                                file.writeText(content)
+                                Log.d("WifiSyncServer", "Dump saved: ${file.absolutePath}")
+                            }.onFailure { e ->
+                                Log.e("WifiSyncServer", "Failed to dump sync data", e)
                             }
                         }
 

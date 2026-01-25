@@ -137,7 +137,7 @@ class NoteDocumentViewModel
                             noteDocumentRepository.createDocument(
                                 name = currentState.title.ifBlank { "New Document" },
                                 content = currentState.content.text,
-                                projectId = it,
+                                contextId = it,
                             )
                             _events.send(NoteDocumentEvent.NavigateBack)
                         } ?: _events.send(NoteDocumentEvent.ShowError("Project ID is missing"))
