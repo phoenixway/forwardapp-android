@@ -10,8 +10,8 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ContextArtifactDao {
-    @Query("SELECT * FROM project_artifacts WHERE projectId = :projectId")
-    fun getArtifactForProjectStream(projectId: String): Flow<ContextArtifact?>
+    @Query("SELECT * FROM context_artifacts WHERE contextId = :contextId")
+    fun getArtifactForContextStream(contextId: String): Flow<ContextArtifact?>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(artifact: ContextArtifact)
@@ -20,9 +20,9 @@ interface ContextArtifactDao {
     suspend fun update(artifact: ContextArtifact)
 
     // --- Backup Methods ---
-    @Query("SELECT * FROM project_artifacts")
+    @Query("SELECT * FROM context_artifacts")
     suspend fun getAll(): List<ContextArtifact>
 
-    @Query("DELETE FROM project_artifacts")
+    @Query("DELETE FROM context_artifacts")
     suspend fun deleteAll()
 }

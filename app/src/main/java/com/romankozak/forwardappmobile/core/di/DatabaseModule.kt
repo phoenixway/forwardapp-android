@@ -114,6 +114,35 @@ import com.romankozak.forwardappmobile.data.database.MIGRATION_91_92
 import com.romankozak.forwardappmobile.data.database.MIGRATION_92_93
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextArtifactDao
 
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+
+val MIGRATION_93_94 = object : Migration(93, 94) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // 1. Rename tables
+        db.execSQL("ALTER TABLE projects RENAME TO contexts")
+        db.execSQL("ALTER TABLE project_execution_logs RENAME TO context_execution_logs")
+        db.execSQL("ALTER TABLE project_structures RENAME TO context_structures")
+        db.execSQL("ALTER TABLE project_structure_items RENAME TO context_structure_items")
+        db.execSQL("ALTER TABLE project_artifacts RENAME TO context_artifacts")
+        // No direct rename for project_attachment_cross_ref as it might not exist or be handled differently.
+        // It was a generated file, so it might not be in the Room schema directly.
+
+        // 2. Rename columns in 'contexts' table
+        db.execSQL("ALTER TABLE contexts RENAME COLUMN is_project_management_enabled TO is_context_management_enabled")
+        db.execSQL("ALTER TABLE contexts RENAME COLUMN project_status TO context_status")
+        db.execSQL("ALTER TABLE contexts RENAME COLUMN project_status_text TO context_status_text")
+        db.execSQL("ALTER TABLE contexts RENAME COLUMN project_log_level TO context_log_level")
+        db.execSQL("ALTER TABLE contexts RENAME COLUMN project_type TO context_type")
+
+        // 3. Rename columns in other tables (foreign keys)
+        db.execSQL("ALTER TABLE system_apps RENAME COLUMN project_id TO context_id")
+        // No direct rename for inbox_records's projectId because Room handles it via annotations.
+        db.execSQL("ALTER TABLE list_items RENAME COLUMN project_id TO context_id")
+        // No direct rename for backlog_orders, as it refers to "list_id" not "project_id"
+    }
+}
+
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
@@ -219,12 +248,13 @@ object DatabaseModule {
             MIGRATION_90_91,
             MIGRATION_91_92,
             MIGRATION_92_93,
+            MIGRATION_93_94,
         ).addCallback(callback).build()
     }
 
     @Provides
     @Singleton
-    fun provideProjectDao(appDatabase: AppDatabase): ContextDao = appDatabase.projectDao()
+    fun provideContextDao(appDatabase: AppDatabase): ContextDao = appDatabase.contextDao()
 
     @Provides
     @Singleton
@@ -256,7 +286,7 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideProjectManagementDao(appDatabase: AppDatabase): ContextManagementDao = appDatabase.projectManagementDao()
+    fun provideContextManagementDao(appDatabase: AppDatabase): ContextManagementDao = appDatabase.contextManagementDao()
 
     @Provides
     @Singleton
@@ -288,7 +318,7 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideProjectArtifactDao(appDatabase: AppDatabase): ContextArtifactDao = appDatabase.projectArtifactDao()
+    fun provideContextArtifactDao(appDatabase: AppDatabase): ContextArtifactDao = appDatabase.contextArtifactDao()
 
     @Provides
     @Singleton
@@ -340,5 +370,5 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideProjectStructureDao(appDatabase: AppDatabase): ContextStructureDao = appDatabase.projectStructureDao()
+    fun provideContextStructureDao(appDatabase: AppDatabase): ContextStructureDao = appDatabase.contextStructureDao()
     }

@@ -25,20 +25,20 @@ interface LinkItemDao {
     @Query(
         """
     WITH RECURSIVE path_cte(id, name, path) AS (
-        SELECT id, name, name as path FROM projects WHERE parentId IS NULL
+        SELECT id, name, name as path FROM contexts WHERE parentId IS NULL
         UNION ALL
         SELECT p.id, p.name, pct.path || ' / ' || p.name
-        FROM projects p JOIN path_cte pct ON p.parentId = pct.id
+        FROM contexts p JOIN path_cte pct ON p.parentId = pct.id
     )
     SELECT 
         li.*, 
-        l.project_id as projectId, 
-        p.name as projectName, 
+        l.context_id as contextId, 
+        p.name as contextName, 
         l.id as listItemId,
         pc.path as pathSegments
     FROM link_items li
     INNER JOIN list_items l ON li.id = l.entityId
-    INNER JOIN projects p ON l.project_id = p.id
+    INNER JOIN contexts p ON l.context_id = p.id
     INNER JOIN path_cte pc ON p.id = pc.id
     WHERE l.itemType = 'LINK_ITEM' AND li.link_data LIKE :query
 """,

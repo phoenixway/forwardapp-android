@@ -33,14 +33,14 @@ interface ChecklistDao {
         FROM checklists AS c
         INNER JOIN attachments AS a
             ON a.entity_id = c.id AND a.attachment_type = :attachmentType
-        INNER JOIN project_attachment_cross_ref AS link
+        INNER JOIN context_attachment_cross_ref AS link
             ON link.attachment_id = a.id
-        WHERE link.project_id = :projectId
+        WHERE link.context_id = :contextId
         ORDER BY c.name COLLATE NOCASE ASC
         """,
     )
-    fun getChecklistsForProject(
-        projectId: String,
+    fun getChecklistsForContext(
+        contextId: String,
         attachmentType: String,
     ): Flow<List<ChecklistEntity>>
 

@@ -32,13 +32,13 @@ data class AttachmentEntity(
 )
 
 @Entity(
-    tableName = "project_attachment_cross_ref",
-    primaryKeys = ["project_id", "attachment_id"],
+    tableName = "context_attachment_cross_ref",
+    primaryKeys = ["context_id", "attachment_id"],
     foreignKeys = [
         ForeignKey(
             entity = Context::class,
             parentColumns = ["id"],
-            childColumns = ["project_id"],
+            childColumns = ["context_id"],
             onDelete = ForeignKey.CASCADE,
         ),
         ForeignKey(
@@ -52,8 +52,8 @@ data class AttachmentEntity(
         Index(value = ["attachment_id"]),
     ],
 )
-data class ProjectAttachmentCrossRef(
-    @ColumnInfo(name = "project_id") @SerializedName(value = "projectId", alternate = ["a"]) val projectId: String,
+data class ContextAttachmentCrossRef(
+    @ColumnInfo(name = "context_id") @SerializedName(value = "contextId", alternate = ["a"]) val contextId: String,
     @ColumnInfo(name = "attachment_id") @SerializedName(value = "attachmentId", alternate = ["b"]) val attachmentId: String,
     @ColumnInfo(name = "attachment_order") @SerializedName(value = "attachmentOrder", alternate = ["c"]) val attachmentOrder: Long = -System.currentTimeMillis(),
     val updatedAt: Long? = null,
@@ -62,8 +62,9 @@ data class ProjectAttachmentCrossRef(
     val version: Long = 0,
 )
 
-data class AttachmentWithProject(
+data class AttachmentWithContext(
     @Embedded val attachment: AttachmentEntity,
-    @ColumnInfo(name = "project_id") val projectId: String?,
+    @ColumnInfo(name = "context_id") val contextId: String?,
     @ColumnInfo(name = "attachment_order") val attachmentOrder: Long?,
 )
+

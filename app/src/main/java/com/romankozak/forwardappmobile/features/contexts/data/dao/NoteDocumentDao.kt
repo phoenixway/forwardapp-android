@@ -27,14 +27,14 @@ interface NoteDocumentDao {
         FROM note_documents AS nd
         INNER JOIN attachments AS a
             ON a.entity_id = nd.id AND a.attachment_type = :attachmentType
-        INNER JOIN project_attachment_cross_ref AS link
+        INNER JOIN context_attachment_cross_ref AS link
             ON link.attachment_id = a.id
-        WHERE link.project_id = :projectId
+        WHERE link.context_id = :contextId
         ORDER BY nd.updatedAt DESC
         """,
     )
-    fun getDocumentsForProject(
-        projectId: String,
+    fun getDocumentsForContext(
+        contextId: String,
         attachmentType: String,
     ): Flow<List<NoteDocumentEntity>>
 

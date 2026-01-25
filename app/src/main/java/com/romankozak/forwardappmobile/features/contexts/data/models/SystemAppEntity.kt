@@ -14,7 +14,7 @@ import java.util.UUID
         ForeignKey(
             entity = Context::class,
             parentColumns = ["id"],
-            childColumns = ["project_id"],
+            childColumns = ["context_id"],
             onDelete = ForeignKey.CASCADE,
         ),
         ForeignKey(
@@ -26,7 +26,7 @@ import java.util.UUID
     ],
     indices = [
         Index(value = ["system_key"], unique = true),
-        Index(value = ["project_id"]),
+        Index(value = ["context_id"]),
         Index(value = ["note_document_id"]),
     ],
 )
@@ -34,7 +34,7 @@ data class SystemAppEntity(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
     @ColumnInfo(name = "system_key") val systemKey: String,
     @ColumnInfo(name = "app_type") val appType: String = SystemAppType.NOTE_DOCUMENT.name,
-    @ColumnInfo(name = "project_id") val projectId: String,
+    @ColumnInfo(name = "context_id") val contextId: String,
     @ColumnInfo(name = "note_document_id") val noteDocumentId: String? = null,
     @ColumnInfo(name = "createdAt") val createdAt: Long = System.currentTimeMillis(),
     @ColumnInfo(name = "updatedAt") val updatedAt: Long = System.currentTimeMillis(),

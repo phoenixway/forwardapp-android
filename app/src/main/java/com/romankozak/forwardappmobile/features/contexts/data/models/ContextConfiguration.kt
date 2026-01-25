@@ -7,12 +7,12 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(
-    tableName = "project_structures",
-    indices = [Index(value = ["projectId"], unique = true)]
+    tableName = "context_structures",
+    indices = [Index(value = ["contextId"], unique = true)]
 )
 data class ContextConfiguration(
     @PrimaryKey val id: String,
-    val projectId: String,
+    val contextId: String,
     @ColumnInfo(name = "base_preset_code") val basePresetCode: String? = null,
     @ColumnInfo(name = "apply_mode") val applyMode: String = "ADDITIVE",
     @ColumnInfo(name = "enable_inbox") val enableInbox: Boolean? = null,
@@ -26,23 +26,23 @@ data class ContextConfiguration(
 )
 
 @Entity(
-    tableName = "project_structure_items",
+    tableName = "context_structure_items",
     foreignKeys = [
         ForeignKey(
             entity = ContextConfiguration::class,
             parentColumns = ["id"],
-            childColumns = ["projectStructureId"],
+            childColumns = ["contextStructureId"],
             onDelete = ForeignKey.CASCADE
         )
     ],
     indices = [
-        Index(value = ["projectStructureId"]),
-        Index(value = ["projectStructureId", "roleCode"], unique = true),
+        Index(value = ["contextStructureId"]),
+        Index(value = ["contextStructureId", "roleCode"], unique = true),
     ]
 )
-data class ProjectStructureItem(
+data class ContextStructureItem(
     @PrimaryKey val id: String,
-    val projectStructureId: String,
+    val contextStructureId: String,
     val entityType: String,
     val roleCode: String,
     val containerType: String?,

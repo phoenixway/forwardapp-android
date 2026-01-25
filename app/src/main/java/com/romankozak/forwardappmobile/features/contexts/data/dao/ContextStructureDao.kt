@@ -7,70 +7,70 @@ import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextConfiguration
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructureItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextStructureItem
 import kotlinx.coroutines.flow.Flow
 
-data class ProjectStructureWithItems(
+data class ContextStructureWithItems(
     val structure: ContextConfiguration,
-    val items: List<ProjectStructureItem>
+    val items: List<ContextStructureItem>
 )
 
 @Dao
 interface ContextStructureDao {
 
-    @Query("SELECT * FROM project_structures WHERE projectId = :projectId LIMIT 1")
-    suspend fun getStructureByProject(projectId: String): ContextConfiguration?
+    @Query("SELECT * FROM context_structures WHERE contextId = :contextId LIMIT 1")
+    suspend fun getStructureByContext(contextId: String): ContextConfiguration?
 
-    @Query("SELECT * FROM project_structures WHERE projectId = :projectId LIMIT 1")
-    fun observeStructureByProject(projectId: String): Flow<ContextConfiguration?>
+    @Query("SELECT * FROM context_structures WHERE contextId = :contextId LIMIT 1")
+    fun observeStructureByContext(contextId: String): Flow<ContextConfiguration?>
 
     @Query(
         """
         SELECT psi.*
-          FROM project_structure_items psi
-          INNER JOIN project_structures ps ON ps.id = psi.projectStructureId
-         WHERE ps.projectId = :projectId
+          FROM context_structure_items psi
+          INNER JOIN context_structures ps ON ps.id = psi.contextStructureId
+         WHERE ps.contextId = :contextId
         """
     )
-    fun observeItemsForProject(projectId: String): Flow<List<ProjectStructureItem>>
+    fun observeItemsForContext(contextId: String): Flow<List<ContextStructureItem>>
 
-    @Query("SELECT * FROM project_structure_items WHERE projectStructureId = :structureId")
-    fun observeItems(structureId: String): Flow<List<ProjectStructureItem>>
+    @Query("SELECT * FROM context_structure_items WHERE contextStructureId = :structureId")
+    fun observeItems(structureId: String): Flow<List<ContextStructureItem>>
 
-    @Query("SELECT * FROM project_structure_items WHERE projectStructureId = :structureId")
-    suspend fun getItems(structureId: String): List<ProjectStructureItem>
+    @Query("SELECT * FROM context_structure_items WHERE contextStructureId = :structureId")
+    suspend fun getItems(structureId: String): List<ContextStructureItem>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertStructure(structure: ContextConfiguration)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertItems(items: List<ProjectStructureItem>)
+    suspend fun insertItems(items: List<ContextStructureItem>)
 
     @Update
     suspend fun updateStructure(structure: ContextConfiguration)
 
     @Update
-    suspend fun updateItem(item: ProjectStructureItem)
+    suspend fun updateItem(item: ContextStructureItem)
 
-    @Query("DELETE FROM project_structure_items WHERE projectStructureId = :structureId")
+    @Query("DELETE FROM context_structure_items WHERE contextStructureId = :structureId")
     suspend fun deleteItemsForStructure(structureId: String)
 
     @Transaction
-    suspend fun replaceItems(structureId: String, newItems: List<ProjectStructureItem>) {
+    suspend fun replaceItems(structureId: String, newItems: List<ContextStructureItem>) {
         deleteItemsForStructure(structureId)
         insertItems(newItems)
     }
 
     // --- Backup Methods ---
-    @Query("SELECT * FROM project_structures")
+    @Query("SELECT * FROM context_structures")
     suspend fun getAllStructures(): List<ContextConfiguration>
 
-    @Query("SELECT * FROM project_structure_items")
-    suspend fun getAllItems(): List<ProjectStructureItem>
+    @Query("SELECT * FROM context_structure_items")
+    suspend fun getAllItems(): List<ContextStructureItem>
 
-    @Query("DELETE FROM project_structures")
+    @Query("DELETE FROM context_structures")
     suspend fun deleteAllStructures()
 
-    @Query("DELETE FROM project_structure_items")
+    @Query("DELETE FROM context_structure_items")
     suspend fun deleteAllItems()
 }

@@ -10,8 +10,8 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ListItemDao {
-  @Query("SELECT * FROM list_items WHERE project_id = :projectId AND is_deleted = 0 ORDER BY item_order ASC, id ASC")
-  fun getItemsForProjectStream(projectId: String): Flow<List<BacklogItem>>
+  @Query("SELECT * FROM list_items WHERE context_id = :contextId AND is_deleted = 0 ORDER BY item_order ASC, id ASC")
+  fun getItemsForContextStream(contextId: String): Flow<List<BacklogItem>>
 
   @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertItem(item: BacklogItem)
 
@@ -24,27 +24,27 @@ interface ListItemDao {
   @Query("DELETE FROM list_items WHERE id IN (:itemIds)")
   suspend fun deleteItemsByIds(itemIds: List<String>)
 
-  @Query("DELETE FROM list_items WHERE project_id IN (:projectIds)")
-  suspend fun deleteItemsForProjects(projectIds: List<String>)
+  @Query("DELETE FROM list_items WHERE context_id IN (:contextIds)")
+  suspend fun deleteItemsForContexts(contextIds: List<String>)
 
   @Query("SELECT * FROM list_items") suspend fun getAll(): List<BacklogItem>
 
-  @Query("SELECT COUNT(*) FROM list_items WHERE entityId = :entityId AND project_id = :projectId")
-  suspend fun getLinkCount(entityId: String, projectId: String): Int
+  @Query("SELECT COUNT(*) FROM list_items WHERE entityId = :entityId AND context_id = :contextId")
+  suspend fun getLinkCount(entityId: String, contextId: String): Int
 
-  @Query("DELETE FROM list_items WHERE entityId = :entityId AND project_id = :projectId")
-  suspend fun deleteLinkByEntityAndProject(entityId: String, projectId: String)
+  @Query("DELETE FROM list_items WHERE entityId = :entityId AND context_id = :contextId")
+  suspend fun deleteLinkByEntityAndContext(entityId: String, contextId: String)
 
-  @Query("UPDATE list_items SET project_id = :targetProjectId WHERE id IN (:itemIds)")
-  suspend fun updateListItemProjectIds(itemIds: List<String>, targetProjectId: String)
+  @Query("UPDATE list_items SET context_id = :targetContextId WHERE id IN (:itemIds)")
+  suspend fun updateListItemContextIds(itemIds: List<String>, targetContextId: String)
 
-  @Query("SELECT * FROM list_items WHERE project_id = :projectId AND is_deleted = 0 ORDER BY item_order ASC, id ASC")
-  suspend fun getItemsForProjectSyncForDebug(projectId: String): List<BacklogItem>
+  @Query("SELECT * FROM list_items WHERE context_id = :contextId AND is_deleted = 0 ORDER BY item_order ASC, id ASC")
+  suspend fun getItemsForContextSyncForDebug(contextId: String): List<BacklogItem>
 
   @Query("DELETE FROM list_items") suspend fun deleteAll()
 
-  @Query("SELECT entityId FROM list_items WHERE project_id = :projectId AND itemType = 'GOAL'")
-  suspend fun getGoalIdsForProject(projectId: String): List<String>
+  @Query("SELECT entityId FROM list_items WHERE context_id = :contextId AND itemType = 'GOAL'")
+  suspend fun getGoalIdsForContext(contextId: String): List<String>
 
   @Query("DELETE FROM list_items WHERE entityId = :entityId")
   suspend fun deleteItemByEntityId(entityId: String)
@@ -61,6 +61,6 @@ interface ListItemDao {
    * @param goalId ID сутності, для якої шукаємо проєкт.
    * @return ID проєкту або null, якщо не знайдено.
    */
-  @Query("SELECT project_id FROM list_items WHERE entityId = :goalId LIMIT 1")
-  suspend fun findProjectIdForGoal(goalId: String): String?
+  @Query("SELECT context_id FROM list_items WHERE entityId = :goalId LIMIT 1")
+  suspend fun findContextIdForGoal(goalId: String): String?
 }

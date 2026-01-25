@@ -6,8 +6,8 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface InboxRecordDao {
-    @Query("SELECT * FROM inbox_records WHERE projectId = :projectId ORDER BY item_order DESC")
-    fun getRecordsForProjectStream(projectId: String): Flow<List<InboxRecord>>
+    @Query("SELECT * FROM inbox_records WHERE contextId = :contextId ORDER BY item_order DESC")
+    fun getRecordsForContextStream(contextId: String): Flow<List<InboxRecord>>
 
     @Query("SELECT * FROM inbox_records WHERE id = :id")
     suspend fun getRecordById(id: String): InboxRecord?

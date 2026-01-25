@@ -13,92 +13,92 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ContextDao {
-    @Query("SELECT * FROM projects ORDER BY goal_order ASC")
-    fun getAllProjectsForSync(): Flow<List<Context>>
+    @Query("SELECT * FROM contexts ORDER BY goal_order ASC")
+    fun getAllContextsForSync(): Flow<List<Context>>
 
-    @Query("SELECT * FROM projects WHERE is_deleted = 0 ORDER BY goal_order ASC")
-    fun getAllProjects(): Flow<List<Context>>
+    @Query("SELECT * FROM contexts WHERE is_deleted = 0 ORDER BY goal_order ASC")
+    fun getAllContexts(): Flow<List<Context>>
 
-    @Query("SELECT * FROM projects")
+    @Query("SELECT * FROM contexts")
     suspend fun getAll(): List<Context>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertProjects(projects: List<Context>)
+    suspend fun insertContexts(contexts: List<Context>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(project: Context)
+    suspend fun insert(context: Context)
 
     @Update
-    suspend fun update(project: Context)
+    suspend fun update(context: Context)
 
     @Update
-    suspend fun update(projects: List<Context>): Int
+    suspend fun update(contexts: List<Context>): Int
 
-    @Query("DELETE FROM projects WHERE id = :id AND project_type = 'DEFAULT'")
+    @Query("DELETE FROM contexts WHERE id = :id AND context_type = 'DEFAULT'")
     suspend fun delete(id: String)
 
-    @Query("DELETE FROM projects WHERE id = :projectId AND project_type = 'DEFAULT'")
-    suspend fun deleteProjectById(projectId: String)
+    @Query("DELETE FROM contexts WHERE id = :contextId AND context_type = 'DEFAULT'")
+    suspend fun deleteContextById(contextId: String)
 
-    @Query("SELECT * FROM projects WHERE id IN (:projectIds)")
-    suspend fun getProjectsByIds(projectIds: List<String>): List<Context>
+    @Query("SELECT * FROM contexts WHERE id IN (:contextIds)")
+    suspend fun getContextsByIds(contextIds: List<String>): List<Context>
 
-    @Query("SELECT * FROM projects WHERE id = :id")
-    suspend fun getProjectById(id: String): Context?
+    @Query("SELECT * FROM contexts WHERE id = :id")
+    suspend fun getContextById(id: String): Context?
 
-    @Query("SELECT * FROM projects WHERE id = :id")
-    fun getProjectByIdStream(id: String): Flow<Context?>
+    @Query("SELECT * FROM contexts WHERE id = :id")
+    fun getContextByIdStream(id: String): Flow<Context?>
 
-    @Query("SELECT * FROM projects WHERE system_key = :systemKey")
-    suspend fun getProjectBySystemKey(systemKey: String): Context?
+    @Query("SELECT * FROM contexts WHERE system_key = :systemKey")
+    suspend fun getContextBySystemKey(systemKey: String): Context?
 
-    @Query("UPDATE projects SET goal_order = :order WHERE id = :projectId")
+    @Query("UPDATE contexts SET goal_order = :order WHERE id = :contextId")
     suspend fun updateOrder(
-        projectId: String,
+        contextId: String,
         order: Long,
     )
 
-    @Query("SELECT * FROM projects WHERE parentId = :parentId ORDER BY goal_order ASC")
-    suspend fun getProjectsByParentId(parentId: String): List<Context>
+    @Query("SELECT * FROM contexts WHERE parentId = :parentId ORDER BY goal_order ASC")
+    suspend fun getContextsByParentId(parentId: String): List<Context>
 
-    @Query("SELECT * FROM projects WHERE parentId = :parentId AND role_code = :roleCode AND is_deleted = 0 LIMIT 1")
+    @Query("SELECT * FROM contexts WHERE parentId = :parentId AND role_code = :roleCode AND is_deleted = 0 LIMIT 1")
     suspend fun findChildByRole(
         parentId: String,
         roleCode: String
     ): Context?
 
-    @Query("SELECT * FROM projects WHERE parentId IS NULL ORDER BY goal_order ASC")
-    suspend fun getTopLevelProjects(): List<Context>
+    @Query("SELECT * FROM contexts WHERE parentId IS NULL ORDER BY goal_order ASC")
+    suspend fun getTopLevelContexts(): List<Context>
 
-    @Query("SELECT * FROM projects WHERE tags LIKE '%' || :tag || '%'")
-    suspend fun getProjectsByTag(tag: String): List<Context>
+    @Query("SELECT * FROM contexts WHERE tags LIKE '%' || :tag || '%'")
+    suspend fun getContextsByTag(tag: String): List<Context>
 
-    @Query("SELECT * FROM projects WHERE project_type = :projectType")
-    suspend fun getProjectsByType(projectType: String): List<Context>
+    @Query("SELECT * FROM contexts WHERE context_type = :contextType")
+    suspend fun getContextsByType(contextType: String): List<Context>
 
-    @Query("SELECT * FROM projects WHERE reserved_group = :reservedGroup")
-    suspend fun getProjectsByReservedGroup(reservedGroup: String): List<Context>
+    @Query("SELECT * FROM contexts WHERE reserved_group = :reservedGroup")
+    suspend fun getContextsByReservedGroup(reservedGroup: String): List<Context>
 
-    @Query("SELECT id FROM projects WHERE tags LIKE '%' || :tag || '%' ORDER BY goal_order ASC, createdAt ASC")
-    suspend fun getProjectIdsByTag(tag: String): List<String>
+    @Query("SELECT id FROM contexts WHERE tags LIKE '%' || :tag || '%' ORDER BY goal_order ASC, createdAt ASC")
+    suspend fun getContextIdsByTag(tag: String): List<String>
 
     @Transaction
     @Query(
         """
     WITH RECURSIVE path_cte(id, name, path) AS (
-        SELECT id, name, name as path FROM projects WHERE parentId IS NULL
+        SELECT id, name, name as path FROM contexts WHERE parentId IS NULL
         UNION ALL
         SELECT p.id, p.name, pct.path || ' / ' || p.name
-        FROM projects p JOIN path_cte pct ON p.parentId = pct.id
+        FROM contexts p JOIN path_cte pct ON p.parentId = pct.id
     )
     SELECT
         subproject.*,
-        parent_project.id as parentProjectId,
-        parent_project.name as parentProjectName,
+        parent_project.id as parentContextId,
+        parent_project.name as parentContextName,
         pc.path as pathSegments
-    FROM projects AS subproject
+    FROM contexts AS subproject
     INNER JOIN list_items AS li ON subproject.id = li.entityId
-    INNER JOIN projects AS parent_project ON li.project_id = parent_project.id
+    INNER JOIN contexts AS parent_project ON li.context_id = parent_project.id
     INNER JOIN path_cte pc ON subproject.id = pc.id
     WHERE li.itemType = 'SUBLIST' AND subproject.name LIKE :query
     """,
@@ -108,25 +108,25 @@ interface ContextDao {
     @Query(
         """
     WITH RECURSIVE path_cte(id, name, path) AS (
-        SELECT id, name, name as path FROM projects WHERE parentId IS NULL
+        SELECT id, name, name as path FROM contexts WHERE parentId IS NULL
         UNION ALL
         SELECT p.id, p.name, pct.path || ' / ' || p.name
-        FROM projects p JOIN path_cte pct ON p.parentId = pct.id
+        FROM contexts p JOIN path_cte pct ON p.parentId = pct.id
     )
     SELECT p.*, pc.path as pathSegments
-    FROM projects p
+    FROM contexts p
     JOIN path_cte pc ON p.id = pc.id
     WHERE p.name LIKE :query
 """,
     )
-    suspend fun searchProjectsGlobal(query: String): List<GlobalContextSearchResult>
+    suspend fun searchContextsGlobal(query: String): List<GlobalContextSearchResult>
 
-    @Query("DELETE FROM projects")
+    @Query("DELETE FROM contexts")
     suspend fun deleteAll()
 
-    @Query("UPDATE projects SET default_view_mode = :viewModeName WHERE id = :projectId")
+    @Query("UPDATE contexts SET default_view_mode = :viewModeName WHERE id = :contextId")
     suspend fun updateViewMode(
-        projectId: String,
+        contextId: String,
         viewModeName: String,
     )
 }

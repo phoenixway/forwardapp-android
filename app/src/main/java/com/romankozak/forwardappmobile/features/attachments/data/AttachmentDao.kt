@@ -6,8 +6,8 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentWithProject
-import com.romankozak.forwardappmobile.features.attachments.data.models.ProjectAttachmentCrossRef
+import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentWithContext
+import com.romankozak.forwardappmobile.features.attachments.data.models.ContextAttachmentCrossRef
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -16,15 +16,15 @@ interface AttachmentDao {
     @Transaction
     @Query(
         """
-        SELECT a.*, link.project_id AS project_id, link.attachment_order AS attachment_order
+        SELECT a.*, link.context_id AS context_id, link.attachment_order AS attachment_order
         FROM attachments AS a
-        INNER JOIN project_attachment_cross_ref AS link
+        INNER JOIN context_attachment_cross_ref AS link
             ON link.attachment_id = a.id
-        WHERE link.project_id = :projectId
+        WHERE link.context_id = :contextId
         ORDER BY link.attachment_order ASC, a.createdAt DESC
         """,
     )
-    fun getAttachmentsForProject(projectId: String): Flow<List<AttachmentWithProject>>
+    fun getAttachmentsForContext(contextId: String): Flow<List<AttachmentWithContext>>
 
     @Query("SELECT * FROM attachments WHERE id = :attachmentId LIMIT 1")
     suspend fun getAttachmentById(attachmentId: String): AttachmentEntity?
@@ -49,71 +49,71 @@ interface AttachmentDao {
     suspend fun insertAttachments(attachments: List<AttachmentEntity>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertProjectAttachmentLinks(links: List<ProjectAttachmentCrossRef>)
+    suspend fun insertContextAttachmentLinks(links: List<ContextAttachmentCrossRef>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertProjectAttachmentLink(link: ProjectAttachmentCrossRef)
+    suspend fun insertContextAttachmentLink(link: ContextAttachmentCrossRef)
 
     @Query(
         """
         SELECT a.*
           FROM attachments a
-          INNER JOIN project_attachment_cross_ref link ON link.attachment_id = a.id
-         WHERE link.project_id = :projectId
+          INNER JOIN context_attachment_cross_ref link ON link.attachment_id = a.id
+         WHERE link.context_id = :contextId
            AND a.role_code = :roleCode
            AND a.isDeleted = 0
          LIMIT 1
         """
     )
     suspend fun findAttachmentByRole(
-        projectId: String,
+        contextId: String,
         roleCode: String
     ): AttachmentEntity?
 
     @Query(
         """
-        DELETE FROM project_attachment_cross_ref
-        WHERE project_id = :projectId AND attachment_id = :attachmentId
+        DELETE FROM context_attachment_cross_ref
+        WHERE context_id = :contextId AND attachment_id = :attachmentId
         """,
     )
-    suspend fun deleteProjectAttachmentLink(
-        projectId: String,
+    suspend fun deleteContextAttachmentLink(
+        contextId: String,
         attachmentId: String,
     )
 
-    @Query("DELETE FROM project_attachment_cross_ref WHERE attachment_id = :attachmentId")
+    @Query("DELETE FROM context_attachment_cross_ref WHERE attachment_id = :attachmentId")
     suspend fun deleteAllLinksForAttachment(attachmentId: String)
 
     @Query("DELETE FROM attachments WHERE id = :attachmentId")
     suspend fun deleteAttachment(attachmentId: String)
 
-    @Query("SELECT COUNT(*) FROM project_attachment_cross_ref WHERE attachment_id = :attachmentId")
+    @Query("SELECT COUNT(*) FROM context_attachment_cross_ref WHERE attachment_id = :attachmentId")
     suspend fun countLinksForAttachment(attachmentId: String): Int
 
     @Query(
         """
-        SELECT * FROM project_attachment_cross_ref
-        WHERE project_id = :projectId AND attachment_id = :attachmentId
+        SELECT * FROM context_attachment_cross_ref
+        WHERE context_id = :contextId AND attachment_id = :attachmentId
         LIMIT 1
         """,
     )
-    suspend fun getProjectAttachmentLink(
-        projectId: String,
+    suspend fun getContextAttachmentLink(
+        contextId: String,
         attachmentId: String,
-    ): ProjectAttachmentCrossRef?
+    ): ContextAttachmentCrossRef?
 
-    @Query("SELECT * FROM project_attachment_cross_ref WHERE attachment_id = :attachmentId")
-    suspend fun getProjectAttachmentLinksForAttachment(attachmentId: String): List<ProjectAttachmentCrossRef>
+    @Query("SELECT * FROM context_attachment_cross_ref WHERE attachment_id = :attachmentId")
+    suspend fun getContextAttachmentLinksForAttachment(attachmentId: String): List<ContextAttachmentCrossRef>
 
     @Query(
         """
-        UPDATE project_attachment_cross_ref
+        UPDATE context_attachment_cross_ref
         SET attachment_order = :order
-        WHERE project_id = :projectId AND attachment_id = :attachmentId
+        WHERE context_id = :contextId AND attachment_id = :attachmentId
         """,
     )
     suspend fun updateAttachmentOrder(
-        projectId: String,
+        contextId: String,
         attachmentId: String,
         order: Long,
     )
@@ -121,20 +121,20 @@ interface AttachmentDao {
     @Query("SELECT * FROM attachments")
     fun getAllAttachmentsFlow(): Flow<List<AttachmentEntity>>
 
-    @Query("SELECT * FROM project_attachment_cross_ref")
-    fun getAllProjectAttachmentLinksFlow(): Flow<List<ProjectAttachmentCrossRef>>
+    @Query("SELECT * FROM context_attachment_cross_ref")
+    fun getAllContextAttachmentLinksFlow(): Flow<List<ContextAttachmentCrossRef>>
 
     @Query("SELECT * FROM attachments")
     suspend fun getAll(): List<AttachmentEntity>
 
-    @Query("SELECT * FROM project_attachment_cross_ref")
-    suspend fun getAllProjectAttachmentCrossRefs(): List<ProjectAttachmentCrossRef>
+    @Query("SELECT * FROM context_attachment_cross_ref")
+    suspend fun getAllContextAttachmentCrossRefs(): List<ContextAttachmentCrossRef>
 
     @Query("DELETE FROM attachments")
     suspend fun deleteAll()
 
-    @Query("DELETE FROM project_attachment_cross_ref")
-    suspend fun deleteAllProjectAttachmentLinks()
+    @Query("DELETE FROM context_attachment_cross_ref")
+    suspend fun deleteAllContextAttachmentLinks()
 
     @Transaction
     @Query(

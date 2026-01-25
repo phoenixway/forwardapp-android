@@ -11,8 +11,8 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ContextManagementDao {
-    @Query("SELECT * FROM project_execution_logs WHERE projectId = :projectId ORDER BY timestamp DESC")
-    fun getLogsForProjectStream(projectId: String): Flow<List<ContextLog>>
+    @Query("SELECT * FROM context_execution_logs WHERE contextId = :contextId ORDER BY timestamp DESC")
+    fun getLogsForContextStream(contextId: String): Flow<List<ContextLog>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLog(log: ContextLog)
@@ -23,12 +23,12 @@ interface ContextManagementDao {
     @Delete
     suspend fun deleteLog(log: ContextLog)
 
-    @Query("SELECT * FROM project_execution_logs")
+    @Query("SELECT * FROM context_execution_logs")
     suspend fun getAllLogs(): List<ContextLog>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAllLogs(logs: List<ContextLog>)
 
-    @Query("DELETE FROM project_execution_logs")
+    @Query("DELETE FROM context_execution_logs")
     suspend fun deleteAllLogs()
 }

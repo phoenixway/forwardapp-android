@@ -83,19 +83,19 @@ data class Goal(
 )
 
 @Entity(
-    tableName = "project_execution_logs",
+    tableName = "context_execution_logs",
     foreignKeys = [
         ForeignKey(
             entity = Context::class,
             parentColumns = ["id"],
-            childColumns = ["projectId"],
+            childColumns = ["contextId"],
             onDelete = ForeignKey.CASCADE,
         ),
     ],
 )
 data class ContextLog(
     @PrimaryKey val id: String,
-    @ColumnInfo(index = true) val projectId: String,
+    @ColumnInfo(index = true) val contextId: String,
     val timestamp: Long,
     @ColumnInfo(name = "type") val type: String,
     val description: String,
@@ -112,14 +112,14 @@ data class ContextLog(
         ForeignKey(
             entity = Context::class,
             parentColumns = ["id"],
-            childColumns = ["projectId"],
+            childColumns = ["contextId"],
             onDelete = ForeignKey.CASCADE,
         ),
     ],
 )
 data class InboxRecord(
     @PrimaryKey val id: String,
-    @ColumnInfo(index = true) val projectId: String,
+    @ColumnInfo(index = true) val contextId: String,
     val text: String,
     val createdAt: Long,
     @ColumnInfo(name = "item_order") val order: Long,
@@ -135,16 +135,16 @@ data class InboxRecord(
         ForeignKey(
             entity = Context::class,
             parentColumns = ["id"],
-            childColumns = ["project_id"],
+            childColumns = ["context_id"],
             onDelete = ForeignKey.CASCADE,
         ),
     ],
 )
 data class BacklogItem(
     @PrimaryKey val id: String,
-    @SerializedName(value = "projectId", alternate = ["listId"])
-    @ColumnInfo(name = "project_id", index = true)
-    val projectId: String,
+    @SerializedName(value = "contextId", alternate = ["listId"])
+    @ColumnInfo(name = "context_id", index = true)
+    val contextId: String,
     val itemType: String,
     val entityId: String,
     @ColumnInfo(name = "item_order") val order: Long,
@@ -162,7 +162,7 @@ data class GoalFts(
 )
 
 @Fts4(contentEntity = Context::class)
-@Entity(tableName = "projects_fts")
+@Entity(tableName = "contexts_fts")
 data class ContextsFts(
     val name: String,
     val description: String?,
@@ -171,8 +171,8 @@ data class ContextsFts(
 data class GlobalGoalSearchResult(
     @Embedded
     val goal: Goal,
-    val projectId: String,
-    val projectName: String,
+    val contextId: String,
+    val contextName: String,
     @TypeConverters(PathSegmentsConverter::class)
     val pathSegments: List<String>,
 )
@@ -180,8 +180,8 @@ data class GlobalGoalSearchResult(
 data class GlobalLinkSearchResult(
     @Embedded
     val link: LinkItemEntity,
-    val projectId: String,
-    val projectName: String,
+    val contextId: String,
+    val contextName: String,
     val listItemId: String,
     @TypeConverters(PathSegmentsConverter::class)
     val pathSegments: List<String>,
@@ -189,16 +189,16 @@ data class GlobalLinkSearchResult(
 
 data class GlobalSubcontextSearchResult(
     @Embedded
-    val subproject: Context,
-    val parentProjectId: String,
-    val parentProjectName: String,
+    val subcontext: Context,
+    val parentContextId: String,
+    val parentContextName: String,
     @TypeConverters(PathSegmentsConverter::class)
     val pathSegments: List<String>,
 )
 
 data class GlobalContextSearchResult(
     @Embedded
-    val project: Context,
+    val context: Context,
     @TypeConverters(PathSegmentsConverter::class)
     val pathSegments: List<String>,
 )
@@ -214,7 +214,7 @@ sealed class GlobalSearchResultItem {
         val pathSegments: List<String>
     ) : GlobalSearchResultItem() {
         override val timestamp: Long get() = goal.updatedAt ?: goal.createdAt
-        override val uniqueId: String get() = "goal_${goal.id}_${backlogItem.projectId}"
+        override val uniqueId: String get() = "goal_${goal.id}_${backlogItem.contextId}"
     }
 
     data class LinkItem(val searchResult: GlobalLinkSearchResult) : GlobalSearchResultItem() {
@@ -223,15 +223,15 @@ sealed class GlobalSearchResultItem {
     }
 
     data class SubcontextItem(val searchResult: GlobalSubcontextSearchResult) : GlobalSearchResultItem() {
-        override val timestamp: Long get() = searchResult.subproject.updatedAt ?: searchResult.subproject.createdAt
-        override val uniqueId: String get() = "sublist_${searchResult.subproject.id}_${searchResult.parentProjectId}"
+        override val timestamp: Long get() = searchResult.subcontext.updatedAt ?: searchResult.subcontext.createdAt
+        override val uniqueId: String get() = "sublist_${searchResult.subcontext.id}_${searchResult.parentContextId}"
     }
 
     data class ContextItem(
         val searchResult: GlobalContextSearchResult,
     ) : GlobalSearchResultItem() {
-        override val timestamp: Long get() = searchResult.project.updatedAt ?: searchResult.project.createdAt
-        override val uniqueId: String get() = "project_${searchResult.project.id}"
+        override val timestamp: Long get() = searchResult.context.updatedAt ?: searchResult.context.createdAt
+        override val uniqueId: String get() = "context_${searchResult.context.id}"
     }
 
     data class ActivityItem(val record: ActivityRecord) : GlobalSearchResultItem() {

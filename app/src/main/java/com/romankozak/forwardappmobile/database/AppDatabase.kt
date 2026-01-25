@@ -43,7 +43,6 @@ import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.ai.data.models.AiInsightEntity
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.ProjectAttachmentCrossRef
 import com.romankozak.forwardappmobile.features.contexts.data.dao.BacklogOrderDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
@@ -60,6 +59,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePrese
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
 import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistItemEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.features.contexts.data.models.Converters
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.data.models.GoalFts
@@ -71,11 +71,11 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextsFts
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextConfiguration
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructureItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextTypeConverter
 import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedGroupConverter
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfile
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfileItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextStructureItem
 import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
 import com.romankozak.forwardappmobile.features.missions.data.model.TacticalMission
 import com.romankozak.forwardappmobile.features.missions.data.model.TacticalMissionAttachmentCrossRef
@@ -105,13 +105,13 @@ import com.romankozak.forwardappmobile.features.missions.data.model.TacticalMiss
         ContextRoleProfile::class,
         ContextRoleProfileItem::class,
         ContextConfiguration::class,
-        ProjectStructureItem::class,
+        ContextStructureItem::class,
         RecentItem::class,
         ConversationFolderEntity::class,
         RecurringTask::class,
         Reminder::class,
         ContextArtifact::class,
-        ProjectAttachmentCrossRef::class,
+        ContextAttachmentCrossRef::class,
         SystemAppEntity::class,
         TacticalMission::class,
         TacticalMissionAttachmentCrossRef::class,
@@ -124,23 +124,23 @@ import com.romankozak.forwardappmobile.features.missions.data.model.TacticalMiss
         LegacyNoteFts::class,
         RecurringTaskFts::class,
     ],
-    version = 93,
+    version = 94,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class, ContextTypeConverter::class, ReservedGroupConverter::class)
 abstract class AppDatabase : RoomDatabase() {
-    abstract fun projectDao(): ContextDao
+    abstract fun contextDao(): ContextDao
     abstract fun goalDao(): GoalDao
     abstract fun listItemDao(): ListItemDao
     abstract fun backlogOrderDao(): BacklogOrderDao
     abstract fun linkItemDao(): LinkItemDao
     abstract fun inboxRecordDao(): InboxRecordDao
-    abstract fun projectManagementDao(): ContextManagementDao
+    abstract fun contextManagementDao(): ContextManagementDao
     abstract fun noteDocumentDao(): NoteDocumentDao
     abstract fun checklistDao(): ChecklistDao
     abstract fun structurePresetDao(): StructurePresetDao
     abstract fun structurePresetItemDao(): StructurePresetItemDao
-    abstract fun projectStructureDao(): ContextStructureDao
+    abstract fun contextStructureDao(): ContextStructureDao
     abstract fun activityRecordDao(): ActivityRecordDao
     abstract fun chatDao(): ChatDao
     abstract fun conversationFolderDao(): ConversationFolderDao
@@ -148,7 +148,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun dayPlanDao(): DayPlanDao
     abstract fun dayTaskDao(): DayTaskDao
     abstract fun legacyNoteDao(): LegacyNoteDao
-    abstract fun projectArtifactDao(): ContextArtifactDao
+    abstract fun contextArtifactDao(): ContextArtifactDao
     abstract fun recentItemDao(): RecentItemDao
     abstract fun recurringTaskDao(): RecurringTaskDao
     abstract fun reminderDao(): ReminderDao
