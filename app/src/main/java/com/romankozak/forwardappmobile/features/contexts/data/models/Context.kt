@@ -23,9 +23,9 @@ enum class ContextType {
 }
 
 @Entity(
-    tableName = "projects",
+    tableName = "contexts",
     indices = [
-        Index("system_key", unique = true, name = "idx_projects_systemkey_unique")
+        Index("system_key", unique = true, name = "idx_contexts_systemkey_unique")
     ]
 )
 data class Context(
@@ -46,10 +46,10 @@ data class Context(
     @ColumnInfo(name = "is_attachments_expanded", defaultValue = "0") val isAttachmentsExpanded: Boolean = false,
     @ColumnInfo(name = "default_view_mode") val defaultViewModeName: String? = null,
     @ColumnInfo(name = "is_completed", defaultValue = "0") val isCompleted: Boolean = false,
-    @ColumnInfo(name = "is_project_management_enabled") val isProjectManagementEnabled: Boolean? = false,
-    @ColumnInfo(name = "project_status") val projectStatus: String? = ContextStatusValues.NO_PLAN,
-    @ColumnInfo(name = "project_status_text") val projectStatusText: String? = null,
-    @ColumnInfo(name = "project_log_level") val projectLogLevel: String? = ContextLogLevelValues.NORMAL,
+    @ColumnInfo(name = "is_context_management_enabled") val isContextManagementEnabled: Boolean? = false,
+    @ColumnInfo(name = "context_status") val contextStatus: String? = ContextStatusValues.NO_PLAN,
+    @ColumnInfo(name = "context_status_text") val contextStatusText: String? = null,
+    @ColumnInfo(name = "context_log_level") val contextLogLevel: String? = ContextLogLevelValues.NORMAL,
     @ColumnInfo(name = "total_time_spent_minutes") val totalTimeSpentMinutes: Long? = 0,
     @ColumnInfo(defaultValue = "0.0") val valueImportance: Float = 0f,
     @ColumnInfo(defaultValue = "0.0") val valueImpact: Float = 0f,
@@ -63,7 +63,7 @@ data class Context(
     @ColumnInfo(defaultValue = "0") val displayScore: Int = 0,
     @ColumnInfo(name = "scoring_status") val scoringStatus: String = ScoringStatusValues.NOT_ASSESSED,
     @ColumnInfo(name = "show_checkboxes", defaultValue = "0") val showCheckboxes: Boolean = false,
-    @ColumnInfo(name = "project_type", defaultValue = "'DEFAULT'") val projectType: ContextType = ContextType.DEFAULT,
+    @ColumnInfo(name = "context_type", defaultValue = "'DEFAULT'") val contextType: ContextType = ContextType.DEFAULT,
     @ColumnInfo(name = "reserved_group") val reservedGroup: ReservedGroup? = null,
     @ColumnInfo(name = "role_code") val roleCode: String? = null,
 )
