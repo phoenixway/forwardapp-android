@@ -1,5 +1,6 @@
-package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems
+package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems
 
+import android.util.Log
 import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
@@ -47,6 +48,13 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.AnimatedContextEmoji
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.EnhancedRelatedLinkChip
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.EnhancedReminderBadge
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.EnhancedScoreStatusBadge
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.ModernTagChip
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.NoteIndicatorBadge
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.TagType
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import kotlinx.coroutines.delay
 
@@ -71,7 +79,7 @@ fun ProjectItem(
     reminders: List<Reminder> = emptyList(),
     endAction: @Composable () -> Unit = {},
 ) {
-    android.util.Log.d("ProjectItem", "ProjectItem composable called for project: ${project.name}")
+    Log.d("ProjectItem", "ProjectItem composable called for project: ${project.name}")
     val reminder = reminders.firstOrNull()
     val parsedData = rememberParsedText(project.name, contextMarkerToEmojiMap)
 
@@ -154,7 +162,7 @@ fun ProjectItem(
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            reminder?.let { 
+                            reminder?.let {
                                 EnhancedReminderBadge(
                                     reminder = it,
                                 )

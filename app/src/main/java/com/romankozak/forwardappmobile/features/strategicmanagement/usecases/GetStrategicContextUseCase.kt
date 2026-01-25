@@ -5,7 +5,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedGro
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import javax.inject.Inject
 
-class GetStrategicProjectsUseCase @Inject constructor(
+class GetStrategicContextUseCase @Inject constructor(
     private val projectRepository: ProjectRepository
 ) {
     suspend operator fun invoke(): List<Context> {

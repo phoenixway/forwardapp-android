@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.features.strategicmanagement
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.features.strategicmanagement.usecases.GetStrategicProjectsUseCase
+import com.romankozak.forwardappmobile.features.strategicmanagement.usecases.GetStrategicContextUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,7 +12,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class StrategicManagementViewModel @Inject constructor(
-    private val getStrategicProjects: GetStrategicProjectsUseCase
+    private val getStrategicProjects: GetStrategicContextUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(StrategicManagementUiState())
