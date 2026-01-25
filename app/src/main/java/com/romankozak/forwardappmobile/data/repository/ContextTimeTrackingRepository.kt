@@ -10,10 +10,10 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class ProjectTimeTrackingRepository @Inject constructor(
+class ContextTimeTrackingRepository @Inject constructor(
     private val activityRepository: ActivityRepository,
     private val listItemDao: ListItemDao,
-    private val projectLogRepository: ProjectLogRepository
+    private val contextLogRepository: ContextLogRepository
 ) {
     suspend fun logProjectTimeSummaryForDate(
         projectId: String,
@@ -66,7 +66,7 @@ class ProjectTimeTrackingRepository @Inject constructor(
         val description = "Загальний час за день: $totalFormattedDuration."
         val details = detailsBuilder.toString()
 
-        projectLogRepository.addProjectLogEntry(projectId = projectId, type = ContextLogEntryTypeValues.AUTOMATIC, description = description, details = details)
+        contextLogRepository.addProjectLogEntry(projectId = projectId, type = ContextLogEntryTypeValues.AUTOMATIC, description = description, details = details)
     }
 
     private fun formatDuration(millis: Long): String {
@@ -96,7 +96,7 @@ class ProjectTimeTrackingRepository @Inject constructor(
         val totalFormattedDuration = formatDuration(totalDurationMillis)
         val description = "Загальний час по проекту: $totalFormattedDuration."
 
-        projectLogRepository.addProjectLogEntry(
+        contextLogRepository.addProjectLogEntry(
             projectId = projectId,
             type = ContextLogEntryTypeValues.AUTOMATIC,
             description = description,

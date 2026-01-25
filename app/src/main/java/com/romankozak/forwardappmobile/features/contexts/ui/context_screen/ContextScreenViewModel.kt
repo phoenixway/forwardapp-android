@@ -60,7 +60,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewm
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.ProjectMarkdownExporter
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.SelectionHandler
 import com.romankozak.forwardappmobile.ui.common.editor.NoteTitleExtractor
-import com.romankozak.forwardappmobile.data.repository.ProjectStructureRepository
+import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.net.URLEncoder
 import java.net.URLDecoder
@@ -286,10 +286,10 @@ constructor(
   private val checklistRepository: ChecklistRepository,
   private val reminderRepository: com.romankozak.forwardappmobile.data.repository.ReminderRepository,
   private val recentItemsRepository: com.romankozak.forwardappmobile.data.repository.RecentItemsRepository,
-  private val projectLogRepository: com.romankozak.forwardappmobile.data.repository.ProjectLogRepository,
+  private val contextLogRepository: com.romankozak.forwardappmobile.data.repository.ContextLogRepository,
   private val noteRepository: com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository,
   private val inboxRepository: com.romankozak.forwardappmobile.data.repository.InboxRepository,
-  private val projectStructureRepository: ProjectStructureRepository,
+  private val contextStructureRepository: ContextStructureRepository,
 ) :
   ViewModel(),
   ItemActionHandler.ResultListener,
@@ -501,7 +501,7 @@ constructor(
         projectIdFlow
             .filter { it.isNotEmpty() }
             .flatMapLatest { projectId ->
-                projectStructureRepository.observeStructure(projectId).map { projectId to it }
+                contextStructureRepository.observeStructure(projectId).map { projectId to it }
             }
             .collect { (projectId, structureWithItems) ->
                 val structure = structureWithItems?.structure
@@ -779,7 +779,7 @@ constructor(
       override fun addMilestone(text: String) {
       if (text.isBlank()) return
       viewModelScope.launch(Dispatchers.IO) {
-          projectLogRepository.addProjectLogEntry(
+          contextLogRepository.addProjectLogEntry(
               projectId = projectIdFlow.value,
               type = ContextLogEntryTypeValues.MILESTONE,
               description = text,
@@ -2087,7 +2087,7 @@ constructor(
 
     fun onDeleteLogEntry(log: ContextLog) {
         viewModelScope.launch {
-            projectLogRepository.deleteProjectExecutionLog(log)
+            contextLogRepository.deleteProjectExecutionLog(log)
         }
     }
 
@@ -2098,7 +2098,7 @@ constructor(
                 description = description,
                 details = details
             )
-            projectLogRepository.updateProjectExecutionLog(updatedLog)
+            contextLogRepository.updateProjectExecutionLog(updatedLog)
             onDismissEditLogEntryDialog()
         }
     }
@@ -2123,7 +2123,7 @@ constructor(
 
     fun onAddMilestone() {
         viewModelScope.launch {
-            projectLogRepository.addProjectLogEntry(
+            contextLogRepository.addProjectLogEntry(
                 projectId = projectIdFlow.value,
                 type = ContextLogEntryTypeValues.MILESTONE,
                 description = "New Milestone",

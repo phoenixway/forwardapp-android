@@ -4,7 +4,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructureItem
-import com.romankozak.forwardappmobile.data.repository.ProjectStructureRepository
+import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
@@ -15,7 +15,7 @@ import javax.inject.Singleton
 
 @Singleton
 class StructurePresetService @Inject constructor(
-    private val projectStructureRepository: ProjectStructureRepository,
+    private val contextStructureRepository: ContextStructureRepository,
     private val attachmentRepository: AttachmentRepository,
     private val noteDocumentRepository: NoteDocumentRepository,
     private val checklistRepository: ChecklistRepository,
@@ -23,12 +23,12 @@ class StructurePresetService @Inject constructor(
 ) {
 
     suspend fun applyPresetToProject(projectId: String, presetCode: String) {
-        projectStructureRepository.applyPresetToProject(projectId, presetCode)
+        contextStructureRepository.applyPresetToProject(projectId, presetCode)
         applyProjectStructure(projectId)
     }
 
     suspend fun applyProjectStructure(projectId: String) {
-        val structure = projectStructureRepository.getStructureWithItems(projectId)
+        val structure = contextStructureRepository.getStructureWithItems(projectId)
         val now = System.currentTimeMillis()
         val activeItems = structure.items.filter { it.mandatory || it.isEnabled }
         activeItems.forEach { item ->

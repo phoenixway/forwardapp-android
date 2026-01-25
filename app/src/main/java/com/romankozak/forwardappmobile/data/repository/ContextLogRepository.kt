@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.data.repository
 
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectManagementDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLogEntryTypeValues
 import com.romankozak.forwardappmobile.data.sync.bumpSync
@@ -11,11 +11,11 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class ProjectLogRepository @Inject constructor(
-    private val projectManagementDao: ProjectManagementDao
+class ContextLogRepository @Inject constructor(
+    private val contextManagementDao: ContextManagementDao
 ) {
     fun getProjectLogsStream(projectId: String): Flow<List<ContextLog>> =
-        projectManagementDao.getLogsForProjectStream(projectId)
+        contextManagementDao.getLogsForProjectStream(projectId)
 
     suspend fun addToggleProjectManagementLog(projectId: String, isEnabled: Boolean) {
         val status = if (isEnabled) "активовано" else "деактивовано"
@@ -67,14 +67,14 @@ class ProjectLogRepository @Inject constructor(
                 syncedAt = null,
                 version = 1,
             )
-        projectManagementDao.insertLog(logEntry)
+        contextManagementDao.insertLog(logEntry)
     }
 
     suspend fun updateProjectExecutionLog(log: ContextLog) {
-        projectManagementDao.updateLog(log.bumpSync())
+        contextManagementDao.updateLog(log.bumpSync())
     }
 
     suspend fun deleteProjectExecutionLog(log: ContextLog) {
-        projectManagementDao.insertLog(log.softDelete())
+        contextManagementDao.insertLog(log.softDelete())
     }
 }

@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.features.contexts.data
 
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextType
 import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedGroup
@@ -13,40 +13,40 @@ import javax.inject.Singleton
 
 @Singleton
 class DatabaseInitializer @Inject constructor(
-    private val projectDao: ProjectDao,
+    private val contextDao: ContextDao,
     private val systemAppRepository: SystemAppRepository,
 ) {
     suspend fun prePopulate() {
-        prePopulateProjects(projectDao)
+        prePopulateProjects(contextDao)
         prePopulateSystemApps()
     }
 
-    private suspend fun prePopulateProjects(projectDao: ProjectDao) {
-        val personalManagementProjectId = ensureProjectExists(projectDao, ReservedContextKeys.PERSONAL_MANAGEMENT, "personal-management", null, ContextType.SYSTEM, null)
-        val strategicGroupId = ensureProjectExists(projectDao, ReservedContextKeys.STRATEGIC, "strategic", personalManagementProjectId, ContextType.RESERVED, ReservedGroup.StrategicGroup)
-        val strategicBeaconsGroupId = ensureProjectExists(projectDao, ReservedContextKeys.STRATEGIC_BEACONS, "strategic-beacons", strategicGroupId, ContextType.RESERVED, ReservedGroup.MainBeaconsGroup)
-        val weekProjectId = ensureProjectExists(projectDao, ReservedContextKeys.WEEK, "week", personalManagementProjectId, ContextType.RESERVED, ReservedGroup.Strategic)
-        val todayProjectId = ensureProjectExists(projectDao, ReservedContextKeys.TODAY, "today", personalManagementProjectId, ContextType.RESERVED, ReservedGroup.Inbox)
-        ensureProjectExists(projectDao, ReservedContextKeys.MAIN_BEACONS, "main-beacons", personalManagementProjectId, ContextType.RESERVED, ReservedGroup.MainBeacons)
-        ensureProjectExists(projectDao, ReservedContextKeys.MISSION, "mission", strategicBeaconsGroupId, ContextType.RESERVED, ReservedGroup.MainBeacons)
-        ensureProjectExists(projectDao, ReservedContextKeys.LONG_TERM_STRATEGY, "long-term-strategy", strategicBeaconsGroupId, ContextType.RESERVED, ReservedGroup.Strategic)
-        ensureProjectExists(projectDao, ReservedContextKeys.STRATEGIC_PROGRAMS, "strategic-programs", strategicBeaconsGroupId, ContextType.RESERVED, ReservedGroup.Strategic)
-        ensureProjectExists(projectDao, ReservedContextKeys.MEDIUM_TERM_STRATEGY, "medium-term-strategy", personalManagementProjectId, ContextType.RESERVED, ReservedGroup.Strategic)
-        ensureProjectExists(projectDao, ReservedContextKeys.ACTIVE_QUESTS, "active-quests", weekProjectId, ContextType.RESERVED, ReservedGroup.Strategic)
-        ensureProjectExists(projectDao, ReservedContextKeys.STRATEGIC_INBOX, "strategic-inbox", strategicGroupId, ContextType.RESERVED, ReservedGroup.Strategic)
-        ensureProjectExists(projectDao, ReservedContextKeys.STRATEGIC_REVIEW, "strategic-review", strategicGroupId, ContextType.RESERVED, ReservedGroup.Strategic)
-        ensureProjectExists(projectDao, ReservedContextKeys.INBOX, "inbox", todayProjectId, ContextType.RESERVED, ReservedGroup.Inbox)
+    private suspend fun prePopulateProjects(contextDao: ContextDao) {
+        val personalManagementProjectId = ensureProjectExists(contextDao, ReservedContextKeys.PERSONAL_MANAGEMENT, "personal-management", null, ContextType.SYSTEM, null)
+        val strategicGroupId = ensureProjectExists(contextDao, ReservedContextKeys.STRATEGIC, "strategic", personalManagementProjectId, ContextType.RESERVED, ReservedGroup.StrategicGroup)
+        val strategicBeaconsGroupId = ensureProjectExists(contextDao, ReservedContextKeys.STRATEGIC_BEACONS, "strategic-beacons", strategicGroupId, ContextType.RESERVED, ReservedGroup.MainBeaconsGroup)
+        val weekProjectId = ensureProjectExists(contextDao, ReservedContextKeys.WEEK, "week", personalManagementProjectId, ContextType.RESERVED, ReservedGroup.Strategic)
+        val todayProjectId = ensureProjectExists(contextDao, ReservedContextKeys.TODAY, "today", personalManagementProjectId, ContextType.RESERVED, ReservedGroup.Inbox)
+        ensureProjectExists(contextDao, ReservedContextKeys.MAIN_BEACONS, "main-beacons", personalManagementProjectId, ContextType.RESERVED, ReservedGroup.MainBeacons)
+        ensureProjectExists(contextDao, ReservedContextKeys.MISSION, "mission", strategicBeaconsGroupId, ContextType.RESERVED, ReservedGroup.MainBeacons)
+        ensureProjectExists(contextDao, ReservedContextKeys.LONG_TERM_STRATEGY, "long-term-strategy", strategicBeaconsGroupId, ContextType.RESERVED, ReservedGroup.Strategic)
+        ensureProjectExists(contextDao, ReservedContextKeys.STRATEGIC_PROGRAMS, "strategic-programs", strategicBeaconsGroupId, ContextType.RESERVED, ReservedGroup.Strategic)
+        ensureProjectExists(contextDao, ReservedContextKeys.MEDIUM_TERM_STRATEGY, "medium-term-strategy", personalManagementProjectId, ContextType.RESERVED, ReservedGroup.Strategic)
+        ensureProjectExists(contextDao, ReservedContextKeys.ACTIVE_QUESTS, "active-quests", weekProjectId, ContextType.RESERVED, ReservedGroup.Strategic)
+        ensureProjectExists(contextDao, ReservedContextKeys.STRATEGIC_INBOX, "strategic-inbox", strategicGroupId, ContextType.RESERVED, ReservedGroup.Strategic)
+        ensureProjectExists(contextDao, ReservedContextKeys.STRATEGIC_REVIEW, "strategic-review", strategicGroupId, ContextType.RESERVED, ReservedGroup.Strategic)
+        ensureProjectExists(contextDao, ReservedContextKeys.INBOX, "inbox", todayProjectId, ContextType.RESERVED, ReservedGroup.Inbox)
     }
 
     private suspend fun ensureProjectExists(
-        projectDao: ProjectDao,
+        contextDao: ContextDao,
         systemKey: String,
         name: String,
         parentId: String?,
         projectType: ContextType,
         reservedGroup: ReservedGroup?
     ): String {
-        val existingProject = projectDao.getProjectBySystemKey(systemKey)
+        val existingProject = contextDao.getProjectBySystemKey(systemKey)
         if (existingProject != null) {
             return existingProject.id
         }
@@ -64,7 +64,7 @@ class DatabaseInitializer @Inject constructor(
             updatedAt = null,
             tags = null
         )
-        projectDao.insert(newProject)
+        contextDao.insert(newProject)
         return newProject.id
     }
 

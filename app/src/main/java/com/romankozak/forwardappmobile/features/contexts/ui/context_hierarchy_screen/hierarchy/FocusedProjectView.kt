@@ -28,7 +28,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenEvent
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.flattenHierarchyWithLevels
 
@@ -49,7 +49,7 @@ fun FocusedProjectView(
     settings: HierarchyDisplaySettings,
     searchQuery: String,
     longDescendantsMap: Map<String, Boolean>,
-    onEvent: (ProjectHierarchyScreenEvent) -> Unit,
+    onEvent: (ContextHierarchyScreenEvent) -> Unit,
     onFocusProject: (Context) -> Unit,
     onAddSubproject: (Context) -> Unit,
     onDeleteProject: (Context) -> Unit,
@@ -79,12 +79,12 @@ fun FocusedProjectView(
                 Column(Modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
                     BreadcrumbNavigation(
                         breadcrumbs = breadcrumbs,
-                        onNavigate = { onEvent(ProjectHierarchyScreenEvent.BreadcrumbNavigation(it)) },
-                        onClearNavigation = { onEvent(ProjectHierarchyScreenEvent.ClearBreadcrumbNavigation) },
+                        onNavigate = { onEvent(ContextHierarchyScreenEvent.BreadcrumbNavigation(it)) },
+                        onClearNavigation = { onEvent(ContextHierarchyScreenEvent.ClearBreadcrumbNavigation) },
                         onFocusedListMenuClick = { projectId ->
                             hierarchy.allProjects
                                 .find { it.id == projectId }
-                                ?.let { onEvent(ProjectHierarchyScreenEvent.ProjectMenuRequest(it)) }
+                                ?.let { onEvent(ContextHierarchyScreenEvent.ContextMenuRequest(it)) }
                         },
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))

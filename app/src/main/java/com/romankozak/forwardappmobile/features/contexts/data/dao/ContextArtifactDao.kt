@@ -9,7 +9,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.ContextArti
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface ProjectArtifactDao {
+interface ContextArtifactDao {
     @Query("SELECT * FROM project_artifacts WHERE projectId = :projectId")
     fun getArtifactForProjectStream(projectId: String): Flow<ContextArtifact?>
 

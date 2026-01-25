@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.data.repository
 
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
 import com.romankozak.forwardappmobile.data.sync.bumpSync
 import com.romankozak.forwardappmobile.domain.ai.events.ActivityFinishedEvent
@@ -19,7 +19,7 @@ class ActivityRepository
     constructor(
         private val activityRecordDao: ActivityRecordDao,
         private val goalDao: GoalDao,
-        private val projectDao: ProjectDao,
+        private val contextDao: ContextDao,
         private val aiEventRepository: AiEventRepository,
     ) {
         fun getLogStream(): Flow<List<ActivityRecord>> = activityRecordDao.getAllRecordsStream()
@@ -149,7 +149,7 @@ class ActivityRepository
         }
 
         suspend fun startProjectActivity(projectId: String): ActivityRecord? {
-            val project = projectDao.getProjectById(projectId) ?: return null
+            val project = contextDao.getProjectById(projectId) ?: return null
             val now = System.currentTimeMillis()
             endLastActivity(now)
             val newRecord =

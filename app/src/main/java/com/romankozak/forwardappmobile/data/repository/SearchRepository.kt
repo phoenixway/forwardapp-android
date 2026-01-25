@@ -4,7 +4,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.models.GlobalSearchResultItem
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -24,7 +24,7 @@ class SearchRepository
 @Inject
 constructor(
     private val goalDao: GoalDao,
-    private val projectDao: ProjectDao,
+    private val contextDao: ContextDao,
     private val listItemDao: ListItemDao,
     private val linkItemDao: LinkItemDao,
     private val activityRepository: ActivityRepository,
@@ -48,11 +48,11 @@ constructor(
                 GlobalSearchResultItem.LinkItem(it)
             }
         val subprojectResults =
-            projectDao.searchSubprojectsGlobal(query).map {
+            contextDao.searchSubprojectsGlobal(query).map {
                 GlobalSearchResultItem.SubcontextItem(it)
             }
         val projectResults =
-            projectDao.searchProjectsGlobal(query).map {
+            contextDao.searchProjectsGlobal(query).map {
                 GlobalSearchResultItem.ContextItem(it)
             }
         val activityResults =

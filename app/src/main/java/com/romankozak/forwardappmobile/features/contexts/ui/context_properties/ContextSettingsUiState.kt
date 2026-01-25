@@ -4,7 +4,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfile
 
-data class ProjectSettingsUiState(
+data class ContextSettingsUiState(
     val title: TextFieldValue = TextFieldValue(""),
     val description: TextFieldValue = TextFieldValue(""),
     val tags: List<String> = emptyList(),

@@ -51,10 +51,10 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectArtifactDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectManagementDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectStructureDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextArtifactDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
@@ -129,18 +129,18 @@ import com.romankozak.forwardappmobile.features.missions.data.model.TacticalMiss
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class, ContextTypeConverter::class, ReservedGroupConverter::class)
 abstract class AppDatabase : RoomDatabase() {
-    abstract fun projectDao(): ProjectDao
+    abstract fun projectDao(): ContextDao
     abstract fun goalDao(): GoalDao
     abstract fun listItemDao(): ListItemDao
     abstract fun backlogOrderDao(): BacklogOrderDao
     abstract fun linkItemDao(): LinkItemDao
     abstract fun inboxRecordDao(): InboxRecordDao
-    abstract fun projectManagementDao(): ProjectManagementDao
+    abstract fun projectManagementDao(): ContextManagementDao
     abstract fun noteDocumentDao(): NoteDocumentDao
     abstract fun checklistDao(): ChecklistDao
     abstract fun structurePresetDao(): StructurePresetDao
     abstract fun structurePresetItemDao(): StructurePresetItemDao
-    abstract fun projectStructureDao(): ProjectStructureDao
+    abstract fun projectStructureDao(): ContextStructureDao
     abstract fun activityRecordDao(): ActivityRecordDao
     abstract fun chatDao(): ChatDao
     abstract fun conversationFolderDao(): ConversationFolderDao
@@ -148,7 +148,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun dayPlanDao(): DayPlanDao
     abstract fun dayTaskDao(): DayTaskDao
     abstract fun legacyNoteDao(): LegacyNoteDao
-    abstract fun projectArtifactDao(): ProjectArtifactDao
+    abstract fun projectArtifactDao(): ContextArtifactDao
     abstract fun recentItemDao(): RecentItemDao
     abstract fun recurringTaskDao(): RecurringTaskDao
     abstract fun reminderDao(): ReminderDao

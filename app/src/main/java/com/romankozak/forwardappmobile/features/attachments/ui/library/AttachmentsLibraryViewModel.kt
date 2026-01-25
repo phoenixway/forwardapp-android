@@ -10,7 +10,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 import com.romankozak.forwardappmobile.features.attachments.data.models.ProjectAttachmentCrossRef
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -24,7 +24,7 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class AttachmentsLibraryViewModel @Inject constructor(
     private val attachmentRepository: AttachmentRepository,
-    private val projectDao: ProjectDao,
+    private val contextDao: ContextDao,
 ) : ViewModel() {
 
     private val _events = MutableSharedFlow<AttachmentsLibraryEvent>()
@@ -38,7 +38,7 @@ class AttachmentsLibraryViewModel @Inject constructor(
                         combine(
                             attachmentRepository.getAttachmentLibraryItems(),
                             attachmentRepository.getAllAttachmentLinks(),
-                            projectDao.getAllProjects(),
+                            contextDao.getAllProjects(),
                             queryState,
                             filterState,
                         ) { array ->

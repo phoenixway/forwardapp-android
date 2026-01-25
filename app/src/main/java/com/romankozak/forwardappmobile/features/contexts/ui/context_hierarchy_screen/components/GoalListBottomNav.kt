@@ -28,7 +28,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenEvent
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
 
 @Composable
@@ -255,7 +255,7 @@ internal fun ExpandingProjectHierarchyBottomNav(
     aiLifeManagementEnabled: Boolean,
     isExpanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
-    
+
     onAiChatClick: () -> Unit,
     onActivityTrackerClick: () -> Unit,
     onInsightsClick: () -> Unit,
@@ -263,7 +263,7 @@ internal fun ExpandingProjectHierarchyBottomNav(
     onLifeStateClick: () -> Unit,
     onTacticsClick: () -> Unit, // Added
     onContextsClick: () -> Unit,
-    onEvent: (ProjectHierarchyScreenEvent) -> Unit,
+    onEvent: (ContextHierarchyScreenEvent) -> Unit,
 ) {
     var showMoreMenu by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current

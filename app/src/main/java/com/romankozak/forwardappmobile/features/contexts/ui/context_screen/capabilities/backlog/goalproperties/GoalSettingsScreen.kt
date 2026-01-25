@@ -20,7 +20,7 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Link
-import com.romankozak.forwardappmobile.features.contexts.ui.context_properties.ProjectSettingsEvent
+import com.romankozak.forwardappmobile.features.contexts.ui.context_properties.ContextSettingsEvent
 import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.DisposableEffect
@@ -42,8 +42,8 @@ fun GoalSettingsScreen(
     LaunchedEffect(Unit) {
         viewModel.events.collect {
             when (it) {
-                is ProjectSettingsEvent.NavigateBack -> navController.popBackStack()
-                is ProjectSettingsEvent.Navigate -> navController.navigate(NavTargetRouter.routeOf(it.target))
+                is ContextSettingsEvent.NavigateBack -> navController.popBackStack()
+                is ContextSettingsEvent.Navigate -> navController.navigate(NavTargetRouter.routeOf(it.target))
             }
         }
     }

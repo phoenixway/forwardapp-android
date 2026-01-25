@@ -30,7 +30,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.hierarchy.BreadcrumbNavigation
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.hierarchy.ProjectHierarchyView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenEvent
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
@@ -48,7 +48,7 @@ import androidx.compose.animation.SharedTransitionScope
 fun ProjectHierarchyScreenContent(
     modifier: Modifier = Modifier,
     uiState: ProjectHierarchyScreenUiState,
-    onEvent: (ProjectHierarchyScreenEvent) -> Unit,
+    onEvent: (ContextHierarchyScreenEvent) -> Unit,
     listState: LazyListState,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
@@ -79,8 +79,8 @@ fun ProjectHierarchyScreenContent(
             
             SearchResultsView(
                 results = uiState.searchResults,
-                onRevealClick = { onEvent(ProjectHierarchyScreenEvent.SearchResultClick(it)) },
-                onOpenClick = { onEvent(ProjectHierarchyScreenEvent.ProjectClick(it)) },
+                onRevealClick = { onEvent(ContextHierarchyScreenEvent.SearchResultClick(it)) },
+                onOpenClick = { onEvent(ContextHierarchyScreenEvent.ContextClick(it)) },
             )
         } else {
             
@@ -96,11 +96,11 @@ fun ProjectHierarchyScreenContent(
             ) {
                 BreadcrumbNavigation(
                     breadcrumbs = uiState.currentBreadcrumbs,
-                    onNavigate = { onEvent(ProjectHierarchyScreenEvent.BreadcrumbNavigation(it)) },
-                    onClearNavigation = { onEvent(ProjectHierarchyScreenEvent.ClearBreadcrumbNavigation) },
+                    onNavigate = { onEvent(ContextHierarchyScreenEvent.BreadcrumbNavigation(it)) },
+                    onClearNavigation = { onEvent(ContextHierarchyScreenEvent.ClearBreadcrumbNavigation) },
                     onFocusedListMenuClick = { projectId ->
                         uiState.projectHierarchy.allProjects.find { it.id == projectId }
-                            ?.let { onEvent(ProjectHierarchyScreenEvent.ProjectMenuRequest(it)) }
+                            ?.let { onEvent(ContextHierarchyScreenEvent.ContextMenuRequest(it)) }
                     },
                 )
             }
@@ -159,16 +159,16 @@ fun ProjectHierarchyScreenContent(
                     onEvent = onEvent,
                     sharedTransitionScope = sharedTransitionScope,
                     animatedVisibilityScope = animatedVisibilityScope,
-                    onProjectClicked = { onEvent(ProjectHierarchyScreenEvent.ProjectClick(it)) },
-                    onToggleExpanded = { onEvent(ProjectHierarchyScreenEvent.ToggleProjectExpanded(it)) },
-                    onMenuRequested = { onEvent(ProjectHierarchyScreenEvent.ProjectMenuRequest(it)) },
+                    onProjectClicked = { onEvent(ContextHierarchyScreenEvent.ContextClick(it)) },
+                    onToggleExpanded = { onEvent(ContextHierarchyScreenEvent.ToggleContextExpanded(it)) },
+                    onMenuRequested = { onEvent(ContextHierarchyScreenEvent.ContextMenuRequest(it)) },
                     onProjectReorder = { from, to, pos ->
-                        onEvent(ProjectHierarchyScreenEvent.ProjectReorder(from, to, pos))
+                        onEvent(ContextHierarchyScreenEvent.ContextReorder(from, to, pos))
                     },
-                    onFocusProject = { onEvent(ProjectHierarchyScreenEvent.FocusProject(it)) },
-                    onAddSubproject = { onEvent(ProjectHierarchyScreenEvent.AddSubprojectRequest(it)) },
-                    onDeleteProject = { onEvent(ProjectHierarchyScreenEvent.DeleteRequest(it)) },
-                    onEditProject = { onEvent(ProjectHierarchyScreenEvent.EditRequest(it)) },
+                    onFocusProject = { onEvent(ContextHierarchyScreenEvent.FocusContext(it)) },
+                    onAddSubproject = { onEvent(ContextHierarchyScreenEvent.AddSubprojectRequest(it)) },
+                    onDeleteProject = { onEvent(ContextHierarchyScreenEvent.DeleteRequest(it)) },
+                    onEditProject = { onEvent(ContextHierarchyScreenEvent.EditRequest(it)) },
                 )
             }
         }
@@ -218,7 +218,7 @@ internal fun OptimizedExpandingProjectHierarchyBottomNav(
     onShowReminders: () -> Unit,
     onLifeStateClick: () -> Unit,
     onTacticsClick: () -> Unit,
-    onEvent: (ProjectHierarchyScreenEvent) -> Unit,
+    onEvent: (ContextHierarchyScreenEvent) -> Unit,
 ) {
     
     val stableOnHomeClick = remember { { onHomeClick() } }

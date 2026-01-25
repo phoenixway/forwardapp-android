@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.data.repository
 
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
@@ -24,7 +24,7 @@ class GoalRepository @Inject constructor(
     private val listItemDao: ListItemDao,
     private val reminderRepository: ReminderRepository,
     private val contextHandlerProvider: Provider<ContextHandler>,
-    private val projectDao: ProjectDao
+    private val contextDao: ContextDao
 )
 {
     private val contextHandler: ContextHandler by lazy { contextHandlerProvider.get() }
@@ -185,7 +185,7 @@ class GoalRepository @Inject constructor(
         projectId: String,
         action: ContextTextAction,
     ) {
-        val project = projectDao.getProjectById(projectId) ?: return
+        val project = contextDao.getProjectById(projectId) ?: return
         val projectTags = project.tags.orEmpty()
         if (projectTags.isEmpty()) return
 

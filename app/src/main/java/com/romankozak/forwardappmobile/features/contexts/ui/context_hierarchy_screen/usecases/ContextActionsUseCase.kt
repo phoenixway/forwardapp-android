@@ -16,7 +16,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
 
-class ProjectActionsUseCase @Inject constructor(
+class ContextActionsUseCase @Inject constructor(
     private val projectRepository: ProjectRepository,
     private val syncRepository: SyncRepository,
     private val settingsRepository: SettingsRepository,

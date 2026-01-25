@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.data.repository
 
 import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.data.dao.SystemAppDao
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
@@ -14,7 +14,7 @@ import javax.inject.Singleton
 @Singleton
 class SystemAppRepository @Inject constructor(
     private val systemAppDao: SystemAppDao,
-    private val projectDao: ProjectDao,
+    private val contextDao: ContextDao,
     private val noteDocumentDao: NoteDocumentDao,
     private val attachmentRepository: AttachmentRepository,
 ) {
@@ -26,7 +26,7 @@ class SystemAppRepository @Inject constructor(
         documentName: String,
     ): SystemAppEntity {
         val projectId =
-            projectDao.getProjectBySystemKey(projectSystemKey)?.id
+            contextDao.getProjectBySystemKey(projectSystemKey)?.id
                 ?: throw IllegalStateException("System project $projectSystemKey не знайдено")
 
         val existingApp = systemAppDao.getBySystemKey(systemKey)
@@ -60,7 +60,7 @@ class SystemAppRepository @Inject constructor(
     ) {
         val systemApp = systemAppDao.getBySystemKey(systemKey) ?: return
         val noteId = systemApp.noteDocumentId ?: return
-        val targetProjectId = projectDao.getProjectBySystemKey(targetProjectSystemKey)?.id ?: return
+        val targetProjectId = contextDao.getProjectBySystemKey(targetProjectSystemKey)?.id ?: return
 
         attachmentRepository.ensureAttachmentLinkedToProject(
             attachmentType = BacklogItemTypeValues.NOTE_DOCUMENT,

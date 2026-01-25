@@ -41,7 +41,7 @@ class DayManagementRepository
         private val dayTaskDao: DayTaskDao,
         private val dailyMetricDao: DailyMetricDao,
         private val goalDao: com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao,
-        private val projectDao: com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectDao,
+        private val contextDao: com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao,
         private val recurringTaskDao: RecurringTaskDao,
         private val listItemDao: com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao,
         private val activityRepository: ActivityRepository,
@@ -249,7 +249,7 @@ class DayManagementRepository
         ): DayTask =
             withContext(ioDispatcher) {
                 val project =
-                    projectDao.getProjectById(projectId)
+                    contextDao.getProjectById(projectId)
                         ?: throw NoSuchElementException("Project with id $projectId not found")
 
                 val taskParams =
@@ -754,7 +754,7 @@ class DayManagementRepository
 
         suspend fun getProject(id: String): Context? {
             return withContext(ioDispatcher) {
-                projectDao.getProjectById(id)
+                contextDao.getProjectById(id)
             }
         }
 

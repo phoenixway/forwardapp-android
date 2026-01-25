@@ -11,14 +11,14 @@ import com.romankozak.forwardappmobile.ui.dialogs.WifiImportDialog
 import com.romankozak.forwardappmobile.ui.dialogs.WifiServerDialog
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.dialogs.ContextMenuDialog
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DialogState
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenEvent
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
 
 
 @Composable
 fun HandleProjectHierarchyDialogs(
     uiState: ProjectHierarchyScreenUiState,
-    onEvent: (ProjectHierarchyScreenEvent) -> Unit,
+    onEvent: (ContextHierarchyScreenEvent) -> Unit,
 ) {
     
     when (val state = uiState.dialogState) {
@@ -26,10 +26,10 @@ fun HandleProjectHierarchyDialogs(
         is DialogState.AddProject -> {
             AddProjectDialog(
                 title = if (state.parentId == null) "Створити новий проект" else "Створити підпроект",
-                onDismiss = { onEvent(ProjectHierarchyScreenEvent.DismissDialog) },
+                onDismiss = { onEvent(ContextHierarchyScreenEvent.DismissDialog) },
                 
                 onConfirm = { name ->
-                    onEvent(ProjectHierarchyScreenEvent.AddProjectConfirm(name, state.parentId))
+                    onEvent(ContextHierarchyScreenEvent.AddContextConfirm(name, state.parentId))
                 },
             )
         }
@@ -37,19 +37,19 @@ fun HandleProjectHierarchyDialogs(
         is DialogState.ProjectMenu -> {
             ContextMenuDialog(
                 project = state.project,
-                onDismissRequest = { onEvent(ProjectHierarchyScreenEvent.DismissDialog) },
-                onMoveRequest = { project -> onEvent(ProjectHierarchyScreenEvent.MoveRequest(project)) },
-                onAddSubprojectRequest = { project -> onEvent(ProjectHierarchyScreenEvent.AddSubprojectRequest(project)) },
-                onDeleteRequest = { project -> onEvent(ProjectHierarchyScreenEvent.DeleteRequest(project)) },
-                onEditRequest = { project -> onEvent(ProjectHierarchyScreenEvent.EditRequest(project)) },
-                onAddToDayPlanRequest = { project -> onEvent(ProjectHierarchyScreenEvent.AddToDayPlanRequest(project)) },
-                onSetReminderRequest = { project -> onEvent(ProjectHierarchyScreenEvent.SetReminderRequest(project)) },
-                onFocusRequest = { project -> onEvent(ProjectHierarchyScreenEvent.FocusProject(project)) },
+                onDismissRequest = { onEvent(ContextHierarchyScreenEvent.DismissDialog) },
+                onMoveRequest = { project -> onEvent(ContextHierarchyScreenEvent.MoveRequest(project)) },
+                onAddSubprojectRequest = { project -> onEvent(ContextHierarchyScreenEvent.AddSubprojectRequest(project)) },
+                onDeleteRequest = { project -> onEvent(ContextHierarchyScreenEvent.DeleteRequest(project)) },
+                onEditRequest = { project -> onEvent(ContextHierarchyScreenEvent.EditRequest(project)) },
+                onAddToDayPlanRequest = { project -> onEvent(ContextHierarchyScreenEvent.AddToDayPlanRequest(project)) },
+                onSetReminderRequest = { project -> onEvent(ContextHierarchyScreenEvent.SetReminderRequest(project)) },
+                onFocusRequest = { project -> onEvent(ContextHierarchyScreenEvent.FocusContext(project)) },
             )
         }
         is DialogState.ConfirmDelete -> {
             AlertDialog(
-                onDismissRequest = { onEvent(ProjectHierarchyScreenEvent.DismissDialog) },
+                onDismissRequest = { onEvent(ContextHierarchyScreenEvent.DismissDialog) },
                 title = { Text("Delete project?") },
                 text = {
                     Text(
@@ -57,24 +57,24 @@ fun HandleProjectHierarchyDialogs(
                     )
                 },
                 confirmButton = {
-                    TextButton(onClick = { onEvent(ProjectHierarchyScreenEvent.DeleteConfirm(state.project)) }) {
+                    TextButton(onClick = { onEvent(ContextHierarchyScreenEvent.DeleteConfirm(state.project)) }) {
                         Text("Delete")
                     }
                 },
-                dismissButton = { TextButton(onClick = { onEvent(ProjectHierarchyScreenEvent.DismissDialog) }) { Text("Cancel") } },
+                dismissButton = { TextButton(onClick = { onEvent(ContextHierarchyScreenEvent.DismissDialog) }) { Text("Cancel") } },
             )
         }
         
         is DialogState.About -> {
             AboutAppDialog(
                 stats = uiState.appStatistics,
-                onDismiss = { onEvent(ProjectHierarchyScreenEvent.DismissDialog) },
+                onDismiss = { onEvent(ContextHierarchyScreenEvent.DismissDialog) },
             )
         }
         
         is DialogState.ConfirmImport -> {
             AlertDialog(
-                onDismissRequest = { onEvent(ProjectHierarchyScreenEvent.DismissDialog) },
+                onDismissRequest = { onEvent(ContextHierarchyScreenEvent.DismissDialog) },
                 title = { Text("Restore from backup?") },
                 text = {
                     Text(
@@ -84,18 +84,18 @@ fun HandleProjectHierarchyDialogs(
                 confirmButton = {
                     Button(
                         
-                        onClick = { onEvent(ProjectHierarchyScreenEvent.FullImportConfirm(state.uri)) },
+                        onClick = { onEvent(ContextHierarchyScreenEvent.FullImportConfirm(state.uri)) },
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                     ) { Text("Delete and Restore") }
                 },
-                dismissButton = { TextButton(onClick = { onEvent(ProjectHierarchyScreenEvent.DismissDialog) }) { Text("Cancel") } },
+                dismissButton = { TextButton(onClick = { onEvent(ContextHierarchyScreenEvent.DismissDialog) }) { Text("Cancel") } },
             )
         }
         
         is DialogState.EditProject -> {
             
             
-            onEvent(ProjectHierarchyScreenEvent.DismissDialog)
+            onEvent(ContextHierarchyScreenEvent.DismissDialog)
         }
         is DialogState.WifiImport -> { }
         is DialogState.WifiServer -> { }
@@ -105,21 +105,21 @@ fun HandleProjectHierarchyDialogs(
     if (uiState.showWifiServerDialog && uiState.featureToggles[FeatureFlag.WifiSync] == true) {
         WifiServerDialog(
             address = uiState.wifiServerAddress,
-            onDismiss = { onEvent(ProjectHierarchyScreenEvent.DismissWifiServerDialog) },
+            onDismiss = { onEvent(ContextHierarchyScreenEvent.DismissWifiServerDialog) },
         )
     }
     if (uiState.showWifiImportDialog && uiState.featureToggles[FeatureFlag.WifiSync] == true) {
         WifiImportDialog(
             desktopAddress = uiState.desktopAddress,
-            onAddressChange = { onEvent(ProjectHierarchyScreenEvent.DesktopAddressChange(it)) },
-            onDismiss = { onEvent(ProjectHierarchyScreenEvent.DismissWifiImportDialog) },
-            onConfirm = { onEvent(ProjectHierarchyScreenEvent.PerformWifiImport(it)) },
+            onAddressChange = { onEvent(ContextHierarchyScreenEvent.DesktopAddressChange(it)) },
+            onDismiss = { onEvent(ContextHierarchyScreenEvent.DismissWifiImportDialog) },
+            onConfirm = { onEvent(ContextHierarchyScreenEvent.PerformWifiImport(it)) },
         )
     }
     if (uiState.showSearchDialog) {
         LaunchedEffect(uiState.showSearchDialog) {
-            onEvent(ProjectHierarchyScreenEvent.SearchQueryChanged(TextFieldValue("")))
-            onEvent(ProjectHierarchyScreenEvent.DismissSearchDialog)
+            onEvent(ContextHierarchyScreenEvent.SearchQueryChanged(TextFieldValue("")))
+            onEvent(ContextHierarchyScreenEvent.DismissSearchDialog)
         }
     }
 }

@@ -58,9 +58,9 @@ import com.romankozak.forwardappmobile.ui.components.NewRecentListsSheet
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ProjectHierarchyScreenContent
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ProjectHierarchyScreenViewModel
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ContextHierarchyScreenViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.SearchProjectHierarchyBottomBar
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenEvent
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.OptimizedExpandingProjectHierarchyBottomNav
@@ -78,10 +78,10 @@ private const val UI_TAG = "ProjectHierarchyScreenUI_DEBUG"
 @Composable
 fun ProjectHierarchyScreenScaffold(
     uiState: ProjectHierarchyScreenUiState,
-    onEvent: (ProjectHierarchyScreenEvent) -> Unit,
+    onEvent: (ContextHierarchyScreenEvent) -> Unit,
     enhancedNavigationManager: EnhancedNavigationManager,
     lastOngoingActivity: ActivityRecord?,
-    viewModel: ProjectHierarchyScreenViewModel,
+    viewModel: ContextHierarchyScreenViewModel,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
@@ -92,17 +92,17 @@ fun ProjectHierarchyScreenScaffold(
 
     val importLauncher =
         rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
-            uri?.let { onEvent(ProjectHierarchyScreenEvent.ImportFromFileRequest(it)) }
+            uri?.let { onEvent(ContextHierarchyScreenEvent.ImportFromFileRequest(it)) }
         }
 
     val importAttachmentsLauncher =
         rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
-            uri?.let { onEvent(ProjectHierarchyScreenEvent.ImportAttachmentsFromFile(it)) }
+            uri?.let { onEvent(ContextHierarchyScreenEvent.ImportAttachmentsFromFile(it)) }
         }
 
     val selectiveImportLauncher =
         rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
-            uri?.let { onEvent(ProjectHierarchyScreenEvent.SelectiveImportFromFileRequest(it)) }
+            uri?.let { onEvent(ContextHierarchyScreenEvent.SelectiveImportFromFileRequest(it)) }
         }
 
     val backHandlerEnabled by remember(uiState.subStateStack, uiState.currentBreadcrumbs, uiState.areAnyProjectsExpanded) {
@@ -118,7 +118,7 @@ fun ProjectHierarchyScreenScaffold(
 
     BackHandler(enabled = backHandlerEnabled) {
         Log.i(UI_TAG, "Custom BackHandler INVOKED")
-        onEvent(ProjectHierarchyScreenEvent.BackClick)
+        onEvent(ContextHierarchyScreenEvent.BackClick)
     }
 
     val indicatorState = remember { com.romankozak.forwardappmobile.ui.shared.InProgressIndicatorState(isInitiallyExpanded = false) }
@@ -143,29 +143,29 @@ fun ProjectHierarchyScreenScaffold(
                 focusedProjectMenuClick = focusedProjectId?.let { id ->
                     {
                         uiState.projectHierarchy.allProjects.find { it.id == id }?.let {
-                            onEvent(ProjectHierarchyScreenEvent.ProjectMenuRequest(it))
+                            onEvent(ContextHierarchyScreenEvent.ContextMenuRequest(it))
                         }
                     }
                 },
                 focusedProjectOpenClick = focusedProjectId?.let { id ->
-                    { onEvent(ProjectHierarchyScreenEvent.ProjectClick(id)) }
+                    { onEvent(ContextHierarchyScreenEvent.ContextClick(id)) }
                 },
                 canGoBack = uiState.canGoBack,
                 canGoForward = uiState.canGoForward,
-                onGoBack = { onEvent(ProjectHierarchyScreenEvent.BackClick) },
-                onGoForward = { onEvent(ProjectHierarchyScreenEvent.ForwardClick) },
-                onShowHistory = { onEvent(ProjectHierarchyScreenEvent.HistoryClick) },
-                onShowWifiServer = { onEvent(ProjectHierarchyScreenEvent.ShowWifiServerDialog) },
-                onShowWifiImport = { onEvent(ProjectHierarchyScreenEvent.ShowWifiImportDialog) },
+                onGoBack = { onEvent(ContextHierarchyScreenEvent.BackClick) },
+                onGoForward = { onEvent(ContextHierarchyScreenEvent.ForwardClick) },
+                onShowHistory = { onEvent(ContextHierarchyScreenEvent.HistoryClick) },
+                onShowWifiServer = { onEvent(ContextHierarchyScreenEvent.ShowWifiServerDialog) },
+                onShowWifiImport = { onEvent(ContextHierarchyScreenEvent.ShowWifiImportDialog) },
                 onShowImportExportSheet = { showImportExportSheet = true },
-                onShowSettings = { onEvent(ProjectHierarchyScreenEvent.GoToSettings) },
-                onShowAbout = { onEvent(ProjectHierarchyScreenEvent.ShowAboutDialog) },
-                onShowReminders = { onEvent(ProjectHierarchyScreenEvent.GoToReminders) },
-                onShowAttachmentsLibrary = { onEvent(ProjectHierarchyScreenEvent.OpenAttachmentsLibrary) },
-                onShowScriptsLibrary = { onEvent(ProjectHierarchyScreenEvent.OpenScriptsLibrary) },
-                onShowContextLab = { onEvent(ProjectHierarchyScreenEvent.NavigateToContextLab) },
+                onShowSettings = { onEvent(ContextHierarchyScreenEvent.GoToSettings) },
+                onShowAbout = { onEvent(ContextHierarchyScreenEvent.ShowAboutDialog) },
+                onShowReminders = { onEvent(ContextHierarchyScreenEvent.GoToReminders) },
+                onShowAttachmentsLibrary = { onEvent(ContextHierarchyScreenEvent.OpenAttachmentsLibrary) },
+                onShowScriptsLibrary = { onEvent(ContextHierarchyScreenEvent.OpenScriptsLibrary) },
+                onShowContextLab = { onEvent(ContextHierarchyScreenEvent.NavigateToContextLab) },
                 syncStatus = uiState.syncStatus,
-                onSyncIndicatorClick = { onEvent(ProjectHierarchyScreenEvent.ShowWifiServerDialog) },
+                onSyncIndicatorClick = { onEvent(ContextHierarchyScreenEvent.ShowWifiServerDialog) },
                 featureToggles = uiState.featureToggles,
             )
         },
@@ -175,7 +175,7 @@ fun ProjectHierarchyScreenScaffold(
                     ongoingActivity = lastOngoingActivity,
                     onStopClick = { viewModel.stopOngoingActivity() },
                     onReminderClick = { viewModel.setReminderForOngoingActivity() },
-                    onIndicatorClick = { onEvent(ProjectHierarchyScreenEvent.NavigateToActivityTracker) },
+                    onIndicatorClick = { onEvent(ContextHierarchyScreenEvent.NavigateToActivityTracker) },
                     indicatorState = indicatorState
                 )
                 val isSearchActive = uiState.subStateStack.any { it is ProjectHierarchyScreenSubState.LocalSearch }
@@ -197,39 +197,39 @@ fun ProjectHierarchyScreenScaffold(
                     if (isSearchActive) {
                         SearchProjectHierarchyBottomBar(
                             searchQuery = uiState.searchQuery,
-                            onQueryChange = { onEvent(ProjectHierarchyScreenEvent.SearchQueryChanged(it)) },
+                            onQueryChange = { onEvent(ContextHierarchyScreenEvent.SearchQueryChanged(it)) },
                             onCloseSearch = {
-                                onEvent(ProjectHierarchyScreenEvent.CloseSearch)
+                                onEvent(ContextHierarchyScreenEvent.CloseSearch)
                             },
-                            onPerformGlobalSearch = { onEvent(ProjectHierarchyScreenEvent.GlobalSearchPerform(it)) },
+                            onPerformGlobalSearch = { onEvent(ContextHierarchyScreenEvent.GlobalSearchPerform(it)) },
                             onShowSearchHistory = { showSearchHistorySheet = true },
                         )
                     } else {
                         OptimizedExpandingProjectHierarchyBottomNav(
                             onToggleSearch = { _ ->
-                                onEvent(ProjectHierarchyScreenEvent.SearchQueryChanged(TextFieldValue("")))
+                                onEvent(ContextHierarchyScreenEvent.SearchQueryChanged(TextFieldValue("")))
                             },
-                            onGlobalSearchClick = { onEvent(ProjectHierarchyScreenEvent.ShowSearchDialog) },
-                            onShowCommandDeck = { onEvent(ProjectHierarchyScreenEvent.CommandDeckClick) },
+                            onGlobalSearchClick = { onEvent(ContextHierarchyScreenEvent.ShowSearchDialog) },
+                            onShowCommandDeck = { onEvent(ContextHierarchyScreenEvent.CommandDeckClick) },
                             currentMode = uiState.planningMode,
                             planningModesEnabled = uiState.featureToggles[FeatureFlag.PlanningModes] == true,
-                            onPlanningModeChange = { mode -> onEvent(ProjectHierarchyScreenEvent.PlanningModeChange(mode)) },
-                            onRecentsClick = { onEvent(ProjectHierarchyScreenEvent.ShowRecentLists) },
-                            onDayPlanClick = { onEvent(ProjectHierarchyScreenEvent.DayPlanClick) },
-                            onHomeClick = { onEvent(ProjectHierarchyScreenEvent.HomeClick) },
-                            onStrManagementClick = { onEvent(ProjectHierarchyScreenEvent.NavigateToStrategicManagement) },
+                            onPlanningModeChange = { mode -> onEvent(ContextHierarchyScreenEvent.PlanningModeChange(mode)) },
+                            onRecentsClick = { onEvent(ContextHierarchyScreenEvent.ShowRecentLists) },
+                            onDayPlanClick = { onEvent(ContextHierarchyScreenEvent.DayPlanClick) },
+                            onHomeClick = { onEvent(ContextHierarchyScreenEvent.HomeClick) },
+                            onStrManagementClick = { onEvent(ContextHierarchyScreenEvent.NavigateToStrategicManagement) },
                             strategicManagementEnabled = uiState.featureToggles[FeatureFlag.StrategicManagement] == true,
                             aiChatEnabled = uiState.featureToggles[FeatureFlag.AiChat] == true,
                             aiInsightsEnabled = uiState.featureToggles[FeatureFlag.AiInsights] == true,
                             aiLifeManagementEnabled = uiState.featureToggles[FeatureFlag.AiLifeManagement] == true,
                             isExpanded = uiState.isBottomNavExpanded,
-                            onExpandedChange = { expanded -> onEvent(ProjectHierarchyScreenEvent.BottomNavExpandedChange(expanded)) },
-                            onAiChatClick = { onEvent(ProjectHierarchyScreenEvent.NavigateToChat) },
-                            onActivityTrackerClick = { onEvent(ProjectHierarchyScreenEvent.NavigateToActivityTracker) },
-                            onInsightsClick = { onEvent(ProjectHierarchyScreenEvent.NavigateToAiInsights) },
-                            onShowReminders = { onEvent(ProjectHierarchyScreenEvent.GoToReminders) },
-                            onLifeStateClick = { onEvent(ProjectHierarchyScreenEvent.NavigateToLifeState) },
-                            onTacticsClick = { onEvent(ProjectHierarchyScreenEvent.NavigateToTacticsScreen) },
+                            onExpandedChange = { expanded -> onEvent(ContextHierarchyScreenEvent.BottomNavExpandedChange(expanded)) },
+                            onAiChatClick = { onEvent(ContextHierarchyScreenEvent.NavigateToChat) },
+                            onActivityTrackerClick = { onEvent(ContextHierarchyScreenEvent.NavigateToActivityTracker) },
+                            onInsightsClick = { onEvent(ContextHierarchyScreenEvent.NavigateToAiInsights) },
+                            onShowReminders = { onEvent(ContextHierarchyScreenEvent.GoToReminders) },
+                            onLifeStateClick = { onEvent(ContextHierarchyScreenEvent.NavigateToLifeState) },
+                            onTacticsClick = { onEvent(ContextHierarchyScreenEvent.NavigateToTacticsScreen) },
                             onContextsClick = { showContextSheet = true },
                             onEvent = onEvent,
                         )
@@ -277,10 +277,10 @@ fun ProjectHierarchyScreenScaffold(
                     controller = holdMenuController,
                     onSelect = { index ->
                         when (index) {
-                            0 -> onEvent(ProjectHierarchyScreenEvent.AddNewProjectRequest)
-                            1 -> onEvent(ProjectHierarchyScreenEvent.AddNoteDocumentRequest)
-                            2 -> onEvent(ProjectHierarchyScreenEvent.AddChecklistRequest)
-                            3 -> onEvent(ProjectHierarchyScreenEvent.AddScriptRequest)
+                            0 -> onEvent(ContextHierarchyScreenEvent.AddNewContextRequest)
+                            1 -> onEvent(ContextHierarchyScreenEvent.AddNoteDocumentRequest)
+                            2 -> onEvent(ContextHierarchyScreenEvent.AddChecklistRequest)
+                            3 -> onEvent(ContextHierarchyScreenEvent.AddScriptRequest)
                         }
                     },
                     onTap = { showAddMenu = !showAddMenu },
@@ -300,7 +300,7 @@ fun ProjectHierarchyScreenScaffold(
                                 text = { Text(text = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_project)) },
                                 onClick = {
                                     showAddMenu = false
-                                    onEvent(ProjectHierarchyScreenEvent.AddNewProjectRequest)
+                                    onEvent(ContextHierarchyScreenEvent.AddNewContextRequest)
                                 },
                             )
                             DropdownMenuItem(
@@ -308,7 +308,7 @@ fun ProjectHierarchyScreenScaffold(
                                 text = { Text(text = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_note)) },
                                 onClick = {
                                     showAddMenu = false
-                                    onEvent(ProjectHierarchyScreenEvent.AddNoteDocumentRequest)
+                                    onEvent(ContextHierarchyScreenEvent.AddNoteDocumentRequest)
                                 },
                             )
                             DropdownMenuItem(
@@ -316,7 +316,7 @@ fun ProjectHierarchyScreenScaffold(
                                 text = { Text(text = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_checklist)) },
                                 onClick = {
                                     showAddMenu = false
-                                    onEvent(ProjectHierarchyScreenEvent.AddChecklistRequest)
+                                    onEvent(ContextHierarchyScreenEvent.AddChecklistRequest)
                                 },
                             )
                             if (scriptsEnabled) {
@@ -325,7 +325,7 @@ fun ProjectHierarchyScreenScaffold(
                                     text = { Text(text = "Скрипт") },
                                     onClick = {
                                         showAddMenu = false
-                                        onEvent(ProjectHierarchyScreenEvent.AddScriptRequest)
+                                        onEvent(ContextHierarchyScreenEvent.AddScriptRequest)
                                     },
                                 )
                             }
@@ -348,7 +348,7 @@ fun ProjectHierarchyScreenScaffold(
     if (uiState.showNavigationMenu) {
         NavigationHistoryMenu(
             navManager = enhancedNavigationManager,
-            onDismiss = { onEvent(ProjectHierarchyScreenEvent.HideHistory) },
+            onDismiss = { onEvent(ContextHierarchyScreenEvent.HideHistory) },
         )
     }
 
@@ -358,7 +358,7 @@ fun ProjectHierarchyScreenScaffold(
         contexts = uiState.allContexts,
         contextMarkerToEmojiMap = uiState.contextMarkerToEmojiMap,
         onContextSelected = {
-            onEvent(ProjectHierarchyScreenEvent.ContextSelected(it))
+            onEvent(ContextHierarchyScreenEvent.ContextSelected(it))
             showContextSheet = false
         },
     )
@@ -368,7 +368,7 @@ fun ProjectHierarchyScreenScaffold(
         onDismiss = { showSearchHistorySheet = false },
         searchHistory = uiState.searchHistory,
         onHistoryClick = {
-            onEvent(ProjectHierarchyScreenEvent.SearchFromHistory(it))
+            onEvent(ContextHierarchyScreenEvent.SearchFromHistory(it))
             showSearchHistorySheet = false
         },
     )
@@ -376,9 +376,9 @@ fun ProjectHierarchyScreenScaffold(
     NewRecentListsSheet(
         showSheet = uiState.showRecentListsSheet,
         recentItems = uiState.recentItems,
-        onDismiss = { onEvent(ProjectHierarchyScreenEvent.DismissRecentLists) },
-        onItemClick = { onEvent(ProjectHierarchyScreenEvent.RecentItemSelected(it)) },
-        onPinClick = { onEvent(ProjectHierarchyScreenEvent.RecentItemPinClick(it)) }
+        onDismiss = { onEvent(ContextHierarchyScreenEvent.DismissRecentLists) },
+        onItemClick = { onEvent(ContextHierarchyScreenEvent.RecentItemSelected(it)) },
+        onPinClick = { onEvent(ContextHierarchyScreenEvent.RecentItemPinClick(it)) }
     )
 
     if (showImportExportSheet) {
@@ -403,7 +403,7 @@ fun ProjectHierarchyScreenScaffold(
                             subtitle = "Зберегти JSON у файлі",
                             onClick = {
                                 showImportExportSheet = false
-                                onEvent(ProjectHierarchyScreenEvent.ExportToFile)
+                                onEvent(ContextHierarchyScreenEvent.ExportToFile)
                             }
                         )
                     }
@@ -436,7 +436,7 @@ fun ProjectHierarchyScreenScaffold(
                             subtitle = "JSON вкладень",
                             onClick = {
                                 showImportExportSheet = false
-                                onEvent(ProjectHierarchyScreenEvent.ExportAttachments)
+                                onEvent(ContextHierarchyScreenEvent.ExportAttachments)
                             }
                         )
                     }
@@ -458,7 +458,7 @@ fun ProjectHierarchyScreenScaffold(
                             subtitle = "Надіслати несинхронізоване",
                             onClick = {
                                 showImportExportSheet = false
-                                onEvent(ProjectHierarchyScreenEvent.WifiPush("localhost:8080"))
+                                onEvent(ContextHierarchyScreenEvent.WifiPush("localhost:8080"))
                             }
                         )
                     }

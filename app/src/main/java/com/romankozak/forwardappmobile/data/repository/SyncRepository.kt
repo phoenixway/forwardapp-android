@@ -57,10 +57,10 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectArtifactDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectManagementDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectStructureDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextArtifactDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
@@ -136,13 +136,13 @@ constructor(
     private val appDatabase: AppDatabase,
     @param:ApplicationContext private val context: AndroidContext,
     private val goalDao: GoalDao,
-    private val projectDao: ProjectDao,
+    private val contextDao: ContextDao,
     private val listItemDao: ListItemDao,
     private val linkItemDao: LinkItemDao,
     private val activityRecordDao: ActivityRecordDao,
     private val inboxRecordDao: InboxRecordDao,
     private val settingsRepository: SettingsRepository,
-    private val projectManagementDao: ProjectManagementDao,
+    private val contextManagementDao: ContextManagementDao,
     private val legacyNoteDao: LegacyNoteDao,
     private val noteDocumentDao: NoteDocumentDao,
     private val checklistDao: ChecklistDao,
@@ -160,14 +160,14 @@ constructor(
     private val conversationFolderDao: ConversationFolderDao,
     private val reminderDao: ReminderDao,
     private val recurringTaskDao: RecurringTaskDao,
-    private val projectArtifactDao: ProjectArtifactDao,
+    private val contextArtifactDao: ContextArtifactDao,
     private val tacticalMissionDao: TacticalMissionDao,
     private val aiEventDao: AiEventDao,
     private val lifeSystemStateDao: LifeSystemStateDao,
     private val aiInsightDao: AiInsightDao,
     private val structurePresetDao: StructurePresetDao,
     private val structurePresetItemDao: StructurePresetItemDao,
-    private val projectStructureDao: ProjectStructureDao,
+    private val contextStructureDao: ContextStructureDao,
 ) {
     private val TAG = "SyncRepository"
     private val WIFI_SYNC_LOG_TAG = "FWD_SYNC_TEST"
@@ -240,7 +240,7 @@ constructor(
         val databaseContent =
             DatabaseContent(
                 goals = goalDao.getAll(),
-                projects = projectDao.getAll(),
+                projects = contextDao.getAll(),
                 backlogItems = listItems,
                 backlogOrders = backlogOrders,
                 legacyNotes = legacyNoteDao.getAll(),
@@ -251,7 +251,7 @@ constructor(
                 activityRecords = activityRecordDao.getAllRecordsStream().first(),
                 linkItemEntities = linkItemDao.getAllEntities(),
                 inboxRecords = inboxRecordDao.getAll(),
-                contextLogs = projectManagementDao.getAllLogs(),
+                contextLogs = contextManagementDao.getAllLogs(),
                 recentProjectEntries = recentProjectEntries,
                 scripts = scripts,
                 attachments = allAttachments,
@@ -266,7 +266,7 @@ constructor(
                 reminders = reminderDao.getAllRemindersSync(),
                 recurringTasks = recurringTaskDao.getAll(),
                 systemApps = systemAppDao.getAll(),
-                contextArtifacts = projectArtifactDao.getAll(),
+                contextArtifacts = contextArtifactDao.getAll(),
                 tacticalMissions = tacticalMissionDao.getAllMissionsSync(),
                 tacticalMissionAttachments = tacticalMissionDao.getAllMissionAttachmentCrossRefs(),
                 aiEvents = aiEventDao.getAll(),
@@ -274,8 +274,8 @@ constructor(
                 lifeSystemStates = lifeSystemStateDao.getAll(),
                 contextRoleProfiles = structurePresetDao.getAllSync(),
                 contextRoleProfileItems = structurePresetItemDao.getAllItems(),
-                contextConfigurations = projectStructureDao.getAllStructures(),
-                projectStructureItems = projectStructureDao.getAllItems(),
+                contextConfigurations = contextStructureDao.getAllStructures(),
+                projectStructureItems = contextStructureDao.getAllItems(),
             )
         val settingsMap = settingsRepository.getPreferencesSnapshot().asMap().mapKeys { it.key.name }
             .mapValues { it.value.toString() }
@@ -434,7 +434,7 @@ constructor(
                 }
             Log.d(IMPORT_TAG, "JSON parsed successfully.")
 
-            val existingProjectIds = projectDao.getAll().map { it.id }.toSet()
+            val existingProjectIds = contextDao.getAll().map { it.id }.toSet()
             Log.d(IMPORT_TAG, "Found ${existingProjectIds.size} existing projects in the database.")
 
             val validCrossRefs = backupData.projectAttachmentCrossRefs.filter { it.projectId in existingProjectIds }
@@ -592,7 +592,7 @@ constructor(
             // КРОК 1: Перевірка цілісності БД ДО ІМПОРТУ
             // ============================================================================
             Log.d(IMPORT_TAG, "=== КРОК 1: Перевірка цілісності БД до імпорту ===")
-            val dbSystemProjects = projectDao.getAll().filter { it.systemKey != null }
+            val dbSystemProjects = contextDao.getAll().filter { it.systemKey != null }
             val dbDuplicatesByKey = dbSystemProjects.groupBy { it.systemKey }
             val dbDuplicateKeys = dbDuplicatesByKey.filter { it.value.size > 1 }.keys
 
@@ -905,15 +905,15 @@ constructor(
                 }
             }
 
-            Log.d(IMPORT_TAG, "Перед транзакцією. projectDao=${projectDao.hashCode()}")
+            Log.d(IMPORT_TAG, "Перед транзакцією. projectDao=${contextDao.hashCode()}")
             appDatabase.withTransaction {
                 Log.d(IMPORT_TAG, "Транзакція: очищення таблиць.")
-                projectManagementDao.deleteAllLogs()
+                contextManagementDao.deleteAllLogs()
                 inboxRecordDao.deleteAll()
                 linkItemDao.deleteAll()
                 activityRecordDao.clearAll()
                 listItemDao.deleteAll()
-                projectDao.deleteAll()
+                contextDao.deleteAll()
                 goalDao.deleteAll()
                 legacyNoteDao.deleteAll()
                 noteDocumentDao.deleteAllDocumentItems()
@@ -937,7 +937,7 @@ constructor(
                 reminderDao.deleteAll()
                 recurringTaskDao.deleteAll()
 
-                projectArtifactDao.deleteAll()
+                contextArtifactDao.deleteAll()
 
                 tacticalMissionDao.deleteAllMissionAttachmentCrossRefs()
                 tacticalMissionDao.deleteAllMissions()
@@ -949,8 +949,8 @@ constructor(
                 structurePresetItemDao.deleteAllItems()
                 structurePresetDao.deleteAll()
 
-                projectStructureDao.deleteAllItems()
-                projectStructureDao.deleteAllStructures()
+                contextStructureDao.deleteAllItems()
+                contextStructureDao.deleteAllStructures()
 
                 systemAppDao.deleteAll()
 
@@ -963,7 +963,7 @@ constructor(
 
                 Log.d(IMPORT_TAG, "Транзакція: вставка базових сутностей.")
                 goalDao.insertGoals(backup.goals)
-                projectDao.insertProjects(cleanedProjectsWithParents)
+                contextDao.insertProjects(cleanedProjectsWithParents)
                 listItemDao.insertItems(cleanedListItems)
                 Log.d(IMPORT_TAG, "  - Вставлено: ${backup.goals.size} goals, ${cleanedProjectsWithParents.size} projects, ${cleanedListItems.size} listItems.")
 
@@ -1013,7 +1013,7 @@ constructor(
                 )
 
                 // Використовуємо cleaned project logs
-                projectManagementDao.insertAllLogs(cleanedProjectLogs)
+                contextManagementDao.insertAllLogs(cleanedProjectLogs)
                 Log.d(
                     IMPORT_TAG,
                     "  - Вставлено: ${cleanedProjectLogs.size} projectLogs."
@@ -1064,7 +1064,7 @@ constructor(
                 backup.reminders.forEach { reminderDao.insert(it) }
 
                 cleanedSystemApps.forEach { systemAppDao.upsert(it) }
-                backup.contextArtifacts.forEach { projectArtifactDao.insert(it) }
+                backup.contextArtifacts.forEach { contextArtifactDao.insert(it) }
 
                 val cleanedTacticalMissions = backup.tacticalMissions.filter { !it.title.isNullOrBlank() }
                 cleanedTacticalMissions.forEach { tacticalMissionDao.insertMission(it) }
@@ -1077,19 +1077,19 @@ constructor(
                 backup.contextRoleProfiles.forEach { structurePresetDao.insertPreset(it) }
                 if (backup.contextRoleProfileItems.isNotEmpty()) structurePresetItemDao.insertItems(backup.contextRoleProfileItems)
 
-                backup.contextConfigurations.forEach { projectStructureDao.insertStructure(it) }
-                if (backup.projectStructureItems.isNotEmpty()) projectStructureDao.insertItems(backup.projectStructureItems)
+                backup.contextConfigurations.forEach { contextStructureDao.insertStructure(it) }
+                if (backup.projectStructureItems.isNotEmpty()) contextStructureDao.insertItems(backup.projectStructureItems)
 
                 Log.d(IMPORT_TAG, "Транзакція: відновлення settings. Entries=${backupSettingsMap.size}")
                 settingsRepository.restoreFromMap(backupSettingsMap)
                 Log.d(IMPORT_TAG, "Транзакція: запуск DatabaseInitializer.prePopulate().")
                 val systemAppRepository = com.romankozak.forwardappmobile.data.repository.SystemAppRepository(
                     systemAppDao = systemAppDao,
-                    projectDao = projectDao,
+                    contextDao = contextDao,
                     noteDocumentDao = noteDocumentDao,
                     attachmentRepository = attachmentRepository,
                 )
-                DatabaseInitializer(projectDao, systemAppRepository).prePopulate()
+                DatabaseInitializer(contextDao, systemAppRepository).prePopulate()
 
                 // Create attachment records for documents and checklists if they don't have attachments yet
                 // This ensures backward compatibility with older backup files
@@ -1201,7 +1201,7 @@ constructor(
         Log.d(WIFI_SYNC_LOG_TAG, "[markSyncedNow] START: ts=$ts, projects=${content.projects.size}, docs=${content.documents.size}, attachs=${content.attachments.size}, crossRefs=${content.projectAttachmentCrossRefs.size}")
         appDatabase.withTransaction {
             Log.d(WIFI_SYNC_LOG_TAG, "[markSyncedNow] Marking ${content.projects.size} projects synced")
-            projectDao.insertProjects(content.projects.map { it.copy(syncedAt = ts) })
+            contextDao.insertProjects(content.projects.map { it.copy(syncedAt = ts) })
 
             Log.d(WIFI_SYNC_LOG_TAG, "[markSyncedNow] Marking ${content.goals.size} goals synced")
             goalDao.insertGoals(content.goals.map { it.copy(syncedAt = ts) })
@@ -1232,7 +1232,7 @@ constructor(
             linkItemDao.insertAll(content.linkItemEntities.map { it.copy(syncedAt = ts) })
 
             inboxRecordDao.insertAll(content.inboxRecords.map { it.copy(syncedAt = ts) })
-            projectManagementDao.insertAllLogs(content.contextLogs.map { it.copy(syncedAt = ts) })
+            contextManagementDao.insertAllLogs(content.contextLogs.map { it.copy(syncedAt = ts) })
             content.scripts.forEach { scriptDao.insert(it.copy(syncedAt = ts)) }
 
             Log.d(WIFI_SYNC_LOG_TAG, "[markSyncedNow] Marking ${content.attachments.size} attachments synced")
@@ -1275,7 +1275,7 @@ constructor(
         val backup = gson.fromJson(jsonString, FullAppBackup::class.java)
         val db = backup.database ?: return SyncReport(emptyList())
 
-        val localProjectsAll = projectDao.getAll()
+        val localProjectsAll = contextDao.getAll()
         val localProjects = localProjectsAll.associateBy { it.id }
         val localGoals = goalDao.getAll().associateBy { it.id }
         val localListItems = listItemDao.getAll()
@@ -1391,14 +1391,14 @@ constructor(
         changesByType[ChangeType.Delete]?.forEach { change ->
             when (change.entityType) {
                 "Привʼязка" -> listItemDao.deleteItemsByIds(listOf(change.id))
-                "Список" -> projectDao.deleteProjectById(change.id)
+                "Список" -> contextDao.deleteProjectById(change.id)
                 "Ціль" -> goalDao.deleteGoalById(change.id)
             }
         }
 
         changesByType[ChangeType.Update]?.forEach { change ->
             when (change.entityType) {
-                "Список" -> projectDao.update(change.entity as com.romankozak.forwardappmobile.features.contexts.data.models.Context)
+                "Список" -> contextDao.update(change.entity as com.romankozak.forwardappmobile.features.contexts.data.models.Context)
                 "Ціль" -> goalDao.updateGoal(change.entity as Goal)
             }
         }
@@ -1406,7 +1406,7 @@ constructor(
         val addsAndMoves = (changesByType[ChangeType.Add] ?: emptyList()) + (changesByType[ChangeType.Move] ?: emptyList())
         addsAndMoves.forEach { change ->
             when (change.entityType) {
-                "Список" -> projectDao.insert(change.entity as com.romankozak.forwardappmobile.features.contexts.data.models.Context)
+                "Список" -> contextDao.insert(change.entity as com.romankozak.forwardappmobile.features.contexts.data.models.Context)
                 "Ціль" -> goalDao.insertGoal(change.entity as Goal)
                 "Привʼязка" -> listItemDao.insertItem(change.entity as BacklogItem)
             }
@@ -1433,7 +1433,7 @@ constructor(
 
         return DatabaseContent(
             goals = goalDao.getAll(),
-            projects = projectDao.getAll(),
+            projects = contextDao.getAll(),
             backlogItems = listItems,
             backlogOrders = backlogOrders,
             legacyNotes = legacyNoteDao.getAll(),
@@ -1444,7 +1444,7 @@ constructor(
             activityRecords = activityRecordDao.getAllRecordsStream().first(),
             linkItemEntities = linkItemDao.getAllEntities(),
             inboxRecords = inboxRecordDao.getAll(),
-            contextLogs = projectManagementDao.getAllLogs(),
+            contextLogs = contextManagementDao.getAllLogs(),
             recentProjectEntries = recentProjectEntries,
             scripts = scripts,
             attachments = attachmentDao.getAll(),
@@ -1715,7 +1715,7 @@ constructor(
                     val regularProjects = incomingRegular
                         .let { keepNewer(it, local.projects.associateBy { p -> p.id }, { it.id }, { it.version }, { it.updatedAt }) }
                     if (regularProjects.isNotEmpty()) {
-                        projectDao.insertProjects(regularProjects)
+                        contextDao.insertProjects(regularProjects)
                         Log.d(IMPORT_TAG, "  - Upserted ${regularProjects.size} projects (systemKey skipped=${selectedData.projects.size - incomingRegular.size}).")
                     }
                 }
@@ -2160,7 +2160,7 @@ constructor(
                     ts, { it.isDeleted }
                 ).filterNot { it.systemKey != null && it.isDeleted }
 
-                if (incomingProjects.isNotEmpty()) projectDao.insertProjects(incomingProjects)
+                if (incomingProjects.isNotEmpty()) contextDao.insertProjects(incomingProjects)
 
                 val incomingGoals = mergeAndMark(
                     correctedChanges.goals,
@@ -2312,7 +2312,7 @@ constructor(
                     { it.id }, { it.version }, { it.updatedTs() }, { log, synced -> log.copy(syncedAt = synced) },
                     ts
                 )
-                if (incomingLogs.isNotEmpty()) projectManagementDao.insertAllLogs(incomingLogs)
+                if (incomingLogs.isNotEmpty()) contextManagementDao.insertAllLogs(incomingLogs)
 
                 val incomingScripts = mergeAndMark(
                     correctedChanges.scripts, local.scripts.associateBy { it.id },

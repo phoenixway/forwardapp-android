@@ -10,7 +10,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface ProjectManagementDao {
+interface ContextManagementDao {
     @Query("SELECT * FROM project_execution_logs WHERE projectId = :projectId ORDER BY timestamp DESC")
     fun getLogsForProjectStream(projectId: String): Flow<List<ContextLog>>
 

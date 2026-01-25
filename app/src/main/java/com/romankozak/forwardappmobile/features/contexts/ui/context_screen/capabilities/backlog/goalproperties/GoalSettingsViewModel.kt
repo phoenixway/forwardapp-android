@@ -14,7 +14,7 @@ import com.romankozak.forwardappmobile.data.logic.GoalScoringManager
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
-import com.romankozak.forwardappmobile.features.contexts.ui.context_properties.ProjectSettingsEvent
+import com.romankozak.forwardappmobile.features.contexts.ui.context_properties.ContextSettingsEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.utils.TagUtils
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.RemindersTabActions
@@ -46,7 +46,7 @@ class GoalSettingsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(GoalSettingsUiState())
     val uiState: StateFlow<GoalSettingsUiState> = _uiState.asStateFlow()
 
-    private val _events = Channel<ProjectSettingsEvent>()
+    private val _events = Channel<ContextSettingsEvent>()
     val events = _events.receiveAsFlow()
 
     private var currentGoal: Goal? = null
@@ -149,7 +149,7 @@ class GoalSettingsViewModel @Inject constructor(
 
             loadAvailableTags()
 
-            _events.send(ProjectSettingsEvent.NavigateBack("Збережено"))
+            _events.send(ContextSettingsEvent.NavigateBack("Збережено"))
         }
     }
 
@@ -242,7 +242,7 @@ class GoalSettingsViewModel @Inject constructor(
                     .filter { it.type == LinkType.PROJECT }
                     .joinToString(",") { it.target }
             _events.send(
-                ProjectSettingsEvent.Navigate(
+                ContextSettingsEvent.Navigate(
                     NavTarget.ListChooser(
                         title = "Додати посилання на проект",
                         disabledIds = disabledIds.ifBlank { null },
@@ -293,13 +293,13 @@ class GoalSettingsViewModel @Inject constructor(
 
     fun onAddWebLinkRequest() {
         viewModelScope.launch {
-            _events.send(ProjectSettingsEvent.NavigateBack("Додавання веб-посилань буде реалізовано пізніше"))
+            _events.send(ContextSettingsEvent.NavigateBack("Додавання веб-посилань буде реалізовано пізніше"))
         }
     }
 
     fun onAddObsidianLinkRequest() {
         viewModelScope.launch {
-            _events.send(ProjectSettingsEvent.NavigateBack("Додавання Obsidian посилань буде реалізовано пізніше"))
+            _events.send(ContextSettingsEvent.NavigateBack("Додавання Obsidian посилань буде реалізовано пізніше"))
         }
     }
 

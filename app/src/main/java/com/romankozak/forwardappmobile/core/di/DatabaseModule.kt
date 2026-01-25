@@ -6,11 +6,11 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectManagementDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
@@ -20,7 +20,7 @@ import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectStructureDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -112,7 +112,7 @@ import com.romankozak.forwardappmobile.data.database.MIGRATION_89_90
 import com.romankozak.forwardappmobile.data.database.MIGRATION_90_91
 import com.romankozak.forwardappmobile.data.database.MIGRATION_91_92
 import com.romankozak.forwardappmobile.data.database.MIGRATION_92_93
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectArtifactDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextArtifactDao
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -224,7 +224,7 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideProjectDao(appDatabase: AppDatabase): ProjectDao = appDatabase.projectDao()
+    fun provideProjectDao(appDatabase: AppDatabase): ContextDao = appDatabase.projectDao()
 
     @Provides
     @Singleton
@@ -256,7 +256,7 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideProjectManagementDao(appDatabase: AppDatabase): ProjectManagementDao = appDatabase.projectManagementDao()
+    fun provideProjectManagementDao(appDatabase: AppDatabase): ContextManagementDao = appDatabase.projectManagementDao()
 
     @Provides
     @Singleton
@@ -288,7 +288,7 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideProjectArtifactDao(appDatabase: AppDatabase): ProjectArtifactDao = appDatabase.projectArtifactDao()
+    fun provideProjectArtifactDao(appDatabase: AppDatabase): ContextArtifactDao = appDatabase.projectArtifactDao()
 
     @Provides
     @Singleton
@@ -340,5 +340,5 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideProjectStructureDao(appDatabase: AppDatabase): ProjectStructureDao = appDatabase.projectStructureDao()
+    fun provideProjectStructureDao(appDatabase: AppDatabase): ContextStructureDao = appDatabase.projectStructureDao()
     }

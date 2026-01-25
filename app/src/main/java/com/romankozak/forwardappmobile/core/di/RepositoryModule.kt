@@ -5,12 +5,12 @@ import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectManagementDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
 import com.romankozak.forwardappmobile.data.dao.RecentItemDao
 import com.romankozak.forwardappmobile.data.dao.ReminderDao
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectStructureDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
 import com.romankozak.forwardappmobile.data.dao.SystemAppDao
@@ -19,8 +19,8 @@ import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.AiEventRepository
-import com.romankozak.forwardappmobile.data.repository.ProjectLogRepository
-import com.romankozak.forwardappmobile.data.repository.ProjectStructureRepository
+import com.romankozak.forwardappmobile.data.repository.ContextLogRepository
+import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.data.repository.ActivityRecordRepository
@@ -53,9 +53,9 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideProjectLogRepository(
-        projectManagementDao: ProjectManagementDao
-    ): ProjectLogRepository {
-        return ProjectLogRepository(projectManagementDao)
+        contextManagementDao: ContextManagementDao
+    ): ContextLogRepository {
+        return ContextLogRepository(contextManagementDao)
     }
 
     @Provides
@@ -115,16 +115,16 @@ object RepositoryModule {
     @Singleton
     fun provideSystemAppRepository(
         systemAppDao: SystemAppDao,
-        projectDao: ProjectDao,
+        contextDao: ContextDao,
         noteDocumentDao: NoteDocumentDao,
         attachmentRepository: AttachmentRepository,
-    ): SystemAppRepository = SystemAppRepository(systemAppDao, projectDao, noteDocumentDao, attachmentRepository)
+    ): SystemAppRepository = SystemAppRepository(systemAppDao, contextDao, noteDocumentDao, attachmentRepository)
 
     @Provides
     @Singleton
     fun provideProjectStructureRepository(
-        projectStructureDao: ProjectStructureDao,
+        contextStructureDao: ContextStructureDao,
         structurePresetDao: StructurePresetDao,
         structurePresetItemDao: StructurePresetItemDao,
-    ): ProjectStructureRepository = ProjectStructureRepository(projectStructureDao, structurePresetDao, structurePresetItemDao)
+    ): ContextStructureRepository = ContextStructureRepository(contextStructureDao, structurePresetDao, structurePresetItemDao)
 }

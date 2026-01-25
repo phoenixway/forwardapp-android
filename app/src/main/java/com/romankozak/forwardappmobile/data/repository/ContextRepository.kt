@@ -45,21 +45,21 @@ internal enum class ContextTextAction { ADD, REMOVE }
 class ProjectRepository
 @Inject
 constructor(
-    private val projectDao: ProjectDao,
+    private val contextDao: ContextDao,
     private val legacyNoteRepository: LegacyNoteRepository,
     private val contextHandlerProvider: Provider<ContextHandler>,
     private val activityRepository: ActivityRepository,
     private val recentItemsRepository: RecentItemsRepository,
     private val reminderRepository: ReminderRepository,
-    private val projectLogRepository: ProjectLogRepository,
+    private val contextLogRepository: ContextLogRepository,
     private val searchRepository: SearchRepository,
     private val noteDocumentRepository: NoteDocumentRepository,
     private val checklistRepository: ChecklistRepository,
     private val attachmentRepository: AttachmentRepository,
     private val goalRepository: GoalRepository,
     private val inboxRepository: InboxRepository,
-    private val projectTimeTrackingRepository: ProjectTimeTrackingRepository,
-    private val projectArtifactRepository: ProjectArtifactRepository,
+    private val contextTimeTrackingRepository: ContextTimeTrackingRepository,
+    private val contextArtifactRepository: ContextArtifactRepository,
     private val listItemRepository: ListItemRepository,
     private val backlogOrderRepository: BacklogOrderRepository,
     private val aiEventRepository: AiEventRepository,
@@ -68,7 +68,7 @@ constructor(
     private val TAG = "NOTE_DOCUMENT_DEBUG"
 
     fun getProjectLogsStream(projectId: String): Flow<List<ContextLog>> =
-        projectLogRepository.getProjectLogsStream(projectId)
+        contextLogRepository.getProjectLogsStream(projectId)
 
     suspend fun toggleProjectManagement(
         projectId: String,
@@ -78,7 +78,7 @@ constructor(
         if (project.isProjectManagementEnabled == isEnabled) return
 
         updateProject(project.copy(isProjectManagementEnabled = isEnabled))
-        projectLogRepository.addToggleProjectManagementLog(projectId, isEnabled)
+        contextLogRepository.addToggleProjectManagementLog(projectId, isEnabled)
     }
 
     suspend fun updateProjectStatus(
@@ -96,21 +96,21 @@ constructor(
                 updatedAt = System.currentTimeMillis(),
             ),
         )
-        projectLogRepository.addUpdateProjectStatusLog(projectId, newStatus, statusText)
+        contextLogRepository.addUpdateProjectStatusLog(projectId, newStatus, statusText)
     }
 
     suspend fun addProjectComment(
         projectId: String,
         comment: String,
     ) {
-        projectLogRepository.addProjectComment(projectId, comment)
+        contextLogRepository.addProjectComment(projectId, comment)
     }
 
     suspend fun updateProjectViewMode(
         projectId: String,
         viewMode: ContextViewMode,
     ) {
-        projectDao.updateViewMode(projectId, viewMode.name)
+        contextDao.updateViewMode(projectId, viewMode.name)
     }
 
     fun getProjectContentStream(projectId: String): Flow<List<BacklogItemContent>> {
@@ -119,7 +119,7 @@ constructor(
             backlogOrderRepository.observeAll(),
             reminderRepository.getAllReminders(),
             goalRepository.getAllGoalsFlow(),
-            projectDao.getAllProjects(),
+            contextDao.getAllProjects(),
             listItemRepository.getAllEntitiesAsFlow(),
             legacyNoteRepository.getAllAsFlow(),
             noteDocumentRepository.getAllDocumentsAsFlow(),
@@ -305,15 +305,15 @@ constructor(
     ) = listItemRepository.deleteLinkByEntityIdAndProjectId(entityId, projectId)
 
     fun getAllProjectsFlow(): Flow<List<Context>> =
-        projectDao
+        contextDao
             .getAllProjects()
             .map { projects -> projects.map { it.withNormalizedParentId() } }
 
     suspend fun getProjectById(id: String): Context? =
-        projectDao.getProjectById(id)?.withNormalizedParentId()
+        contextDao.getProjectById(id)?.withNormalizedParentId()
 
     fun getProjectByIdFlow(id: String): Flow<Context?> =
-        projectDao.getProjectByIdStream(id).map { project -> project?.withNormalizedParentId() }
+        contextDao.getProjectByIdStream(id).map { project -> project?.withNormalizedParentId() }
 
     private fun Context.withNormalizedParentId(): Context {
         val normalizedParentId =
@@ -332,13 +332,13 @@ constructor(
         val now = System.currentTimeMillis()
         val bumped =
             project.bumpSync(now)
-        projectDao.update(bumped)
+        contextDao.update(bumped)
         recentItemsRepository.updateRecentItemDisplayName(project.id, project.name)
     }
 
     suspend fun updateProjects(projects: List<Context>): Int =
         if (projects.isNotEmpty()) {
-            projectDao.update(projects.map { it.bumpSync() })
+            contextDao.update(projects.map { it.bumpSync() })
         } else {
             0
         }
@@ -350,7 +350,7 @@ constructor(
         listItemRepository.deleteItemsForProjects(projectIds)
         val now = System.currentTimeMillis()
         projectsToDelete.forEach { project ->
-            projectDao.insert(
+            contextDao.insert(
                 project.softDelete(now),
             )
         }
@@ -375,7 +375,7 @@ constructor(
                 version = 1,
                 roleCode = roleCode,
             )
-        projectDao.insert(newProject)
+        contextDao.insert(newProject)
         if (parentId != null) {
             listItemRepository.addProjectLinkToProject(id, parentId)
         }
@@ -401,7 +401,7 @@ constructor(
         newParentId: String?,
         allowSystemProjectMoves: Boolean = false,
     ) {
-        val projectFromDb = projectDao.getProjectById(projectToMove.id) ?: return
+        val projectFromDb = contextDao.getProjectById(projectToMove.id) ?: return
         val oldParentId = projectFromDb.parentId
 
         if (oldParentId != newParentId) {
@@ -415,23 +415,23 @@ constructor(
             val oldSiblings =
                 (
                     if (oldParentId != null) {
-                        projectDao.getProjectsByParentId(oldParentId)
+                        contextDao.getProjectsByParentId(oldParentId)
                     } else {
-                        projectDao.getTopLevelProjects()
+                        contextDao.getTopLevelProjects()
                     }
                 ).filter { it.id != projectToMove.id }
 
             if (oldSiblings.isNotEmpty()) {
-                projectDao.update(oldSiblings.mapIndexed { index, project -> project.copy(order = index.toLong()) })
+                contextDao.update(oldSiblings.mapIndexed { index, project -> project.copy(order = index.toLong()) })
             }
         }
 
         val newSiblings =
             (
                 if (newParentId != null) {
-                    projectDao.getProjectsByParentId(newParentId)
+                    contextDao.getProjectsByParentId(newParentId)
                 } else {
-                    projectDao.getTopLevelProjects()
+                    contextDao.getTopLevelProjects()
                 }
             ).filter { it.id != projectToMove.id }
 
@@ -443,7 +443,7 @@ constructor(
                 syncedAt = null,
                 version = projectToMove.version + 1,
             )
-        projectDao.update(finalProjectToMove)
+        contextDao.update(finalProjectToMove)
     }
 
     @Transaction
@@ -494,13 +494,13 @@ constructor(
         }
     }
 
-    suspend fun findProjectIdsByTag(tag: String): List<String> = projectDao.getProjectIdsByTag(tag)
+    suspend fun findProjectIdsByTag(tag: String): List<String> = contextDao.getProjectIdsByTag(tag)
 
-    suspend fun getProjectsByType(projectType: ContextType): List<Context> = projectDao.getProjectsByType(projectType.name)
+    suspend fun getProjectsByType(projectType: ContextType): List<Context> = contextDao.getProjectsByType(projectType.name)
 
-    suspend fun getProjectsByReservedGroup(reservedGroup: String): List<Context> = projectDao.getProjectsByReservedGroup(reservedGroup)
+    suspend fun getProjectsByReservedGroup(reservedGroup: String): List<Context> = contextDao.getProjectsByReservedGroup(reservedGroup)
 
-    suspend fun getAllProjects(): List<Context> = projectDao.getAll()
+    suspend fun getAllProjects(): List<Context> = contextDao.getAll()
 
 
 
@@ -509,11 +509,11 @@ constructor(
     suspend fun logProjectTimeSummaryForDate(
         projectId: String,
         dayToLog: Calendar,
-    ) = projectTimeTrackingRepository.logProjectTimeSummaryForDate(projectId, dayToLog)
+    ) = contextTimeTrackingRepository.logProjectTimeSummaryForDate(projectId, dayToLog)
 
-    suspend fun recalculateAndLogProjectTime(projectId: String) = projectTimeTrackingRepository.recalculateAndLogProjectTime(projectId)
+    suspend fun recalculateAndLogProjectTime(projectId: String) = contextTimeTrackingRepository.recalculateAndLogProjectTime(projectId)
 
-    suspend fun calculateProjectTimeMetrics(projectId: String): ContextTimeMetrics = projectTimeTrackingRepository.calculateProjectTimeMetrics(projectId)
+    suspend fun calculateProjectTimeMetrics(projectId: String): ContextTimeMetrics = contextTimeTrackingRepository.calculateProjectTimeMetrics(projectId)
 
 
 
@@ -524,7 +524,7 @@ constructor(
         allListItems.forEach { item ->
             val entityExists = when (item.itemType) {
                 BacklogItemTypeValues.GOAL -> goalRepository.getGoalById(item.entityId) != null
-                BacklogItemTypeValues.SUBLIST -> projectDao.getProjectById(item.entityId) != null
+                BacklogItemTypeValues.SUBLIST -> contextDao.getProjectById(item.entityId) != null
                 BacklogItemTypeValues.LINK_ITEM -> listItemRepository.getLinkItemById(item.entityId) != null
                 BacklogItemTypeValues.NOTE -> legacyNoteRepository.getNoteById(item.entityId) != null
                 BacklogItemTypeValues.NOTE_DOCUMENT -> noteDocumentRepository.getDocumentById(item.entityId) != null
@@ -542,18 +542,18 @@ constructor(
         }
     }
 
-    fun getProjectArtifactStream(projectId: String): Flow<ContextArtifact?> = projectArtifactRepository.getProjectArtifactStream(projectId)
+    fun getProjectArtifactStream(projectId: String): Flow<ContextArtifact?> = contextArtifactRepository.getProjectArtifactStream(projectId)
 
-    suspend fun updateProjectArtifact(artifact: ContextArtifact) = projectArtifactRepository.updateProjectArtifact(artifact)
+    suspend fun updateProjectArtifact(artifact: ContextArtifact) = contextArtifactRepository.updateProjectArtifact(artifact)
 
-    suspend fun createProjectArtifact(artifact: ContextArtifact) = projectArtifactRepository.createProjectArtifact(artifact)
+    suspend fun createProjectArtifact(artifact: ContextArtifact) = contextArtifactRepository.createProjectArtifact(artifact)
 
     suspend fun ensureSubprojectByRole(
         parentProjectId: String,
         roleCode: String,
         title: String
     ): Context {
-        val existing = projectDao.findChildByRole(parentProjectId, roleCode)
+        val existing = contextDao.findChildByRole(parentProjectId, roleCode)
         if (existing != null) return existing
         val newId = UUID.randomUUID().toString()
         createProjectWithId(
@@ -562,7 +562,7 @@ constructor(
             parentId = parentProjectId,
             roleCode = roleCode,
         )
-        return projectDao.getProjectById(newId) ?: Context(
+        return contextDao.getProjectById(newId) ?: Context(
             id = newId,
             name = title,
             parentId = parentProjectId,
@@ -576,7 +576,7 @@ constructor(
     }
 
     suspend fun ensureChildProjectListItemsExist(projectId: String) {
-        val children = projectDao.getProjectsByParentId(projectId)
+        val children = contextDao.getProjectsByParentId(projectId)
         val backlogItems = listItemRepository.getItemsForProjectStream(projectId).first()
         val backlogSubprojectIds = backlogItems.filter { it.itemType == BacklogItemTypeValues.SUBLIST }.map { it.entityId }.toSet()
 

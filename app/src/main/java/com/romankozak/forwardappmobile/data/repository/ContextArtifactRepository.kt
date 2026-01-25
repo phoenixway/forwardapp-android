@@ -1,24 +1,24 @@
 package com.romankozak.forwardappmobile.data.repository
 
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextArtifact
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectArtifactDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextArtifactDao
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class ProjectArtifactRepository @Inject constructor(
-    private val projectArtifactDao: ProjectArtifactDao
+class ContextArtifactRepository @Inject constructor(
+    private val contextArtifactDao: ContextArtifactDao
 ) {
     fun getProjectArtifactStream(projectId: String): Flow<ContextArtifact?> {
-        return projectArtifactDao.getArtifactForProjectStream(projectId)
+        return contextArtifactDao.getArtifactForProjectStream(projectId)
     }
 
     suspend fun updateProjectArtifact(artifact: ContextArtifact) {
-        projectArtifactDao.update(artifact)
+        contextArtifactDao.update(artifact)
     }
 
     suspend fun createProjectArtifact(artifact: ContextArtifact) {
-        projectArtifactDao.insert(artifact)
+        contextArtifactDao.insert(artifact)
     }
 }

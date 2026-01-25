@@ -69,7 +69,7 @@ import com.romankozak.forwardappmobile.core.navigation.NavTarget
 @Composable
 fun ProjectSettingsScreen(
     navController: NavController,
-    viewModel: ProjectSettingsViewModel = hiltViewModel(),
+    viewModel: ContextSettingsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -79,7 +79,7 @@ fun ProjectSettingsScreen(
     LaunchedEffect(key1 = true) {
         viewModel.events.collect { event ->
             when (event) {
-                is ProjectSettingsEvent.NavigateBack -> {
+                is ContextSettingsEvent.NavigateBack -> {
                     event.message?.let {
                         Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
                     }
@@ -88,7 +88,7 @@ fun ProjectSettingsScreen(
                         ?.set("refresh_needed", true)
                     navController.popBackStack()
                 }
-                is ProjectSettingsEvent.Navigate -> {
+                is ContextSettingsEvent.Navigate -> {
                     navController.navigate(NavTargetRouter.routeOf(event.target))
                 }
             }

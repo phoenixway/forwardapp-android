@@ -2,12 +2,12 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_properties
 
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 
-sealed class ProjectSettingsEvent {
+sealed class ContextSettingsEvent {
     data class NavigateBack(
         val message: String? = null,
-    ) : ProjectSettingsEvent()
+    ) : ContextSettingsEvent()
 
     data class Navigate(
         val target: NavTarget,
-    ) : ProjectSettingsEvent()
+    ) : ContextSettingsEvent()
 }

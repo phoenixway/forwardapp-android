@@ -23,8 +23,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.core.navigation.routes.MAIN_GRAPH_ROUTE
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ProjectHierarchyScreenViewModel
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenEvent
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ContextHierarchyScreenViewModel
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.lifestate.LifeStateChatViewModel
 import com.romankozak.forwardappmobile.features.lifestate.LifeStateViewModel
 import com.romankozak.forwardappmobile.features.lifestate.AnalysisContent
@@ -39,7 +39,7 @@ fun StrategicManagementScreen(
 ) {
   val currentTab by viewModel.currentTab.collectAsState()
   val uiState by viewModel.uiState.collectAsState()
-  val mainScreenViewModel: ProjectHierarchyScreenViewModel =
+  val mainScreenViewModel: ContextHierarchyScreenViewModel =
     hiltViewModel(remember(navController.currentBackStackEntry) { navController.getBackStackEntry(MAIN_GRAPH_ROUTE) })
 
   Scaffold(
@@ -68,7 +68,7 @@ fun StrategicManagementScreen(
               projects = uiState.dashboardProjects,
               navController = navController,
               onRevealProject = { projectId ->
-                mainScreenViewModel.onEvent(ProjectHierarchyScreenEvent.RevealProjectInHierarchy(projectId))
+                mainScreenViewModel.onEvent(ContextHierarchyScreenEvent.RevealContextInHierarchy(projectId))
               },
               scaffoldPadding = paddingValues, // Pass paddingValues here
             )

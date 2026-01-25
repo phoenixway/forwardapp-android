@@ -12,7 +12,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface ProjectDao {
+interface ContextDao {
     @Query("SELECT * FROM projects ORDER BY goal_order ASC")
     fun getAllProjectsForSync(): Flow<List<Context>>
 

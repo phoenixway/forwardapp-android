@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructureItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfile
-import com.romankozak.forwardappmobile.data.repository.ProjectStructureRepository
+import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
 import com.romankozak.forwardappmobile.domain.structure.StructurePresetService
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -39,7 +39,7 @@ data class ProjectStructureUiState(
 @HiltViewModel
 class ProjectStructureViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val projectStructureRepository: ProjectStructureRepository,
+    private val contextStructureRepository: ContextStructureRepository,
     private val structurePresetService: StructurePresetService,
     private val structurePresetDao: StructurePresetDao,
 ) : ViewModel() {
@@ -64,7 +64,7 @@ class ProjectStructureViewModel @Inject constructor(
 
     private fun observeStructure() {
         viewModelScope.launch {
-            projectStructureRepository.observeStructure(projectId).collect { structure ->
+            contextStructureRepository.observeStructure(projectId).collect { structure ->
                 if (structure != null) {
                     val flags = mapOf(
                         "Inbox" to (structure.structure.enableInbox ?: _uiState.value.featureFlags["Inbox"] ?: true),
@@ -85,7 +85,7 @@ class ProjectStructureViewModel @Inject constructor(
                     }
                 } else {
                     // ensure structure exists lazily
-                    projectStructureRepository.ensureStructure(projectId)
+                    contextStructureRepository.ensureStructure(projectId)
                 }
             }
         }
@@ -109,7 +109,7 @@ class ProjectStructureViewModel @Inject constructor(
 
     fun toggleItem(item: ProjectStructureItem, enabled: Boolean) {
         viewModelScope.launch {
-            projectStructureRepository.setItemEnabled(item, enabled)
+            contextStructureRepository.setItemEnabled(item, enabled)
             if (enabled) {
                 structurePresetService.applyProjectStructure(projectId)
             }
@@ -124,7 +124,7 @@ class ProjectStructureViewModel @Inject constructor(
         mandatory: Boolean,
     ) {
         viewModelScope.launch {
-            val structure = projectStructureRepository.ensureStructure(projectId)
+            val structure = contextStructureRepository.ensureStructure(projectId)
             val newItem = ProjectStructureItem(
                 id = UUID.randomUUID().toString(),
                 projectStructureId = structure.id,
@@ -135,7 +135,7 @@ class ProjectStructureViewModel @Inject constructor(
                 mandatory = mandatory,
                 isEnabled = true,
             )
-            projectStructureRepository.addOrUpdateItem(structure.id, newItem)
+            contextStructureRepository.addOrUpdateItem(structure.id, newItem)
             structurePresetService.applyProjectStructure(projectId)
         }
     }
@@ -144,8 +144,8 @@ class ProjectStructureViewModel @Inject constructor(
         viewModelScope.launch {
             val updatedFlags = _uiState.value.featureFlags + (key to enabled)
             _uiState.update { it.copy(featureFlags = updatedFlags) }
-            val structure = projectStructureRepository.ensureStructure(projectId)
-            projectStructureRepository.updateStructure(
+            val structure = contextStructureRepository.ensureStructure(projectId)
+            contextStructureRepository.updateStructure(
                 structure.copy(
                     enableInbox = updatedFlags["Inbox"],
                     enableLog = updatedFlags["Log"],

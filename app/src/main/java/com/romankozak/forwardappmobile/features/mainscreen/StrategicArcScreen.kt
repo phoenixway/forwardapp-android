@@ -21,8 +21,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.navigation.routes.MAIN_GRAPH_ROUTE
 import com.romankozak.forwardappmobile.ui.screens.common.ProjectListItem
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ProjectHierarchyScreenViewModel
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenEvent
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ContextHierarchyScreenViewModel
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
 
 @Composable
 fun StrategicArcScreen(
@@ -30,7 +30,7 @@ fun StrategicArcScreen(
     viewModel: StrategicArcViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val mainScreenViewModel: ProjectHierarchyScreenViewModel =
+    val mainScreenViewModel: ContextHierarchyScreenViewModel =
         hiltViewModel(navController.getBackStackEntry(MAIN_GRAPH_ROUTE))
 
     if (uiState.isLoading) {
@@ -62,7 +62,7 @@ fun StrategicArcScreen(
                     project = project,
                     onItemClick = { navController.navigate("goal_detail_screen/${project.id}") },
                     onRevealClick = {
-                        mainScreenViewModel.onEvent(ProjectHierarchyScreenEvent.RevealProjectInHierarchy(project.id))
+                        mainScreenViewModel.onEvent(ContextHierarchyScreenEvent.RevealContextInHierarchy(project.id))
                         navController.popBackStack()
                     }
                 )

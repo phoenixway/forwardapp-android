@@ -24,7 +24,7 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.core.net.toUri
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.ProjectHierarchyScreenScaffold
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenEvent
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectUiEvent
 
 private const val UI_TAG = "ProjectHierarchyScreenUI_DEBUG"
@@ -34,7 +34,7 @@ private const val UI_TAG = "ProjectHierarchyScreenUI_DEBUG"
 fun ProjectHierarchyScreen(
     navController: NavController,
     syncDataViewModel: SyncDataViewModel,
-    viewModel: ProjectHierarchyScreenViewModel = hiltViewModel(),
+    viewModel: ContextHierarchyScreenViewModel = hiltViewModel(),
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
@@ -86,7 +86,7 @@ fun ProjectHierarchyScreen(
                         ?.savedStateHandle
                         ?.remove<String?>("list_chooser_result")
                         ?.let { result ->
-                            viewModel.onEvent(ProjectHierarchyScreenEvent.ListChooserResult(result))
+                            viewModel.onEvent(ContextHierarchyScreenEvent.ListChooserResult(result))
                         }
 
                     navController.currentBackStackEntry
@@ -94,7 +94,7 @@ fun ProjectHierarchyScreen(
                         ?.remove<Boolean>("open_search_dialog")
                         ?.let { shouldOpen ->
                             if (shouldOpen == true) {
-                                viewModel.onEvent(ProjectHierarchyScreenEvent.ShowSearchDialog)
+                                viewModel.onEvent(ContextHierarchyScreenEvent.ShowSearchDialog)
                             }
                         }
 
@@ -104,7 +104,7 @@ fun ProjectHierarchyScreen(
                         ?.let { projectId ->
                             android.util.Log.d("ProjectRevealDebug", "Retrieved and removed projectIdToReveal: $projectId")
                             android.util.Log.d("ProjectRevealDebug", "Calling RevealProjectInHierarchy event")
-                            viewModel.onEvent(ProjectHierarchyScreenEvent.RevealProjectInHierarchy(projectId))
+                            viewModel.onEvent(ContextHierarchyScreenEvent.RevealContextInHierarchy(projectId))
                         }
                 }
             }

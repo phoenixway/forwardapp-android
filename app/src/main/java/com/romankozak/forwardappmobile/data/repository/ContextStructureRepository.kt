@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.data.repository
 
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ProjectStructureDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextConfiguration
@@ -14,14 +14,14 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class ProjectStructureRepository @Inject constructor(
-    private val projectStructureDao: ProjectStructureDao,
+class ContextStructureRepository @Inject constructor(
+    private val contextStructureDao: ContextStructureDao,
     private val structurePresetDao: StructurePresetDao,
     private val structurePresetItemDao: StructurePresetItemDao,
 ) {
 
     suspend fun ensureStructure(projectId: String, basePresetCode: String? = null): ContextConfiguration {
-        val existing = projectStructureDao.getStructureByProject(projectId)
+        val existing = contextStructureDao.getStructureByProject(projectId)
         if (existing != null) return existing
         val structure = ContextConfiguration(
             id = UUID.randomUUID().toString(),
@@ -29,26 +29,26 @@ class ProjectStructureRepository @Inject constructor(
             basePresetCode = basePresetCode,
             enableAutoLinkSubprojects = true,
         )
-        projectStructureDao.insertStructure(structure)
+        contextStructureDao.insertStructure(structure)
         return structure
     }
 
     suspend fun getStructureByProject(projectId: String): ContextConfiguration? =
-        projectStructureDao.getStructureByProject(projectId)
+        contextStructureDao.getStructureByProject(projectId)
 
     fun observeStructure(projectId: String): Flow<ProjectStructureWithItems?> =
         combine(
-            projectStructureDao.observeStructureByProject(projectId),
-            projectStructureDao.observeItemsForProject(projectId)
+            contextStructureDao.observeStructureByProject(projectId),
+            contextStructureDao.observeItemsForProject(projectId)
         ) { structure, items ->
             if (structure == null) null else ProjectStructureWithItems(structure, items)
         }
 
     fun observeStructureOnly(projectId: String): Flow<ContextConfiguration?> =
-        projectStructureDao.observeStructureByProject(projectId)
+        contextStructureDao.observeStructureByProject(projectId)
 
     suspend fun updateStructure(structure: ContextConfiguration) {
-        projectStructureDao.updateStructure(structure)
+        contextStructureDao.updateStructure(structure)
     }
 
     suspend fun applyPresetToProject(projectId: String, presetCode: String) {
@@ -65,23 +65,23 @@ class ProjectStructureRepository @Inject constructor(
             enableAttachments = preset.enableAttachments,
             enableAutoLinkSubprojects = preset.enableAutoLinkSubprojects,
         )
-        projectStructureDao.updateStructure(updatedStructure)
+        contextStructureDao.updateStructure(updatedStructure)
         val presetItems = structurePresetItemDao.getItemsByPresetOnce(preset.id)
         val projectItems = presetItems.map { it.toProjectStructureItem(structure.id) }
-        projectStructureDao.replaceItems(structure.id, projectItems)
+        contextStructureDao.replaceItems(structure.id, projectItems)
     }
 
     suspend fun addOrUpdateItem(structureId: String, item: ProjectStructureItem) {
-        projectStructureDao.insertItems(listOf(item))
+        contextStructureDao.insertItems(listOf(item))
     }
 
     suspend fun setItemEnabled(item: ProjectStructureItem, enabled: Boolean) {
-        projectStructureDao.updateItem(item.copy(isEnabled = enabled))
+        contextStructureDao.updateItem(item.copy(isEnabled = enabled))
     }
 
     suspend fun getStructureWithItems(projectId: String): ProjectStructureWithItems {
         val structure = ensureStructure(projectId)
-        val items = projectStructureDao.getItems(structure.id)
+        val items = contextStructureDao.getItems(structure.id)
         return ProjectStructureWithItems(structure, items)
     }
 

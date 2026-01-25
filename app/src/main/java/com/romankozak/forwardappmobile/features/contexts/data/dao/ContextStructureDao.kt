@@ -16,7 +16,7 @@ data class ProjectStructureWithItems(
 )
 
 @Dao
-interface ProjectStructureDao {
+interface ContextStructureDao {
 
     @Query("SELECT * FROM project_structures WHERE projectId = :projectId LIMIT 1")
     suspend fun getStructureByProject(projectId: String): ContextConfiguration?

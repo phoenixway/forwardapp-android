@@ -6,7 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
-import com.romankozak.forwardappmobile.data.repository.ProjectStructureRepository
+import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.domain.structure.StructurePresetService
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
@@ -25,21 +25,21 @@ import java.util.Calendar
 import javax.inject.Inject
 
 @HiltViewModel
-class ProjectSettingsViewModel @Inject constructor(
+class ContextSettingsViewModel @Inject constructor(
     private val projectRepository: ProjectRepository,
     private val reminderRepository: ReminderRepository,
     private val savedStateHandle: SavedStateHandle,
     private val structurePresetDao: StructurePresetDao,
-    private val projectStructureRepository: ProjectStructureRepository,
+    private val contextStructureRepository: ContextStructureRepository,
     private val structurePresetService: StructurePresetService,
 ) : ViewModel(), EvaluationTabActions, RemindersTabActions {
 
     private val projectId: String? = savedStateHandle["projectId"]
 
-    private val _uiState = MutableStateFlow(ProjectSettingsUiState())
-    val uiState: StateFlow<ProjectSettingsUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(ContextSettingsUiState())
+    val uiState: StateFlow<ContextSettingsUiState> = _uiState.asStateFlow()
 
-    private val _events = Channel<ProjectSettingsEvent>()
+    private val _events = Channel<ContextSettingsEvent>()
     val events = _events.receiveAsFlow()
 
     init {
@@ -87,7 +87,7 @@ class ProjectSettingsViewModel @Inject constructor(
                     isProjectManagementEnabled = project.isProjectManagementEnabled ?: false,
                 )
             }
-            val structure = projectStructureRepository.getStructureByProject(projectId)
+            val structure = contextStructureRepository.getStructureByProject(projectId)
             val presetLabel = structure?.basePresetCode?.let { code -> structurePresetDao.getByCode(code)?.label }
             val structureFeatures = mapOf(
                 "Inbox" to (structure?.enableInbox ?: _uiState.value.features["Inbox"] ?: true),
@@ -108,18 +108,18 @@ class ProjectSettingsViewModel @Inject constructor(
                 )
             }
         } else {
-            _events.send(ProjectSettingsEvent.NavigateBack("Проект не знайдено"))
+            _events.send(ContextSettingsEvent.NavigateBack("Проект не знайдено"))
         }
     }
 
     fun onSave() {
         viewModelScope.launch {
             if (_uiState.value.title.text.isBlank()) {
-                _events.send(ProjectSettingsEvent.NavigateBack("Назва проекту не може бути пустою"))
+                _events.send(ContextSettingsEvent.NavigateBack("Назва проекту не може бути пустою"))
                 return@launch
             }
             saveProject()
-            _events.send(ProjectSettingsEvent.NavigateBack("Збережено"))
+            _events.send(ContextSettingsEvent.NavigateBack("Збережено"))
         }
     }
 
@@ -254,7 +254,7 @@ class ProjectSettingsViewModel @Inject constructor(
 
     private suspend fun persistFeatureFlags() {
         val pid = projectId ?: return
-        val structure = projectStructureRepository.ensureStructure(pid)
+        val structure = contextStructureRepository.ensureStructure(pid)
         val flags = _uiState.value.features + mapOf(
             "Inbox" to (_uiState.value.features["Inbox"] ?: true),
             "Log" to (_uiState.value.features["Log"] ?: true),
@@ -272,7 +272,7 @@ class ProjectSettingsViewModel @Inject constructor(
             enableAttachments = flags["Attachments"],
             enableAutoLinkSubprojects = flags["Auto link subprojects"],
         )
-        projectStructureRepository.updateStructure(updated)
+        contextStructureRepository.updateStructure(updated)
         _uiState.update { it.copy(isProjectManagementEnabled = flags["Advanced"] == true) }
     }
 
@@ -309,7 +309,7 @@ class ProjectSettingsViewModel @Inject constructor(
     fun onOpenStructure() {
         projectId?.let {
             viewModelScope.launch {
-                _events.send(ProjectSettingsEvent.Navigate(NavTarget.ProjectStructure(it)))
+                _events.send(ContextSettingsEvent.Navigate(NavTarget.ProjectStructure(it)))
             }
         }
     }
