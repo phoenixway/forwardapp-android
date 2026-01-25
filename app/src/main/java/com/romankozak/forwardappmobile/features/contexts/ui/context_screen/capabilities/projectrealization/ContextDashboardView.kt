@@ -26,8 +26,8 @@ fun ProjectDashboardView(
     onDeleteLog: (ContextLog) -> Unit,
     onSaveArtifact: (String) -> Unit,
     onEditArtifact: (ContextArtifact) -> Unit,
-    selectedTab: ProjectManagementTab,
-    onTabSelected: (ProjectManagementTab) -> Unit,
+    selectedTab: ContextManagementTab,
+    onTabSelected: (ContextManagementTab) -> Unit,
     enableDashboard: Boolean,
     enableLog: Boolean,
     enableArtifact: Boolean,
@@ -35,17 +35,17 @@ fun ProjectDashboardView(
     if (project == null) return
 
     val availableTabs = remember(enableDashboard, enableLog, enableArtifact) {
-        ProjectManagementTab.values().filter { tab ->
+        ContextManagementTab.values().filter { tab ->
             when (tab) {
-                ProjectManagementTab.Dashboard -> enableDashboard
-                ProjectManagementTab.Log -> enableLog
-                ProjectManagementTab.Artifact -> enableArtifact
+                ContextManagementTab.Dashboard -> enableDashboard
+                ContextManagementTab.Log -> enableLog
+                ContextManagementTab.Artifact -> enableArtifact
                 else -> true
             }
         }
     }
     val safeSelectedTab = remember(selectedTab, availableTabs) {
-        if (selectedTab in availableTabs) selectedTab else availableTabs.firstOrNull() ?: ProjectManagementTab.Insights
+        if (selectedTab in availableTabs) selectedTab else availableTabs.firstOrNull() ?: ContextManagementTab.Insights
     }
     LaunchedEffect(safeSelectedTab, availableTabs) {
         if (selectedTab !in availableTabs && availableTabs.isNotEmpty()) {
@@ -71,7 +71,7 @@ fun ProjectDashboardView(
         }
 
         when (safeSelectedTab) {
-            ProjectManagementTab.Dashboard ->
+            ContextManagementTab.Dashboard ->
                 DashboardContent(
                     project = project,
                     onStatusUpdate = onStatusUpdate,
@@ -79,7 +79,7 @@ fun ProjectDashboardView(
                     onRecalculateTime = onRecalculateTime,
                     contextTimeMetrics = contextTimeMetrics,
                 )
-            ProjectManagementTab.Artifact -> {
+            ContextManagementTab.Artifact -> {
                 ArtifactContent(
                     artifact = contextArtifact,
                     isManagementEnabled = project.isProjectManagementEnabled == true,
@@ -87,14 +87,14 @@ fun ProjectDashboardView(
                     onSaveArtifact = { onSaveArtifact("") }
                 )
             }
-            ProjectManagementTab.Log ->
+            ContextManagementTab.Log ->
                 LogContent(
                     logs = projectLogs,
                     isManagementEnabled = project.isProjectManagementEnabled == true,
                     onEditLog = onEditLog,
                     onDeleteLog = onDeleteLog
                 )
-            ProjectManagementTab.Insights ->
+            ContextManagementTab.Insights ->
                 InsightsContent(isManagementEnabled = project.isProjectManagementEnabled == true)
         }
     }

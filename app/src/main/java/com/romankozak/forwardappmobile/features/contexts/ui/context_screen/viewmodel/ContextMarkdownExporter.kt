@@ -10,7 +10,7 @@ import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
 
-class ProjectMarkdownExporter
+class ContextMarkdownExporter
     @Inject
     constructor() {
         fun exportProjectStateToMarkdown(

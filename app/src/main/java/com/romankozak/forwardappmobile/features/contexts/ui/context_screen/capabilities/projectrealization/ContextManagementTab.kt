@@ -7,7 +7,7 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.ui.graphics.vector.ImageVector
 
-enum class ProjectManagementTab(
+enum class ContextManagementTab(
     val displayName: String,
     val icon: ImageVector,
 ) {

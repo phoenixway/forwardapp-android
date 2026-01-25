@@ -57,7 +57,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewm
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.InboxHandlerResultListener
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.InboxMarkdownHandler
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.ItemActionHandler
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.ProjectMarkdownExporter
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.ContextMarkdownExporter
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.SelectionHandler
 import com.romankozak.forwardappmobile.ui.common.editor.NoteTitleExtractor
 import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
@@ -78,7 +78,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ProjectManagementTab
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ContextManagementTab
 import com.romankozak.forwardappmobile.core.navigation.ClearCommand
 import com.romankozak.forwardappmobile.core.navigation.ClearExecutionContext
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
@@ -163,7 +163,7 @@ data class UiState(
   val remindersForDialog: List<Reminder> = emptyList(),
   val logEntryToEdit: ContextLog? = null,
   val artifactToEdit: ContextArtifact? = null,
-  val selectedDashboardTab: ProjectManagementTab = ProjectManagementTab.Dashboard,
+  val selectedDashboardTab: ContextManagementTab = ContextManagementTab.Dashboard,
   val showNoteDocumentEditor: Boolean = false,
   val showDisplayPropertiesDialog: Boolean = false,
   val showCheckboxes: Boolean = false,
@@ -275,7 +275,7 @@ constructor(
   private val nerManager: NerManager,
   private val reminderParser: ReminderParser,
   private val activityRepository: ActivityRepository,
-  private val projectMarkdownExporter: ProjectMarkdownExporter,
+  private val contextMarkdownExporter: ContextMarkdownExporter,
   private val savedStateHandle: SavedStateHandle,
   private val dayManagementRepository: DayManagementRepository,
   private val clearAndNavigateHomeUseCase: ClearAndNavigateHomeUseCase,
@@ -523,10 +523,10 @@ constructor(
                 _uiState.update {
                     val currentView = it.currentView
                     val availableTabs = listOfNotNull(
-                        ProjectManagementTab.Dashboard.takeIf { enableDashboard },
-        ProjectManagementTab.Log.takeIf { enableLog },
-        ProjectManagementTab.Artifact.takeIf { enableArtifact },
-        ProjectManagementTab.Insights,
+                        ContextManagementTab.Dashboard.takeIf { enableDashboard },
+        ContextManagementTab.Log.takeIf { enableLog },
+        ContextManagementTab.Artifact.takeIf { enableArtifact },
+        ContextManagementTab.Insights,
                     )
                     val safeDashboardTab =
                         if (it.selectedDashboardTab in availableTabs) it.selectedDashboardTab else availableTabs.firstOrNull()
@@ -550,7 +550,7 @@ constructor(
                         isProjectManagementEnabled = it.isProjectManagementEnabled || enableAdvanced,
                         currentView = adjustedView,
                         inputMode = getInputModeForView(adjustedView),
-                        selectedDashboardTab = safeDashboardTab ?: ProjectManagementTab.Insights,
+                        selectedDashboardTab = safeDashboardTab ?: ContextManagementTab.Insights,
                     )
                 }
             }
@@ -770,7 +770,7 @@ constructor(
           _uiState.update { it.copy(
               inputValue = TextFieldValue(""),
               currentView = ContextViewMode.ADVANCED,
-              selectedDashboardTab = ProjectManagementTab.Log
+              selectedDashboardTab = ContextManagementTab.Log
           ) }
       }
     }
@@ -787,7 +787,7 @@ constructor(
           withContext(Dispatchers.Main) {
               _uiState.update { it.copy(
                   inputValue = TextFieldValue(""),
-                  selectedDashboardTab = ProjectManagementTab.Log
+                  selectedDashboardTab = ContextManagementTab.Log
               ) }
           }
       }
@@ -1417,7 +1417,7 @@ constructor(
     viewModelScope.launch { projectRepository.updateProjectViewMode(projectIdFlow.value, newView) }
   }
 
-  fun onDashboardTabSelected(tab: ProjectManagementTab) {
+  fun onDashboardTabSelected(tab: ContextManagementTab) {
     _uiState.update { it.copy(selectedDashboardTab = tab) }
   }
 
@@ -1464,7 +1464,7 @@ constructor(
   }
 
   fun onExportProjectStateRequest() {
-    projectMarkdownExporter.exportProjectStateToMarkdown(
+    contextMarkdownExporter.exportProjectStateToMarkdown(
       project = project.value,
       backlog = listContent.value,
       logs = projectLogs.value,
