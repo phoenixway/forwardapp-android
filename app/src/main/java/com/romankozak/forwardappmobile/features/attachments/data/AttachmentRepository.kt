@@ -173,6 +173,7 @@ class AttachmentRepository
                 "[createLinkAttachment] DONE: attachment=${attachment.id}, this attachment is NEW and unsync'd (syncedAt=null), it will be exported on next sync",
             )
             return attachment
+        } // Missing closing brace here
 
         suspend fun linkAttachmentToContext(
             attachmentId: String,
@@ -226,9 +227,9 @@ class AttachmentRepository
                     attachment.softDelete(now),
                 )
                 // mark links deleted too
-                val links = attachmentDao.getProjectAttachmentLinksForAttachment(attachmentId)
+                val links = attachmentDao.getContextAttachmentLinksForAttachment(attachmentId)
                 links.forEach { link ->
-                    attachmentDao.insertProjectAttachmentLink(
+                    attachmentDao.insertContextAttachmentLink(
                         link.softDelete(now),
                     )
                 }

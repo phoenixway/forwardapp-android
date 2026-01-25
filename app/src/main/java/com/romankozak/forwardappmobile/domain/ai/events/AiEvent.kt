@@ -93,7 +93,7 @@ data class ProjectActivatedEvent(
     override val timestamp:
         @Serializable(with = InstantAsLongSerializer::class)
         Instant,
-    val projectId: String,
+    val contextId: String,
 ) : AiEvent
 
 @Serializable

@@ -18,21 +18,21 @@ class ScriptRepository
     ) {
         fun getAllScripts(): Flow<List<ScriptEntity>> = scriptDao.getAll()
 
-        fun getScriptsForProject(projectId: String): Flow<List<ScriptEntity>> = scriptDao.getForProject(projectId)
+        fun getScriptsForContext(contextId: String): Flow<List<ScriptEntity>> = scriptDao.getForContext(contextId)
 
         suspend fun getScriptById(id: String): ScriptEntity? = scriptDao.getById(id)
 
         suspend fun createScript(
             name: String,
             content: String,
-            projectId: String?,
+            contextId: String?,
             description: String? = null,
         ): String {
             val timestamp = System.currentTimeMillis()
             val script =
                 ScriptEntity(
                     id = UUID.randomUUID().toString(),
-                    projectId = projectId,
+                    contextId = contextId,
                     name = name,
                     description = description,
                     content = content,
@@ -43,12 +43,12 @@ class ScriptRepository
                 )
             scriptDao.insert(script)
 
-            if (projectId != null) {
+            if (contextId != null) {
                 attachmentRepository.ensureAttachmentLinkedToContext(
                     attachmentType = BacklogItemTypeValues.SCRIPT,
                     entityId = script.id,
-                    contextId = projectId,
-                    ownerContextId = projectId,
+                    contextId = contextId,
+                    ownerContextId = contextId,
                     createdAt = timestamp,
                 )
             }

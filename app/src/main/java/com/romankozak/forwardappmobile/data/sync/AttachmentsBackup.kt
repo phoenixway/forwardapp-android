@@ -5,7 +5,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.models.Checklis
 import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistItemEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentItemEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.ProjectAttachmentCrossRef
+import com.romankozak.forwardappmobile.features.attachments.data.models.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
 
 data class AttachmentsBackup(
@@ -17,5 +17,5 @@ data class AttachmentsBackup(
     val checklistItems: List<ChecklistItemEntity> = emptyList(),
     val linkItemEntities: List<LinkItemEntity> = emptyList(),
     val attachments: List<AttachmentEntity> = emptyList(),
-    val projectAttachmentCrossRefs: List<ProjectAttachmentCrossRef> = emptyList(),
+    val contextAttachmentCrossRefs: List<ContextAttachmentCrossRef> = emptyList(),
 )

@@ -196,9 +196,9 @@ class AttachmentsLibraryViewModel
             }
 
             viewModelScope.launch {
-                attachmentRepository.linkAttachmentToProject(
+                attachmentRepository.linkAttachmentToContext(
                     attachmentId = attachment.id,
-                    projectId = contextId,
+                    contextId = contextId,
                 )
                 _events.emit(AttachmentsLibraryEvent.ShowToast("Додано до проєкту"))
                 pendingShareItem = null

@@ -205,8 +205,9 @@ class WifiSyncServer(
                                 try {
                                     val backup = gson.fromJson(backupJson, FullAppBackup::class.java)
                                     val attachmentsCount = backup.database?.attachments?.size ?: 0
-                                                                         val crossRefsCount =
-                                                                            backup.database?.contextAttachmentCrossRefs?.size ?: 0                                    Log.d(
+                                    val crossRefsCount =
+                                        backup.database?.contextAttachmentCrossRefs?.size ?: 0
+                                    Log.d(
                                         DEBUG_TAG,
                                         "[WifiSyncServer] /export CONTENT CHECK: attachments=$attachmentsCount, crossRefs=$crossRefsCount",
                                     )

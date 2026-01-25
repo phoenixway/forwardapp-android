@@ -277,9 +277,9 @@ class ContextRepository
                         BacklogItemTypeValues.CHECKLIST ->
                             checklistRepository.deleteChecklist(attachment.entityId)
                         BacklogItemTypeValues.LINK_ITEM ->
-                            attachmentRepository.unlinkAttachmentFromContext(itemId, contextId)
+                            attachmentRepository.unlinkAttachmentFromContext(attachment.id, contextId)
                         else ->
-                            attachmentRepository.unlinkAttachmentFromContext(itemId, contextId)
+                            attachmentRepository.unlinkAttachmentFromContext(attachment.id, contextId)
                     }
                 } else {
                     backlogIds += itemId
@@ -298,7 +298,9 @@ class ContextRepository
         suspend fun updateAttachmentOrders(
             contextId: String,
             updates: List<Pair<String, Long>>,
-        ) = attachmentRepository.updateAttachmentOrders(contextId, updates)
+        ) {
+            attachmentRepository.updateAttachmentOrders(contextId, updates)
+        }
 
         suspend fun doesLinkToContextExist(
             entityId: String,
@@ -387,7 +389,7 @@ class ContextRepository
             aiEventRepository.emit(
                 ProjectActivatedEvent(
                     timestamp = java.time.Instant.ofEpochMilli(now),
-                    projectId = id,
+                    contextId = id,
                 ),
             )
         }
@@ -460,7 +462,9 @@ class ContextRepository
         suspend fun linkAttachmentToContext(
             attachmentId: String,
             targetContextId: String,
-        ) = attachmentRepository.linkAttachmentToContext(attachmentId, targetContextId)
+        ) {
+            attachmentRepository.linkAttachmentToContext(attachmentId, targetContextId)
+        }
 
         suspend fun ensureAttachmentLinkedToContext(
             attachmentType: String,
@@ -492,7 +496,7 @@ class ContextRepository
             when (attachment.attachmentType) {
                 BacklogItemTypeValues.NOTE_DOCUMENT -> noteDocumentRepository.deleteDocument(attachment.entityId)
                 BacklogItemTypeValues.CHECKLIST -> checklistRepository.deleteChecklist(attachment.entityId)
-                else -> attachmentRepository.deleteAttachment(attachmentId)
+                else -> this.attachmentRepository.deleteAttachment(attachmentId)
             }
         }
 
