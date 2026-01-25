@@ -27,8 +27,8 @@ class NoteDocumentRepository
     ) {
         private val TAG = "NoteDocumentRepository"
 
-        fun getDocumentsForProject(projectId: String): Flow<List<NoteDocumentEntity>> =
-            noteDocumentDao.getDocumentsForProject(projectId, BacklogItemTypeValues.NOTE_DOCUMENT)
+        fun getDocumentsForContext(contextId: String): Flow<List<NoteDocumentEntity>> =
+            noteDocumentDao.getDocumentsForContext(contextId, BacklogItemTypeValues.NOTE_DOCUMENT)
 
         fun getAllDocumentsAsFlow(): Flow<List<NoteDocumentEntity>> = noteDocumentDao.getAllDocumentsAsFlow()
 
@@ -37,22 +37,22 @@ class NoteDocumentRepository
         @Transaction
         suspend fun createDocument(
             name: String,
-            projectId: String,
+            contextId: String,
             content: String? = null,
             roleCode: String? = null,
             isSystem: Boolean = false,
         ): String {
-            Log.d(TAG, "createDocument called with name: $name, projectId: $projectId, content: $content")
+            Log.d(TAG, "createDocument called with name: $name, contextId: $contextId, content: $content")
             val now = System.currentTimeMillis()
             val document =
-                NoteDocumentEntity(name = name, projectId = projectId, content = content, updatedAt = now, syncedAt = null, version = 1)
+                NoteDocumentEntity(name = name, contextId = contextId, content = content, updatedAt = now, syncedAt = null, version = 1)
             Log.d(TAG, "Inserting new note document: $document")
             noteDocumentDao.insertDocument(document)
-            attachmentRepository.ensureAttachmentLinkedToProject(
+            attachmentRepository.ensureAttachmentLinkedToContext(
                 attachmentType = BacklogItemTypeValues.NOTE_DOCUMENT,
                 entityId = document.id,
-                projectId = projectId,
-                ownerProjectId = projectId,
+                contextId = contextId,
+                ownerContextId = contextId,
                 createdAt = document.createdAt,
                 roleCode = roleCode,
                 isSystem = isSystem,
@@ -117,11 +117,11 @@ class NoteDocumentRepository
         suspend fun importFromLegacy(note: LegacyNoteEntity) {
             val document = note.toNoteDocument()
             noteDocumentDao.insertDocument(document)
-            attachmentRepository.ensureAttachmentLinkedToProject(
+            attachmentRepository.ensureAttachmentLinkedToContext(
                 attachmentType = BacklogItemTypeValues.NOTE_DOCUMENT,
                 entityId = document.id,
-                projectId = document.projectId,
-                ownerProjectId = document.projectId,
+                contextId = document.contextId,
+                ownerContextId = document.contextId,
                 createdAt = document.createdAt,
             )
             recentItemsRepository.logNoteDocumentAccess(document)

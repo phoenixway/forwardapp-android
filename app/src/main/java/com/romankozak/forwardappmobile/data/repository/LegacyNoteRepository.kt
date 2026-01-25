@@ -22,7 +22,7 @@ class LegacyNoteRepository
     ) {
         suspend fun getNoteById(noteId: String): LegacyNoteEntity? = legacyNoteDao.getNoteById(noteId)
 
-        fun getNotesForProject(projectId: String): Flow<List<LegacyNoteEntity>> = legacyNoteDao.getNotesForProject(projectId)
+        fun getNotesForContext(contextId: String): Flow<List<LegacyNoteEntity>> = legacyNoteDao.getNotesForContext(contextId)
 
         fun getAllAsFlow(): Flow<List<LegacyNoteEntity>> = legacyNoteDao.getAllAsFlow()
 
@@ -37,7 +37,7 @@ class LegacyNoteRepository
                 val newBacklogItem =
                     BacklogItem(
                         id = UUID.randomUUID().toString(),
-                        projectId = note.projectId,
+                        contextId = note.contextId,
                         itemType = BacklogItemTypeValues.NOTE,
                         entityId = note.id,
                         order = -now,

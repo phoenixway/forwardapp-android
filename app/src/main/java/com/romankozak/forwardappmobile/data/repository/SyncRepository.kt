@@ -43,7 +43,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.models.Checklis
 import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentItemEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.ProjectAttachmentCrossRef
+import com.romankozak.forwardappmobile.features.attachments.data.models.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEntity
 import com.romankozak.forwardappmobile.features.contexts.data.DatabaseInitializer
 import com.romankozak.forwardappmobile.features.contexts.data.dao.BacklogOrderDao
@@ -219,17 +219,17 @@ class SyncRepository
             }
 
         suspend fun createFullBackupJsonString(): String {
-            val recentProjectEntries =
+            val recentContextEntries =
                 recentItemDao.getAll().map { recentItem ->
                     com.romankozak.forwardappmobile.data.sync.RecentProjectEntry(
-                        projectId = recentItem.target,
+                        contextId = recentItem.target,
                         timestamp = recentItem.lastAccessed,
                     )
                 }
             val scripts = scriptDao.getAll().first()
 
             val allAttachments = attachmentDao.getAll()
-            val allCrossRefs = attachmentDao.getAllProjectAttachmentCrossRefs()
+            val allCrossRefs: List<ContextAttachmentCrossRef> = attachmentDao.getAllContextAttachmentCrossRefs()
             val listItems = listItemDao.getAll()
             val backlogOrders = ensureBacklogOrdersSeeded(listItems)
 
@@ -254,10 +254,10 @@ class SyncRepository
                     linkItemEntities = linkItemDao.getAllEntities(),
                     inboxRecords = inboxRecordDao.getAll(),
                     contextLogs = contextManagementDao.getAllLogs(),
-                    recentProjectEntries = recentProjectEntries,
+                    recentContextEntries = recentContextEntries,
                     scripts = scripts,
                     attachments = allAttachments,
-                    projectAttachmentCrossRefs = synthesizedCrossRefs,
+                    contextAttachmentCrossRefs = synthesizedCrossRefs,
                     // --- Extended Entities ---
                     dayPlans = dayPlanDao.getAllPlansSync(),
                     dayTasks = dayTaskDao.getAllTasksSync(),
@@ -350,7 +350,7 @@ class SyncRepository
                 "  Attachments status: unsynced=${(attachmentsByStatus[null]?.size ?: 0)}, synced=${attachmentsByStatus.filterKeys { it != null }.values.sumOf { it.size }}",
             )
 
-            val crossRefs = attachmentDao.getAllProjectAttachmentCrossRefs()
+            val crossRefs = attachmentDao.getAllContextAttachmentCrossRefs()
             Log.d(EXPORT_TAG, "Exporting ${crossRefs.size} attachment cross-refs")
 
             val synthesizedCrossRefs =
@@ -369,7 +369,7 @@ class SyncRepository
                     checklistItems = checklistItems,
                     linkItemEntities = linkItems,
                     attachments = attachments,
-                    projectAttachmentCrossRefs = synthesizedCrossRefs,
+                    contextAttachmentCrossRefs = synthesizedCrossRefs,
                 )
 
             Log.d(EXPORT_TAG, "=== ATTACHMENTS EXPORT DONE ===")
@@ -381,14 +381,14 @@ class SyncRepository
             val enrichedCrossRefs =
                 synthesizeMissingCrossRefs(
                     attachments = changes.attachments,
-                    existingCrossRefs = changes.projectAttachmentCrossRefs,
+                    existingCrossRefs = changes.contextAttachmentCrossRefs,
                     logPrefix = "[createDeltaBackupJsonString]",
                     persistToDb = true,
                 )
-            val changesWithCrossRefs = changes.copy(projectAttachmentCrossRefs = enrichedCrossRefs)
+            val changesWithCrossRefs = changes.copy(contextAttachmentCrossRefs = enrichedCrossRefs)
             Log.d(
                 WIFI_SYNC_LOG_TAG,
-                "[createDeltaBackupJsonString] deltaSince=$deltaSince, changes: projects=${changesWithCrossRefs.projects.size}, goals=${changesWithCrossRefs.goals.size}, attachments=${changesWithCrossRefs.attachments.size}, crossRefs=${changesWithCrossRefs.projectAttachmentCrossRefs.size}",
+                "[createDeltaBackupJsonString] deltaSince=$deltaSince, changes: projects=${changesWithCrossRefs.projects.size}, goals=${changesWithCrossRefs.goals.size}, attachments=${changesWithCrossRefs.attachments.size}, crossRefs=${changesWithCrossRefs.contextAttachmentCrossRefs.size}",
             )
 
             // DEFECT #2 CHECK: If attachments is 0 but there are local attachments, that's a problem
@@ -449,17 +449,17 @@ class SyncRepository
                     }
                 Log.d(IMPORT_TAG, "JSON parsed successfully.")
 
-                val existingProjectIds = contextDao.getAll().map { it.id }.toSet()
-                Log.d(IMPORT_TAG, "Found ${existingProjectIds.size} existing projects in the database.")
+                val existingContextIds = contextDao.getAll().map { it.id }.toSet()
+                Log.d(IMPORT_TAG, "Found ${existingContextIds.size} existing contexts in the database.")
 
-                val validCrossRefs = backupData.projectAttachmentCrossRefs.filter { it.projectId in existingProjectIds }
-                val orphanedCrossRefsCount = backupData.projectAttachmentCrossRefs.size - validCrossRefs.size
+                val validCrossRefs = backupData.contextAttachmentCrossRefs.filter { it.contextId in existingContextIds }
+                val orphanedCrossRefsCount = backupData.contextAttachmentCrossRefs.size - validCrossRefs.size
                 Log.d(
                     IMPORT_TAG,
                     "Found ${validCrossRefs.size} valid attachment links. $orphanedCrossRefsCount orphaned links will be skipped.",
                 )
 
-                val validDocuments = backupData.documents.filter { it.projectId in existingProjectIds }
+                val validDocuments = backupData.documents.filter { it.contextId in existingProjectIds }
                 val orphanedDocumentsCount = backupData.documents.size - validDocuments.size
                 if (orphanedDocumentsCount > 0) {
                     Log.d(
@@ -478,7 +478,7 @@ class SyncRepository
                     )
                 }
 
-                val validChecklists = backupData.checklists.filter { it.projectId in existingProjectIds }
+                val validChecklists = backupData.checklists.filter { it.contextId in existingProjectIds }
                 val orphanedChecklistsCount = backupData.checklists.size - validChecklists.size
                 if (orphanedChecklistsCount > 0) {
                     Log.d(
@@ -521,15 +521,15 @@ class SyncRepository
                     Log.d(IMPORT_TAG, "  ✓ Inserted ${backupData.linkItemEntities.size} link items.")
 
                     // Insert attachments themselves
-                    // Filter attachments: include only those with valid ownerProjectId or orphans (ownerProjectId == null)
+                    // Filter attachments: include only those with valid ownerContextId or orphans (ownerContextId == null)
                     Log.d(IMPORT_TAG, "STEP6: Processing ${backupData.attachments.size} attachments...")
                     val validAttachments =
                         backupData.attachments.filter { att ->
-                            val isValid = att.ownerProjectId == null || att.ownerProjectId in existingProjectIds
+                            val isValid = att.ownerContextId == null || att.ownerContextId in existingContextIds
                             if (!isValid) {
                                 Log.w(
                                     IMPORT_TAG,
-                                    "  ! Skipping orphaned attachment: id=${att.id}, ownerProject=${att.ownerProjectId}",
+                                    "  ! Skipping orphaned attachment: id=${att.id}, ownerContext=${att.ownerContextId}",
                                 )
                             }
                             isValid
@@ -544,9 +544,9 @@ class SyncRepository
                     val crossRefsByAttachment = validCrossRefs.groupBy { it.attachmentId }
                     Log.d(IMPORT_TAG, "  - Cross-refs distribution: ${crossRefsByAttachment.size} unique attachments")
                     crossRefsByAttachment.forEach { (attId, refs) ->
-                        Log.d(IMPORT_TAG, "    - Attachment $attId: ${refs.size} projects")
+                        Log.d(IMPORT_TAG, "    - Attachment $attId: ${refs.size} contexts")
                     }
-                    attachmentDao.insertProjectAttachmentLinks(validCrossRefs)
+                    attachmentDao.insertContextAttachmentLinks(validCrossRefs)
                     Log.d(IMPORT_TAG, "  ✓ Inserted ${validCrossRefs.size} attachment cross-refs.")
                     Log.d(IMPORT_TAG, "=== ATTACHMENTS IMPORT TRANSACTION END ===")
                 }
@@ -619,12 +619,12 @@ class SyncRepository
                         "  - Checklists: ${backup.checklists.size}\n" +
                         "  - ChecklistItems: ${backup.checklistItems.size}\n" +
                         "  - Attachments: ${backup.attachments.size}\n" +
-                        "  - Attachment CrossRefs: ${backup.projectAttachmentCrossRefs.size}\n" +
+                        "  - Attachment CrossRefs: ${backup.contextAttachmentCrossRefs.size}\n" +
                         "  - LinkItems: ${backup.linkItemEntities.size}\n" +
                         "  - InboxRecords: ${backup.inboxRecords.size}\n" +
                         "  - ActivityRecords: ${backup.activityRecords.size}\n" +
                         "  - ProjectLogs: ${backup.contextLogs.size}\n" +
-                        "  - RecentEntries: ${backup.recentProjectEntries.size}",
+                        "  - RecentEntries: ${backup.recentContextEntries.size}",
                 )
 
                 val backupSettingsMap = backupData.settings?.settings ?: emptyMap()
@@ -692,33 +692,33 @@ class SyncRepository
                 // ============================================================================
                 Log.d(IMPORT_TAG, "=== КРОК 3: Розрахунок ID-маппінгу системних проектів ===")
 
-                // projectIdMap: backupId -> actualId
-                val projectIdMap = mutableMapOf<String, String>()
+                // contextIdMap: backupId -> actualId
+                val contextIdMap = mutableMapOf<String, String>()
 
                 val cleanedProjects =
-                    projectsToImport.map { projectFromBackup ->
+                    projectsToImport.map { contextFromBackup ->
                         val normalizedIncoming =
-                            projectFromBackup.copy(
-                                projectType = projectFromBackup.projectType ?: ContextType.DEFAULT,
-                                reservedGroup = ReservedGroup.fromString(projectFromBackup.reservedGroup?.groupName),
+                            contextFromBackup.copy(
+                                projectType = contextFromBackup.projectType ?: ContextType.DEFAULT,
+                                reservedGroup = ReservedGroup.fromString(contextFromBackup.reservedGroup?.groupName),
                                 // Do NOT force BACKLOG; keep incoming view mode
-                                defaultViewModeName = projectFromBackup.defaultViewModeName,
-                                isProjectManagementEnabled = projectFromBackup.isProjectManagementEnabled ?: false,
-                                projectStatus = projectFromBackup.projectStatus ?: ContextStatusValues.NO_PLAN,
-                                projectStatusText = projectFromBackup.projectStatusText ?: "",
-                                projectLogLevel = projectFromBackup.projectLogLevel ?: ContextLogLevelValues.NORMAL,
-                                totalTimeSpentMinutes = projectFromBackup.totalTimeSpentMinutes ?: 0,
-                                scoringStatus = projectFromBackup.scoringStatus ?: ScoringStatusValues.NOT_ASSESSED,
-                                valueImportance = projectFromBackup.valueImportance,
-                                valueImpact = projectFromBackup.valueImpact,
-                                effort = projectFromBackup.effort,
-                                cost = projectFromBackup.cost,
-                                risk = projectFromBackup.risk,
-                                weightEffort = projectFromBackup.weightEffort,
-                                weightCost = projectFromBackup.weightCost,
-                                weightRisk = projectFromBackup.weightRisk,
-                                rawScore = projectFromBackup.rawScore,
-                                displayScore = projectFromBackup.displayScore,
+                                defaultViewModeName = contextFromBackup.defaultViewModeName,
+                                isProjectManagementEnabled = contextFromBackup.isProjectManagementEnabled ?: false,
+                                projectStatus = contextFromBackup.projectStatus ?: ContextStatusValues.NO_PLAN,
+                                projectStatusText = contextFromBackup.projectStatusText ?: "",
+                                projectLogLevel = contextFromBackup.projectLogLevel ?: ContextLogLevelValues.NORMAL,
+                                totalTimeSpentMinutes = contextFromBackup.totalTimeSpentMinutes ?: 0,
+                                scoringStatus = contextFromBackup.scoringStatus ?: ScoringStatusValues.NOT_ASSESSED,
+                                valueImportance = contextFromBackup.valueImportance,
+                                valueImpact = contextFromBackup.valueImpact,
+                                effort = contextFromBackup.effort,
+                                cost = contextFromBackup.cost,
+                                risk = contextFromBackup.risk,
+                                weightEffort = contextFromBackup.weightEffort,
+                                weightCost = contextFromBackup.weightCost,
+                                weightRisk = contextFromBackup.weightRisk,
+                                rawScore = contextFromBackup.rawScore,
+                                displayScore = contextFromBackup.displayScore,
                             )
 
                         val systemKey = normalizedIncoming.systemKey
@@ -732,7 +732,7 @@ class SyncRepository
 
                             // Записуємо маппінг якщо ID різні
                             if (normalizedIncoming.id != existingSystemProject.id) {
-                                projectIdMap[normalizedIncoming.id] = existingSystemProject.id
+                                contextIdMap[normalizedIncoming.id] = existingSystemProject.id
                                 Log.d(IMPORT_TAG, "  System '$systemKey': маппінг ${normalizedIncoming.id} -> ${existingSystemProject.id}")
                             }
 
@@ -756,14 +756,14 @@ class SyncRepository
                             normalizedIncoming
                         }
                     }
-                Log.d(IMPORT_TAG, "✅ ID-маппінг розраховано: ${projectIdMap.size} переіндексацій")
+                Log.d(IMPORT_TAG, "✅ ID-маппінг розраховано: ${contextIdMap.size} переіндексацій")
 
                 // ============================================================================
                 // КРОК 4: Валідація та очищення parentId
                 // ============================================================================
                 Log.d(IMPORT_TAG, "=== КРОК 4: Валідація та очищення parentId ===")
 
-                val projectIdsSet = cleanedProjects.map { it.id }.toSet()
+                val contextIdsSet = cleanedProjects.map { it.id }.toSet()
                 Log.d(IMPORT_TAG, "Всього проектів після нормалізації: ${cleanedProjects.size}")
 
                 // Будуємо маппу systemKey -> actualId для швидкого пошуку
@@ -779,8 +779,8 @@ class SyncRepository
                     parentId?.let { pid ->
                         when {
                             // 1. Спочатку перевірити прямий маппінг ID
-                            pid in projectIdMap -> {
-                                val mappedId = projectIdMap[pid]!!
+                            pid in contextIdMap -> {
+                                val mappedId = contextIdMap[pid]!!
                                 // 2. Якщо помапнений проект є системним, отримати його актуальний ID
                                 val mappedProj = cleanedProjects.find { it.id == mappedId }
                                 if (mappedProj?.systemKey != null) {
@@ -790,7 +790,7 @@ class SyncRepository
                                 }
                             }
                             // 3. Якщо ID є в наборі — залишити як є
-                            pid in projectIdsSet -> pid
+                            pid in contextIdsSet -> pid
                             // 4. Інакше — null (батько не існує)
                             else -> null
                         }
@@ -854,113 +854,113 @@ class SyncRepository
                 Log.d(IMPORT_TAG, "✅ Системні проекти: унікальні (${finalSystemProjects.size} системних ключів)")
 
                 // ============================================================================
-                // КРОК 6: Переіндексація сутностей з projectId
+                // КРОК 6: Переіндексація сутностей з contextId
                 // ============================================================================
-                Log.d(IMPORT_TAG, "=== КРОК 6: Переіндексація сутностей з projectId ===")
+                Log.d(IMPORT_TAG, "=== КРОК 6: Переіндексація сутностей з contextId ===")
 
-                val projectIds = cleanedProjectsWithParents.map { it.id }.toSet()
+                val contextIds = cleanedProjectsWithParents.map { it.id }.toSet()
                 val goalIds = backup.goals.map { it.id }.toSet()
 
-                // ListItems - переіндексація projectId
+                // ListItems - переіндексація contextId
                 val cleanedListItems =
                     backup.backlogItems.mapNotNull { item ->
-                        if (item.id.isBlank() || item.projectId.isBlank() || item.entityId.isBlank()) {
+                        if (item.id.isBlank() || item.contextId.isBlank() || item.entityId.isBlank()) {
                             Log.w(IMPORT_TAG, "Skipping invalid ListItem due to blank ID(s): $item")
                             null
                         } else {
                             item.copy(
-                                projectId = projectIdMap[item.projectId] ?: item.projectId,
+                                contextId = contextIdMap[item.contextId] ?: item.contextId,
                                 entityId =
                                     if (item.itemType == BacklogItemTypeValues.SUBLIST) {
-                                        projectIdMap[item.entityId] ?: item.entityId
+                                        contextIdMap[item.entityId] ?: item.entityId
                                     } else {
                                         item.entityId
                                     },
                             )
                         }
                     }.filter {
-                        val projectOk = it.projectId in projectIds
-                        val goalOk = it.itemType != BacklogItemTypeValues.GOAL || it.entityId in goalIds
-                        if (!projectOk || !goalOk) {
-                            Log.w(IMPORT_TAG, "Skipping ListItem due to missing references. projectOk=$projectOk goalOk=$goalOk item=$it")
+                        val contextOk = it.contextId in contextIds
+                        val goalOk = it.itemType == BacklogItemTypeValues.GOAL && it.entityId in goalIds || it.itemType != BacklogItemTypeValues.GOAL
+                        if (!contextOk || !goalOk) {
+                            Log.w(IMPORT_TAG, "Skipping ListItem due to missing references. contextOk=$contextOk goalOk=$goalOk item=$it")
                         }
-                        projectOk && goalOk
+                        contextOk && goalOk
                     }
                 Log.d(IMPORT_TAG, "  ListItems: ${backup.backlogItems.size} -> ${cleanedListItems.size}")
 
-                // NoteDocuments - переіндексація projectId
+                // NoteDocuments - переіндексація contextId
                 val cleanedDocuments =
                     backup.documents.map { doc ->
-                        doc.copy(projectId = projectIdMap[doc.projectId] ?: doc.projectId)
-                    }.filter { it.projectId in projectIds }.also {
+                        doc.copy(contextId = contextIdMap[doc.contextId] ?: doc.contextId)
+                    }.filter { it.contextId in contextIds }.also {
                         val skipped = backup.documents.size - it.size
                         if (skipped > 0) Log.w(IMPORT_TAG, "  NoteDocuments: пропущено $skipped з невалідними посиланнями")
                     }
                 Log.d(IMPORT_TAG, "  NoteDocuments: ${backup.documents.size} -> ${cleanedDocuments.size}")
 
-                // Checklists - переіндексація projectId
+                // Checklists - переіндексація contextId
                 val cleanedChecklists =
                     backup.checklists.map { cl ->
-                        cl.copy(projectId = projectIdMap[cl.projectId] ?: cl.projectId)
-                    }.filter { it.projectId in projectIds }.also {
+                        cl.copy(contextId = contextIdMap[cl.contextId] ?: cl.contextId)
+                    }.filter { it.contextId in contextIds }.also {
                         val skipped = backup.checklists.size - it.size
                         if (skipped > 0) Log.w(IMPORT_TAG, "  Checklists: пропущено $skipped з невалідними посиланнями")
                     }
                 Log.d(IMPORT_TAG, "  Checklists: ${backup.checklists.size} -> ${cleanedChecklists.size}")
 
-                // InboxRecords - переіндексація projectId
+                // InboxRecords - переіндексація contextId
                 val cleanedInboxRecords =
                     backup.inboxRecords.map { rec ->
-                        rec.copy(projectId = projectIdMap[rec.projectId] ?: rec.projectId)
-                    }.filter { it.projectId in projectIds }.also {
+                        rec.copy(contextId = contextIdMap[rec.contextId] ?: rec.contextId)
+                    }.filter { it.contextId in contextIds }.also {
                         val skipped = backup.inboxRecords.size - it.size
                         if (skipped > 0) Log.w(IMPORT_TAG, "  InboxRecords: пропущено $skipped з невалідними посиланнями")
                     }
                 Log.d(IMPORT_TAG, "  InboxRecords: ${backup.inboxRecords.size} -> ${cleanedInboxRecords.size}")
 
-                // ProjectLogs - переіндексація projectId
-                val cleanedProjectLogs =
+                // ProjectLogs - переіндексація contextId
+                val cleanedContextLogs =
                     backup.contextLogs.map { log ->
-                        log.copy(projectId = projectIdMap[log.projectId] ?: log.projectId)
-                    }.filter { it.projectId in projectIds }.also {
+                        log.copy(contextId = contextIdMap[log.contextId] ?: log.contextId)
+                    }.filter { it.contextId in contextIds }.also {
                         val skipped = backup.contextLogs.size - it.size
-                        if (skipped > 0) Log.w(IMPORT_TAG, "  ProjectLogs: пропущено $skipped з невалідними посиланнями")
+                        if (skipped > 0) Log.w(IMPORT_TAG, "  ContextLogs: пропущено $skipped з невалідними посиланнями")
                     }
-                Log.d(IMPORT_TAG, "  ProjectLogs: ${backup.contextLogs.size} -> ${cleanedProjectLogs.size}")
+                Log.d(IMPORT_TAG, "  ContextLogs: ${backup.contextLogs.size} -> ${cleanedContextLogs.size}")
 
-                // Attachments - переіндексація ownerProjectId
+                // Attachments - переіндексація ownerContextId
                 val cleanedAttachments =
                     backup.attachments.map { att ->
-                        att.copy(ownerProjectId = att.ownerProjectId?.let { projectIdMap[it] ?: it })
-                    }.filter { it.ownerProjectId == null || it.ownerProjectId in projectIds }.also {
+                        att.copy(ownerContextId = att.ownerContextId?.let { contextIdMap[it] ?: it })
+                    }.filter { it.ownerContextId == null || it.ownerContextId in contextIds }.also {
                         val skipped = backup.attachments.size - it.size
                         if (skipped > 0) Log.w(IMPORT_TAG, "  Attachments: пропущено $skipped з невалідними посиланнями")
                     }
                 Log.d(IMPORT_TAG, "  Attachments: ${backup.attachments.size} -> ${cleanedAttachments.size}")
 
-                // ProjectAttachmentCrossRefs - переіндексація projectId
+                // ContextAttachmentCrossRefs - переіндексація contextId
                 val cleanedCrossRefs =
-                    backup.projectAttachmentCrossRefs.map { cr ->
-                        cr.copy(projectId = projectIdMap[cr.projectId] ?: cr.projectId)
-                    }.filter { it.projectId in projectIds }.also {
-                        val skipped = backup.projectAttachmentCrossRefs.size - it.size
+                    backup.contextAttachmentCrossRefs.map { cr ->
+                        cr.copy(contextId = contextIdMap[cr.contextId] ?: cr.contextId)
+                    }.filter { it.contextId in contextIds }.also {
+                        val skipped = backup.contextAttachmentCrossRefs.size - it.size
                         if (skipped > 0) Log.w(IMPORT_TAG, "  CrossRefs: пропущено $skipped з невалідними посиланнями")
                     }
-                Log.d(IMPORT_TAG, "  CrossRefs: ${backup.projectAttachmentCrossRefs.size} -> ${cleanedCrossRefs.size}")
+                Log.d(IMPORT_TAG, "  CrossRefs: ${backup.contextAttachmentCrossRefs.size} -> ${cleanedCrossRefs.size}")
 
                 val cleanedSystemApps =
                     backup.systemApps.map { sa ->
                         sa.copy(
-                            projectId = projectIdMap[sa.projectId] ?: sa.projectId,
-                            noteDocumentId = sa.noteDocumentId?.let { noteId -> projectIdMap[noteId] ?: noteId },
+                            contextId = contextIdMap[sa.contextId] ?: sa.contextId,
+                            noteDocumentId = sa.noteDocumentId?.let { noteId -> contextIdMap[noteId] ?: noteId },
                         )
                     }
 
                 Log.d(IMPORT_TAG, "✅ Крок 6 завершен: всі сутності переіндексовані")
 
                 val recentItemsToInsert =
-                    backup.recentProjectEntries.mapNotNull { entry ->
-                        val targetId = projectIdMap[entry.projectId] ?: entry.projectId
+                    backup.recentContextEntries.mapNotNull { entry ->
+                        val targetId = contextIdMap[entry.contextId] ?: entry.contextId
                         val project = cleanedProjectsWithParents.find { it.id == targetId }
                         if (project != null) {
                             RecentItem(
@@ -983,17 +983,17 @@ class SyncRepository
                     linkItemDao.deleteAll()
                     activityRecordDao.clearAll()
                     listItemDao.deleteAll()
-                    contextDao.deleteAll()
-                    goalDao.deleteAll()
-                    legacyNoteDao.deleteAll()
+                    contextDao.deleteAllContexts()
+                    goalDao.deleteAllGoals()
+                    legacyNoteDao.deleteAllLegacyNotes()
                     noteDocumentDao.deleteAllDocumentItems()
                     noteDocumentDao.deleteAllDocuments()
                     checklistDao.deleteAllChecklistItems()
                     checklistDao.deleteAllChecklists()
                     scriptDao.deleteAll()
                     recentItemDao.deleteAll()
-                    attachmentDao.deleteAllProjectAttachmentLinks()
-                    attachmentDao.deleteAll()
+                    attachmentDao.deleteAllContextAttachmentLinks()
+                    attachmentDao.deleteAllAttachments()
 
                     // --- Extended Cleanup ---
                     dayTaskDao.deleteAllTasks()
@@ -1033,11 +1033,11 @@ class SyncRepository
 
                     Log.d(IMPORT_TAG, "Транзакція: вставка базових сутностей.")
                     goalDao.insertGoals(backup.goals)
-                    contextDao.insertProjects(cleanedProjectsWithParents)
+                    contextDao.insertContexts(cleanedProjectsWithParents)
                     listItemDao.insertItems(cleanedListItems)
                     Log.d(
                         IMPORT_TAG,
-                        "  - Вставлено: ${backup.goals.size} goals, ${cleanedProjectsWithParents.size} projects, ${cleanedListItems.size} listItems.",
+                        "  - Вставлено: ${backup.goals.size} goals, ${cleanedProjectsWithParents.size} contexts, ${cleanedListItems.size} listItems.",
                     )
 
                     legacyNoteDao.insertAll(backup.legacyNotes)
@@ -1110,15 +1110,15 @@ class SyncRepository
 
                     // Використовуємо cleaned crossrefs
                     val attachmentIds = cleanedAttachments.map { it.id }.toSet()
-                    val validCrossRefs = cleanedCrossRefs.filter { it.attachmentId in attachmentIds && it.projectId in projectIds }
-                    attachmentDao.insertProjectAttachmentLinks(validCrossRefs)
+                    val validCrossRefs = cleanedCrossRefs.filter { it.attachmentId in attachmentIds && it.contextId in contextIds }
+                    attachmentDao.insertContextAttachmentLinks(validCrossRefs)
                     Log.d(
                         IMPORT_TAG,
-                        "  - Вставлено: ${validCrossRefs.size} projectAttachmentCrossRefs.",
+                        "  - Вставлено: ${validCrossRefs.size} contextAttachmentCrossRefs.",
                     )
 
                     // Verify actual count in DB after insert
-                    val actualCrossRefCount = attachmentDao.getAllProjectAttachmentCrossRefs().size
+                    val actualCrossRefCount = attachmentDao.getAllContextAttachmentCrossRefs().size
                     Log.d(IMPORT_TAG, "  [VERIFY] Actual crossRefs in DB after insert: $actualCrossRefCount")
 
                     // --- Extended Insert ---
@@ -1154,7 +1154,7 @@ class SyncRepository
                     if (backup.contextRoleProfileItems.isNotEmpty()) structurePresetItemDao.insertItems(backup.contextRoleProfileItems)
 
                     backup.contextConfigurations.forEach { contextStructureDao.insertStructure(it) }
-                    if (backup.projectStructureItems.isNotEmpty()) contextStructureDao.insertItems(backup.projectStructureItems)
+                    if (backup.contextStructureItems.isNotEmpty()) contextStructureDao.insertItems(backup.contextStructureItems)
 
                     Log.d(IMPORT_TAG, "Транзакція: відновлення settings. Entries=${backupSettingsMap.size}")
                     settingsRepository.restoreFromMap(backupSettingsMap)
@@ -1170,23 +1170,23 @@ class SyncRepository
 
                     // Create attachment records for documents and checklists if they don't have attachments yet
                     // This ensures backward compatibility with older backup files
-                    if (backup.attachments.isEmpty() && backup.projectAttachmentCrossRefs.isEmpty()) {
+                    if (backup.attachments.isEmpty() && backup.contextAttachmentCrossRefs.isEmpty()) {
                         Log.d(IMPORT_TAG, "Спроба створити відсутні записи вкладень для старих бекапів...")
                         cleanedDocuments.forEach {
-                            attachmentRepository.ensureAttachmentLinkedToProject(
+                            attachmentRepository.ensureAttachmentLinkedToContext(
                                 attachmentType = BacklogItemTypeValues.NOTE_DOCUMENT,
                                 entityId = it.id,
-                                projectId = it.projectId,
-                                ownerProjectId = it.projectId,
+                                contextId = it.contextId,
+                                ownerContextId = it.contextId,
                                 createdAt = it.createdAt,
                             )
                         }
                         cleanedChecklists.forEach {
-                            attachmentRepository.ensureAttachmentLinkedToProject(
+                            attachmentRepository.ensureAttachmentLinkedToContext(
                                 attachmentType = BacklogItemTypeValues.CHECKLIST,
                                 entityId = it.id,
-                                projectId = it.projectId,
-                                ownerProjectId = it.projectId,
+                                contextId = it.contextId,
+                                ownerContextId = it.contextId,
                                 createdAt = System.currentTimeMillis(),
                             )
                         }
@@ -1285,11 +1285,11 @@ class SyncRepository
             val ts = System.currentTimeMillis()
             Log.d(
                 WIFI_SYNC_LOG_TAG,
-                "[markSyncedNow] START: ts=$ts, projects=${content.projects.size}, docs=${content.documents.size}, attachs=${content.attachments.size}, crossRefs=${content.projectAttachmentCrossRefs.size}",
+                "[markSyncedNow] START: ts=$ts, projects=${content.projects.size}, docs=${content.documents.size}, attachs=${content.attachments.size}, crossRefs=${content.contextAttachmentCrossRefs.size}",
             )
             appDatabase.withTransaction {
                 Log.d(WIFI_SYNC_LOG_TAG, "[markSyncedNow] Marking ${content.projects.size} projects synced")
-                contextDao.insertProjects(content.projects.map { it.copy(syncedAt = ts) })
+                contextDao.insertContexts(content.projects.map { it.copy(syncedAt = ts) })
 
                 Log.d(WIFI_SYNC_LOG_TAG, "[markSyncedNow] Marking ${content.goals.size} goals synced")
                 goalDao.insertGoals(content.goals.map { it.copy(syncedAt = ts) })
@@ -1329,23 +1329,23 @@ class SyncRepository
                     markedAttachments.take(3).forEach {
                         Log.d(
                             WIFI_SYNC_LOG_TAG,
-                            "  [MARK-SYNCED] Attachment: id=${it.id}, type=${it.attachmentType}, entity=${it.entityId}, owner=${it.ownerProjectId}, version=${it.version}, syncedAt=${it.syncedAt}",
+                            "  [MARK-SYNCED] Attachment: id=${it.id}, type=${it.attachmentType}, entity=${it.entityId}, owner=${it.ownerContextId}, version=${it.version}, syncedAt=${it.syncedAt}",
                         )
                     }
                 }
                 attachmentDao.insertAttachments(markedAttachments)
 
-                Log.d(WIFI_SYNC_LOG_TAG, "[markSyncedNow] Marking ${content.projectAttachmentCrossRefs.size} attachment cross-refs synced")
-                val markedCrossRefs = content.projectAttachmentCrossRefs.map { it.copy(syncedAt = ts) }
+                Log.d(WIFI_SYNC_LOG_TAG, "[markSyncedNow] Marking ${content.contextAttachmentCrossRefs.size} attachment cross-refs synced")
+                val markedCrossRefs = content.contextAttachmentCrossRefs.map { it.copy(syncedAt = ts) }
                 if (markedCrossRefs.isNotEmpty()) {
                     markedCrossRefs.take(3).forEach {
                         Log.d(
                             WIFI_SYNC_LOG_TAG,
-                            "  [MARK-SYNCED-XREF] CrossRef: project=${it.projectId}, attachment=${it.attachmentId}, version=${it.version}, syncedAt=${it.syncedAt}",
+                            "  [MARK-SYNCED-XREF] CrossRef: project=${it.contextId}, attachment=${it.attachmentId}, version=${it.version}, syncedAt=${it.syncedAt}",
                         )
                     }
                 }
-                attachmentDao.insertProjectAttachmentLinks(markedCrossRefs)
+                attachmentDao.insertContextAttachmentLinks(markedCrossRefs)
 
                 Log.d(WIFI_SYNC_LOG_TAG, "[markSyncedNow] DONE")
             }
@@ -1360,7 +1360,7 @@ class SyncRepository
                     local.goals.mapNotNull { it.syncedAt }.minOrNull(),
                     local.documents.mapNotNull { it.syncedAt }.minOrNull(),
                     local.attachments.mapNotNull { it.syncedAt }.minOrNull(),
-                    local.projectAttachmentCrossRefs.mapNotNull { it.syncedAt }.minOrNull(),
+                    local.contextAttachmentCrossRefs.mapNotNull { it.syncedAt }.minOrNull(),
                     local.backlogOrders.mapNotNull { it.syncedAt }.minOrNull(),
                 )
             return allSyncedTimes.minOrNull()
@@ -1375,7 +1375,7 @@ class SyncRepository
             val localGoals = goalDao.getAll().associateBy { it.id }
             val localListItems =
                 listItemDao.getAll()
-                    .filter { it.projectId in localProjects.keys }
+                    .filter { it.contextId in localProjects.keys }
                     .associateBy { it.id }
 
             val changes = mutableListOf<SyncChange>()
@@ -1473,7 +1473,7 @@ class SyncRepository
             // List items
             val incomingListItems =
                 db.backlogItems
-                    .filter { it.projectId in incomingProjectIds }
+                    .filter { it.contextId in incomingProjectIds }
                     .associateBy { it.id }
             incomingListItems.forEach { (id, incoming) ->
                 val local = localListItems[id]
@@ -1496,7 +1496,7 @@ class SyncRepository
             changesByType[ChangeType.Delete]?.forEach { change ->
                 when (change.entityType) {
                     "Привʼязка" -> listItemDao.deleteItemsByIds(listOf(change.id))
-                    "Список" -> contextDao.deleteProjectById(change.id)
+                    "Список" -> contextDao.deleteContextById(change.id)
                     "Ціль" -> goalDao.deleteGoalById(change.id)
                 }
             }
@@ -1526,10 +1526,10 @@ class SyncRepository
         }
 
         private suspend fun loadLocalDatabaseContent(): DatabaseContent {
-            val recentProjectEntries =
+            val recentContextEntries =
                 recentItemDao.getAll().map { recentItem ->
-                    com.romankozak.forwardappmobile.data.sync.RecentProjectEntry(
-                        projectId = recentItem.target,
+                    com.romankozak.forwardappmobile.data.sync.RecentContextEntry(
+                        contextId = recentItem.target,
                         timestamp = recentItem.lastAccessed,
                     )
                 }
@@ -1551,10 +1551,10 @@ class SyncRepository
                 linkItemEntities = linkItemDao.getAllEntities(),
                 inboxRecords = inboxRecordDao.getAll(),
                 contextLogs = contextManagementDao.getAllLogs(),
-                recentProjectEntries = recentProjectEntries,
+                recentContextEntries = recentContextEntries,
                 scripts = scripts,
                 attachments = attachmentDao.getAll(),
-                projectAttachmentCrossRefs = attachmentDao.getAllProjectAttachmentCrossRefs(),
+                contextAttachmentCrossRefs = attachmentDao.getAllContextAttachmentCrossRefs(),
             )
         }
 
@@ -1582,7 +1582,7 @@ class SyncRepository
             val (goalsUnsync, goalsUpdated) = unsyncedAndUpdated(local.goals, { it.syncedAt }, { it.updatedTs() })
             val goalsResult = goalsUnsync + goalsUpdated
 
-            val projectIds = local.projects.map { it.id }.toSet()
+            val contextIds = local.projects.map { it.id }.toSet()
             val goalIds = local.goals.map { it.id }.toSet()
             val existingDocIds = local.documents.map { it.id }.toSet()
             val checklistIds = local.checklists.map { it.id }.toSet()
@@ -1597,33 +1597,33 @@ class SyncRepository
             val attachmentsUnsync = local.attachments.filter { it.syncedAt == null }
             val attachmentsUpdated = local.attachments.filter { (it.updatedTs() ?: 0L) > since && it.syncedAt != null }
 
-            // ========== POTENTIAL DEFECT #3 FIX: Validate ownerProjectId ==========
-            // Attachments with non-existent ownerProjectId will be rejected by desktop
+            // ========== POTENTIAL DEFECT #3 FIX: Validate ownerContextId ==========
+            // Attachments with non-existent ownerContextId will be rejected by desktop
             // We should warn about this or preserve them as orphans
             val attachmentsWithInvalidOwner =
                 (attachmentsUnsync + attachmentsUpdated).filter {
-                    it.ownerProjectId != null && it.ownerProjectId !in projectIds
+                    it.ownerContextId != null && it.ownerContextId !in contextIds
                 }
             if (attachmentsWithInvalidOwner.isNotEmpty()) {
                 Log.w(
                     WIFI_SYNC_LOG_TAG,
-                    "[getChangesSince] WARNING: ${attachmentsWithInvalidOwner.size} attachments have invalid ownerProjectId (will be rejected by desktop)",
+                    "[getChangesSince] WARNING: ${attachmentsWithInvalidOwner.size} attachments have invalid ownerContextId (will be rejected by desktop)",
                 )
                 attachmentsWithInvalidOwner.take(3).forEach {
-                    Log.d(WIFI_SYNC_LOG_TAG, "  ! Invalid owner: id=${it.id}, owner=${it.ownerProjectId} (not in projects)")
+                    Log.d(WIFI_SYNC_LOG_TAG, "  ! Invalid owner: id=${it.id}, owner=${it.ownerContextId} (not in contexts)")
                 }
             }
 
             val attachmentsResult = attachmentsUnsync + attachmentsUpdated
 
             // For crossRefs: export if unsync'd (syncedAt=null) OR updated after 'since'
-            val crossRefsUnsync = local.projectAttachmentCrossRefs.filter { it.syncedAt == null }
-            val crossRefsUpdated = local.projectAttachmentCrossRefs.filter { (it.updatedTs() ?: 0L) > since && it.syncedAt != null }
+            val crossRefsUnsync = local.contextAttachmentCrossRefs.filter { it.syncedAt == null }
+            val crossRefsUpdated = local.contextAttachmentCrossRefs.filter { (it.updatedTs() ?: 0L) > since && it.syncedAt != null }
             val crossRefsResult = crossRefsUnsync + crossRefsUpdated
 
             // Documents: export unsynced OR updated (avoid sending attachments without documents)
             val (documentsUnsync, documentsUpdated) = unsyncedAndUpdated(local.documents, { it.syncedAt }, { it.updatedTs() })
-            val documentsResult = (documentsUnsync + documentsUpdated).filter { it.projectId in projectIds }
+            val documentsResult = (documentsUnsync + documentsUpdated).filter { it.contextId in contextIds }
             val docIds = documentsResult.map { it.id }.toSet().ifEmpty { existingDocIds }
 
             // Document items: export unsynced OR updated
@@ -1637,7 +1637,7 @@ class SyncRepository
             // Checklists: export unsynced OR updated
             val (checklistsUnsync, checklistsUpdated) = unsyncedAndUpdated(local.checklists, { it.syncedAt }, { it.updatedTs() })
             val rawChecklistsResult = checklistsUnsync + checklistsUpdated
-            val checklistsResult = rawChecklistsResult.filter { it.projectId in projectIds }
+            val checklistsResult = rawChecklistsResult.filter { it.contextId in contextIds }
             val checklistIdsForExport = checklistsResult.map { it.id }.toSet()
             val skippedChecklists = rawChecklistsResult.size - checklistsResult.size
 
@@ -1661,7 +1661,7 @@ class SyncRepository
             val rawListItemsResult = listItemsUnsync + listItemsUpdated
             val listItemsResult =
                 rawListItemsResult
-                    .filter { it.projectId in projectIds || it.entityId in goalIds }
+                    .filter { it.contextId in contextIds || it.entityId in goalIds }
 
             val dedupedLocalBacklogOrders = dedupBacklogOrders(local.backlogOrders)
             val (backlogOrdersUnsync, backlogOrdersUpdated) =
@@ -1673,7 +1673,7 @@ class SyncRepository
             val rawBacklogOrders = backlogOrdersUnsync + backlogOrdersUpdated
             val backlogOrdersResult =
                 rawBacklogOrders
-                    .filter { it.listId in projectIds && it.itemId in (projectIds + goalIds) }
+                    .filter { it.listId in contextIds && it.itemId in (contextIds + goalIds) }
 
             // Links: export unsynced OR updated
             val (linkItemsUnsync, linkItemsUpdated) = unsyncedAndUpdated(local.linkItemEntities, { it.syncedAt }, { it.updatedTs() })
@@ -1697,7 +1697,7 @@ class SyncRepository
                 attachmentsUnsync.take(5).forEach {
                     Log.d(
                         WIFI_SYNC_LOG_TAG,
-                        "  [EXPORT-UNSYNC] Attachment: id=${it.id}, type=${it.attachmentType}, entity=${it.entityId}, owner=${it.ownerProjectId}, createdAt=${java.text.SimpleDateFormat(
+                        "  [EXPORT-UNSYNC] Attachment: id=${it.id}, type=${it.attachmentType}, entity=${it.entityId}, owner=${it.ownerContextId}, createdAt=${java.text.SimpleDateFormat(
                             "yyyy-MM-dd HH:mm:ss",
                         ).format(java.util.Date(it.createdAt))}, version=${it.version}",
                     )
@@ -1714,14 +1714,14 @@ class SyncRepository
                     val isUpdated = (it.updatedTs() ?: 0L) > since
                     Log.d(
                         WIFI_SYNC_LOG_TAG,
-                        "  [EXPORT] Attachment: id=${it.id}, type=${it.attachmentType}, entity=${it.entityId}, owner=${it.ownerProjectId}, unsync'd=$isUnsync, updated=$isUpdated, updatedAt=${it.updatedAt}, syncedAt=${it.syncedAt}, version=${it.version}",
+                        "  [EXPORT] Attachment: id=${it.id}, type=${it.attachmentType}, entity=${it.entityId}, owner=${it.ownerContextId}, unsync'd=$isUnsync, updated=$isUpdated, updatedAt=${it.updatedAt}, syncedAt=${it.syncedAt}, version=${it.version}",
                     )
                 }
             }
 
             Log.d(
                 WIFI_SYNC_LOG_TAG,
-                "[getChangesSince] CrossRefs: total=${local.projectAttachmentCrossRefs.size}, unsync'd=${crossRefsUnsync.size}, updated=${crossRefsUpdated.size}, result=${crossRefsResult.size}",
+                "[getChangesSince] CrossRefs: total=${local.contextAttachmentCrossRefs.size}, unsync'd=${crossRefsUnsync.size}, updated=${crossRefsUpdated.size}, result=${crossRefsResult.size}",
             )
             Log.d(
                 WIFI_SYNC_LOG_TAG,
@@ -1729,12 +1729,12 @@ class SyncRepository
             )
             if (documentsResult.size < documentsUnsync.size + documentsUpdated.size) {
                 (documentsUnsync + documentsUpdated)
-                    .filter { it.projectId !in projectIds }
+                    .filter { it.contextId !in contextIds }
                     .take(3)
                     .forEach {
                         Log.w(
                             WIFI_SYNC_LOG_TAG,
-                            "[getChangesSince] Skipping document with invalid projectId=${it.projectId}, id=${it.id}",
+                            "[getChangesSince] Skipping document with invalid contextId=${it.contextId}, id=${it.id}",
                         )
                     }
             }
@@ -1758,8 +1758,8 @@ class SyncRepository
                 "[getChangesSince] Checklists: total=${local.checklists.size}, unsync'd=${checklistsUnsync.size}, updated=${checklistsUpdated.size}, result=${checklistsResult.size} (skipped_invalid_project=$skippedChecklists)",
             )
             if (skippedChecklists > 0) {
-                rawChecklistsResult.filter { it.projectId !in projectIds }.take(3).forEach {
-                    Log.w(WIFI_SYNC_LOG_TAG, "[getChangesSince] Skipping checklist with invalid projectId=${it.projectId}, id=${it.id}")
+                rawChecklistsResult.filter { it.contextId !in contextIds }.take(3).forEach {
+                    Log.w(WIFI_SYNC_LOG_TAG, "[getChangesSince] Skipping checklist with invalid contextId=${it.contextId}, id=${it.id}")
                 }
             }
 
@@ -1796,26 +1796,26 @@ class SyncRepository
                 contextLogs = filterByUpdated(local.contextLogs) { it.updatedTs() },
                 scripts = filterByUpdated(local.scripts) { it.updatedTs() },
                 attachments = attachmentsResult,
-                projectAttachmentCrossRefs = crossRefsResult,
-                recentProjectEntries = emptyList(),
+                contextAttachmentCrossRefs = crossRefsResult,
+                recentContextEntries = emptyList(),
             )
         }
 
         private suspend fun synthesizeMissingCrossRefs(
             attachments: List<AttachmentEntity>,
-            existingCrossRefs: List<ProjectAttachmentCrossRef>,
+            existingCrossRefs: List<ContextAttachmentCrossRef>,
             logPrefix: String,
             persistToDb: Boolean = true,
-        ): List<ProjectAttachmentCrossRef> {
-            val existingKeys = existingCrossRefs.associateBy { "${it.projectId}-${it.attachmentId}" }
+        ): List<ContextAttachmentCrossRef> {
+            val existingKeys = existingCrossRefs.associateBy { "${it.contextId}-${it.attachmentId}" }
             val synthesized =
                 attachments.mapNotNull { attachment ->
-                    val owner = attachment.ownerProjectId ?: return@mapNotNull null
+                    val owner = attachment.ownerContextId ?: return@mapNotNull null
                     val key = "$owner-${attachment.id}"
                     if (existingKeys.containsKey(key)) return@mapNotNull null
 
-                    ProjectAttachmentCrossRef(
-                        projectId = owner,
+                    ContextAttachmentCrossRef(
+                        contextId = owner,
                         attachmentId = attachment.id,
                         attachmentOrder = -attachment.updatedAt, // keep ordering roughly by recency
                         updatedAt = attachment.updatedAt,
@@ -1825,15 +1825,15 @@ class SyncRepository
                     )
                 }
 
-            val combined = (existingCrossRefs + synthesized).distinctBy { "${it.projectId}-${it.attachmentId}" }
+            val combined = (existingCrossRefs + synthesized).distinctBy { "${it.contextId}-${it.attachmentId}" }
             if (synthesized.isNotEmpty()) {
                 Log.w(
                     WIFI_SYNC_LOG_TAG,
-                    "$logPrefix Synthesized ${synthesized.size} missing crossRefs from attachment.ownerProjectId. dbCrossRefs=${existingCrossRefs.size}, total=${combined.size}",
+                    "$logPrefix Synthesized ${synthesized.size} missing crossRefs from attachment.ownerContextId. dbCrossRefs=${existingCrossRefs.size}, total=${combined.size}",
                 )
                 if (persistToDb) {
                     // Heal the database so attachments don't disappear from the Android UI after sync
-                    runCatching { attachmentDao.insertProjectAttachmentLinks(synthesized) }
+                    runCatching { attachmentDao.insertContextAttachmentLinks(synthesized) }
                         .onSuccess {
                             Log.d(
                                 WIFI_SYNC_LOG_TAG,
@@ -1885,15 +1885,15 @@ class SyncRepository
                 appDatabase.withTransaction {
                     Log.d(IMPORT_TAG, "Transaction: Inserting selected data (LWW).")
 
-                    if (selectedData.projects.isNotEmpty()) {
+                    if (selectedData.contexts.isNotEmpty()) {
                         // Skip systemKey projects; they are prepopulated locally
-                        val incomingRegular = selectedData.projects.filter { it.systemKey == null }
+                        val incomingRegular = selectedData.contexts.filter { it.systemKey == null }
                         val regularProjects =
                             incomingRegular
                                 .let {
                                     keepNewer(
                                         it,
-                                        local.projects.associateBy {
+                                        local.contexts.associateBy {
                                                 p ->
                                             p.id
                                         },
@@ -1903,10 +1903,10 @@ class SyncRepository
                                     )
                                 }
                         if (regularProjects.isNotEmpty()) {
-                            contextDao.insertProjects(regularProjects)
+                            contextDao.insertContexts(regularProjects)
                             Log.d(
                                 IMPORT_TAG,
-                                "  - Upserted ${regularProjects.size} projects (systemKey skipped=${selectedData.projects.size - incomingRegular.size}).",
+                                "  - Upserted ${regularProjects.size} contexts (systemKey skipped=${selectedData.contexts.size - incomingRegular.size}).",
                             )
                         }
                     }
@@ -1920,11 +1920,11 @@ class SyncRepository
                     }
                     if (selectedData.backlogItems.isNotEmpty()) {
                         // Filter out list items that reference non-existent projects/goals
-                        val importedProjectIds = selectedData.projects.map { it.id }.toSet()
+                        val importedContextIds = selectedData.contexts.map { it.id }.toSet()
                         val importedGoalIds = selectedData.goals.map { it.id }.toSet()
                         val validListItems =
                             selectedData.backlogItems.filter {
-                                it.projectId in importedProjectIds || it.entityId in importedGoalIds
+                                it.contextId in importedContextIds || it.entityId in importedGoalIds
                             }.let {
                                 keepNewer(
                                     it,
@@ -1952,11 +1952,11 @@ class SyncRepository
                         }
                     }
                     if (selectedData.backlogOrders.isNotEmpty()) {
-                        val importedProjectIds = selectedData.projects.map { it.id }.toSet()
+                        val importedContextIds = selectedData.contexts.map { it.id }.toSet()
                         val importedGoalIds = selectedData.goals.map { it.id }.toSet()
                         val validBacklogOrders =
                             selectedData.backlogOrders.filter {
-                                it.listId in importedProjectIds && it.itemId in (importedGoalIds + importedProjectIds)
+                                it.listId in importedContextIds && it.itemId in (importedGoalIds + importedContextIds)
                             }.let {
                                 keepNewer(
                                     it,
@@ -2059,11 +2059,11 @@ class SyncRepository
                             "  - Upserted ${newerChecklistItems.size} checklist items (filtered from ${selectedData.checklistItems.size}).",
                         )
                     }
-                    if (selectedData.projectAttachmentCrossRefs.isNotEmpty()) {
-                        // Get IDs of projects that were selected for import (from selectedData, not DB)
-                        // This ensures we don't import attachments linked to system projects that weren't selected
-                        val selectedProjectIds = selectedData.projects.map { it.id }.toSet()
-                        val validCrossRefs = selectedData.projectAttachmentCrossRefs.filter { it.projectId in selectedProjectIds }
+                    if (selectedData.contextAttachmentCrossRefs.isNotEmpty()) {
+                        // Get IDs of contexts that were selected for import (from selectedData, not DB)
+                        // This ensures we don't import attachments linked to system contexts that weren't selected
+                        val selectedContextIds = selectedData.contexts.map { it.id }.toSet()
+                        val validCrossRefs = selectedData.contextAttachmentCrossRefs.filter { it.contextId in selectedContextIds }
                         val validAttachmentIds = validCrossRefs.map { it.attachmentId }.toSet()
 
                         // Only import attachments that have valid cross-refs to selected projects
@@ -2094,23 +2094,23 @@ class SyncRepository
                             val newerCrossRefs =
                                 keepNewer(
                                     validCrossRefs,
-                                    local.projectAttachmentCrossRefs.associateBy { "${it.projectId}-${it.attachmentId}" },
-                                    { "${it.projectId}-${it.attachmentId}" },
+                                    local.contextAttachmentCrossRefs.associateBy { "${it.contextId}-${it.attachmentId}" },
+                                    { "${it.contextId}-${it.attachmentId}" },
                                     { it.version },
                                     { it.updatedAt },
                                 )
                             if (newerCrossRefs.isNotEmpty()) {
-                                attachmentDao.insertProjectAttachmentLinks(newerCrossRefs)
+                                attachmentDao.insertContextAttachmentLinks(newerCrossRefs)
                             }
                             Log.d(
                                 IMPORT_TAG,
-                                "  - Upserted ${newerCrossRefs.size} project attachment cross-refs (filtered from ${selectedData.projectAttachmentCrossRefs.size}).",
+                                "  - Upserted ${newerCrossRefs.size} project attachment cross-refs (filtered from ${selectedData.contextAttachmentCrossRefs.size}).",
                             )
                         }
-                        if (validCrossRefs.size < selectedData.projectAttachmentCrossRefs.size) {
+                        if (validCrossRefs.size < selectedData.contextAttachmentCrossRefs.size) {
                             Log.w(
                                 IMPORT_TAG,
-                                "  - Skipped ${selectedData.projectAttachmentCrossRefs.size - validCrossRefs.size} cross-refs pointing to non-existent or unselected projects.",
+                                "  - Skipped ${selectedData.contextAttachmentCrossRefs.size - validCrossRefs.size} cross-refs pointing to non-existent or unselected contexts.",
                             )
                         }
                     } else if (selectedData.attachments.isNotEmpty()) {
@@ -2297,11 +2297,11 @@ class SyncRepository
                         { it.updatedTs() },
                         { it.isDeleted },
                     ),
-                projectAttachmentCrossRefs =
+                contextAttachmentCrossRefs =
                     diffEntities(
-                        incoming.projectAttachmentCrossRefs,
-                        local.projectAttachmentCrossRefs,
-                        { "${it.projectId}-${it.attachmentId}" },
+                        incoming.contextAttachmentCrossRefs,
+                        local.contextAttachmentCrossRefs,
+                        { "${it.contextId}-${it.attachmentId}" },
                         { it.version },
                         { it.updatedTs() },
                         { it.isDeleted },
@@ -2367,7 +2367,7 @@ class SyncRepository
 
         private fun AttachmentEntity.updatedTs(): Long = this.updatedAt
 
-        private fun ProjectAttachmentCrossRef.updatedTs(): Long = this.updatedAt ?: this.attachmentOrder.toLong()
+        private fun ContextAttachmentCrossRef.updatedTs(): Long = this.updatedAt ?: this.attachmentOrder.toLong()
 
         private fun DayPlan.updatedTs(): Long = this.updatedAt ?: this.createdAt
 
@@ -2378,7 +2378,7 @@ class SyncRepository
         private fun Reminder.updatedTs(): Long = this.updatedAt ?: this.creationTime
 
         private fun dedupListItems(items: List<BacklogItem>): List<BacklogItem> =
-            items.groupBy { Triple(it.projectId, it.entityId, it.itemType) }
+            items.groupBy { Triple(it.contextId, it.entityId, it.itemType) }
                 .mapNotNull { (_, candidates) ->
                     candidates.maxWithOrNull(
                         compareBy<BacklogItem> { it.version }
@@ -2403,7 +2403,7 @@ class SyncRepository
         }
 
         private suspend fun cleanupListItemDuplicates(
-            projectIds: Set<String>,
+            contextIds: Set<String>,
             goalIds: Set<String>,
             backlogValidIds: Set<String>,
         ) {
@@ -2411,7 +2411,7 @@ class SyncRepository
             val valid =
                 dedupListItems(
                     all.filter {
-                        it.projectId in projectIds && (it.itemType != BacklogItemTypeValues.GOAL || it.entityId in goalIds) && (it.itemType != BacklogItemTypeValues.SUBLIST || it.entityId in projectIds)
+                        it.contextId in contextIds && (it.itemType != BacklogItemTypeValues.GOAL || it.entityId in goalIds) && (it.itemType != BacklogItemTypeValues.SUBLIST || it.entityId in contextIds)
                     },
                 )
             val keepIds = valid.map { it.id }.toSet()
@@ -2426,7 +2426,7 @@ class SyncRepository
             }
 
             val allOrders = backlogOrderDao.getAll()
-            val validOrders = dedupBacklogOrders(allOrders.filter { it.listId in projectIds && it.itemId in backlogValidIds })
+            val validOrders = dedupBacklogOrders(allOrders.filter { it.listId in contextIds && it.itemId in backlogValidIds })
             val keepOrderIds = validOrders.map { it.id }.toSet()
             val orderDeletes = allOrders.map { it.id }.filterNot { it in keepOrderIds }
             if (orderDeletes.isNotEmpty()) {
@@ -2512,23 +2512,23 @@ class SyncRepository
                     attachments =
                         local.attachments.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) }
                             .also { logUnsynced("attachments", it, { it.id }, { it.updatedTs() }, { it.syncedAt }, { it.isDeleted }) },
-                    projectAttachmentCrossRefs =
-                        local.projectAttachmentCrossRefs.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) }
+                    contextAttachmentCrossRefs =
+                        local.contextAttachmentCrossRefs.filter { isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) }
                             .also {
                                 logUnsynced(
                                     "crossRefs",
                                     it,
-                                    { "${it.projectId}:${it.attachmentId}" },
+                                    { "${it.contextId}:${it.attachmentId}" },
                                     { it.updatedTs() },
                                     { it.syncedAt },
                                     { it.isDeleted },
                                 )
                             },
-                    recentProjectEntries = emptyList(),
+                    recentContextEntries = emptyList(),
                 )
             Log.d(
                 WIFI_SYNC_LOG_TAG,
-                "[getUnsyncedChanges] SUMMARY: docs=${unsynced.documents.size} docItems=${unsynced.documentItems.size} attachs=${unsynced.attachments.size} crossRefs=${unsynced.projectAttachmentCrossRefs.size}",
+                "[getUnsyncedChanges] SUMMARY: docs=${unsynced.documents.size} docItems=${unsynced.documentItems.size} attachs=${unsynced.attachments.size} crossRefs=${unsynced.contextAttachmentCrossRefs.size}",
             )
             return unsynced
         }
@@ -2553,8 +2553,8 @@ class SyncRepository
                     )
                     val local = loadLocalDatabaseContent()
 
-                    // 1. Align System Project IDs and create a redirect map
-                    val localSystemProjects = local.projects.filter { it.systemKey != null }.associateBy { it.systemKey!! }
+                    // 1. Align System Context IDs and create a redirect map
+                    val localSystemProjects = local.contexts.filter { it.systemKey != null }.associateBy { it.systemKey!! }
                     val idRedirects = mutableMapOf<String, String>()
                     val correctedIncomingProjects =
                         normalized.projects.map { incomingProject ->
@@ -2575,81 +2575,79 @@ class SyncRepository
 
                     // 2. Apply ID redirects to all related entities
                     val attachmentsBeforeRedirect = normalized.attachments
-                    val attachmentsAfterRedirect =
-                        normalized.attachments.mapNotNull {
-                            if (it.attachmentType == null) {
-                                Log.w(
-                                    WIFI_SYNC_LOG_TAG,
-                                    "[applyServerChanges] Skipping attachment with null type id=${it.id} entity=${it.entityId} owner=${it.ownerProjectId}",
-                                )
-                                return@mapNotNull null
-                            }
-                            val newOwnerId = it.ownerProjectId?.let { pid -> idRedirects[pid] ?: pid }
-                            if (newOwnerId != it.ownerProjectId) {
-                                Log.d(
-                                    WIFI_SYNC_LOG_TAG,
-                                    "[applyServerChanges] Redirecting attachment ownerProjectId: id=${it.id}, old=${it.ownerProjectId}, new=$newOwnerId",
-                                )
-                            }
-                            it.copy(ownerProjectId = newOwnerId)
-                        }
-
+                                val attachmentsAfterRedirect =
+                                    normalized.attachments.mapNotNull {
+                                        if (it.attachmentType == null) {
+                                            Log.w(
+                                                WIFI_SYNC_LOG_TAG,
+                                                "[applyServerChanges] Skipping attachment with null type id=${it.id} entity=${it.entityId} owner=${it.ownerContextId}",
+                                            )
+                                            return@mapNotNull null
+                                        }
+                                        val newOwnerId = it.ownerContextId?.let { cid -> idRedirects[cid] ?: cid }
+                                        if (newOwnerId != it.ownerContextId) {
+                                            Log.d(
+                                                WIFI_SYNC_LOG_TAG,
+                                                "[applyServerChanges] Redirecting attachment ownerContextId: id=${it.id}, old=${it.ownerContextId}, new=$newOwnerId",
+                                            )
+                                        }
+                                        it.copy(ownerContextId = newOwnerId)
+                                    }
                     val correctedChanges =
-                        normalized.copy(
-                            projects =
-                                correctedIncomingProjects.map { proj ->
-                                    idRedirects[proj.parentId]?.let { proj.copy(parentId = it) } ?: proj
-                                },
-                            backlogItems =
-                                normalized.backlogItems.map { li ->
-                                    val newProjectId = idRedirects[li.projectId] ?: li.projectId
-                                    val newEntityId = if (li.itemType == BacklogItemTypeValues.SUBLIST) idRedirects[li.entityId] ?: li.entityId else li.entityId
-                                    li.copy(projectId = newProjectId, entityId = newEntityId)
-                                },
-                            backlogOrders =
-                                normalized.backlogOrders.map { bo ->
-                                    val newListId = idRedirects[bo.listId] ?: bo.listId
-                                    val newItemId = idRedirects[bo.itemId] ?: bo.itemId
-                                    bo.copy(listId = newListId, itemId = newItemId)
-                                },
-                            documents =
-                                normalized.documents.map { doc ->
-                                    idRedirects[doc.projectId]?.let { doc.copy(projectId = it) } ?: doc
-                                },
-                            checklists =
-                                normalized.checklists.map { cl ->
-                                    idRedirects[cl.projectId]?.let { cl.copy(projectId = it) } ?: cl
-                                },
-                            projectAttachmentCrossRefs =
-                                normalized.projectAttachmentCrossRefs.map { crossRef ->
-                                    idRedirects[crossRef.projectId]?.let { crossRef.copy(projectId = it) } ?: crossRef
-                                },
-                            inboxRecords =
-                                normalized.inboxRecords.map { r ->
-                                    idRedirects[r.projectId]?.let { r.copy(projectId = it) } ?: r
-                                },
-                            contextLogs =
-                                normalized.contextLogs.map { log ->
-                                    idRedirects[log.projectId]?.let { log.copy(projectId = it) } ?: log
-                                },
-                            attachments = attachmentsAfterRedirect,
-                        )
-
+                                                correctedChanges.copy(
+                                                    projects =
+                                                        correctedIncomingProjects.map { ctx ->
+                                                            idRedirects[ctx.parentId]?.let { ctx.copy(parentId = it) } ?: ctx
+                                                        },
+                                                    backlogItems =
+                                                        normalized.backlogItems.map { li ->
+                                                            val newContextId = idRedirects[li.contextId] ?: li.contextId
+                                                            val newEntityId = if (li.itemType == BacklogItemTypeValues.SUBLIST) idRedirects[li.entityId] ?: li.entityId else li.entityId
+                                                            li.copy(contextId = newContextId, entityId = newEntityId)
+                                                        },
+                                                    backlogOrders =
+                                                        normalized.backlogOrders.map { bo ->
+                                                            val newListId = idRedirects[bo.listId] ?: bo.listId
+                                                            val newItemId = idRedirects[bo.itemId] ?: bo.itemId
+                                                            bo.copy(listId = newListId, itemId = newItemId)
+                                                        },
+                                                    documents =
+                                                        normalized.documents.map { doc ->
+                                                            idRedirects[doc.contextId]?.let { doc.copy(contextId = it) } ?: doc
+                                                        },
+                                                    checklists =
+                                                        normalized.checklists.map { cl ->
+                                                            idRedirects[cl.contextId]?.let { cl.copy(contextId = it) } ?: cl
+                                                        },
+                                                    contextAttachmentCrossRefs =
+                                                        normalized.contextAttachmentCrossRefs.map { crossRef ->
+                                                            idRedirects[crossRef.contextId]?.let { crossRef.copy(contextId = it) } ?: crossRef
+                                                        },
+                                                    inboxRecords =
+                                                        normalized.inboxRecords.map { r ->
+                                                            idRedirects[r.contextId]?.let { r.copy(contextId = it) } ?: r
+                                                        },
+                                                    contextLogs =
+                                                        normalized.contextLogs.map { log ->
+                                                            idRedirects[log.contextId]?.let { log.copy(contextId = it) } ?: log
+                                                        },
+                                                    attachments = attachmentsAfterRedirect,
+                                                )
                     // Preserve local view mode if incoming does not specify one
-                    val incomingProjectsWithViewMode =
+                    val incomingContextsWithViewMode =
                         correctedChanges.projects.map { inc ->
-                            val localProj = local.projects.find { it.id == inc.id }
-                            val viewMode = inc.defaultViewModeName ?: localProj?.defaultViewModeName
+                            val localCtx = local.projects.find { it.id == inc.id }
+                            val viewMode = inc.defaultViewModeName ?: localCtx?.defaultViewModeName
                             if (inc.defaultViewModeName == null && viewMode != null) {
-                                Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Keeping local view mode for project ${inc.id}: $viewMode")
+                                Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Keeping local view mode for context ${inc.id}: $viewMode")
                             }
                             inc.copy(defaultViewModeName = viewMode)
                         }
 
                     // 3. Merge entities
-                    val incomingProjects =
+                    val incomingContexts =
                         mergeAndMark(
-                            incomingProjectsWithViewMode,
+                            incomingContextsWithViewMode,
                             local.projects.associateBy { it.id },
                             { it.id },
                             { it.version },
@@ -2659,7 +2657,7 @@ class SyncRepository
                             { it.isDeleted },
                         ).filterNot { it.systemKey != null && it.isDeleted }
 
-                    if (incomingProjects.isNotEmpty()) contextDao.insertProjects(incomingProjects)
+                    if (incomingContexts.isNotEmpty()) contextDao.insertContexts(incomingContexts)
 
                     val incomingGoals =
                         mergeAndMark(
@@ -2674,15 +2672,15 @@ class SyncRepository
                         )
                     if (incomingGoals.isNotEmpty()) goalDao.insertGoals(incomingGoals)
 
-                    val projectIds = (local.projects.map { it.id } + incomingProjects.map { it.id }).toSet()
+                    val contextIds = (local.projects.map { it.id } + incomingContexts.map { it.id }).toSet()
                     val goalIds = (local.goals.map { it.id } + incomingGoals.map { it.id }).toSet()
-                    // Use every known project (local + incoming) for FK validation of docs/attachments/crossRefs
-                    val allProjectIds = projectIds
-                    val backlogValidIds = goalIds + allProjectIds
+                    // Use every known context (local + incoming) for FK validation of docs/attachments/crossRefs
+                    val allContextIds = contextIds
+                    val backlogValidIds = goalIds + allContextIds
 
                     val incomingOrderKeys =
                         correctedChanges.backlogOrders
-                            .filter { it.listId in projectIds && it.itemId in backlogValidIds }
+                            .filter { it.listId in contextIds && it.itemId in backlogValidIds }
                             .map { it.listId to it.itemId }
                             .toSet()
                     val localOrderByKey = local.backlogOrders.associateBy { it.listId to it.itemId }
@@ -2690,10 +2688,10 @@ class SyncRepository
                     val incomingListItemsPrepared =
                         correctedChanges.backlogItems
                             .filter {
-                                it.projectId in projectIds && (it.itemType != BacklogItemTypeValues.GOAL || it.entityId in goalIds) && (it.itemType != BacklogItemTypeValues.SUBLIST || it.entityId in projectIds)
+                                it.contextId in contextIds && (it.itemType != BacklogItemTypeValues.GOAL || it.entityId in goalIds) && (it.itemType != BacklogItemTypeValues.SUBLIST || it.entityId in contextIds)
                             }
                             .map { li ->
-                                val key = li.projectId to li.entityId
+                                val key = li.contextId to li.entityId
                                 val localOrder = localOrderByKey[key]
                                 val hasIncomingOrder = key in incomingOrderKeys
                                 if (localOrder != null && !hasIncomingOrder) {
@@ -2712,7 +2710,7 @@ class SyncRepository
                     val incomingOrdersNormalized: NormalizedBacklogOrderResult =
                         BacklogOrderUtils.normalizeBacklogOrderSets(
                             incomingListItemsPrepared,
-                            correctedChanges.backlogOrders.filter { it.listId in projectIds && it.itemId in backlogValidIds },
+                            correctedChanges.backlogOrders.filter { it.listId in contextIds && it.itemId in backlogValidIds },
                         )
                     val orderOverrideMap =
                         dedupBacklogOrders(local.backlogOrders + incomingOrdersNormalized.backlogOrders)
@@ -2722,9 +2720,10 @@ class SyncRepository
                         dedupListItems(
                             incomingOrdersNormalized.backlogItems
                                 .map { li ->
-                                    val override = orderOverrideMap[li.projectId to li.entityId]
+                                    val override = orderOverrideMap[li.contextId to li.entityId]
                                     if (override != null && !override.isDeleted) {
                                         li.copy(
+                                            contextId = li.contextId, // No contextId field here
                                             order = override.order,
                                             version = maxOf(li.version, override.orderVersion),
                                             updatedAt = maxOf(li.updatedAt ?: 0L, override.updatedAt ?: 0L, override.orderVersion),
@@ -2761,7 +2760,7 @@ class SyncRepository
                             { it.isDeleted },
                         )
                     if (incomingBacklogOrders.isNotEmpty()) backlogOrderDao.insertOrders(incomingBacklogOrders)
-                    cleanupListItemDuplicates(projectIds, goalIds, backlogValidIds)
+                    cleanupListItemDuplicates(contextIds, goalIds, backlogValidIds)
                     ensureBacklogOrdersSeeded(listItemDao.getAll())
 
                     val incomingNotes =
@@ -2778,7 +2777,7 @@ class SyncRepository
 
                     val incomingDocs =
                         mergeAndMark(
-                            correctedChanges.documents.filter { it.projectId in allProjectIds },
+                            correctedChanges.documents.filter { it.contextId in allContextIds },
                             local.documents.associateBy { it.id },
                             { it.id },
                             { it.version },
@@ -2807,7 +2806,7 @@ class SyncRepository
 
                     val incomingChecklists =
                         mergeAndMark(
-                            correctedChanges.checklists.filter { it.projectId in allProjectIds },
+                            correctedChanges.checklists.filter { it.contextId in allContextIds },
                             local.checklists.associateBy { it.id },
                             { it.id },
                             { it.version },
@@ -2892,7 +2891,7 @@ class SyncRepository
 
                     Log.d(
                         WIFI_SYNC_LOG_TAG,
-                        "[applyServerChanges] Processing attachments. Total incoming: ${correctedChanges.attachments.size}, delta projects: ${projectIds.size}, all local projects: ${allProjectIds.size}",
+                        "[applyServerChanges] Processing attachments. Total incoming: ${correctedChanges.attachments.size}, delta projects: ${contextIds.size}, all local projects: ${allProjectIds.size}",
                     )
                     Log.d(
                         WIFI_SYNC_LOG_TAG,
@@ -2901,12 +2900,12 @@ class SyncRepository
 
                     // ========== DEFECT #3 FIX: Use ALL local project IDs for filtering, not just delta projects ==========
                     // This prevents massive data loss when attachments belong to projects not in the current delta
-                    // BEFORE (buggy): using projectIds only → 106 → 12 loss
+                    // BEFORE (buggy): using contextIds only → 106 → 12 loss
                     // AFTER (fixed): using allLocalProjectIds → all attachments preserved
 
-                    val attachmentsWithoutOwner = correctedChanges.attachments.count { it.ownerProjectId == null }
-                    val attachmentsWithInvalidOwner = correctedChanges.attachments.count { it.ownerProjectId != null && it.ownerProjectId !in allProjectIds }
-                    val attachmentsWithValidOwner = correctedChanges.attachments.count { it.ownerProjectId != null && it.ownerProjectId in allProjectIds }
+                    val attachmentsWithoutOwner = correctedChanges.attachments.count { it.ownerContextId == null }
+                    val attachmentsWithInvalidOwner = correctedChanges.attachments.count { it.ownerContextId != null && it.ownerContextId !in allProjectIds }
+                    val attachmentsWithValidOwner = correctedChanges.attachments.count { it.ownerContextId != null && it.ownerContextId in allProjectIds }
                     Log.d(
                         WIFI_SYNC_LOG_TAG,
                         "[applyServerChanges] Attachments breakdown: orphans=$attachmentsWithoutOwner, truly_invalid=$attachmentsWithInvalidOwner, valid=$attachmentsWithValidOwner",
@@ -2920,17 +2919,17 @@ class SyncRepository
                     local.attachments.filter { it.syncedAt == null }.take(3).forEach {
                         Log.d(
                             WIFI_SYNC_LOG_TAG,
-                            "  Local unsynced: id=${it.id}, type=${it.attachmentType}, entity=${it.entityId}, owner=${it.ownerProjectId}, version=${it.version}",
+                            "  Local unsynced: id=${it.id}, type=${it.attachmentType}, entity=${it.entityId}, owner=${it.ownerContextId}, version=${it.version}",
                         )
                     }
 
                     if (attachmentsWithInvalidOwner > 0) {
-                        correctedChanges.attachments.filter { it.ownerProjectId != null && it.ownerProjectId !in allProjectIds }.take(
+                        correctedChanges.attachments.filter { it.ownerContextId != null && it.ownerContextId !in allProjectIds }.take(
                             5,
                         ).forEach {
                             Log.d(
                                 WIFI_SYNC_LOG_TAG,
-                                "[applyServerChanges] Filtered out attachment (truly orphaned): id=${it.id}, type=${it.attachmentType}, entity=${it.entityId}, ownerProjectId=${it.ownerProjectId}",
+                                "[applyServerChanges] Filtered out attachment (truly orphaned): id=${it.id}, type=${it.attachmentType}, entity=${it.entityId}, ownerContextId=${it.ownerContextId}",
                             )
                         }
                     }
@@ -2948,7 +2947,7 @@ class SyncRepository
                     // Process incoming attachments using ALL local projects (DEFECT #3 FIX)
                     val incomingAttachments =
                         mergeAndMark(
-                            correctedChanges.attachments.filter { it.ownerProjectId == null || it.ownerProjectId in allProjectIds },
+                            correctedChanges.attachments.filter { it.ownerContextId == null || it.ownerContextId in allContextIds },
                             local.attachments.associateBy { it.id },
                             { it.id },
                             { it.version },
@@ -2960,25 +2959,24 @@ class SyncRepository
                     // We still need to mark local copies as synced to avoid them staying unsynced and "disappearing" from UI.
                     val matchedExistingAttachments =
                         correctedChanges.attachments
-                            .filter { it.ownerProjectId == null || it.ownerProjectId in allProjectIds }
+                            .filter { it.ownerContextId == null || it.ownerContextId in allProjectIds }
                             .mapNotNull { inc -> local.attachments.find { it.id == inc.id } }
                             .filter { it.syncedAt == null } // only those still unsynced locally
                             .map { it.copy(syncedAt = ts) }
                     if (matchedExistingAttachments.isNotEmpty()) {
-                        Log.d(
-                            WIFI_SYNC_LOG_TAG,
-                            "[applyServerChanges] DEFECT #5: Marking ${matchedExistingAttachments.size} locally existing attachments as synced (matched incoming ids)",
-                        )
-                        matchedExistingAttachments.take(3).forEach {
-                            Log.d(WIFI_SYNC_LOG_TAG, "  [DEFECT #5] Mark-synced existing: id=${it.id}, owner=${it.ownerProjectId}")
-                        }
-                    }
+                                            Log.d(
+                                                WIFI_SYNC_LOG_TAG,
+                                                "[applyServerChanges] DEFECT #5: Marking ${matchedExistingAttachments.size} locally existing attachments as synced (matched incoming ids)",
+                                            )
+                                            matchedExistingAttachments.take(3).forEach {
+                                                Log.d(WIFI_SYNC_LOG_TAG, "  [DEFECT #5] Mark-synced existing: id=${it.id}, owner=${it.ownerContextId}")
+                                            }                    }
 
                     // DEFECT #4 FIX: Re-include attachments that were already synced but filtered by mergeAndMark
                     // This prevents losing sync state when Desktop re-sends the same attachments
                     val validIncomingIds =
                         correctedChanges.attachments
-                            .filter { it.ownerProjectId == null || it.ownerProjectId in allProjectIds }
+                            .filter { it.ownerContextId == null || it.ownerContextId in allProjectIds }
                             .map { it.id }
                             .toSet()
                     Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] DEFECT #4: Incoming valid attachment IDs: ${validIncomingIds.size}")
@@ -3006,7 +3004,7 @@ class SyncRepository
                     val unsyncedLocalAttachments =
                         if (correctedChanges.attachments.isEmpty()) {
                             local.attachments
-                                .filter { it.syncedAt == null && (it.ownerProjectId == null || it.ownerProjectId in allProjectIds) }
+                                .filter { it.syncedAt == null && (it.ownerContextId == null || it.ownerContextId in allContextIds) }
                                 .map { it.copy(syncedAt = ts) }
                         } else {
                             emptyList()
@@ -3030,7 +3028,7 @@ class SyncRepository
                         allAttachmentsToInsert.take(3).forEach {
                             Log.d(
                                 WIFI_SYNC_LOG_TAG,
-                                "[applyServerChanges] Attachment to insert: id=${it.id}, type=${it.attachmentType}, entity=${it.entityId}, syncedAt=${it.syncedAt}, ownerProjectId=${it.ownerProjectId}, version=${it.version}",
+                                "[applyServerChanges] Attachment to insert: id=${it.id}, type=${it.attachmentType}, entity=${it.entityId}, syncedAt=${it.syncedAt}, ownerContextId=${it.ownerContextId}, version=${it.version}",
                             )
                         }
                         attachmentDao.insertAttachments(allAttachmentsToInsert)
@@ -3046,31 +3044,31 @@ class SyncRepository
                     val synthesizedCrossRefs =
                         synthesizeMissingCrossRefs(
                             attachments = correctedChanges.attachments,
-                            existingCrossRefs = correctedChanges.projectAttachmentCrossRefs,
+                            existingCrossRefs = correctedChanges.contextAttachmentCrossRefs,
                             logPrefix = "[applyServerChanges]",
                             persistToDb = false, // defer actual insert to mergeAndMark below to respect FK order
                         )
                     Log.d(
                         WIFI_SYNC_LOG_TAG,
-                        "[applyServerChanges] Processing crossRefs. Total incoming: ${synthesizedCrossRefs.size}, attachments in scope: ${attachmentIds.size}, delta projects: ${projectIds.size}, all local projects: ${allProjectIds.size}",
+                        "[applyServerChanges] Processing crossRefs. Total incoming: ${synthesizedCrossRefs.size}, attachments in scope: ${attachmentIds.size}, delta contexts: ${contextIds.size}, all local contexts: ${allContextIds.size}",
                     )
 
                     // Log crossRef filtering details (also use allLocalProjectIds for crossRefs - DEFECT #3 FIX)
-                    val validCrossRefs = synthesizedCrossRefs.filter { it.projectId in allProjectIds && it.attachmentId in attachmentIds }
-                    val invalidProjectCrossRefs = synthesizedCrossRefs.count { it.projectId !in allProjectIds }
-                    val invalidAttachmentCrossRefs = synthesizedCrossRefs.count { it.projectId in allProjectIds && it.attachmentId !in attachmentIds }
+                    val validCrossRefs = synthesizedCrossRefs.filter { it.contextId in allContextIds && it.attachmentId in attachmentIds }
+                    val invalidContextCrossRefs = synthesizedCrossRefs.count { it.contextId !in allContextIds }
+                    val invalidAttachmentCrossRefs = synthesizedCrossRefs.count { it.contextId in allContextIds && it.attachmentId !in attachmentIds }
                     Log.d(
                         WIFI_SYNC_LOG_TAG,
-                        "[applyServerChanges] CrossRefs breakdown: valid=${validCrossRefs.size}, invalid_project=$invalidProjectCrossRefs, invalid_attachment=$invalidAttachmentCrossRefs",
+                        "[applyServerChanges] CrossRefs breakdown: valid=${validCrossRefs.size}, invalid_context=$invalidContextCrossRefs, invalid_attachment=$invalidAttachmentCrossRefs",
                     )
 
-                    if (invalidProjectCrossRefs > 0 || invalidAttachmentCrossRefs > 0) {
-                        synthesizedCrossRefs.filter { it.projectId !in allProjectIds || it.attachmentId !in attachmentIds }.take(
+                    if (invalidContextCrossRefs > 0 || invalidAttachmentCrossRefs > 0) {
+                        synthesizedCrossRefs.filter { it.contextId !in allContextIds || it.attachmentId !in attachmentIds }.take(
                             5,
                         ).forEach {
                             Log.d(
                                 WIFI_SYNC_LOG_TAG,
-                                "[applyServerChanges] Filtered out crossRef: projectId=${it.projectId} (valid=${it.projectId in allProjectIds}), attachmentId=${it.attachmentId} (valid=${it.attachmentId in attachmentIds})",
+                                "[applyServerChanges] Filtered out crossRef: contextId=${it.contextId} (valid=${it.contextId in allContextIds}), attachmentId=${it.attachmentId} (valid=${it.attachmentId in attachmentIds})",
                             )
                         }
                     }
@@ -3078,28 +3076,28 @@ class SyncRepository
                     val incomingCrossRefs =
                         mergeAndMark(
                             validCrossRefs,
-                            local.projectAttachmentCrossRefs.associateBy { "${it.projectId}-${it.attachmentId}" },
-                            { "${it.projectId}-${it.attachmentId}" },
+                            local.contextAttachmentCrossRefs.associateBy { "${it.contextId}-${it.attachmentId}" },
+                            { "${it.contextId}-${it.attachmentId}" },
                             { it.version },
                             { it.updatedTs() },
                             { cr, synced -> cr.copy(syncedAt = synced) },
                             ts,
                         )
                     Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] After merge: ${incomingCrossRefs.size} crossRefs to insert")
-                    if (incomingCrossRefs.isNotEmpty()) attachmentDao.insertProjectAttachmentLinks(incomingCrossRefs)
+                    if (incomingCrossRefs.isNotEmpty()) attachmentDao.insertContextAttachmentLinks(incomingCrossRefs)
 
                     // Safety net: ensure every validCrossRef exists even if mergeAndMark skipped (same version/timestamp)
-                    val existingCrossRefKeys = (local.projectAttachmentCrossRefs + incomingCrossRefs).map { "${it.projectId}-${it.attachmentId}" }.toSet()
+                    val existingCrossRefKeys = (local.contextAttachmentCrossRefs + incomingCrossRefs).map { "${it.contextId}-${it.attachmentId}" }.toSet()
                     val missingCrossRefs =
                         validCrossRefs
-                            .filter { "${it.projectId}-${it.attachmentId}" !in existingCrossRefKeys }
+                            .filter { "${it.contextId}-${it.attachmentId}" !in existingCrossRefKeys }
                             .map { it.copy(syncedAt = ts, updatedAt = maxOf(it.updatedAt ?: 0L, ts)) }
                     if (missingCrossRefs.isNotEmpty()) {
                         Log.w(
                             WIFI_SYNC_LOG_TAG,
                             "[applyServerChanges] DEFECT #4 CROSSREF SAFETY: Inserting ${missingCrossRefs.size} missing crossRefs that were filtered out by merge",
                         )
-                        attachmentDao.insertProjectAttachmentLinks(missingCrossRefs)
+                        attachmentDao.insertContextAttachmentLinks(missingCrossRefs)
                     }
                 }
                 Log.d(WIFI_SYNC_LOG_TAG, "[applyServerChanges] Applied at $ts")

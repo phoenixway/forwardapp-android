@@ -2,7 +2,11 @@
 .gradle/
 ktlint
 google-cloud-sdk*
+
 loggy.log
+debug.log
+communication.log
+
 app/schemas/
 tools/.node/
 .pnpm-store/
@@ -24,3 +28,5 @@ forwardapp-devtools/context/.Context.md.kate-swp
 .aider*
 .env
 .tmp/
+sources.txt
+path.txt

@@ -38,7 +38,7 @@ class SearchRepository
                         GlobalSearchResultItem.GoalItem(
                             goal = searchResult.goal,
                             backlogItem = it,
-                            projectName = searchResult.projectName,
+                            contextName = searchResult.contextName,
                             pathSegments = searchResult.pathSegments,
                         )
                     }
@@ -52,7 +52,7 @@ class SearchRepository
                     GlobalSearchResultItem.SubcontextItem(it)
                 }
             val projectResults =
-                contextDao.searchProjectsGlobal(query).map {
+                contextDao.searchContextsGlobal(query).map {
                     GlobalSearchResultItem.ContextItem(it)
                 }
             val activityResults =

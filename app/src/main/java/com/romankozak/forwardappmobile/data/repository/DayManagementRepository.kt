@@ -220,7 +220,7 @@ class DayManagementRepository
         ): DayTask =
             withContext(ioDispatcher) {
                 val projectId =
-                    listItemDao.findProjectIdForGoal(goalId)
+                    listItemDao.findContextIdForGoal(goalId)
                         ?: throw IllegalStateException("Goal $goalId is not associated with any project.")
 
                 val goal =
@@ -249,7 +249,7 @@ class DayManagementRepository
         ): DayTask =
             withContext(ioDispatcher) {
                 val project =
-                    contextDao.getProjectById(projectId)
+                    contextDao.getContextById(projectId)
                         ?: throw NoSuchElementException("Project with id $projectId not found")
 
                 val taskParams =
@@ -480,7 +480,7 @@ class DayManagementRepository
                 val activityRecord =
                     when {
                         task.goalId != null -> activityRepository.startGoalActivity(task.goalId)
-                        task.projectId != null -> activityRepository.startProjectActivity(task.projectId)
+                        task.projectId != null -> activityRepository.startContextActivity(task.projectId)
                         else -> activityRepository.startActivity(task.title, now)
                     }
 
@@ -760,7 +760,7 @@ class DayManagementRepository
 
         suspend fun getProject(id: String): Context? {
             return withContext(ioDispatcher) {
-                contextDao.getProjectById(id)
+                contextDao.getContextById(id)
             }
         }
 
@@ -780,7 +780,7 @@ class DayManagementRepository
 
         suspend fun findProjectIdForGoal(goalId: String): String? {
             return withContext(ioDispatcher) {
-                listItemDao.findProjectIdForGoal(goalId)
+                listItemDao.findContextIdForGoal(goalId)
             }
         }
 

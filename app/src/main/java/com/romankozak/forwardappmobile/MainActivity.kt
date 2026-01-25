@@ -125,7 +125,7 @@ class MainActivity : ComponentActivity() {
                 while (dayToProcess.before(todayCalendar)) {
                     val projectId = "your_project_id_to_log"
 
-                    contextRepository.logProjectTimeSummaryForDate(projectId, dayToProcess)
+                    contextRepository.logContextTimeSummaryForDate(projectId, dayToProcess)
 
                     dayToProcess.add(Calendar.DAY_OF_YEAR, 1)
                 }

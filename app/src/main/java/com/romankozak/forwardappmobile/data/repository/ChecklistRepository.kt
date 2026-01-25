@@ -37,11 +37,11 @@ class ChecklistRepository
             val now = System.currentTimeMillis()
             val checklist = ChecklistEntity(contextId = contextId, name = name, updatedAt = now)
             checklistDao.insertChecklist(checklist)
-            attachmentRepository.ensureAttachmentLinkedToProject(
+            attachmentRepository.ensureAttachmentLinkedToContext(
                 attachmentType = BacklogItemTypeValues.CHECKLIST,
                 entityId = checklist.id,
-                projectId = contextId,
-                ownerProjectId = contextId,
+                contextId = contextId,
+                ownerContextId = contextId,
                 createdAt = System.currentTimeMillis(),
                 roleCode = roleCode,
                 isSystem = isSystem,

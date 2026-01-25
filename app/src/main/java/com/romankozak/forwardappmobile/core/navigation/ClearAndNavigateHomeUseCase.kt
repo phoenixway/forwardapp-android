@@ -138,7 +138,7 @@ class ClearAndNavigateHomeUseCase
 
                 if (expandedProjects.isNotEmpty()) {
                     val collapsedProjects = expandedProjects.map { it.copy(isExpanded = false) }
-                    contextRepository.updateContext(collapsedProjects)
+                    contextRepository.updateContexts(collapsedProjects)
                     Log.d(TAG, "Collapsed ${collapsedProjects.size} projects")
                 }
             }

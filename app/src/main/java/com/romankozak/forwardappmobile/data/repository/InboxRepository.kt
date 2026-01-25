@@ -18,17 +18,17 @@ class InboxRepository
     ) {
         suspend fun getInboxRecordById(id: String): InboxRecord? = inboxRecordDao.getRecordById(id)
 
-        fun getInboxRecordsStream(projectId: String): Flow<List<InboxRecord>> = inboxRecordDao.getRecordsForProjectStream(projectId)
+        fun getInboxRecordsStream(contextId: String): Flow<List<InboxRecord>> = inboxRecordDao.getRecordsForContextStream(contextId)
 
         suspend fun addInboxRecord(
             text: String,
-            projectId: String,
+            contextId: String,
         ) {
             val currentTime = System.currentTimeMillis()
             val newRecord =
                 InboxRecord(
                     id = UUID.randomUUID().toString(),
-                    projectId = projectId,
+                    contextId = contextId,
                     text = text,
                     createdAt = currentTime,
                     order = -currentTime,
@@ -49,16 +49,16 @@ class InboxRepository
 
         @Transaction
         suspend fun promoteInboxRecordToGoal(record: InboxRecord) {
-            goalRepository.addGoalToProject(record.text, record.projectId)
+            goalRepository.addGoalToContext(record.text, record.contextId)
             deleteInboxRecordById(record.id)
         }
 
         @Transaction
         suspend fun promoteInboxRecordToGoal(
             record: InboxRecord,
-            targetProjectId: String,
+            targetContextId: String,
         ) {
-            goalRepository.addGoalToProject(record.text, targetProjectId)
+            goalRepository.addGoalToContext(record.text, targetContextId)
             deleteInboxRecordById(record.id)
         }
     }

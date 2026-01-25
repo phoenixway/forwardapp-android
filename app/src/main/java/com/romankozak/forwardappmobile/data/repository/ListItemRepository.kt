@@ -94,7 +94,7 @@ class ListItemRepository
                         val bumpedItem = it.bumpSync(now)
                         Log.d(
                             TAG,
-                            "[updateListItemsOrder] bump id=${it.id} project=${it.projectId} order=${it.order} v_old=${it.version} v_new=${bumpedItem.version} syncedAt_old=${it.syncedAt}",
+                            "[updateListItemsOrder] bump id=${it.id} context=${it.contextId} order=${it.order} v_old=${it.version} v_new=${bumpedItem.version} syncedAt_old=${it.syncedAt}",
                         )
                         bumpedItem
                     }
@@ -133,7 +133,7 @@ class ListItemRepository
         }
 
         fun getItemsForContextStream(contextId: String): kotlinx.coroutines.flow.Flow<List<BacklogItem>> {
-            return listItemDao.getItemsForProjectStream(contextId)
+            return listItemDao.getItemsForContextStream(contextId)
         }
 
         fun getAllEntitiesAsFlow(): kotlinx.coroutines.flow.Flow<List<LinkItemEntity>> {

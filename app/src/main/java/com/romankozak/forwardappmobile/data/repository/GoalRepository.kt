@@ -30,9 +30,9 @@ class GoalRepository
     ) {
         private val contextHandler: ContextHandler by lazy { contextHandlerProvider.get() }
 
-        suspend fun addGoalToProject(
+        suspend fun addGoalToContext(
             title: String,
-            projectId: String,
+            contextId: String,
             completed: Boolean = false,
         ): String {
             val currentTime = System.currentTimeMillis()
@@ -45,12 +45,12 @@ class GoalRepository
                     updatedAt = currentTime,
                 )
             goalDao.insertGoal(newGoal)
-            syncContextMarker(newGoal.id, projectId, ContextTextAction.ADD)
+            syncContextMarker(newGoal.id, contextId, ContextTextAction.ADD)
 
             val newBacklogItem =
                 BacklogItem(
                     id = UUID.randomUUID().toString(),
-                    projectId = projectId,
+                    contextId = contextId,
                     itemType = BacklogItemTypeValues.GOAL,
                     entityId = newGoal.id,
                     order = -currentTime,
@@ -65,7 +65,7 @@ class GoalRepository
         @androidx.room.Transaction
         suspend fun addGoalWithReminder(
             title: String,
-            projectId: String,
+            contextId: String,
             reminderTime: Long,
         ): Goal {
             val currentTime = System.currentTimeMillis()
@@ -82,7 +82,7 @@ class GoalRepository
             val newBacklogItem =
                 BacklogItem(
                     id = UUID.randomUUID().toString(),
-                    projectId = projectId,
+                    contextId = contextId,
                     itemType = BacklogItemTypeValues.GOAL,
                     entityId = newGoal.id,
                     order = -currentTime,
@@ -91,21 +91,21 @@ class GoalRepository
 
             reminderRepository.createReminder(newGoal.id, "GOAL", reminderTime)
 
-            syncContextMarker(newGoal.id, projectId, ContextTextAction.ADD)
+            syncContextMarker(newGoal.id, contextId, ContextTextAction.ADD)
             contextHandler.handleContextsOnCreate(newGoal)
             return newGoal
         }
 
         suspend fun createGoalLinks(
             goalIds: List<String>,
-            targetProjectId: String,
+            targetContextId: String,
         ) {
             if (goalIds.isNotEmpty()) {
                 val newItems =
                     goalIds.map {
                         BacklogItem(
                             id = UUID.randomUUID().toString(),
-                            projectId = targetProjectId,
+                            contextId = targetContextId,
                             itemType = BacklogItemTypeValues.GOAL,
                             entityId = it,
                             order = -System.currentTimeMillis(),
@@ -115,9 +115,9 @@ class GoalRepository
             }
         }
 
-        suspend fun copyGoalsToProject(
+        suspend fun copyGoalsToContext(
             goalIds: List<String>,
-            targetProjectId: String,
+            targetContextId: String,
         ) {
             if (goalIds.isNotEmpty()) {
                 val originalGoals = goalDao.getGoalsByIdsSuspend(goalIds)
@@ -130,7 +130,7 @@ class GoalRepository
                     newItems.add(
                         BacklogItem(
                             id = UUID.randomUUID().toString(),
-                            projectId = targetProjectId,
+                            contextId = targetContextId,
                             itemType = BacklogItemTypeValues.GOAL,
                             entityId = newGoal.id,
                             order = -System.currentTimeMillis(),
@@ -177,21 +177,21 @@ class GoalRepository
 
         suspend fun getAllGoals(): List<Goal> = goalDao.getAll()
 
-        suspend fun findProjectIdForGoal(goalId: String): String? {
-            return listItemDao.findProjectIdForGoal(goalId)
+        suspend fun findContextIdForGoal(goalId: String): String? {
+            return listItemDao.findContextIdForGoal(goalId)
         }
 
         private suspend fun syncContextMarker(
             goalId: String,
-            projectId: String,
+            contextId: String,
             action: ContextTextAction,
         ) {
-            val project = contextDao.getProjectById(projectId) ?: return
-            val projectTags = project.tags.orEmpty()
-            if (projectTags.isEmpty()) return
+            val context = contextDao.getContextById(contextId) ?: return
+            val contextTags = context.tags.orEmpty()
+            if (contextTags.isEmpty()) return
 
             val tagMap = contextHandler.tagToContextNameMap.value
-            val contextName = tagMap.entries.find { (tagKey, _) -> tagKey in projectTags }?.value ?: return
+            val contextName = tagMap.entries.find { (tagKey, _) -> tagKey in contextTags }?.value ?: return
             val marker = contextHandler.getContextMarker(contextName) ?: return
             val goal = goalDao.getGoalById(goalId) ?: return
 

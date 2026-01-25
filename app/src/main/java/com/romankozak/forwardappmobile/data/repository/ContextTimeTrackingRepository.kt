@@ -17,8 +17,8 @@ class ContextTimeTrackingRepository
         private val listItemDao: ListItemDao,
         private val contextLogRepository: ContextLogRepository,
     ) {
-        suspend fun logProjectTimeSummaryForDate(
-            projectId: String,
+        suspend fun logContextTimeSummaryForDate(
+            contextId: String,
             dayToLog: Calendar,
         ) {
             val calendar = dayToLog.clone() as Calendar
@@ -31,11 +31,11 @@ class ContextTimeTrackingRepository
             calendar.add(Calendar.DAY_OF_YEAR, 1)
             val endTime = calendar.timeInMillis - 1
 
-            val goalIds = listItemDao.getGoalIdsForProject(projectId)
+            val goalIds = listItemDao.getGoalIdsForContext(contextId)
 
             val activities =
-                activityRepository.getCompletedActivitiesForProject(
-                    projectId = projectId,
+                activityRepository.getCompletedActivitiesForContext(
+                    contextId = contextId,
                     goalIds = goalIds,
                     startTime = startTime,
                     endTime = endTime,
@@ -68,8 +68,8 @@ class ContextTimeTrackingRepository
             val description = "Загальний час за день: $totalFormattedDuration."
             val details = detailsBuilder.toString()
 
-            contextLogRepository.addProjectLogEntry(
-                projectId = projectId,
+            contextLogRepository.addContextLogEntry(
+                contextId = contextId,
                 type = ContextLogEntryTypeValues.AUTOMATIC,
                 description = description,
                 details = details,
@@ -90,9 +90,9 @@ class ContextTimeTrackingRepository
             }
         }
 
-        private suspend fun logTotalProjectTimeSummary(projectId: String) {
-            val goalIds = listItemDao.getGoalIdsForProject(projectId)
-            val activities = activityRepository.getAllCompletedActivitiesForProject(projectId, goalIds)
+        private suspend fun logTotalContextTimeSummary(contextId: String) {
+            val goalIds = listItemDao.getGoalIdsForContext(contextId)
+            val activities = activityRepository.getAllCompletedActivitiesForContext(contextId, goalIds)
 
             if (activities.isEmpty()) return
 
@@ -101,22 +101,22 @@ class ContextTimeTrackingRepository
             if (totalDurationMillis <= 0) return
 
             val totalFormattedDuration = formatDuration(totalDurationMillis)
-            val description = "Загальний час по проекту: $totalFormattedDuration."
+            val description = "Загальний час по контексту: $totalFormattedDuration."
 
-            contextLogRepository.addProjectLogEntry(
-                projectId = projectId,
+            contextLogRepository.addContextLogEntry(
+                contextId = contextId,
                 type = ContextLogEntryTypeValues.AUTOMATIC,
                 description = description,
                 details = "Розраховано на запит користувача.",
             )
         }
 
-        suspend fun recalculateAndLogProjectTime(projectId: String) {
-            logProjectTimeSummaryForDate(projectId, Calendar.getInstance())
-            logTotalProjectTimeSummary(projectId)
+        suspend fun recalculateAndLogContextTime(contextId: String) {
+            logContextTimeSummaryForDate(contextId, Calendar.getInstance())
+            logTotalContextTimeSummary(contextId)
         }
 
-        suspend fun calculateProjectTimeMetrics(projectId: String): ContextTimeMetrics {
+        suspend fun calculateContextTimeMetrics(contextId: String): ContextTimeMetrics {
             val todayCalendar = Calendar.getInstance()
             todayCalendar.set(Calendar.HOUR_OF_DAY, 0)
             todayCalendar.set(Calendar.MINUTE, 0)
@@ -124,11 +124,11 @@ class ContextTimeTrackingRepository
             todayCalendar.add(Calendar.DAY_OF_YEAR, 1)
             val endTime = todayCalendar.timeInMillis - 1
 
-            val goalIds = listItemDao.getGoalIdsForProject(projectId)
-            val todayActivities = activityRepository.getCompletedActivitiesForProject(projectId, goalIds, startTime, endTime)
+            val goalIds = listItemDao.getGoalIdsForContext(contextId)
+            val todayActivities = activityRepository.getCompletedActivitiesForContext(contextId, goalIds, startTime, endTime)
             val timeToday = todayActivities.sumOf { (it.endTime ?: 0) - (it.startTime ?: 0) }
 
-            val allActivities = activityRepository.getAllCompletedActivitiesForProject(projectId, goalIds)
+            val allActivities = activityRepository.getAllCompletedActivitiesForContext(contextId, goalIds)
             val timeTotal = allActivities.sumOf { (it.endTime ?: 0) - (it.startTime ?: 0) }
 
             return ContextTimeMetrics(timeToday = timeToday, timeTotal = timeTotal)

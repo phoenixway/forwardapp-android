@@ -15,7 +15,6 @@ Android є джерелом правди. Нижче – повний опис �
 ```
 - `database` обов’язковий, масиви всіх сутностей присутні (можуть бути порожні).
 - Системні сутності (projects/attachments із `systemKey`/`reservedGroup`) оновлюються за ключем, не дублюються.
-- Порядок беклогу зберігається в таблиці `backlogOrders` (listId+itemId); клієнти мають її приймати та віддавати.
 
 ## Версія 1 (початковий канонічний формат)
 - Поля сутностей без sync-метаданих.
@@ -24,7 +23,6 @@ Android є джерелом правди. Нижче – повний опис �
   - Project: `id`, `name`, `description?`, `parentId?`, `systemKey?`, `createdAt`, `tags?`, `relatedLinks?`, `isExpanded`, `order`, `isAttachmentsExpanded`, `defaultViewModeName?`, `isCompleted`, `isProjectManagementEnabled?`, `projectStatus?`, `projectStatusText?`, `projectLogLevel?`, `totalTimeSpentMinutes?`, оцінки (`valueImportance`, `valueImpact`, `effort`, `cost`, `risk`, `weightEffort`, `weightCost`, `weightRisk`, `rawScore`, `displayScore`, `scoringStatus`), `showCheckboxes`, `projectType` (`DEFAULT|RESERVED|SYSTEM`), `reservedGroup?`.
   - Goal: `id`, `text`, `description?`, `completed`, `createdAt`, `tags?`, `relatedLinks?`, оцінки й ваги аналогічні Project.
   - ListItem: `id`, `projectId`, `itemType` (`GOAL|SUBLIST|LINK_ITEM|NOTE|NOTE_DOCUMENT|CHECKLIST|SCRIPT`), `entityId`, `order`.
-  - BacklogOrder: `id`, `listId`, `itemId`, `order`, `orderVersion`, `updatedAt?`.
   - LegacyNoteEntity: `id`, `projectId`, `title`, `content`, `createdAt`, `updatedAt?`.
   - NoteDocumentEntity: `id`, `projectId`, `name`, `createdAt`, `updatedAt?`, `content?`, `lastCursorPosition?`.
   - NoteDocumentItemEntity: `id`, `listId`, `parentId?`, `content`, `isCompleted`, `itemOrder`, `createdAt`, `updatedAt?`.
@@ -41,8 +39,11 @@ Android є джерелом правди. Нижче – повний опис �
 
 ## Версія 2 (актуальний канон)
 - Додає sync-метадані: `version` (Long, default 0), `updatedAt` (Long?), `syncedAt` (Long?), `isDeleted`/`is_deleted` (Boolean, default false) там, де доречно.
-- Колекції ті самі + `backlogOrders`; усі сутності включають sync-поля (окрім recentProjectEntries — read-only summary).
+- Колекції ті самі, але всі сутності включають sync-поля (окрім recentProjectEntries — read-only summary) + нова `backlogOrders`.
 - Поля домену іменовано так само, як у v1; експорт пише лише канонічні назви (gson/serde без alternate), імпорт може мати alternate для читання старих файлів.
+- BacklogOrder: `id` (listItem id), `listId` (project id), `itemId` (goal/sublist entity id), `order` (Double/Long), `orderVersion` (Long, LWW версія порядку), `updatedAt?`, `syncedAt?`, `isDeleted` (tombstone, default false), `version` (Long, дзеркало orderVersion для LWW).
+  - Клієнти повинні зберігати backlogOrders для всіх listItems і віддавати їх назад під час експорту.
+  - `order` для відображення, `orderVersion`/`version` — єдине джерело свіжості для сортування (LWW).
 
 ### Приклад топ-рівня v2
 ```json
@@ -76,18 +77,20 @@ Android є джерелом правди. Нижче – повний опис �
 - Tombstone: `isDeleted=true` з вищою свіжістю має пріоритет і видаляє/деактивує локальний запис.
 - `syncedAt` використовується лише як маркер, не впливає на конфлікти.
 - SystemKey/Reserved: оновлювати за ключем, не створювати дублі.
-- Порядок беклогу: `backlogOrders` — канонічне джерело (listId+itemId). LWW: `orderVersion` → `updatedAt` → tombstone. Якщо клієнт не зберігає таблицю, він має будувати її з listItems і віддавати в export.
+- BacklogOrder: зливається за `id` (listItem id). Перед злиттям відфільтровувати записи, де `listId` не існує в projects або `itemId` не існує в goals/sublist. Порядок береться з запису з більшою свіжістю (`orderVersion`/`version`, далі `updatedAt`).
 
 ## Валідація імпорту
 - Приймати `backupSchemaVersion` ∈ {1,2}, відхиляти інші зі зрозумілим повідомленням.
 - Вимагати наявності `database`; усі колекції – масиви (навіть порожні).
-- Для v1 імпорт дозволяє відсутність sync-полів (заповнювати дефолти).
+- Для v1 імпорт дозволяє відсутність sync-полів (заповнювати дефолти); backlogOrders для v1 можна ініціалізувати з listItems (order → order, version/orderVersion = listItem.version/updatedAt).
 
 ## Експорт (усі версії)
 - Видавати повні колекції; `backupSchemaVersion` = 2 як актуальний.
 - Не писати alternate/legacy назви; тільки канонічні.
+- Експорт повинен містити `backlogOrders` (LWW-статус синхронний з `listItems`).
 
 ## Рекомендації для клієнтів (десктоп/інші платформи)
 - Строго дотримуватись назви полів як у v2.
 - Зберігати Long точно (у JS – використовувати bigint/strings при серіалізації, якщо потрібно).
 - HTTP API для Wi‑Fi sync (десктоп як сервер): `GET /export` → FullAppBackup v2, `POST /import` → приймає FullAppBackup, застосовує LWW, відповідає 200/400/500.
+- Зчитувати `backlogOrders` і застосовувати їх до `listItems` на імпорті; при експорті будувати/повертати актуальні `backlogOrders` (не відкидати дублікати id, брати LWW, tombstone тримати).
