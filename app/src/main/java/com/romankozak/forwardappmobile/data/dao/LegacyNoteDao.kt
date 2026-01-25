@@ -19,8 +19,8 @@ interface LegacyNoteDao {
     @Query("SELECT * FROM notes WHERE id = :noteId")
     suspend fun getNoteById(noteId: String): LegacyNoteEntity?
 
-    @Query("SELECT * FROM notes WHERE projectId = :projectId ORDER BY updatedAt DESC")
-    fun getNotesForProject(projectId: String): Flow<List<LegacyNoteEntity>>
+    @Query("SELECT * FROM notes WHERE contextId = :contextId ORDER BY updatedAt DESC")
+    fun getNotesForContext(contextId: String): Flow<List<LegacyNoteEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(notes: List<LegacyNoteEntity>)

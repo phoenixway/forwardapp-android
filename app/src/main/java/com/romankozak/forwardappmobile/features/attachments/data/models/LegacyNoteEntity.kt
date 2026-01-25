@@ -13,15 +13,15 @@ import java.util.UUID
         ForeignKey(
             entity = Context::class,
             parentColumns = ["id"],
-            childColumns = ["projectId"],
+            childColumns = ["contextId"],
             onDelete = ForeignKey.CASCADE,
         ),
     ],
-    indices = [Index(value = ["projectId"])],
+    indices = [Index(value = ["contextId"])],
 )
 data class LegacyNoteEntity(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
-    val projectId: String,
+    val contextId: String,
     var title: String,
     var content: String,
     val createdAt: Long = System.currentTimeMillis(),

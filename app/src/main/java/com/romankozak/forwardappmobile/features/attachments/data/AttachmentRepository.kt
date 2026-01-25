@@ -43,9 +43,9 @@ class AttachmentRepository
         suspend fun getAttachmentById(attachmentId: String): AttachmentEntity? = attachmentDao.getAttachmentById(attachmentId)
 
         suspend fun findAttachmentByRole(
-            projectId: String,
+            contextId: String,
             roleCode: String,
-        ): AttachmentEntity? = attachmentDao.findAttachmentByRole(projectId, roleCode)
+        ): AttachmentEntity? = attachmentDao.findAttachmentByRole(contextId, roleCode)
 
         suspend fun ensureAttachmentForEntity(
             attachmentType: String,

@@ -28,7 +28,7 @@ class ContextStructureRepository
             val existing = contextStructureDao.getStructureByContext(contextId)
             if (existing != null) return existing
             val structure =
-                ContextConfiguration(3444444444444444444444444444444444444444444444444
+                ContextConfiguration(
                     id = UUID.randomUUID().toString(),
                     contextId = contextId,
                     basePresetCode = basePresetCode,

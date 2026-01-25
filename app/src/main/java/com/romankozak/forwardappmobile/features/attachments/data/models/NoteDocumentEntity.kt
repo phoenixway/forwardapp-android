@@ -14,15 +14,15 @@ import java.util.UUID
         ForeignKey(
             entity = Context::class,
             parentColumns = ["id"],
-            childColumns = ["projectId"],
+            childColumns = ["contextId"],
             onDelete = ForeignKey.Companion.CASCADE,
         ),
     ],
-    indices = [Index(value = ["projectId"], name = "index_note_documents_projectId")],
+    indices = [Index(value = ["contextId"], name = "index_note_documents_contextId")],
 )
 data class NoteDocumentEntity(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
-    val projectId: String,
+    val contextId: String,
     var name: String,
     val createdAt: Long = System.currentTimeMillis(),
     var updatedAt: Long = System.currentTimeMillis(),
