@@ -35,14 +35,15 @@ fun UpdateStatusDialog(
     var selectedStatus by remember { mutableStateOf(currentStatus) }
     var statusText by remember { mutableStateOf(currentStatusText) }
     var isDropdownExpanded by remember { mutableStateOf(false) }
-    val statuses = listOf(
-        ContextStatusValues.NO_PLAN,
-        ContextStatusValues.PLANNING,
-        ContextStatusValues.IN_PROGRESS,
-        ContextStatusValues.ON_HOLD,
-        ContextStatusValues.PAUSED,
-        ContextStatusValues.COMPLETED
-    )
+    val statuses =
+        listOf(
+            ContextStatusValues.NO_PLAN,
+            ContextStatusValues.PLANNING,
+            ContextStatusValues.IN_PROGRESS,
+            ContextStatusValues.ON_HOLD,
+            ContextStatusValues.PAUSED,
+            ContextStatusValues.COMPLETED,
+        )
 
     AlertDialog(
         onDismissRequest = onDismissRequest,

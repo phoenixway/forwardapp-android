@@ -1,22 +1,22 @@
 package com.romankozak.forwardappmobile
 
 import android.app.Application
-import androidx.work.Configuration
-import dagger.hilt.android.HiltAndroidApp
-import javax.inject.Inject
 import androidx.hilt.work.HiltWorkerFactory
-import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import androidx.work.Configuration
 import com.romankozak.forwardappmobile.core.config.FeatureToggles
+import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @HiltAndroidApp
 class ForwardAppMobileApplication : Application(), Configuration.Provider {
-
     @Inject lateinit var workerFactory: HiltWorkerFactory
+
     @Inject lateinit var settingsRepository: SettingsRepository
 
     private val appScope by lazy { CoroutineScope(SupervisorJob() + Dispatchers.Default) }

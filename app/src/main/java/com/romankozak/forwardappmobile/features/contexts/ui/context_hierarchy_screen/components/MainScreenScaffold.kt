@@ -17,18 +17,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.FormatListBulleted
-import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.FormatListBulleted
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -50,27 +50,26 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Overlay
+import com.romankozak.forwardappmobile.core.config.FeatureFlag
+import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
+import com.romankozak.forwardappmobile.core.navigation.NavigationHistoryMenu
+import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Button
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Overlay
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenuItem
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.rememberHoldMenu2
-import com.romankozak.forwardappmobile.ui.components.NewRecentListsSheet
-import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
-import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ProjectHierarchyScreenContent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ContextHierarchyScreenViewModel
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.OptimizedExpandingProjectHierarchyBottomNav
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ProjectHierarchyScreenContent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.SearchProjectHierarchyBottomBar
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.OptimizedExpandingProjectHierarchyBottomNav
-import com.romankozak.forwardappmobile.ui.shared.InProgressIndicator
-import com.romankozak.forwardappmobile.core.config.FeatureFlag
-import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
 import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
-import com.romankozak.forwardappmobile.core.navigation.NavigationHistoryMenu
+import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
+import com.romankozak.forwardappmobile.ui.components.NewRecentListsSheet
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
-
+import com.romankozak.forwardappmobile.ui.shared.InProgressIndicator
 
 private const val UI_TAG = "ProjectHierarchyScreenUI_DEBUG"
 
@@ -83,7 +82,7 @@ fun ProjectHierarchyScreenScaffold(
     lastOngoingActivity: ActivityRecord?,
     viewModel: ContextHierarchyScreenViewModel,
     sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope
+    animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
     val holdMenuController = rememberHoldMenu2()
     val listState = rememberLazyListState()
@@ -109,8 +108,8 @@ fun ProjectHierarchyScreenScaffold(
         derivedStateOf {
             val enabled =
                 uiState.subStateStack.size > 1 ||
-                        uiState.currentBreadcrumbs.isNotEmpty() ||
-                        uiState.areAnyProjectsExpanded
+                    uiState.currentBreadcrumbs.isNotEmpty() ||
+                    uiState.areAnyProjectsExpanded
             Log.d(UI_TAG, "BackHandler enabled = $enabled")
             enabled
         }
@@ -140,16 +139,18 @@ fun ProjectHierarchyScreenScaffold(
                 isSearchActive = isSearchActive,
                 isFocusMode = isFocusMode,
                 focusedProjectTitle = focusedProjectTitle,
-                focusedProjectMenuClick = focusedProjectId?.let { id ->
-                    {
-                        uiState.projectHierarchy.allProjects.find { it.id == id }?.let {
-                            onEvent(ContextHierarchyScreenEvent.ContextMenuRequest(it))
+                focusedProjectMenuClick =
+                    focusedProjectId?.let { id ->
+                        {
+                            uiState.projectHierarchy.allProjects.find { it.id == id }?.let {
+                                onEvent(ContextHierarchyScreenEvent.ContextMenuRequest(it))
+                            }
                         }
-                    }
-                },
-                focusedProjectOpenClick = focusedProjectId?.let { id ->
-                    { onEvent(ContextHierarchyScreenEvent.ContextClick(id)) }
-                },
+                    },
+                focusedProjectOpenClick =
+                    focusedProjectId?.let { id ->
+                        { onEvent(ContextHierarchyScreenEvent.ContextClick(id)) }
+                    },
                 canGoBack = uiState.canGoBack,
                 canGoForward = uiState.canGoForward,
                 onGoBack = { onEvent(ContextHierarchyScreenEvent.BackClick) },
@@ -176,23 +177,24 @@ fun ProjectHierarchyScreenScaffold(
                     onStopClick = { viewModel.stopOngoingActivity() },
                     onReminderClick = { viewModel.setReminderForOngoingActivity() },
                     onIndicatorClick = { onEvent(ContextHierarchyScreenEvent.NavigateToActivityTracker) },
-                    indicatorState = indicatorState
+                    indicatorState = indicatorState,
                 )
                 val isSearchActive = uiState.subStateStack.any { it is ProjectHierarchyScreenSubState.LocalSearch }
 
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(
-                            horizontal = if (isSearchActive) 8.dp else 16.dp,
-                            vertical = if (isSearchActive) 8.dp else 12.dp
-                        )
-                        .clip(RoundedCornerShape(20.dp))
-                        .then(CommandDeckBackgroundModifier())
-                        .padding(
-                            horizontal = if (isSearchActive) 4.dp else 22.dp,
-                            vertical = if (isSearchActive) 4.dp else 12.dp
-                        )
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                horizontal = if (isSearchActive) 8.dp else 16.dp,
+                                vertical = if (isSearchActive) 8.dp else 12.dp,
+                            )
+                            .clip(RoundedCornerShape(20.dp))
+                            .then(CommandDeckBackgroundModifier())
+                            .padding(
+                                horizontal = if (isSearchActive) 4.dp else 22.dp,
+                                vertical = if (isSearchActive) 4.dp else 12.dp,
+                            ),
                 ) {
                     if (isSearchActive) {
                         SearchProjectHierarchyBottomBar(
@@ -341,7 +343,7 @@ fun ProjectHierarchyScreenScaffold(
             onEvent = onEvent,
             listState = listState,
             sharedTransitionScope = sharedTransitionScope,
-            animatedVisibilityScope = animatedVisibilityScope
+            animatedVisibilityScope = animatedVisibilityScope,
         )
     }
 
@@ -378,7 +380,7 @@ fun ProjectHierarchyScreenScaffold(
         recentItems = uiState.recentItems,
         onDismiss = { onEvent(ContextHierarchyScreenEvent.DismissRecentLists) },
         onItemClick = { onEvent(ContextHierarchyScreenEvent.RecentItemSelected(it)) },
-        onPinClick = { onEvent(ContextHierarchyScreenEvent.RecentItemPinClick(it)) }
+        onPinClick = { onEvent(ContextHierarchyScreenEvent.RecentItemPinClick(it)) },
     )
 
     if (showImportExportSheet) {
@@ -387,14 +389,14 @@ fun ProjectHierarchyScreenScaffold(
                 Text(
                     text = "Імпорт / Експорт",
                     style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 LazyVerticalGrid(
                     columns = GridCells.Adaptive(160.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                    modifier = Modifier.padding(horizontal = 16.dp),
                 ) {
                     item {
                         ImportExportTile(
@@ -404,7 +406,7 @@ fun ProjectHierarchyScreenScaffold(
                             onClick = {
                                 showImportExportSheet = false
                                 onEvent(ContextHierarchyScreenEvent.ExportToFile)
-                            }
+                            },
                         )
                     }
                     item {
@@ -415,7 +417,7 @@ fun ProjectHierarchyScreenScaffold(
                             onClick = {
                                 showImportExportSheet = false
                                 importLauncher.launch("application/json")
-                            }
+                            },
                         )
                     }
                     item {
@@ -426,7 +428,7 @@ fun ProjectHierarchyScreenScaffold(
                             onClick = {
                                 showImportExportSheet = false
                                 selectiveImportLauncher.launch("application/json")
-                            }
+                            },
                         )
                     }
                     item {
@@ -437,7 +439,7 @@ fun ProjectHierarchyScreenScaffold(
                             onClick = {
                                 showImportExportSheet = false
                                 onEvent(ContextHierarchyScreenEvent.ExportAttachments)
-                            }
+                            },
                         )
                     }
                     item {
@@ -448,7 +450,7 @@ fun ProjectHierarchyScreenScaffold(
                             onClick = {
                                 showImportExportSheet = false
                                 importAttachmentsLauncher.launch("application/json")
-                            }
+                            },
                         )
                     }
                     item {
@@ -459,7 +461,7 @@ fun ProjectHierarchyScreenScaffold(
                             onClick = {
                                 showImportExportSheet = false
                                 onEvent(ContextHierarchyScreenEvent.WifiPush("localhost:8080"))
-                            }
+                            },
                         )
                     }
                 }
@@ -476,16 +478,22 @@ fun ProjectHierarchyScreenScaffold(
         ReminderPropertiesDialog(
             onDismiss = { viewModel.onReminderDialogDismiss() },
             onSetReminder = { timestamp -> viewModel.onSetReminder(timestamp) },
-            onRemoveReminder = if (record.reminderTime != null) { { _: String -> viewModel.onClearReminder() } } else null,
-            currentReminders = listOfNotNull(record.reminderTime).map {
-                Reminder(
-                    entityId = record.id,
-                    entityType = "TASK",
-                    reminderTime = it,
-                    status = "SCHEDULED",
-                    creationTime = System.currentTimeMillis()
-                )
-            },
+            onRemoveReminder =
+                if (record.reminderTime != null) {
+                    { _: String -> viewModel.onClearReminder() }
+                } else {
+                    null
+                },
+            currentReminders =
+                listOfNotNull(record.reminderTime).map {
+                    Reminder(
+                        entityId = record.id,
+                        entityType = "TASK",
+                        reminderTime = it,
+                        status = "SCHEDULED",
+                        creationTime = System.currentTimeMillis(),
+                    )
+                },
         )
     }
 
@@ -497,7 +505,7 @@ private fun ImportExportItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
     subtitle: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     DropdownMenuItem(
         leadingIcon = { Icon(icon, contentDescription = null) },
@@ -507,7 +515,7 @@ private fun ImportExportItem(
                 Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         },
-        onClick = onClick
+        onClick = onClick,
     )
 }
 
@@ -516,13 +524,14 @@ private fun ImportExportTile(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
     subtitle: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        onClick = onClick
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+        onClick = onClick,
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
@@ -531,7 +540,7 @@ private fun ImportExportTile(
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

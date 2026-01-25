@@ -60,15 +60,15 @@ fun InputPanelAddToProjectActionsDialog(
     val linkActions =
         buildList {
             add(
-            ActionItem(
+                ActionItem(
                     title = "Project link",
-                icon = Icons.Outlined.AccountTree,
-                color = MaterialTheme.colorScheme.secondary,
-                action = {
-                    onAddNestedProjectClick()
-                    onDismiss()
-                },
-            ),
+                    icon = Icons.Outlined.AccountTree,
+                    color = MaterialTheme.colorScheme.secondary,
+                    action = {
+                        onAddNestedProjectClick()
+                        onDismiss()
+                    },
+                ),
             )
             add(
                 ActionItem(
@@ -83,47 +83,47 @@ fun InputPanelAddToProjectActionsDialog(
             )
             add(
                 ActionItem(
-                title = "Web посилання",
-                icon = Icons.Outlined.Public,
-                color = MaterialTheme.colorScheme.secondary,
-                action = {
-                    onShowAddWebLinkDialog()
-                    onDismiss()
-                },
-            ),
+                    title = "Web посилання",
+                    icon = Icons.Outlined.Public,
+                    color = MaterialTheme.colorScheme.secondary,
+                    action = {
+                        onShowAddWebLinkDialog()
+                        onDismiss()
+                    },
+                ),
             )
             add(
                 ActionItem(
-                title = "Obsidian нотатка",
-                icon = Icons.Outlined.DataObject,
-                color = MaterialTheme.colorScheme.secondary,
-                action = {
-                    onShowAddObsidianLinkDialog()
-                    onDismiss()
-                },
-            ),
+                    title = "Obsidian нотатка",
+                    icon = Icons.Outlined.DataObject,
+                    color = MaterialTheme.colorScheme.secondary,
+                    action = {
+                        onShowAddObsidianLinkDialog()
+                        onDismiss()
+                    },
+                ),
             )
             add(
                 ActionItem(
-                title = "Документ",
-                icon = Icons.Outlined.List,
-                color = MaterialTheme.colorScheme.secondary,
-                action = {
-                    onShowCreateNoteDocumentDialog()
-                    onDismiss()
-                },
-            ),
+                    title = "Документ",
+                    icon = Icons.Outlined.List,
+                    color = MaterialTheme.colorScheme.secondary,
+                    action = {
+                        onShowCreateNoteDocumentDialog()
+                        onDismiss()
+                    },
+                ),
             )
             add(
                 ActionItem(
-                title = "Чекліст",
-                icon = Icons.Outlined.Checklist,
-                color = MaterialTheme.colorScheme.secondary,
-                action = {
-                    onCreateChecklist()
-                    onDismiss()
-                },
-            ),
+                    title = "Чекліст",
+                    icon = Icons.Outlined.Checklist,
+                    color = MaterialTheme.colorScheme.secondary,
+                    action = {
+                        onCreateChecklist()
+                        onDismiss()
+                    },
+                ),
             )
             if (scriptsEnabled && onAddScript != null) {
                 add(
@@ -190,12 +190,12 @@ fun InputPanelAddToProjectActionsDialog(
                 ActionItem(
                     title = "Вкладений проект",
                     icon = Icons.Outlined.AccountTree,
-                color = MaterialTheme.colorScheme.secondary,
-                action = {
-                    onAddNestedProjectClick()
-                    onDismiss()
-                },
-            ),
+                    color = MaterialTheme.colorScheme.secondary,
+                    action = {
+                        onAddNestedProjectClick()
+                        onDismiss()
+                    },
+                ),
             )
             add(
                 ActionItem(

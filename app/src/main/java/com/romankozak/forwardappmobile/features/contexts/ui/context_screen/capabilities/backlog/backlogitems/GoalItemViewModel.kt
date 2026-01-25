@@ -2,8 +2,8 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.comp
 
 import androidx.lifecycle.ViewModel
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
-import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
+import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 import com.romankozak.forwardappmobile.ui.common.ParsedTextData
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,9 +12,8 @@ import kotlinx.coroutines.flow.asStateFlow
 class GoalItemViewModel(
     private val goal: Goal,
     private val parsedData: ParsedTextData,
-    private val reminder: Reminder?
+    private val reminder: Reminder?,
 ) : ViewModel() {
-
     private val _shouldShowStatusIcons = MutableStateFlow(false)
     val shouldShowStatusIcons: StateFlow<Boolean> = _shouldShowStatusIcons.asStateFlow()
 
@@ -25,6 +24,6 @@ class GoalItemViewModel(
                 (parsedData.icons.isNotEmpty()) ||
                 (!goal.description.isNullOrBlank()) ||
                 (!goal.relatedLinks.isNullOrEmpty())
-            )
+        )
     }
 }

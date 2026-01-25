@@ -5,7 +5,6 @@ import androidx.room.testing.MigrationTestHelper
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.romankozak.forwardappmobile.data.database.MIGRATION_61_62
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -15,7 +14,6 @@ import java.io.IOException
 
 @RunWith(AndroidJUnit4::class)
 class Migration61to62Test {
-
     private val testDbName = "migration_61_62_test"
 
     @get:Rule

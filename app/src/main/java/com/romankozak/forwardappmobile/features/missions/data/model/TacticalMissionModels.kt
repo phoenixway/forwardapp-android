@@ -6,24 +6,24 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverters
-import com.romankozak.forwardappmobile.features.contexts.data.models.Converters
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
+import com.romankozak.forwardappmobile.features.contexts.data.models.Converters
 import com.romankozak.forwardappmobile.features.missions.domain.model.MissionPriority
 import com.romankozak.forwardappmobile.features.missions.domain.model.MissionStatus
 
- @Entity(
+@Entity(
     tableName = "tactical_missions",
     foreignKeys = [
         ForeignKey(
             entity = Context::class,
             parentColumns = ["id"],
             childColumns = ["projectId"],
-            onDelete = ForeignKey.SET_NULL
-        )
+            onDelete = ForeignKey.SET_NULL,
+        ),
     ],
-    indices = [Index(value = ["projectId"])]
+    indices = [Index(value = ["projectId"])],
 )
- @TypeConverters(Converters::class)
+@TypeConverters(Converters::class)
 data class TacticalMission(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
@@ -38,7 +38,7 @@ data class TacticalMission(
     val linkedAttachmentIds: List<String>? = emptyList(),
 )
 
- @Entity(
+@Entity(
     tableName = "tactical_mission_attachment_cross_ref",
     primaryKeys = ["missionId", "attachmentId"],
     foreignKeys = [
@@ -46,22 +46,22 @@ data class TacticalMission(
             entity = TacticalMission::class,
             parentColumns = ["id"],
             childColumns = ["missionId"],
-            onDelete = ForeignKey.CASCADE
+            onDelete = ForeignKey.CASCADE,
         ),
         ForeignKey(
             entity = com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentEntity::class,
             parentColumns = ["id"],
             childColumns = ["attachmentId"],
-            onDelete = ForeignKey.CASCADE
-        )
+            onDelete = ForeignKey.CASCADE,
+        ),
     ],
     indices = [
         Index(value = ["missionId"]),
-        Index(value = ["attachmentId"])
-    ]
+        Index(value = ["attachmentId"]),
+    ],
 )
 data class TacticalMissionAttachmentCrossRef(
     val missionId: Long,
     @ColumnInfo(name = "attachmentId")
-    val attachmentId: String
+    val attachmentId: String,
 )

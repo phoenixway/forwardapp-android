@@ -18,12 +18,10 @@ data class RecurringTask(
     val duration: Int?,
     val priority: TaskPriority,
     val points: Int = 0,
-
     @Embedded
     val recurrenceRule: RecurrenceRule,
-
     val startDate: Long, // Timestamp
-    val endDate: Long? = null // Timestamp
+    val endDate: Long? = null, // Timestamp
 )
 
 @Fts4(contentEntity = RecurringTask::class)

@@ -4,7 +4,7 @@ enum class ProjectHierarchyScreenPlanningMode {
     All,
     Today,
     Medium,
-    Long
+    Long,
 }
 
 typealias PlanningMode = ProjectHierarchyScreenPlanningMode

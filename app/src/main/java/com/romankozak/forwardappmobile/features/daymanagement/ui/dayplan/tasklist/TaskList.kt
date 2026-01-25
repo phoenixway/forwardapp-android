@@ -4,39 +4,37 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.ParentType
-import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.ParentInfo
-import androidx.compose.material.icons.filled.TrackChanges
-import androidx.compose.material.icons.filled.Topic
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Topic
+import androidx.compose.material.icons.filled.TrackChanges
 import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.Timer
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.*
+import androidx.compose.material3.IconToggleButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,13 +50,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask
 import com.romankozak.forwardappmobile.features.contexts.data.models.TaskPriority
-
+import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayTaskWithReminder
+import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.ParentInfo
+import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.ParentType
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
-
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -75,28 +73,27 @@ fun TaskList(
     var internalTasks by remember(tasks) { mutableStateOf(tasks) }
 
     val lazyListState = rememberLazyListState()
-    val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
-        internalTasks = internalTasks.toMutableList().apply {
-            add(to.index, removeAt(from.index))
+    val reorderableState =
+        rememberReorderableLazyListState(lazyListState) { from, to ->
+            internalTasks =
+                internalTasks.toMutableList().apply {
+                    add(to.index, removeAt(from.index))
+                }
+            onTasksReordered(internalTasks)
+            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
         }
-        onTasksReordered(internalTasks)
-        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-    }
 
     Column(modifier = modifier.fillMaxSize()) {
-
-
         if (internalTasks.isEmpty()) {
             EmptyTasksState(
                 modifier = Modifier.weight(1f),
-
             )
         } else {
             LazyColumn(
                 state = lazyListState,
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 items(internalTasks, key = { it.dayTask.id }) { taskWithReminder ->
                     ReorderableItem(reorderableState, key = taskWithReminder.dayTask.id) { isDragging ->
@@ -105,11 +102,13 @@ fun TaskList(
                             modifier = Modifier.fillMaxWidth(),
                             elevation = CardDefaults.elevatedCardElevation(defaultElevation = elevation),
                             shape = MaterialTheme.shapes.large,
-                            colors = CardDefaults.elevatedCardColors(
-                                containerColor = taskContainerColor(
-                                    dayTask = taskWithReminder.dayTask,
+                            colors =
+                                CardDefaults.elevatedCardColors(
+                                    containerColor =
+                                        taskContainerColor(
+                                            dayTask = taskWithReminder.dayTask,
+                                        ),
                                 ),
-                            ),
                         ) {
                             TaskItem(
                                 taskWithReminder = taskWithReminder,
@@ -127,9 +126,7 @@ fun TaskList(
 }
 
 @Composable
-private fun EmptyTasksState(
-    modifier: Modifier = Modifier,
-) {
+private fun EmptyTasksState(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier.fillMaxSize().padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -158,162 +155,117 @@ private fun EmptyTasksState(
 }
 
 @OptIn(ExperimentalFoundationApi::class)
-
 @Composable
-
 fun TaskItem(
-
     taskWithReminder: DayTaskWithReminder,
-
     onToggle: () -> Unit,
-
     onLongPress: () -> Unit,
-
     modifier: Modifier = Modifier,
-
     dragHandleModifier: Modifier = Modifier,
-
     onParentInfoClick: (ParentInfo) -> Unit, // Add this line
-
 ) {
-
     val task = taskWithReminder.dayTask
 
     val contentAlpha = if (task.completed) 0.6f else 1f
 
-
-
     Surface(
-
         modifier = modifier.fillMaxWidth(),
-
         shape = RoundedCornerShape(20.dp),
-
         color = taskContainerColor(task),
-
         tonalElevation = if (task.completed) 0.dp else 4.dp,
-
     ) {
-
         Row(
-
-            modifier = Modifier
-
-                .fillMaxWidth()
-
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
-
         ) {
-
             IconToggleButton(
                 checked = task.completed,
                 onCheckedChange = { onToggle() },
-                modifier = Modifier.size(32.dp)
+                modifier = Modifier.size(32.dp),
             ) {
                 Surface(
                     shape = CircleShape,
-                    color = if (task.completed)
-                        MaterialTheme.colorScheme.primary
-                    else
-                        Color.Transparent,
-                    border = if (!task.completed)
-                        BorderStroke(
-                            2.dp,
-                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                        )
-                    else null,
-                    modifier = Modifier.size(18.dp)
+                    color =
+                        if (task.completed) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            Color.Transparent
+                        },
+                    border =
+                        if (!task.completed) {
+                            BorderStroke(
+                                2.dp,
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                            )
+                        } else {
+                            null
+                        },
+                    modifier = Modifier.size(18.dp),
                 ) {
                     Box(
                         contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize(),
                     ) {
                         if (task.completed) {
                             Icon(
                                 imageVector = Icons.Filled.Check,
                                 contentDescription = "Checkbox",
                                 tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(12.dp)
+                                modifier = Modifier.size(12.dp),
                             )
                         }
                     }
                 }
             }
 
-
-
             Spacer(modifier = Modifier.width(12.dp))
 
-
-
             Column(modifier = Modifier.weight(1f)) {
-
                 DayPlanMarkdownText(
-
                     text = task.title,
-
                     style =
 
                         MaterialTheme.typography.titleMedium.copy(
-
                             fontWeight = FontWeight.SemiBold,
-
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha),
-
-                            ),
-
+                        ),
                     isCompleted = task.completed,
                     maxLines = 3,
-
-                    )
-
-
+                )
 
                 task.description?.takeIf { it.isNotBlank() }?.let { description ->
 
                     Spacer(modifier = Modifier.height(4.dp))
 
                     DayPlanMarkdownText(
-
                         text = description,
-
                         style =
 
                             MaterialTheme.typography.bodyMedium.copy(
-
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
-
-                                ),
-
+                            ),
                         isCompleted = task.completed,
-
-                        )
-
+                    )
                 }
-
-
 
                 TaskMetaInfo(
                     taskWithReminder = taskWithReminder,
                     modifier = Modifier.padding(top = 6.dp),
                     onParentInfoClick = onParentInfoClick, // Add this line
                 )
-
             }
-
-
 
             Spacer(modifier = Modifier.width(12.dp))
 
-
-
             IconButton(
                 onClick = onLongPress,
-                modifier = Modifier
-                    .size(40.dp)
-                    .then(dragHandleModifier),
+                modifier =
+                    Modifier
+                        .size(40.dp)
+                        .then(dragHandleModifier),
             ) {
                 Icon(
                     Icons.Filled.MoreVert,
@@ -321,11 +273,8 @@ fun TaskItem(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-
         }
-
     }
-
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -342,10 +291,11 @@ private fun TaskMetaInfo(
                 add(
                     MetaInfoItem(
                         icon = Icons.Outlined.Flag,
-                        text = task.priority
-                            .name
-                            .lowercase()
-                            .replaceFirstChar { it.titlecase() },
+                        text =
+                            task.priority
+                                .name
+                                .lowercase()
+                                .replaceFirstChar { it.titlecase() },
                         tint = task.priority.priorityIndicatorColor(),
                     ),
                 )
@@ -365,8 +315,8 @@ private fun TaskMetaInfo(
                         icon = if (parentInfo.type == ParentType.GOAL) Icons.Default.TrackChanges else Icons.Default.Topic,
                         text = parentInfo.title,
                         tint = if (parentInfo.type == ParentType.GOAL) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary,
-                        onClick = { onParentInfoClick(parentInfo) } // Add this line
-                    )
+                        onClick = { onParentInfoClick(parentInfo) }, // Add this line
+                    ),
                 )
             }
             task.estimatedDurationMinutes?.takeIf { it > 0 }?.let { minutes ->
@@ -412,7 +362,7 @@ private fun MetaInfoChip(
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
         onClick = onClick ?: {}, // Add this line
-        enabled = onClick != null // Add this line
+        enabled = onClick != null, // Add this line
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 0.dp),

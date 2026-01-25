@@ -3,10 +3,12 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import javax.inject.Inject
 
-class StopOngoingActivityUseCase @Inject constructor(
-    private val activityRepository: ActivityRepository
-) {
-    suspend operator fun invoke() {
-        activityRepository.endLastActivity(System.currentTimeMillis())
+class StopOngoingActivityUseCase
+    @Inject
+    constructor(
+        private val activityRepository: ActivityRepository,
+    ) {
+        suspend operator fun invoke() {
+            activityRepository.endLastActivity(System.currentTimeMillis())
+        }
     }
-}

@@ -1,8 +1,7 @@
 package com.romankozak.forwardappmobile.core.navigation
 
 sealed interface NavTarget {
-
-    /* -------- HIGH LEVEL -------- */
+    // -------- HIGH LEVEL --------
 
     data object ProjectHierarchy : NavTarget
 
@@ -14,8 +13,7 @@ sealed interface NavTarget {
         val initialViewMode: String? = null,
     ) : NavTarget
 
-
-    /* -------- CONTENT -------- */
+    // -------- CONTENT --------
 
     data class NoteDocument(
         val id: String,
@@ -42,18 +40,26 @@ sealed interface NavTarget {
         val disabledIds: String? = null,
     ) : NavTarget
 
-
-    /* -------- SCREENS -------- */
+    // -------- SCREENS --------
 
     data object Settings : NavTarget
+
     data object Reminders : NavTarget
+
     data object Tracker : NavTarget
+
     data object AiInsights : NavTarget
+
     data object LifeState : NavTarget
+
     data object Chat : NavTarget
+
     data object AttachmentsLibrary : NavTarget
+
     data object ScriptsLibrary : NavTarget
+
     data object TacticalManagement : NavTarget
+
     data object ContextLab : NavTarget
 
     data class ScriptEditor(
@@ -72,8 +78,7 @@ sealed interface NavTarget {
         val copyFromPresetId: String? = null,
     ) : NavTarget
 
-
-    /* -------- IMPORT / EXPORT -------- */
+    // -------- IMPORT / EXPORT --------
 
     data class ImportExport(
         val uri: String? = null,

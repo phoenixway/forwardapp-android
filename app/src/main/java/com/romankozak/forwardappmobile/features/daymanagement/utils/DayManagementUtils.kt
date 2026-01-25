@@ -5,12 +5,10 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 
 object DayManagementUtils {
-    
     private val dayDateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
     private val dateTimeFormat = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
 
-    
     fun getDayStart(timestamp: Long): Long {
         val calendar =
             Calendar.getInstance().apply {
@@ -23,7 +21,6 @@ object DayManagementUtils {
         return calendar.timeInMillis
     }
 
-    
     fun getDayEnd(timestamp: Long): Long {
         val calendar =
             Calendar.getInstance().apply {
@@ -36,26 +33,20 @@ object DayManagementUtils {
         return calendar.timeInMillis
     }
 
-    
     fun getCurrentDay(): Long = getDayStart(System.currentTimeMillis())
 
-    
     fun getYesterday(): Long = getCurrentDay() - TimeUnit.DAYS.toMillis(1)
 
-    
     fun getTomorrow(): Long = getCurrentDay() + TimeUnit.DAYS.toMillis(1)
 
-    
     fun isToday(timestamp: Long): Boolean {
         return getDayStart(timestamp) == getCurrentDay()
     }
 
-    
     fun isYesterday(timestamp: Long): Boolean {
         return getDayStart(timestamp) == getYesterday()
     }
 
-    
     fun getDayName(timestamp: Long): String {
         val calendar = Calendar.getInstance().apply { timeInMillis = timestamp }
         return when (calendar.get(Calendar.DAY_OF_WEEK)) {
@@ -70,16 +61,12 @@ object DayManagementUtils {
         }
     }
 
-    
     fun formatDate(timestamp: Long): String = dayDateFormat.format(Date(timestamp))
 
-    
     fun formatTime(timestamp: Long): String = timeFormat.format(Date(timestamp))
 
-    
     fun formatDateTime(timestamp: Long): String = dateTimeFormat.format(Date(timestamp))
 
-    
     fun formatDuration(durationMillis: Long): String {
         val hours = TimeUnit.MILLISECONDS.toHours(durationMillis)
         val minutes = TimeUnit.MILLISECONDS.toMinutes(durationMillis) % 60
@@ -92,7 +79,6 @@ object DayManagementUtils {
         }
     }
 
-    
     fun createTimeInDay(
         dayTimestamp: Long,
         hours: Int,
@@ -109,7 +95,6 @@ object DayManagementUtils {
         return calendar.timeInMillis
     }
 
-    
     private fun getDaysDifference(
         from: Long,
         to: Long,
@@ -117,7 +102,6 @@ object DayManagementUtils {
         return ((getDayStart(to) - getDayStart(from)) / TimeUnit.DAYS.toMillis(1)).toInt()
     }
 
-    
     fun getDateDescription(timestamp: Long): String {
         return when {
             isToday(timestamp) -> "Сьогодні"
@@ -134,7 +118,6 @@ object DayManagementUtils {
         }
     }
 }
-
 
 fun Long.toDayStart(): Long = DayManagementUtils.getDayStart(this)
 

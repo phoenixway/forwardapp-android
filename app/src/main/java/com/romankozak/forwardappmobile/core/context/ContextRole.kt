@@ -7,5 +7,5 @@ data class ContextRole(
     val label: String, // Напр. "Пацієнт", "Модуль коду"
     val defaultCapabilities: Set<CapabilityId>,
     val availableViews: Set<ViewId>,
-    val startView: ViewId
+    val startView: ViewId,
 )

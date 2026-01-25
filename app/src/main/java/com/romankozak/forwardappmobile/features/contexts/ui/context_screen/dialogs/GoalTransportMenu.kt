@@ -146,7 +146,6 @@ fun GoalTransportMenu(
     }
 }
 
-
 @Composable
 private fun TransportMenuItem(
     icon: ImageVector,

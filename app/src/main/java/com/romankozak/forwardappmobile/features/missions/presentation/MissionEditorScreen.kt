@@ -30,8 +30,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material3.ScrollableTabRow
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -42,16 +40,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -88,44 +87,45 @@ fun MissionEditorScreen(
     val projectLinks = remember { mutableStateListOf<String>().apply { addAll(mission.linkedProjectIds.orEmpty()) } }
     val attachmentLinks = remember { mutableStateListOf<String>().apply { addAll(mission.linkedAttachmentIds.orEmpty()) } }
     var selectedTab by remember { mutableStateOf(0) }
-    val tabs = remember {
-        listOf(
-            TabSpec("General", Icons.Outlined.Description),
-            TabSpec("Attachments", Icons.Outlined.AttachFile),
-            TabSpec("Context Links", Icons.Outlined.AccountTree)
-        )
-    }
+    val tabs =
+        remember {
+            listOf(
+                TabSpec("General", Icons.Outlined.Description),
+                TabSpec("Attachments", Icons.Outlined.AttachFile),
+                TabSpec("Context Links", Icons.Outlined.AccountTree),
+            )
+        }
 
-    fun attachmentLabel(id: String): String =
-        attachmentOptions.firstOrNull { it.id == id }?.name ?: id
-    fun projectLabel(id: String): String =
-        projectOptions.firstOrNull { it.id == id }?.name ?: id
+    fun attachmentLabel(id: String): String = attachmentOptions.firstOrNull { it.id == id }?.name ?: id
+
+    fun projectLabel(id: String): String = projectOptions.firstOrNull { it.id == id }?.name ?: id
 
     Surface(
         modifier = modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
+        color = MaterialTheme.colorScheme.background,
     ) {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { 
+                    title = {
                         Text(
                             "Edit Mission",
                             style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold
-                        ) 
+                            fontWeight = FontWeight.Bold,
+                        )
                     },
                     navigationIcon = {
                         IconButton(
                             onClick = onDismiss,
-                            modifier = Modifier
-                                .padding(8.dp)
-                                .size(40.dp)
+                            modifier =
+                                Modifier
+                                    .padding(8.dp)
+                                    .size(40.dp),
                         ) {
                             Icon(
                                 Icons.Default.ArrowBack,
                                 contentDescription = "Back",
-                                tint = MaterialTheme.colorScheme.onSurface
+                                tint = MaterialTheme.colorScheme.onSurface,
                             )
                         }
                     },
@@ -138,255 +138,272 @@ fun MissionEditorScreen(
                                     descField,
                                     deadlineLong,
                                     projectLinks.toList(),
-                                    attachmentLinks.toList()
+                                    attachmentLinks.toList(),
                                 )
                             },
-                            modifier = Modifier.padding(end = 8.dp)
-                        ) { 
-                            Text("Save", fontWeight = FontWeight.SemiBold) 
+                            modifier = Modifier.padding(end = 8.dp),
+                        ) {
+                            Text("Save", fontWeight = FontWeight.SemiBold)
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
+                    colors =
+                        TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.surface,
+                        ),
                 )
-            }
+            },
         ) { padding ->
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
-                    ScrollableTabRow(
-                        selectedTabIndex = selectedTab,
-                        edgePadding = 12.dp,
-                    ) {
-                        tabs.forEachIndexed { index, tab ->
-                            Tab(
-                                selected = selectedTab == index,
-                                onClick = { selectedTab = index },
-                                icon = null,
-                                text = {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        Icon(tab.icon, contentDescription = null)
-                                        if (selectedTab == index) {
-                                            Text(tab.title)
-                                        }
+                ScrollableTabRow(
+                    selectedTabIndex = selectedTab,
+                    edgePadding = 12.dp,
+                ) {
+                    tabs.forEachIndexed { index, tab ->
+                        Tab(
+                            selected = selectedTab == index,
+                            onClick = { selectedTab = index },
+                            icon = null,
+                            text = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    Icon(tab.icon, contentDescription = null)
+                                    if (selectedTab == index) {
+                                        Text(tab.title)
                                     }
                                 }
-                            )
-                        }
+                            },
+                        )
                     }
+                }
 
                 if (selectedTab == 0) {
-                // Header Card with Gradient
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(
-                            elevation = 8.dp,
-                            shape = RoundedCornerShape(20.dp),
-                            spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                        ),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(
-                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                                        MaterialTheme.colorScheme.surface
-                                    )
-                                )
-                            )
+                    // Header Card with Gradient
+                    Card(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .shadow(
+                                    elevation = 8.dp,
+                                    shape = RoundedCornerShape(20.dp),
+                                    spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                ),
+                        shape = RoundedCornerShape(20.dp),
+                        colors =
+                            CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface,
+                            ),
                     ) {
-                        Column(
-                            modifier = Modifier.padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            Text(
-                                "Mission Details",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-
-                            OutlinedTextField(
-                                value = titleField,
-                                onValueChange = { titleField = it },
-                                label = { Text("Mission Title") },
-                                placeholder = { Text("Enter mission title...") },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                                shape = RoundedCornerShape(16.dp),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                                )
-                            )
-
-                            OutlinedTextField(
-                                value = descField,
-                                onValueChange = { descField = it },
-                                label = { Text("Description") },
-                                placeholder = { Text("Add mission description...") },
-                                modifier = Modifier
+                        Box(
+                            modifier =
+                                Modifier
                                     .fillMaxWidth()
-                                    .height(120.dp),
-                                shape = RoundedCornerShape(16.dp),
-                                maxLines = 5,
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.Outlined.Description,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                },
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                                )
-                            )
-                        }
-                    }
-                }
-
-                // Deadline Card
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(
-                            elevation = 4.dp,
-                            shape = RoundedCornerShape(20.dp),
-                            spotColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
-                        ),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
-                    )
-                ) {
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { showDeadlinePicker = true }
-                            .padding(20.dp),
-                        color = Color.Transparent
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                    .background(
+                                        Brush.verticalGradient(
+                                            colors =
+                                                listOf(
+                                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                                                    MaterialTheme.colorScheme.surface,
+                                                ),
+                                        ),
+                                    ),
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f)),
-                                contentAlignment = Alignment.Center
+                            Column(
+                                modifier = Modifier.padding(20.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
                             ) {
-                                Icon(
-                                    Icons.Default.CalendarMonth,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.tertiary,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
-                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    "Deadline",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                    "Mission Details",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
                                 )
-                                Spacer(Modifier.height(4.dp))
-                                Text(
-                                    formatDate(deadlineLong),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.tertiary
+
+                                OutlinedTextField(
+                                    value = titleField,
+                                    onValueChange = { titleField = it },
+                                    label = { Text("Mission Title") },
+                                    placeholder = { Text("Enter mission title...") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors =
+                                        OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                                        ),
+                                )
+
+                                OutlinedTextField(
+                                    value = descField,
+                                    onValueChange = { descField = it },
+                                    label = { Text("Description") },
+                                    placeholder = { Text("Add mission description...") },
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .height(120.dp),
+                                    shape = RoundedCornerShape(16.dp),
+                                    maxLines = 5,
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Outlined.Description,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                        )
+                                    },
+                                    colors =
+                                        OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                                        ),
                                 )
                             }
                         }
                     }
-                }
 
+                    // Deadline Card
+                    Card(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .shadow(
+                                    elevation = 4.dp,
+                                    shape = RoundedCornerShape(20.dp),
+                                    spotColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
+                                ),
+                        shape = RoundedCornerShape(20.dp),
+                        colors =
+                            CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f),
+                            ),
+                    ) {
+                        Surface(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable { showDeadlinePicker = true }
+                                    .padding(20.dp),
+                            color = Color.Transparent,
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            ) {
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .size(48.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f)),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        Icons.Default.CalendarMonth,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.tertiary,
+                                        modifier = Modifier.size(24.dp),
+                                    )
+                                }
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        "Deadline",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                    )
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(
+                                        formatDate(deadlineLong),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.tertiary,
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
 
                 if (selectedTab == 1) {
                     // Attachments Card (with gradient backdrop to match Mission Details)
                     Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .shadow(
-                                elevation = 6.dp,
-                                shape = RoundedCornerShape(20.dp),
-                                spotColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f)
-                            ),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .shadow(
+                                    elevation = 6.dp,
+                                    shape = RoundedCornerShape(20.dp),
+                                    spotColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f),
+                                ),
                         shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        )
+                        colors =
+                            CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface,
+                            ),
                     ) {
                         Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(
-                                    Brush.verticalGradient(
-                                        colors = listOf(
-                                            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.25f),
-                                            MaterialTheme.colorScheme.surface
-                                        )
-                                    )
-                                )
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .background(
+                                        Brush.verticalGradient(
+                                            colors =
+                                                listOf(
+                                                    MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.25f),
+                                                    MaterialTheme.colorScheme.surface,
+                                                ),
+                                        ),
+                                    ),
                         ) {
                             Column(
                                 modifier = Modifier.padding(20.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 ) {
                                     Box(
-                                        modifier = Modifier
-                                            .size(36.dp)
-                                            .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.secondaryContainer),
-                                        contentAlignment = Alignment.Center
+                                        modifier =
+                                            Modifier
+                                                .size(36.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.secondaryContainer),
+                                        contentAlignment = Alignment.Center,
                                     ) {
                                         Icon(
                                             Icons.Outlined.AttachFile,
                                             contentDescription = null,
                                             tint = MaterialTheme.colorScheme.secondary,
-                                            modifier = Modifier.size(20.dp)
+                                            modifier = Modifier.size(20.dp),
                                         )
                                     }
                                     Text(
                                         "Attachments",
                                         style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold
+                                        fontWeight = FontWeight.Bold,
                                     )
                                     Surface(
                                         shape = CircleShape,
                                         color = MaterialTheme.colorScheme.secondaryContainer,
-                                        modifier = Modifier.size(28.dp)
+                                        modifier = Modifier.size(28.dp),
                                     ) {
                                         Box(contentAlignment = Alignment.Center) {
                                             Text(
                                                 attachmentLinks.size.toString(),
                                                 style = MaterialTheme.typography.labelMedium,
                                                 fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.secondary
+                                                color = MaterialTheme.colorScheme.secondary,
                                             )
                                         }
                                     }
@@ -395,20 +412,21 @@ fun MissionEditorScreen(
                                 AnimatedVisibility(
                                     visible = attachmentLinks.isEmpty(),
                                     enter = fadeIn() + slideInVertically(),
-                                    exit = fadeOut() + slideOutVertically()
+                                    exit = fadeOut() + slideOutVertically(),
                                 ) {
                                     Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                                            .padding(16.dp),
-                                        contentAlignment = Alignment.Center
+                                        modifier =
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                                .padding(16.dp),
+                                        contentAlignment = Alignment.Center,
                                     ) {
                                         Text(
                                             "No attachments yet",
                                             style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                     }
                                 }
@@ -416,22 +434,22 @@ fun MissionEditorScreen(
                                 AnimatedVisibility(
                                     visible = attachmentLinks.isNotEmpty(),
                                     enter = fadeIn() + slideInVertically(),
-                                    exit = fadeOut() + slideOutVertically()
+                                    exit = fadeOut() + slideOutVertically(),
                                 ) {
                                     FlowRow(
                                         horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                        verticalArrangement = Arrangement.spacedBy(8.dp),
                                     ) {
                                         attachmentLinks.forEach { id ->
                                             Surface(
                                                 shape = RoundedCornerShape(16.dp),
                                                 color = MaterialTheme.colorScheme.secondaryContainer,
                                                 tonalElevation = 2.dp,
-                                                shadowElevation = 2.dp
+                                                shadowElevation = 2.dp,
                                             ) {
                                                 Row(
                                                     verticalAlignment = Alignment.CenterVertically,
-                                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+                                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
                                                 ) {
                                                     Text(
                                                         attachmentLabel(id),
@@ -440,18 +458,18 @@ fun MissionEditorScreen(
                                                         style = MaterialTheme.typography.bodyMedium,
                                                         fontWeight = FontWeight.Medium,
                                                         color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                                        modifier = Modifier.weight(1f, fill = false)
+                                                        modifier = Modifier.weight(1f, fill = false),
                                                     )
                                                     Spacer(Modifier.width(8.dp))
                                                     IconButton(
                                                         onClick = { attachmentLinks.remove(id) },
-                                                        modifier = Modifier.size(28.dp)
+                                                        modifier = Modifier.size(28.dp),
                                                     ) {
                                                         Icon(
                                                             imageVector = Icons.Default.Delete,
                                                             contentDescription = "Remove",
                                                             tint = MaterialTheme.colorScheme.error,
-                                                            modifier = Modifier.size(18.dp)
+                                                            modifier = Modifier.size(18.dp),
                                                         )
                                                     }
                                                 }
@@ -463,12 +481,12 @@ fun MissionEditorScreen(
                                 FilledTonalButton(
                                     onClick = { showAttachmentChooser = true },
                                     modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(12.dp)
+                                    shape = RoundedCornerShape(12.dp),
                                 ) {
                                     Icon(
                                         Icons.Outlined.AttachFile,
                                         contentDescription = null,
-                                        modifier = Modifier.size(20.dp)
+                                        modifier = Modifier.size(20.dp),
                                     )
                                     Spacer(Modifier.width(8.dp))
                                     Text("Add Attachment", fontWeight = FontWeight.Medium)
@@ -476,164 +494,169 @@ fun MissionEditorScreen(
                             }
                         }
                     }
-
                 }
 
                 if (selectedTab == 2) {
                     // Projects Card (gradient)
                     Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .shadow(
-                                elevation = 4.dp,
-                                shape = RoundedCornerShape(20.dp),
-                                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-                            ),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .shadow(
+                                    elevation = 4.dp,
+                                    shape = RoundedCornerShape(20.dp),
+                                    spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                                ),
                         shape = RoundedCornerShape(20.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surface
-                            )
-                        ) {
-                            Box(
-                                modifier = Modifier
+                        colors =
+                            CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface,
+                            ),
+                    ) {
+                        Box(
+                            modifier =
+                                Modifier
                                     .fillMaxWidth()
                                     .background(
                                         Brush.verticalGradient(
-                                            colors = listOf(
-                                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f),
-                                                MaterialTheme.colorScheme.surface
-                                            )
-                                        )
-                                    )
+                                            colors =
+                                                listOf(
+                                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f),
+                                                    MaterialTheme.colorScheme.surface,
+                                                ),
+                                        ),
+                                    ),
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(20.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
                             ) {
-                                Column(
-                                    modifier = Modifier.padding(20.dp),
-                                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
+                                    Box(
+                                        modifier =
+                                            Modifier
                                                 .size(36.dp)
                                                 .clip(CircleShape)
                                                 .background(MaterialTheme.colorScheme.primaryContainer),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                Icons.Outlined.AccountTree,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(20.dp)
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Icon(
+                                            Icons.Outlined.AccountTree,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp),
+                                        )
+                                    }
+                                    Text(
+                                        "Contexts",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = MaterialTheme.colorScheme.primaryContainer,
+                                        modifier = Modifier.size(28.dp),
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(
+                                                projectLinks.size.toString(),
+                                                style = MaterialTheme.typography.labelMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary,
                                             )
                                         }
-                                        Text(
-                                            "Contexts",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                        Surface(
-                                            shape = CircleShape,
-                                            color = MaterialTheme.colorScheme.primaryContainer,
-                                            modifier = Modifier.size(28.dp)
-                                        ) {
-                                            Box(contentAlignment = Alignment.Center) {
-                                                Text(
-                                                    projectLinks.size.toString(),
-                                                    style = MaterialTheme.typography.labelMedium,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MaterialTheme.colorScheme.primary
-                                                )
-                                            }
-                                        }
                                     }
+                                }
 
-                                    AnimatedVisibility(
-                                        visible = projectLinks.isEmpty(),
-                                        enter = fadeIn() + slideInVertically(),
-                                        exit = fadeOut() + slideOutVertically()
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
+                                AnimatedVisibility(
+                                    visible = projectLinks.isEmpty(),
+                                    enter = fadeIn() + slideInVertically(),
+                                    exit = fadeOut() + slideOutVertically(),
+                                ) {
+                                    Box(
+                                        modifier =
+                                            Modifier
                                                 .fillMaxWidth()
                                                 .clip(RoundedCornerShape(12.dp))
                                                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                                                 .padding(16.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                "No contexts linked",
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
-
-                                    AnimatedVisibility(
-                                        visible = projectLinks.isNotEmpty(),
-                                        enter = fadeIn() + slideInVertically(),
-                                        exit = fadeOut() + slideOutVertically()
+                                        contentAlignment = Alignment.Center,
                                     ) {
-                                        FlowRow(
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            projectLinks.forEach { id ->
-                                                Surface(
-                                                    shape = RoundedCornerShape(16.dp),
-                                                    color = MaterialTheme.colorScheme.primaryContainer,
-                                                    tonalElevation = 2.dp,
-                                                    shadowElevation = 2.dp
+                                        Text(
+                                            "No contexts linked",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                }
+
+                                AnimatedVisibility(
+                                    visible = projectLinks.isNotEmpty(),
+                                    enter = fadeIn() + slideInVertically(),
+                                    exit = fadeOut() + slideOutVertically(),
+                                ) {
+                                    FlowRow(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        projectLinks.forEach { id ->
+                                            Surface(
+                                                shape = RoundedCornerShape(16.dp),
+                                                color = MaterialTheme.colorScheme.primaryContainer,
+                                                tonalElevation = 2.dp,
+                                                shadowElevation = 2.dp,
+                                            ) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
                                                 ) {
-                                                    Row(
-                                                        verticalAlignment = Alignment.CenterVertically,
-                                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+                                                    Text(
+                                                        projectLabel(id),
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis,
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        fontWeight = FontWeight.Medium,
+                                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                        modifier = Modifier.weight(1f, fill = false),
+                                                    )
+                                                    Spacer(Modifier.width(8.dp))
+                                                    IconButton(
+                                                        onClick = { projectLinks.remove(id) },
+                                                        modifier = Modifier.size(28.dp),
                                                     ) {
-                                                        Text(
-                                                            projectLabel(id),
-                                                            maxLines = 1,
-                                                            overflow = TextOverflow.Ellipsis,
-                                                            style = MaterialTheme.typography.bodyMedium,
-                                                            fontWeight = FontWeight.Medium,
-                                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                                            modifier = Modifier.weight(1f, fill = false)
+                                                        Icon(
+                                                            imageVector = Icons.Default.Delete,
+                                                            contentDescription = "Remove project",
+                                                            tint = MaterialTheme.colorScheme.error,
+                                                            modifier = Modifier.size(18.dp),
                                                         )
-                                                        Spacer(Modifier.width(8.dp))
-                                                        IconButton(
-                                                            onClick = { projectLinks.remove(id) },
-                                                            modifier = Modifier.size(28.dp)
-                                                        ) {
-                                                            Icon(
-                                                                imageVector = Icons.Default.Delete,
-                                                                contentDescription = "Remove project",
-                                                                tint = MaterialTheme.colorScheme.error,
-                                                                modifier = Modifier.size(18.dp)
-                                                            )
-                                                        }
                                                     }
                                                 }
                                             }
                                         }
                                     }
+                                }
 
-                                    FilledTonalButton(
-                                        onClick = { showProjectChooser = true },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        shape = RoundedCornerShape(12.dp)
-                                    ) {
-                                        Icon(
-                                            Icons.Outlined.AccountTree,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                        Spacer(Modifier.width(8.dp))
-                                        Text("Add Context", fontWeight = FontWeight.Medium)
-                                    }
+                                FilledTonalButton(
+                                    onClick = { showProjectChooser = true },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(12.dp),
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.AccountTree,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Add Context", fontWeight = FontWeight.Medium)
                                 }
                             }
                         }
                     }
+                }
 
                 Spacer(Modifier.height(16.dp))
             }
@@ -647,7 +670,7 @@ fun MissionEditorScreen(
             onConfirm = {
                 deadlineLong = it
                 showDeadlinePicker = false
-            }
+            },
         )
     }
 
@@ -663,7 +686,7 @@ fun MissionEditorScreen(
                     }
                 }
                 showAttachmentChooser = false
-            }
+            },
         )
     }
 
@@ -677,7 +700,7 @@ fun MissionEditorScreen(
                     if (!projectLinks.contains(id)) projectLinks.add(id)
                 }
                 showProjectChooser = false
-            }
+            },
         )
     }
 }

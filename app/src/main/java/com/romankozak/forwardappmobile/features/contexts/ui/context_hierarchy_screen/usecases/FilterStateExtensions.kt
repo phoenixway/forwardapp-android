@@ -5,13 +5,13 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
 
 internal fun FilterState.withHierarchyFallback(allProjects: List<Context>): FilterState {
-  if (!isReady) return this
-  if (flatList.isNotEmpty()) return this
-  if (allProjects.isEmpty()) return this
-  if (searchActive) return this
-  if (mode != PlanningMode.All) return this
-  HierarchyDebugLogger.d {
-    "FilterStateExtensions applying hierarchy fallback with allProjects size=${allProjects.size}"
-  }
-  return copy(flatList = allProjects)
+    if (!isReady) return this
+    if (flatList.isNotEmpty()) return this
+    if (allProjects.isEmpty()) return this
+    if (searchActive) return this
+    if (mode != PlanningMode.All) return this
+    HierarchyDebugLogger.d {
+        "FilterStateExtensions applying hierarchy fallback with allProjects size=${allProjects.size}"
+    }
+    return copy(flatList = allProjects)
 }

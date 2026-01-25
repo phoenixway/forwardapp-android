@@ -5,13 +5,15 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import kotlinx.coroutines.flow.MutableStateFlow
 import javax.inject.Inject
 
-class SetReminderForOngoingActivityUseCase @Inject constructor() {
-    operator fun invoke(
-        lastOngoingActivity: ActivityRecord?,
-        uiState: MutableStateFlow<MainScreenUiState>
-    ) {
-        lastOngoingActivity?.let {
-            uiState.value = uiState.value.copy(recordForReminderDialog = lastOngoingActivity)
+class SetReminderForOngoingActivityUseCase
+    @Inject
+    constructor() {
+        operator fun invoke(
+            lastOngoingActivity: ActivityRecord?,
+            uiState: MutableStateFlow<MainScreenUiState>,
+        ) {
+            lastOngoingActivity?.let {
+                uiState.value = uiState.value.copy(recordForReminderDialog = lastOngoingActivity)
+            }
         }
     }
-}

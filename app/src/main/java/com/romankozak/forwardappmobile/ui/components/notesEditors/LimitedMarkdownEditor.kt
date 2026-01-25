@@ -24,7 +24,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -41,8 +40,8 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
- @Composable
- fun LimitedMarkdownEditor(
+@Composable
+fun LimitedMarkdownEditor(
     value: TextFieldValue,
     onValueChange: (TextFieldValue) -> Unit,
     maxHeight: Dp,
@@ -51,44 +50,46 @@ import androidx.compose.ui.unit.dp
     onCopy: () -> Unit,
 ) {
     var isOverflowing by remember(value.text) { mutableStateOf(false) }
-    val textStyle = LocalTextStyle.current.copy(
-        color = MaterialTheme.colorScheme.onSurface,
-        fontSize = MaterialTheme.typography.bodyLarge.fontSize
-    )
+    val textStyle =
+        LocalTextStyle.current.copy(
+            color = MaterialTheme.colorScheme.onSurface,
+            fontSize = MaterialTheme.typography.bodyLarge.fontSize,
+        )
     val density = LocalDensity.current
 
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHighest,
-        tonalElevation = 1.dp
+        tonalElevation = 1.dp,
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Description,
                     contentDescription = null,
                     modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = MaterialTheme.colorScheme.primary,
                 )
                 Text(
                     text = "Опис",
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
             Box(
-                modifier = Modifier
-                    .heightIn(max = maxHeight)
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
+                modifier =
+                    Modifier
+                        .heightIn(max = maxHeight)
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
             ) {
                 BasicTextField(
                     value = value,
@@ -102,7 +103,7 @@ import androidx.compose.ui.unit.dp
                                 Text(
                                     text = "Додайте опис і нотатки...",
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    style = MaterialTheme.typography.bodyLarge
+                                    style = MaterialTheme.typography.bodyLarge,
                                 )
                             }
                             innerTextField()
@@ -111,7 +112,7 @@ import androidx.compose.ui.unit.dp
                     onTextLayout = {
                         val maxHeightPx = with(density) { maxHeight.toPx() }
                         isOverflowing = it.size.height > maxHeightPx
-                    }
+                    },
                 )
             }
 
@@ -123,33 +124,35 @@ import androidx.compose.ui.unit.dp
                 IconButton(
                     onClick = onCopy,
                     modifier = Modifier.size(40.dp),
-                    colors = IconButtonDefaults.iconButtonColors(
-                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    colors =
+                        IconButtonDefaults.iconButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        ),
                 ) {
                     Icon(
                         imageVector = Icons.Default.ContentCopy,
                         contentDescription = "Копіювати опис",
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(20.dp),
                     )
                 }
-                
+
                 AnimatedVisibility(
                     visible = isOverflowing,
                     enter = fadeIn(),
-                    exit = fadeOut()
+                    exit = fadeOut(),
                 ) {
                     TextButton(
                         onClick = onExpandClick,
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(8.dp),
                     ) {
                         Text("Більше")
                         Icon(
                             imageVector = Icons.Outlined.ExpandMore,
                             contentDescription = null,
-                            modifier = Modifier
-                                .padding(start = 4.dp)
-                                .size(18.dp)
+                            modifier =
+                                Modifier
+                                    .padding(start = 4.dp)
+                                    .size(18.dp),
                         )
                     }
                 }

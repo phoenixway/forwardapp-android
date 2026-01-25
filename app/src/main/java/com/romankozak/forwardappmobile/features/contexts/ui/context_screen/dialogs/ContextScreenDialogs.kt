@@ -5,15 +5,13 @@ import androidx.compose.runtime.*
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
-
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.BacklogViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.GoalActionDialogState
-import com.romankozak.forwardappmobile.ui.components.NewRecentListsSheet
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.GoalActionType
 import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
 import com.romankozak.forwardappmobile.features.reminders.dialogs.RemindersDialog
 import com.romankozak.forwardappmobile.features.reminders.viewmodel.ReminderViewModel
-
+import com.romankozak.forwardappmobile.ui.components.NewRecentListsSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,17 +51,17 @@ fun GoalDetailDialogs(viewModel: BacklogViewModel) {
             },
             onOpenRemindersDialog = {
                 viewModel.onOpenRemindersDialog(itemContent)
-            }
+            },
         )
     }
 
     if (uiState.showRemindersDialog) {
         val remindersViewModel: ReminderViewModel = hiltViewModel()
         uiState.itemForRemindersDialog?.let {
-           RemindersDialog(
+            RemindersDialog(
                 viewModel = remindersViewModel,
                 item = it,
-                onDismiss = { viewModel.onDismissRemindersDialog() }
+                onDismiss = { viewModel.onDismissRemindersDialog() },
             )
         }
     }
@@ -96,7 +94,7 @@ fun GoalDetailDialogs(viewModel: BacklogViewModel) {
             recentItems = recentItems,
             onDismiss = { viewModel.inputHandler.onDismissRecentLists() },
             onItemClick = { viewModel.onRecentItemClick(it) },
-            onPinClick = { viewModel.onPinRecentItem(it) }
+            onPinClick = { viewModel.onPinRecentItem(it) },
         )
     }
 
@@ -132,6 +130,4 @@ fun GoalDetailDialogs(viewModel: BacklogViewModel) {
             currentReminders = uiState.remindersForDialog,
         )
     }
-
-
 }

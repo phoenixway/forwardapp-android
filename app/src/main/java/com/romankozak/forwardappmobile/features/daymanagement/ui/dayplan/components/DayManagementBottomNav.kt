@@ -25,9 +25,8 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementTab
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.ModernBottomNavButton
-
+import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementTab
 
 @Composable
 fun DayManagementBottomNav(
@@ -64,16 +63,17 @@ fun DayManagementBottomNav(
                         text = "Analytics",
                         icon = Icons.Outlined.Analytics,
                         isSelected = currentTab == DayManagementTab.ANALYTICS,
-                        onClick = { onTabSelected(DayManagementTab.ANALYTICS) }
+                        onClick = { onTabSelected(DayManagementTab.ANALYTICS) },
                     )
                 }
             }
 
             Box(
-                modifier = Modifier.fillMaxWidth().height(32.dp).clickable {
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    isExpanded = !isExpanded
-                },
+                modifier =
+                    Modifier.fillMaxWidth().height(32.dp).clickable {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        isExpanded = !isExpanded
+                    },
                 contentAlignment = Alignment.Center,
             ) {
                 Row(
@@ -99,30 +99,30 @@ fun DayManagementBottomNav(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceAround,
             ) {
-                                ModernBottomNavButton(
+                ModernBottomNavButton(
                     text = "Track",
                     icon = Icons.Outlined.Timeline,
                     isSelected = currentTab == DayManagementTab.TRACK,
-                    onClick = { onTabSelected(DayManagementTab.TRACK) }
+                    onClick = { onTabSelected(DayManagementTab.TRACK) },
                 )
                 ModernBottomNavButton(
                     text = "Plan",
                     icon = Icons.AutoMirrored.Outlined.ListAlt,
                     isSelected = currentTab == DayManagementTab.PLAN,
-                    onClick = { onTabSelected(DayManagementTab.PLAN) }
+                    onClick = { onTabSelected(DayManagementTab.PLAN) },
                 )
                 ModernBottomNavButton(text = "Contexts", icon = Icons.Outlined.Home, onClick = onHomeClick)
                 ModernBottomNavButton(
                     text = "Dashboard",
                     icon = Icons.Outlined.Dashboard,
                     isSelected = currentTab == DayManagementTab.DASHBOARD,
-                    onClick = { onTabSelected(DayManagementTab.DASHBOARD) }
+                    onClick = { onTabSelected(DayManagementTab.DASHBOARD) },
                 )
                 ModernBottomNavButton(
                     text = "Inbox",
                     icon = Icons.Outlined.Inbox,
                     isSelected = false, // It's not a tab, so it's never selected
-                    onClick = onInboxClick
+                    onClick = onInboxClick,
                 )
             }
         }

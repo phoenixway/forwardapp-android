@@ -335,12 +335,13 @@ private fun SearchResultsContent(
                 Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
                     when (result) {
                         is GlobalSearchResultItem.GoalItem -> {
-                            val searchResult = GlobalGoalSearchResult(
-                                goal = result.goal,
-                                projectId = result.backlogItem.projectId,
-                                projectName = result.projectName,
-                                pathSegments = result.pathSegments
-                            )
+                            val searchResult =
+                                GlobalGoalSearchResult(
+                                    goal = result.goal,
+                                    projectId = result.backlogItem.projectId,
+                                    projectName = result.projectName,
+                                    pathSegments = result.pathSegments,
+                                )
                             SearchResultItem(
                                 result = searchResult,
                                 onOpenAsProject = {
@@ -541,7 +542,6 @@ private fun handleRelatedLinkClick(
                 }
             }
             else -> {
-                
             }
         }
     } catch (e: Exception) {

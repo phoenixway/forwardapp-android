@@ -11,6 +11,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -26,8 +27,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.automirrored.filled.Article
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -48,6 +49,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -58,13 +60,11 @@ import com.romankozak.forwardappmobile.domain.aichat.RoleFile
 import com.romankozak.forwardappmobile.domain.aichat.RoleFolder
 import com.romankozak.forwardappmobile.domain.aichat.RoleItem
 import com.romankozak.forwardappmobile.ui.ModelsState
+import com.romankozak.forwardappmobile.ui.common.MatrixRainView
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
-import androidx.compose.ui.viewinterop.AndroidView
-import com.romankozak.forwardappmobile.ui.common.MatrixRainView
-import androidx.compose.animation.fadeOut
-import kotlinx.coroutines.delay
 
 private const val TAG = "AI_CHAT_DEBUG"
 
@@ -131,12 +131,14 @@ fun ChatScreen(
         }
     }
 
-    val backgroundBrush = Brush.verticalGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.surface,
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-        ),
-    )
+    val backgroundBrush =
+        Brush.verticalGradient(
+            colors =
+                listOf(
+                    MaterialTheme.colorScheme.surface,
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                ),
+        )
 
     if (showRoleSelectorDialog) {
         RoleSelectorDialog(
@@ -181,7 +183,7 @@ fun ChatScreen(
                     snackbarHostState.showSnackbar("Chat deleted")
                 }
             },
-            onDismiss = { showDeleteConfirmationDialog = false }
+            onDismiss = { showDeleteConfirmationDialog = false },
         )
     }
 
@@ -192,7 +194,7 @@ fun ChatScreen(
             onSave = { newTitle ->
                 viewModel.updateConversationTitle(newTitle)
                 showEditTitleDialog = false
-            }
+            },
         )
     }
 
@@ -205,9 +207,9 @@ fun ChatScreen(
                     onConversationClick = {
                         viewModel.setCurrentConversation(it)
                         coroutineScope.launch { drawerState.close() }
-                    }
+                    },
                 )
-            }
+            },
         ) {
             Scaffold(
                 snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -306,25 +308,28 @@ fun ChatScreen(
                                 }
                             }
                         },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        ),
+                        colors =
+                            TopAppBarDefaults.topAppBarColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            ),
                     )
                 },
             ) { paddingValues ->
                 Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(backgroundBrush)
-                        .padding(paddingValues)
-                        .imePadding(),
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .background(backgroundBrush)
+                            .padding(paddingValues)
+                            .imePadding(),
                 ) {
                     val hasPendingStreaming = uiState.messages.any { !it.isFromUser && it.isStreaming && it.text.isBlank() }
                     LazyColumn(
                         state = listState,
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = 12.dp),
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .padding(horizontal = 12.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         contentPadding = PaddingValues(top = 16.dp, bottom = 4.dp),
                     ) {
@@ -382,13 +387,13 @@ fun ChatScreen(
         }
         AnimatedVisibility(
             visible = showMatrixSplash,
-            exit = fadeOut(animationSpec = tween(300))
+            exit = fadeOut(animationSpec = tween(300)),
         ) {
             AndroidView(
                 factory = { context ->
                     MatrixRainView(context)
                 },
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
             )
         }
     }
@@ -440,9 +445,10 @@ fun MessageBubble(
         ) {
             if (!isUser) {
                 Surface(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .padding(bottom = 8.dp),
+                    modifier =
+                        Modifier
+                            .size(32.dp)
+                            .padding(bottom = 8.dp),
                     shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.primaryContainer,
                 ) {
@@ -459,21 +465,23 @@ fun MessageBubble(
             }
 
             Surface(
-                modifier = Modifier
-                    .widthIn(max = 280.dp)
-                    .clip(
-                        RoundedCornerShape(
-                            topStart = if (isUser) 20.dp else 4.dp,
-                            topEnd = if (isUser) 4.dp else 20.dp,
-                            bottomStart = 20.dp,
-                            bottomEnd = 20.dp,
+                modifier =
+                    Modifier
+                        .widthIn(max = 280.dp)
+                        .clip(
+                            RoundedCornerShape(
+                                topStart = if (isUser) 20.dp else 4.dp,
+                                topEnd = if (isUser) 4.dp else 20.dp,
+                                bottomStart = 20.dp,
+                                bottomEnd = 20.dp,
+                            ),
                         ),
-                    ),
-                color = when {
-                    message.isError -> MaterialTheme.colorScheme.errorContainer
-                    isUser -> MaterialTheme.colorScheme.primaryContainer
-                    else -> MaterialTheme.colorScheme.surface
-                },
+                color =
+                    when {
+                        message.isError -> MaterialTheme.colorScheme.errorContainer
+                        isUser -> MaterialTheme.colorScheme.primaryContainer
+                        else -> MaterialTheme.colorScheme.surface
+                    },
                 tonalElevation = if (isUser) 0.dp else 1.dp,
             ) {
                 Column(
@@ -483,11 +491,12 @@ fun MessageBubble(
                         Text(
                             text = animatedText.ifBlank { if (isStreaming) "…" else message.text },
                             modifier = Modifier.weight(1f, fill = false),
-                            color = when {
-                                message.isError -> MaterialTheme.colorScheme.onErrorContainer
-                                isUser -> MaterialTheme.colorScheme.onPrimaryContainer
-                                else -> MaterialTheme.colorScheme.onSurface
-                            },
+                            color =
+                                when {
+                                    message.isError -> MaterialTheme.colorScheme.onErrorContainer
+                                    isUser -> MaterialTheme.colorScheme.onPrimaryContainer
+                                    else -> MaterialTheme.colorScheme.onSurface
+                                },
                             fontSize = 15.sp,
                             lineHeight = 20.sp,
                         )
@@ -560,9 +569,10 @@ fun MessageBubble(
             if (isUser) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Surface(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .padding(bottom = 8.dp),
+                    modifier =
+                        Modifier
+                            .size(32.dp)
+                            .padding(bottom = 8.dp),
                     shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.tertiaryContainer,
                 ) {
@@ -574,10 +584,11 @@ fun MessageBubble(
         }
         bringIntoViewRequester?.let {
             Box(
-                modifier = Modifier
-                    .height(1.dp)
-                    .fillMaxWidth()
-                    .bringIntoViewRequester(it),
+                modifier =
+                    Modifier
+                        .height(1.dp)
+                        .fillMaxWidth()
+                        .bringIntoViewRequester(it),
             )
         }
     }
@@ -599,15 +610,17 @@ fun RoleSelectorDialog(
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(16.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 200.dp, max = 500.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 200.dp, max = 500.dp),
         ) {
             Column {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     if (backStack.isNotEmpty()) {
@@ -627,9 +640,10 @@ fun RoleSelectorDialog(
                 HorizontalDivider()
                 if (roles.isEmpty()) {
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
@@ -640,9 +654,10 @@ fun RoleSelectorDialog(
                     }
                 } else if (currentItems.isEmpty()) {
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
@@ -702,15 +717,17 @@ fun ModelSelectorDialog(
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(16.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 200.dp, max = 500.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 200.dp, max = 500.dp),
         ) {
             Column {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
@@ -811,29 +828,32 @@ fun StreamingIndicator() {
     val alpha by infiniteTransition.animateFloat(
         initialValue = 0.3f,
         targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000),
-            repeatMode = RepeatMode.Reverse,
-        ),
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(1000),
+                repeatMode = RepeatMode.Reverse,
+            ),
         label = "alpha",
     )
 
     Box(
-        modifier = Modifier
-            .size(8.dp)
-            .background(
-                MaterialTheme.colorScheme.primary.copy(alpha = alpha),
-                RoundedCornerShape(4.dp),
-            ),
+        modifier =
+            Modifier
+                .size(8.dp)
+                .background(
+                    MaterialTheme.colorScheme.primary.copy(alpha = alpha),
+                    RoundedCornerShape(4.dp),
+                ),
     )
 }
 
 @Composable
 fun PendingResponseIndicator() {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp, horizontal = 4.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 6.dp, horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -870,9 +890,10 @@ fun ChatInput(
             modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 12.dp),
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 InputChip(
@@ -911,17 +932,19 @@ fun ChatInput(
                     onValueChange = onValueChange,
                     modifier = Modifier.weight(1f),
                     placeholder = { Text("Type a message...") },
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.Sentences,
-                        imeAction = ImeAction.Send,
-                    ),
+                    keyboardOptions =
+                        KeyboardOptions(
+                            capitalization = KeyboardCapitalization.Sentences,
+                            imeAction = ImeAction.Send,
+                        ),
                     keyboardActions = KeyboardActions(onSend = { if (value.isNotBlank()) onSendClick() }),
                     enabled = !isLoading,
                     shape = RoundedCornerShape(24.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                    ),
+                    colors =
+                        OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                        ),
                     maxLines = 4,
                 )
 
@@ -930,17 +953,18 @@ fun ChatInput(
                     label = "send_button",
                     transitionSpec = {
                         slideInHorizontally { it } + fadeIn() togetherWith
-                                slideOutHorizontally { -it } + fadeOut()
+                            slideOutHorizontally { -it } + fadeOut()
                     },
                 ) { loading ->
                     if (loading) {
                         IconButton(
                             onClick = onStopClick,
                             modifier = Modifier.size(48.dp),
-                            colors = IconButtonDefaults.iconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer,
-                                contentColor = MaterialTheme.colorScheme.onErrorContainer
-                            )
+                            colors =
+                                IconButtonDefaults.iconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                                ),
                         ) {
                             Icon(Icons.Default.Stop, contentDescription = "Stop", modifier = Modifier.size(24.dp))
                         }
@@ -949,10 +973,11 @@ fun ChatInput(
                             onClick = onSendClick,
                             enabled = value.isNotBlank(),
                             modifier = Modifier.size(48.dp),
-                            colors = IconButtonDefaults.iconButtonColors(
-                                containerColor = if (value.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                                contentColor = if (value.isNotBlank()) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            ),
+                            colors =
+                                IconButtonDefaults.iconButtonColors(
+                                    containerColor = if (value.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                    contentColor = if (value.isNotBlank()) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                ),
                         ) {
                             Icon(
                                 Icons.AutoMirrored.Filled.Send,
@@ -1002,9 +1027,10 @@ private fun InputChip(
 @Composable
 fun EmptyStateMessage() {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(32.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {

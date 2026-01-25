@@ -24,27 +24,28 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.BacklogViewModel
 import com.romankozak.forwardappmobile.features.attachments.ui.project.components.ChecklistItemRow
 import com.romankozak.forwardappmobile.features.attachments.ui.project.components.LinkItemRow
 import com.romankozak.forwardappmobile.features.attachments.ui.project.components.NoteDocumentItemRow
-import androidx.compose.ui.graphics.Color
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.BacklogViewModel
 
 @Composable
 fun AttachmentsView(
     modifier: Modifier = Modifier,
     viewModel: BacklogViewModel,
-    listContent: List<BacklogItemContent>
+    listContent: List<BacklogItemContent>,
 ) {
-    val attachments = listContent.filter {
-        it is BacklogItemContent.LinkItem || it is BacklogItemContent.NoteDocumentItem || it is BacklogItemContent.ChecklistItem
-    }
+    val attachments =
+        listContent.filter {
+            it is BacklogItemContent.LinkItem || it is BacklogItemContent.NoteDocumentItem || it is BacklogItemContent.ChecklistItem
+        }
 
     Column(
         modifier =
@@ -105,9 +106,10 @@ private fun AttachmentItemCard(
     onDeleteCompletely: (BacklogItemContent) -> Unit,
 ) {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .combinedClickable(onClick = { onItemClick(item) }),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .combinedClickable(onClick = { onItemClick(item) }),
         shape = RoundedCornerShape(16.dp),
         tonalElevation = 1.dp,
         shadowElevation = 1.dp,

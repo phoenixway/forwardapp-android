@@ -1,10 +1,10 @@
 package com.romankozak.forwardappmobile.data.repository
 
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.models.GlobalSearchResultItem
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -21,54 +21,54 @@ private val GlobalSearchResultItem.typeOrder: Int
 
 @Singleton
 class SearchRepository
-@Inject
-constructor(
-    private val goalDao: GoalDao,
-    private val contextDao: ContextDao,
-    private val listItemDao: ListItemDao,
-    private val linkItemDao: LinkItemDao,
-    private val activityRepository: ActivityRepository,
-    private val inboxRecordDao: InboxRecordDao,
-) {
-    suspend fun searchGlobal(query: String): List<GlobalSearchResultItem> {
-        val goalResults =
-            goalDao.searchGoalsGlobal(query).mapNotNull { searchResult ->
-                val listItem = listItemDao.getListItemByEntityId(searchResult.goal.id)
-                listItem?.let {
-                    GlobalSearchResultItem.GoalItem(
-                        goal = searchResult.goal,
-                        backlogItem = it,
-                        projectName = searchResult.projectName,
-                        pathSegments = searchResult.pathSegments,
-                    )
+    @Inject
+    constructor(
+        private val goalDao: GoalDao,
+        private val contextDao: ContextDao,
+        private val listItemDao: ListItemDao,
+        private val linkItemDao: LinkItemDao,
+        private val activityRepository: ActivityRepository,
+        private val inboxRecordDao: InboxRecordDao,
+    ) {
+        suspend fun searchGlobal(query: String): List<GlobalSearchResultItem> {
+            val goalResults =
+                goalDao.searchGoalsGlobal(query).mapNotNull { searchResult ->
+                    val listItem = listItemDao.getListItemByEntityId(searchResult.goal.id)
+                    listItem?.let {
+                        GlobalSearchResultItem.GoalItem(
+                            goal = searchResult.goal,
+                            backlogItem = it,
+                            projectName = searchResult.projectName,
+                            pathSegments = searchResult.pathSegments,
+                        )
+                    }
                 }
-            }
-        val linkResults =
-            linkItemDao.searchLinksGlobal(query).map {
-                GlobalSearchResultItem.LinkItem(it)
-            }
-        val subprojectResults =
-            contextDao.searchSubprojectsGlobal(query).map {
-                GlobalSearchResultItem.SubcontextItem(it)
-            }
-        val projectResults =
-            contextDao.searchProjectsGlobal(query).map {
-                GlobalSearchResultItem.ContextItem(it)
-            }
-        val activityResults =
-            activityRepository.searchActivities(query).map {
-                GlobalSearchResultItem.ActivityItem(it)
-            }
-        val inboxResults =
-            inboxRecordDao.searchInboxRecordsGlobal(query).map {
-                GlobalSearchResultItem.InboxItem(it)
-            }
+            val linkResults =
+                linkItemDao.searchLinksGlobal(query).map {
+                    GlobalSearchResultItem.LinkItem(it)
+                }
+            val subprojectResults =
+                contextDao.searchSubprojectsGlobal(query).map {
+                    GlobalSearchResultItem.SubcontextItem(it)
+                }
+            val projectResults =
+                contextDao.searchProjectsGlobal(query).map {
+                    GlobalSearchResultItem.ContextItem(it)
+                }
+            val activityResults =
+                activityRepository.searchActivities(query).map {
+                    GlobalSearchResultItem.ActivityItem(it)
+                }
+            val inboxResults =
+                inboxRecordDao.searchInboxRecordsGlobal(query).map {
+                    GlobalSearchResultItem.InboxItem(it)
+                }
 
-        val combinedResults = (goalResults + linkResults + subprojectResults + projectResults + activityResults + inboxResults)
+            val combinedResults = (goalResults + linkResults + subprojectResults + projectResults + activityResults + inboxResults)
 
-        return combinedResults.sortedWith(
-            compareBy<GlobalSearchResultItem> { it.typeOrder }
-                .thenByDescending { it.timestamp },
-        )
+            return combinedResults.sortedWith(
+                compareBy<GlobalSearchResultItem> { it.typeOrder }
+                    .thenByDescending { it.timestamp },
+            )
+        }
     }
-}

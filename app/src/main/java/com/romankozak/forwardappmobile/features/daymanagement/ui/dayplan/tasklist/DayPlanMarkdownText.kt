@@ -9,11 +9,9 @@ import androidx.compose.ui.text.*
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.sp
-
-
-import androidx.compose.ui.text.style.TextOverflow
 
 @Composable
 fun DayPlanMarkdownText(
@@ -51,28 +49,29 @@ fun DayPlanMarkdownText(
             )
         }
 
-    val annotatedString = buildAnnotatedString {
-        text.lines().forEachIndexed { index, line ->
-            val listMatch = listRegex.find(line)
-            val (content, isList) =
-                if (listMatch != null) {
-                    listMatch.destructured.component2() to true
-                } else {
-                    line to false
+    val annotatedString =
+        buildAnnotatedString {
+            text.lines().forEachIndexed { index, line ->
+                val listMatch = listRegex.find(line)
+                val (content, isList) =
+                    if (listMatch != null) {
+                        listMatch.destructured.component2() to true
+                    } else {
+                        line to false
+                    }
+
+                val annotatedLine = applyInlineStyles(content, inlineContentRegex, tagColor, projectColor, linkColor, isCompleted)
+
+                if (isList) {
+                    withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append("•  ") }
                 }
+                append(annotatedLine)
 
-            val annotatedLine = applyInlineStyles(content, inlineContentRegex, tagColor, projectColor, linkColor, isCompleted)
-
-            if (isList) {
-                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append("•  ") }
-            }
-            append(annotatedLine)
-
-            if (index < text.lines().size - 1) {
-                append("\n")
+                if (index < text.lines().size - 1) {
+                    append("\n")
+                }
             }
         }
-    }
 
     Text(
         text = annotatedString,

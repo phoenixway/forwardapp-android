@@ -2,8 +2,8 @@ package com.romankozak.forwardappmobile.features.daymanagement.ui.dayanalitics
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.features.ai.data.models.WeeklyInsights
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
+import com.romankozak.forwardappmobile.features.ai.data.models.WeeklyInsights
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -43,7 +43,6 @@ class DayAnalyticsViewModel
             loadInsights(TimeRange.WEEK)
         }
 
-        
         fun selectTimeRange(range: TimeRange) {
             if (range != _uiState.value.selectedRange) {
                 _uiState.update {
@@ -53,12 +52,10 @@ class DayAnalyticsViewModel
             }
         }
 
-        
         fun refreshInsights() {
             loadInsights(_uiState.value.selectedRange)
         }
 
-        
         private fun loadInsights(range: TimeRange) {
             viewModelScope.launch {
                 try {
@@ -70,7 +67,6 @@ class DayAnalyticsViewModel
                         )
                     }
 
-                    
                     val startDate =
                         Instant.now()
                             .minus(range.days.toLong(), ChronoUnit.DAYS)
@@ -108,19 +104,15 @@ class DayAnalyticsViewModel
             }
         }
 
-        
         fun clearError() {
             _uiState.update { it.copy(error = null) }
         }
 
-        
         fun isDataStale(): Boolean {
             val lastUpdated = _uiState.value.lastUpdated ?: return true
             val staleThreshold = 30 * 60 * 1000L
             return System.currentTimeMillis() - lastUpdated > staleThreshold
         }
-
-        
 
         fun getProductivityRecommendations(): List<String> {
             val insights = _uiState.value.insights ?: return emptyList()
@@ -158,12 +150,9 @@ class DayAnalyticsViewModel
             return recommendations
         }
 
-        
         fun getWeekdayStats(): Map<String, Double> {
             val insights = _uiState.value.insights ?: return emptyMap()
 
-            
-            
             return mapOf(
                 "Понеділок" to 0.8,
                 "Вівторок" to 0.7,
@@ -175,7 +164,6 @@ class DayAnalyticsViewModel
             )
         }
 
-        
         fun formatDuration(minutes: Int): String {
             val hours = minutes / 60
             val remainingMinutes = minutes % 60
@@ -186,7 +174,6 @@ class DayAnalyticsViewModel
             }
         }
 
-        
         fun getProductivityColor(completionRate: Float): String {
             return when {
                 completionRate >= 0.8f -> "success"
@@ -196,11 +183,9 @@ class DayAnalyticsViewModel
             }
         }
 
-        
         fun getProductivityTrend(): String {
             val insights = _uiState.value.insights ?: return "Недостатньо даних"
 
-            
             return when {
                 insights.averageCompletionRate > 0.7 -> "Зростаюча тенденція"
                 insights.averageCompletionRate > 0.4 -> "Стабільна тенденція"

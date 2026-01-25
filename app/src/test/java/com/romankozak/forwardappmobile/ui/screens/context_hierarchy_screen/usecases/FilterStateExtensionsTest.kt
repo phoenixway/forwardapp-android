@@ -1,16 +1,15 @@
 package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
 
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.withHierarchyFallback
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FilterState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningSettingsState
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.withHierarchyFallback
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FilterStateExtensionsTest {
-
     @Test
     fun fallbackReusesAllProjectsWhenReadyAndAllMode() {
         val allProjects = listOf(project("root"), project("child", parentId = "root"))
@@ -55,7 +54,10 @@ class FilterStateExtensionsTest {
         assertTrue(otherModeState.flatList.isEmpty())
     }
 
-    private fun project(id: String, parentId: String? = null): Context =
+    private fun project(
+        id: String,
+        parentId: String? = null,
+    ): Context =
         Context(
             id = id,
             name = id,

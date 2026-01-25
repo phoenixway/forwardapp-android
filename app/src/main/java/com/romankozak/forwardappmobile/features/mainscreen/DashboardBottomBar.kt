@@ -18,9 +18,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.features.recent.data.models.RecentItem
 import com.romankozak.forwardappmobile.ui.components.NewRecentListsSheet
-import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,12 +36,13 @@ fun DashboardBottomBar(
     onNavigateToSettings: () -> Unit,
     onNavigateToImportExport: () -> Unit,
     onNavigateToRecentItem: (RecentItem) -> Unit,
-    recentViewModel: RecentViewModel = hiltViewModel()
+    recentViewModel: RecentViewModel = hiltViewModel(),
 ) {
     val coroutineScope = rememberCoroutineScope()
-    val modalSheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true,
-    )
+    val modalSheetState =
+        rememberModalBottomSheetState(
+            skipPartiallyExpanded = true,
+        )
     var showMoreBottomSheet by remember { mutableStateOf(false) }
     var showRecentSheet by remember { mutableStateOf(false) }
 
@@ -53,21 +54,23 @@ fun DashboardBottomBar(
             sheetState = modalSheetState,
             shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
         ) {
-            MoreBottomSheetContent(onNavigateToReminders = {
-                coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
-                    if (!modalSheetState.isVisible) {
-                        showMoreBottomSheet = false
+            MoreBottomSheetContent(
+                onNavigateToReminders = {
+                    coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
+                        if (!modalSheetState.isVisible) {
+                            showMoreBottomSheet = false
+                        }
+                        onNavigateToReminders()
                     }
-                    onNavigateToReminders()
-                }
-            }, onNavigateToProjectSearch = {
-                coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
-                    if (!modalSheetState.isVisible) {
-                        showMoreBottomSheet = false
+                },
+                onNavigateToProjectSearch = {
+                    coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
+                        if (!modalSheetState.isVisible) {
+                            showMoreBottomSheet = false
+                        }
+                        onNavigateToProjectSearch()
                     }
-                    onNavigateToProjectSearch()
-                }
-            },
+                },
                 onNavigateToPresets = {
                     coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
                         if (!modalSheetState.isVisible) {
@@ -99,7 +102,7 @@ fun DashboardBottomBar(
                         }
                         onNavigateToSettings()
                     }
-                }
+                },
             )
         }
     }
@@ -115,25 +118,25 @@ fun DashboardBottomBar(
                     onNavigateToRecentItem(item)
                 }
             },
-            onPinClick = { item -> recentViewModel.onPinClick(item) }
+            onPinClick = { item -> recentViewModel.onPinClick(item) },
         )
     }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceAround,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         BarButton(
             icon = Icons.Outlined.MoveToInbox,
             label = "Inbox",
-            onClick = onNavigateToInbox
+            onClick = onNavigateToInbox,
         )
 
         BarButton(
             icon = Icons.Outlined.Radar,
             label = "Tracker",
-            onClick = onNavigateToTracker
+            onClick = onNavigateToTracker,
         )
 
         BarButton(
@@ -144,12 +147,12 @@ fun DashboardBottomBar(
         BarButton(
             icon = Icons.Outlined.History,
             label = "Recent",
-            onClick = { showRecentSheet = true }
+            onClick = { showRecentSheet = true },
         )
         BarButton(
             icon = Icons.Outlined.MoreHoriz,
             label = "More",
-            onClick = { showMoreBottomSheet = true }
+            onClick = { showMoreBottomSheet = true },
         )
     }
 }
@@ -164,75 +167,82 @@ private fun MoreBottomSheetContent(
     onNavigateToSettings: () -> Unit,
 ) {
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(16.dp)
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(16.dp),
     ) {
         Column {
             Text("More Options", style = MaterialTheme.typography.headlineSmall)
             Spacer(modifier = Modifier.height(16.dp))
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onNavigateToProjectSearch)
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onNavigateToProjectSearch)
+                        .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(Icons.Outlined.Search, contentDescription = "Search in projects")
                 Spacer(modifier = Modifier.width(16.dp))
                 Text("Search in projects")
             }
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onNavigateToReminders)
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onNavigateToReminders)
+                        .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(Icons.Outlined.Notifications, contentDescription = "Reminders")
                 Spacer(modifier = Modifier.width(16.dp))
                 Text("Reminders")
             }
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onNavigateToPresets)
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onNavigateToPresets)
+                        .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(Icons.Outlined.DashboardCustomize, contentDescription = "Presets")
                 Spacer(modifier = Modifier.width(16.dp))
                 Text("Structure presets")
             }
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onNavigateToAiInsights)
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onNavigateToAiInsights)
+                        .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(Icons.Outlined.AutoAwesome, contentDescription = "AI Insights")
                 Spacer(modifier = Modifier.width(16.dp))
                 Text("AI Insights")
             }
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onNavigateToImportExport)
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onNavigateToImportExport)
+                        .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(Icons.Outlined.SwapVert, contentDescription = "Import/Export")
                 Spacer(modifier = Modifier.width(16.dp))
                 Text("Import/Export")
             }
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onNavigateToSettings)
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onNavigateToSettings)
+                        .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(Icons.Outlined.Settings, contentDescription = "Settings")
                 Spacer(modifier = Modifier.width(16.dp))
@@ -242,36 +252,37 @@ private fun MoreBottomSheetContent(
     }
 }
 
-
 @Composable
 private fun BarButton(
     icon: ImageVector,
     label: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     val primary = MaterialTheme.colorScheme.primary
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .clip(RoundedCornerShape(14.dp))
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-            ) { onClick() }
-            .padding(6.dp)
+        modifier =
+            Modifier
+                .clip(RoundedCornerShape(14.dp))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                ) { onClick() }
+                .padding(6.dp),
     ) {
         Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(primary.copy(alpha = 0.10f))
-                .border(
-                    width = 1.dp,
-                    color = primary.copy(alpha = 0.22f),
-                    shape = CircleShape
-                ),
-            contentAlignment = Alignment.Center
+            modifier =
+                Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(primary.copy(alpha = 0.10f))
+                    .border(
+                        width = 1.dp,
+                        color = primary.copy(alpha = 0.22f),
+                        shape = CircleShape,
+                    ),
+            contentAlignment = Alignment.Center,
         ) {
             Icon(icon, contentDescription = label, tint = primary.copy(alpha = 0.9f))
         }

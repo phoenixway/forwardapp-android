@@ -72,7 +72,13 @@ enum class LinkType { PROJECT, URL, OBSIDIAN }
 
 enum class DayStatus { PLANNED, IN_PROGRESS, COMPLETED, MISSED, ARCHIVED }
 
-enum class TaskPriority { LOW, MEDIUM, HIGH, CRITICAL, NONE;
+enum class TaskPriority {
+    LOW,
+    MEDIUM,
+    HIGH,
+    CRITICAL,
+    NONE,
+    ;
 
     fun getDisplayName(): String {
         return when (this) {

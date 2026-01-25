@@ -7,9 +7,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.StickyNote2
-
-import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.SubdirectoryArrowRight
 import androidx.compose.material.icons.filled.Topic
 import androidx.compose.material.icons.filled.TrackChanges
@@ -21,14 +20,13 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask
-import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 import com.romankozak.forwardappmobile.features.contexts.data.models.TaskPriority
+import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask
 import com.romankozak.forwardappmobile.features.reminders.components.ReminderBadge
+import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
 
 @Composable
 private fun SublistIconBadge(modifier: Modifier = Modifier) {
@@ -160,7 +158,7 @@ private fun FlowRowScope.RenderBadges(
             Text("Наступне о $nextTime", style = MaterialTheme.typography.labelSmall)
         }
     }
-    reminder?.let { 
+    reminder?.let {
         ReminderBadge(
             reminder = it,
         )
@@ -177,7 +175,6 @@ private fun FlowRowScope.RenderBadges(
         )
     }
 }
-
 
 @Composable
 private fun PriorityBadge(priority: TaskPriority) {

@@ -10,8 +10,8 @@ import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.PostAdd
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.TravelExplore

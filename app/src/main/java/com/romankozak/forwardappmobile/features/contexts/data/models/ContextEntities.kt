@@ -11,7 +11,6 @@ import androidx.room.TypeConverters
 import com.google.gson.annotations.SerializedName
 import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
 
-
 @Entity(
     tableName = "backlog_orders",
     indices = [
@@ -211,7 +210,7 @@ sealed class GlobalSearchResultItem {
         val goal: Goal,
         val backlogItem: BacklogItem,
         val projectName: String,
-        val pathSegments: List<String>
+        val pathSegments: List<String>,
     ) : GlobalSearchResultItem() {
         override val timestamp: Long get() = goal.updatedAt ?: goal.createdAt
         override val uniqueId: String get() = "goal_${goal.id}_${backlogItem.contextId}"
@@ -219,7 +218,7 @@ sealed class GlobalSearchResultItem {
 
     data class LinkItem(val searchResult: GlobalLinkSearchResult) : GlobalSearchResultItem() {
         override val timestamp: Long get() = searchResult.link.createdAt
-        override val uniqueId: String get() = "link_${searchResult.link.id}_${searchResult.projectId}"
+        override val uniqueId: String get() = "link_${searchResult.link.id}_${searchResult.contextId}"
     }
 
     data class SubcontextItem(val searchResult: GlobalSubcontextSearchResult) : GlobalSearchResultItem() {

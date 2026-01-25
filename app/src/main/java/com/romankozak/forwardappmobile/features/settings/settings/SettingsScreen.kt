@@ -6,9 +6,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
@@ -16,10 +21,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material.icons.filled.Build
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,47 +33,42 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Switch
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.ScrollableTabRow
-import androidx.compose.material3.Tab
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.romankozak.forwardappmobile.BuildConfig
+import com.romankozak.forwardappmobile.R
+import com.romankozak.forwardappmobile.core.config.FeatureFlag
+import com.romankozak.forwardappmobile.core.config.FeatureToggles
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningSettingsState
+import com.romankozak.forwardappmobile.features.settings.settings.components.AnimatedTextField
 import com.romankozak.forwardappmobile.features.settings.settings.components.NerSettingsCard
 import com.romankozak.forwardappmobile.features.settings.settings.components.PermissionsSettingsCard
-import com.romankozak.forwardappmobile.features.settings.settings.components.RolesSettingsCard
 import com.romankozak.forwardappmobile.features.settings.settings.components.RingtoneSettingsCard
+import com.romankozak.forwardappmobile.features.settings.settings.components.RolesSettingsCard
 import com.romankozak.forwardappmobile.features.settings.settings.components.ServerSettingsCard
+import com.romankozak.forwardappmobile.features.settings.settings.components.SettingsCard
 import com.romankozak.forwardappmobile.features.settings.settings.components.ThemeSettingsCard
 import com.romankozak.forwardappmobile.features.settings.settings.components.WifiSyncSettingsCard
 import com.romankozak.forwardappmobile.features.settings.settings.models.PlanningSettings
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.only
-import com.romankozak.forwardappmobile.features.settings.settings.components.AnimatedTextField
-import com.romankozak.forwardappmobile.features.settings.settings.components.SettingsCard
-import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.BuildConfig
-import com.romankozak.forwardappmobile.core.config.FeatureFlag
-import com.romankozak.forwardappmobile.core.config.FeatureToggles
 import kotlinx.coroutines.flow.first
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -97,56 +97,59 @@ fun SettingsScreen(
         }
     }
 
-    val tabs = listOfNotNull(
-        SettingsTab.General,
-        SettingsTab.Ui,
-        SettingsTab.Reminders,
-        SettingsTab.Management,
-        SettingsTab.Integrations,
-        if (BuildConfig.IS_EXPERIMENTAL_BUILD) SettingsTab.Ai else null,
-        if (BuildConfig.IS_EXPERIMENTAL_BUILD) SettingsTab.Experiments else null,
-        SettingsTab.Diagnostics,
-    )
+    val tabs =
+        listOfNotNull(
+            SettingsTab.General,
+            SettingsTab.Ui,
+            SettingsTab.Reminders,
+            SettingsTab.Management,
+            SettingsTab.Integrations,
+            if (BuildConfig.IS_EXPERIMENTAL_BUILD) SettingsTab.Ai else null,
+            if (BuildConfig.IS_EXPERIMENTAL_BUILD) SettingsTab.Experiments else null,
+            SettingsTab.Diagnostics,
+        )
     var selectedTabName by rememberSaveable { mutableStateOf(SettingsTab.General.name) }
     val selectedTab = tabs.firstOrNull { it.name == selectedTabName } ?: SettingsTab.General
 
     val isDirty by remember(uiState, tempShowModes, tempDailyTag, tempMediumTag, tempLongTag, tempVaultName, initialViewModelState.value) {
         derivedStateOf {
-            val planningIsDirty = tempShowModes != planningSettings.showModes ||
+            val planningIsDirty =
+                tempShowModes != planningSettings.showModes ||
                     tempDailyTag != planningSettings.dailyTag ||
                     tempMediumTag != planningSettings.mediumTag ||
                     tempLongTag != planningSettings.longTag ||
                     tempVaultName != initialVaultName
 
-            val viewModelIsDirty = initialViewModelState.value?.let { initial ->
-                uiState.serverIpConfigurationMode != initial.serverIpConfigurationMode ||
-                uiState.manualServerIp != initial.manualServerIp ||
-                uiState.wifiSyncPort != initial.wifiSyncPort ||
-                uiState.ollamaPort != initial.ollamaPort ||
-                uiState.fastApiPort != initial.fastApiPort ||
-                uiState.fastModel != initial.fastModel ||
-                uiState.smartModel != initial.smartModel ||
-                uiState.nerModelUri != initial.nerModelUri ||
-                uiState.nerTokenizerUri != initial.nerTokenizerUri ||
-                uiState.nerLabelsUri != initial.nerLabelsUri ||
-                uiState.rolesFolderUri != initial.rolesFolderUri ||
-                uiState.themeSettings != initial.themeSettings ||
-                uiState.ringtoneType != initial.ringtoneType ||
-                uiState.ringtoneUris != initial.ringtoneUris ||
-                uiState.ringtoneVolumes != initial.ringtoneVolumes ||
-                uiState.reminderVibrationEnabled != initial.reminderVibrationEnabled ||
-                uiState.wifiSyncServerEnabled != initial.wifiSyncServerEnabled ||
-                uiState.desktopSyncAddress != initial.desktopSyncAddress ||
-                uiState.attachmentsLibraryEnabled != initial.attachmentsLibraryEnabled ||
-                uiState.scriptsLibraryEnabled != initial.scriptsLibraryEnabled ||
-                uiState.allowSystemProjectMoves != initial.allowSystemProjectMoves ||
-                uiState.planningModesEnabled != initial.planningModesEnabled ||
-                uiState.wifiSyncEnabled != initial.wifiSyncEnabled ||
-                uiState.strategicManagementEnabled != initial.strategicManagementEnabled ||
-                uiState.aiChatEnabled != initial.aiChatEnabled ||
-                uiState.aiInsightsEnabled != initial.aiInsightsEnabled ||
-                uiState.aiLifeManagementEnabled != initial.aiLifeManagementEnabled
-            } ?: false
+            val viewModelIsDirty =
+                initialViewModelState.value?.let { initial ->
+                    uiState.serverIpConfigurationMode != initial.serverIpConfigurationMode ||
+                        uiState.manualServerIp != initial.manualServerIp ||
+                        uiState.wifiSyncPort != initial.wifiSyncPort ||
+                        uiState.ollamaPort != initial.ollamaPort ||
+                        uiState.fastApiPort != initial.fastApiPort ||
+                        uiState.fastModel != initial.fastModel ||
+                        uiState.smartModel != initial.smartModel ||
+                        uiState.nerModelUri != initial.nerModelUri ||
+                        uiState.nerTokenizerUri != initial.nerTokenizerUri ||
+                        uiState.nerLabelsUri != initial.nerLabelsUri ||
+                        uiState.rolesFolderUri != initial.rolesFolderUri ||
+                        uiState.themeSettings != initial.themeSettings ||
+                        uiState.ringtoneType != initial.ringtoneType ||
+                        uiState.ringtoneUris != initial.ringtoneUris ||
+                        uiState.ringtoneVolumes != initial.ringtoneVolumes ||
+                        uiState.reminderVibrationEnabled != initial.reminderVibrationEnabled ||
+                        uiState.wifiSyncServerEnabled != initial.wifiSyncServerEnabled ||
+                        uiState.desktopSyncAddress != initial.desktopSyncAddress ||
+                        uiState.attachmentsLibraryEnabled != initial.attachmentsLibraryEnabled ||
+                        uiState.scriptsLibraryEnabled != initial.scriptsLibraryEnabled ||
+                        uiState.allowSystemProjectMoves != initial.allowSystemProjectMoves ||
+                        uiState.planningModesEnabled != initial.planningModesEnabled ||
+                        uiState.wifiSyncEnabled != initial.wifiSyncEnabled ||
+                        uiState.strategicManagementEnabled != initial.strategicManagementEnabled ||
+                        uiState.aiChatEnabled != initial.aiChatEnabled ||
+                        uiState.aiInsightsEnabled != initial.aiInsightsEnabled ||
+                        uiState.aiLifeManagementEnabled != initial.aiLifeManagementEnabled
+                } ?: false
 
             planningIsDirty || viewModelIsDirty
         }
@@ -171,10 +174,11 @@ fun SettingsScreen(
             ) {
                 TextButton(
                     onClick = onBack,
-                    colors = ButtonDefaults.textButtonColors(
-                        containerColor = Color.Transparent,
-                        contentColor = MaterialTheme.colorScheme.primary,
-                    ),
+                    colors =
+                        ButtonDefaults.textButtonColors(
+                            containerColor = Color.Transparent,
+                            contentColor = MaterialTheme.colorScheme.primary,
+                        ),
                 ) { Text("Close") }
                 Spacer(Modifier.width(8.dp))
                 Button(
@@ -186,8 +190,8 @@ fun SettingsScreen(
                                 dailyTag = tempDailyTag,
                                 mediumTag = tempMediumTag,
                                 longTag = tempLongTag,
-                                vaultName = tempVaultName
-                            )
+                                vaultName = tempVaultName,
+                            ),
                         )
                         viewModel.saveSettings()
                         onBack()
@@ -328,7 +332,7 @@ fun SettingsScreen(
                                 onFetchClick = viewModel::fetchAvailableModels,
                                 onFastModelSelect = viewModel::onFastModelSelected,
                                 onSmartModelSelect = viewModel::onSmartModelSelected,
-                                onRefreshDiscovery = viewModel::refreshServerDiscovery
+                                onRefreshDiscovery = viewModel::refreshServerDiscovery,
                             )
                             RolesSettingsCard(
                                 state = uiState,
@@ -353,7 +357,7 @@ fun SettingsScreen(
                             Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier.fillMaxWidth(),
                                 ) {
                                     Text(
                                         text = "Attachments library",
@@ -361,12 +365,12 @@ fun SettingsScreen(
                                     )
                                     Switch(
                                         checked = uiState.attachmentsLibraryEnabled,
-                                        onCheckedChange = viewModel::onAttachmentsLibraryToggle
+                                        onCheckedChange = viewModel::onAttachmentsLibraryToggle,
                                     )
                                 }
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier.fillMaxWidth(),
                                 ) {
                                     Text(
                                         text = "Scripts",
@@ -374,12 +378,12 @@ fun SettingsScreen(
                                     )
                                     Switch(
                                         checked = uiState.scriptsLibraryEnabled,
-                                        onCheckedChange = viewModel::onScriptsLibraryToggle
+                                        onCheckedChange = viewModel::onScriptsLibraryToggle,
                                     )
                                 }
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier.fillMaxWidth(),
                                 ) {
                                     Text(
                                         text = stringResource(R.string.settings_allow_system_project_moves),
@@ -392,7 +396,7 @@ fun SettingsScreen(
                                 }
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier.fillMaxWidth(),
                                 ) {
                                     Text(
                                         text = "Planning modes",
@@ -405,7 +409,7 @@ fun SettingsScreen(
                                 }
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier.fillMaxWidth(),
                                 ) {
                                     Text(
                                         text = "Wi‑Fi sync",
@@ -418,7 +422,7 @@ fun SettingsScreen(
                                 }
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier.fillMaxWidth(),
                                 ) {
                                     Text(
                                         text = "Strategic management",
@@ -431,7 +435,7 @@ fun SettingsScreen(
                                 }
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier.fillMaxWidth(),
                                 ) {
                                     Text(
                                         text = "AI Chat",
@@ -444,7 +448,7 @@ fun SettingsScreen(
                                 }
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier.fillMaxWidth(),
                                 ) {
                                     Text(
                                         text = "AI Insights",
@@ -457,7 +461,7 @@ fun SettingsScreen(
                                 }
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier.fillMaxWidth(),
                                 ) {
                                     Text(
                                         text = "AI Life Management",
@@ -487,7 +491,9 @@ fun SettingsScreen(
     }
 }
 
-private enum class SettingsTab(@StringRes val labelRes: Int) {
+private enum class SettingsTab(
+    @StringRes val labelRes: Int,
+) {
     General(R.string.settings_tab_general),
     Ui(R.string.settings_tab_ui),
     Reminders(R.string.settings_tab_reminders),

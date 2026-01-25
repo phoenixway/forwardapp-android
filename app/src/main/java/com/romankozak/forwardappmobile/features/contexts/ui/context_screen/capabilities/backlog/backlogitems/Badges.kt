@@ -36,7 +36,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
 
-
 @Composable
 fun EnhancedScoreStatusBadge(
     scoringStatus: String,
@@ -47,12 +46,12 @@ fun EnhancedScoreStatusBadge(
             if (displayScore > 0) {
                 val animatedColor by animateColorAsState(
                     targetValue =
-                    when {
-                        displayScore >= 80 -> Color(0xFF4CAF50)
-                        displayScore >= 60 -> Color(0xFFFF9800)
-                        displayScore >= 40 -> Color(0xFFFFEB3B)
-                        else -> Color(0xFFE91E63)
-                    },
+                        when {
+                            displayScore >= 80 -> Color(0xFF4CAF50)
+                            displayScore >= 60 -> Color(0xFFFF9800)
+                            displayScore >= 40 -> Color(0xFFFFEB3B)
+                            else -> Color(0xFFE91E63)
+                        },
                     label = "score_color",
                 )
 
@@ -65,19 +64,19 @@ fun EnhancedScoreStatusBadge(
                 AnimatedVisibility(
                     visible = isVisible,
                     enter =
-                    slideInHorizontally(
-                        initialOffsetX = { fullWidth -> -fullWidth },
-                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                    ) + fadeIn(),
+                        slideInHorizontally(
+                            initialOffsetX = { fullWidth -> -fullWidth },
+                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                        ) + fadeIn(),
                 ) {
                     Surface(
                         shape = RoundedCornerShape(10.dp),
                         color = animatedColor.copy(alpha = 0.15f),
                         border = BorderStroke(0.6.dp, animatedColor.copy(alpha = 0.3f)),
                         modifier =
-                        Modifier.semantics {
-                            contentDescription = "Оцінка: $displayScore з 100"
-                        },
+                            Modifier.semantics {
+                                contentDescription = "Оцінка: $displayScore з 100"
+                            },
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
@@ -92,12 +91,12 @@ fun EnhancedScoreStatusBadge(
                             )
                             Text(
                                 text = "$displayScore/100",
-                                style = 
-                                MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 0.2.sp,
-                                    fontSize = 10.sp,
-                                ),
+                                style =
+                                    MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 0.2.sp,
+                                        fontSize = 10.sp,
+                                    ),
                                 color = animatedColor,
                             )
                         }
@@ -110,19 +109,19 @@ fun EnhancedScoreStatusBadge(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                 modifier =
-                Modifier
-                    .semantics {
-                        contentDescription = "Неможливо оцінити"
-                    },
+                    Modifier
+                        .semantics {
+                            contentDescription = "Неможливо оцінити"
+                        },
             ) {
                 Icon(
                     imageVector = Icons.Default.FlashOff,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier =
-                    Modifier
-                        .size(16.dp)
-                        .padding(3.dp),
+                        Modifier
+                            .size(16.dp)
+                            .padding(3.dp),
                 )
             }
         }

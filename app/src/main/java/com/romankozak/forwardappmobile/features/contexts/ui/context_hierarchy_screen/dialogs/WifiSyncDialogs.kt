@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun WifiExportDialog(
     serverAddress: String?,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -39,14 +39,14 @@ fun WifiExportDialog(
             Button(onClick = onDismiss) {
                 Text("Close")
             }
-        }
+        },
     )
 }
 
 @Composable
 fun WifiImportDialog(
     onDismiss: () -> Unit,
-    onImport: (String) -> Unit
+    onImport: (String) -> Unit,
 ) {
     var address by remember { mutableStateOf("") }
 
@@ -60,14 +60,14 @@ fun WifiImportDialog(
                 TextField(
                     value = address,
                     onValueChange = { address = it },
-                    label = { Text("e.g., 192.168.1.100:8080") }
+                    label = { Text("e.g., 192.168.1.100:8080") },
                 )
             }
         },
         confirmButton = {
             Button(
                 onClick = { onImport(address) },
-                enabled = address.isNotBlank()
+                enabled = address.isNotBlank(),
             ) {
                 Text("Import")
             }
@@ -76,6 +76,6 @@ fun WifiImportDialog(
             Button(onClick = onDismiss) {
                 Text("Cancel")
             }
-        }
+        },
     )
 }

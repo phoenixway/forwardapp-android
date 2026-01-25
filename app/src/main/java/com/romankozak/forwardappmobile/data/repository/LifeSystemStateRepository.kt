@@ -1,12 +1,12 @@
 package com.romankozak.forwardappmobile.data.repository
 
 import com.romankozak.forwardappmobile.data.dao.LifeSystemStateDao
-import com.romankozak.forwardappmobile.features.lifestate.data.models.LifeSystemStateEntity
 import com.romankozak.forwardappmobile.domain.ai.state.EntropyLevel
 import com.romankozak.forwardappmobile.domain.ai.state.ExecutionMode
 import com.romankozak.forwardappmobile.domain.ai.state.LifeSystemState
 import com.romankozak.forwardappmobile.domain.ai.state.LoadLevel
 import com.romankozak.forwardappmobile.domain.ai.state.StabilityLevel
+import com.romankozak.forwardappmobile.features.lifestate.data.models.LifeSystemStateEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.Instant
@@ -15,29 +15,34 @@ import javax.inject.Singleton
 
 interface LifeSystemStateRepository {
     suspend fun get(): LifeSystemState?
+
     suspend fun save(state: LifeSystemState)
 }
 
 @Singleton
-class LifeSystemStateRepositoryImpl @Inject constructor(
-    private val dao: LifeSystemStateDao,
-) : LifeSystemStateRepository {
-    override suspend fun get(): LifeSystemState? = withContext(Dispatchers.IO) {
-        dao.getState()?.toDomain()
-    }
+class LifeSystemStateRepositoryImpl
+    @Inject
+    constructor(
+        private val dao: LifeSystemStateDao,
+    ) : LifeSystemStateRepository {
+        override suspend fun get(): LifeSystemState? =
+            withContext(Dispatchers.IO) {
+                dao.getState()?.toDomain()
+            }
 
-    override suspend fun save(state: LifeSystemState) = withContext(Dispatchers.IO) {
-        dao.upsert(
-            LifeSystemStateEntity(
-                loadLevel = state.loadLevel.name,
-                executionMode = state.executionMode.name,
-                stability = state.stability.name,
-                entropy = state.entropy.name,
-                updatedAt = state.updatedAt.toEpochMilli(),
-            )
-        )
+        override suspend fun save(state: LifeSystemState) =
+            withContext(Dispatchers.IO) {
+                dao.upsert(
+                    LifeSystemStateEntity(
+                        loadLevel = state.loadLevel.name,
+                        executionMode = state.executionMode.name,
+                        stability = state.stability.name,
+                        entropy = state.entropy.name,
+                        updatedAt = state.updatedAt.toEpochMilli(),
+                    ),
+                )
+            }
     }
-}
 
 private fun LifeSystemStateEntity.toDomain(): LifeSystemState =
     LifeSystemState(

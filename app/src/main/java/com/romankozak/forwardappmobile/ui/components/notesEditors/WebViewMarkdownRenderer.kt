@@ -33,13 +33,17 @@ class WebViewMarkdownViewer
             webView.loadUrl("file:///android_asset/viewer.html")
         }
 
-        fun renderMarkdown(markdown: String, isDark: Boolean) {
+        fun renderMarkdown(
+            markdown: String,
+            isDark: Boolean,
+        ) {
             if (isJsReady) {
-                val jsTheme = if (isDark) {
-                    "document.body.classList.add('dark');"
-                } else {
-                    "document.body.classList.remove('dark');"
-                }
+                val jsTheme =
+                    if (isDark) {
+                        "document.body.classList.add('dark');"
+                    } else {
+                        "document.body.classList.remove('dark');"
+                    }
                 post { webView.evaluateJavascript(jsTheme, null) }
 
                 val escapedMarkdown = escapeForJS(markdown)

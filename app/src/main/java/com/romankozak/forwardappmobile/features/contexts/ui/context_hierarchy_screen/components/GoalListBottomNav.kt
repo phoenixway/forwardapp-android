@@ -11,10 +11,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.outlined.AccountTree
-import androidx.compose.material.icons.outlined.TrackChanges
-import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.outlined.AccountTree
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.TrackChanges
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -148,23 +148,25 @@ internal fun MoreActionsBottomNavButton(
     val primary = MaterialTheme.colorScheme.primary
 
     Column(
-        modifier = Modifier
-            .clip(RoundedCornerShape(14.dp))
-            .clickable { showMenu = true }
-            .padding(6.dp),
+        modifier =
+            Modifier
+                .clip(RoundedCornerShape(14.dp))
+                .clickable { showMenu = true }
+                .padding(6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(primary.copy(alpha = 0.10f))
-                .border(
-                    width = 1.dp,
-                    color = primary.copy(alpha = 0.22f),
-                    shape = CircleShape
-                ),
-            contentAlignment = Alignment.Center
+            modifier =
+                Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(primary.copy(alpha = 0.10f))
+                    .border(
+                        width = 1.dp,
+                        color = primary.copy(alpha = 0.22f),
+                        shape = CircleShape,
+                    ),
+            contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Outlined.MoreVert,
@@ -177,7 +179,7 @@ internal fun MoreActionsBottomNavButton(
         DropdownMenu(
             expanded = showMenu,
             onDismissRequest = { showMenu = false },
-            offset = DpOffset(0.dp, (-50).dp) // Adjust offset to position above the button
+            offset = DpOffset(0.dp, (-50).dp), // Adjust offset to position above the button
         ) {
             DropdownMenuItem(
                 text = { Text("Contexts") },
@@ -185,7 +187,7 @@ internal fun MoreActionsBottomNavButton(
                 onClick = {
                     onContextsClick()
                     showMenu = false
-                }
+                },
             )
             DropdownMenuItem(
                 text = { Text("Tactics") },
@@ -193,7 +195,7 @@ internal fun MoreActionsBottomNavButton(
                 onClick = {
                     onTacticsClick()
                     showMenu = false
-                }
+                },
             )
             if (aiLifeManagementEnabled) {
                 DropdownMenuItem(
@@ -202,7 +204,7 @@ internal fun MoreActionsBottomNavButton(
                     onClick = {
                         onLifeStateClick()
                         showMenu = false
-                    }
+                    },
                 )
             }
             if (aiInsightsEnabled) {
@@ -212,7 +214,7 @@ internal fun MoreActionsBottomNavButton(
                     onClick = {
                         onInsightsClick()
                         showMenu = false
-                    }
+                    },
                 )
             }
             DropdownMenuItem(
@@ -221,7 +223,7 @@ internal fun MoreActionsBottomNavButton(
                 onClick = {
                     onShowReminders()
                     showMenu = false
-                }
+                },
             )
             if (aiChatEnabled) {
                 DropdownMenuItem(
@@ -230,7 +232,7 @@ internal fun MoreActionsBottomNavButton(
                     onClick = {
                         onAiChatClick()
                         showMenu = false
-                    }
+                    },
                 )
             }
         }
@@ -255,7 +257,6 @@ internal fun ExpandingProjectHierarchyBottomNav(
     aiLifeManagementEnabled: Boolean,
     isExpanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
-
     onAiChatClick: () -> Unit,
     onActivityTrackerClick: () -> Unit,
     onInsightsClick: () -> Unit,
@@ -282,8 +283,8 @@ internal fun ExpandingProjectHierarchyBottomNav(
         ) {
             Row(
                 modifier =
-                Modifier
-                    .fillMaxWidth(),
+                    Modifier
+                        .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceAround,
             ) {
@@ -326,22 +327,23 @@ fun ModernBottomNavButton(
                 .clickable(
                     interactionSource = interactionSource,
                     indication = null,
-                    onClick = onClick
+                    onClick = onClick,
                 )
                 .padding(6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(primary.copy(alpha = fillAlpha))
-                .border(
-                    width = 1.dp,
-                    color = primary.copy(alpha = borderAlpha),
-                    shape = CircleShape
-                ),
-            contentAlignment = Alignment.Center
+            modifier =
+                Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(primary.copy(alpha = fillAlpha))
+                    .border(
+                        width = 1.dp,
+                        color = primary.copy(alpha = borderAlpha),
+                        shape = CircleShape,
+                    ),
+            contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = icon,
@@ -354,9 +356,7 @@ fun ModernBottomNavButton(
 }
 
 @Composable
-fun CommandDeckNavButton(
-    onClick: () -> Unit,
-) {
+fun CommandDeckNavButton(onClick: () -> Unit) {
     val primary = MaterialTheme.colorScheme.primary
     val interactionSource = remember { MutableInteractionSource() }
 
@@ -367,28 +367,29 @@ fun CommandDeckNavButton(
                 .clickable(
                     interactionSource = interactionSource,
                     indication = null,
-                    onClick = onClick
+                    onClick = onClick,
                 )
                 .padding(6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(primary.copy(alpha = 0.10f))
-                .border(
-                    width = 1.dp,
-                    color = primary.copy(alpha = 0.22f),
-                    shape = CircleShape
-                ),
-            contentAlignment = Alignment.Center
+            modifier =
+                Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(primary.copy(alpha = 0.10f))
+                    .border(
+                        width = 1.dp,
+                        color = primary.copy(alpha = 0.22f),
+                        shape = CircleShape,
+                    ),
+            contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = "⌬",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = primary.copy(alpha = 0.9f)
+                color = primary.copy(alpha = 0.9f),
             )
         }
     }

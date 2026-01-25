@@ -2,13 +2,13 @@ package com.romankozak.forwardappmobile.core.context
 
 interface ContextController {
     fun current(): ContextState
+
     fun update(block: (ContextState) -> ContextState)
 }
 
 class DefaultContextController(
-    initial: ContextState
+    initial: ContextState,
 ) : ContextController {
-
     private var state = initial
 
     override fun current() = state
@@ -17,4 +17,3 @@ class DefaultContextController(
         state = block(state)
     }
 }
-

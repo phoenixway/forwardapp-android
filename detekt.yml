@@ -1,0 +1,17 @@
+build:
+  maxIssues: 9999
+
+formatting:
+  active: false
+
+style:
+  active: false
+
+performance:
+  active: true
+
+potential-bugs:
+  active: true
+
+coroutines:
+  active: true

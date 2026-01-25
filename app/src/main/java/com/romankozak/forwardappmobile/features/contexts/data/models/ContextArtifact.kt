@@ -6,7 +6,7 @@ import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "context_artifacts",
-    indices = [Index(value = ["contextId"])]
+    indices = [Index(value = ["contextId"])],
 )
 data class ContextArtifact(
     @PrimaryKey val id: String,

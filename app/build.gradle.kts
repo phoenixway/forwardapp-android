@@ -12,6 +12,9 @@ plugins {
 
     alias(libs.plugins.google.services.plugin)
     alias(libs.plugins.firebase.crashlytics.plugin)
+
+    id("io.gitlab.arturbosch.detekt")
+    id("org.jlleitschuh.gradle.ktlint")
 }
 
 val signingProps = Properties()
@@ -40,6 +43,12 @@ android {
 
     kotlinOptions {
         jvmTarget = "11"
+        allWarningsAsErrors = true
+        freeCompilerArgs +=
+            listOf(
+                "-Xjsr305=strict",
+                "-Xcontext-receivers",
+            )
     }
 
     buildFeatures {
@@ -73,7 +82,7 @@ android {
             isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
 
             if (signingProps.isNotEmpty()) {
@@ -123,6 +132,17 @@ tasks.register("syncContractTest") {
     description = "Runs sync contract tests (Android<->Desktop roundtrip) via prodDebug unit tests"
     group = "verification"
     dependsOn("testProdDebugUnitTest")
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    allRules = false
+    ignoreFailures = true
+}
+
+ktlint {
+    android.set(true)
+    ignoreFailures.set(true)
 }
 
 dependencies {

@@ -1,8 +1,9 @@
 package com.romankozak.forwardappmobile.features.missions.presentation
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -12,35 +13,27 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
+import androidx.compose.material3.Divider
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.romankozak.forwardappmobile.features.missions.data.model.TacticalMission
 import com.romankozak.forwardappmobile.features.missions.domain.model.MissionStatus
-import com.romankozak.forwardappmobile.features.missions.presentation.MissionEditorScreen
 import java.text.SimpleDateFormat
 import java.util.*
 
-import androidx.compose.animation.core.*
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.foundation.border
-import androidx.compose.material3.Divider
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TacticalManagementScreen(
-    viewModel: TacticalMissionViewModel = hiltViewModel()
-) {
+fun TacticalManagementScreen(viewModel: TacticalMissionViewModel = hiltViewModel()) {
     val missions by viewModel.missions.collectAsState()
     val attachmentOptions by viewModel.attachmentOptions.collectAsState()
     val projectOptions by viewModel.projectOptions.collectAsState()
@@ -52,27 +45,28 @@ fun TacticalManagementScreen(
             if (editingMission == null) {
                 FloatingActionButton(
                     containerColor = MaterialTheme.colorScheme.primary,
-                    onClick = { showAddDialog = true }
+                    onClick = { showAddDialog = true },
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Add Mission")
                 }
             }
-        }
+        },
     ) { padding ->
         TacticalMissionList(
             missions = missions,
             onMissionToggled = { viewModel.toggleMissionCompleted(it) },
             onMissionDeleted = { viewModel.deleteMission(it.id) },
             onMissionEdited = { editingMission = it },
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize(),
+            modifier =
+                Modifier
+                    .padding(padding)
+                    .fillMaxSize(),
             attachmentLabel = { id ->
                 attachmentOptions.firstOrNull { it.id == id }?.name ?: id
             },
             projectLabel = { id ->
                 projectOptions.firstOrNull { it.id == id }?.name ?: id
-            }
+            },
         )
 
         if (showAddDialog) {
@@ -82,19 +76,20 @@ fun TacticalManagementScreen(
                 onConfirm = { title, description, deadline, projects, attachments ->
                     viewModel.addMission(title, description, deadline, projects, attachments)
                     showAddDialog = false
-                }
+                },
             )
         }
 
         editingMission?.let { mission ->
             Dialog(
                 onDismissRequest = { editingMission = null },
-                properties = DialogProperties(usePlatformDefaultWidth = false)
+                properties = DialogProperties(usePlatformDefaultWidth = false),
             ) {
                 Surface(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.background)
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.background),
                 ) {
                     MissionEditorScreen(
                         mission = mission,
@@ -108,25 +103,23 @@ fun TacticalManagementScreen(
                                 desc,
                                 deadline,
                                 projects,
-                                attachments
+                                attachments,
                             )
                             editingMission = null
                         },
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize(),
                     )
                 }
             }
         }
-
     }
 }
-
 
 @Composable
 fun AddMissionDialog(
     attachmentOptions: List<AttachmentOption>,
     onDismiss: () -> Unit,
-    onConfirm: (String, String, Long, List<String>, List<String>) -> Unit
+    onConfirm: (String, String, Long, List<String>, List<String>) -> Unit,
 ) {
     MissionDialog(
         title = "Create Tactical Mission",
@@ -153,7 +146,7 @@ fun MissionDialog(
     attachmentOptions: List<AttachmentOption>,
     confirmText: String,
     onDismiss: () -> Unit,
-    onConfirm: (String, String, Long, List<String>, List<String>) -> Unit
+    onConfirm: (String, String, Long, List<String>, List<String>) -> Unit,
 ) {
     var titleField by remember { mutableStateOf(initialTitle) }
     var descField by remember { mutableStateOf(initialDescription) }
@@ -173,24 +166,23 @@ fun MissionDialog(
         title = { Text(title, fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-
                 OutlinedTextField(
                     value = titleField,
                     onValueChange = { titleField = it },
                     label = { Text("Title") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
 
                 OutlinedTextField(
                     value = descField,
                     onValueChange = { descField = it },
                     label = { Text("Description") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
 
                 Button(
                     onClick = { showDeadlinePicker = true },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text("Select Deadline: ${formatDate(deadlineLong)}")
                 }
@@ -202,28 +194,29 @@ fun MissionDialog(
                     Text(
                         "No attachments linked",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         attachmentLinks.forEach { id ->
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Text(
                                     attachmentLabel(id),
                                     modifier = Modifier.weight(1f),
-                                    style = MaterialTheme.typography.bodyMedium
+                                    style = MaterialTheme.typography.bodyMedium,
                                 )
                                 IconButton(onClick = { attachmentLinks.remove(id) }) {
                                     Icon(
                                         Icons.Default.Delete,
-                                        contentDescription = "Remove attachment"
+                                        contentDescription = "Remove attachment",
                                     )
                                 }
                             }
@@ -233,11 +226,10 @@ fun MissionDialog(
 
                 Button(
                     onClick = { showAttachmentChooser = true },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text("Add attachment")
                 }
-
             }
         },
         confirmButton = {
@@ -245,14 +237,14 @@ fun MissionDialog(
                 onClick = {
                     onConfirm(titleField, descField, deadlineLong, projectLinks.toList(), attachmentLinks.toList())
                 },
-                enabled = titleField.isNotBlank()
+                enabled = titleField.isNotBlank(),
             ) {
                 Text(confirmText)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }
-        }
+        },
     )
 
     if (showDeadlinePicker) {
@@ -262,7 +254,7 @@ fun MissionDialog(
             onConfirm = {
                 deadlineLong = it
                 showDeadlinePicker = false
-            }
+            },
         )
     }
 
@@ -278,7 +270,7 @@ fun MissionDialog(
                     }
                 }
                 showAttachmentChooser = false
-            }
+            },
         )
     }
 }
@@ -295,7 +287,7 @@ fun TacticalMissionList(
 ) {
     LazyColumn(
         modifier = modifier.padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         items(missions) { mission ->
             TacticalMissionItem(
@@ -322,102 +314,108 @@ fun TacticalMissionItem(
     val primary = MaterialTheme.colorScheme.primary
     val onSurface = MaterialTheme.colorScheme.onSurface
 
-    val overdue = System.currentTimeMillis() > mission.deadline &&
-        mission.status != MissionStatus.COMPLETED
+    val overdue =
+        System.currentTimeMillis() > mission.deadline &&
+            mission.status != MissionStatus.COMPLETED
 
-    val basePulse = when {
-        mission.status == MissionStatus.COMPLETED -> 0.02f
-        overdue -> 0.18f
-        else -> 0.08f
-    }
+    val basePulse =
+        when {
+            mission.status == MissionStatus.COMPLETED -> 0.02f
+            overdue -> 0.18f
+            else -> 0.08f
+        }
 
     val infinite = rememberInfiniteTransition(label = "")
     val pulse by infinite.animateFloat(
         initialValue = basePulse,
         targetValue = basePulse + 0.05f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2600, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulse"
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(2600, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "pulse",
     )
 
     val sweepShift by infinite.animateFloat(
         initialValue = -200f,
         targetValue = 400f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(4500, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "sweep_shift"
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(4500, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart,
+            ),
+        label = "sweep_shift",
     )
 
     val sweepColor = Color.White.copy(alpha = 0.12f)
 
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        primary.copy(alpha = pulse),
-                        primary.copy(alpha = pulse * 0.4f),
-                        primary.copy(alpha = pulse)
-                    )
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(20.dp))
+                .background(
+                    Brush.verticalGradient(
+                        colors =
+                            listOf(
+                                primary.copy(alpha = pulse),
+                                primary.copy(alpha = pulse * 0.4f),
+                                primary.copy(alpha = pulse),
+                            ),
+                    ),
                 )
-            )
-            .border(
-                1.dp,
-                Brush.horizontalGradient(
-                    listOf(
-                        primary.copy(alpha = pulse + 0.1f),
-                        primary.copy(alpha = 0.06f),
-                        primary.copy(alpha = pulse + 0.1f)
-                    )
-                ),
-                shape = RoundedCornerShape(20.dp)
-            )
-            .padding(16.dp)
+                .border(
+                    1.dp,
+                    Brush.horizontalGradient(
+                        listOf(
+                            primary.copy(alpha = pulse + 0.1f),
+                            primary.copy(alpha = 0.06f),
+                            primary.copy(alpha = pulse + 0.1f),
+                        ),
+                    ),
+                    shape = RoundedCornerShape(20.dp),
+                )
+                .padding(16.dp),
     ) {
-
         Box(
-            modifier = Modifier
-                .matchParentSize()
-                .padding(2.dp)
+            modifier =
+                Modifier
+                    .matchParentSize()
+                    .padding(2.dp),
         ) {
             Box(
-                modifier = Modifier
-                    .offset(x = sweepShift.dp)
-                    .width(80.dp)
-                    .fillMaxHeight()
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(
-                                Color.Transparent,
-                                sweepColor,
-                                Color.Transparent
-                            )
-                        )
-                    )
+                modifier =
+                    Modifier
+                        .offset(x = sweepShift.dp)
+                        .width(80.dp)
+                        .fillMaxHeight()
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(
+                                    Color.Transparent,
+                                    sweepColor,
+                                    Color.Transparent,
+                                ),
+                            ),
+                        ),
             )
         }
 
         Row(verticalAlignment = Alignment.CenterVertically) {
-
             Checkbox(
                 checked = mission.status == MissionStatus.COMPLETED,
                 onCheckedChange = { onMissionToggled() },
-                colors = CheckboxDefaults.colors(
-                    checkedColor = primary,
-                    uncheckedColor = onSurface.copy(alpha = 0.7f)
-                )
+                colors =
+                    CheckboxDefaults.colors(
+                        checkedColor = primary,
+                        uncheckedColor = onSurface.copy(alpha = 0.7f),
+                    ),
             )
 
             Spacer(Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-
                 val titleColor by animateColorAsState(
                     when {
                         mission.status == MissionStatus.COMPLETED ->
@@ -425,17 +423,22 @@ fun TacticalMissionItem(
                         overdue ->
                             Color(0xFFFF6E6E)
                         else -> onSurface
-                    }
+                    },
                 )
 
                 Text(
                     mission.title,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
+                    style =
+                        MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                        ),
                     color = titleColor,
-                    textDecoration = if (mission.status == MissionStatus.COMPLETED)
-                        TextDecoration.LineThrough else null
+                    textDecoration =
+                        if (mission.status == MissionStatus.COMPLETED) {
+                            TextDecoration.LineThrough
+                        } else {
+                            null
+                        },
                 )
 
                 if (!mission.description.isNullOrBlank()) {
@@ -443,25 +446,33 @@ fun TacticalMissionItem(
                         mission.description!!,
                         style = MaterialTheme.typography.bodyMedium,
                         color = onSurface.copy(alpha = 0.7f),
-                        textDecoration = if (mission.status == MissionStatus.COMPLETED)
-                            TextDecoration.LineThrough else null,
-                        modifier = Modifier.padding(top = 4.dp)
+                        textDecoration =
+                            if (mission.status == MissionStatus.COMPLETED) {
+                                TextDecoration.LineThrough
+                            } else {
+                                null
+                            },
+                        modifier = Modifier.padding(top = 4.dp),
                     )
                 }
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 8.dp)
+                    modifier = Modifier.padding(top = 8.dp),
                 ) {
                     Text(
                         text = if (overdue) "⚠ " else "⏳ ",
-                        color = if (overdue) Color(0xFFFF5555) else primary
+                        color = if (overdue) Color(0xFFFF5555) else primary,
                     )
                     Text(
                         formatDate(mission.deadline),
                         style = MaterialTheme.typography.labelMedium,
-                        color = if (overdue) Color(0xFFFF5555)
-                        else onSurface.copy(alpha = 0.65f)
+                        color =
+                            if (overdue) {
+                                Color(0xFFFF5555)
+                            } else {
+                                onSurface.copy(alpha = 0.65f)
+                            },
                     )
                 }
 
@@ -471,7 +482,7 @@ fun TacticalMissionItem(
                     Text(
                         "Projects: " + linkedProjects.joinToString { projectLabel(it) },
                         style = MaterialTheme.typography.bodySmall,
-                        color = onSurface.copy(alpha = 0.7f)
+                        color = onSurface.copy(alpha = 0.7f),
                     )
                 }
 
@@ -481,34 +492,33 @@ fun TacticalMissionItem(
                     Text(
                         "Attachments: " + linkedAttachments.joinToString { attachmentLabel(it) },
                         style = MaterialTheme.typography.bodySmall,
-                        color = onSurface.copy(alpha = 0.7f)
+                        color = onSurface.copy(alpha = 0.7f),
                     )
                 }
             }
 
             Column(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
-                horizontalAlignment = Alignment.End
+                horizontalAlignment = Alignment.End,
             ) {
                 IconButton(onClick = onMissionEdited) {
                     Icon(
                         Icons.Default.Edit,
                         contentDescription = "Edit",
-                        tint = primary.copy(alpha = 0.9f)
+                        tint = primary.copy(alpha = 0.9f),
                     )
                 }
                 IconButton(onClick = onMissionDeleted) {
                     Icon(
                         Icons.Default.Delete,
                         contentDescription = "Delete",
-                        tint = Color(0xFFFF5A5A)
+                        tint = Color(0xFFFF5A5A),
                     )
                 }
             }
         }
     }
 }
-
 
 private fun formatDate(ts: Long): String {
     val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
@@ -520,11 +530,12 @@ private fun formatDate(ts: Long): String {
 fun DeadlinePickerDialog(
     initialTime: Long = System.currentTimeMillis(),
     onDismiss: () -> Unit,
-    onConfirm: (Long) -> Unit
+    onConfirm: (Long) -> Unit,
 ) {
-    val initialCalendar = remember(initialTime) {
-        Calendar.getInstance().apply { timeInMillis = initialTime }
-    }
+    val initialCalendar =
+        remember(initialTime) {
+            Calendar.getInstance().apply { timeInMillis = initialTime }
+        }
 
     var selectedDate by remember { mutableStateOf(initialCalendar.timeInMillis) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -534,20 +545,22 @@ fun DeadlinePickerDialog(
             initialCalendar = Calendar.getInstance().apply { timeInMillis = selectedDate },
             onDismiss = onDismiss,
             onConfirm = { hour, minute ->
-                val calendar = Calendar.getInstance().apply {
-                    timeInMillis = selectedDate
-                    set(Calendar.HOUR_OF_DAY, hour)
-                    set(Calendar.MINUTE, minute)
-                }
+                val calendar =
+                    Calendar.getInstance().apply {
+                        timeInMillis = selectedDate
+                        set(Calendar.HOUR_OF_DAY, hour)
+                        set(Calendar.MINUTE, minute)
+                    }
                 onConfirm(calendar.timeInMillis)
-            }
+            },
         )
         return
     }
 
-    val datePickerState = rememberDatePickerState(
-        initialSelectedDateMillis = initialCalendar.timeInMillis
-    )
+    val datePickerState =
+        rememberDatePickerState(
+            initialSelectedDateMillis = initialCalendar.timeInMillis,
+        )
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -562,12 +575,12 @@ fun DeadlinePickerDialog(
                         datePickerState.selectedDateMillis ?: initialCalendar.timeInMillis
 
                     showTimePicker = true
-                }
+                },
             ) { Text("Next") }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }
-        }
+        },
     )
 }
 
@@ -576,13 +589,14 @@ fun DeadlinePickerDialog(
 fun TimePickerDialog(
     initialCalendar: Calendar,
     onDismiss: () -> Unit,
-    onConfirm: (hour: Int, minute: Int) -> Unit
+    onConfirm: (hour: Int, minute: Int) -> Unit,
 ) {
-    val state = rememberTimePickerState(
-        initialHour = initialCalendar.get(Calendar.HOUR_OF_DAY),
-        initialMinute = initialCalendar.get(Calendar.MINUTE),
-        is24Hour = true
-    )
+    val state =
+        rememberTimePickerState(
+            initialHour = initialCalendar.get(Calendar.HOUR_OF_DAY),
+            initialMinute = initialCalendar.get(Calendar.MINUTE),
+            is24Hour = true,
+        )
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -595,6 +609,6 @@ fun TimePickerDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }
-        }
+        },
     )
 }

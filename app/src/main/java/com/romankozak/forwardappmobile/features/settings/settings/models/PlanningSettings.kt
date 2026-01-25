@@ -5,5 +5,5 @@ data class PlanningSettings(
     val dailyTag: String,
     val mediumTag: String,
     val longTag: String,
-    val vaultName: String
+    val vaultName: String,
 )

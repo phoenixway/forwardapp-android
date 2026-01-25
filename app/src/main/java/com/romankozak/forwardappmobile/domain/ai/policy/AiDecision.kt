@@ -1,7 +1,6 @@
 package com.romankozak.forwardappmobile.domain.ai.policy
 
 sealed interface AiDecision {
-
     data class ShowRecommendation(
         val id: String,
         val priority: Int,

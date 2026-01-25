@@ -24,8 +24,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.features.settings.settings.SettingsUiState
-import com.romankozak.forwardappmobile.features.settings.settings.utils.getFolderName
 import com.romankozak.forwardappmobile.features.settings.settings.utils.getFileName
+import com.romankozak.forwardappmobile.features.settings.settings.utils.getFolderName
 
 @Composable
 fun RolesSettingsCard(
@@ -68,18 +68,19 @@ fun FileSelector(
     context: Context,
     isFolder: Boolean = false,
 ) {
-    val displayName = remember(selectedFileUri) {
-        if (selectedFileUri.isNotBlank()) {
-            try {
-                val uri = Uri.parse(selectedFileUri)
-                if (isFolder) getFolderName(uri, context) else getFileName(uri, context)
-            } catch (e: Exception) {
-                "Invalid URI"
+    val displayName =
+        remember(selectedFileUri) {
+            if (selectedFileUri.isNotBlank()) {
+                try {
+                    val uri = Uri.parse(selectedFileUri)
+                    if (isFolder) getFolderName(uri, context) else getFileName(uri, context)
+                } catch (e: Exception) {
+                    "Invalid URI"
+                }
+            } else {
+                "Not selected"
             }
-        } else {
-            "Not selected"
         }
-    }
 
     Row(
         modifier = Modifier.fillMaxWidth(),

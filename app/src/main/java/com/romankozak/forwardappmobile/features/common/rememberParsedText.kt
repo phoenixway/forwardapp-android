@@ -5,11 +5,14 @@ import androidx.compose.runtime.remember
 
 data class ParsedData(
     val mainText: String,
-    val icons: List<String>
+    val icons: List<String>,
 )
 
 @Composable
-fun rememberParsedText(text: String, contextMarkerToEmojiMap: Map<String, String>): ParsedData {
+fun rememberParsedText(
+    text: String,
+    contextMarkerToEmojiMap: Map<String, String>,
+): ParsedData {
     return remember(text, contextMarkerToEmojiMap) {
         ParsedData(text, emptyList())
     }

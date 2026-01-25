@@ -3,7 +3,6 @@ package com.romankozak.forwardappmobile.data.sync
 import com.google.gson.JsonDeserializationContext
 import com.google.gson.JsonDeserializer
 import com.google.gson.JsonElement
-import com.google.gson.JsonObject
 import com.google.gson.reflect.TypeToken
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
@@ -15,14 +14,15 @@ class GoalDeserializer : JsonDeserializer<Goal> {
     override fun deserialize(
         json: JsonElement,
         typeOfT: Type,
-        context: JsonDeserializationContext
+        context: JsonDeserializationContext,
     ): Goal {
         val jsonObject = json.asJsonObject
-        val relatedLinks: List<RelatedLink>? = if (jsonObject.has("relatedLinks")) {
-            context.deserialize(jsonObject.get("relatedLinks"), object : TypeToken<List<RelatedLink>>() {}.type)
-        } else {
-            null
-        }
+        val relatedLinks: List<RelatedLink>? =
+            if (jsonObject.has("relatedLinks")) {
+                context.deserialize(jsonObject.get("relatedLinks"), object : TypeToken<List<RelatedLink>>() {}.type)
+            } else {
+                null
+            }
 
         return Goal(
             id = jsonObject.get("id").asString,
@@ -31,11 +31,12 @@ class GoalDeserializer : JsonDeserializer<Goal> {
             completed = jsonObject.get("completed").asBoolean,
             createdAt = jsonObject.get("createdAt").asString.toEpochMilli(),
             updatedAt = jsonObject.get("updatedAt")?.asString?.toEpochMilli(),
-            tags = if (jsonObject.has("tags")) {
-                context.deserialize(jsonObject.get("tags"), object : TypeToken<List<String>>() {}.type)
-            } else {
-                null
-            },
+            tags =
+                if (jsonObject.has("tags")) {
+                    context.deserialize(jsonObject.get("tags"), object : TypeToken<List<String>>() {}.type)
+                } else {
+                    null
+                },
             relatedLinks = relatedLinks,
             valueImportance = jsonObject.get("valueImportance")?.asFloat ?: 0f,
             valueImpact = jsonObject.get("valueImpact")?.asFloat ?: 0f,
@@ -51,7 +52,7 @@ class GoalDeserializer : JsonDeserializer<Goal> {
             parentValueImportance = jsonObject.get("parentValueImportance")?.asFloat,
             impactOnParentGoal = jsonObject.get("impactOnParentGoal")?.asFloat,
             timeCost = jsonObject.get("timeCost")?.asFloat,
-            financialCost = jsonObject.get("financialCost")?.asFloat
+            financialCost = jsonObject.get("financialCost")?.asFloat,
         )
     }
 }

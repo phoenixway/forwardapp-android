@@ -14,20 +14,44 @@ import com.romankozak.forwardappmobile.features.attachments.ui.project.Attachmen
 @Composable
 fun AddAttachmentDialog(
     onDismiss: () -> Unit,
-    onAttachmentTypeSelected: (AttachmentType) -> Unit
+    onAttachmentTypeSelected: (AttachmentType) -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add attachment") },
         text = {
             Column {
-                Text("Notes", modifier = Modifier.fillMaxWidth().clickable { onAttachmentTypeSelected(AttachmentType.NOTES) }.padding(16.dp))
-                Text("Web Link", modifier = Modifier.fillMaxWidth().clickable { onAttachmentTypeSelected(AttachmentType.WEB_LINK) }.padding(16.dp))
-                Text("Obsidian Link", modifier = Modifier.fillMaxWidth().clickable { onAttachmentTypeSelected(AttachmentType.OBSIDIAN_LINK) }.padding(16.dp))
-                Text("Link to another project", modifier = Modifier.fillMaxWidth().clickable { onAttachmentTypeSelected(AttachmentType.PROJECT_LINK) }.padding(16.dp))
-                Text("Shortcut to another project", modifier = Modifier.fillMaxWidth().clickable { onAttachmentTypeSelected(AttachmentType.PROJECT_SHORTCUT) }.padding(16.dp))
+                Text(
+                    "Notes",
+                    modifier = Modifier.fillMaxWidth().clickable { onAttachmentTypeSelected(AttachmentType.NOTES) }.padding(16.dp),
+                )
+                Text(
+                    "Web Link",
+                    modifier = Modifier.fillMaxWidth().clickable { onAttachmentTypeSelected(AttachmentType.WEB_LINK) }.padding(16.dp),
+                )
+                Text(
+                    "Obsidian Link",
+                    modifier =
+                        Modifier.fillMaxWidth().clickable {
+                            onAttachmentTypeSelected(AttachmentType.OBSIDIAN_LINK)
+                        }.padding(16.dp),
+                )
+                Text(
+                    "Link to another project",
+                    modifier =
+                        Modifier.fillMaxWidth().clickable {
+                            onAttachmentTypeSelected(AttachmentType.PROJECT_LINK)
+                        }.padding(16.dp),
+                )
+                Text(
+                    "Shortcut to another project",
+                    modifier =
+                        Modifier.fillMaxWidth().clickable {
+                            onAttachmentTypeSelected(AttachmentType.PROJECT_SHORTCUT)
+                        }.padding(16.dp),
+                )
             }
         },
-        confirmButton = { }
+        confirmButton = { },
     )
 }

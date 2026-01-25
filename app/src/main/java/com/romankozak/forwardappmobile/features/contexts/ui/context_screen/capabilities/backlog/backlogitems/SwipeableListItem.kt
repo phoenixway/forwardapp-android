@@ -206,14 +206,12 @@ fun SwipeableListItem(
                     .fillMaxWidth()
                     .padding(horizontal = 4.dp, vertical = 2.dp),
         ) {
-            
             if (swipeEnabled && !isDragging && !isAnyItemDragging && offset > 0) {
                 Row(
                     modifier = Modifier.matchParentSize().alpha(actionsAlpha).padding(start = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.Start),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    
                     SwipeActionButton(
                         icon = Icons.Default.KeyboardArrowUp,
                         contentDescription = "Перемістити на вершину",
@@ -258,7 +256,6 @@ fun SwipeableListItem(
                 }
             }
 
-            
             if (swipeEnabled && !isDragging && !isAnyItemDragging && offset < 0) {
                 Row(
                     modifier = Modifier.matchParentSize().alpha(actionsAlpha).padding(end = 1.dp),
@@ -295,7 +292,6 @@ fun SwipeableListItem(
                 }
             }
 
-            
             val surfaceModifier =
                 if (isDragging) {
                     Modifier.fillMaxWidth()

@@ -41,7 +41,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-
 @Composable
 fun EnhancedTagChip(
     text: String,
@@ -134,9 +133,6 @@ fun EnhancedTagChip(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                
-                
-
                 Text(
                     text = text,
                     style =
@@ -150,7 +146,6 @@ fun EnhancedTagChip(
                     overflow = TextOverflow.Ellipsis,
                 )
 
-                
                 if (isDismissible && onDismiss != null) {
                     IconButton(
                         onClick = onDismiss,

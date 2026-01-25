@@ -10,14 +10,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
 
-
 @Composable
 fun EnhancedScoreStatusBadge(
     scoringStatus: String,
     displayScore: Double?,
 ) {
-
-
     if (scoringStatus != ScoringStatusValues.NOT_ASSESSED) {
         Surface(
             shape = RoundedCornerShape(8.dp),

@@ -3,10 +3,10 @@ package com.romankozak.forwardappmobile.features.globalsearch
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.features.contexts.data.models.GlobalSearchResultItem
-import com.romankozak.forwardappmobile.data.repository.ProjectRepository
-import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
+import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.features.contexts.data.models.GlobalSearchResultItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -26,7 +26,7 @@ data class GlobalSearchUiState(
 class GlobalSearchViewModel
     @Inject
     constructor(
-        private val projectRepository: ProjectRepository,
+        private val contextRepository: ContextRepository,
         private val settingsRepository: SettingsRepository,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
@@ -44,11 +44,9 @@ class GlobalSearchViewModel
             performSearch()
         }
 
-        
         fun goBackToRevealProject(projectId: String) {
             enhancedNavigationManager.goBackWithResult("project_to_reveal", projectId)
         }
-        
 
         private fun performSearch() {
             if (query.isBlank()) {
@@ -57,7 +55,7 @@ class GlobalSearchViewModel
             }
 
             viewModelScope.launch {
-                val results = projectRepository.searchGlobal("%$query%")
+                val results = contextRepository.searchGlobal("%$query%")
                 val distinctResults = results.distinctBy { it.uniqueId }
                 _uiState.update {
                     it.copy(results = distinctResults, isLoading = false)
@@ -70,7 +68,7 @@ class GlobalSearchViewModel
             projectName: String?,
         ) {
             viewModelScope.launch {
-                val finalProjectName = projectName ?: projectRepository.getProjectById(projectId)?.name ?: "Context"
+                val finalProjectName = projectName ?: contextRepository.getProjectById(projectId)?.name ?: "Context"
                 enhancedNavigationManager.navigateToProject(projectId, finalProjectName)
             }
         }

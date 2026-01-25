@@ -37,54 +37,57 @@ fun HoldMenu2Popup(state: HoldMenu2State) {
 
     val scale by animateFloatAsState(
         targetValue = if (state.isOpen) 1f else 0.92f,
-                                     animationSpec = spring(
-                                         dampingRatio = Spring.DampingRatioMediumBouncy,
-                                         stiffness = Spring.StiffnessLow
-                                     ),
-                                     label = "menu_scale"
+        animationSpec =
+            spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessLow,
+            ),
+        label = "menu_scale",
     )
 
     val alpha by animateFloatAsState(
         targetValue = if (state.isOpen) 1f else 0f,
-                                     animationSpec = tween(150),
-                                     label = "menu_alpha"
+        animationSpec = tween(150),
+        label = "menu_alpha",
     )
 
     Box(
-        modifier = Modifier
-        .offset { layout.menuTopLeft }
-        .graphicsLayer {
-            this.alpha = alpha
-            scaleX = scale
-            scaleY = scale
-            transformOrigin = TransformOrigin.Center
-        }
-        .width(menuWidth)
-        .shadow(
-            elevation = 20.dp,
-            shape = RoundedCornerShape(22.dp),
-                ambientColor = Color.Black.copy(alpha = 0.35f),
-                spotColor = Color.Black.copy(alpha = 0.45f)
-        )
-        .background(
-            color = holdMenuColors.background,
-            shape = RoundedCornerShape(22.dp)
-        )
-        .border(
-            width = 1.dp,
-            color = holdMenuColors.border,
-            shape = RoundedCornerShape(22.dp)
-        )
-        .padding(vertical = 8.dp)
+        modifier =
+            Modifier
+                .offset { layout.menuTopLeft }
+                .graphicsLayer {
+                    this.alpha = alpha
+                    scaleX = scale
+                    scaleY = scale
+                    transformOrigin = TransformOrigin.Center
+                }
+                .width(menuWidth)
+                .shadow(
+                    elevation = 20.dp,
+                    shape = RoundedCornerShape(22.dp),
+                    ambientColor = Color.Black.copy(alpha = 0.35f),
+                    spotColor = Color.Black.copy(alpha = 0.45f),
+                )
+                .background(
+                    color = holdMenuColors.background,
+                    shape = RoundedCornerShape(22.dp),
+                )
+                .border(
+                    width = 1.dp,
+                    color = holdMenuColors.border,
+                    shape = RoundedCornerShape(22.dp),
+                )
+                .padding(vertical = 8.dp),
     ) {
         Column(
             verticalArrangement = Arrangement.Top,
-            horizontalAlignment = when (state.menuAlignment) {
-                MenuAlignment.START -> Alignment.Start
-                MenuAlignment.CENTER -> Alignment.CenterHorizontally
-                MenuAlignment.END -> Alignment.End
-            },
-            modifier = Modifier.fillMaxWidth()
+            horizontalAlignment =
+                when (state.menuAlignment) {
+                    MenuAlignment.START -> Alignment.Start
+                    MenuAlignment.CENTER -> Alignment.CenterHorizontally
+                    MenuAlignment.END -> Alignment.End
+                },
+            modifier = Modifier.fillMaxWidth(),
         ) {
             state.items.forEachIndexed { index, item ->
                 MenuItemRow(
@@ -93,13 +96,12 @@ fun HoldMenu2Popup(state: HoldMenu2State) {
                     itemHeight = itemHeight,
                     iconPosition = state.iconPosition,
                     menuAlignment = state.menuAlignment,
-                    colors = holdMenuColors
+                    colors = holdMenuColors,
                 )
             }
         }
     }
 }
-
 
 @Composable
 private fun MenuItemRow(
@@ -112,8 +114,8 @@ private fun MenuItemRow(
 ) {
     val offsetX by animateDpAsState(
         targetValue = if (isHover) 6.dp else 0.dp,
-                                    animationSpec = tween(90),
-                                    label = "offset"
+        animationSpec = tween(90),
+        label = "offset",
     )
 
     val backgroundColor = if (isHover) colors.itemHoverBackground else Color.Transparent
@@ -121,49 +123,53 @@ private fun MenuItemRow(
     val fontWeight = if (isHover) FontWeight.SemiBold else FontWeight.Medium
 
     Box(
-        modifier = Modifier
-        .fillMaxWidth()
-        .height(itemHeight)
-        .offset(x = offsetX)
-        .padding(horizontal = 6.dp, vertical = 4.dp)
-        .background(backgroundColor, RoundedCornerShape(14.dp)),
-        contentAlignment = when (menuAlignment) {
-            MenuAlignment.START -> Alignment.CenterStart
-            MenuAlignment.END -> Alignment.CenterEnd
-            MenuAlignment.CENTER -> Alignment.Center
-        }
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(itemHeight)
+                .offset(x = offsetX)
+                .padding(horizontal = 6.dp, vertical = 4.dp)
+                .background(backgroundColor, RoundedCornerShape(14.dp)),
+        contentAlignment =
+            when (menuAlignment) {
+                MenuAlignment.START -> Alignment.CenterStart
+                MenuAlignment.END -> Alignment.CenterEnd
+                MenuAlignment.CENTER -> Alignment.Center
+            },
     ) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 14.dp)
+            modifier = Modifier.padding(horizontal = 14.dp),
         ) {
-            if (iconPosition == IconPosition.START)
+            if (iconPosition == IconPosition.START) {
                 item.icon?.let {
                     Icon(
                         imageVector = it,
-                         contentDescription = null,
-                         tint = textColor,
-                         modifier = Modifier.size(20.dp)
+                        contentDescription = null,
+                        tint = textColor,
+                        modifier = Modifier.size(20.dp),
                     )
                 }
+            }
 
-                Text(
-                    item.label,
-                     color = textColor,
-                     fontSize = 15.sp,
-                     fontWeight = fontWeight
-                )
+            Text(
+                item.label,
+                color = textColor,
+                fontSize = 15.sp,
+                fontWeight = fontWeight,
+            )
 
-                if (iconPosition == IconPosition.END)
-                    item.icon?.let {
-                        Icon(
-                            imageVector = it,
-                             contentDescription = null,
-                             tint = textColor,
-                             modifier = Modifier.size(20.dp)
-                        )
-                    }
+            if (iconPosition == IconPosition.END) {
+                item.icon?.let {
+                    Icon(
+                        imageVector = it,
+                        contentDescription = null,
+                        tint = textColor,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
         }
     }
 }

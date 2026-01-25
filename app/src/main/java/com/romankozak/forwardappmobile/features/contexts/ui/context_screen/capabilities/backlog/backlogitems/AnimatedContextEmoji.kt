@@ -25,15 +25,16 @@ fun AnimatedContextEmoji(
     modifier: Modifier = Modifier,
 ) {
     var isVisible by remember { mutableStateOf(false) }
-    
+
     val infiniteTransition = rememberInfiniteTransition(label = "emoji_pulse")
     val scale by infiniteTransition.animateFloat(
         initialValue = 1f,
         targetValue = 1.1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(1000, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
         label = "emoji_scale",
     )
 
@@ -44,28 +45,31 @@ fun AnimatedContextEmoji(
 
     AnimatedVisibility(
         visible = isVisible,
-        enter = scaleIn(
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessLow,
-            ),
-        ) + fadeIn(),
+        enter =
+            scaleIn(
+                animationSpec =
+                    spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow,
+                    ),
+            ) + fadeIn(),
         modifier = modifier,
     ) {
         Box(
-            modifier = Modifier
-                .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                }
-                .background(
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                    shape = CircleShape,
-                )
-                .padding(6.dp)
-                .semantics {
-                    contentDescription = "Контекст: $emoji"
-                },
+            modifier =
+                Modifier
+                    .graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                    }
+                    .background(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        shape = CircleShape,
+                    )
+                    .padding(6.dp)
+                    .semantics {
+                        contentDescription = "Контекст: $emoji"
+                    },
         ) {
             Text(
                 text = emoji,

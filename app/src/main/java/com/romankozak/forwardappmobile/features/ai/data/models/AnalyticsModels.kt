@@ -3,7 +3,6 @@ package com.romankozak.forwardappmobile.features.ai.data.models
 import com.romankozak.forwardappmobile.features.daymanagement.data.models.DailyMetric
 import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayPlan
 
-
 data class DailyAnalytics(
     val dayPlan: DayPlan,
     val metric: DailyMetric?,

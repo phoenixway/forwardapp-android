@@ -11,41 +11,40 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class StrategicManagementViewModel @Inject constructor(
-    private val getStrategicProjects: GetStrategicContextUseCase
-) : ViewModel() {
+class StrategicManagementViewModel
+    @Inject
+    constructor(
+        private val getStrategicProjects: GetStrategicContextUseCase,
+    ) : ViewModel() {
+        private val _uiState = MutableStateFlow(StrategicManagementUiState())
+        val uiState = _uiState.asStateFlow()
 
-    private val _uiState = MutableStateFlow(StrategicManagementUiState())
-    val uiState = _uiState.asStateFlow()
+        private val _currentTab = MutableStateFlow(StrategicManagementTab.DASHBOARD)
+        val currentTab = _currentTab.asStateFlow()
 
-    private val _currentTab = MutableStateFlow(StrategicManagementTab.DASHBOARD)
-    val currentTab = _currentTab.asStateFlow()
+        init {
+            loadData()
+        }
 
-    init {
-        loadData()
-    }
+        fun onTabSelected(tab: StrategicManagementTab) {
+            _currentTab.value = tab
+        }
 
-    fun onTabSelected(tab: StrategicManagementTab) {
-        _currentTab.value = tab
-    }
-
-    private fun loadData() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            try {
-                loadDashboardProjects()
-            } catch (e: Exception) {
-                _uiState.update { it.copy(error = e.message) }
-            } finally {
-                _uiState.update { it.copy(isLoading = false) }
+        private fun loadData() {
+            viewModelScope.launch {
+                _uiState.update { it.copy(isLoading = true) }
+                try {
+                    loadDashboardProjects()
+                } catch (e: Exception) {
+                    _uiState.update { it.copy(error = e.message) }
+                } finally {
+                    _uiState.update { it.copy(isLoading = false) }
+                }
             }
         }
+
+        private suspend fun loadDashboardProjects() {
+            val strategicProjects = getStrategicProjects()
+            _uiState.update { it.copy(dashboardProjects = strategicProjects) }
+        }
     }
-
-    private suspend fun loadDashboardProjects() {
-        val strategicProjects = getStrategicProjects()
-        _uiState.update { it.copy(dashboardProjects = strategicProjects) }
-    }
-
-
-}

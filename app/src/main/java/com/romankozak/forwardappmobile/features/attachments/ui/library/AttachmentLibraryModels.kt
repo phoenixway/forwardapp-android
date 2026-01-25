@@ -12,7 +12,8 @@ enum class AttachmentLibraryFilter {
     All,
     Notes,
     Checklists,
-    Links;
+    Links,
+    ;
 
     fun matches(type: AttachmentLibraryType): Boolean =
         when (this) {
@@ -65,5 +66,6 @@ data class AttachmentsLibraryUiState(
 
 sealed interface AttachmentsLibraryEvent {
     data class NavigateToProjectChooser(val title: String) : AttachmentsLibraryEvent
+
     data class ShowToast(val message: String) : AttachmentsLibraryEvent
 }

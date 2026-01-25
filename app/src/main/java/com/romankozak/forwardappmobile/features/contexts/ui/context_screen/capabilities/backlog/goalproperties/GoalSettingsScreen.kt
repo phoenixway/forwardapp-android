@@ -2,32 +2,31 @@
 
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.goalproperties
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
+import com.romankozak.forwardappmobile.features.contexts.ui.context_properties.ContextSettingsEvent
 import com.romankozak.forwardappmobile.ui.components.notesEditors.FullScreenMarkdownEditor
 import com.romankozak.forwardappmobile.ui.screens.common.SettingsScreen
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.EvaluationTabContent
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.EvaluationTabUiState
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.GeneralTabContent
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.RemindersTabContent
-
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Link
-import com.romankozak.forwardappmobile.features.contexts.ui.context_properties.ContextSettingsEvent
-import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.DisposableEffect
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.ui.platform.LocalLifecycleOwner
 
 @Composable
 fun GoalSettingsScreen(
@@ -75,44 +74,49 @@ fun GoalSettingsScreen(
         selectedTabIndex = uiState.selectedTabIndex,
         onTabSelected = viewModel::onTabSelected,
         onSave = viewModel::onSave,
-        isSaveEnabled = uiState.title.text.isNotBlank()
+        isSaveEnabled = uiState.title.text.isNotBlank(),
     ) {
         when (tabs[it]) {
-            "General" -> GeneralTabContent(
-                title = uiState.title,
-                onTitleChange = viewModel::onTextChange,
-                titleLabel = "Назва цілі",
-                description = uiState.description,
-                onDescriptionChange = viewModel::onDescriptionChange,
-                onExpandDescriptionClick = viewModel::openDescriptionEditor
-            )
-            "Evaluation" -> EvaluationTabContent(
-                uiState = EvaluationTabUiState(
-                    valueImportance = uiState.valueImportance,
-                    valueImpact = uiState.valueImpact,
-                    effort = uiState.effort,
-                    cost = uiState.cost,
-                    risk = uiState.risk,
-                    weightEffort = uiState.weightEffort,
-                    weightCost = uiState.weightCost,
-                    weightRisk = uiState.weightRisk,
-                    rawScore = uiState.rawScore,
-                    scoringStatus = uiState.scoringStatus,
-                    isScoringEnabled = uiState.isScoringEnabled,
-                ),
-                onViewModelAction = viewModel
-            )
-            "Reminders" -> RemindersTabContent(
-                reminderTime = uiState.reminderTime,
-                onViewModelAction = viewModel
-            )
-            "Links" -> LinksTabContent(
-                links = uiState.relatedLinks,
-                onAddProjectLink = viewModel::onAddLinkRequest,
-                onAddWebLink = viewModel::onAddWebLinkRequest,
-                onAddObsidianLink = viewModel::onAddObsidianLinkRequest,
-                onRemoveLink = viewModel::onRemoveLinkAssociation
-            )
+            "General" ->
+                GeneralTabContent(
+                    title = uiState.title,
+                    onTitleChange = viewModel::onTextChange,
+                    titleLabel = "Назва цілі",
+                    description = uiState.description,
+                    onDescriptionChange = viewModel::onDescriptionChange,
+                    onExpandDescriptionClick = viewModel::openDescriptionEditor,
+                )
+            "Evaluation" ->
+                EvaluationTabContent(
+                    uiState =
+                        EvaluationTabUiState(
+                            valueImportance = uiState.valueImportance,
+                            valueImpact = uiState.valueImpact,
+                            effort = uiState.effort,
+                            cost = uiState.cost,
+                            risk = uiState.risk,
+                            weightEffort = uiState.weightEffort,
+                            weightCost = uiState.weightCost,
+                            weightRisk = uiState.weightRisk,
+                            rawScore = uiState.rawScore,
+                            scoringStatus = uiState.scoringStatus,
+                            isScoringEnabled = uiState.isScoringEnabled,
+                        ),
+                    onViewModelAction = viewModel,
+                )
+            "Reminders" ->
+                RemindersTabContent(
+                    reminderTime = uiState.reminderTime,
+                    onViewModelAction = viewModel,
+                )
+            "Links" ->
+                LinksTabContent(
+                    links = uiState.relatedLinks,
+                    onAddProjectLink = viewModel::onAddLinkRequest,
+                    onAddWebLink = viewModel::onAddWebLinkRequest,
+                    onAddObsidianLink = viewModel::onAddObsidianLinkRequest,
+                    onRemoveLink = viewModel::onRemoveLinkAssociation,
+                )
         }
     }
 

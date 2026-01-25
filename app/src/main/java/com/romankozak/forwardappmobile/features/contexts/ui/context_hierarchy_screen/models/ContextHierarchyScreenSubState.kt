@@ -5,24 +5,19 @@ import android.os.Parcelable
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import kotlinx.parcelize.Parcelize
 
-
 @Parcelize
 sealed class ProjectHierarchyScreenSubState : Parcelable {
-    
     @Parcelize
     data object Hierarchy : ProjectHierarchyScreenSubState()
 
-    
     @Parcelize
     data class LocalSearch(val query: String) : ProjectHierarchyScreenSubState()
 
-    
     @Parcelize
     data class ProjectFocused(val projectId: String) : ProjectHierarchyScreenSubState()
 }
 
 typealias MainSubState = ProjectHierarchyScreenSubState
-
 
 data class AppStatistics2(
     val totalProjects: Int = 0,
@@ -31,33 +26,23 @@ data class AppStatistics2(
     val completedTasks: Int = 0,
 )
 
-
 sealed class DialogState {
-    
     data object Hidden : DialogState()
 
-    
     data class AddProject(val parentId: String?) : DialogState()
 
-    
     data class ProjectMenu(val project: Context) : DialogState()
 
-    
     data class ConfirmDelete(val project: Context) : DialogState()
 
-    
     data class EditProject(val project: Context) : DialogState()
 
-    
     data class ConfirmImport(val uri: Uri) : DialogState()
 
-    
     data object About : DialogState()
 
-    
     data class WifiServer(val serverState: String) : DialogState()
 
-    
     data class WifiImport(val currentAddress: String) : DialogState()
 }
 
@@ -68,18 +53,6 @@ enum class DropPosition2 {
     BELOW,
     INSIDE,
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 data class SearchResult(
     val projectId: String,

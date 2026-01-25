@@ -7,7 +7,7 @@ sealed class DrawerItem {
     data class Folder(
         val folder: ConversationFolderEntity,
         val conversations: List<ConversationWithLastMessage>,
-        val isExpanded: Boolean = false
+        val isExpanded: Boolean = false,
     ) : DrawerItem()
 
     data class Conversation(val conversationWithLastMessage: ConversationWithLastMessage) : DrawerItem()

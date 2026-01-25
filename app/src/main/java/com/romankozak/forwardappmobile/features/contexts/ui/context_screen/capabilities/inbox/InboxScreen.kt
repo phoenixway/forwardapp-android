@@ -132,7 +132,6 @@ fun InboxScreen(
                     )
                 }
 
-                
                 item {
                     Spacer(modifier = Modifier.height(((lastItemHeight / 2) * 0.45).dp))
                 }
@@ -173,8 +172,6 @@ fun InboxItemRow(
         }
     }
 
-    
-
     val highlightColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
     val normalColor = MaterialTheme.colorScheme.surface
     val containerColor by animateColorAsState(
@@ -210,7 +207,6 @@ fun InboxItemRow(
                     .clickable { isExpanded = !isExpanded }
                     .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
-            
             Text(
                 text = record.text,
                 style =
@@ -224,7 +220,6 @@ fun InboxItemRow(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            
             AnimatedVisibility(visible = isExpanded) {
                 Row(
                     modifier =
@@ -245,7 +240,6 @@ fun InboxItemRow(
                 }
             }
 
-            
             AnimatedVisibility(visible = isExpanded) {
                 Column {
                     Spacer(modifier = Modifier.height(8.dp))
@@ -257,7 +251,6 @@ fun InboxItemRow(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             SimpleIconButton(
                                 icon = Icons.Outlined.Edit,
@@ -271,10 +264,8 @@ fun InboxItemRow(
                                 onClick = onPromoteToGoal,
                                 tint = MaterialTheme.colorScheme.primary,
                             )
-
                         }
 
-                        
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             SimpleIconButton(
                                 icon = Icons.Outlined.ContentCopy,
@@ -293,7 +284,6 @@ fun InboxItemRow(
                 }
             }
 
-            
             Row(
                 modifier =
                     Modifier

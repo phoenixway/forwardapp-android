@@ -52,8 +52,6 @@ enum class CommandDeckTab(
     Core("Core", "⌘"),
 }
 
-
-
 // TAB ROW
 @Composable
 fun CommandDeckTabRow(
@@ -62,22 +60,22 @@ fun CommandDeckTabRow(
     onTabSelected: (Int) -> Unit,
 ) {
     LazyRow(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-        contentPadding = PaddingValues(horizontal = 12.dp)
+        contentPadding = PaddingValues(horizontal = 12.dp),
     ) {
         itemsIndexed(tabs) { index, tab ->
             CommandDeckTabItem(
                 tab = tab,
                 isSelected = index == selectedTabIndex,
-                onClick = { onTabSelected(index) }
+                onClick = { onTabSelected(index) },
             )
         }
     }
 }
-
 
 // TAB COLORS
 fun tabAccentColor(tab: CommandDeckTab): Color {
@@ -97,20 +95,20 @@ fun CommandDeckTabItem(
     tab: CommandDeckTab,
     isSelected: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val accent = tabAccentColor(tab)
 
     val glowAlpha by animateFloatAsState(
         targetValue = if (isSelected) 0.18f else 0f,
         animationSpec = tween(450),
-        label = "glow"
+        label = "glow",
     )
 
     val scale by animateFloatAsState(
         targetValue = if (isSelected) 1.05f else 1f,
         animationSpec = spring(dampingRatio = 0.75f, stiffness = 320f),
-        label = "scale"
+        label = "scale",
     )
 
     val isSpecialTab = tab == CommandDeckTab.StrategicArc || tab == CommandDeckTab.Tactics || tab == CommandDeckTab.Today
@@ -118,46 +116,50 @@ fun CommandDeckTabItem(
     val circleSize = if (isSpecialTab) 32.dp else 28.dp // Even larger circle for special tabs
 
     Row(
-        modifier = modifier
-            .scale(scale)
-            .clip(RoundedCornerShape(26.dp))
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        accent.copy(alpha = 0.10f + glowAlpha),
-                        accent.copy(alpha = 0.03f)
-                    )
+        modifier =
+            modifier
+                .scale(scale)
+                .clip(RoundedCornerShape(26.dp))
+                .background(
+                    Brush.verticalGradient(
+                        colors =
+                            listOf(
+                                accent.copy(alpha = 0.10f + glowAlpha),
+                                accent.copy(alpha = 0.03f),
+                            ),
+                    ),
                 )
-            )
-            .border(
-                width = if (isSelected) 1.4.dp else 0.8.dp,
-                color = accent.copy(alpha = if (isSelected) 0.9f else 0.45f),
-                shape = RoundedCornerShape(26.dp)
-            )
-            .clickable { onClick() }
-            .padding(horizontal = 10.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
+                .border(
+                    width = if (isSelected) 1.4.dp else 0.8.dp,
+                    color = accent.copy(alpha = if (isSelected) 0.9f else 0.45f),
+                    shape = RoundedCornerShape(26.dp),
+                )
+                .clickable { onClick() }
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         // ------------------------
         // UNIFIED CIRCLE ICON AREA
         // ------------------------
         Box(
-            modifier = Modifier
-                .size(circleSize) // Use dynamic size
-                .clip(CircleShape)
-                .background(accent.copy(alpha = if (isSelected) 0.22f else 0.12f)),
-            contentAlignment = Alignment.Center
+            modifier =
+                Modifier
+                    .size(circleSize) // Use dynamic size
+                    .clip(CircleShape)
+                    .background(accent.copy(alpha = if (isSelected) 0.22f else 0.12f)),
+            contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = tab.symbol,
                 fontSize = symbolFontSize, // Use dynamic font size
                 fontWeight = FontWeight.Bold,
                 color = if (isSelected) accent else MaterialTheme.colorScheme.onSurface,
-                modifier = if (tab == CommandDeckTab.Tactics || tab == CommandDeckTab.StrategicArc) {
-                    Modifier.offset(y = (-2).dp) // Apply a small upward offset
-                } else {
-                    Modifier
-                }
+                modifier =
+                    if (tab == CommandDeckTab.Tactics || tab == CommandDeckTab.StrategicArc) {
+                        Modifier.offset(y = (-2).dp) // Apply a small upward offset
+                    } else {
+                        Modifier
+                    },
             )
         }
 
@@ -167,13 +169,11 @@ fun CommandDeckTabItem(
                 text = tab.title,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.primary,
             )
         }
     }
 }
-
-
 
 // MODULE CARD
 @Composable
@@ -182,32 +182,35 @@ fun DeckModuleCard(
     subtitle: String,
     progress: Int?,
     accentColor: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Card(
         shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF1E1E1E).copy(alpha = 0.22f)
-        ),
-        modifier = modifier
-            .fillMaxWidth()
+        colors =
+            CardDefaults.cardColors(
+                containerColor = Color(0xFF1E1E1E).copy(alpha = 0.22f),
+            ),
+        modifier =
+            modifier
+                .fillMaxWidth(),
     ) {
         Column(
-            modifier = Modifier
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            modifier =
+                Modifier
+                    .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
                 text = title,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = Color.White,
             )
 
             Text(
                 text = subtitle,
                 fontSize = 14.sp,
-                color = Color(0xFFCCCCCC)
+                color = Color(0xFFCCCCCC),
             )
 
             if (progress != null) {
@@ -215,10 +218,11 @@ fun DeckModuleCard(
                     progress = { progress / 100f },
                     color = accentColor,
                     trackColor = accentColor.copy(alpha = 0.15f),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(6.dp)
-                        .clip(RoundedCornerShape(50))
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(50)),
                 )
             }
         }

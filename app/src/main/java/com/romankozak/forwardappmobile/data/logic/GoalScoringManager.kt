@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.data.logic
 
-import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
+import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
 
 object GoalScoringManager {

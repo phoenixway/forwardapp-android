@@ -30,17 +30,17 @@ fun DayManagementBottomBar(
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceAround,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         BarButton(
             icon = Icons.Outlined.Add,
             label = "Add Task",
-            onClick = onAddTask
+            onClick = onAddTask,
         )
         BarButton(
             icon = Icons.Outlined.Settings,
             label = "Settings",
-            onClick = onNavigateToSettings
+            onClick = onNavigateToSettings,
         )
     }
 }
@@ -49,31 +49,33 @@ fun DayManagementBottomBar(
 private fun BarButton(
     icon: ImageVector,
     label: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     val primary = MaterialTheme.colorScheme.primary
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .clip(RoundedCornerShape(14.dp))
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-            ) { onClick() }
-            .padding(6.dp)
+        modifier =
+            Modifier
+                .clip(RoundedCornerShape(14.dp))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                ) { onClick() }
+                .padding(6.dp),
     ) {
         Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(primary.copy(alpha = 0.10f))
-                .border(
-                    width = 1.dp,
-                    color = primary.copy(alpha = 0.22f),
-                    shape = CircleShape
-                ),
-            contentAlignment = Alignment.Center
+            modifier =
+                Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(primary.copy(alpha = 0.10f))
+                    .border(
+                        width = 1.dp,
+                        color = primary.copy(alpha = 0.22f),
+                        shape = CircleShape,
+                    ),
+            contentAlignment = Alignment.Center,
         ) {
             Icon(icon, contentDescription = label, tint = primary.copy(alpha = 0.9f))
         }

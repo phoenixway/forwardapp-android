@@ -13,10 +13,11 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
-
     @Provides
     @Singleton
-    fun provideNetworkDiscoveryManager(@ApplicationContext context: Context): NetworkDiscoveryManager {
+    fun provideNetworkDiscoveryManager(
+        @ApplicationContext context: Context,
+    ): NetworkDiscoveryManager {
         return NetworkDiscoveryManager(context)
     }
 

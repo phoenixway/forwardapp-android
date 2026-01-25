@@ -4,12 +4,12 @@ enum class MissionStatus {
     PENDING,
     IN_PROGRESS,
     COMPLETED,
-    OVERDUE
+    OVERDUE,
 }
 
 enum class MissionPriority {
     LOW,
     MEDIUM,
     HIGH,
-    CRITICAL
+    CRITICAL,
 }

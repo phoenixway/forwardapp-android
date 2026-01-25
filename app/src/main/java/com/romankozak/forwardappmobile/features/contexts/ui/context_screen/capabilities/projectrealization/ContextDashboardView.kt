@@ -4,12 +4,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import com.romankozak.forwardappmobile.features.contexts.data.models.Context
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
-
-
 import androidx.compose.ui.graphics.Color
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextArtifact
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextTimeMetrics
 
 @Composable
@@ -34,19 +32,21 @@ fun ProjectDashboardView(
 ) {
     if (project == null) return
 
-    val availableTabs = remember(enableDashboard, enableLog, enableArtifact) {
-        ContextManagementTab.values().filter { tab ->
-            when (tab) {
-                ContextManagementTab.Dashboard -> enableDashboard
-                ContextManagementTab.Log -> enableLog
-                ContextManagementTab.Artifact -> enableArtifact
-                else -> true
+    val availableTabs =
+        remember(enableDashboard, enableLog, enableArtifact) {
+            ContextManagementTab.values().filter { tab ->
+                when (tab) {
+                    ContextManagementTab.Dashboard -> enableDashboard
+                    ContextManagementTab.Log -> enableLog
+                    ContextManagementTab.Artifact -> enableArtifact
+                    else -> true
+                }
             }
         }
-    }
-    val safeSelectedTab = remember(selectedTab, availableTabs) {
-        if (selectedTab in availableTabs) selectedTab else availableTabs.firstOrNull() ?: ContextManagementTab.Insights
-    }
+    val safeSelectedTab =
+        remember(selectedTab, availableTabs) {
+            if (selectedTab in availableTabs) selectedTab else availableTabs.firstOrNull() ?: ContextManagementTab.Insights
+        }
     LaunchedEffect(safeSelectedTab, availableTabs) {
         if (selectedTab !in availableTabs && availableTabs.isNotEmpty()) {
             onTabSelected(availableTabs.first())
@@ -84,7 +84,7 @@ fun ProjectDashboardView(
                     artifact = contextArtifact,
                     isManagementEnabled = project.isProjectManagementEnabled == true,
                     onEditArtifact = onEditArtifact,
-                    onSaveArtifact = { onSaveArtifact("") }
+                    onSaveArtifact = { onSaveArtifact("") },
                 )
             }
             ContextManagementTab.Log ->
@@ -92,7 +92,7 @@ fun ProjectDashboardView(
                     logs = projectLogs,
                     isManagementEnabled = project.isProjectManagementEnabled == true,
                     onEditLog = onEditLog,
-                    onDeleteLog = onDeleteLog
+                    onDeleteLog = onDeleteLog,
                 )
             ContextManagementTab.Insights ->
                 InsightsContent(isManagementEnabled = project.isProjectManagementEnabled == true)

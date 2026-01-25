@@ -3,17 +3,18 @@ package com.romankozak.forwardappmobile.features.attachments.ui.library
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -49,7 +50,6 @@ import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.config.FeatureToggles
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
 import java.net.URLEncoder
-import android.widget.Toast
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -103,11 +103,12 @@ fun AttachmentsLibraryScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
-                ),
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+                    ),
             )
         },
     ) { paddingValues ->
@@ -124,10 +125,11 @@ fun AttachmentsLibraryScreen(
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text("Пошук за назвою, проєктом або посиланням") },
                 singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                ),
+                colors =
+                    OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                    ),
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -204,12 +206,13 @@ private fun FilterRow(
     selected: AttachmentLibraryFilter,
     onFilterSelected: (AttachmentLibraryFilter) -> Unit,
 ) {
-    val filters = listOf(
-        AttachmentLibraryFilter.All,
-        AttachmentLibraryFilter.Notes,
-        AttachmentLibraryFilter.Checklists,
-        AttachmentLibraryFilter.Links,
-    )
+    val filters =
+        listOf(
+            AttachmentLibraryFilter.All,
+            AttachmentLibraryFilter.Notes,
+            AttachmentLibraryFilter.Checklists,
+            AttachmentLibraryFilter.Links,
+        )
 
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -315,7 +318,10 @@ private fun AttachmentLibraryType.label(): String =
         AttachmentLibraryType.LINK -> "Посилання"
     }
 
-private fun openExternalLink(context: android.content.Context, target: String) {
+private fun openExternalLink(
+    context: android.content.Context,
+    target: String,
+) {
     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(target))
     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     try {

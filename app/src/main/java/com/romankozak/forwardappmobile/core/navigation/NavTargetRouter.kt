@@ -3,7 +3,6 @@ package com.romankozak.forwardappmobile.core.navigation
 import java.net.URLEncoder
 
 object NavTargetRouter {
-
     private fun buildQuery(params: List<Pair<String, String?>>): String {
         val nonNullParams = params.filter { it.second != null }.map { it.first to it.second!! }
         return if (nonNullParams.isEmpty()) {
@@ -15,7 +14,6 @@ object NavTargetRouter {
 
     fun routeOf(target: NavTarget): String =
         when (target) {
-
             NavTarget.ProjectHierarchy ->
                 "goal_lists_screen"
 
@@ -27,7 +25,7 @@ object NavTargetRouter {
                             "itemIdToHighlight" to target.itemIdToHighlight,
                             "inboxRecordIdToHighlight" to target.inboxRecordIdToHighlight,
                             "initialViewMode" to target.initialViewMode,
-                        )
+                        ),
                     )
 
             is NavTarget.NoteDocument ->
@@ -40,7 +38,7 @@ object NavTargetRouter {
                         listOf(
                             "projectId" to target.projectId,
                             "documentId" to target.documentId,
-                        )
+                        ),
                     )
 
             is NavTarget.Checklist ->
@@ -49,7 +47,7 @@ object NavTargetRouter {
                         listOf(
                             "projectId" to target.projectId,
                             "checklistId" to target.id,
-                        )
+                        ),
                     )
 
             is NavTarget.GlobalSearch ->
@@ -61,7 +59,7 @@ object NavTargetRouter {
                         listOf(
                             "currentParentId" to target.currentParentId,
                             "disabledIds" to target.disabledIds,
-                        )
+                        ),
                     )
 
             NavTarget.Tracker ->
@@ -101,14 +99,15 @@ object NavTargetRouter {
                         listOf(
                             "projectId" to target.projectId,
                             "scriptId" to target.scriptId,
-                        )
+                        ),
                     )
 
             is NavTarget.ImportExport ->
-                if (target.uri != null)
+                if (target.uri != null) {
                     "selective_import_screen/${URLEncoder.encode(target.uri, "UTF-8")}"
-                else
+                } else {
                     "selective_import_screen"
+                }
 
             is NavTarget.ProjectStructure ->
                 "project_structure_screen/${target.projectId}"
@@ -122,7 +121,7 @@ object NavTargetRouter {
                         listOf(
                             "presetId" to target.presetId,
                             "copyFromPresetId" to target.copyFromPresetId,
-                        )
+                        ),
                     )
         }
 }

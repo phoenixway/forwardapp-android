@@ -9,7 +9,6 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrde
 
 @Dao
 interface BacklogOrderDao {
-
     @Query("SELECT * FROM backlog_orders WHERE list_id = :listId AND is_deleted = 0 ORDER BY item_order")
     suspend fun getOrdersForList(listId: String): List<BacklogOrder>
 

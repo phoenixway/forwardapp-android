@@ -1,30 +1,30 @@
 package com.romankozak.forwardappmobile.features.sync.selectiveimport
 
-import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
-import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistItemEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
-import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
-import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentItemEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.Context
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
-import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.InboxRecord
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
 import com.romankozak.forwardappmobile.data.sync.BackupDiff
 import com.romankozak.forwardappmobile.data.sync.DiffResult
 import com.romankozak.forwardappmobile.data.sync.DiffStatus
 import com.romankozak.forwardappmobile.data.sync.UpdatedItem
+import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
 import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistItemEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentItemEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.ProjectAttachmentCrossRef
+import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEntity
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
+import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
+import com.romankozak.forwardappmobile.features.contexts.data.models.InboxRecord
+import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
 
 data class SelectiveImportState(
     val isLoading: Boolean = true,
     val error: String? = null,
-    val backupContent: SelectableDatabaseContent? = null
+    val backupContent: SelectableDatabaseContent? = null,
 )
 
 data class SelectableDatabaseContent(
@@ -43,7 +43,7 @@ data class SelectableDatabaseContent(
     val contextLogs: List<SelectableDiffItem<ContextLog>> = emptyList(),
     val scripts: List<SelectableDiffItem<ScriptEntity>> = emptyList(),
     val attachments: List<SelectableDiffItem<AttachmentEntity>> = emptyList(),
-    val allProjectAttachmentCrossRefs: List<ProjectAttachmentCrossRef> = emptyList() // Dependent, not directly selectable
+    val allProjectAttachmentCrossRefs: List<ProjectAttachmentCrossRef> = emptyList(), // Dependent, not directly selectable
 )
 
 data class SelectableDiffItem<T>(
@@ -57,23 +57,26 @@ data class SelectableDiffItem<T>(
 fun BackupDiff.toSelectable(): SelectableDatabaseContent {
     fun <T> mapDiff(
         diff: DiffResult<T>,
-        updatedInfo: (UpdatedItem<T>) -> String? = { null }
+        updatedInfo: (UpdatedItem<T>) -> String? = { null },
     ): List<SelectableDiffItem<T>> {
-        val newItems = diff.added.map {
-            SelectableDiffItem(item = it, status = DiffStatus.NEW, isSelected = true, isSelectable = true)
-        }
-        val updatedItems = diff.updated.map {
-            SelectableDiffItem(
-                item = it.incoming,
-                status = DiffStatus.UPDATED,
-                isSelected = true,
-                isSelectable = true,
-                changeInfo = updatedInfo(it)
-            )
-        }
-        val deletedItems = diff.deleted.map {
-            SelectableDiffItem(item = it, status = DiffStatus.DELETED, isSelected = false, isSelectable = false)
-        }
+        val newItems =
+            diff.added.map {
+                SelectableDiffItem(item = it, status = DiffStatus.NEW, isSelected = true, isSelectable = true)
+            }
+        val updatedItems =
+            diff.updated.map {
+                SelectableDiffItem(
+                    item = it.incoming,
+                    status = DiffStatus.UPDATED,
+                    isSelected = true,
+                    isSelectable = true,
+                    changeInfo = updatedInfo(it),
+                )
+            }
+        val deletedItems =
+            diff.deleted.map {
+                SelectableDiffItem(item = it, status = DiffStatus.DELETED, isSelected = false, isSelectable = false)
+            }
         return newItems + updatedItems + deletedItems
     }
 
@@ -107,6 +110,6 @@ fun BackupDiff.toSelectable(): SelectableDatabaseContent {
         scripts = mapDiff(this.scripts),
         attachments = mapDiff(this.attachments),
         backlogOrders = mapDiff(this.backlogOrders),
-        allProjectAttachmentCrossRefs = this.projectAttachmentCrossRefs.added + this.projectAttachmentCrossRefs.updated.map { it.incoming }
+        allProjectAttachmentCrossRefs = this.projectAttachmentCrossRefs.added + this.projectAttachmentCrossRefs.updated.map { it.incoming },
     )
 }

@@ -1,14 +1,14 @@
 package com.romankozak.forwardappmobile.features.attachments.data
 
 import android.util.Log
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
-import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
+import com.romankozak.forwardappmobile.data.sync.softDelete
 import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentWithProject
 import com.romankozak.forwardappmobile.features.attachments.data.models.ProjectAttachmentCrossRef
-import com.romankozak.forwardappmobile.data.sync.softDelete
 import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
+import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject
@@ -17,256 +17,285 @@ import javax.inject.Singleton
 const val ATTACHMENT_LOG_TAG = "FWD_ATTACH"
 
 @Singleton
-class AttachmentRepository @Inject constructor(
-    private val attachmentDao: AttachmentDao,
-    private val linkItemDao: LinkItemDao,
-) {
+class AttachmentRepository
+    @Inject
+    constructor(
+        private val attachmentDao: AttachmentDao,
+        private val linkItemDao: LinkItemDao,
+    ) {
+        fun getAttachmentsForProject(projectId: String): Flow<List<AttachmentWithProject>> =
+            attachmentDao.getAttachmentsForProject(projectId)
 
-    fun getAttachmentsForProject(projectId: String): Flow<List<AttachmentWithProject>> =
-        attachmentDao.getAttachmentsForProject(projectId)
+        fun getAllAttachments(): Flow<List<AttachmentEntity>> = attachmentDao.getAllAttachmentsFlow()
 
-    fun getAllAttachments(): Flow<List<AttachmentEntity>> = attachmentDao.getAllAttachmentsFlow()
+        fun getAllAttachmentLinks(): Flow<List<ProjectAttachmentCrossRef>> = attachmentDao.getAllProjectAttachmentLinksFlow()
 
-    fun getAllAttachmentLinks(): Flow<List<ProjectAttachmentCrossRef>> =
-        attachmentDao.getAllProjectAttachmentLinksFlow()
+        fun getAllLinkItems(): Flow<List<LinkItemEntity>> = linkItemDao.getAllEntitiesAsFlow()
 
-    fun getAllLinkItems(): Flow<List<LinkItemEntity>> = linkItemDao.getAllEntitiesAsFlow()
+        fun getAttachmentLibraryItems(): Flow<List<com.romankozak.forwardappmobile.features.attachments.ui.library.AttachmentLibraryQueryResult>> =
+            attachmentDao.getAttachmentLibraryItems()
 
-    fun getAttachmentLibraryItems(): Flow<List<com.romankozak.forwardappmobile.features.attachments.ui.library.AttachmentLibraryQueryResult>> =
-        attachmentDao.getAttachmentLibraryItems()
+        suspend fun findAttachmentByEntity(
+            attachmentType: String,
+            entityId: String,
+        ): AttachmentEntity? = attachmentDao.findAttachmentByEntity(attachmentType, entityId)
 
-    suspend fun findAttachmentByEntity(
-        attachmentType: String,
-        entityId: String,
-    ): AttachmentEntity? =
-        attachmentDao.findAttachmentByEntity(attachmentType, entityId)
+        suspend fun getAttachmentById(attachmentId: String): AttachmentEntity? = attachmentDao.getAttachmentById(attachmentId)
 
-    suspend fun getAttachmentById(attachmentId: String): AttachmentEntity? =
-        attachmentDao.getAttachmentById(attachmentId)
+        suspend fun findAttachmentByRole(
+            projectId: String,
+            roleCode: String,
+        ): AttachmentEntity? = attachmentDao.findAttachmentByRole(projectId, roleCode)
 
-    suspend fun findAttachmentByRole(projectId: String, roleCode: String): AttachmentEntity? =
-        attachmentDao.findAttachmentByRole(projectId, roleCode)
-
-    suspend fun ensureAttachmentForEntity(
-        attachmentType: String,
-        entityId: String,
-        ownerProjectId: String?,
-        createdAt: Long = System.currentTimeMillis(),
-        roleCode: String? = null,
-        isSystem: Boolean = false,
-    ): AttachmentEntity {
-        Log.d(ATTACHMENT_LOG_TAG, "[ensureAttachmentForEntity] START: type=$attachmentType, entity=$entityId, owner=$ownerProjectId, createdAt=$createdAt")
-        val existing = attachmentDao.findAttachmentByEntity(attachmentType, entityId)
-        if (existing != null) {
-            Log.d(ATTACHMENT_LOG_TAG, "[ensureAttachmentForEntity] FOUND existing: id=${existing.id}, syncedAt=${existing.syncedAt}, version=${existing.version}")
-            val needsUpdate = (roleCode != null && existing.roleCode != roleCode) || (isSystem && !existing.isSystem)
-            return if (needsUpdate) {
-                val updated = existing.copy(
-                    roleCode = roleCode ?: existing.roleCode,
-                    isSystem = existing.isSystem || isSystem,
-                    updatedAt = System.currentTimeMillis(),
-                    version = existing.version + 1
+        suspend fun ensureAttachmentForEntity(
+            attachmentType: String,
+            entityId: String,
+            ownerProjectId: String?,
+            createdAt: Long = System.currentTimeMillis(),
+            roleCode: String? = null,
+            isSystem: Boolean = false,
+        ): AttachmentEntity {
+            Log.d(
+                ATTACHMENT_LOG_TAG,
+                "[ensureAttachmentForEntity] START: type=$attachmentType, entity=$entityId, owner=$ownerProjectId, createdAt=$createdAt",
+            )
+            val existing = attachmentDao.findAttachmentByEntity(attachmentType, entityId)
+            if (existing != null) {
+                Log.d(
+                    ATTACHMENT_LOG_TAG,
+                    "[ensureAttachmentForEntity] FOUND existing: id=${existing.id}, syncedAt=${existing.syncedAt}, version=${existing.version}",
                 )
-                attachmentDao.insertAttachment(updated)
-                updated
-            } else {
-                existing
+                val needsUpdate = (roleCode != null && existing.roleCode != roleCode) || (isSystem && !existing.isSystem)
+                return if (needsUpdate) {
+                    val updated =
+                        existing.copy(
+                            roleCode = roleCode ?: existing.roleCode,
+                            isSystem = existing.isSystem || isSystem,
+                            updatedAt = System.currentTimeMillis(),
+                            version = existing.version + 1,
+                        )
+                    attachmentDao.insertAttachment(updated)
+                    updated
+                } else {
+                    existing
+                }
             }
+
+            val attachment =
+                AttachmentEntity(
+                    id = UUID.randomUUID().toString(),
+                    attachmentType = attachmentType,
+                    entityId = entityId,
+                    ownerProjectId = ownerProjectId,
+                    roleCode = roleCode,
+                    isSystem = isSystem,
+                    createdAt = createdAt,
+                    updatedAt = createdAt,
+                    syncedAt = null,
+                    version = 1,
+                )
+            attachmentDao.insertAttachment(attachment)
+            Log.d(
+                ATTACHMENT_LOG_TAG,
+                "[ensureAttachmentForEntity] CREATED: id=${attachment.id}, type=$attachmentType, entity=$entityId, version=1, syncedAt=null",
+            )
+            return attachment
         }
 
-        val attachment =
-            AttachmentEntity(
-                id = UUID.randomUUID().toString(),
-                attachmentType = attachmentType,
-                entityId = entityId,
-                ownerProjectId = ownerProjectId,
-                roleCode = roleCode,
-                isSystem = isSystem,
-                createdAt = createdAt,
-                updatedAt = createdAt,
-                syncedAt = null,
-                version = 1,
-            )
-        attachmentDao.insertAttachment(attachment)
-        Log.d(ATTACHMENT_LOG_TAG, "[ensureAttachmentForEntity] CREATED: id=${attachment.id}, type=$attachmentType, entity=$entityId, version=1, syncedAt=null")
-        return attachment
-    }
+        suspend fun ensureAttachmentLinkedToProject(
+            attachmentType: String,
+            entityId: String,
+            projectId: String,
+            ownerProjectId: String? = null,
+            createdAt: Long = System.currentTimeMillis(),
+            roleCode: String? = null,
+            isSystem: Boolean = false,
+        ): AttachmentEntity {
+            Log.d(ATTACHMENT_LOG_TAG, "[ensureAttachmentLinkedToProject] START: type=$attachmentType, entity=$entityId, project=$projectId")
+            val attachment =
+                ensureAttachmentForEntity(
+                    attachmentType,
+                    entityId,
+                    ownerProjectId,
+                    createdAt,
+                    roleCode,
+                    isSystem,
+                )
 
-    suspend fun ensureAttachmentLinkedToProject(
-        attachmentType: String,
-        entityId: String,
-        projectId: String,
-        ownerProjectId: String? = null,
-        createdAt: Long = System.currentTimeMillis(),
-        roleCode: String? = null,
-        isSystem: Boolean = false,
-    ): AttachmentEntity {
-        Log.d(ATTACHMENT_LOG_TAG, "[ensureAttachmentLinkedToProject] START: type=$attachmentType, entity=$entityId, project=$projectId")
-        val attachment = ensureAttachmentForEntity(
-            attachmentType,
-            entityId,
-            ownerProjectId,
-            createdAt,
-            roleCode,
-            isSystem
-        )
-        
-        // Check if this link already exists to prevent duplicates
-        val existingLink = attachmentDao.getProjectAttachmentLink(projectId, attachment.id)
-        if (existingLink == null) {
+            // Check if this link already exists to prevent duplicates
+            val existingLink = attachmentDao.getProjectAttachmentLink(projectId, attachment.id)
+            if (existingLink == null) {
+                attachmentDao.insertProjectAttachmentLink(
+                    ProjectAttachmentCrossRef(
+                        projectId = projectId,
+                        attachmentId = attachment.id,
+                        attachmentOrder = -createdAt,
+                    ),
+                )
+                Log.d(ATTACHMENT_LOG_TAG, "[ensureAttachmentLinkedToProject] LINKED: attachment=${attachment.id} -> project=$projectId")
+            } else {
+                Log.d(
+                    ATTACHMENT_LOG_TAG,
+                    "[ensureAttachmentLinkedToProject] ALREADY LINKED: attachment=${attachment.id} -> project=$projectId",
+                )
+            }
+            return attachment
+        }
+
+        suspend fun createLinkAttachment(
+            projectId: String,
+            link: RelatedLink,
+            roleCode: String? = null,
+            isSystem: Boolean = false,
+        ): AttachmentEntity {
+            val timestamp = System.currentTimeMillis()
+            Log.d(
+                ATTACHMENT_LOG_TAG,
+                "[createLinkAttachment] START: project=$projectId, link=${link.displayName ?: link.target}, ts=$timestamp",
+            )
+
+            val linkEntity =
+                LinkItemEntity(
+                    id = UUID.randomUUID().toString(),
+                    linkData = link,
+                    createdAt = timestamp,
+                    updatedAt = timestamp,
+                    syncedAt = null,
+                    version = 1,
+                )
+            linkItemDao.insert(linkEntity)
+            Log.d(
+                ATTACHMENT_LOG_TAG,
+                "[createLinkAttachment] STEP1: LinkItemEntity created: id=${linkEntity.id}, version=1, syncedAt=null (NEW - WILL NEED SYNC)",
+            )
+
+            val attachment =
+                AttachmentEntity(
+                    id = UUID.randomUUID().toString(),
+                    attachmentType = BacklogItemTypeValues.LINK_ITEM,
+                    entityId = linkEntity.id,
+                    ownerProjectId = projectId,
+                    roleCode = roleCode,
+                    isSystem = isSystem,
+                    createdAt = timestamp,
+                    updatedAt = timestamp,
+                    syncedAt = null,
+                    version = 1,
+                )
+            attachmentDao.insertAttachment(attachment)
+            Log.d(
+                ATTACHMENT_LOG_TAG,
+                "[createLinkAttachment] STEP2: AttachmentEntity created: id=${attachment.id}, linkId=${linkEntity.id}, owner=$projectId, version=1, syncedAt=null (NEW - WILL NEED SYNC)",
+            )
+
             attachmentDao.insertProjectAttachmentLink(
                 ProjectAttachmentCrossRef(
                     projectId = projectId,
                     attachmentId = attachment.id,
-                    attachmentOrder = -createdAt,
+                    attachmentOrder = -timestamp,
+                    updatedAt = timestamp,
+                    syncedAt = null,
+                    version = 1,
                 ),
             )
-            Log.d(ATTACHMENT_LOG_TAG, "[ensureAttachmentLinkedToProject] LINKED: attachment=${attachment.id} -> project=$projectId")
-        } else {
-            Log.d(ATTACHMENT_LOG_TAG, "[ensureAttachmentLinkedToProject] ALREADY LINKED: attachment=${attachment.id} -> project=$projectId")
+            Log.d(
+                ATTACHMENT_LOG_TAG,
+                "[createLinkAttachment] STEP3: ProjectAttachmentCrossRef created: project=$projectId, attachment=${attachment.id}, version=1, syncedAt=null (NEW - WILL NEED SYNC)",
+            )
+            Log.d(
+                ATTACHMENT_LOG_TAG,
+                "[createLinkAttachment] DONE: attachment=${attachment.id}, this attachment is NEW and unsync'd (syncedAt=null), it will be exported on next sync",
+            )
+            return attachment
         }
-        return attachment
-    }
 
-    suspend fun createLinkAttachment(
-         projectId: String,
-         link: RelatedLink,
-         roleCode: String? = null,
-         isSystem: Boolean = false,
-     ): AttachmentEntity {
-         val timestamp = System.currentTimeMillis()
-         Log.d(ATTACHMENT_LOG_TAG, "[createLinkAttachment] START: project=$projectId, link=${link.displayName ?: link.target}, ts=$timestamp")
-         
-         val linkEntity =
-             LinkItemEntity(
-                 id = UUID.randomUUID().toString(),
-                 linkData = link,
-                 createdAt = timestamp,
-                 updatedAt = timestamp,
-                 syncedAt = null,
-                 version = 1,
-             )
-         linkItemDao.insert(linkEntity)
-         Log.d(ATTACHMENT_LOG_TAG, "[createLinkAttachment] STEP1: LinkItemEntity created: id=${linkEntity.id}, version=1, syncedAt=null (NEW - WILL NEED SYNC)")
-
-         val attachment =
-             AttachmentEntity(
-                 id = UUID.randomUUID().toString(),
-                 attachmentType = BacklogItemTypeValues.LINK_ITEM,
-                 entityId = linkEntity.id,
-                 ownerProjectId = projectId,
-                roleCode = roleCode,
-                isSystem = isSystem,
-                 createdAt = timestamp,
-                 updatedAt = timestamp,
-                 syncedAt = null,
-                 version = 1,
-             )
-         attachmentDao.insertAttachment(attachment)
-         Log.d(ATTACHMENT_LOG_TAG, "[createLinkAttachment] STEP2: AttachmentEntity created: id=${attachment.id}, linkId=${linkEntity.id}, owner=$projectId, version=1, syncedAt=null (NEW - WILL NEED SYNC)")
-         
-         attachmentDao.insertProjectAttachmentLink(
-             ProjectAttachmentCrossRef(
-                 projectId = projectId,
-                 attachmentId = attachment.id,
-                 attachmentOrder = -timestamp,
-                 updatedAt = timestamp,
-                 syncedAt = null,
-                 version = 1,
-             ),
-         )
-         Log.d(ATTACHMENT_LOG_TAG, "[createLinkAttachment] STEP3: ProjectAttachmentCrossRef created: project=$projectId, attachment=${attachment.id}, version=1, syncedAt=null (NEW - WILL NEED SYNC)")
-         Log.d(ATTACHMENT_LOG_TAG, "[createLinkAttachment] DONE: attachment=${attachment.id}, this attachment is NEW and unsync'd (syncedAt=null), it will be exported on next sync")
-         return attachment
-     }
-
-    suspend fun linkAttachmentToProject(
-        attachmentId: String,
-        projectId: String,
-        order: Long = -System.currentTimeMillis(),
-    ) {
-        attachmentDao.insertProjectAttachmentLink(
-            ProjectAttachmentCrossRef(
-                projectId = projectId,
-                attachmentId = attachmentId,
-                attachmentOrder = order,
-                updatedAt = System.currentTimeMillis(),
-                syncedAt = null,
-                version = 1,
-            ),
-        )
-    }
-
-    suspend fun unlinkAttachmentFromProject(
-        attachmentId: String,
-        projectId: String,
-    ): Boolean {
-        val attachment = attachmentDao.getAttachmentById(attachmentId) ?: return false
-        val now = System.currentTimeMillis()
-        val link = attachmentDao.getProjectAttachmentLink(projectId, attachmentId)
-        if (link != null) {
+        suspend fun linkAttachmentToProject(
+            attachmentId: String,
+            projectId: String,
+            order: Long = -System.currentTimeMillis(),
+        ) {
             attachmentDao.insertProjectAttachmentLink(
-                link.softDelete(now),
+                ProjectAttachmentCrossRef(
+                    projectId = projectId,
+                    attachmentId = attachmentId,
+                    attachmentOrder = order,
+                    updatedAt = System.currentTimeMillis(),
+                    syncedAt = null,
+                    version = 1,
+                ),
             )
-        } else {
-            attachmentDao.deleteProjectAttachmentLink(projectId, attachmentId)
         }
-        val remainingLinks = attachmentDao.countLinksForAttachment(attachmentId)
-        val noMoreLinks = remainingLinks <= 0
-        if (noMoreLinks) {
-            attachmentDao.insertAttachment(
-                attachment.softDelete(now),
-            )
-            if (attachment.attachmentType == BacklogItemTypeValues.LINK_ITEM) {
-                linkItemDao.deleteById(attachment.entityId)
-            }
-        }
-        return noMoreLinks
-    }
 
-    suspend fun deleteAttachment(attachmentId: String) {
-        val now = System.currentTimeMillis()
-        val attachment = attachmentDao.getAttachmentById(attachmentId)
-        if (attachment != null) {
-            attachmentDao.insertAttachment(
-                attachment.softDelete(now),
-            )
-            // mark links deleted too
-            val links = attachmentDao.getProjectAttachmentLinksForAttachment(attachmentId)
-            links.forEach { link ->
+        suspend fun unlinkAttachmentFromProject(
+            attachmentId: String,
+            projectId: String,
+        ): Boolean {
+            val attachment = attachmentDao.getAttachmentById(attachmentId) ?: return false
+            val now = System.currentTimeMillis()
+            val link = attachmentDao.getProjectAttachmentLink(projectId, attachmentId)
+            if (link != null) {
                 attachmentDao.insertProjectAttachmentLink(
                     link.softDelete(now),
                 )
-            }
-        } else {
-            attachmentDao.deleteAllLinksForAttachment(attachmentId)
-            attachmentDao.deleteAttachment(attachmentId)
-        }
-        if (attachment != null && attachment.attachmentType == BacklogItemTypeValues.LINK_ITEM) {
-            linkItemDao.deleteById(attachment.entityId)
-        }
-    }
-
-    suspend fun updateAttachmentOrders(
-        projectId: String,
-        updates: List<Pair<String, Long>>,
-    ) {
-        if (updates.isEmpty()) return
-        updates.forEach { (attachmentId, order) ->
-            val now = System.currentTimeMillis()
-            val existing = attachmentDao.getProjectAttachmentLink(projectId, attachmentId)
-            if (existing != null) {
-                attachmentDao.insertProjectAttachmentLink(
-                    existing.copy(
-                        attachmentOrder = order,
-                        updatedAt = now,
-                        syncedAt = null,
-                        version = existing.version + 1,
-                    ),
-                )
             } else {
-                attachmentDao.updateAttachmentOrder(projectId, attachmentId, order)
+                attachmentDao.deleteProjectAttachmentLink(projectId, attachmentId)
+            }
+            val remainingLinks = attachmentDao.countLinksForAttachment(attachmentId)
+            val noMoreLinks = remainingLinks <= 0
+            if (noMoreLinks) {
+                attachmentDao.insertAttachment(
+                    attachment.softDelete(now),
+                )
+                if (attachment.attachmentType == BacklogItemTypeValues.LINK_ITEM) {
+                    linkItemDao.deleteById(attachment.entityId)
+                }
+            }
+            return noMoreLinks
+        }
+
+        suspend fun deleteAttachment(attachmentId: String) {
+            val now = System.currentTimeMillis()
+            val attachment = attachmentDao.getAttachmentById(attachmentId)
+            if (attachment != null) {
+                attachmentDao.insertAttachment(
+                    attachment.softDelete(now),
+                )
+                // mark links deleted too
+                val links = attachmentDao.getProjectAttachmentLinksForAttachment(attachmentId)
+                links.forEach { link ->
+                    attachmentDao.insertProjectAttachmentLink(
+                        link.softDelete(now),
+                    )
+                }
+            } else {
+                attachmentDao.deleteAllLinksForAttachment(attachmentId)
+                attachmentDao.deleteAttachment(attachmentId)
+            }
+            if (attachment != null && attachment.attachmentType == BacklogItemTypeValues.LINK_ITEM) {
+                linkItemDao.deleteById(attachment.entityId)
+            }
+        }
+
+        suspend fun updateAttachmentOrders(
+            projectId: String,
+            updates: List<Pair<String, Long>>,
+        ) {
+            if (updates.isEmpty()) return
+            updates.forEach { (attachmentId, order) ->
+                val now = System.currentTimeMillis()
+                val existing = attachmentDao.getProjectAttachmentLink(projectId, attachmentId)
+                if (existing != null) {
+                    attachmentDao.insertProjectAttachmentLink(
+                        existing.copy(
+                            attachmentOrder = order,
+                            updatedAt = now,
+                            syncedAt = null,
+                            version = existing.version + 1,
+                        ),
+                    )
+                } else {
+                    attachmentDao.updateAttachmentOrder(projectId, attachmentId, order)
+                }
             }
         }
     }
-}

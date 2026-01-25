@@ -26,11 +26,12 @@ internal fun NoteIndicatorBadge(modifier: Modifier = Modifier) {
         tonalElevation = 2.dp,
     ) {
         Box(
-            modifier = Modifier
-                .padding(6.dp)
-                .semantics {
-                    contentDescription = "Містить нотатку"
-                },
+            modifier =
+                Modifier
+                    .padding(6.dp)
+                    .semantics {
+                        contentDescription = "Містить нотатку"
+                    },
             contentAlignment = Alignment.Center,
         ) {
             Icon(

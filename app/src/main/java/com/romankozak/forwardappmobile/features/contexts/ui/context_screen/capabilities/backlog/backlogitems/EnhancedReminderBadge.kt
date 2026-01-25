@@ -87,9 +87,7 @@ internal object ReminderTextUtil {
 }
 
 @Composable
-internal fun EnhancedReminderBadge(
-    reminder: Reminder,
-) {
+internal fun EnhancedReminderBadge(reminder: Reminder) {
     var currentTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -98,33 +96,36 @@ internal fun EnhancedReminderBadge(
         }
     }
 
-    val reminderText = if (reminder.status == "COMPLETED") {
-        "Completed"
-    } else if (reminder.status == "SNOOZED") {
-        "Snoozed"
-    } else {
-        remember(reminder.reminderTime, currentTime) {
-            ReminderTextUtil.formatReminderTime(reminder.reminderTime, currentTime)
+    val reminderText =
+        if (reminder.status == "COMPLETED") {
+            "Completed"
+        } else if (reminder.status == "SNOOZED") {
+            "Snoozed"
+        } else {
+            remember(reminder.reminderTime, currentTime) {
+                ReminderTextUtil.formatReminderTime(reminder.reminderTime, currentTime)
+            }
         }
-    }
     val isPastDue = reminder.reminderTime < currentTime && reminder.status != "COMPLETED"
 
     val backgroundColor by animateColorAsState(
-        targetValue = when {
-            reminder.status == "COMPLETED" -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
-            isPastDue -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
-            reminder.status == "SNOOZED" -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
-            else -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f)
-        },
+        targetValue =
+            when {
+                reminder.status == "COMPLETED" -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+                isPastDue -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
+                reminder.status == "SNOOZED" -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
+                else -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f)
+            },
         label = "reminder_badge_bg",
     )
     val contentColor by animateColorAsState(
-        targetValue = when {
-            reminder.status == "COMPLETED" -> MaterialTheme.colorScheme.primary
-            isPastDue -> MaterialTheme.colorScheme.error
-            reminder.status == "SNOOZED" -> MaterialTheme.colorScheme.secondary
-            else -> MaterialTheme.colorScheme.tertiary
-        },
+        targetValue =
+            when {
+                reminder.status == "COMPLETED" -> MaterialTheme.colorScheme.primary
+                isPastDue -> MaterialTheme.colorScheme.error
+                reminder.status == "SNOOZED" -> MaterialTheme.colorScheme.secondary
+                else -> MaterialTheme.colorScheme.tertiary
+            },
         label = "reminder_badge_content",
     )
 
@@ -140,21 +141,23 @@ internal fun EnhancedReminderBadge(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Icon(
-                imageVector = when {
-                    isPastDue -> Icons.Default.AlarmOff
-                    reminder.status == "SNOOZED" -> Icons.Default.Snooze
-                    else -> Icons.Default.AlarmOn
-                },
+                imageVector =
+                    when {
+                        isPastDue -> Icons.Default.AlarmOff
+                        reminder.status == "SNOOZED" -> Icons.Default.Snooze
+                        else -> Icons.Default.AlarmOn
+                    },
                 contentDescription = "Нагадування",
                 tint = contentColor,
                 modifier = Modifier.size(14.dp),
             )
             Text(
                 text = reminderText,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 10.sp,
-                ),
+                style =
+                    MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 10.sp,
+                    ),
                 color = contentColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

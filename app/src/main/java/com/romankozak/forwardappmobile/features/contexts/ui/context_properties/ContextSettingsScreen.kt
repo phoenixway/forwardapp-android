@@ -3,17 +3,60 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_properties
 
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Style
+import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.core.navigation.NavTarget
+import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfile
 import com.romankozak.forwardappmobile.ui.components.notesEditors.FullScreenMarkdownEditor
 import com.romankozak.forwardappmobile.ui.screens.common.SettingsScreen
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.DisplayTabContent
@@ -21,50 +64,6 @@ import com.romankozak.forwardappmobile.ui.screens.common.tabs.EvaluationTabConte
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.EvaluationTabUiState
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.GeneralTabContent
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.RemindersTabContent
-
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Style
-import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.Modifier
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.background
-import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfile
-import com.romankozak.forwardappmobile.core.navigation.NavTarget
 
 @Composable
 fun ProjectSettingsScreen(
@@ -96,7 +95,8 @@ fun ProjectSettingsScreen(
     }
 
     val tabs = listOf("General", "Display", "Features", "Evaluation", "Reminders")
-    val tabIcons = listOf(Icons.Default.Settings, Icons.Default.Style, Icons.Default.Build, Icons.Default.BarChart, Icons.Default.Notifications)
+    val tabIcons =
+        listOf(Icons.Default.Settings, Icons.Default.Style, Icons.Default.Build, Icons.Default.BarChart, Icons.Default.Notifications)
     val titleText = if (uiState.isNewProject) "New Project" else "Edit Project"
 
     SettingsScreen(
@@ -107,50 +107,56 @@ fun ProjectSettingsScreen(
         selectedTabIndex = uiState.selectedTabIndex,
         onTabSelected = viewModel::onTabSelected,
         onSave = viewModel::onSave,
-        isSaveEnabled = uiState.title.text.isNotBlank()
+        isSaveEnabled = uiState.title.text.isNotBlank(),
     ) {
         when (tabs[it]) {
-            "General" -> GeneralTabContent(
-                title = uiState.title,
-                onTitleChange = viewModel::onTextChange,
-                titleLabel = "Назва проекту",
-                description = uiState.description,
-                onDescriptionChange = viewModel::onDescriptionChange,
-                onExpandDescriptionClick = viewModel::openDescriptionEditor,
-                tags = uiState.tags,
-                onAddTag = viewModel::onAddTag,
-                onRemoveTag = viewModel::onRemoveTag
-            )
-            "Display" -> DisplayTabContent(
-                showCheckboxes = uiState.showCheckboxes,
-                onShowCheckboxesChange = viewModel::onShowCheckboxesChange,
-            )
-            "Features" -> FeaturesTabContent(
-                currentPreset = uiState.currentPresetLabel,
-                onApplyPreset = { showPresetPicker = true },
-                features = uiState.features,
-                onToggleFeature = viewModel::onToggleFeature,
-            )
-            "Evaluation" -> EvaluationTabContent(
-                uiState = EvaluationTabUiState(
-                    valueImportance = uiState.valueImportance,
-                    valueImpact = uiState.valueImpact,
-                    effort = uiState.effort,
-                    cost = uiState.cost,
-                    risk = uiState.risk,
-                    weightEffort = uiState.weightEffort,
-                    weightCost = uiState.weightCost,
-                    weightRisk = uiState.weightRisk,
-                    rawScore = uiState.rawScore,
-                    scoringStatus = uiState.scoringStatus,
-                    isScoringEnabled = uiState.isScoringEnabled,
-                ),
-                onViewModelAction = viewModel
-            )
-            "Reminders" -> RemindersTabContent(
-                reminderTime = uiState.reminderTime,
-                onViewModelAction = viewModel
-            )
+            "General" ->
+                GeneralTabContent(
+                    title = uiState.title,
+                    onTitleChange = viewModel::onTextChange,
+                    titleLabel = "Назва проекту",
+                    description = uiState.description,
+                    onDescriptionChange = viewModel::onDescriptionChange,
+                    onExpandDescriptionClick = viewModel::openDescriptionEditor,
+                    tags = uiState.tags,
+                    onAddTag = viewModel::onAddTag,
+                    onRemoveTag = viewModel::onRemoveTag,
+                )
+            "Display" ->
+                DisplayTabContent(
+                    showCheckboxes = uiState.showCheckboxes,
+                    onShowCheckboxesChange = viewModel::onShowCheckboxesChange,
+                )
+            "Features" ->
+                FeaturesTabContent(
+                    currentPreset = uiState.currentPresetLabel,
+                    onApplyPreset = { showPresetPicker = true },
+                    features = uiState.features,
+                    onToggleFeature = viewModel::onToggleFeature,
+                )
+            "Evaluation" ->
+                EvaluationTabContent(
+                    uiState =
+                        EvaluationTabUiState(
+                            valueImportance = uiState.valueImportance,
+                            valueImpact = uiState.valueImpact,
+                            effort = uiState.effort,
+                            cost = uiState.cost,
+                            risk = uiState.risk,
+                            weightEffort = uiState.weightEffort,
+                            weightCost = uiState.weightCost,
+                            weightRisk = uiState.weightRisk,
+                            rawScore = uiState.rawScore,
+                            scoringStatus = uiState.scoringStatus,
+                            isScoringEnabled = uiState.isScoringEnabled,
+                        ),
+                    onViewModelAction = viewModel,
+                )
+            "Reminders" ->
+                RemindersTabContent(
+                    reminderTime = uiState.reminderTime,
+                    onViewModelAction = viewModel,
+                )
         }
     }
 
@@ -160,7 +166,7 @@ fun ProjectSettingsScreen(
             onConfirm = { code, label, description ->
                 // Editor екран обробить створення, діалог не використовується
                 showPresetDialog = false
-            }
+            },
         )
     }
 
@@ -176,8 +182,8 @@ fun ProjectSettingsScreen(
                 showPresetPicker = false
                 navController.navigate(
                     NavTargetRouter.routeOf(
-                        NavTarget.StructurePresets
-                    )
+                        NavTarget.StructurePresets,
+                    ),
                 )
             },
         )
@@ -200,17 +206,18 @@ private fun FeaturesTabContent(
     onToggleFeature: (String, Boolean) -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-            .fillMaxHeight(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .fillMaxHeight(),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         PresetCard(currentPreset = currentPreset, onApplyPreset = onApplyPreset)
         FeatureFlagCard(
             modifier = Modifier.fillMaxHeight(),
             features = features,
-            onToggleFeature = onToggleFeature
+            onToggleFeature = onToggleFeature,
         )
     }
 }
@@ -226,35 +233,37 @@ private fun PresetCard(
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                            MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)
-                        )
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.linearGradient(
+                            colors =
+                                listOf(
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+                                ),
+                        ),
                     )
-                )
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                    .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text("Structural preset", style = MaterialTheme.typography.titleMedium)
             Text(
                 currentPreset ?: "Не вибрано",
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
+                horizontalArrangement = Arrangement.End,
             ) {
                 Button(
                     onClick = onApplyPreset,
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 ) {
                     Icon(Icons.Outlined.Refresh, contentDescription = "Apply preset", modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(6.dp))
@@ -272,8 +281,9 @@ private fun FeatureFlagCard(
     onToggleFeature: (String, Boolean) -> Unit,
 ) {
     Surface(
-        modifier = modifier
-            .fillMaxWidth(),
+        modifier =
+            modifier
+                .fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
@@ -281,38 +291,42 @@ private fun FeatureFlagCard(
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                            MaterialTheme.colorScheme.surface.copy(alpha = 0.55f)
-                        )
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.linearGradient(
+                            colors =
+                                listOf(
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.55f),
+                                ),
+                        ),
                     )
-                )
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text("Feature toggles", style = MaterialTheme.typography.titleMedium)
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 features.toList().forEach { (key, value) ->
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f)
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
                     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(key)
                             Switch(checked = value, onCheckedChange = { onToggleFeature(key, it) })
@@ -336,7 +350,7 @@ private fun PresetChooserDialog(
             onDismissRequest = onDismiss,
             confirmButton = { TextButton(onClick = onDismiss) { Text("OK") } },
             title = { Text("Немає пресетів") },
-            text = { Text("Спершу створіть пресет.") }
+            text = { Text("Спершу створіть пресет.") },
         )
         return
     }
@@ -354,12 +368,13 @@ private fun PresetChooserDialog(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 presets.forEach { preset ->
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                            .clickable { selected = preset },
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                                .clickable { selected = preset },
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(preset.label)
                         if (preset.id == selected.id) {
@@ -370,11 +385,11 @@ private fun PresetChooserDialog(
                 HorizontalDivider(modifier = Modifier.padding(top = 6.dp, bottom = 4.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                    horizontalArrangement = Arrangement.End,
                 ) {
                     OutlinedButton(
                         onClick = onEditPresets,
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
                     ) {
                         Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
@@ -382,7 +397,7 @@ private fun PresetChooserDialog(
                     }
                 }
             }
-        }
+        },
     )
 }
 
@@ -411,6 +426,6 @@ private fun AddPresetDialog(
                 OutlinedTextField(value = label, onValueChange = { label = it }, label = { Text("Label") })
                 OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description") })
             }
-        }
+        },
     )
 }

@@ -13,13 +13,11 @@ object RetrofitClient {
         context: Context,
         baseUrl: String,
     ): ApiService {
-        
         val logging =
             HttpLoggingInterceptor().apply {
                 level = HttpLoggingInterceptor.Level.BODY
             }
 
-        
         val httpClient =
             OkHttpClient.Builder()
                 .addInterceptor(logging)

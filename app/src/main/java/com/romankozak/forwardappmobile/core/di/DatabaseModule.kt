@@ -2,37 +2,11 @@ package com.romankozak.forwardappmobile.core.di
 
 import android.content.Context
 import androidx.room.Room
-import androidx.sqlite.db.SupportSQLiteDatabase
-import com.romankozak.forwardappmobile.database.AppDatabase
-import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
-import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
-import com.romankozak.forwardappmobile.data.dao.ScriptDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.BacklogOrderDao
-import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
-import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
-import dagger.Module
-import dagger.Provides
-import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
-import dagger.hilt.components.SingletonComponent
-import javax.inject.Singleton
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import androidx.room.RoomDatabase
-import com.romankozak.forwardappmobile.data.database.migrateSpecialProjects
-import com.romankozak.forwardappmobile.data.database.MIGRATION_8_9
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
+import com.romankozak.forwardappmobile.data.dao.ScriptDao
 import com.romankozak.forwardappmobile.data.database.MIGRATION_10_11
 import com.romankozak.forwardappmobile.data.database.MIGRATION_11_12
 import com.romankozak.forwardappmobile.data.database.MIGRATION_12_13
@@ -109,64 +83,89 @@ import com.romankozak.forwardappmobile.data.database.MIGRATION_86_87
 import com.romankozak.forwardappmobile.data.database.MIGRATION_87_88
 import com.romankozak.forwardappmobile.data.database.MIGRATION_88_89
 import com.romankozak.forwardappmobile.data.database.MIGRATION_89_90
+import com.romankozak.forwardappmobile.data.database.MIGRATION_8_9
 import com.romankozak.forwardappmobile.data.database.MIGRATION_90_91
 import com.romankozak.forwardappmobile.data.database.MIGRATION_91_92
 import com.romankozak.forwardappmobile.data.database.MIGRATION_92_93
+import com.romankozak.forwardappmobile.data.database.migrateSpecialProjects
+import com.romankozak.forwardappmobile.database.AppDatabase
+import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
+import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.BacklogOrderDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextArtifactDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
+import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import javax.inject.Singleton
 
-import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
+val MIGRATION_93_94 =
+    object : Migration(93, 94) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // 1. Rename tables
+            db.execSQL("ALTER TABLE projects RENAME TO contexts")
+            db.execSQL("ALTER TABLE project_execution_logs RENAME TO context_execution_logs")
+            db.execSQL("ALTER TABLE project_structures RENAME TO context_structures")
+            db.execSQL("ALTER TABLE project_structure_items RENAME TO context_structure_items")
+            db.execSQL("ALTER TABLE project_artifacts RENAME TO context_artifacts")
+            // No direct rename for project_attachment_cross_ref as it might not exist or be handled differently.
+            // It was a generated file, so it might not be in the Room schema directly.
 
-val MIGRATION_93_94 = object : Migration(93, 94) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        // 1. Rename tables
-        db.execSQL("ALTER TABLE projects RENAME TO contexts")
-        db.execSQL("ALTER TABLE project_execution_logs RENAME TO context_execution_logs")
-        db.execSQL("ALTER TABLE project_structures RENAME TO context_structures")
-        db.execSQL("ALTER TABLE project_structure_items RENAME TO context_structure_items")
-        db.execSQL("ALTER TABLE project_artifacts RENAME TO context_artifacts")
-        // No direct rename for project_attachment_cross_ref as it might not exist or be handled differently.
-        // It was a generated file, so it might not be in the Room schema directly.
+            // 2. Rename columns in 'contexts' table
+            db.execSQL("ALTER TABLE contexts RENAME COLUMN is_project_management_enabled TO is_context_management_enabled")
+            db.execSQL("ALTER TABLE contexts RENAME COLUMN project_status TO context_status")
+            db.execSQL("ALTER TABLE contexts RENAME COLUMN project_status_text TO context_status_text")
+            db.execSQL("ALTER TABLE contexts RENAME COLUMN project_log_level TO context_log_level")
+            db.execSQL("ALTER TABLE contexts RENAME COLUMN project_type TO context_type")
 
-        // 2. Rename columns in 'contexts' table
-        db.execSQL("ALTER TABLE contexts RENAME COLUMN is_project_management_enabled TO is_context_management_enabled")
-        db.execSQL("ALTER TABLE contexts RENAME COLUMN project_status TO context_status")
-        db.execSQL("ALTER TABLE contexts RENAME COLUMN project_status_text TO context_status_text")
-        db.execSQL("ALTER TABLE contexts RENAME COLUMN project_log_level TO context_log_level")
-        db.execSQL("ALTER TABLE contexts RENAME COLUMN project_type TO context_type")
-
-        // 3. Rename columns in other tables (foreign keys)
-        db.execSQL("ALTER TABLE system_apps RENAME COLUMN project_id TO context_id")
-        // No direct rename for inbox_records's projectId because Room handles it via annotations.
-        db.execSQL("ALTER TABLE list_items RENAME COLUMN project_id TO context_id")
-        // No direct rename for backlog_orders, as it refers to "list_id" not "project_id"
+            // 3. Rename columns in other tables (foreign keys)
+            db.execSQL("ALTER TABLE system_apps RENAME COLUMN project_id TO context_id")
+            // No direct rename for inbox_records's projectId because Room handles it via annotations.
+            db.execSQL("ALTER TABLE list_items RENAME COLUMN project_id TO context_id")
+            // No direct rename for backlog_orders, as it refers to "list_id" not "project_id"
+        }
     }
-}
 
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
-
     @Provides
     @Singleton
     fun provideAppDatabase(
         @ApplicationContext context: Context,
-        //scope: CoroutineScope
-        @ApplicationScope scope: CoroutineScope
+        // scope: CoroutineScope
+        @ApplicationScope scope: CoroutineScope,
     ): AppDatabase {
-        val callback = object : RoomDatabase.Callback() {
-            override fun onOpen(dbSupport: SupportSQLiteDatabase) {
-                super.onOpen(dbSupport)
-                scope.launch(Dispatchers.IO) {
-                    migrateSpecialProjects(dbSupport)
+        val callback =
+            object : RoomDatabase.Callback() {
+                override fun onOpen(dbSupport: SupportSQLiteDatabase) {
+                    super.onOpen(dbSupport)
+                    scope.launch(Dispatchers.IO) {
+                        migrateSpecialProjects(dbSupport)
+                    }
                 }
             }
-        }
 
         return Room.databaseBuilder(
             context,
             AppDatabase::class.java,
-            "forward_app_database"
+            "forward_app_database",
         ).fallbackToDestructiveMigration().addMigrations(
             MIGRATION_8_9,
             MIGRATION_10_11,
@@ -371,4 +370,4 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideContextStructureDao(appDatabase: AppDatabase): ContextStructureDao = appDatabase.contextStructureDao()
-    }
+}

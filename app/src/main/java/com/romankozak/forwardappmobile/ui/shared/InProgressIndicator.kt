@@ -12,9 +12,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.StopCircle
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -30,8 +32,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material3.FloatingActionButton
 import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
 
 @Composable
@@ -40,7 +40,7 @@ fun InProgressIndicator(
     onStopClick: () -> Unit,
     onReminderClick: () -> Unit,
     onIndicatorClick: () -> Unit,
-    indicatorState: InProgressIndicatorState = remember { InProgressIndicatorState() }
+    indicatorState: InProgressIndicatorState = remember { InProgressIndicatorState() },
 ) {
     AnimatedVisibility(
         visible = ongoingActivity != null,
@@ -90,7 +90,7 @@ fun InProgressIndicator(
             } else {
                 FloatingActionButton(
                     onClick = { indicatorState.isExpanded = true },
-                    modifier = Modifier.padding(16.dp)
+                    modifier = Modifier.padding(16.dp),
                 ) {
                     Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                         Icon(Icons.Default.HourglassTop, contentDescription = "В процесі")

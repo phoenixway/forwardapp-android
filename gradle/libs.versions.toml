@@ -1,4 +1,7 @@
 [versions]
+detekt = "1.23.6"
+ktlint = "12.1.1"
+
 # Core Plugins & Tools -> Встановлюємо стабільну, сумісну пару
 accompanistSharedElement = "0.36.0"
 agp = "8.13.0"
@@ -138,3 +141,5 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "jetbrainsKotlinJvm" }
 google-services-plugin = { id = "com.google.gms.google-services", version.ref = "google-services-plugin-version" }
 firebase-crashlytics-plugin = { id = "com.google.firebase.crashlytics", version.ref = "firebase-crashlytics-plugin-version" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }

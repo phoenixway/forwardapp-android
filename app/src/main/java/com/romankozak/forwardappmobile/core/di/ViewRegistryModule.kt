@@ -18,30 +18,30 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object ViewRegistryModule {
-
     @Provides
     @Singleton
     fun provideViewRegistry(): ViewRegistry {
-        val descriptors = setOf(
-            ViewDescriptor(
-                id = ViewId("kanban"),
-                ownerCapability = CapabilityId("code_index"),
-                screenId = ScreenId(KANBAN_ROUTE),
-                label = "Kanban Board"
-            ),
-            ViewDescriptor(
-                id = ViewId("summary"),
-                ownerCapability = CapabilityId("treatment_plan"),
-                screenId = ScreenId(VET_CASE_SUMMARY_ROUTE),
-                label = "Case Summary"
-            ),
-            ViewDescriptor(
-                id = ViewId("history"),
-                ownerCapability = CapabilityId("treatment_plan"),
-                screenId = ScreenId(VET_CASE_HISTORY_ROUTE),
-                label = "Case History"
+        val descriptors =
+            setOf(
+                ViewDescriptor(
+                    id = ViewId("kanban"),
+                    ownerCapability = CapabilityId("code_index"),
+                    screenId = ScreenId(KANBAN_ROUTE),
+                    label = "Kanban Board",
+                ),
+                ViewDescriptor(
+                    id = ViewId("summary"),
+                    ownerCapability = CapabilityId("treatment_plan"),
+                    screenId = ScreenId(VET_CASE_SUMMARY_ROUTE),
+                    label = "Case Summary",
+                ),
+                ViewDescriptor(
+                    id = ViewId("history"),
+                    ownerCapability = CapabilityId("treatment_plan"),
+                    screenId = ScreenId(VET_CASE_HISTORY_ROUTE),
+                    label = "Case History",
+                ),
             )
-        )
         return InMemoryViewRegistry(descriptors)
     }
 }

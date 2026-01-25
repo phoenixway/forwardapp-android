@@ -19,14 +19,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.features.activitytracker.ActivityTrackerViewModel
+import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
-import java.text.SimpleDateFormat
 
 @Composable
-fun CharacterScreen(
-    activityTrackerViewModel: ActivityTrackerViewModel = hiltViewModel(),
-) {
+fun CharacterScreen(activityTrackerViewModel: ActivityTrackerViewModel = hiltViewModel()) {
     val activityLog by activityTrackerViewModel.activityLog.collectAsStateWithLifecycle()
     val entries = activityLog.map { Triple(it.createdAt, it.xpGained ?: 0, it.antyXp ?: 0) }
     val (xpToday, antiXpToday) = calculateTodayStats(entries)
@@ -40,73 +38,82 @@ fun CharacterScreen(
 
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
             verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
                 text = "Character",
                 style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface,
             )
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 24.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = 24.dp),
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
                         text = "Today stats",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
                         text = "XP: +$xpToday / -$antiXpToday",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                 }
             }
 
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Text(
                         text = "Daily highlights",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
                         text = "Максимально позитивний день: ${
-                            maxPositiveDay?.let { (day, stats) -> "${dateFormatter.format(day)} (+${stats.first} / -${stats.second}, нетто ${stats.first - stats.second})" }
+                            maxPositiveDay?.let {
+                                    (day, stats) ->
+                                "${dateFormatter.format(day)} (+${stats.first} / -${stats.second}, нетто ${stats.first - stats.second})"
+                            }
                                 ?: "—"
                         }",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
                         text = "Максимально негативний день: ${
-                            maxNegativeDay?.let { (day, stats) -> "${dateFormatter.format(day)} (+${stats.first} / -${stats.second}, нетто ${stats.first - stats.second})" }
+                            maxNegativeDay?.let {
+                                    (day, stats) ->
+                                "${dateFormatter.format(day)} (+${stats.first} / -${stats.second}, нетто ${stats.first - stats.second})"
+                            }
                                 ?: "—"
                         }",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
                         text = "Середні показники за день: +$avgXp / -$avgAntiXp",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                 }
             }

@@ -36,12 +36,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
-import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask
 import com.romankozak.forwardappmobile.features.contexts.data.models.TaskPriority
-import com.romankozak.forwardappmobile.ui.common.MatrixRainView
+import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.tasklist.AddTaskDialog
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.tasklist.TaskList
 import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
+import com.romankozak.forwardappmobile.ui.common.MatrixRainView
 import kotlinx.coroutines.delay
 
 const val TAG = "NAV_DEBUG"
@@ -52,7 +52,11 @@ const val TAG = "NAV_DEBUG"
     ExperimentalAnimationApi::class,
 )
 @Composable
-private fun ErrorState(error: String, onRetry: () -> Unit, modifier: Modifier = Modifier) {
+private fun ErrorState(
+    error: String,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(
         modifier = modifier.fillMaxSize().padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -93,7 +97,6 @@ fun DayPlanScreen(
     addTaskTrigger: Int,
     navController: NavController,
 ) {
-
     val systemUiController = rememberSystemUiController()
     val isLight = !isSystemInDarkTheme()
 
@@ -187,14 +190,14 @@ fun DayPlanScreen(
         ) {
             Box(
                 modifier =
-                Modifier.fillMaxSize().pointerInput(Unit) {
-                    detectHorizontalDragGestures { _, dragAmount: Float ->
-                        when {
-                            dragAmount < -50 && !uiState.isToday -> viewModel.navigateToNextDay()
-                            dragAmount > 50 -> viewModel.navigateToPreviousDay()
+                    Modifier.fillMaxSize().pointerInput(Unit) {
+                        detectHorizontalDragGestures { _, dragAmount: Float ->
+                            when {
+                                dragAmount < -50 && !uiState.isToday -> viewModel.navigateToNextDay()
+                                dragAmount > 50 -> viewModel.navigateToPreviousDay()
+                            }
                         }
-                    }
-                }
+                    },
             ) {
                 when {
                     uiState.isLoading -> LoadingState()
@@ -235,7 +238,7 @@ fun DayPlanScreen(
                                         ParentType.GOAL -> {
                                             parentInfo.projectId?.let { listId ->
                                                 navController.navigate(
-                                                    "goal_detail_screen/${listId}?goalId=${parentInfo.id}"
+                                                    "goal_detail_screen/$listId?goalId=${parentInfo.id}",
                                                 )
                                             }
                                                 ?: run {
@@ -348,10 +351,10 @@ fun EditRecurringTaskDialog(
 
                 Row(
                     modifier =
-                    Modifier.fillMaxWidth()
-                        .clip(MaterialTheme.shapes.medium)
-                        .clickable { onConfirmEditSingle(taskWithReminder) }
-                        .padding(vertical = 12.dp, horizontal = 16.dp),
+                        Modifier.fillMaxWidth()
+                            .clip(MaterialTheme.shapes.medium)
+                            .clickable { onConfirmEditSingle(taskWithReminder) }
+                            .padding(vertical = 12.dp, horizontal = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text("Тільки це завдання")
@@ -359,10 +362,10 @@ fun EditRecurringTaskDialog(
 
                 Row(
                     modifier =
-                    Modifier.fillMaxWidth()
-                        .clip(MaterialTheme.shapes.medium)
-                        .clickable { onConfirmEditAll(taskWithReminder) }
-                        .padding(vertical = 12.dp, horizontal = 16.dp),
+                        Modifier.fillMaxWidth()
+                            .clip(MaterialTheme.shapes.medium)
+                            .clickable { onConfirmEditAll(taskWithReminder) }
+                            .padding(vertical = 12.dp, horizontal = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text("Це та всі наступні завдання")
@@ -392,10 +395,10 @@ fun DeleteRecurringTaskDialog(
                     onClick = { onConfirmDeleteSingle(taskWithReminder) },
                     modifier = Modifier.fillMaxWidth(),
                     colors =
-                    ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                    ),
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                        ),
                 ) {
                     Text("Тільки це завдання")
                 }
@@ -404,10 +407,10 @@ fun DeleteRecurringTaskDialog(
                     onClick = { onConfirmDeleteAll(taskWithReminder) },
                     modifier = Modifier.fillMaxWidth(),
                     colors =
-                    ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                    ),
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                        ),
                 ) {
                     Text("Це та всі наступні")
                 }
@@ -472,10 +475,10 @@ fun TaskOptionsBottomSheet(
                     Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
                 },
                 modifier =
-                Modifier.clickable {
-                    onMoveToTomorrow()
-                    onDismiss()
-                },
+                    Modifier.clickable {
+                        onMoveToTomorrow()
+                        onDismiss()
+                    },
             )
 
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
@@ -490,10 +493,10 @@ fun TaskOptionsBottomSheet(
                     headlineContent = { Text("Додати в план на сьогодні") },
                     leadingContent = { Icon(Icons.Outlined.Today, contentDescription = null) },
                     modifier =
-                    Modifier.clickable {
-                        onAddToToday()
-                        onDismiss()
-                    },
+                        Modifier.clickable {
+                            onAddToToday()
+                            onDismiss()
+                        },
                 )
             }
             if (task.projectId != null || task.goalId != null) {
@@ -501,16 +504,16 @@ fun TaskOptionsBottomSheet(
                     headlineContent = { Text("Показати в беклозі проекту") },
                     leadingContent = { Icon(Icons.AutoMirrored.Outlined.ListAlt, contentDescription = null) },
                     modifier =
-                    Modifier.clickable {
-                        Log.d(TAG, "1. КЛІК: 'Показати в беклозі'.")
-                        Log.d(TAG, "   - Task Title: ${task.title}")
-                        Log.d(TAG, "   - Task ProjectID: ${task.projectId}") // ДУЖЕ ВАЖЛИВИЙ ЛОГ
-                        Log.d(TAG, "   - Task GoalID: ${task.goalId}")
-                        Log.d(TAG, "   - Task ID: ${task.id}")
+                        Modifier.clickable {
+                            Log.d(TAG, "1. КЛІК: 'Показати в беклозі'.")
+                            Log.d(TAG, "   - Task Title: ${task.title}")
+                            Log.d(TAG, "   - Task ProjectID: ${task.projectId}") // ДУЖЕ ВАЖЛИВИЙ ЛОГ
+                            Log.d(TAG, "   - Task GoalID: ${task.goalId}")
+                            Log.d(TAG, "   - Task ID: ${task.id}")
 
-                        onShowInBacklog(task)
-                        onDismiss()
-                    },
+                            onShowInBacklog(task)
+                            onDismiss()
+                        },
                 )
             }
 
@@ -526,10 +529,10 @@ fun TaskOptionsBottomSheet(
                     )
                 },
                 modifier =
-                Modifier.clickable {
-                    onDelete(taskWithReminder)
-                    onDismiss()
-                },
+                    Modifier.clickable {
+                        onDelete(taskWithReminder)
+                        onDismiss()
+                    },
             )
             Spacer(modifier = Modifier.navigationBarsPadding())
         }

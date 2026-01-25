@@ -11,9 +11,10 @@ object FixtureLoader {
         }
 
         val path = "sync-fixtures/$name"
-        val stream = this::class.java.classLoader?.getResourceAsStream(path)
-            ?: this::class.java.getResourceAsStream("/$path")
-            ?: error("Fixture not found: $path (also tried ../test-data/common/sync-fixtures)")
+        val stream =
+            this::class.java.classLoader?.getResourceAsStream(path)
+                ?: this::class.java.getResourceAsStream("/$path")
+                ?: error("Fixture not found: $path (also tried ../test-data/common/sync-fixtures)")
         return stream.bufferedReader(StandardCharsets.UTF_8).use { it.readText() }
     }
 }

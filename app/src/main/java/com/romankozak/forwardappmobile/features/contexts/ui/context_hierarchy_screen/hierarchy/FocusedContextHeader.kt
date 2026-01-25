@@ -42,7 +42,7 @@ fun FocusedProjectHeader(
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.weight(1f).clickable(onClick = onProjectClick).padding(start = 8.dp),
             )
-            
+
             IconButton(onClick = onMoreActionsClick, modifier = Modifier.size(36.dp)) {
                 Icon(Icons.Default.MoreVert, contentDescription = "More actions")
             }

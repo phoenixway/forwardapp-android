@@ -5,6 +5,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
 @HiltViewModel
-class SearchViewModel @Inject constructor() : ViewModel() {
-    // Search-related state and logic will be moved here
-}
+class SearchViewModel
+    @Inject
+    constructor() : ViewModel() {
+        // Search-related state and logic will be moved here
+    }

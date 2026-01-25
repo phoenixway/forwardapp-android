@@ -20,8 +20,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
+import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 import com.romankozak.forwardappmobile.ui.common.ParsedTextData
@@ -37,7 +37,7 @@ private fun InternalStatusIconsRow(
     parsedData: ParsedTextData,
     reminder: Reminder?,
     emojiToHide: String?,
-    onRelatedLinkClick: (RelatedLink) -> Unit
+    onRelatedLinkClick: (RelatedLink) -> Unit,
 ) {
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -107,7 +107,7 @@ fun StatusIconsRow(
     parsedData: ParsedTextData,
     reminder: Reminder?,
     emojiToHide: String?,
-    onRelatedLinkClick: (RelatedLink) -> Unit
+    onRelatedLinkClick: (RelatedLink) -> Unit,
 ) {
     InternalStatusIconsRow(
         relatedLinks = goal.relatedLinks,
@@ -117,7 +117,7 @@ fun StatusIconsRow(
         parsedData = parsedData,
         reminder = reminder,
         emojiToHide = emojiToHide,
-        onRelatedLinkClick = onRelatedLinkClick
+        onRelatedLinkClick = onRelatedLinkClick,
     )
 }
 
@@ -127,7 +127,7 @@ fun StatusIconsRow(
     parsedData: ParsedTextData,
     reminder: Reminder?,
     emojiToHide: String?,
-    onRelatedLinkClick: (RelatedLink) -> Unit
+    onRelatedLinkClick: (RelatedLink) -> Unit,
 ) {
     InternalStatusIconsRow(
         relatedLinks = project.relatedLinks,
@@ -137,6 +137,6 @@ fun StatusIconsRow(
         parsedData = parsedData,
         reminder = reminder,
         emojiToHide = emojiToHide,
-        onRelatedLinkClick = onRelatedLinkClick
+        onRelatedLinkClick = onRelatedLinkClick,
     )
 }

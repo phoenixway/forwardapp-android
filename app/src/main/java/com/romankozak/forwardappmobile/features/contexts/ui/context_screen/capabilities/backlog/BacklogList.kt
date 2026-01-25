@@ -20,8 +20,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
@@ -58,9 +58,10 @@ fun BacklogListScreen(
     var selectedItemForActions by remember { mutableStateOf<BacklogItemContent?>(null) }
     val sortedItems = remember(items) { items.withCompletedAtEnd() }
     val completedStartIndex = remember(sortedItems) { sortedItems.indexOfFirst { it.isCompleted() } }
-    val completedCount = remember(sortedItems) {
-        if (completedStartIndex == -1) 0 else sortedItems.size - completedStartIndex
-    }
+    val completedCount =
+        remember(sortedItems) {
+            if (completedStartIndex == -1) 0 else sortedItems.size - completedStartIndex
+        }
 
     if (showBottomSheet && selectedItemForActions != null) {
         BacklogItemActionsBottomSheet(
@@ -73,7 +74,7 @@ fun BacklogListScreen(
 
     LazyColumn(
         state = listState,
-        modifier = modifier
+        modifier = modifier,
     ) {
         itemsIndexed(sortedItems, key = { _, item -> item.backlogItem.id }) { index, item ->
             val showCompletedHeader = completedStartIndex != -1 && index == completedStartIndex
@@ -106,7 +107,7 @@ fun BacklogListScreen(
                         onAddToDayPlan = { onAddToDayPlan(item) },
                         onStartTracking = { onStartTracking(item) },
                         onShowGoalTransportMenu = { onShowGoalTransportMenu(item) },
-                        onRelatedLinkClick = onRelatedLinkClick
+                        onRelatedLinkClick = onRelatedLinkClick,
                     )
                 }
             }
@@ -117,29 +118,30 @@ fun BacklogListScreen(
 @Composable
 private fun CompletedSectionHeader(completedCount: Int) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = Icons.Default.CheckCircle,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(18.dp)
+            modifier = Modifier.size(18.dp),
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = "Виконані",
             style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.primary
+            color = MaterialTheme.colorScheme.primary,
         )
         if (completedCount > 0) {
             Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = completedCount.toString(),
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

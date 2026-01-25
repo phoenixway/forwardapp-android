@@ -13,31 +13,35 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
 
 @Composable
 fun ItemTypeBadge(taskType: String) {
-    val (text, backgroundColor, textColor) = when (taskType) {
-        BacklogItemTypeValues.SUBLIST -> Triple(
-            "Sublist",
-            MaterialTheme.colorScheme.secondaryContainer,
-            MaterialTheme.colorScheme.onSecondaryContainer
-        )
-        else -> Triple(
-            "Goal",
-            MaterialTheme.colorScheme.tertiaryContainer,
-            MaterialTheme.colorScheme.onTertiaryContainer
-        )
-    }
+    val (text, backgroundColor, textColor) =
+        when (taskType) {
+            BacklogItemTypeValues.SUBLIST ->
+                Triple(
+                    "Sublist",
+                    MaterialTheme.colorScheme.secondaryContainer,
+                    MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+            else ->
+                Triple(
+                    "Goal",
+                    MaterialTheme.colorScheme.tertiaryContainer,
+                    MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+        }
 
     Box(
-        modifier = Modifier
-            .background(
-                color = backgroundColor,
-                shape = RoundedCornerShape(4.dp)
-            )
-            .padding(horizontal = 8.dp, vertical = 4.dp)
+        modifier =
+            Modifier
+                .background(
+                    color = backgroundColor,
+                    shape = RoundedCornerShape(4.dp),
+                )
+                .padding(horizontal = 8.dp, vertical = 4.dp),
     ) {
         Text(
             text = text,
             color = textColor,
-            style = MaterialTheme.typography.labelSmall
+            style = MaterialTheme.typography.labelSmall,
         )
     }
 }

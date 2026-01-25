@@ -2,8 +2,8 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_chooser
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
-import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
@@ -20,7 +20,7 @@ data class ChooserUiState(
 class FilterableListChooserViewModel
     @Inject
     constructor(
-        private val projectRepository: ProjectRepository,
+        private val contextRepository: ContextRepository,
     ) : ViewModel() {
         private val TAG = "FilterChooserVM"
 
@@ -33,7 +33,7 @@ class FilterableListChooserViewModel
         private val _showDescendants = MutableStateFlow(false)
         val showDescendants: StateFlow<Boolean> = _showDescendants.asStateFlow()
         private val allProjects =
-            projectRepository
+            contextRepository
                 .getAllProjectsFlow()
                 .stateIn(
                     scope = viewModelScope,
@@ -147,7 +147,7 @@ class FilterableListChooserViewModel
             name: String,
         ) {
             viewModelScope.launch {
-                projectRepository.createProjectWithId(id, name, parentId)
+                contextRepository.createProjectWithId(id, name, parentId)
             }
         }
     }

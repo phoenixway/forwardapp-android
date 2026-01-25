@@ -19,14 +19,15 @@ fun KanbanScreen() {
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("Kanban Screen") })
-        }
+        },
     ) { paddingValues ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
             verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(text = "Kanban Screen", style = MaterialTheme.typography.headlineMedium)
             Text(text = "This is a placeholder for the Kanban board.", style = MaterialTheme.typography.bodyMedium)

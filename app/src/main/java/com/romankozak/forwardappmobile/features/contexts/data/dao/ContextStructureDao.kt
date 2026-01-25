@@ -12,12 +12,11 @@ import kotlinx.coroutines.flow.Flow
 
 data class ContextStructureWithItems(
     val structure: ContextConfiguration,
-    val items: List<ContextStructureItem>
+    val items: List<ContextStructureItem>,
 )
 
 @Dao
 interface ContextStructureDao {
-
     @Query("SELECT * FROM context_structures WHERE contextId = :contextId LIMIT 1")
     suspend fun getStructureByContext(contextId: String): ContextConfiguration?
 
@@ -30,7 +29,7 @@ interface ContextStructureDao {
           FROM context_structure_items psi
           INNER JOIN context_structures ps ON ps.id = psi.contextStructureId
          WHERE ps.contextId = :contextId
-        """
+        """,
     )
     fun observeItemsForContext(contextId: String): Flow<List<ContextStructureItem>>
 
@@ -56,7 +55,10 @@ interface ContextStructureDao {
     suspend fun deleteItemsForStructure(structureId: String)
 
     @Transaction
-    suspend fun replaceItems(structureId: String, newItems: List<ContextStructureItem>) {
+    suspend fun replaceItems(
+        structureId: String,
+        newItems: List<ContextStructureItem>,
+    ) {
         deleteItemsForStructure(structureId)
         insertItems(newItems)
     }

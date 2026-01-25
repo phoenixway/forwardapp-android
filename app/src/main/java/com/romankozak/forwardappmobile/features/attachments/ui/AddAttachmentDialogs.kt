@@ -10,7 +10,7 @@ import androidx.compose.runtime.*
 @Composable
 fun AddWebLinkDialog(
     onDismiss: () -> Unit,
-    onConfirm: (url: String, name: String) -> Unit
+    onConfirm: (url: String, name: String) -> Unit,
 ) {
     var url by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
@@ -28,14 +28,14 @@ fun AddWebLinkDialog(
             Button(onClick = { onConfirm(url, name) }) {
                 Text("Add")
             }
-        }
+        },
     )
 }
 
 @Composable
 fun AddObsidianLinkDialog(
     onDismiss: () -> Unit,
-    onConfirm: (url: String, name: String) -> Unit
+    onConfirm: (url: String, name: String) -> Unit,
 ) {
     var url by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
@@ -53,6 +53,6 @@ fun AddObsidianLinkDialog(
             Button(onClick = { onConfirm(url, name) }) {
                 Text("Add")
             }
-        }
+        },
     )
 }

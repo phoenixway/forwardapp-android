@@ -1,6 +1,9 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -29,19 +32,11 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.SearchResultsView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.hierarchy.BreadcrumbNavigation
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.hierarchy.ProjectHierarchyView
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
-
-
-
-import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionScope
-
-
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
@@ -53,17 +48,16 @@ fun ProjectHierarchyScreenContent(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
-    
     val currentSubState =
         remember(uiState.subStateStack) {
             uiState.currentSubState
         }
-    
+
     val isSearchActive =
         remember(currentSubState) {
             currentSubState is ProjectHierarchyScreenSubState.LocalSearch
         }
-    
+
     val searchQuery =
         remember(uiState.searchQuery) {
             uiState.searchQuery.text
@@ -76,14 +70,12 @@ fun ProjectHierarchyScreenContent(
 
     Column(modifier = modifier.fillMaxSize()) {
         if (isSearchActive && searchQuery.isNotBlank()) {
-            
             SearchResultsView(
                 results = uiState.searchResults,
                 onRevealClick = { onEvent(ContextHierarchyScreenEvent.SearchResultClick(it)) },
                 onOpenClick = { onEvent(ContextHierarchyScreenEvent.ContextClick(it)) },
             )
         } else {
-            
             val showBreadcrumbs =
                 remember(uiState.currentBreadcrumbs) {
                     uiState.currentBreadcrumbs.isNotEmpty()
@@ -105,7 +97,6 @@ fun ProjectHierarchyScreenContent(
                 )
             }
 
-            
             val isListEmpty =
                 remember(uiState.projectHierarchy) {
                     uiState.projectHierarchy.topLevelProjects.isEmpty() &&
@@ -120,7 +111,6 @@ fun ProjectHierarchyScreenContent(
                     CircularProgressIndicator()
                 }
             } else if (isListEmpty) {
-                
                 val emptyText =
                     remember(uiState.planningMode, uiState.planningSettings) {
                         when (uiState.planningMode) {
@@ -138,7 +128,6 @@ fun ProjectHierarchyScreenContent(
                     Text(emptyText, style = MaterialTheme.typography.bodyLarge)
                 }
             } else {
-                
                 ProjectHierarchyView(
                     modifier = Modifier.weight(1f),
                     hierarchy = uiState.projectHierarchy,
@@ -175,8 +164,6 @@ fun ProjectHierarchyScreenContent(
     }
 }
 
-
-
 @Composable
 private fun StableHomeButton(
     onClick: () -> Unit,
@@ -184,14 +171,12 @@ private fun StableHomeButton(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
 
-    
     ModernBottomNavButton(
         text = "Home",
         icon = Icons.Outlined.Home,
         onClick = onClick,
     )
 }
-
 
 @Composable
 internal fun OptimizedExpandingProjectHierarchyBottomNav(
@@ -220,7 +205,6 @@ internal fun OptimizedExpandingProjectHierarchyBottomNav(
     onTacticsClick: () -> Unit,
     onEvent: (ContextHierarchyScreenEvent) -> Unit,
 ) {
-    
     val stableOnHomeClick = remember { { onHomeClick() } }
     val stableOnDayPlanClick = remember { { onDayPlanClick() } }
     val stableOnToggleSearch = remember { onToggleSearch }
@@ -229,7 +213,6 @@ internal fun OptimizedExpandingProjectHierarchyBottomNav(
     val stableOnShowCommandDeck = remember { { onShowCommandDeck() } }
     val stableOnContextsClick = remember { { onContextsClick() } }
 
-    
     ExpandingProjectHierarchyBottomNav(
         onToggleSearch = stableOnToggleSearch,
         onGlobalSearchClick = onGlobalSearchClick,

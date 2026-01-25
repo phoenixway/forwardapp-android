@@ -280,3 +280,6 @@ class ContextFactory {
    * app/src/main/java/com/romankozak/forwardappmobile/data/converters/CapabilityConverter.kt (Новий Room TypeConverter для JSON-можливостей)
 
   Це буде наша дорожня карта по файлах.
+
+  я в процесі рефакторинга. мета його - перейменувати сутність проекти на сутність контексти. по всьому коду. і зробити щоб це компілювалося. зроблено я сказав би на 80%. 
+  запусти ./gradlew compileExpDebugKotlin. визнач помилки і виправ їх. заверш рефакторинг

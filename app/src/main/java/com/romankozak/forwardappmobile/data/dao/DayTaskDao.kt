@@ -2,9 +2,9 @@
 package com.romankozak.forwardappmobile.data.dao
 
 import androidx.room.*
-import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask
 import com.romankozak.forwardappmobile.features.contexts.data.models.TaskPriority
 import com.romankozak.forwardappmobile.features.contexts.data.models.TaskStatus
+import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -74,7 +74,6 @@ interface DayTaskDao {
     @Query("SELECT COUNT(*) FROM day_tasks WHERE dayPlanId = :dayPlanId AND completed = 1")
     suspend fun getCompletedTaskCountForDay(dayPlanId: String): Int
 
-    
     @Query(
         """
         SELECT * FROM day_tasks 
@@ -102,14 +101,18 @@ interface DayTaskDao {
     @Query("SELECT * FROM day_tasks WHERE dayPlanId = :dayPlanId ORDER BY completed ASC, `order` ASC, title ASC")
     fun getTasksForDay(dayPlanId: String): Flow<List<DayTask>>
 
-    @Query("UPDATE day_tasks SET activityRecordId = :activityRecordId, updatedAt = :updatedAt, version = version + 1, syncedAt = NULL WHERE id = :taskId")
+    @Query(
+        "UPDATE day_tasks SET activityRecordId = :activityRecordId, updatedAt = :updatedAt, version = version + 1, syncedAt = NULL WHERE id = :taskId",
+    )
     suspend fun linkTaskWithActivity(
         taskId: String,
         activityRecordId: String,
         updatedAt: Long,
     )
 
-    @Query("UPDATE day_tasks SET actualDurationMinutes = :durationMinutes, updatedAt = :updatedAt, version = version + 1, syncedAt = NULL WHERE id = :taskId")
+    @Query(
+        "UPDATE day_tasks SET actualDurationMinutes = :durationMinutes, updatedAt = :updatedAt, version = version + 1, syncedAt = NULL WHERE id = :taskId",
+    )
     suspend fun updateTaskDuration(
         taskId: String,
         durationMinutes: Long,
@@ -136,22 +139,29 @@ interface DayTaskDao {
         updatedAt: Long,
     )
 
-
-
     @Query("SELECT * FROM day_tasks WHERE recurringTaskId = :recurringTaskId ORDER BY createdAt DESC LIMIT 1")
     suspend fun findTemplateForRecurringTask(recurringTaskId: String): DayTask?
 
     @Query("SELECT * FROM day_tasks WHERE recurringTaskId = :recurringTaskId AND dayPlanId = :dayPlanId LIMIT 1")
-    suspend fun findByRecurringIdAndDate(recurringTaskId: String, dayPlanId: String): DayTask?
+    suspend fun findByRecurringIdAndDate(
+        recurringTaskId: String,
+        dayPlanId: String,
+    ): DayTask?
 
     @Query("DELETE FROM day_tasks WHERE recurringTaskId = :recurringTaskId AND dayPlanId IN (:dayPlanIds)")
-    suspend fun deleteTasksForDayPlanIds(recurringTaskId: String, dayPlanIds: List<String>)
+    suspend fun deleteTasksForDayPlanIds(
+        recurringTaskId: String,
+        dayPlanIds: List<String>,
+    )
 
     @Query("UPDATE day_tasks SET recurringTaskId = null WHERE id = :taskId")
     suspend fun detachFromRecurrence(taskId: String)
 
     @Query("UPDATE day_tasks SET nextOccurrenceTime = :nextOccurrenceTime WHERE id = :taskId")
-    suspend fun updateNextOccurrenceTime(taskId: String, nextOccurrenceTime: Long)
+    suspend fun updateNextOccurrenceTime(
+        taskId: String,
+        nextOccurrenceTime: Long,
+    )
 
     // --- Backup Methods ---
     @Query("SELECT * FROM day_tasks")

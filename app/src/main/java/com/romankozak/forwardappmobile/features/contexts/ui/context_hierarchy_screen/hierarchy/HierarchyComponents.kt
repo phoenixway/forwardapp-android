@@ -9,11 +9,11 @@ import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -60,8 +60,8 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FlatHierarchyItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
-import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 // Remove SharedTransition imports for now - they seem to be causing issues
 // import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -70,7 +70,6 @@ import kotlinx.coroutines.launch
 // import androidx.compose.runtime.staticCompositionLocalOf
 // import androidx.compose.animation.LocalSharedTransitionScope
 // import androidx.compose.animation.LocalAnimatedVisibilityScope
-
 
 fun fuzzyMatchAndGetIndices(
     query: String,
@@ -320,9 +319,10 @@ fun SwipeableProjectRow(
         derivedStateOf { (-offsetX / endActionWidthPx).coerceIn(0f, 1f) }
     }
 
-    val draggableState = rememberDraggableState { delta ->
-        offsetX = (offsetX + delta).coerceIn(-endActionWidthPx, startActionWidthPx)
-    }
+    val draggableState =
+        rememberDraggableState { delta ->
+            offsetX = (offsetX + delta).coerceIn(-endActionWidthPx, startActionWidthPx)
+        }
 
     fun animateTo(target: Float) {
         coroutineScope.launch {
@@ -371,9 +371,10 @@ fun SwipeableProjectRow(
                 color = startBg,
             ) {
                 Row(
-                    modifier = Modifier
-                        .padding(horizontal = 6.dp, vertical = 4.dp)
-                        .alpha(startProgress),
+                    modifier =
+                        Modifier
+                            .padding(horizontal = 6.dp, vertical = 4.dp)
+                            .alpha(startProgress),
                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -411,9 +412,10 @@ fun SwipeableProjectRow(
                 color = endBg,
             ) {
                 Row(
-                    modifier = Modifier
-                        .padding(horizontal = 6.dp, vertical = 4.dp)
-                        .alpha(endProgress),
+                    modifier =
+                        Modifier
+                            .padding(horizontal = 6.dp, vertical = 4.dp)
+                            .alpha(endProgress),
                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {

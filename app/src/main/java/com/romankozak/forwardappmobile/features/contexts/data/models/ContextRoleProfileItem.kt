@@ -13,13 +13,13 @@ import androidx.room.PrimaryKey
             entity = ContextRoleProfile::class,
             parentColumns = ["id"],
             childColumns = ["presetId"],
-            onDelete = ForeignKey.CASCADE
+            onDelete = ForeignKey.CASCADE,
         ),
     ],
     indices = [
         Index(value = ["presetId"]),
         Index(value = ["presetId", "roleCode"], unique = true),
-    ]
+    ],
 )
 data class ContextRoleProfileItem(
     @PrimaryKey val id: String,

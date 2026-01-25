@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface RecentItemDao {
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun logAccess(item: RecentItem)
 
@@ -21,7 +20,6 @@ interface RecentItemDao {
 
     @Query("SELECT * FROM recent_items WHERE id = :id")
     suspend fun getRecentItemById(id: String): RecentItem?
-
 
     @Query("SELECT * FROM recent_items")
     fun getAll(): List<RecentItem>

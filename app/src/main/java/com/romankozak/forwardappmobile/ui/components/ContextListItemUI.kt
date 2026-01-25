@@ -75,7 +75,6 @@ fun ProjectRow(
                     .padding(vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            
             Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
                 if (hasChildren) {
                     IconButton(onClick = { onToggleExpanded(list) }) {
@@ -87,19 +86,16 @@ fun ProjectRow(
                 }
             }
 
-            
             Box(modifier = Modifier.weight(1f)) {
                 var textDidOverflow by remember(displayName) { mutableStateOf(false) }
 
                 if (textDidOverflow) {
-                    
                     Icon(
                         imageVector = Icons.Default.MoreHoriz,
                         contentDescription = "Назва задовга: ${displayName?.text ?: list.name}",
                         modifier = Modifier.padding(start = 4.dp),
                     )
                 } else {
-                    
                     Text(
                         text = displayName ?: AnnotatedString(list.name),
                         maxLines = 1,
@@ -107,13 +103,12 @@ fun ProjectRow(
                         overflow = TextOverflow.Clip,
                         style = MaterialTheme.typography.bodyLarge,
                         onTextLayout = { textLayoutResult ->
-                            
+
                             textDidOverflow = textLayoutResult.didOverflowWidth
                         },
                     )
                 }
             }
-            
 
             AnimatedVisibility(visible = showFocusButton, enter = fadeIn(), exit = fadeOut()) {
                 IconButton(onClick = { onFocusRequested(list) }) {

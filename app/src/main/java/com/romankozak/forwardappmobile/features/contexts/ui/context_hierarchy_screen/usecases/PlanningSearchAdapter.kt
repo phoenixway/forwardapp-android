@@ -5,10 +5,12 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import kotlinx.coroutines.flow.StateFlow
 
 interface PlanningSearchAdapter {
-  val searchQuery: StateFlow<TextFieldValue>
-  val subStateStack: StateFlow<List<MainSubState>>
+    val searchQuery: StateFlow<TextFieldValue>
+    val subStateStack: StateFlow<List<MainSubState>>
 
-  fun isSearchActive(): Boolean
-  fun popToSubState(targetState: MainSubState)
-  fun onToggleSearch(isActive: Boolean)
+    fun isSearchActive(): Boolean
+
+    fun popToSubState(targetState: MainSubState)
+
+    fun onToggleSearch(isActive: Boolean)
 }

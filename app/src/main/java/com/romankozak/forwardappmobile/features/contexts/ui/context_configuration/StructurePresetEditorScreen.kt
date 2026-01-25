@@ -1,36 +1,36 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_configuration
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -57,73 +57,83 @@ fun StructurePresetEditorScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (uiState.presetId == null) "Новий пресет" else "Редагувати пресет", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                title = {
+                    Text(
+                        if (uiState.presetId == null) "Новий пресет" else "Редагувати пресет",
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
-                    TextButton(onClick = { viewModel.onSave(); navController.popBackStack() }) {
+                    TextButton(onClick = {
+                        viewModel.onSave()
+                        navController.popBackStack()
+                    }) {
                         Text("Зберегти")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
             )
-        }
+        },
     ) { padding ->
         Column(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier =
+                Modifier
+                    .padding(padding)
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             OutlinedTextField(
                 value = uiState.code,
                 onValueChange = viewModel::onCodeChange,
                 label = { Text("Code") },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = uiState.label,
                 onValueChange = viewModel::onLabelChange,
                 label = { Text("Label") },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = uiState.description,
                 onValueChange = viewModel::onDescriptionChange,
                 label = { Text("Description") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             )
 
-                FeatureToggles(
-                    enableInbox = uiState.enableInbox,
-                    onInboxChange = viewModel::onEnableInboxChange,
-                    enableLog = uiState.enableLog,
-                    onLogChange = viewModel::onEnableLogChange,
-                    enableArtifact = uiState.enableArtifact,
-                    onArtifactChange = viewModel::onEnableArtifactChange,
-                    enableAdvanced = uiState.enableAdvanced,
-                    onAdvancedChange = viewModel::onEnableAdvancedChange,
-                    enableDashboard = uiState.enableDashboard,
-                    onDashboardChange = viewModel::onEnableDashboardChange,
-                    enableBacklog = uiState.enableBacklog,
-                    onBacklogChange = viewModel::onEnableBacklogChange,
-                    enableAttachments = uiState.enableAttachments,
-                    onAttachmentsChange = viewModel::onEnableAttachmentsChange,
-                    enableAutoLinkSubprojects = uiState.enableAutoLinkSubprojects,
-                    onAutoLinkSubprojectsChange = viewModel::onEnableAutoLinkSubprojectsChange,
-                )
+            FeatureToggles(
+                enableInbox = uiState.enableInbox,
+                onInboxChange = viewModel::onEnableInboxChange,
+                enableLog = uiState.enableLog,
+                onLogChange = viewModel::onEnableLogChange,
+                enableArtifact = uiState.enableArtifact,
+                onArtifactChange = viewModel::onEnableArtifactChange,
+                enableAdvanced = uiState.enableAdvanced,
+                onAdvancedChange = viewModel::onEnableAdvancedChange,
+                enableDashboard = uiState.enableDashboard,
+                onDashboardChange = viewModel::onEnableDashboardChange,
+                enableBacklog = uiState.enableBacklog,
+                onBacklogChange = viewModel::onEnableBacklogChange,
+                enableAttachments = uiState.enableAttachments,
+                onAttachmentsChange = viewModel::onEnableAttachmentsChange,
+                enableAutoLinkSubprojects = uiState.enableAutoLinkSubprojects,
+                onAutoLinkSubprojectsChange = viewModel::onEnableAutoLinkSubprojectsChange,
+            )
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text("Елементи пресету", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 IconButton(onClick = { showAddDialog = true }) {
@@ -135,7 +145,7 @@ fun StructurePresetEditorScreen(
                 items(uiState.items, key = { it.id }) { item ->
                     PresetEditorItemRow(
                         item = item,
-                        onRemove = { viewModel.removeItem(item.id) }
+                        onRemove = { viewModel.removeItem(item.id) },
                     )
                 }
             }
@@ -153,10 +163,10 @@ fun StructurePresetEditorScreen(
                         containerType = containerType,
                         title = title,
                         mandatory = mandatory,
-                    )
+                    ),
                 )
                 showAddDialog = false
-            }
+            },
         )
     }
 }
@@ -181,11 +191,12 @@ private fun FeatureToggles(
     onAutoLinkSubprojectsChange: (Boolean) -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
+                .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text("Фіче-флаги", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         FeatureToggleRow("Inbox", enableInbox, onInboxChange)
@@ -203,12 +214,12 @@ private fun FeatureToggles(
 private fun FeatureToggleRow(
     label: String,
     value: Boolean,
-    onChange: (Boolean) -> Unit
+    onChange: (Boolean) -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(label)
         Switch(checked = value, onCheckedChange = onChange)
@@ -221,12 +232,13 @@ private fun PresetEditorItemRow(
     onRemove: () -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
-            .padding(12.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
+                .padding(12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Column {
             Text(item.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
@@ -272,17 +284,18 @@ private fun AddPresetItemDialog(
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
-                    maxItemsInEachRow = Int.MAX_VALUE
+                    maxItemsInEachRow = Int.MAX_VALUE,
                 ) {
                     entityTypes.forEach { type ->
                         AssistChip(
                             onClick = { entityType = type },
                             label = { Text(type) },
-                            colors = AssistChipDefaults.assistChipColors(
-                                containerColor = if (entityType == type) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-                                labelColor = if (entityType == type) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
-                            ),
-                            border = if (entityType == type) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null
+                            colors =
+                                AssistChipDefaults.assistChipColors(
+                                    containerColor = if (entityType == type) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                                    labelColor = if (entityType == type) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+                                ),
+                            border = if (entityType == type) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
                         )
                     }
                 }
@@ -291,17 +304,18 @@ private fun AddPresetItemDialog(
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
-                        maxItemsInEachRow = Int.MAX_VALUE
+                        maxItemsInEachRow = Int.MAX_VALUE,
                     ) {
                         containerTypes.forEach { type ->
                             AssistChip(
                                 onClick = { containerType = type },
                                 label = { Text(type) },
-                                colors = AssistChipDefaults.assistChipColors(
-                                    containerColor = if (containerType == type) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-                                    labelColor = if (containerType == type) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
-                                ),
-                                border = if (containerType == type) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null
+                                colors =
+                                    AssistChipDefaults.assistChipColors(
+                                        containerColor = if (containerType == type) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                                        labelColor = if (containerType == type) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+                                    ),
+                                border = if (containerType == type) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
                             )
                         }
                     }
@@ -309,22 +323,22 @@ private fun AddPresetItemDialog(
                 OutlinedTextField(
                     value = roleCode,
                     onValueChange = { roleCode = it },
-                    label = { Text("Role code") }
+                    label = { Text("Role code") },
                 )
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Title") }
+                    label = { Text("Title") },
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text("Mandatory")
                     Switch(checked = mandatory, onCheckedChange = { mandatory = it })
                 }
             }
-        }
+        },
     )
 }

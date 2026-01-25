@@ -23,9 +23,9 @@ data class ActivityRecord(
     val updatedAt: Long? = null,
     @ColumnInfo(name = "goal_id", index = true)
     val goalId: String? = null,
-    @SerializedName(value = "projectId", alternate = ["listId"])
-    @ColumnInfo(name = "project_id", index = true)
-    val projectId: String? = null,
+    @SerializedName(value = "contextId", alternate = ["listId", "projectId"])
+    @ColumnInfo(name = "context_id", index = true)
+    val contextId: String? = null,
     @ColumnInfo(name = "xp_gained")
     val xpGained: Int? = null,
     @ColumnInfo(name = "anty_xp")
@@ -43,7 +43,6 @@ data class ActivityRecord(
     val durationInMillis: Long?
         get() = if (startTime != null && endTime != null) endTime - startTime else null
 }
-
 
 @Fts4(contentEntity = ActivityRecord::class)
 @Entity(tableName = "activity_records_fts")

@@ -14,9 +14,7 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.EnhancedTagChip
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.TagType
 
-
 object TagUtils {
-    
     fun extractTags(text: String): List<ParsedTag> {
         val tagRegex = Regex("([#@])(\\p{L}[\\p{L}0-9_-]*\\b)")
         return tagRegex.findAll(text).map { match ->
@@ -30,13 +28,11 @@ object TagUtils {
         }.toList()
     }
 
-    
     fun removeTagsFromText(text: String): String {
         val tagRegex = Regex("([#@])(\\p{L}[\\p{L}0-9_-]*\\b)")
         return text.replace(tagRegex, "").replace(Regex("\\s+"), " ").trim()
     }
 
-    
     fun getTagFrequency(texts: List<String>): Map<String, Int> {
         return texts.flatMap { extractTags(it) }
             .groupBy { it.fullTag }
@@ -49,7 +45,6 @@ data class ParsedTag(
     val name: String,
     val type: TagType,
 )
-
 
 @Composable
 fun AnimatedTagCollection(
@@ -107,7 +102,7 @@ fun AnimatedTagCollection(
             item {
                 MoreTagsIndicator(
                     count = tags.size - maxVisibleTags,
-                    onClick = {  },
+                    onClick = { },
                 )
             }
         }
@@ -158,7 +153,6 @@ private fun AddTagButton(
         )
     }
 }
-
 
 @Composable
 fun TagSearchBar(
@@ -221,7 +215,6 @@ fun TagSearchBar(
         }
     }
 }
-
 
 fun List<String>.filterByTag(tag: String): List<String> {
     return filter { text ->

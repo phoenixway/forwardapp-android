@@ -9,6 +9,7 @@ import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -20,7 +21,11 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -32,35 +37,29 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
-import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
 import com.romankozak.forwardappmobile.features.activitytracker.dialogs.TimePickerDialog
 import com.romankozak.forwardappmobile.features.activitytracker.dialogs.formatDuration
-import com.romankozak.forwardappmobile.ui.shared.InProgressIndicator
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Button
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Overlay
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenuItem
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.IconPosition
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.MenuAlignment
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.rememberHoldMenu2
-import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Button
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
+import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
+import com.romankozak.forwardappmobile.ui.shared.InProgressIndicator
+import com.romankozak.forwardappmobile.ui.shared.InProgressIndicatorState
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.max
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-
-import androidx.compose.ui.text.style.TextOverflow
-import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
-import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller
-import com.romankozak.forwardappmobile.features.common.components.holdmenu2.IconPosition
-import com.romankozak.forwardappmobile.features.common.components.holdmenu2.MenuAlignment
-import com.romankozak.forwardappmobile.ui.shared.InProgressIndicatorState
 
 private val ActivityRecord.isTimeless: Boolean
     get() = this.startTime == null
@@ -74,8 +73,7 @@ private enum class ActivityRecordType { COMMENT, TIMED, INSTANT }
 fun ActivityTrackerScreen(
     navController: NavController,
     viewModel: ActivityTrackerViewModel = hiltViewModel(),
-)
-{
+) {
     val groupedByDate by viewModel.groupedActivityLog.collectAsStateWithLifecycle()
     val inputText by viewModel.inputText.collectAsStateWithLifecycle()
     val lastOngoingActivity by viewModel.lastOngoingActivity.collectAsStateWithLifecycle()
@@ -105,10 +103,10 @@ fun ActivityTrackerScreen(
             bottomBar = {
                 Column(
                     modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .imePadding(),
+                        Modifier
+                            .fillMaxWidth()
+                            .navigationBarsPadding()
+                            .imePadding(),
                 ) {
                     val indicatorState = remember { InProgressIndicatorState(isInitiallyExpanded = true) }
                     InProgressIndicator(
@@ -116,7 +114,7 @@ fun ActivityTrackerScreen(
                         onStopClick = viewModel::onToggleStartStop,
                         onReminderClick = { lastOngoingActivity?.let { viewModel.onSetReminder(it) } },
                         onIndicatorClick = { },
-                        indicatorState = indicatorState
+                        indicatorState = indicatorState,
                     )
                     ActivityInputBar(
                         text = inputText,
@@ -177,8 +175,22 @@ fun ActivityTrackerScreen(
                 ReminderPropertiesDialog(
                     onDismiss = viewModel::onReminderDialogDismiss,
                     onSetReminder = { time -> viewModel.onSetReminder(time) },
-                    onRemoveReminder = if (record.reminderTime != null) { { _: String -> viewModel.onClearReminder() } } else null,
-                    currentReminders = listOfNotNull(record.reminderTime).map { Reminder(entityId = record.id, entityType = "TASK", reminderTime = it, status = "SCHEDULED", creationTime = System.currentTimeMillis()) },
+                    onRemoveReminder =
+                        if (record.reminderTime != null) {
+                            { _: String -> viewModel.onClearReminder() }
+                        } else {
+                            null
+                        },
+                    currentReminders =
+                        listOfNotNull(record.reminderTime).map {
+                            Reminder(
+                                entityId = record.id,
+                                entityType = "TASK",
+                                reminderTime = it,
+                                status = "SCHEDULED",
+                                creationTime = System.currentTimeMillis(),
+                            )
+                        },
                 )
             }
 
@@ -204,8 +216,7 @@ private fun ActivityTrackerTopAppBar(
     onNavigateBack: () -> Unit,
     onClearLogRequest: () -> Unit,
     onExportRequest: () -> Unit,
-)
-{
+) {
     var menuExpanded by remember { mutableStateOf(false) }
     TopAppBar(
         title = { Text("Трекер Активності") },
@@ -235,8 +246,7 @@ private fun ActivityLog(
     onRestart: (ActivityRecord) -> Unit,
     onDelete: (ActivityRecord) -> Unit,
     onSetReminder: (ActivityRecord) -> Unit,
-)
-{
+) {
     val lazyListState = rememberLazyListState()
 
     LaunchedEffect(groupedByDate.values.flatten().size) {
@@ -349,8 +359,7 @@ private fun LogEntryItem(
     onRestart: (ActivityRecord) -> Unit,
     onDelete: (ActivityRecord) -> Unit,
     onSetReminder: (ActivityRecord) -> Unit,
-)
-{
+) {
     if (record.isTimeless) {
         OutlinedCard(
             modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
@@ -483,7 +492,12 @@ private fun LogEntryItem(
                     IconButton(onClick = {
                         onRestart(record)
                     }, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.Replay, "Перезапустити", modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                        Icon(
+                            Icons.Default.Replay,
+                            "Перезапустити",
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
                     }
                     IconButton(onClick = {
                         onDelete(record)
@@ -507,8 +521,7 @@ private fun TextWithBadgeLayout(
     text: String,
     textStyle: TextStyle,
     badge: @Composable () -> Unit,
-)
-{
+) {
     val textMeasurer = rememberTextMeasurer()
     SubcomposeLayout(modifier = modifier) { constraints ->
         val badgePlaceable = subcompose("badge", badge).firstOrNull()?.measure(Constraints())
@@ -579,22 +592,26 @@ private fun TextWithBadgeLayout(
 }
 
 @Composable
-private fun ActivityStatsLine(xp: Int?, antyXp: Int?) {
+private fun ActivityStatsLine(
+    xp: Int?,
+    antyXp: Int?,
+) {
     val positive = (xp ?: 0) > 0
     val negative = (antyXp ?: 0) > 0
     if (!positive && !negative) return
 
-    val statsText = buildString {
-        if (positive) append("+${xp} xp")
-        if (positive && negative) append(" | ")
-        if (negative) append("-${antyXp} xp")
-    }
+    val statsText =
+        buildString {
+            if (positive) append("+$xp xp")
+            if (positive && negative) append(" | ")
+            if (negative) append("-$antyXp xp")
+        }
 
     Text(
         text = statsText,
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
-        modifier = Modifier.padding(top = 4.dp)
+        modifier = Modifier.padding(top = 4.dp),
     )
 }
 
@@ -607,8 +624,7 @@ private fun ActivityInputBar(
     onTimelessClick: () -> Unit,
     onQuickDoneClick: (String) -> Unit,
     holdMenuController: HoldMenu2Controller,
-)
-{
+) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         tonalElevation = 3.dp,
@@ -633,12 +649,13 @@ private fun ActivityInputBar(
             )
             Spacer(modifier = Modifier.width(8.dp))
 
-            val menuItems = remember {
-                listOf(
-                    HoldMenuItem(label = "Завершена дія", icon = Icons.Default.CheckCircle),
-                    HoldMenuItem(label = "Коментар", icon = Icons.Default.AddComment),
-                )
-            }
+            val menuItems =
+                remember {
+                    listOf(
+                        HoldMenuItem(label = "Завершена дія", icon = Icons.Default.CheckCircle),
+                        HoldMenuItem(label = "Коментар", icon = Icons.Default.AddComment),
+                    )
+                }
 
             HoldMenu2Button(
                 items = menuItems,
@@ -680,7 +697,7 @@ private fun ActivityInputBar(
                 IconButton(
                     onClick = {
                         if (text.isNotBlank() || isActivityOngoing) onToggleStartStop()
-                    }
+                    },
                 ) {
                     Icon(
                         imageVector = icon,
@@ -693,8 +710,6 @@ private fun ActivityInputBar(
         }
     }
 }
-
-
 
 private fun exportLogToMarkdown(log: List<ActivityRecord>): String {
     val sdfTime = SimpleDateFormat("HH:mm", Locale.getDefault())
@@ -722,8 +737,7 @@ private fun exportLogToMarkdown(log: List<ActivityRecord>): String {
 private fun copyToClipboard(
     context: Context,
     text: String,
-)
-{
+) {
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     val clip = ClipData.newPlainText("Activity Log", text)
     clipboard.setPrimaryClip(clip)
@@ -737,8 +751,7 @@ private fun EditRecordDialog(
     onDismiss: () -> Unit,
     onConfirm: (String, Long?, Long?, Int?, Int?) -> Unit,
     isLastTimedRecord: Boolean,
-)
-{
+) {
     val initialType =
         when {
             record.isTimeless -> ActivityRecordType.COMMENT
@@ -758,10 +771,11 @@ private fun EditRecordDialog(
     val context = LocalContext.current
 
     val timeFormatter = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
-    val chipColors = FilterChipDefaults.filterChipColors(
-        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-    )
+    val chipColors =
+        FilterChipDefaults.filterChipColors(
+            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        )
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -770,7 +784,7 @@ private fun EditRecordDialog(
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     FilterChip(
                         selected = recordType == ActivityRecordType.COMMENT,
@@ -805,9 +819,10 @@ private fun EditRecordDialog(
                     ) {
                         OutlinedButton(
                             onClick = { showStartTimePicker = true },
-                            modifier = Modifier
-                                .weight(1f)
-                                .heightIn(min = 44.dp)
+                            modifier =
+                                Modifier
+                                    .weight(1f)
+                                    .heightIn(min = 44.dp),
                         ) {
                             Text(startTime?.let { timeFormatter.format(Date(it)) } ?: "Start")
                         }
@@ -815,9 +830,10 @@ private fun EditRecordDialog(
                             Text("-")
                             OutlinedButton(
                                 onClick = { showEndTimePicker = true },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .heightIn(min = 44.dp),
+                                modifier =
+                                    Modifier
+                                        .weight(1f)
+                                        .heightIn(min = 44.dp),
                                 enabled = !record.isOngoing,
                             ) {
                                 Text(endTime?.let { timeFormatter.format(Date(it)) } ?: "Зараз")
@@ -855,20 +871,23 @@ private fun EditRecordDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val actualStart = when (recordType) {
-                        ActivityRecordType.COMMENT -> null
-                        ActivityRecordType.INSTANT -> startTime ?: record.createdAt
-                        ActivityRecordType.TIMED -> startTime ?: record.createdAt
-                    }
-                    val actualEnd = when (recordType) {
-                        ActivityRecordType.COMMENT -> null
-                        ActivityRecordType.INSTANT -> actualStart
-                        ActivityRecordType.TIMED -> endTime
-                    }
-                    val isTimeInvalid = recordType == ActivityRecordType.TIMED &&
-                        actualStart != null &&
-                        actualEnd != null &&
-                        actualEnd < actualStart
+                    val actualStart =
+                        when (recordType) {
+                            ActivityRecordType.COMMENT -> null
+                            ActivityRecordType.INSTANT -> startTime ?: record.createdAt
+                            ActivityRecordType.TIMED -> startTime ?: record.createdAt
+                        }
+                    val actualEnd =
+                        when (recordType) {
+                            ActivityRecordType.COMMENT -> null
+                            ActivityRecordType.INSTANT -> actualStart
+                            ActivityRecordType.TIMED -> endTime
+                        }
+                    val isTimeInvalid =
+                        recordType == ActivityRecordType.TIMED &&
+                            actualStart != null &&
+                            actualEnd != null &&
+                            actualEnd < actualStart
                     if (isTimeInvalid) {
                         Toast.makeText(context, "Час закінчення не може бути раніше часу початку", Toast.LENGTH_SHORT).show()
                     } else {

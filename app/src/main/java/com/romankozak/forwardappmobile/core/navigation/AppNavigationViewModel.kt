@@ -8,17 +8,19 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
 @HiltViewModel
-class AppNavigationViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle,
-    private val navigationDispatcher: DefaultNavigationDispatcher
-) : ViewModel() {
+class AppNavigationViewModel
+    @Inject
+    constructor(
+        savedStateHandle: SavedStateHandle,
+        private val navigationDispatcher: DefaultNavigationDispatcher,
+    ) : ViewModel() {
+        val navigationManager =
+            EnhancedNavigationManager(
+                savedStateHandle = savedStateHandle,
+                scope = viewModelScope,
+            )
 
-    val navigationManager = EnhancedNavigationManager(
-        savedStateHandle = savedStateHandle,
-        scope = viewModelScope
-    )
-
-    fun attachNavController(navController: NavHostController) {
-        navigationDispatcher.attach(navController)
+        fun attachNavController(navController: NavHostController) {
+            navigationDispatcher.attach(navController)
+        }
     }
-}

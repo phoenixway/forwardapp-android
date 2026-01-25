@@ -34,15 +34,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
-import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
+import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
+import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
 import com.romankozak.forwardappmobile.features.ai.data.models.AiInsightEntity
 import com.romankozak.forwardappmobile.features.ai.data.repository.AiInsightRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -53,8 +52,8 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
+import javax.inject.Inject
 import kotlin.math.max
-
 
 enum class MessageType {
     MOTIVATION,
@@ -63,7 +62,6 @@ enum class MessageType {
     WARNING,
     ERROR,
 }
-
 
 data class AiMessage(
     val id: String = UUID.randomUUID().toString(),
@@ -75,151 +73,156 @@ data class AiMessage(
 )
 
 @HiltViewModel
-class AiInsightsViewModel @Inject constructor(
-    activityRepository: ActivityRepository,
-    private val aiInsightRepository: AiInsightRepository,
-) : ViewModel() {
+class AiInsightsViewModel
+    @Inject
+    constructor(
+        activityRepository: ActivityRepository,
+        private val aiInsightRepository: AiInsightRepository,
+    ) : ViewModel() {
+        val messages: StateFlow<List<AiMessage>> =
+            aiInsightRepository.observeInsights()
+                .map { entities -> entities.map { it.toUi() } }
+                .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    val messages: StateFlow<List<AiMessage>> =
-        aiInsightRepository.observeInsights()
-            .map { entities -> entities.map { it.toUi() } }
-            .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-
-    init {
-        viewModelScope.launch {
-            activityRepository.getLogStream()
-                .map { records -> buildInsights(records) }
-                .collect { generated ->
-                    aiInsightRepository.upsertInsights(generated)
-                }
-        }
-    }
-
-    private fun buildInsights(records: List<ActivityRecord>): List<AiInsightEntity> {
-        val now = System.currentTimeMillis()
-        val todayStart = startOfDay(now)
-        val yesterdayStart = todayStart - 24 * 60 * 60 * 1000
-        val fiveHoursAgo = now - 5 * 60 * 60 * 1000
-
-        val todayRecords = records.filter { it.createdAt in todayStart until (todayStart + 24 * 60 * 60 * 1000) }
-        val yesterdayRecords = records.filter { it.createdAt in yesterdayStart until todayStart }
-        val lastFiveHours = records.filter { it.createdAt >= fiveHoursAgo }
-        val lastDay = records.filter { it.createdAt >= yesterdayStart }
-
-        val messages = mutableListOf<AiInsightEntity>()
-
-        if (todayRecords.isEmpty()) {
-            messages.add(
-                AiInsightEntity(
-                    id = "today_no_activity",
-                    text = "Сьогодні ще не було активностей. Заплануй або відслідкуй невелику дію, щоб розігрітися.",
-                    type = MessageType.WARNING.name,
-                    timestamp = now,
-                    isRead = false,
-                )
-            )
-        }
-
-        fun durationMinutes(record: ActivityRecord): Long {
-            return record.durationInMillis?.let { max(1L, it / 60_000) } ?: 1L
-        }
-
-        fun buildFocusMessage(
-            windowId: String,
-            windowLabel: String,
-            windowRecords: List<ActivityRecord>,
-            minMinutes: Long,
-        ) {
-            val grouped = windowRecords
-                .filter { it.projectId != null }
-                .groupBy { it.projectId!! }
-                .mapValues { entry -> entry.value.sumOf { durationMinutes(it) } }
-                .toList()
-                .sortedByDescending { it.second }
-                .take(3)
-                .filter { it.second >= minMinutes }
-
-            grouped.forEachIndexed { index, (projectId, minutes) ->
-                messages.add(
-                    AiInsightEntity(
-                        id = "${windowId}_${projectId}_$index",
-                        text = "Фокус за $windowLabel: проєкт $projectId ~ ${minutes} хв.",
-                        type = MessageType.INFO.name,
-                        timestamp = now,
-                        isRead = false,
-                    )
-                )
+        init {
+            viewModelScope.launch {
+                activityRepository.getLogStream()
+                    .map { records -> buildInsights(records) }
+                    .collect { generated ->
+                        aiInsightRepository.upsertInsights(generated)
+                    }
             }
         }
 
-        buildFocusMessage("focus_5h", "останні 5 год", lastFiveHours, minMinutes = 20)
-        buildFocusMessage("focus_24h", "добу", lastDay, minMinutes = 60)
+        private fun buildInsights(records: List<ActivityRecord>): List<AiInsightEntity> {
+            val now = System.currentTimeMillis()
+            val todayStart = startOfDay(now)
+            val yesterdayStart = todayStart - 24 * 60 * 60 * 1000
+            val fiveHoursAgo = now - 5 * 60 * 60 * 1000
 
-        val yesterdayXp = yesterdayRecords.sumOf { it.xpGained ?: 0 }
-        val yesterdayAnti = yesterdayRecords.sumOf { it.antyXp ?: 0 }
-        if (yesterdayRecords.isNotEmpty() && (yesterdayXp + yesterdayAnti) <= 3) {
-            messages.add(
-                AiInsightEntity(
-                    id = "yesterday_low_activity",
-                    text = "Вчора було мало руху (+$yesterdayXp / -$yesterdayAnti). Спробуй запланувати один сфокусований блок сьогодні.",
-                    type = MessageType.INFO.name,
-                    timestamp = now,
-                    isRead = false,
+            val todayRecords = records.filter { it.createdAt in todayStart until (todayStart + 24 * 60 * 60 * 1000) }
+            val yesterdayRecords = records.filter { it.createdAt in yesterdayStart until todayStart }
+            val lastFiveHours = records.filter { it.createdAt >= fiveHoursAgo }
+            val lastDay = records.filter { it.createdAt >= yesterdayStart }
+
+            val messages = mutableListOf<AiInsightEntity>()
+
+            if (todayRecords.isEmpty()) {
+                messages.add(
+                    AiInsightEntity(
+                        id = "today_no_activity",
+                        text = "Сьогодні ще не було активностей. Заплануй або відслідкуй невелику дію, щоб розігрітися.",
+                        type = MessageType.WARNING.name,
+                        timestamp = now,
+                        isRead = false,
+                    ),
                 )
-            )
+            }
+
+            fun durationMinutes(record: ActivityRecord): Long {
+                return record.durationInMillis?.let { max(1L, it / 60_000) } ?: 1L
+            }
+
+            fun buildFocusMessage(
+                windowId: String,
+                windowLabel: String,
+                windowRecords: List<ActivityRecord>,
+                minMinutes: Long,
+            ) {
+                val grouped =
+                    windowRecords
+                        .filter { it.projectId != null }
+                        .groupBy { it.projectId!! }
+                        .mapValues { entry -> entry.value.sumOf { durationMinutes(it) } }
+                        .toList()
+                        .sortedByDescending { it.second }
+                        .take(3)
+                        .filter { it.second >= minMinutes }
+
+                grouped.forEachIndexed { index, (projectId, minutes) ->
+                    messages.add(
+                        AiInsightEntity(
+                            id = "${windowId}_${projectId}_$index",
+                            text = "Фокус за $windowLabel: проєкт $projectId ~ $minutes хв.",
+                            type = MessageType.INFO.name,
+                            timestamp = now,
+                            isRead = false,
+                        ),
+                    )
+                }
+            }
+
+            buildFocusMessage("focus_5h", "останні 5 год", lastFiveHours, minMinutes = 20)
+            buildFocusMessage("focus_24h", "добу", lastDay, minMinutes = 60)
+
+            val yesterdayXp = yesterdayRecords.sumOf { it.xpGained ?: 0 }
+            val yesterdayAnti = yesterdayRecords.sumOf { it.antyXp ?: 0 }
+            if (yesterdayRecords.isNotEmpty() && (yesterdayXp + yesterdayAnti) <= 3) {
+                messages.add(
+                    AiInsightEntity(
+                        id = "yesterday_low_activity",
+                        text = "Вчора було мало руху (+$yesterdayXp / -$yesterdayAnti). Спробуй запланувати один сфокусований блок сьогодні.",
+                        type = MessageType.INFO.name,
+                        timestamp = now,
+                        isRead = false,
+                    ),
+                )
+            }
+
+            if (messages.isEmpty()) {
+                messages.add(
+                    AiInsightEntity(
+                        id = "keep_it_up",
+                        text = "Продовжуй у тому ж дусі! Якщо хочеш, додай маленьку дію для підтримки ритму.",
+                        type = MessageType.MOTIVATION.name,
+                        timestamp = now,
+                        isRead = false,
+                    ),
+                )
+            }
+
+            return messages
         }
 
-        if (messages.isEmpty()) {
-            messages.add(
-                AiInsightEntity(
-                    id = "keep_it_up",
-                    text = "Продовжуй у тому ж дусі! Якщо хочеш, додай маленьку дію для підтримки ритму.",
-                    type = MessageType.MOTIVATION.name,
-                    timestamp = now,
-                    isRead = false,
-                )
-            )
+        private fun startOfDay(timestamp: Long): Long {
+            val cal = Calendar.getInstance()
+            cal.timeInMillis = timestamp
+            cal.set(Calendar.HOUR_OF_DAY, 0)
+            cal.set(Calendar.MINUTE, 0)
+            cal.set(Calendar.SECOND, 0)
+            cal.set(Calendar.MILLISECOND, 0)
+            return cal.timeInMillis
         }
 
-        return messages
-    }
+        fun markRead(id: String) {
+            viewModelScope.launch { aiInsightRepository.markRead(id) }
+        }
 
-    private fun startOfDay(timestamp: Long): Long {
-        val cal = Calendar.getInstance()
-        cal.timeInMillis = timestamp
-        cal.set(Calendar.HOUR_OF_DAY, 0)
-        cal.set(Calendar.MINUTE, 0)
-        cal.set(Calendar.SECOND, 0)
-        cal.set(Calendar.MILLISECOND, 0)
-        return cal.timeInMillis
-    }
+        fun delete(id: String) {
+            viewModelScope.launch { aiInsightRepository.deleteById(id) }
+        }
 
-    fun markRead(id: String) {
-        viewModelScope.launch { aiInsightRepository.markRead(id) }
-    }
+        fun clearAll() {
+            viewModelScope.launch { aiInsightRepository.clearAll() }
+        }
 
-    fun delete(id: String) {
-        viewModelScope.launch { aiInsightRepository.deleteById(id) }
+        private fun AiInsightEntity.toUi(): AiMessage =
+            AiMessage(
+                id = id,
+                text = text,
+                type = MessageType.valueOf(type),
+                timestamp = timestamp,
+                isRead = isRead,
+                isFavorite = isFavorite,
+            )
     }
-
-    fun clearAll() {
-        viewModelScope.launch { aiInsightRepository.clearAll() }
-    }
-
-    private fun AiInsightEntity.toUi(): AiMessage =
-        AiMessage(
-            id = id,
-            text = text,
-            type = MessageType.valueOf(type),
-            timestamp = timestamp,
-            isRead = isRead,
-            isFavorite = isFavorite,
-        )
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AiInsightsScreen(navController: NavController, viewModel: AiInsightsViewModel = hiltViewModel()) {
+fun AiInsightsScreen(
+    navController: NavController,
+    viewModel: AiInsightsViewModel = hiltViewModel(),
+) {
     val messages by viewModel.messages.collectAsState()
     Scaffold(
         topBar = {
@@ -234,16 +237,17 @@ fun AiInsightsScreen(navController: NavController, viewModel: AiInsightsViewMode
                     if (messages.isNotEmpty()) {
                         TextButton(onClick = { viewModel.clearAll() }) { Text("Очистити") }
                     }
-                }
+                },
             )
         },
     ) { paddingValues ->
         if (messages.isEmpty()) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                contentAlignment = Alignment.Center,
             ) {
                 Text("Поки немає інсайтів", style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
             }
@@ -256,7 +260,6 @@ fun AiInsightsScreen(navController: NavController, viewModel: AiInsightsViewMode
                         .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                
                 items(messages) { message ->
                     AiMessageCard(
                         message = message,
@@ -275,7 +278,6 @@ fun AiMessageCard(
     onMarkRead: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    
     val backgroundColor =
         when (message.type) {
             MessageType.MOTIVATION -> MaterialTheme.colorScheme.primaryContainer

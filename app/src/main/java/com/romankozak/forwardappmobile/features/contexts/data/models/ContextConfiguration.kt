@@ -1,14 +1,14 @@
 package com.romankozak.forwardappmobile.features.contexts.data.models
 
-import androidx.room.Entity
 import androidx.room.ColumnInfo
+import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "context_structures",
-    indices = [Index(value = ["contextId"], unique = true)]
+    indices = [Index(value = ["contextId"], unique = true)],
 )
 data class ContextConfiguration(
     @PrimaryKey val id: String,
@@ -32,13 +32,13 @@ data class ContextConfiguration(
             entity = ContextConfiguration::class,
             parentColumns = ["id"],
             childColumns = ["contextStructureId"],
-            onDelete = ForeignKey.CASCADE
-        )
+            onDelete = ForeignKey.CASCADE,
+        ),
     ],
     indices = [
         Index(value = ["contextStructureId"]),
         Index(value = ["contextStructureId", "roleCode"], unique = true),
-    ]
+    ],
 )
 data class ContextStructureItem(
     @PrimaryKey val id: String,

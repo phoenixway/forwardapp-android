@@ -47,38 +47,41 @@ fun NerSettingsCard(
     val context = LocalContext.current
     val areAllFilesSelected = state.nerModelUri.isNotBlank() && state.nerTokenizerUri.isNotBlank() && state.nerLabelsUri.isNotBlank()
 
-    val modelLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri: Uri? ->
-        uri?.let {
-            try {
-                context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                onModelFileSelected(it.toString())
-            } catch (e: SecurityException) {
-                Log.e("NerSettings", "Failed to take persistable permission for model file. The user might see errors later.", e)
+    val modelLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+            uri?.let {
+                try {
+                    context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    onModelFileSelected(it.toString())
+                } catch (e: SecurityException) {
+                    Log.e("NerSettings", "Failed to take persistable permission for model file. The user might see errors later.", e)
+                }
             }
         }
-    }
 
-    val tokenizerLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri: Uri? ->
-        uri?.let {
-            try {
-                context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                onTokenizerFileSelected(it.toString())
-            } catch (e: SecurityException) {
-                Log.e("NerSettings", "Failed to take persistable permission for tokenizer file.", e)
+    val tokenizerLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+            uri?.let {
+                try {
+                    context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    onTokenizerFileSelected(it.toString())
+                } catch (e: SecurityException) {
+                    Log.e("NerSettings", "Failed to take persistable permission for tokenizer file.", e)
+                }
             }
         }
-    }
 
-    val labelsLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri: Uri? ->
-        uri?.let {
-            try {
-                context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                onLabelsFileSelected(it.toString())
-            } catch (e: SecurityException) {
-                Log.e("NerSettings", "Failed to take persistable permission for labels file.", e)
+    val labelsLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+            uri?.let {
+                try {
+                    context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    onLabelsFileSelected(it.toString())
+                } catch (e: SecurityException) {
+                    Log.e("NerSettings", "Failed to take persistable permission for labels file.", e)
+                }
             }
         }
-    }
 
     SettingsCard(
         title = "Date/Time NER Model (ONNX)",
@@ -122,16 +125,20 @@ fun NerSettingsCard(
 }
 
 @Composable
-fun NerStatusIndicator(nerState: NerState, areAllFilesSelected: Boolean) {
-    val (icon, color, text) = when (nerState) {
-        is NerState.Downloading -> Triple(Icons.Default.Sync, MaterialTheme.colorScheme.primary, "Loading: ${nerState.progress}%")
-        is NerState.Error -> Triple(Icons.Default.Error, MaterialTheme.colorScheme.error, "Error: ${nerState.message}")
-        NerState.NotInitialized -> {
-            val message = if (areAllFilesSelected) "Model not loaded. Press 'Reload Model'." else "Select all three model files"
-            Triple(Icons.Default.Info, MaterialTheme.colorScheme.onSurfaceVariant, message)
+fun NerStatusIndicator(
+    nerState: NerState,
+    areAllFilesSelected: Boolean,
+) {
+    val (icon, color, text) =
+        when (nerState) {
+            is NerState.Downloading -> Triple(Icons.Default.Sync, MaterialTheme.colorScheme.primary, "Loading: ${nerState.progress}%")
+            is NerState.Error -> Triple(Icons.Default.Error, MaterialTheme.colorScheme.error, "Error: ${nerState.message}")
+            NerState.NotInitialized -> {
+                val message = if (areAllFilesSelected) "Model not loaded. Press 'Reload Model'." else "Select all three model files"
+                Triple(Icons.Default.Info, MaterialTheme.colorScheme.onSurfaceVariant, message)
+            }
+            NerState.Ready -> Triple(Icons.Default.CheckCircle, Color(0xFF388E3C), "Model loaded successfully")
         }
-        NerState.Ready -> Triple(Icons.Default.CheckCircle, Color(0xFF388E3C), "Model loaded successfully")
-    }
 
     val animatedColor by animateColorAsState(targetValue = color, label = "ner_status_color")
 

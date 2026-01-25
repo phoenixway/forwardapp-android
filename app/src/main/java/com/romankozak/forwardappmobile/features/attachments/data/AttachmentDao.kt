@@ -12,7 +12,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface AttachmentDao {
-
     @Transaction
     @Query(
         """
@@ -63,11 +62,11 @@ interface AttachmentDao {
            AND a.role_code = :roleCode
            AND a.isDeleted = 0
          LIMIT 1
-        """
+        """,
     )
     suspend fun findAttachmentByRole(
         contextId: String,
-        roleCode: String
+        roleCode: String,
     ): AttachmentEntity?
 
     @Query(

@@ -63,6 +63,5 @@ object ReminderTextUtil {
             tomorrow.get(Calendar.DAY_OF_YEAR) == target.get(Calendar.DAY_OF_YEAR)
     }
 
-    fun formatDateTime(timeMillis: Long): String =
-    SimpleDateFormat("dd.MM.yyyy 'о' HH:mm", Locale.getDefault()).format(Date(timeMillis))
+    fun formatDateTime(timeMillis: Long): String = SimpleDateFormat("dd.MM.yyyy 'о' HH:mm", Locale.getDefault()).format(Date(timeMillis))
 }

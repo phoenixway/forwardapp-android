@@ -5,13 +5,12 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentItemEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentItemEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface NoteDocumentDao {
-    
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertDocument(document: NoteDocumentEntity)
 
@@ -41,7 +40,6 @@ interface NoteDocumentDao {
     @Query("DELETE FROM note_documents WHERE id = :documentId")
     suspend fun deleteDocumentById(documentId: String)
 
-    
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertListItem(item: NoteDocumentItemEntity)
 

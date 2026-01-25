@@ -51,9 +51,9 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
+import com.romankozak.forwardappmobile.core.theme.ForwardAppMobileTheme
 import com.romankozak.forwardappmobile.data.repository.RingtoneSettings
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
-import com.romankozak.forwardappmobile.core.theme.ForwardAppMobileTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -62,738 +62,740 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 class ReminderLockScreenActivity : ComponentActivity() {
-  companion object {
-    var isActive = false
-    private var currentGoalId: String? = null
-  }
-
-  @Inject
-  lateinit var reminderRepository: com.romankozak.forwardappmobile.data.repository.ReminderRepository
-
-  @Inject
-  lateinit var settingsRepository: SettingsRepository
-
-  private var wakeLock: PowerManager.WakeLock? = null
-  private var mediaPlayer: MediaPlayer? = null
-  private var vibrator: Vibrator? = null
-  private val tag = "LockScreenReminder"
-  private var selectedRingtoneUri: Uri? = null
-
-  override fun onCreate(savedInstanceState: Bundle?) {
-    super.onCreate(savedInstanceState)
-
-    val reminderId = intent.getStringExtra(ReminderBroadcastReceiver.Companion.EXTRA_REMINDER_ID) ?: "unknown"
-    val goalId = intent.getStringExtra(ReminderBroadcastReceiver.Companion.EXTRA_GOAL_ID) ?: "unknown"
-
-    // Перевіряємо, чи вже запущена активність для цієї ж цілі
-    if (isActive && currentGoalId == goalId) {
-      Log.d(tag, "Activity already active for goal: $goalId, finishing duplicate")
-      finish()
-      return
+    companion object {
+        var isActive = false
+        private var currentGoalId: String? = null
     }
 
-    // Якщо активна активність для іншої цілі, закриваємо її
-    if (isActive && currentGoalId != goalId) {
-      Log.d(tag, "Replacing existing activity with new goal: $goalId")
-    }
+    @Inject
+    lateinit var reminderRepository: com.romankozak.forwardappmobile.data.repository.ReminderRepository
 
-    isActive = true
-    currentGoalId = goalId
+    @Inject
+    lateinit var settingsRepository: SettingsRepository
 
-    // Перевіряємо, чи це команда закриття
-    if (intent.getStringExtra("ACTION") == "CLOSE") {
-      Log.d(tag, "Received close command")
-      finishSafely()
-      return
-    }
+    private var wakeLock: PowerManager.WakeLock? = null
+    private var mediaPlayer: MediaPlayer? = null
+    private var vibrator: Vibrator? = null
+    private val tag = "LockScreenReminder"
+    private var selectedRingtoneUri: Uri? = null
 
-    Log.d(tag, "ReminderLockScreenActivity created for goal: $goalId")
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
 
-    selectedRingtoneUri = loadRingtoneUri()
+        val reminderId = intent.getStringExtra(ReminderBroadcastReceiver.Companion.EXTRA_REMINDER_ID) ?: "unknown"
+        val goalId = intent.getStringExtra(ReminderBroadcastReceiver.Companion.EXTRA_GOAL_ID) ?: "unknown"
 
-    setupLockScreenFlags()
-
-    val notificationManager =
-      getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-    notificationManager.cancel(ReminderBroadcastReceiver.Companion.getNotificationId(reminderId))
-
-    val goalText = intent.getStringExtra(ReminderBroadcastReceiver.Companion.EXTRA_GOAL_TEXT) ?: "Ваша мета"
-    val goalDescription = intent.getStringExtra(ReminderBroadcastReceiver.Companion.EXTRA_GOAL_DESCRIPTION)
-    val goalEmoji = intent.getStringExtra(ReminderBroadcastReceiver.Companion.EXTRA_GOAL_EMOJI) ?: "🎯"
-    val extraInfo = intent.getStringExtra(ReminderBroadcastReceiver.Companion.EXTRA_INFO)
-
-    startAlarmSoundAndVibration(selectedRingtoneUri)
-
-    setContent {
-      ForwardAppMobileTheme {
-        Surface(modifier = Modifier.fillMaxSize(), color = Color.Transparent) {
-          DarkReminderLockScreen(
-            reminderId = reminderId,
-            goalId = goalId,
-            goalText = goalText,
-            goalDescription = goalDescription,
-            goalEmoji = goalEmoji,
-            extraInfo = extraInfo,
-            onComplete = { handleComplete(reminderId) },
-            onSnooze = { handleSnooze(reminderId) },
-            onDismiss = { handleDismiss(reminderId) },
-          )
+        // Перевіряємо, чи вже запущена активність для цієї ж цілі
+        if (isActive && currentGoalId == goalId) {
+            Log.d(tag, "Activity already active for goal: $goalId, finishing duplicate")
+            finish()
+            return
         }
-      }
-    }
 
-    onBackPressedDispatcher.addCallback(
-      this,
-      object : OnBackPressedCallback(true) {
-        override fun handleOnBackPressed() {
-          Log.d(tag, "Back button pressed - ignored to prevent accidental dismiss")
+        // Якщо активна активність для іншої цілі, закриваємо її
+        if (isActive && currentGoalId != goalId) {
+            Log.d(tag, "Replacing existing activity with new goal: $goalId")
         }
-      },
-    )
-  }
 
-  override fun onNewIntent(intent: Intent) {
-    super.onNewIntent(intent)
+        isActive = true
+        currentGoalId = goalId
 
-    // If this is a close command
-    if (intent.getStringExtra("ACTION") == "CLOSE") {
-      Log.d(tag, "Received close command via onNewIntent")
-      finishSafely()
-      return
-    }
+        // Перевіряємо, чи це команда закриття
+        if (intent.getStringExtra("ACTION") == "CLOSE") {
+            Log.d(tag, "Received close command")
+            finishSafely()
+            return
+        }
 
-    val newGoalId = intent.getStringExtra(ReminderBroadcastReceiver.EXTRA_GOAL_ID)
-    if (newGoalId != null && newGoalId != currentGoalId) {
-      Log.d(
-        tag,
-        "New intent for different goal, updating current goal from $currentGoalId to $newGoalId",
-      )
-      currentGoalId = newGoalId
-    }
-  }
+        Log.d(tag, "ReminderLockScreenActivity created for goal: $goalId")
 
-  private fun setupLockScreenFlags() {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-      setShowWhenLocked(true)
-      setTurnScreenOn(true)
+        selectedRingtoneUri = loadRingtoneUri()
 
-      // Do not request dismissing keyguard to avoid PIN prompt; just show over lock screen.
-    } else {
-      @Suppress("DEPRECATION")
-      window.addFlags(
-        WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-          WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
-      )
-    }
+        setupLockScreenFlags()
 
-    window.addFlags(
-      WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
-        WindowManager.LayoutParams.FLAG_ALLOW_LOCK_WHILE_SCREEN_ON
-    )
+        val notificationManager =
+            getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+        notificationManager.cancel(ReminderBroadcastReceiver.Companion.getNotificationId(reminderId))
 
-    WindowCompat.setDecorFitsSystemWindows(window, false)
-    val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
-    windowInsetsController.systemBarsBehavior =
-      WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-    windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
+        val goalText = intent.getStringExtra(ReminderBroadcastReceiver.Companion.EXTRA_GOAL_TEXT) ?: "Ваша мета"
+        val goalDescription = intent.getStringExtra(ReminderBroadcastReceiver.Companion.EXTRA_GOAL_DESCRIPTION)
+        val goalEmoji = intent.getStringExtra(ReminderBroadcastReceiver.Companion.EXTRA_GOAL_EMOJI) ?: "🎯"
+        val extraInfo = intent.getStringExtra(ReminderBroadcastReceiver.Companion.EXTRA_INFO)
 
-    Log.d(tag, "Lock screen flags set")
-  }
+        startAlarmSoundAndVibration(selectedRingtoneUri)
 
-  private fun acquireWakeLock() {
-    val powerManager = getSystemService(POWER_SERVICE) as PowerManager
-    wakeLock =
-      powerManager
-        .newWakeLock(
-          PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
-          "GoalReminder:WakeLock",
+        setContent {
+            ForwardAppMobileTheme {
+                Surface(modifier = Modifier.fillMaxSize(), color = Color.Transparent) {
+                    DarkReminderLockScreen(
+                        reminderId = reminderId,
+                        goalId = goalId,
+                        goalText = goalText,
+                        goalDescription = goalDescription,
+                        goalEmoji = goalEmoji,
+                        extraInfo = extraInfo,
+                        onComplete = { handleComplete(reminderId) },
+                        onSnooze = { handleSnooze(reminderId) },
+                        onDismiss = { handleDismiss(reminderId) },
+                    )
+                }
+            }
+        }
+
+        onBackPressedDispatcher.addCallback(
+            this,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    Log.d(tag, "Back button pressed - ignored to prevent accidental dismiss")
+                }
+            },
         )
-        .apply { acquire(10 * 60 * 1000L) }
-    Log.d(tag, "Wake lock acquired")
-  }
-
-  private fun loadRingtoneUri(): Uri? =
-    runBlocking {
-      try {
-        val ringtoneSettings: RingtoneSettings = settingsRepository.getRingtoneSettings()
-        val storedUri = ringtoneSettings.uris[ringtoneSettings.currentType].orEmpty()
-        val resolved = storedUri.takeIf { it.isNotBlank() }?.let { Uri.parse(it) }
-          ?: defaultUriFor(ringtoneSettings.currentType)
-        Log.d(tag, "Ringtone resolved: type=${ringtoneSettings.currentType} uri=$resolved")
-        resolved
-      } catch (e: Exception) {
-        Log.w(tag, "Failed to load ringtone settings, using fallback", e)
-        fallbackRingtone()
-      }
     }
 
-  private fun loadRingtoneVolume(): Float =
-    runBlocking {
-      try {
-        val settings = settingsRepository.getRingtoneSettings()
-        settings.volumes[settings.currentType]?.coerceIn(0f, 1f) ?: 1f
-      } catch (e: Exception) {
-        Log.w(tag, "Failed to load ringtone volume, using default", e)
-        1f
-      }
-    }
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
 
-  private fun isVibrationEnabled(): Boolean =
-    runBlocking {
-      runCatching { settingsRepository.isReminderVibrationEnabled() }
-        .onFailure { Log.w(tag, "Failed to read vibration setting, defaulting to ON", it) }
-        .getOrDefault(true)
-    }
-
-  private fun defaultUriFor(type: RingtoneType): Uri? =
-    when (type) {
-      RingtoneType.Energetic -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-      RingtoneType.Moderate -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
-      RingtoneType.Quiet -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-    }
-
-  private fun fallbackRingtone(): Uri? {
-    return defaultUriFor(RingtoneType.Energetic)
-      ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
-      ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-  }
-
-  private fun startAlarmSoundAndVibration(customUri: Uri?) {
-    try {
-      val alarmUri = customUri ?: fallbackRingtone()
-
-      if (alarmUri == null) {
-        Log.e(tag, "No ringtone URI available")
-        return
-      }
-
-      mediaPlayer =
-        MediaPlayer().apply {
-          setDataSource(this@ReminderLockScreenActivity, alarmUri)
-          setAudioAttributes(
-            AudioAttributes.Builder()
-              .setUsage(AudioAttributes.USAGE_ALARM)
-              .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-              .build()
-          )
-          isLooping = true
-          prepare()
-          val volume = loadRingtoneVolume()
-          setVolume(volume, volume)
-          start()
+        // If this is a close command
+        if (intent.getStringExtra("ACTION") == "CLOSE") {
+            Log.d(tag, "Received close command via onNewIntent")
+            finishSafely()
+            return
         }
-      Log.d(tag, "Alarm sound started")
-    } catch (e: Exception) {
-      Log.e(tag, "Failed to start alarm sound", e)
+
+        val newGoalId = intent.getStringExtra(ReminderBroadcastReceiver.EXTRA_GOAL_ID)
+        if (newGoalId != null && newGoalId != currentGoalId) {
+            Log.d(
+                tag,
+                "New intent for different goal, updating current goal from $currentGoalId to $newGoalId",
+            )
+            currentGoalId = newGoalId
+        }
     }
 
-    if (isVibrationEnabled()) {
-      try {
-        vibrator =
-          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val vibratorManager = getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
-            vibratorManager.defaultVibrator
-          } else {
-            @Suppress("DEPRECATION")
-            getSystemService(VIBRATOR_SERVICE) as Vibrator
-          }
+    private fun setupLockScreenFlags() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true)
+            setTurnScreenOn(true)
 
-        val vibrationPattern = longArrayOf(0, 800, 400, 800)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-          vibrator?.vibrate(VibrationEffect.createWaveform(vibrationPattern, 0))
+            // Do not request dismissing keyguard to avoid PIN prompt; just show over lock screen.
         } else {
-          @Suppress("DEPRECATION") vibrator?.vibrate(vibrationPattern, 0)
+            @Suppress("DEPRECATION")
+            window.addFlags(
+                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                    WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON,
+            )
         }
-        Log.d(tag, "Vibration started")
-      } catch (e: Exception) {
-        Log.e(tag, "Failed to start vibration", e)
-      }
-    } else {
-      Log.d(tag, "Vibration disabled in settings; skipping vibration.")
+
+        window.addFlags(
+            WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
+                WindowManager.LayoutParams.FLAG_ALLOW_LOCK_WHILE_SCREEN_ON,
+        )
+
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
+        windowInsetsController.systemBarsBehavior =
+            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
+
+        Log.d(tag, "Lock screen flags set")
     }
-  }
 
-  private fun stopAlarmSoundAndVibration() {
-    mediaPlayer?.apply {
-      if (isPlaying) {
-        stop()
-      }
-      release()
+    private fun acquireWakeLock() {
+        val powerManager = getSystemService(POWER_SERVICE) as PowerManager
+        wakeLock =
+            powerManager
+                .newWakeLock(
+                    PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
+                    "GoalReminder:WakeLock",
+                )
+                .apply { acquire(10 * 60 * 1000L) }
+        Log.d(tag, "Wake lock acquired")
     }
-    mediaPlayer = null
 
-    vibrator?.cancel()
-    vibrator = null
+    private fun loadRingtoneUri(): Uri? =
+        runBlocking {
+            try {
+                val ringtoneSettings: RingtoneSettings = settingsRepository.getRingtoneSettings()
+                val storedUri = ringtoneSettings.uris[ringtoneSettings.currentType].orEmpty()
+                val resolved =
+                    storedUri.takeIf { it.isNotBlank() }?.let { Uri.parse(it) }
+                        ?: defaultUriFor(ringtoneSettings.currentType)
+                Log.d(tag, "Ringtone resolved: type=${ringtoneSettings.currentType} uri=$resolved")
+                resolved
+            } catch (e: Exception) {
+                Log.w(tag, "Failed to load ringtone settings, using fallback", e)
+                fallbackRingtone()
+            }
+        }
 
-    Log.d(tag, "Alarm sound and vibration stopped")
-  }
+    private fun loadRingtoneVolume(): Float =
+        runBlocking {
+            try {
+                val settings = settingsRepository.getRingtoneSettings()
+                settings.volumes[settings.currentType]?.coerceIn(0f, 1f) ?: 1f
+            } catch (e: Exception) {
+                Log.w(tag, "Failed to load ringtone volume, using default", e)
+                1f
+            }
+        }
 
-  private fun handleComplete(reminderId: String) {
-    Log.d(tag, "Goal completed: $reminderId")
-    stopAlarmSoundAndVibration()
-    cancelAllNotifications(reminderId)
-    lifecycleScope.launch {
-        reminderRepository.markAsCompleted(reminderId)
-        finishSafely()
+    private fun isVibrationEnabled(): Boolean =
+        runBlocking {
+            runCatching { settingsRepository.isReminderVibrationEnabled() }
+                .onFailure { Log.w(tag, "Failed to read vibration setting, defaulting to ON", it) }
+                .getOrDefault(true)
+        }
+
+    private fun defaultUriFor(type: RingtoneType): Uri? =
+        when (type) {
+            RingtoneType.Energetic -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            RingtoneType.Moderate -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+            RingtoneType.Quiet -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+        }
+
+    private fun fallbackRingtone(): Uri? {
+        return defaultUriFor(RingtoneType.Energetic)
+            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
     }
-  }
 
-  private fun handleSnooze(reminderId: String) {
-    Log.d(tag, "Goal snoozed: $reminderId")
-    stopAlarmSoundAndVibration()
-    cancelAllNotifications(reminderId)
-    lifecycleScope.launch {
-        reminderRepository.snoozeReminder(reminderId)
-        finishSafely()
+    private fun startAlarmSoundAndVibration(customUri: Uri?) {
+        try {
+            val alarmUri = customUri ?: fallbackRingtone()
+
+            if (alarmUri == null) {
+                Log.e(tag, "No ringtone URI available")
+                return
+            }
+
+            mediaPlayer =
+                MediaPlayer().apply {
+                    setDataSource(this@ReminderLockScreenActivity, alarmUri)
+                    setAudioAttributes(
+                        AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_ALARM)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .build(),
+                    )
+                    isLooping = true
+                    prepare()
+                    val volume = loadRingtoneVolume()
+                    setVolume(volume, volume)
+                    start()
+                }
+            Log.d(tag, "Alarm sound started")
+        } catch (e: Exception) {
+            Log.e(tag, "Failed to start alarm sound", e)
+        }
+
+        if (isVibrationEnabled()) {
+            try {
+                vibrator =
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        val vibratorManager = getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                        vibratorManager.defaultVibrator
+                    } else {
+                        @Suppress("DEPRECATION")
+                        getSystemService(VIBRATOR_SERVICE) as Vibrator
+                    }
+
+                val vibrationPattern = longArrayOf(0, 800, 400, 800)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    vibrator?.vibrate(VibrationEffect.createWaveform(vibrationPattern, 0))
+                } else {
+                    @Suppress("DEPRECATION")
+                    vibrator?.vibrate(vibrationPattern, 0)
+                }
+                Log.d(tag, "Vibration started")
+            } catch (e: Exception) {
+                Log.e(tag, "Failed to start vibration", e)
+            }
+        } else {
+            Log.d(tag, "Vibration disabled in settings; skipping vibration.")
+        }
     }
-  }
 
-  private fun handleDismiss(reminderId: String) {
-    Log.d(tag, "Goal dismissed: $reminderId")
-    stopAlarmSoundAndVibration()
-    cancelAllNotifications(reminderId)
-    lifecycleScope.launch {
-        reminderRepository.dismissReminder(reminderId)
-        finishSafely()
+    private fun stopAlarmSoundAndVibration() {
+        mediaPlayer?.apply {
+            if (isPlaying) {
+                stop()
+            }
+            release()
+        }
+        mediaPlayer = null
+
+        vibrator?.cancel()
+        vibrator = null
+
+        Log.d(tag, "Alarm sound and vibration stopped")
     }
-  }
 
-  private fun cancelAllNotifications(reminderId: String) {
-    val notificationManager =
-      getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-    notificationManager.cancel(ReminderBroadcastReceiver.Companion.getNotificationId(reminderId))
-    Log.d(tag, "Cancelled notification with ID: ${ReminderBroadcastReceiver.Companion.getNotificationId(reminderId)}")
-  }
+    private fun handleComplete(reminderId: String) {
+        Log.d(tag, "Goal completed: $reminderId")
+        stopAlarmSoundAndVibration()
+        cancelAllNotifications(reminderId)
+        lifecycleScope.launch {
+            reminderRepository.markAsCompleted(reminderId)
+            finishSafely()
+        }
+    }
 
-  private fun finishSafely() {
-    try {
-      if (!isFinishing && !isDestroyed) {
+    private fun handleSnooze(reminderId: String) {
+        Log.d(tag, "Goal snoozed: $reminderId")
+        stopAlarmSoundAndVibration()
+        cancelAllNotifications(reminderId)
+        lifecycleScope.launch {
+            reminderRepository.snoozeReminder(reminderId)
+            finishSafely()
+        }
+    }
+
+    private fun handleDismiss(reminderId: String) {
+        Log.d(tag, "Goal dismissed: $reminderId")
+        stopAlarmSoundAndVibration()
+        cancelAllNotifications(reminderId)
+        lifecycleScope.launch {
+            reminderRepository.dismissReminder(reminderId)
+            finishSafely()
+        }
+    }
+
+    private fun cancelAllNotifications(reminderId: String) {
+        val notificationManager =
+            getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+        notificationManager.cancel(ReminderBroadcastReceiver.Companion.getNotificationId(reminderId))
+        Log.d(tag, "Cancelled notification with ID: ${ReminderBroadcastReceiver.Companion.getNotificationId(reminderId)}")
+    }
+
+    private fun finishSafely() {
+        try {
+            if (!isFinishing && !isDestroyed) {
+                isActive = false
+                currentGoalId = null
+                finish()
+            }
+        } catch (e: Exception) {
+            Log.e(tag, "Error finishing activity", e)
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
         isActive = false
         currentGoalId = null
-        finish()
-      }
-    } catch (e: Exception) {
-      Log.e(tag, "Error finishing activity", e)
+        stopAlarmSoundAndVibration()
+        Log.d(tag, "ReminderLockScreenActivity destroyed")
     }
-  }
 
-  override fun onDestroy() {
-    super.onDestroy()
-    isActive = false
-    currentGoalId = null
-    stopAlarmSoundAndVibration()
-    Log.d(tag, "ReminderLockScreenActivity destroyed")
-  }
-
-  override fun onPause() {
-    super.onPause()
-    wakeLock?.let {
-      if (it.isHeld) {
-        it.release()
-        Log.d(tag, "Wake lock released in onPause")
-      }
+    override fun onPause() {
+        super.onPause()
+        wakeLock?.let {
+            if (it.isHeld) {
+                it.release()
+                Log.d(tag, "Wake lock released in onPause")
+            }
+        }
     }
-  }
 
-  override fun onResume() {
-    super.onResume()
-    if (wakeLock?.isHeld == false) {
-      acquireWakeLock()
+    override fun onResume() {
+        super.onResume()
+        if (wakeLock?.isHeld == false) {
+            acquireWakeLock()
+        }
     }
-  }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DarkReminderLockScreen(
-  reminderId: String,
-  goalId: String,
-  goalText: String,
-  goalDescription: String?,
-  goalEmoji: String,
-  extraInfo: String?,
-  onComplete: () -> Unit,
-  onSnooze: () -> Unit,
-  onDismiss: () -> Unit,
+    reminderId: String,
+    goalId: String,
+    goalText: String,
+    goalDescription: String?,
+    goalEmoji: String,
+    extraInfo: String?,
+    onComplete: () -> Unit,
+    onSnooze: () -> Unit,
+    onDismiss: () -> Unit,
 ) {
-  val haptic = LocalHapticFeedback.current
-  var timeRemaining by remember { mutableStateOf(300) }
+    val haptic = LocalHapticFeedback.current
+    var timeRemaining by remember { mutableStateOf(300) }
 
-  LaunchedEffect(Unit) {
-    while (timeRemaining > 0) {
-      delay(1000)
-      timeRemaining--
+    LaunchedEffect(Unit) {
+        while (timeRemaining > 0) {
+            delay(1000)
+            timeRemaining--
+        }
+        onDismiss()
     }
-    onDismiss()
-  }
 
-  val transition = rememberInfiniteTransition(label = "pulse")
-  val pulse by
-    transition.animateFloat(
-      initialValue = 0.92f,
-      targetValue = 1.12f,
-      animationSpec =
-        infiniteRepeatable(animation = tween(durationMillis = 1200, easing = LinearEasing)),
-      label = "pulse",
-    )
-
-  val backgroundPulse by
-    transition.animateFloat(
-      initialValue = 0.8f,
-      targetValue = 1.1f,
-      animationSpec =
-        infiniteRepeatable(animation = tween(durationMillis = 3000, easing = LinearEasing)),
-      label = "backgroundPulse",
-    )
-
-  Box(
-    modifier =
-      Modifier.fillMaxSize()
-        .background(
-          Brush.radialGradient(
-            colors = listOf(Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF0F172A)),
-            center = Offset(0.5f, 0.3f),
-            radius = 1200f,
-          )
+    val transition = rememberInfiniteTransition(label = "pulse")
+    val pulse by
+        transition.animateFloat(
+            initialValue = 0.92f,
+            targetValue = 1.12f,
+            animationSpec =
+                infiniteRepeatable(animation = tween(durationMillis = 1200, easing = LinearEasing)),
+            label = "pulse",
         )
-        .windowInsetsPadding(WindowInsets.systemBars),
-    contentAlignment = Alignment.Center,
-  ) {
-    Box(
-      modifier =
-        Modifier.size(400.dp)
-          .scale(backgroundPulse)
-          .background(
-            brush =
-              Brush.radialGradient(
-                colors = listOf(Color(0x20A78BFA), Color(0x10818CF8), Color.Transparent),
-                center = Offset(0.3f, 0.7f),
-                radius = 400f,
-              ),
-            shape = CircleShape,
-          )
-          .align(Alignment.TopEnd)
-          .offset(x = 100.dp, y = (-50).dp)
-    )
+
+    val backgroundPulse by
+        transition.animateFloat(
+            initialValue = 0.8f,
+            targetValue = 1.1f,
+            animationSpec =
+                infiniteRepeatable(animation = tween(durationMillis = 3000, easing = LinearEasing)),
+            label = "backgroundPulse",
+        )
 
     Box(
-      modifier =
-        Modifier.size(350.dp)
-          .scale(1.2f - (backgroundPulse - 0.8f))
-          .background(
-            brush =
-              Brush.radialGradient(
-                colors = listOf(Color(0x206366F1), Color(0x0F6366F1), Color.Transparent),
-                center = Offset(0.8f, 0.2f),
-                radius = 350f,
-              ),
-            shape = CircleShape,
-          )
-          .align(Alignment.BottomStart)
-          .offset(x = (-80).dp, y = 80.dp)
-    )
-
-    Card(
-      modifier = Modifier.fillMaxWidth(0.92f).wrapContentHeight().padding(20.dp),
-      shape = RoundedCornerShape(32.dp),
-      colors = CardDefaults.cardColors(containerColor = Color(0xE61E293B)),
-      elevation = CardDefaults.cardElevation(defaultElevation = 32.dp),
-      border =
-        BorderStroke(
-          1.5.dp,
-          Brush.verticalGradient(
-            colors = listOf(Color(0x60A78BFA), Color(0x30818CF8), Color(0x20A78BFA))
-          ),
-        ),
+        modifier =
+            Modifier.fillMaxSize()
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF0F172A)),
+                        center = Offset(0.5f, 0.3f),
+                        radius = 1200f,
+                    ),
+                )
+                .windowInsetsPadding(WindowInsets.systemBars),
+        contentAlignment = Alignment.Center,
     ) {
-      Column(
-        modifier = Modifier.fillMaxWidth().padding(28.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(20.dp),
-      ) {
-        Row(
-          modifier = Modifier.fillMaxWidth(),
-          horizontalArrangement = Arrangement.SpaceBetween,
-          verticalAlignment = Alignment.CenterVertically,
-        ) {
-          Text(
-            text = "НАГАДУВАННЯ",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.ExtraBold,
-            color = Color(0xFFA78BFA),
-            letterSpacing = 1.2.sp,
-          )
-
-          IconButton(
-            onClick = {
-              haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-              onDismiss()
-            },
-            modifier =
-              Modifier.size(40.dp)
-                .background(
-                  Brush.radialGradient(
-                    colors = listOf(Color(0x40374151), Color(0x60111827)),
-                    radius = 40f,
-                  ),
-                  shape = CircleShape,
-                )
-                .border(1.dp, Color(0x40F1F5F9), CircleShape),
-          ) {
-            Icon(
-              imageVector = Icons.Default.Close,
-              contentDescription = "Закрити нагадування",
-              tint = Color(0xFFCBD5E1),
-              modifier = Modifier.size(20.dp),
-            )
-          }
-        }
-
         Box(
-          modifier =
-            Modifier.shadow(
-                elevation = 24.dp,
-                shape = CircleShape,
-                ambientColor = Color(0x80A78BFA),
-                spotColor = Color(0xA0A78BFA),
-              )
-              .background(
-                brush =
-                  Brush.radialGradient(
-                    colors = listOf(Color(0xFF374151), Color(0xFF1F2937), Color(0xFF111827)),
-                    center = Offset(0.5f, 0.3f),
-                    radius = 120f,
-                  ),
-                shape = CircleShape,
-              )
-              .border(
-                2.dp,
-                Brush.verticalGradient(
-                  colors = listOf(Color(0x60A78BFA), Color(0x40818CF8), Color(0x30A78BFA))
-                ),
-                CircleShape,
-              )
-              .size(140.dp)
-              .padding(20.dp),
-          contentAlignment = Alignment.Center,
-        ) {
-          Text(
-            text = goalEmoji,
-            fontSize = 68.sp,
-            modifier = Modifier.scale(pulse),
-            textAlign = TextAlign.Center,
-          )
-        }
-
-        Column(
-          horizontalAlignment = Alignment.CenterHorizontally,
-          verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-          Text(
-            text = goalText,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Black,
-            textAlign = TextAlign.Center,
-            color = Color(0xFFF8FAFC),
-            lineHeight = 30.sp,
-          )
-
-          if (!goalDescription.isNullOrBlank()) {
-            Text(
-              text = goalDescription,
-              fontSize = 16.sp,
-              fontWeight = FontWeight.Medium,
-              textAlign = TextAlign.Center,
-              color = Color(0xFFCBD5E1),
-              lineHeight = 22.sp,
-            )
-          }
-
-          if (!extraInfo.isNullOrBlank()) {
-            Text(
-              text = extraInfo,
-              fontSize = 14.sp,
-              textAlign = TextAlign.Center,
-              color = Color(0xFF94A3B8),
-              lineHeight = 20.sp,
-            )
-          }
-
-          Text(
-            text = "Час діяти — ваше майбутнє залежить від цього моменту.",
-            fontSize = 15.sp,
-            textAlign = TextAlign.Center,
-            color = Color(0xFF64748B),
-            lineHeight = 21.sp,
-            fontWeight = FontWeight.Medium,
-          )
-        }
-
-        Box(
-          modifier =
-            Modifier.fillMaxWidth()
-              .height(8.dp)
-              .background(color = Color(0xFF374151), shape = RoundedCornerShape(4.dp))
-              .border(1.dp, Color(0x30F1F5F9), RoundedCornerShape(4.dp))
-        ) {
-          Box(
             modifier =
-              Modifier.fillMaxWidth(timeRemaining / 300f)
-                .fillMaxHeight()
-                .background(
-                  Brush.horizontalGradient(
-                    colors = listOf(Color(0xFFA78BFA), Color(0xFF818CF8), Color(0xFF06B6D4))
-                  ),
-                  shape = RoundedCornerShape(4.dp),
-                )
-          )
-        }
-
-        Text(
-          text =
-            "Авто-закриття: ${timeRemaining / 60}:${(timeRemaining % 60).toString().padStart(2, '0')}",
-          fontSize = 13.sp,
-          color = Color(0xFFEF4444),
-          fontWeight = FontWeight.Bold,
+                Modifier.size(400.dp)
+                    .scale(backgroundPulse)
+                    .background(
+                        brush =
+                            Brush.radialGradient(
+                                colors = listOf(Color(0x20A78BFA), Color(0x10818CF8), Color.Transparent),
+                                center = Offset(0.3f, 0.7f),
+                                radius = 400f,
+                            ),
+                        shape = CircleShape,
+                    )
+                    .align(Alignment.TopEnd)
+                    .offset(x = 100.dp, y = (-50).dp),
         )
 
-        Button(
-          onClick = {
-            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            onComplete()
-          },
-          modifier = Modifier.fillMaxWidth().height(60.dp),
-          shape = RoundedCornerShape(18.dp),
-          colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-          border =
-            BorderStroke(
-              2.dp,
-              Brush.horizontalGradient(colors = listOf(Color(0xFF10B981), Color(0xFF059669))),
-            ),
-          elevation =
-            ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 8.dp),
-        ) {
-          Box(
+        Box(
             modifier =
-              Modifier.fillMaxSize()
-                .background(
-                  Brush.horizontalGradient(colors = listOf(Color(0xFF10B981), Color(0xFF059669))),
-                  shape = RoundedCornerShape(16.dp),
+                Modifier.size(350.dp)
+                    .scale(1.2f - (backgroundPulse - 0.8f))
+                    .background(
+                        brush =
+                            Brush.radialGradient(
+                                colors = listOf(Color(0x206366F1), Color(0x0F6366F1), Color.Transparent),
+                                center = Offset(0.8f, 0.2f),
+                                radius = 350f,
+                            ),
+                        shape = CircleShape,
+                    )
+                    .align(Alignment.BottomStart)
+                    .offset(x = (-80).dp, y = 80.dp),
+        )
+
+        Card(
+            modifier = Modifier.fillMaxWidth(0.92f).wrapContentHeight().padding(20.dp),
+            shape = RoundedCornerShape(32.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xE61E293B)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 32.dp),
+            border =
+                BorderStroke(
+                    1.5.dp,
+                    Brush.verticalGradient(
+                        colors = listOf(Color(0x60A78BFA), Color(0x30818CF8), Color(0x20A78BFA)),
+                    ),
                 ),
-            contentAlignment = Alignment.Center,
-          ) {
-            Row(
-              verticalAlignment = Alignment.CenterVertically,
-              horizontalArrangement = Arrangement.Center,
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(28.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
-              Icon(
-                imageVector = Icons.Default.Check,
-                contentDescription = "Позначити як виконане",
-                tint = Color.White,
-                modifier = Modifier.size(24.dp),
-              )
-              Spacer(modifier = Modifier.width(12.dp))
-              Text(
-                "ВИКОНАНО",
-                fontSize = 18.sp,
-                color = Color.White,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 0.5.sp,
-              )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "НАГАДУВАННЯ",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color(0xFFA78BFA),
+                        letterSpacing = 1.2.sp,
+                    )
+
+                    IconButton(
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onDismiss()
+                        },
+                        modifier =
+                            Modifier.size(40.dp)
+                                .background(
+                                    Brush.radialGradient(
+                                        colors = listOf(Color(0x40374151), Color(0x60111827)),
+                                        radius = 40f,
+                                    ),
+                                    shape = CircleShape,
+                                )
+                                .border(1.dp, Color(0x40F1F5F9), CircleShape),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Закрити нагадування",
+                            tint = Color(0xFFCBD5E1),
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
+
+                Box(
+                    modifier =
+                        Modifier.shadow(
+                            elevation = 24.dp,
+                            shape = CircleShape,
+                            ambientColor = Color(0x80A78BFA),
+                            spotColor = Color(0xA0A78BFA),
+                        )
+                            .background(
+                                brush =
+                                    Brush.radialGradient(
+                                        colors = listOf(Color(0xFF374151), Color(0xFF1F2937), Color(0xFF111827)),
+                                        center = Offset(0.5f, 0.3f),
+                                        radius = 120f,
+                                    ),
+                                shape = CircleShape,
+                            )
+                            .border(
+                                2.dp,
+                                Brush.verticalGradient(
+                                    colors = listOf(Color(0x60A78BFA), Color(0x40818CF8), Color(0x30A78BFA)),
+                                ),
+                                CircleShape,
+                            )
+                            .size(140.dp)
+                            .padding(20.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = goalEmoji,
+                        fontSize = 68.sp,
+                        modifier = Modifier.scale(pulse),
+                        textAlign = TextAlign.Center,
+                    )
+                }
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text(
+                        text = goalText,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Black,
+                        textAlign = TextAlign.Center,
+                        color = Color(0xFFF8FAFC),
+                        lineHeight = 30.sp,
+                    )
+
+                    if (!goalDescription.isNullOrBlank()) {
+                        Text(
+                            text = goalDescription,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            textAlign = TextAlign.Center,
+                            color = Color(0xFFCBD5E1),
+                            lineHeight = 22.sp,
+                        )
+                    }
+
+                    if (!extraInfo.isNullOrBlank()) {
+                        Text(
+                            text = extraInfo,
+                            fontSize = 14.sp,
+                            textAlign = TextAlign.Center,
+                            color = Color(0xFF94A3B8),
+                            lineHeight = 20.sp,
+                        )
+                    }
+
+                    Text(
+                        text = "Час діяти — ваше майбутнє залежить від цього моменту.",
+                        fontSize = 15.sp,
+                        textAlign = TextAlign.Center,
+                        color = Color(0xFF64748B),
+                        lineHeight = 21.sp,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+
+                Box(
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .height(8.dp)
+                            .background(color = Color(0xFF374151), shape = RoundedCornerShape(4.dp))
+                            .border(1.dp, Color(0x30F1F5F9), RoundedCornerShape(4.dp)),
+                ) {
+                    Box(
+                        modifier =
+                            Modifier.fillMaxWidth(timeRemaining / 300f)
+                                .fillMaxHeight()
+                                .background(
+                                    Brush.horizontalGradient(
+                                        colors = listOf(Color(0xFFA78BFA), Color(0xFF818CF8), Color(0xFF06B6D4)),
+                                    ),
+                                    shape = RoundedCornerShape(4.dp),
+                                ),
+                    )
+                }
+
+                Text(
+                    text =
+                        "Авто-закриття: ${timeRemaining / 60}:${(timeRemaining % 60).toString().padStart(2, '0')}",
+                    fontSize = 13.sp,
+                    color = Color(0xFFEF4444),
+                    fontWeight = FontWeight.Bold,
+                )
+
+                Button(
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onComplete()
+                    },
+                    modifier = Modifier.fillMaxWidth().height(60.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                    border =
+                        BorderStroke(
+                            2.dp,
+                            Brush.horizontalGradient(colors = listOf(Color(0xFF10B981), Color(0xFF059669))),
+                        ),
+                    elevation =
+                        ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 8.dp),
+                ) {
+                    Box(
+                        modifier =
+                            Modifier.fillMaxSize()
+                                .background(
+                                    Brush.horizontalGradient(colors = listOf(Color(0xFF10B981), Color(0xFF059669))),
+                                    shape = RoundedCornerShape(16.dp),
+                                ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = "Позначити як виконане",
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp),
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                "ВИКОНАНО",
+                                fontSize = 18.sp,
+                                color = Color.White,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 0.5.sp,
+                            )
+                        }
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    OutlinedButton(
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onSnooze()
+                        },
+                        modifier = Modifier.weight(1f).height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        border =
+                            BorderStroke(
+                                1.5.dp,
+                                Brush.horizontalGradient(colors = listOf(Color(0x60F59E0B), Color(0x60D97706))),
+                            ),
+                        colors =
+                            ButtonDefaults.outlinedButtonColors(
+                                containerColor = Color(0x20F59E0B),
+                                contentColor = Color(0xFFD97706),
+                            ),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Snooze,
+                            contentDescription = "Відкласти на 10 хв",
+                            modifier = Modifier.size(22.dp),
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "ВІДКЛАСТИ",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.3.sp,
+                        )
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onDismiss()
+                        },
+                        modifier = Modifier.weight(1f).height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        border =
+                            BorderStroke(
+                                1.5.dp,
+                                Brush.horizontalGradient(colors = listOf(Color(0x60EF4444), Color(0x60DC2626))),
+                            ),
+                        colors =
+                            ButtonDefaults.outlinedButtonColors(
+                                containerColor = Color(0x20EF4444),
+                                contentColor = Color(0xFFDC2626),
+                            ),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Пропустити нагадування",
+                            modifier = Modifier.size(22.dp),
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "ПРОПУСТИТИ",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.3.sp,
+                        )
+                    }
+                }
+
+                Text(
+                    text = "Це нагадування не зникне, поки ви не виберете дію",
+                    fontSize = 12.sp,
+                    color = Color(0xFF64748B),
+                    textAlign = TextAlign.Center,
+                    fontWeight = FontWeight.Medium,
+                    lineHeight = 16.sp,
+                )
+
+                Box(
+                    modifier =
+                        Modifier.width(60.dp)
+                            .height(3.dp)
+                            .background(
+                                Brush.horizontalGradient(
+                                    colors = listOf(Color.Transparent, Color(0xFF475569), Color.Transparent),
+                                ),
+                                shape = RoundedCornerShape(1.5.dp),
+                            ),
+                )
             }
-          }
         }
-
-        Row(
-          modifier = Modifier.fillMaxWidth(),
-          horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-          OutlinedButton(
-            onClick = {
-              haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-              onSnooze()
-            },
-            modifier = Modifier.weight(1f).height(56.dp),
-            shape = RoundedCornerShape(16.dp),
-            border =
-              BorderStroke(
-                1.5.dp,
-                Brush.horizontalGradient(colors = listOf(Color(0x60F59E0B), Color(0x60D97706))),
-              ),
-            colors =
-              ButtonDefaults.outlinedButtonColors(
-                containerColor = Color(0x20F59E0B),
-                contentColor = Color(0xFFD97706),
-              ),
-          ) {
-            Icon(
-              imageVector = Icons.Default.Snooze,
-              contentDescription = "Відкласти на 10 хв",
-              modifier = Modifier.size(22.dp),
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-              "ВІДКЛАСТИ",
-              fontSize = 15.sp,
-              fontWeight = FontWeight.Bold,
-              letterSpacing = 0.3.sp,
-            )
-          }
-
-          OutlinedButton(
-            onClick = {
-              haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-              onDismiss()
-            },
-            modifier = Modifier.weight(1f).height(56.dp),
-            shape = RoundedCornerShape(16.dp),
-            border =
-              BorderStroke(
-                1.5.dp,
-                Brush.horizontalGradient(colors = listOf(Color(0x60EF4444), Color(0x60DC2626))),
-              ),
-            colors =
-              ButtonDefaults.outlinedButtonColors(
-                containerColor = Color(0x20EF4444),
-                contentColor = Color(0xFFDC2626),
-              ),
-          ) {
-            Icon(
-              imageVector = Icons.Default.Close,
-              contentDescription = "Пропустити нагадування",
-              modifier = Modifier.size(22.dp),
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-              "ПРОПУСТИТИ",
-              fontSize = 15.sp,
-              fontWeight = FontWeight.Bold,
-              letterSpacing = 0.3.sp,
-            )
-          }
-        }
-
-        Text(
-          text = "Це нагадування не зникне, поки ви не виберете дію",
-          fontSize = 12.sp,
-          color = Color(0xFF64748B),
-          textAlign = TextAlign.Center,
-          fontWeight = FontWeight.Medium,
-          lineHeight = 16.sp,
-        )
-
-        Box(
-          modifier =
-            Modifier.width(60.dp)
-              .height(3.dp)
-              .background(
-                Brush.horizontalGradient(
-                  colors = listOf(Color.Transparent, Color(0xFF475569), Color.Transparent)
-                ),
-                shape = RoundedCornerShape(1.5.dp),
-              )
-        )
-      }
     }
-  }
 }

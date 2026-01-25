@@ -35,8 +35,6 @@ fun DayDashboardScreen(
 
     Scaffold(
         topBar = {
-            
-            
             TopAppBar(
                 title = {
                     val date = uiState.dayPlan?.date?.let { Date(it) }
@@ -57,7 +55,6 @@ fun DayDashboardScreen(
                 CircularProgressIndicator()
             }
         } else {
-            
             Column(
                 modifier =
                     Modifier

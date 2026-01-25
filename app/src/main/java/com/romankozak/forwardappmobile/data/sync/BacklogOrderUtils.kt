@@ -1,11 +1,16 @@
 package com.romankozak.forwardappmobile.data.sync
 
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
 
 object BacklogOrderUtils {
     private fun orderKey(order: BacklogOrder): String = order.id ?: "${order.listId}:${order.itemId}"
-    private fun orderKey(listId: String, itemId: String, id: String?): String = id ?: "$listId:$itemId"
+
+    private fun orderKey(
+        listId: String,
+        itemId: String,
+        id: String?,
+    ): String = id ?: "$listId:$itemId"
 
     private fun Long?.orZero() = this ?: 0L
 
@@ -15,18 +20,20 @@ object BacklogOrderUtils {
         val isDeleted: Boolean,
     )
 
-    private fun BacklogOrder.freshness() = Freshness(
-        orderVersion = this.orderVersion.orZero(),
-        updatedAt = (this.updatedAt ?: this.orderVersion).orZero(),
-        isDeleted = this.isDeleted,
-    )
+    private fun BacklogOrder.freshness() =
+        Freshness(
+            orderVersion = this.orderVersion.orZero(),
+            updatedAt = (this.updatedAt ?: this.orderVersion).orZero(),
+            isDeleted = this.isDeleted,
+        )
 
-    private fun BacklogOrder.normalized(): BacklogOrder = this.copy(
-        orderVersion = this.orderVersion.orZero(),
-        updatedAt = this.updatedAt ?: this.orderVersion,
-        syncedAt = this.syncedAt ?: 0L,
-        isDeleted = this.isDeleted,
-    )
+    private fun BacklogOrder.normalized(): BacklogOrder =
+        this.copy(
+            orderVersion = this.orderVersion.orZero(),
+            updatedAt = this.updatedAt ?: this.orderVersion,
+            syncedAt = this.syncedAt ?: 0L,
+            isDeleted = this.isDeleted,
+        )
 
     fun dedupBacklogOrders(orders: List<BacklogOrder>): List<BacklogOrder> =
         orders.groupBy { orderKey(it) }
@@ -40,7 +47,10 @@ object BacklogOrderUtils {
                     )
             }
 
-    fun listItemToBacklogOrder(backlogItem: BacklogItem, now: Long = System.currentTimeMillis()): BacklogOrder {
+    fun listItemToBacklogOrder(
+        backlogItem: BacklogItem,
+        now: Long = System.currentTimeMillis(),
+    ): BacklogOrder {
         val updated = backlogItem.updatedAt ?: backlogItem.version ?: now
         val orderVersion = backlogItem.version ?: updated
         return BacklogOrder(
@@ -94,9 +104,10 @@ object BacklogOrderUtils {
         val seededOrders = orderMap.values.toList()
         val listWithOrders = applyBacklogOrders(backlogItems, seededOrders)
         // regenerate orders from applied listItems to keep freshness aligned
-        val normalizedOrders = dedupBacklogOrders(
-            seededOrders + listWithOrders.map { listItemToBacklogOrder(it, now) },
-        )
+        val normalizedOrders =
+            dedupBacklogOrders(
+                seededOrders + listWithOrders.map { listItemToBacklogOrder(it, now) },
+            )
         val appliedList = applyBacklogOrders(listWithOrders, normalizedOrders)
         return NormalizedBacklogOrderResult(
             backlogItems = appliedList,

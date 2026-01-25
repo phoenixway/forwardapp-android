@@ -3,7 +3,6 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.comp
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.widget.Toast
-import androidx.core.net.toUri
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.text.InlineTextContent
@@ -24,6 +23,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import java.net.URLEncoder
 
 @Composable
@@ -56,7 +56,7 @@ fun MarkdownText(
 
     val (fullAnnotatedString, inlineContentMap) =
         remember(text, isCompleted) {
-val inlineContentRegex =
+            val inlineContentRegex =
                 Regex(
                     "(\\*\\*|__)(.*?)\\1" +
                         "|(\\*|_)(.*?)\\3" +

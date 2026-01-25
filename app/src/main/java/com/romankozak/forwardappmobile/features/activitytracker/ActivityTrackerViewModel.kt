@@ -3,11 +3,11 @@ package com.romankozak.forwardappmobile.features.activitytracker
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.domain.reminders.cancelForActivityRecord
 import com.romankozak.forwardappmobile.domain.reminders.scheduleForActivityRecord
+import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -153,10 +153,13 @@ class ActivityTrackerViewModel
             onEditDialogDismiss()
         }
 
-        fun onAddCompletedAction(text: String, xpGained: Int?, antyXp: Int?) =
-            viewModelScope.launch {
-                repository.addCompletedActivity(text, xpGained, antyXp)
-            }
+        fun onAddCompletedAction(
+            text: String,
+            xpGained: Int?,
+            antyXp: Int?,
+        ) = viewModelScope.launch {
+            repository.addCompletedActivity(text, xpGained, antyXp)
+        }
 
         fun onRestartActivity(record: ActivityRecord) =
             viewModelScope.launch {

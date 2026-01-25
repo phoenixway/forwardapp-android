@@ -2,14 +2,14 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.comp
 
 import android.util.Log
 import androidx.compose.ui.text.input.TextFieldValue
-import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
-import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
-import com.romankozak.forwardappmobile.features.recent.data.models.RecentItemType
-import com.romankozak.forwardappmobile.data.repository.ProjectRepository
+import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.domain.ner.ReminderParser
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
+import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
+import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.GoalActionType
 import com.romankozak.forwardappmobile.features.recent.data.models.RecentItem
+import com.romankozak.forwardappmobile.features.recent.data.models.RecentItemType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -58,7 +58,7 @@ class SmartDebouncer(
 }
 
 class InputHandler(
-    private val projectRepository: ProjectRepository,
+    private val contextRepository: ContextRepository,
     private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
     private val listItemRepository: com.romankozak.forwardappmobile.data.repository.ListItemRepository,
     private val scope: CoroutineScope,
@@ -270,7 +270,7 @@ class InputHandler(
                     name
                 }
             val link = RelatedLink(type = LinkType.URL, target = url, displayName = displayName)
-            val newItemId = projectRepository.addLinkItemToProjectFromLink(projectIdFlow.value, link)
+            val newItemId = contextRepository.addLinkItemToProjectFromLink(projectIdFlow.value, link)
             resultListener.updateInputState(newlyAddedItemId = newItemId)
         }
         onDismissLinkDialogs()
@@ -283,7 +283,7 @@ class InputHandler(
         }
         scope.launch(Dispatchers.IO) {
             val link = RelatedLink(type = LinkType.OBSIDIAN, target = noteName, displayName = noteName)
-            val newItemId = projectRepository.addLinkItemToProjectFromLink(projectIdFlow.value, link)
+            val newItemId = contextRepository.addLinkItemToProjectFromLink(projectIdFlow.value, link)
             resultListener.updateInputState(newlyAddedItemId = newItemId)
         }
         onDismissLinkDialogs()

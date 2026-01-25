@@ -11,18 +11,19 @@ import javax.inject.Singleton
  * Отримує набір дескрипторів через ін'єкцію конструктора.
  */
 @Singleton
-class InMemoryCapabilityRegistry @Inject constructor(
-    // Hilt автоматично збирає всі об'єкти CapabilityDescriptor,
-    // які були позначені як @IntoSet у своїх модулях.
-    private val availableCapabilities: Set<@JvmSuppressWildcards CapabilityDescriptor>
-) : CapabilityRegistry {
+class InMemoryCapabilityRegistry
+    @Inject
+    constructor(
+        // Hilt автоматично збирає всі об'єкти CapabilityDescriptor,
+        // які були позначені як @IntoSet у своїх модулях.
+        private val availableCapabilities: Set<@JvmSuppressWildcards CapabilityDescriptor>,
+    ) : CapabilityRegistry {
+        // Створюємо карту для швидкого доступу за ID.
+        private val map = availableCapabilities.associateBy { it.id }
 
-    // Створюємо карту для швидкого доступу за ID.
-    private val map = availableCapabilities.associateBy { it.id }
+        /** @inheritDoc */
+        override fun all(): Set<CapabilityDescriptor> = map.values.toSet()
 
-    /** @inheritDoc */
-    override fun all(): Set<CapabilityDescriptor> = map.values.toSet()
-
-    /** @inheritDoc */
-    override fun get(id: CapabilityId): CapabilityDescriptor? = map[id]
-}
+        /** @inheritDoc */
+        override fun get(id: CapabilityId): CapabilityDescriptor? = map[id]
+    }

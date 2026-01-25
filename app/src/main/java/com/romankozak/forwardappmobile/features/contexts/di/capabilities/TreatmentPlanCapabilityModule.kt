@@ -12,7 +12,6 @@ import dagger.multibindings.IntoSet
 @Module
 @InstallIn(SingletonComponent::class)
 object TreatmentPlanCapabilityModule {
-
     @Provides
     @IntoSet
     fun provideTreatmentPlanCapability(): CapabilityDescriptor {

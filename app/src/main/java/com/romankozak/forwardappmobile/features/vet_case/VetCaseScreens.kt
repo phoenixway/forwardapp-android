@@ -19,14 +19,15 @@ fun VetCaseSummaryScreen() {
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("Summary Screen") })
-        }
+        },
     ) { paddingValues ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
             verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(text = "Vet Case Summary Screen", style = MaterialTheme.typography.headlineMedium)
             Text(text = "This is a placeholder for the Vet Case Summary.", style = MaterialTheme.typography.bodyMedium)
@@ -41,14 +42,15 @@ fun VetCaseHistoryScreen() {
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("History Screen") })
-        }
+        },
     ) { paddingValues ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
             verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(text = "Vet Case History Screen", style = MaterialTheme.typography.headlineMedium)
             Text(text = "This is a placeholder for the Vet Case History.", style = MaterialTheme.typography.bodyMedium)

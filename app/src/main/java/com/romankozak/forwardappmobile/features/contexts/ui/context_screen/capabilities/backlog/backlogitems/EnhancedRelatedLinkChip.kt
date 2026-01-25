@@ -47,38 +47,40 @@ internal fun EnhancedRelatedLinkChip(
     )
 
     val isSubProject = link.type == LinkType.PROJECT
-    val backgroundColor = if (isSubProject) {
-        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
-    } else {
-        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
-    }
-    val contentColor = if (isSubProject) {
-        MaterialTheme.colorScheme.secondary
-    } else {
-        MaterialTheme.colorScheme.primary
-    }
-
+    val backgroundColor =
+        if (isSubProject) {
+            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
+        } else {
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+        }
+    val contentColor =
+        if (isSubProject) {
+            MaterialTheme.colorScheme.secondary
+        } else {
+            MaterialTheme.colorScheme.primary
+        }
 
     Surface(
-        modifier = Modifier
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onPress = {
-                        isPressed = true
-                        tryAwaitRelease()
-                        isPressed = false
-                    },
-                    onTap = { onClick() },
-                )
-            }
-            .semantics {
-                contentDescription = "${link.type?.name ?: "LINK"}: ${link.displayName ?: link.target}"
-                role = Role.Button
-            },
+        modifier =
+            Modifier
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onPress = {
+                            isPressed = true
+                            tryAwaitRelease()
+                            isPressed = false
+                        },
+                        onTap = { onClick() },
+                    )
+                }
+                .semantics {
+                    contentDescription = "${link.type?.name ?: "LINK"}: ${link.displayName ?: link.target}"
+                    role = Role.Button
+                },
         shape = RoundedCornerShape(16.dp),
         color = backgroundColor,
         shadowElevation = 1.dp,
@@ -90,12 +92,13 @@ internal fun EnhancedRelatedLinkChip(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Icon(
-                imageVector = when (link.type) {
-                    LinkType.PROJECT -> Icons.Default.AccountTree
-                    LinkType.URL -> Icons.Default.Link
-                    LinkType.OBSIDIAN -> Icons.Default.Book
-                    null -> Icons.Default.BrokenImage
-                },
+                imageVector =
+                    when (link.type) {
+                        LinkType.PROJECT -> Icons.Default.AccountTree
+                        LinkType.URL -> Icons.Default.Link
+                        LinkType.OBSIDIAN -> Icons.Default.Book
+                        null -> Icons.Default.BrokenImage
+                    },
                 contentDescription = null,
                 tint = contentColor,
                 modifier = Modifier.size(14.dp),

@@ -12,9 +12,9 @@ import dagger.hilt.android.components.ViewModelComponent
 @Module
 @InstallIn(ViewModelComponent::class)
 abstract class ViewModelModule {
-  @Binds
-  abstract fun bindPlanningSearchAdapter(searchUseCase: SearchUseCase): PlanningSearchAdapter
+    @Binds
+    abstract fun bindPlanningSearchAdapter(searchUseCase: SearchUseCase): PlanningSearchAdapter
 
-  @Binds
-  abstract fun bindPlanningSettingsProvider(settingsRepository: SettingsRepository): PlanningSettingsProvider
+    @Binds
+    abstract fun bindPlanningSettingsProvider(settingsRepository: SettingsRepository): PlanningSettingsProvider
 }

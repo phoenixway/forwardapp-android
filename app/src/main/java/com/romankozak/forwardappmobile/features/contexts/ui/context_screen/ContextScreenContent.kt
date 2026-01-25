@@ -9,29 +9,29 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.material.icons.filled.Attachment
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Link
-import androidx.compose.material.icons.filled.Attachment
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.Alignment
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextArtifact
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextViewMode
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.BacklogListScreen
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ProjectDashboardView
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextArtifact
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextViewMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.attachments.AttachmentsView
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.BacklogListScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.inbox.InboxView
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ProjectDashboardView
 
 private const val TAG = "BACKLOG_UI_DEBUG"
 
@@ -58,8 +58,6 @@ fun GoalDetailContent(
     val isSelectionModeActive by viewModel.isSelectionModeActive.collectAsStateWithLifecycle()
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
 
-
-
     when (uiState.currentView) {
         ContextViewMode.BACKLOG -> {
             val listContent by viewModel.listContent.collectAsStateWithLifecycle()
@@ -77,15 +75,17 @@ fun GoalDetailContent(
                 onLongClick = { item -> viewModel.toggleSelection(item.backlogItem.id) },
                 onCheckedChange = { item, isChecked ->
                     when (item) {
-                        is BacklogItemContent.GoalItem -> viewModel.itemActionHandler.toggleGoalCompletedWithState(
-                            item.goal,
-                            isChecked
-                        )
+                        is BacklogItemContent.GoalItem ->
+                            viewModel.itemActionHandler.toggleGoalCompletedWithState(
+                                item.goal,
+                                isChecked,
+                            )
 
-                        is BacklogItemContent.SublistItem -> viewModel.onSubprojectCompletedChanged(
-                            item.project,
-                            isChecked
-                        )
+                        is BacklogItemContent.SublistItem ->
+                            viewModel.onSubprojectCompletedChanged(
+                                item.project,
+                                isChecked,
+                            )
 
                         else -> {}
                     }
@@ -97,13 +97,13 @@ fun GoalDetailContent(
                 onStartTracking = { item -> viewModel.onStartTrackingRequest(item) },
                 onShowGoalTransportMenu = { item ->
                     viewModel.itemActionHandler.onGoalTransportInitiated(
-                        item
+                        item,
                     ) {}
                 },
                 onRelatedLinkClick = viewModel.itemActionHandler::onRelatedLinkClick,
                 onRemindersClick = onRemindersClick,
                 onCopyContent = viewModel.itemActionHandler::copyContentRequest,
-                onResetSwipe = viewModel::resetSwipeStatesExcept
+                onResetSwipe = viewModel::resetSwipeStatesExcept,
             )
         }
         ContextViewMode.INBOX -> {
@@ -141,20 +141,21 @@ fun GoalDetailContent(
             AttachmentsView(
                 modifier = modifier,
                 viewModel = viewModel,
-                listContent = listContent
+                listContent = listContent,
             )
         }
         ContextViewMode.DASHBOARD -> {
-            val attachments = listContent.filter {
-                it is BacklogItemContent.LinkItem || it is BacklogItemContent.NoteDocumentItem || it is BacklogItemContent.ChecklistItem
-            }
+            val attachments =
+                listContent.filter {
+                    it is BacklogItemContent.LinkItem || it is BacklogItemContent.NoteDocumentItem || it is BacklogItemContent.ChecklistItem
+                }
             DashboardOverview(
                 modifier = modifier,
                 project = goalList,
                 attachments = attachments,
                 onAttachmentClick = { item -> viewModel.itemActionHandler.onItemClick(item) },
                 onShowProperties = onShowProjectProperties,
-                enableAttachments = uiState.enableAttachments
+                enableAttachments = uiState.enableAttachments,
             )
         }
     }
@@ -167,7 +168,7 @@ private fun DashboardOverview(
     attachments: List<BacklogItemContent>,
     onAttachmentClick: (BacklogItemContent) -> Unit,
     onShowProperties: () -> Unit,
-    enableAttachments: Boolean
+    enableAttachments: Boolean,
 ) {
     Column(
         modifier = modifier.fillMaxSize().padding(16.dp),
@@ -187,17 +188,19 @@ private fun DashboardOverview(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                val statusText = project?.projectStatusText?.takeIf { it.isNotBlank() }
-                    ?: project?.projectStatus
-                if (!statusText.isNullOrBlank()){
+                val statusText =
+                    project?.projectStatusText?.takeIf { it.isNotBlank() }
+                        ?: project?.projectStatus
+                if (!statusText.isNullOrBlank()) {
                     Text(
                         text = statusText,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                        modifier =
+                            Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
                     )
                 }
             }
@@ -213,7 +216,7 @@ private fun DashboardOverview(
                     text = "Attachments",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 8.dp)
+                    modifier = Modifier.padding(bottom = 8.dp),
                 )
                 if (attachments.isEmpty()) {
                     Text(
@@ -224,33 +227,46 @@ private fun DashboardOverview(
                 } else {
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(vertical = 4.dp)
+                        contentPadding = PaddingValues(vertical = 4.dp),
                     ) {
                         items(attachments) { item ->
-                            val (icon, title) = when (item) {
-                                is BacklogItemContent.LinkItem ->
-                                    Icons.Outlined.Link to (item.link.linkData.displayName?.takeIf { it.isNotBlank() }
-                                        ?: item.link.linkData.target)
-                                is BacklogItemContent.NoteDocumentItem -> Icons.Outlined.Description to item.document.name.ifBlank { "Document" }
-                                is BacklogItemContent.ChecklistItem -> Icons.Outlined.Checklist to (item.checklist.name ?: "Checklist")
-                                else -> Icons.Default.Attachment to "Attachment"
-                            }
+                            val (icon, title) =
+                                when (item) {
+                                    is BacklogItemContent.LinkItem ->
+                                        Icons.Outlined.Link to (
+                                            item.link.linkData.displayName?.takeIf { it.isNotBlank() }
+                                                ?: item.link.linkData.target
+                                        )
+                                    is BacklogItemContent.NoteDocumentItem -> Icons.Outlined.Description to item.document.name.ifBlank { "Document" }
+                                    is BacklogItemContent.ChecklistItem -> Icons.Outlined.Checklist to (item.checklist.name ?: "Checklist")
+                                    else -> Icons.Default.Attachment to "Attachment"
+                                }
                             Card(
                                 onClick = { onAttachmentClick(item) },
-                                modifier = Modifier
-                                    .width(120.dp)
-                                    .height(100.dp),
+                                modifier =
+                                    Modifier
+                                        .width(120.dp)
+                                        .height(100.dp),
                                 shape = RoundedCornerShape(12.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                                colors =
+                                    CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                    ),
                             ) {
                                 Column(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(12.dp),
+                                    modifier =
+                                        Modifier
+                                            .fillMaxSize()
+                                            .padding(12.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
+                                    verticalArrangement = Arrangement.Center,
                                 ) {
-                                    Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                                    Icon(
+                                        icon,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(24.dp),
+                                    )
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Text(
                                         text = title,
@@ -258,7 +274,7 @@ private fun DashboardOverview(
                                         color = MaterialTheme.colorScheme.onSurface,
                                         maxLines = 2,
                                         overflow = TextOverflow.Ellipsis,
-                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                     )
                                 }
                             }
@@ -271,28 +287,34 @@ private fun DashboardOverview(
 }
 
 @Composable
-private fun AttachmentRowSummary(item: BacklogItemContent, onClick: () -> Unit) {
-    val title = when (item) {
-        is BacklogItemContent.LinkItem ->
-            item.link.linkData.displayName?.takeIf { it.isNotBlank() }
-                ?: item.link.linkData.target
-        is BacklogItemContent.NoteDocumentItem -> item.document.name.ifBlank { "Document" }
-        is BacklogItemContent.ChecklistItem -> item.checklist.name ?: "Checklist"
-        else -> "Attachment"
-    }
+private fun AttachmentRowSummary(
+    item: BacklogItemContent,
+    onClick: () -> Unit,
+) {
+    val title =
+        when (item) {
+            is BacklogItemContent.LinkItem ->
+                item.link.linkData.displayName?.takeIf { it.isNotBlank() }
+                    ?: item.link.linkData.target
+            is BacklogItemContent.NoteDocumentItem -> item.document.name.ifBlank { "Document" }
+            is BacklogItemContent.ChecklistItem -> item.checklist.name ?: "Checklist"
+            else -> "Attachment"
+        }
     Row(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { onClick() }
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+        modifier =
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { onClick() }
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
+                .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        val icon = when (item) {
-            is BacklogItemContent.LinkItem -> Icons.Outlined.Link
-            is BacklogItemContent.NoteDocumentItem -> Icons.Outlined.Description
-            is BacklogItemContent.ChecklistItem -> Icons.Outlined.Checklist
-            else -> Icons.Default.Attachment
-        }
+        val icon =
+            when (item) {
+                is BacklogItemContent.LinkItem -> Icons.Outlined.Link
+                is BacklogItemContent.NoteDocumentItem -> Icons.Outlined.Description
+                is BacklogItemContent.ChecklistItem -> Icons.Outlined.Checklist
+                else -> Icons.Default.Attachment
+            }
         Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
         Text(
             text = title,

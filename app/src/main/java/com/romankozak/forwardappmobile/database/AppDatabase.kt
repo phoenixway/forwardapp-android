@@ -18,67 +18,66 @@ import com.romankozak.forwardappmobile.data.dao.ScriptDao
 import com.romankozak.forwardappmobile.data.dao.SystemAppDao
 import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
 import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecordFts
+import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao
+import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.ai.data.models.AiEventEntity
+import com.romankozak.forwardappmobile.features.ai.data.models.AiInsightEntity
 import com.romankozak.forwardappmobile.features.ai.data.models.ChatMessageEntity
 import com.romankozak.forwardappmobile.features.ai.data.models.ConversationEntity
 import com.romankozak.forwardappmobile.features.ai.data.models.ConversationFolderEntity
-import com.romankozak.forwardappmobile.features.daymanagement.data.models.DailyMetric
-import com.romankozak.forwardappmobile.features.daymanagement.data.models.DailyPlanConverters
-import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayPlan
-import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask
-import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteFts
-import com.romankozak.forwardappmobile.features.lifestate.data.models.LifeSystemStateEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentItemEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextArtifact
-import com.romankozak.forwardappmobile.features.recent.data.models.RecentItem
-import com.romankozak.forwardappmobile.features.daymanagement.data.models.RecurringTask
-import com.romankozak.forwardappmobile.features.daymanagement.data.models.RecurringTaskFts
-import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
-import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.SystemAppEntity
-
-import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao
-import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
-import com.romankozak.forwardappmobile.features.ai.data.models.AiInsightEntity
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistItemEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.ContextAttachmentCrossRef
+import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteFts
+import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentItemEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEntity
 import com.romankozak.forwardappmobile.features.contexts.data.dao.BacklogOrderDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextArtifactDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextArtifactDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
-import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistItemEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.ContextAttachmentCrossRef
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextArtifact
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextConfiguration
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfile
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfileItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextStructureItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextTypeConverter
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextsFts
 import com.romankozak.forwardappmobile.features.contexts.data.models.Converters
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.data.models.GoalFts
 import com.romankozak.forwardappmobile.features.contexts.data.models.InboxRecord
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
-import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.Context
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextsFts
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextConfiguration
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextTypeConverter
 import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedGroupConverter
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfile
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfileItem
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextStructureItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.SystemAppEntity
+import com.romankozak.forwardappmobile.features.daymanagement.data.models.DailyMetric
+import com.romankozak.forwardappmobile.features.daymanagement.data.models.DailyPlanConverters
+import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayPlan
+import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask
+import com.romankozak.forwardappmobile.features.daymanagement.data.models.RecurringTask
+import com.romankozak.forwardappmobile.features.daymanagement.data.models.RecurringTaskFts
+import com.romankozak.forwardappmobile.features.lifestate.data.models.LifeSystemStateEntity
 import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
 import com.romankozak.forwardappmobile.features.missions.data.model.TacticalMission
 import com.romankozak.forwardappmobile.features.missions.data.model.TacticalMissionAttachmentCrossRef
+import com.romankozak.forwardappmobile.features.recent.data.models.RecentItem
+import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 
 @Database(
     entities = [
@@ -130,33 +129,62 @@ import com.romankozak.forwardappmobile.features.missions.data.model.TacticalMiss
 @TypeConverters(Converters::class, DailyPlanConverters::class, ContextTypeConverter::class, ReservedGroupConverter::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun contextDao(): ContextDao
+
     abstract fun goalDao(): GoalDao
+
     abstract fun listItemDao(): ListItemDao
+
     abstract fun backlogOrderDao(): BacklogOrderDao
+
     abstract fun linkItemDao(): LinkItemDao
+
     abstract fun inboxRecordDao(): InboxRecordDao
+
     abstract fun contextManagementDao(): ContextManagementDao
+
     abstract fun noteDocumentDao(): NoteDocumentDao
+
     abstract fun checklistDao(): ChecklistDao
+
     abstract fun structurePresetDao(): StructurePresetDao
+
     abstract fun structurePresetItemDao(): StructurePresetItemDao
+
     abstract fun contextStructureDao(): ContextStructureDao
+
     abstract fun activityRecordDao(): ActivityRecordDao
+
     abstract fun chatDao(): ChatDao
+
     abstract fun conversationFolderDao(): ConversationFolderDao
+
     abstract fun dailyMetricDao(): DailyMetricDao
+
     abstract fun dayPlanDao(): DayPlanDao
+
     abstract fun dayTaskDao(): DayTaskDao
+
     abstract fun legacyNoteDao(): LegacyNoteDao
+
     abstract fun contextArtifactDao(): ContextArtifactDao
+
     abstract fun recentItemDao(): RecentItemDao
+
     abstract fun recurringTaskDao(): RecurringTaskDao
+
     abstract fun reminderDao(): ReminderDao
+
     abstract fun scriptDao(): ScriptDao
+
     abstract fun systemAppDao(): SystemAppDao
+
     abstract fun aiEventDao(): AiEventDao
+
     abstract fun lifeSystemStateDao(): LifeSystemStateDao
+
     abstract fun tacticalMissionDao(): TacticalMissionDao
+
     abstract fun attachmentDao(): AttachmentDao
+
     abstract fun aiInsightDao(): AiInsightDao
 }

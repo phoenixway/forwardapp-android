@@ -1,210 +1,211 @@
 package com.romankozak.forwardappmobile.data.repository
 
-import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
-import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
+import android.util.Log
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.sync.bumpSync
 import com.romankozak.forwardappmobile.data.sync.softDelete
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
+import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Provider
 import javax.inject.Singleton
-import android.util.Log
 
 private const val SYNC_LOG_TAG = "FWD_SYNC_TEST"
 
 @Singleton
-class GoalRepository @Inject constructor(
-    private val goalDao: GoalDao,
-    private val listItemDao: ListItemDao,
-    private val reminderRepository: ReminderRepository,
-    private val contextHandlerProvider: Provider<ContextHandler>,
-    private val contextDao: ContextDao
-)
-{
-    private val contextHandler: ContextHandler by lazy { contextHandlerProvider.get() }
-
-    suspend fun addGoalToProject(
-        title: String,
-        projectId: String,
-        completed: Boolean = false,
-    ): String {
-        val currentTime = System.currentTimeMillis()
-        val newGoal =
-            Goal(
-                id = UUID.randomUUID().toString(),
-                text = title,
-                completed = completed,
-                createdAt = currentTime,
-                updatedAt = currentTime,
-            )
-        goalDao.insertGoal(newGoal)
-        syncContextMarker(newGoal.id, projectId, ContextTextAction.ADD)
-
-        val newBacklogItem =
-            BacklogItem(
-                id = UUID.randomUUID().toString(),
-                projectId = projectId,
-                itemType = BacklogItemTypeValues.GOAL,
-                entityId = newGoal.id,
-                order = -currentTime,
-            )
-        listItemDao.insertItem(newBacklogItem)
-
-        val finalGoalState = goalDao.getGoalById(newGoal.id)!!
-        contextHandler.handleContextsOnCreate(finalGoalState)
-        return newBacklogItem.id
-    }
-
-    @androidx.room.Transaction
-    suspend fun addGoalWithReminder(
-        title: String,
-        projectId: String,
-        reminderTime: Long,
-    ): Goal {
-        val currentTime = System.currentTimeMillis()
-        val newGoal =
-            Goal(
-                id = UUID.randomUUID().toString(),
-                text = title,
-                completed = false,
-                createdAt = currentTime,
-                updatedAt = currentTime,
-            )
-        goalDao.insertGoal(newGoal)
-
-        val newBacklogItem =
-            BacklogItem(
-                id = UUID.randomUUID().toString(),
-                projectId = projectId,
-                itemType = BacklogItemTypeValues.GOAL,
-                entityId = newGoal.id,
-                order = -currentTime,
-            )
-        listItemDao.insertItem(newBacklogItem)
-
-        reminderRepository.createReminder(newGoal.id, "GOAL", reminderTime)
-
-        syncContextMarker(newGoal.id, projectId, ContextTextAction.ADD)
-        contextHandler.handleContextsOnCreate(newGoal)
-        return newGoal
-    }
-
-    suspend fun createGoalLinks(
-        goalIds: List<String>,
-        targetProjectId: String,
+class GoalRepository
+    @Inject
+    constructor(
+        private val goalDao: GoalDao,
+        private val listItemDao: ListItemDao,
+        private val reminderRepository: ReminderRepository,
+        private val contextHandlerProvider: Provider<ContextHandler>,
+        private val contextDao: ContextDao,
     ) {
-        if (goalIds.isNotEmpty()) {
-            val newItems =
-                goalIds.map {
-                    BacklogItem(
-                        id = UUID.randomUUID().toString(),
-                        projectId = targetProjectId,
-                        itemType = BacklogItemTypeValues.GOAL,
-                        entityId = it,
-                        order = -System.currentTimeMillis(),
+        private val contextHandler: ContextHandler by lazy { contextHandlerProvider.get() }
+
+        suspend fun addGoalToProject(
+            title: String,
+            projectId: String,
+            completed: Boolean = false,
+        ): String {
+            val currentTime = System.currentTimeMillis()
+            val newGoal =
+                Goal(
+                    id = UUID.randomUUID().toString(),
+                    text = title,
+                    completed = completed,
+                    createdAt = currentTime,
+                    updatedAt = currentTime,
+                )
+            goalDao.insertGoal(newGoal)
+            syncContextMarker(newGoal.id, projectId, ContextTextAction.ADD)
+
+            val newBacklogItem =
+                BacklogItem(
+                    id = UUID.randomUUID().toString(),
+                    projectId = projectId,
+                    itemType = BacklogItemTypeValues.GOAL,
+                    entityId = newGoal.id,
+                    order = -currentTime,
+                )
+            listItemDao.insertItem(newBacklogItem)
+
+            val finalGoalState = goalDao.getGoalById(newGoal.id)!!
+            contextHandler.handleContextsOnCreate(finalGoalState)
+            return newBacklogItem.id
+        }
+
+        @androidx.room.Transaction
+        suspend fun addGoalWithReminder(
+            title: String,
+            projectId: String,
+            reminderTime: Long,
+        ): Goal {
+            val currentTime = System.currentTimeMillis()
+            val newGoal =
+                Goal(
+                    id = UUID.randomUUID().toString(),
+                    text = title,
+                    completed = false,
+                    createdAt = currentTime,
+                    updatedAt = currentTime,
+                )
+            goalDao.insertGoal(newGoal)
+
+            val newBacklogItem =
+                BacklogItem(
+                    id = UUID.randomUUID().toString(),
+                    projectId = projectId,
+                    itemType = BacklogItemTypeValues.GOAL,
+                    entityId = newGoal.id,
+                    order = -currentTime,
+                )
+            listItemDao.insertItem(newBacklogItem)
+
+            reminderRepository.createReminder(newGoal.id, "GOAL", reminderTime)
+
+            syncContextMarker(newGoal.id, projectId, ContextTextAction.ADD)
+            contextHandler.handleContextsOnCreate(newGoal)
+            return newGoal
+        }
+
+        suspend fun createGoalLinks(
+            goalIds: List<String>,
+            targetProjectId: String,
+        ) {
+            if (goalIds.isNotEmpty()) {
+                val newItems =
+                    goalIds.map {
+                        BacklogItem(
+                            id = UUID.randomUUID().toString(),
+                            projectId = targetProjectId,
+                            itemType = BacklogItemTypeValues.GOAL,
+                            entityId = it,
+                            order = -System.currentTimeMillis(),
+                        )
+                    }
+                listItemDao.insertItems(newItems)
+            }
+        }
+
+        suspend fun copyGoalsToProject(
+            goalIds: List<String>,
+            targetProjectId: String,
+        ) {
+            if (goalIds.isNotEmpty()) {
+                val originalGoals = goalDao.getGoalsByIdsSuspend(goalIds)
+                val newGoals = mutableListOf<Goal>()
+                val newItems = mutableListOf<BacklogItem>()
+
+                originalGoals.forEach {
+                    val newGoal = it.copy(id = UUID.randomUUID().toString())
+                    newGoals.add(newGoal)
+                    newItems.add(
+                        BacklogItem(
+                            id = UUID.randomUUID().toString(),
+                            projectId = targetProjectId,
+                            itemType = BacklogItemTypeValues.GOAL,
+                            entityId = newGoal.id,
+                            order = -System.currentTimeMillis(),
+                        ),
                     )
                 }
-            listItemDao.insertItems(newItems)
-        }
-    }
-
-    suspend fun copyGoalsToProject(
-        goalIds: List<String>,
-        targetProjectId: String,
-    ) {
-        if (goalIds.isNotEmpty()) {
-            val originalGoals = goalDao.getGoalsByIdsSuspend(goalIds)
-            val newGoals = mutableListOf<Goal>()
-            val newItems = mutableListOf<BacklogItem>()
-
-            originalGoals.forEach {
-                val newGoal = it.copy(id = UUID.randomUUID().toString())
-                newGoals.add(newGoal)
-                newItems.add(
-                    BacklogItem(
-                        id = UUID.randomUUID().toString(),
-                        projectId = targetProjectId,
-                        itemType = BacklogItemTypeValues.GOAL,
-                        entityId = newGoal.id,
-                        order = -System.currentTimeMillis(),
-                    ),
-                )
+                goalDao.insertGoals(newGoals)
+                listItemDao.insertItems(newItems)
             }
-            goalDao.insertGoals(newGoals)
-            listItemDao.insertItems(newItems)
-        }
-    }
-
-    suspend fun getGoalById(id: String): Goal? = goalDao.getGoalById(id)
-
-    @androidx.room.Transaction
-    suspend fun deleteGoal(goalId: String) {
-        val now = System.currentTimeMillis()
-        goalDao.getGoalById(goalId)?.let { goal ->
-            Log.d(SYNC_LOG_TAG, "[GoalRepo] Deleting Goal. Original: $goal")
-            val tombstone = goal.softDelete(now)
-            Log.d(SYNC_LOG_TAG, "[GoalRepo] Deleting Goal. Tombstone: $tombstone")
-            goalDao.insertGoal(tombstone)
-        }
-        listItemDao.getListItemByEntityId(goalId)?.let { listItem ->
-            Log.d(SYNC_LOG_TAG, "[GoalRepo] Deleting ListItem. Original: $listItem")
-            val tombstone = listItem.softDelete(now)
-            Log.d(SYNC_LOG_TAG, "[GoalRepo] Deleting ListItem. Tombstone: $tombstone")
-            listItemDao.insertItem(tombstone)
-        }
-    }
-
-    suspend fun updateGoal(goal: Goal) {
-        goalDao.updateGoal(goal.bumpSync())
-    }
-
-    suspend fun updateGoals(goals: List<Goal>) {
-        if (goals.isNotEmpty()) {
-            goalDao.updateGoals(goals.map { it.bumpSync() })
-        }
-    }
-
-    fun getAllGoalsCountFlow(): Flow<Int> = goalDao.getAllGoalsCountFlow()
-
-    fun getAllGoalsFlow(): Flow<List<Goal>> = goalDao.getAllVisibleGoalsFlow()
-
-    suspend fun getAllGoals(): List<Goal> = goalDao.getAll()
-
-    suspend fun findProjectIdForGoal(goalId: String): String? {
-        return listItemDao.findProjectIdForGoal(goalId)
-    }
-
-    private suspend fun syncContextMarker(
-        goalId: String,
-        projectId: String,
-        action: ContextTextAction,
-    ) {
-        val project = contextDao.getProjectById(projectId) ?: return
-        val projectTags = project.tags.orEmpty()
-        if (projectTags.isEmpty()) return
-
-        val tagMap = contextHandler.tagToContextNameMap.value
-        val contextName = tagMap.entries.find { (tagKey, _) -> tagKey in projectTags }?.value ?: return
-        val marker = contextHandler.getContextMarker(contextName) ?: return
-        val goal = goalDao.getGoalById(goalId) ?: return
-
-        var newText = goal.text
-        val hasMarker = goal.text.contains(marker)
-
-        if (action == ContextTextAction.ADD && !hasMarker) {
-            newText = "${goal.text} $marker".trim()
-        } else if (action == ContextTextAction.REMOVE && hasMarker) {
-            newText = goal.text.replace(Regex("""\s*${Regex.escape(marker)}\s*"""), " ").trim()
         }
 
-        if (newText != goal.text) {
-            goalDao.updateGoal(goal.copy(text = newText, updatedAt = System.currentTimeMillis()))
+        suspend fun getGoalById(id: String): Goal? = goalDao.getGoalById(id)
+
+        @androidx.room.Transaction
+        suspend fun deleteGoal(goalId: String) {
+            val now = System.currentTimeMillis()
+            goalDao.getGoalById(goalId)?.let { goal ->
+                Log.d(SYNC_LOG_TAG, "[GoalRepo] Deleting Goal. Original: $goal")
+                val tombstone = goal.softDelete(now)
+                Log.d(SYNC_LOG_TAG, "[GoalRepo] Deleting Goal. Tombstone: $tombstone")
+                goalDao.insertGoal(tombstone)
+            }
+            listItemDao.getListItemByEntityId(goalId)?.let { listItem ->
+                Log.d(SYNC_LOG_TAG, "[GoalRepo] Deleting ListItem. Original: $listItem")
+                val tombstone = listItem.softDelete(now)
+                Log.d(SYNC_LOG_TAG, "[GoalRepo] Deleting ListItem. Tombstone: $tombstone")
+                listItemDao.insertItem(tombstone)
+            }
+        }
+
+        suspend fun updateGoal(goal: Goal) {
+            goalDao.updateGoal(goal.bumpSync())
+        }
+
+        suspend fun updateGoals(goals: List<Goal>) {
+            if (goals.isNotEmpty()) {
+                goalDao.updateGoals(goals.map { it.bumpSync() })
+            }
+        }
+
+        fun getAllGoalsCountFlow(): Flow<Int> = goalDao.getAllGoalsCountFlow()
+
+        fun getAllGoalsFlow(): Flow<List<Goal>> = goalDao.getAllVisibleGoalsFlow()
+
+        suspend fun getAllGoals(): List<Goal> = goalDao.getAll()
+
+        suspend fun findProjectIdForGoal(goalId: String): String? {
+            return listItemDao.findProjectIdForGoal(goalId)
+        }
+
+        private suspend fun syncContextMarker(
+            goalId: String,
+            projectId: String,
+            action: ContextTextAction,
+        ) {
+            val project = contextDao.getProjectById(projectId) ?: return
+            val projectTags = project.tags.orEmpty()
+            if (projectTags.isEmpty()) return
+
+            val tagMap = contextHandler.tagToContextNameMap.value
+            val contextName = tagMap.entries.find { (tagKey, _) -> tagKey in projectTags }?.value ?: return
+            val marker = contextHandler.getContextMarker(contextName) ?: return
+            val goal = goalDao.getGoalById(goalId) ?: return
+
+            var newText = goal.text
+            val hasMarker = goal.text.contains(marker)
+
+            if (action == ContextTextAction.ADD && !hasMarker) {
+                newText = "${goal.text} $marker".trim()
+            } else if (action == ContextTextAction.REMOVE && hasMarker) {
+                newText = goal.text.replace(Regex("""\s*${Regex.escape(marker)}\s*"""), " ").trim()
+            }
+
+            if (newText != goal.text) {
+                goalDao.updateGoal(goal.copy(text = newText, updatedAt = System.currentTimeMillis()))
+            }
         }
     }
-}

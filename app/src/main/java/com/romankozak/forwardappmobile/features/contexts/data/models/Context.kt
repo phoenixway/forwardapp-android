@@ -5,11 +5,11 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
-
 enum class ContextType {
     DEFAULT,
     RESERVED,
-    SYSTEM;
+    SYSTEM,
+    ;
 
     companion object {
         fun fromString(value: String?): ContextType {
@@ -25,8 +25,8 @@ enum class ContextType {
 @Entity(
     tableName = "contexts",
     indices = [
-        Index("system_key", unique = true, name = "idx_contexts_systemkey_unique")
-    ]
+        Index("system_key", unique = true, name = "idx_contexts_systemkey_unique"),
+    ],
 )
 data class Context(
     @PrimaryKey val id: String,

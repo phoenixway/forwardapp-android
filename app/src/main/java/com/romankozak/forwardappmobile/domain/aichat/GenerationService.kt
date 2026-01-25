@@ -12,12 +12,10 @@ import androidx.core.app.NotificationCompat
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.repository.ChatRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
-import com.romankozak.forwardappmobile.domain.aichat.Message
-import com.romankozak.forwardappmobile.domain.aichat.OllamaService
-import kotlinx.coroutines.flow.firstOrNull
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import javax.inject.Inject
 
 private const val TAG = "GenerationService"
@@ -26,8 +24,6 @@ private const val NOTIFICATION_CHANNEL_ID = "generation_channel"
 
 @AndroidEntryPoint
 class GenerationService : Service() {
-
-
     @Inject
     lateinit var chatRepo: ChatRepository
 

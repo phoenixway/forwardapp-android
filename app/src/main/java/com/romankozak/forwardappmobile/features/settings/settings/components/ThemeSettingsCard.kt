@@ -25,7 +25,7 @@ fun ThemeSettingsCard(
     themeSettings: ThemeSettings,
     onThemeModeSelected: (ThemeMode) -> Unit,
     onLightThemeSelected: (ThemeName) -> Unit,
-    onDarkThemeSelected: (ThemeName) -> Unit
+    onDarkThemeSelected: (ThemeName) -> Unit,
 ) {
     SettingsCard(
         title = "Theme",
@@ -39,7 +39,7 @@ fun ThemeSettingsCard(
                         selected = themeSettings.themeMode == mode,
                         onClick = { onThemeModeSelected(mode) },
                         label = { Text(mode.name) },
-                        modifier = Modifier.padding(end = 8.dp, bottom = 8.dp)
+                        modifier = Modifier.padding(end = 8.dp, bottom = 8.dp),
                     )
                 }
             }
@@ -51,7 +51,7 @@ fun ThemeSettingsCard(
                         selected = themeSettings.lightThemeName == theme,
                         onClick = { onLightThemeSelected(theme) },
                         label = { Text(theme.displayName) },
-                        modifier = Modifier.padding(end = 8.dp, bottom = 8.dp)
+                        modifier = Modifier.padding(end = 8.dp, bottom = 8.dp),
                     )
                 }
             }
@@ -63,7 +63,7 @@ fun ThemeSettingsCard(
                         selected = themeSettings.darkThemeName == theme,
                         onClick = { onDarkThemeSelected(theme) },
                         label = { Text(theme.displayName) },
-                        modifier = Modifier.padding(end = 8.dp, bottom = 8.dp)
+                        modifier = Modifier.padding(end = 8.dp, bottom = 8.dp),
                     )
                 }
             }

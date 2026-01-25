@@ -57,7 +57,6 @@ fun SuggestionChipsRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(horizontal = 4.dp),
         ) {
-            
             items(contexts.take(5), key = { "context_$it" }) { context ->
                 EnhancedSuggestionChip(
                     text = "@$context",
@@ -67,7 +66,6 @@ fun SuggestionChipsRow(
                 )
             }
 
-            
             items(tags.take(5), key = { "tag_$it" }) { tag ->
                 EnhancedSuggestionChip(
                     text = tag,
@@ -165,7 +163,6 @@ private data class SuggestionChipColors(
     val contentColor: androidx.compose.ui.graphics.Color,
     val borderColor: androidx.compose.ui.graphics.Color,
 )
-
 
 object SuggestionUtils {
     fun getCurrentWord(

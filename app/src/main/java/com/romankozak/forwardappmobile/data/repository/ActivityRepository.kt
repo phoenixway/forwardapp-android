@@ -1,13 +1,12 @@
 package com.romankozak.forwardappmobile.data.repository
 
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
-import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
 import com.romankozak.forwardappmobile.data.sync.bumpSync
 import com.romankozak.forwardappmobile.domain.ai.events.ActivityFinishedEvent
 import com.romankozak.forwardappmobile.domain.ai.events.ActivityLoggedEvent
-
+import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject
@@ -24,7 +23,10 @@ class ActivityRepository
     ) {
         fun getLogStream(): Flow<List<ActivityRecord>> = activityRecordDao.getAllRecordsStream()
 
-        suspend fun addTimelessRecord(text: String, timestamp: Long = System.currentTimeMillis()) {
+        suspend fun addTimelessRecord(
+            text: String,
+            timestamp: Long = System.currentTimeMillis(),
+        ) {
             if (text.isBlank()) return
             val record =
                 ActivityRecord(
@@ -47,7 +49,7 @@ class ActivityRepository
                     xp = record.xpGained ?: 0,
                     antiXp = record.antyXp ?: 0,
                     isOngoing = false,
-                )
+                ),
             )
         }
 
@@ -78,7 +80,7 @@ class ActivityRepository
                     xp = 0,
                     antiXp = 0,
                     isOngoing = true,
-                )
+                ),
             )
             return newRecord
         }
@@ -86,12 +88,13 @@ class ActivityRepository
         suspend fun endLastActivity(endTime: Long) {
             val ongoingActivity = activityRecordDao.findLastOngoingActivity()
             ongoingActivity?.let {
-                val finishedActivity = it.copy(
-                    endTime = endTime,
-                    updatedAt = endTime,
-                    syncedAt = null,
-                    version = it.version + 1,
-                )
+                val finishedActivity =
+                    it.copy(
+                        endTime = endTime,
+                        updatedAt = endTime,
+                        syncedAt = null,
+                        version = it.version + 1,
+                    )
                 activityRecordDao.update(finishedActivity)
             }
         }
@@ -120,7 +123,7 @@ class ActivityRepository
                     xp = 0,
                     antiXp = 0,
                     isOngoing = true,
-                )
+                ),
             )
             return newRecord
         }
@@ -128,12 +131,13 @@ class ActivityRepository
         suspend fun endGoalActivity(goalId: String) {
             val ongoingActivity = activityRecordDao.findLastOngoingActivityForGoal(goalId)
             ongoingActivity?.let {
-                val finishedActivity = it.copy(
-                    endTime = System.currentTimeMillis(),
-                    updatedAt = System.currentTimeMillis(),
-                    syncedAt = null,
-                    version = it.version + 1,
-                )
+                val finishedActivity =
+                    it.copy(
+                        endTime = System.currentTimeMillis(),
+                        updatedAt = System.currentTimeMillis(),
+                        syncedAt = null,
+                        version = it.version + 1,
+                    )
                 activityRecordDao.update(finishedActivity)
                 val end = finishedActivity.endTime ?: finishedActivity.createdAt
                 val duration = ((end - (finishedActivity.startTime ?: end)) / 60000L).toInt().coerceAtLeast(0)
@@ -143,20 +147,20 @@ class ActivityRepository
                         durationMinutes = duration,
                         xp = finishedActivity.xpGained ?: 0,
                         antiXp = finishedActivity.antyXp ?: 0,
-                    )
+                    ),
                 )
             }
         }
 
-        suspend fun startProjectActivity(projectId: String): ActivityRecord? {
-            val project = contextDao.getProjectById(projectId) ?: return null
+        suspend fun startContextActivity(contextId: String): ActivityRecord? {
+            val context = contextDao.getContextById(contextId) ?: return null
             val now = System.currentTimeMillis()
             endLastActivity(now)
             val newRecord =
                 ActivityRecord(
-                    text = project.name,
+                    text = context.name,
                     startTime = now,
-                    projectId = projectId,
+                    contextId = contextId,
                     createdAt = now,
                     xpGained = null,
                     antyXp = null,
@@ -172,12 +176,16 @@ class ActivityRepository
                     xp = 0,
                     antiXp = 0,
                     isOngoing = true,
-                )
+                ),
             )
             return newRecord
         }
 
-        suspend fun addCompletedActivity(text: String, xpGained: Int?, antyXp: Int?) {
+        suspend fun addCompletedActivity(
+            text: String,
+            xpGained: Int?,
+            antyXp: Int?,
+        ) {
             if (text.isBlank()) return
             val now = System.currentTimeMillis()
             val record =
@@ -200,20 +208,21 @@ class ActivityRepository
                     durationMinutes = 0,
                     xp = xpGained ?: 0,
                     antiXp = antyXp ?: 0,
-                )
+                ),
             )
         }
 
-        suspend fun endProjectActivity(projectId: String) {
-            val ongoingActivity = activityRecordDao.findLastOngoingActivityForProject(projectId)
+        suspend fun endContextActivity(contextId: String) {
+            val ongoingActivity = activityRecordDao.findLastOngoingActivityForContext(contextId)
             ongoingActivity?.let {
                 val now = System.currentTimeMillis()
-                val finishedActivity = it.copy(
-                    endTime = now,
-                    updatedAt = now,
-                    syncedAt = null,
-                    version = it.version + 1,
-                )
+                val finishedActivity =
+                    it.copy(
+                        endTime = now,
+                        updatedAt = now,
+                        syncedAt = null,
+                        version = it.version + 1,
+                    )
                 activityRecordDao.update(finishedActivity)
                 val duration = ((now - (finishedActivity.startTime ?: now)) / 60000L).toInt().coerceAtLeast(0)
                 aiEventRepository.emit(
@@ -222,7 +231,7 @@ class ActivityRepository
                         durationMinutes = duration,
                         xp = finishedActivity.xpGained ?: 0,
                         antiXp = finishedActivity.antyXp ?: 0,
-                    )
+                    ),
                 )
             }
         }
@@ -242,17 +251,17 @@ class ActivityRepository
 
         suspend fun searchActivities(query: String): List<ActivityRecord> = activityRecordDao.search(query)
 
-        suspend fun getCompletedActivitiesForProject(
-            projectId: String,
+        suspend fun getCompletedActivitiesForContext(
+            contextId: String,
             goalIds: List<String>,
             startTime: Long,
             endTime: Long,
-        ): List<ActivityRecord> = activityRecordDao.getCompletedActivitiesForProject(projectId, goalIds, startTime, endTime)
+        ): List<ActivityRecord> = activityRecordDao.getCompletedActivitiesForContext(contextId, goalIds, startTime, endTime)
 
-        suspend fun getAllCompletedActivitiesForProject(
-            projectId: String,
+        suspend fun getAllCompletedActivitiesForContext(
+            contextId: String,
             goalIds: List<String>,
-        ): List<ActivityRecord> = activityRecordDao.getAllCompletedActivitiesForProject(projectId, goalIds)
+        ): List<ActivityRecord> = activityRecordDao.getAllCompletedActivitiesForContext(contextId, goalIds)
 
         suspend fun getActivityRecordById(recordId: String): ActivityRecord? {
             return activityRecordDao.findById(recordId)

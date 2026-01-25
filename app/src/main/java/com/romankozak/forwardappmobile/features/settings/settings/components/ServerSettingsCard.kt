@@ -20,8 +20,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.ui.ModelsState
 import com.romankozak.forwardappmobile.features.settings.settings.SettingsUiState
+import com.romankozak.forwardappmobile.ui.ModelsState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,23 +35,23 @@ fun ServerSettingsCard(
     onFetchClick: () -> Unit,
     onFastModelSelect: (String) -> Unit,
     onSmartModelSelect: (String) -> Unit,
-    onRefreshDiscovery: () -> Unit
+    onRefreshDiscovery: () -> Unit,
 ) {
     SettingsCard(
         title = "Ollama AI Integration",
-        icon = Icons.Default.Dns
+        icon = Icons.Default.Dns,
     ) {
         AnimatedTextField(
             value = state.manualServerIp,
             onValueChange = onIpChange,
             label = "Ollama Server URL",
             helper = "e.g., http://192.168.1.5:11434",
-            singleLine = true
+            singleLine = true,
         )
         OutlinedButton(
             onClick = onFetchClick,
             modifier = Modifier.fillMaxWidth(),
-            enabled = state.manualServerIp.isNotBlank() && state.modelsState !is ModelsState.Loading
+            enabled = state.manualServerIp.isNotBlank() && state.modelsState !is ModelsState.Loading,
         ) {
             if (state.modelsState is ModelsState.Loading) {
                 CircularProgressIndicator(modifier = Modifier.size(24.dp))
@@ -69,13 +69,13 @@ fun ServerSettingsCard(
                     label = "Fast Model",
                     selectedValue = state.fastModel,
                     models = modelsState.models,
-                    onModelSelected = onFastModelSelect
+                    onModelSelected = onFastModelSelect,
                 )
                 ModelSelector(
                     label = "Smart Model",
                     selectedValue = state.smartModel,
                     models = modelsState.models,
-                    onModelSelected = onSmartModelSelect
+                    onModelSelected = onSmartModelSelect,
                 )
             }
             ModelsState.Loading -> { /* Handled by button state */ }
@@ -89,14 +89,14 @@ private fun ModelSelector(
     label: String,
     selectedValue: String,
     models: List<String>,
-    onModelSelected: (String) -> Unit
+    onModelSelected: (String) -> Unit,
 ) {
     var isExpanded by remember { mutableStateOf(false) }
 
     ExposedDropdownMenuBox(
         expanded = isExpanded,
         onExpandedChange = { isExpanded = it },
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
     ) {
         OutlinedTextField(
             value = selectedValue,
@@ -104,13 +104,14 @@ private fun ModelSelector(
             readOnly = true,
             label = { Text(label) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isExpanded) },
-            modifier = Modifier
-                .menuAnchor()
-                .fillMaxWidth()
+            modifier =
+                Modifier
+                    .menuAnchor()
+                    .fillMaxWidth(),
         )
         ExposedDropdownMenu(
             expanded = isExpanded,
-            onDismissRequest = { isExpanded = false }
+            onDismissRequest = { isExpanded = false },
         ) {
             models.forEach { model ->
                 DropdownMenuItem(
@@ -118,7 +119,7 @@ private fun ModelSelector(
                     onClick = {
                         onModelSelected(model)
                         isExpanded = false
-                    }
+                    },
                 )
             }
         }

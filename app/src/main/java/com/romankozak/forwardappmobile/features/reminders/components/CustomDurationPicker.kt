@@ -53,7 +53,10 @@ fun CustomDurationPicker(
         ) {
             listOf(1, 2, 4, 8).forEach { h ->
                 OutlinedButton(
-                    onClick = { hours = h; mins = 0 },
+                    onClick = {
+                        hours = h
+                        mins = 0
+                    },
                 ) {
                     Text("$h год")
                 }
@@ -62,9 +65,10 @@ fun CustomDurationPicker(
 
         // Sliders for hours and minutes
         Card(
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-            ),
+            colors =
+                CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                ),
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -143,9 +147,10 @@ fun CustomDurationPicker(
         if (totalMinutes > 0) {
             val future = System.currentTimeMillis() + totalMinutes * 60 * 1000L
             Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                ),
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    ),
             ) {
                 Text(
                     text = "Нагадування: ${formatDateTime(future)}",

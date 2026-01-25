@@ -2,12 +2,10 @@ package com.romankozak.forwardappmobile.features.contexts.data.models
 
 import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteEntity
-import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
+import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 
 sealed class BacklogItemContent {
-
-
     abstract val backlogItem: BacklogItem
 
     data class GoalItem(val goal: Goal, val reminders: List<Reminder>, override val backlogItem: BacklogItem) : BacklogItemContent()

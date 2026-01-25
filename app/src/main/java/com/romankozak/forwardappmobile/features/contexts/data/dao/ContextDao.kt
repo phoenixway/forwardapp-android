@@ -6,9 +6,9 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.GlobalContextSearchResult
 import com.romankozak.forwardappmobile.features.contexts.data.models.GlobalSubcontextSearchResult
-import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -64,7 +64,7 @@ interface ContextDao {
     @Query("SELECT * FROM contexts WHERE parentId = :parentId AND role_code = :roleCode AND is_deleted = 0 LIMIT 1")
     suspend fun findChildByRole(
         parentId: String,
-        roleCode: String
+        roleCode: String,
     ): Context?
 
     @Query("SELECT * FROM contexts WHERE parentId IS NULL ORDER BY goal_order ASC")

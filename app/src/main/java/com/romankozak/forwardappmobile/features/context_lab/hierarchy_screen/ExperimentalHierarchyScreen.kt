@@ -31,9 +31,7 @@ import com.romankozak.forwardappmobile.core.context.Context
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ExperimentalHierarchyScreen(
-    viewModel: ExperimentalHierarchyViewModel = hiltViewModel()
-) {
+fun ExperimentalHierarchyScreen(viewModel: ExperimentalHierarchyViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
@@ -43,14 +41,15 @@ fun ExperimentalHierarchyScreen(
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("Experimental Hierarchy") })
-        }
+        },
     ) { paddingValues ->
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(uiState.contexts) { context ->
                 ContextHierarchyItem(
@@ -58,7 +57,7 @@ fun ExperimentalHierarchyScreen(
                     isActive = context.id == uiState.activeContextId,
                     onClick = {
                         viewModel.onEvent(ExperimentalHierarchyEvent.ActivateContext(context.id))
-                    }
+                    },
                 )
             }
         }
@@ -69,19 +68,21 @@ fun ExperimentalHierarchyScreen(
 private fun ContextHierarchyItem(
     context: Context,
     isActive: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Column {
                 Text(text = context.id.raw, style = MaterialTheme.typography.titleMedium)
@@ -91,7 +92,7 @@ private fun ContextHierarchyItem(
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
                     contentDescription = "Active Context",
-                    tint = Color.Green
+                    tint = Color.Green,
                 )
             }
         }

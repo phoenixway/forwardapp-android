@@ -7,5 +7,5 @@ data class ContextConfiguration(
     val baseRoleCode: String,
     val activeCapabilities: Set<CapabilityId>,
     val activeViews: Set<ViewId>,
-    val currentView: ViewId
+    val currentView: ViewId,
 )

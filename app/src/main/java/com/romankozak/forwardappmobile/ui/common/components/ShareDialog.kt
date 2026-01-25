@@ -30,7 +30,7 @@ fun ShareDialog(
     onDismiss: () -> Unit,
     onCopyToClipboard: () -> Unit,
     onTransfer: (() -> Unit)? = null,
-    content: String
+    content: String,
 ) {
     val context = LocalContext.current
 
@@ -45,7 +45,7 @@ fun ShareDialog(
                     onClick = {
                         onCopyToClipboard()
                         onDismiss()
-                    }
+                    },
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 ShareOption(
@@ -54,7 +54,7 @@ fun ShareDialog(
                     onClick = {
                         shareContent(context, content)
                         onDismiss()
-                    }
+                    },
                 )
                 if (onTransfer != null) {
                     Spacer(modifier = Modifier.height(16.dp))
@@ -64,7 +64,7 @@ fun ShareDialog(
                         onClick = {
                             onTransfer()
                             onDismiss()
-                        }
+                        },
                     )
                 }
             }
@@ -73,7 +73,7 @@ fun ShareDialog(
             TextButton(onClick = onDismiss) {
                 Text("Закрити")
             }
-        }
+        },
     )
 }
 
@@ -81,14 +81,15 @@ fun ShareDialog(
 private fun ShareOption(
     text: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(icon, contentDescription = text)
         Spacer(modifier = Modifier.padding(start = 16.dp))
@@ -96,12 +97,16 @@ private fun ShareOption(
     }
 }
 
-private fun shareContent(context: Context, content: String) {
-    val sendIntent: Intent = Intent().apply {
-        action = Intent.ACTION_SEND
-        putExtra(Intent.EXTRA_TEXT, content)
-        type = "text/plain"
-    }
+private fun shareContent(
+    context: Context,
+    content: String,
+) {
+    val sendIntent: Intent =
+        Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_TEXT, content)
+            type = "text/plain"
+        }
     val shareIntent = Intent.createChooser(sendIntent, null)
     context.startActivity(shareIntent)
 }

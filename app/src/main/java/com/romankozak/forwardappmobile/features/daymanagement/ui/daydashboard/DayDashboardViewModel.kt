@@ -2,10 +2,10 @@ package com.romankozak.forwardappmobile.features.daymanagement.ui.daydashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.features.daymanagement.data.models.DailyMetric
 import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayPlan
 import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask
-import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -18,7 +18,6 @@ data class DayDashboardUiState(
     val isLoading: Boolean = true,
     val error: String? = null,
 ) {
-    
     val tasksCompleted: Int get() = tasks.count { it.completed }
     val tasksTotal: Int get() = tasks.size
     val progress: Float get() = if (tasksTotal > 0) tasksCompleted.toFloat() / tasksTotal else 0f
@@ -28,7 +27,6 @@ data class DayDashboardUiState(
 class DayDashboardViewModel
     @Inject
     constructor(
-        
         private val dayManagementRepository: DayManagementRepository,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(DayDashboardUiState())
@@ -38,7 +36,6 @@ class DayDashboardViewModel
             viewModelScope.launch {
                 _uiState.update { it.copy(isLoading = true) }
 
-                
                 combine(
                     dayManagementRepository.getPlanByIdStream(dayPlanId),
                     dayManagementRepository.getTasksForDay(dayPlanId),

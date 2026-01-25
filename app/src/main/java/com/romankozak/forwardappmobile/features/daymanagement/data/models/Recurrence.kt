@@ -7,7 +7,7 @@ enum class RecurrenceFrequency {
     DAILY,
     WEEKLY,
     MONTHLY,
-    YEARLY
+    YEARLY,
 }
 
 data class RecurrenceRule(

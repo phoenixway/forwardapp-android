@@ -45,8 +45,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.romankozak.forwardappmobile.features.daymanagement.data.models.RecurrenceFrequency
 import com.romankozak.forwardappmobile.features.contexts.data.models.TaskPriority
+import com.romankozak.forwardappmobile.features.daymanagement.data.models.RecurrenceFrequency
 import java.time.DayOfWeek
 import java.time.format.TextStyle
 import java.util.Locale
@@ -55,7 +55,7 @@ import java.util.Locale
 @Composable
 fun EditTaskScreen(
     viewModel: EditTaskViewModel = hiltViewModel(),
-    onNavigateUp: () -> Unit
+    onNavigateUp: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -75,7 +75,7 @@ fun EditTaskScreen(
                     IconButton(onClick = onNavigateUp) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = "Back",
                         )
                     }
                 },
@@ -83,25 +83,26 @@ fun EditTaskScreen(
                     Button(onClick = { viewModel.saveTask() }) {
                         Text("Save")
                     }
-                }
+                },
             )
         },
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier.fillMaxSize(),
     ) { paddingValues ->
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .imePadding(),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .imePadding(),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
                 OutlinedTextField(
                     value = uiState.title,
                     onValueChange = { viewModel.onTitleChange(it) },
                     label = { Text("Title") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
             item {
@@ -110,7 +111,7 @@ fun EditTaskScreen(
                     onValueChange = { viewModel.onDescriptionChange(it) },
                     label = { Text("Description") },
                     modifier = Modifier.fillMaxWidth(),
-                    maxLines = 5
+                    maxLines = 5,
                 )
             }
             item {
@@ -121,7 +122,7 @@ fun EditTaskScreen(
                             onValueChange = { viewModel.onPointsChange(it.toIntOrNull() ?: 0) },
                             label = { Text("Points") },
                             modifier = Modifier.fillMaxWidth(),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         )
                     }
                 }
@@ -135,13 +136,13 @@ fun EditTaskScreen(
                         FlowRow(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             TaskPriority.values().forEach { priority ->
                                 FilterChip(
                                     selected = uiState.priority == priority,
                                     onClick = { viewModel.onPriorityChange(priority) },
-                                    label = { Text(priority.name, softWrap = false, maxLines = 1) }
+                                    label = { Text(priority.name, softWrap = false, maxLines = 1) },
                                 )
                             }
                         }
@@ -157,7 +158,7 @@ fun EditTaskScreen(
                             onValueChange = { viewModel.onDurationChange(it.toLongOrNull()) },
                             label = { Text("Duration (minutes)") },
                             modifier = Modifier.fillMaxWidth(),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         )
                     }
                 }
@@ -171,7 +172,7 @@ fun EditTaskScreen(
                             Spacer(modifier = Modifier.weight(1f))
                             Checkbox(
                                 checked = uiState.isRecurring,
-                                onCheckedChange = { viewModel.onRecurringChange(it) }
+                                onCheckedChange = { viewModel.onRecurringChange(it) },
                             )
                         }
                         AnimatedVisibility(visible = uiState.isRecurring) {
@@ -179,25 +180,27 @@ fun EditTaskScreen(
                                 var expanded by remember { mutableStateOf(false) }
                                 ExposedDropdownMenuBox(
                                     expanded = expanded,
-                                    onExpandedChange = { expanded = !expanded }) {
+                                    onExpandedChange = { expanded = !expanded },
+                                ) {
                                     OutlinedTextField(
                                         value = uiState.recurrenceFrequency.name,
                                         onValueChange = {},
                                         readOnly = true,
                                         label = { Text("Frequency") },
                                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                                        modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                                        modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
                                     )
                                     ExposedDropdownMenu(
                                         expanded = expanded,
-                                        onDismissRequest = { expanded = false }) {
+                                        onDismissRequest = { expanded = false },
+                                    ) {
                                         RecurrenceFrequency.values().forEach { frequency ->
                                             DropdownMenuItem(
                                                 text = { Text(frequency.name) },
                                                 onClick = {
                                                     viewModel.onRecurrenceFrequencyChange(frequency)
                                                     expanded = false
-                                                }
+                                                },
                                             )
                                         }
                                     }
@@ -208,7 +211,7 @@ fun EditTaskScreen(
                                     onValueChange = { viewModel.onRecurrenceIntervalChange(it.toIntOrNull() ?: 1) },
                                     label = { Text("Interval") },
                                     modifier = Modifier.fillMaxWidth(),
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 )
 
                                 if (uiState.recurrenceFrequency == RecurrenceFrequency.WEEKLY) {
@@ -216,13 +219,13 @@ fun EditTaskScreen(
                                     Text("Days of week", style = MaterialTheme.typography.labelMedium)
                                     FlowRow(
                                         modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
                                     ) {
                                         DayOfWeek.values().forEach { day ->
                                             FilterChip(
                                                 selected = uiState.recurrenceDaysOfWeek.contains(day),
                                                 onClick = { viewModel.onRecurrenceDayOfWeekToggle(day) },
-                                                label = { Text(day.getDisplayName(TextStyle.SHORT, Locale.getDefault())) }
+                                                label = { Text(day.getDisplayName(TextStyle.SHORT, Locale.getDefault())) },
                                             )
                                         }
                                     }
@@ -232,8 +235,6 @@ fun EditTaskScreen(
                     }
                 }
             }
-
-
         }
     }
 }

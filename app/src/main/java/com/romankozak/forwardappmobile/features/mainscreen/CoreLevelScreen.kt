@@ -20,14 +20,14 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.navigation.routes.MAIN_GRAPH_ROUTE
-import com.romankozak.forwardappmobile.ui.screens.common.ProjectListItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ContextHierarchyScreenViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
+import com.romankozak.forwardappmobile.ui.screens.common.ProjectListItem
 
 @Composable
 fun CoreLevelScreen(
     navController: NavController,
-    viewModel: CoreLevelViewModel = hiltViewModel()
+    viewModel: CoreLevelViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val mainScreenViewModel: ContextHierarchyScreenViewModel =
@@ -43,11 +43,12 @@ fun CoreLevelScreen(
         }
     } else {
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 20.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp),
             contentPadding = PaddingValues(bottom = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
                 Text(
@@ -64,7 +65,7 @@ fun CoreLevelScreen(
                     onRevealClick = {
                         mainScreenViewModel.onEvent(ContextHierarchyScreenEvent.RevealContextInHierarchy(project.id))
                         navController.popBackStack()
-                    }
+                    },
                 )
             }
         }

@@ -14,24 +14,22 @@ import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
 import android.util.Log
-import androidx.core.app.NotificationCompat
 import android.view.View
 import android.widget.RemoteViews
-import android.R as AndroidR
+import androidx.core.app.NotificationCompat
 import com.romankozak.forwardappmobile.R
+import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import javax.inject.Inject
-import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import java.text.SimpleDateFormat
 import java.util.Locale
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class ReminderBroadcastReceiver : BroadcastReceiver() {
-
     @Inject
     lateinit var alarmScheduler: AlarmScheduler
 
@@ -68,16 +66,22 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
             return BASE_FULLSCREEN_ID + reminderId.hashCode()
         }
 
-        private fun getActionId(action: String, reminderId: String): Int {
+        private fun getActionId(
+            action: String,
+            reminderId: String,
+        ): Int {
             return BASE_ACTION_ID + "$action$reminderId".hashCode()
         }
     }
 
-    override fun onReceive(context: Context, intent: Intent) {
+    override fun onReceive(
+        context: Context,
+        intent: Intent,
+    ) {
         Log.i(Companion.tag, "onReceive triggered! Action: ${intent.action}")
 
         val pendingResult: PendingResult = goAsync()
-        
+
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 when (intent.action) {
@@ -134,13 +138,14 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
                 val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                 createNotificationChannel(notificationManager, channelId, ringtoneUri, vibrationEnabled)
 
-                val notificationText = buildString {
-                    if (!goalDescription.isNullOrBlank()) append(goalDescription)
-                    if (!extraInfo.isNullOrBlank()) {
-                        if (isNotEmpty()) append("\n")
-                        append(extraInfo)
+                val notificationText =
+                    buildString {
+                        if (!goalDescription.isNullOrBlank()) append(goalDescription)
+                        if (!extraInfo.isNullOrBlank()) {
+                            if (isNotEmpty()) append("\n")
+                            append(extraInfo)
+                        }
                     }
-                }
 
                 showNotification(
                     context = context,
@@ -172,7 +177,7 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         extraInfo: String?,
     ) {
         try {
-            val lockScreenIntent = 
+            val lockScreenIntent =
                 Intent(context, ReminderLockScreenActivity::class.java).apply {
                     putExtra(Companion.EXTRA_REMINDER_ID, reminderId)
                     putExtra(Companion.EXTRA_GOAL_ID, goalId)
@@ -196,27 +201,34 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun createNotificationChannel(notificationManager: NotificationManager, channelId: String, soundUri: Uri?, vibrationEnabled: Boolean) {
+    private fun createNotificationChannel(
+        notificationManager: NotificationManager,
+        channelId: String,
+        soundUri: Uri?,
+        vibrationEnabled: Boolean,
+    ) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val audioAttributes = AudioAttributes.Builder()
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                .setUsage(AudioAttributes.USAGE_ALARM)
-                .build()
+            val audioAttributes =
+                AudioAttributes.Builder()
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .build()
 
-            val channel = NotificationChannel(
-                channelId,
-                "Goal Reminders",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "Critical goal reminders that appear on lock screen"
-                enableLights(true)
-                lightColor = Color.RED
-                enableVibration(vibrationEnabled)
-                vibrationPattern = if (vibrationEnabled) longArrayOf(0, 200, 150, 200) else longArrayOf(0L)
-                setSound(soundUri, audioAttributes)
-                setBypassDnd(true)
-                lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
-            }
+            val channel =
+                NotificationChannel(
+                    channelId,
+                    "Goal Reminders",
+                    NotificationManager.IMPORTANCE_HIGH,
+                ).apply {
+                    description = "Critical goal reminders that appear on lock screen"
+                    enableLights(true)
+                    lightColor = Color.RED
+                    enableVibration(vibrationEnabled)
+                    vibrationPattern = if (vibrationEnabled) longArrayOf(0, 200, 150, 200) else longArrayOf(0L)
+                    setSound(soundUri, audioAttributes)
+                    setBypassDnd(true)
+                    lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
+                }
             notificationManager.createNotificationChannel(channel)
             Log.d(Companion.tag, "Notification channel created/updated: ${channel.id}, importance=${channel.importance}")
         }
@@ -230,10 +242,20 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
 
     private fun defaultUriFor(type: com.romankozak.forwardappmobile.domain.reminders.RingtoneType): Uri? =
         when (type) {
-            com.romankozak.forwardappmobile.domain.reminders.RingtoneType.Energetic -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-            com.romankozak.forwardappmobile.domain.reminders.RingtoneType.Moderate -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
-            com.romankozak.forwardappmobile.domain.reminders.RingtoneType.Quiet -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            com.romankozak.forwardappmobile.domain.reminders.RingtoneType.Energetic ->
+                RingtoneManager.getDefaultUri(
+                    RingtoneManager.TYPE_ALARM,
+                )
+            com.romankozak.forwardappmobile.domain.reminders.RingtoneType.Moderate ->
+                RingtoneManager.getDefaultUri(
+                    RingtoneManager.TYPE_RINGTONE,
+                )
+            com.romankozak.forwardappmobile.domain.reminders.RingtoneType.Quiet ->
+                RingtoneManager.getDefaultUri(
+                    RingtoneManager.TYPE_NOTIFICATION,
+                )
         }
+
     private fun showNotification(
         context: Context,
         notificationManager: NotificationManager,
@@ -274,26 +296,28 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
             "FSI decision: screenOn=$isScreenOn channelImportance=$channelImportance canUseFSI=$canUseFullScreenIntent useFSI=$shouldUseFullScreenIntent",
         )
 
-        val baseIntent = Intent(context, ReminderLockScreenActivity::class.java).apply {
-            putExtra(Companion.EXTRA_GOAL_ID, goalId)
-            putExtra(Companion.EXTRA_GOAL_TEXT, goalText)
-            putExtra(Companion.EXTRA_GOAL_DESCRIPTION, goalDescription)
-            putExtra(Companion.EXTRA_GOAL_EMOJI, goalEmoji)
-            putExtra(Companion.EXTRA_INFO, extraInfo)
+        val baseIntent =
+            Intent(context, ReminderLockScreenActivity::class.java).apply {
+                putExtra(Companion.EXTRA_GOAL_ID, goalId)
+                putExtra(Companion.EXTRA_GOAL_TEXT, goalText)
+                putExtra(Companion.EXTRA_GOAL_DESCRIPTION, goalDescription)
+                putExtra(Companion.EXTRA_GOAL_EMOJI, goalEmoji)
+                putExtra(Companion.EXTRA_INFO, extraInfo)
 
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            addFlags(Intent.FLAG_ACTIVITY_NO_USER_ACTION)
-            addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
-        }
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                addFlags(Intent.FLAG_ACTIVITY_NO_USER_ACTION)
+                addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
+            }
 
-        val contentPendingIntent = PendingIntent.getActivity(
-            context,
-            getNotificationId(reminderId),
-            baseIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+        val contentPendingIntent =
+            PendingIntent.getActivity(
+                context,
+                getNotificationId(reminderId),
+                baseIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
 
         val fullScreenPendingIntent =
             if (shouldUseFullScreenIntent) {
@@ -301,7 +325,7 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
                     context,
                     getFullScreenId(reminderId),
                     baseIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
                 )
             } else {
                 null
@@ -312,35 +336,40 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         val extra = extraInfo?.takeIf { !it.isNullOrBlank() } ?: ""
         val vibrationPattern = longArrayOf(0, 200, 150, 200)
 
-        val collapsedView = RemoteViews(context.packageName, com.romankozak.forwardappmobile.R.layout.notification_custom_collapsed).apply {
-            setTextViewText(com.romankozak.forwardappmobile.R.id.notification_title, goalText)
-            setTextViewText(com.romankozak.forwardappmobile.R.id.notification_description, primaryDescription)
-            setTextViewText(com.romankozak.forwardappmobile.R.id.notification_emoji, goalEmoji)
-        }
+        val collapsedView =
+            RemoteViews(context.packageName, com.romankozak.forwardappmobile.R.layout.notification_custom_collapsed).apply {
+                setTextViewText(com.romankozak.forwardappmobile.R.id.notification_title, goalText)
+                setTextViewText(com.romankozak.forwardappmobile.R.id.notification_description, primaryDescription)
+                setTextViewText(com.romankozak.forwardappmobile.R.id.notification_emoji, goalEmoji)
+            }
 
-        val expandedView = RemoteViews(context.packageName, com.romankozak.forwardappmobile.R.layout.notification_custom).apply {
-            setTextViewText(com.romankozak.forwardappmobile.R.id.notification_title, goalText)
-            setTextViewText(com.romankozak.forwardappmobile.R.id.notification_description, primaryDescription)
-            setTextViewText(com.romankozak.forwardappmobile.R.id.notification_extra, extra)
-            setViewVisibility(com.romankozak.forwardappmobile.R.id.notification_extra, if (extra.isNotEmpty()) View.VISIBLE else View.GONE)
-            setTextViewText(com.romankozak.forwardappmobile.R.id.notification_chip, "REMINDER")
-            setTextViewText(com.romankozak.forwardappmobile.R.id.notification_time, timeText)
-            setTextViewText(com.romankozak.forwardappmobile.R.id.notification_emoji, goalEmoji)
-        }
+        val expandedView =
+            RemoteViews(context.packageName, com.romankozak.forwardappmobile.R.layout.notification_custom).apply {
+                setTextViewText(com.romankozak.forwardappmobile.R.id.notification_title, goalText)
+                setTextViewText(com.romankozak.forwardappmobile.R.id.notification_description, primaryDescription)
+                setTextViewText(com.romankozak.forwardappmobile.R.id.notification_extra, extra)
+                setViewVisibility(
+                    com.romankozak.forwardappmobile.R.id.notification_extra,
+                    if (extra.isNotEmpty()) View.VISIBLE else View.GONE,
+                )
+                setTextViewText(com.romankozak.forwardappmobile.R.id.notification_chip, "REMINDER")
+                setTextViewText(com.romankozak.forwardappmobile.R.id.notification_time, timeText)
+                setTextViewText(com.romankozak.forwardappmobile.R.id.notification_emoji, goalEmoji)
+            }
 
-
-        val builder = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(R.drawable.ic_notification_bell)
-            .setPriority(NotificationCompat.PRIORITY_MAX)
-            .setCategory(NotificationCompat.CATEGORY_ALARM)
-            .setDefaults(if (vibrationEnabled) NotificationCompat.DEFAULT_ALL else NotificationCompat.DEFAULT_SOUND)
-            .setSound(ringtoneUri)
-            .setColor(0xFF6366F1.toInt())
-            .setLights(Color.BLUE, 1000, 500)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .addAction(R.drawable.ic_notification_done, "Готово", completeIntent)
-            .addAction(R.drawable.ic_notification_snooze, "Відкласти", snoozeIntent)
-            .addAction(R.drawable.ic_notification_close, "Пропустити", dismissIntent)
+        val builder =
+            NotificationCompat.Builder(context, channelId)
+                .setSmallIcon(R.drawable.ic_notification_bell)
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setDefaults(if (vibrationEnabled) NotificationCompat.DEFAULT_ALL else NotificationCompat.DEFAULT_SOUND)
+                .setSound(ringtoneUri)
+                .setColor(0xFF6366F1.toInt())
+                .setLights(Color.BLUE, 1000, 500)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .addAction(R.drawable.ic_notification_done, "Готово", completeIntent)
+                .addAction(R.drawable.ic_notification_snooze, "Відкласти", snoozeIntent)
+                .addAction(R.drawable.ic_notification_close, "Пропустити", dismissIntent)
 
         if (vibrationEnabled) {
             builder.setVibrate(vibrationPattern)
@@ -349,13 +378,14 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         }
 
         if (isScreenOn) {
-            val bigText = buildString {
-                append(primaryDescription)
-                if (extra.isNotEmpty()) {
-                    append("\n")
-                    append(extra)
+            val bigText =
+                buildString {
+                    append(primaryDescription)
+                    if (extra.isNotEmpty()) {
+                        append("\n")
+                        append(extra)
+                    }
                 }
-            }
             builder
                 .setAutoCancel(true)
                 .setOngoing(false)
@@ -383,8 +413,8 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
 
         // Додаємо флаги для показу на екрані блокування
         notification.flags = notification.flags or
-                NotificationCompat.FLAG_INSISTENT or
-                NotificationCompat.FLAG_NO_CLEAR
+            NotificationCompat.FLAG_INSISTENT or
+            NotificationCompat.FLAG_NO_CLEAR
 
         try {
             notificationManager.notify(Companion.getNotificationId(reminderId), notification)
@@ -408,21 +438,28 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun createActionIntent(context: Context, action: String, reminderId: String): PendingIntent {
-        val intent = Intent(context, ReminderBroadcastReceiver::class.java).apply {
-            this.action = action
-            putExtra(Companion.EXTRA_REMINDER_ID, reminderId)
-        }
+    private fun createActionIntent(
+        context: Context,
+        action: String,
+        reminderId: String,
+    ): PendingIntent {
+        val intent =
+            Intent(context, ReminderBroadcastReceiver::class.java).apply {
+                this.action = action
+                putExtra(Companion.EXTRA_REMINDER_ID, reminderId)
+            }
         return PendingIntent.getBroadcast(
             context,
             Companion.getActionId(action, reminderId),
             intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
     }
 
-
-    private suspend fun handleCompleteAction(context: Context, intent: Intent) {
+    private suspend fun handleCompleteAction(
+        context: Context,
+        intent: Intent,
+    ) {
         val reminderId = intent.getStringExtra(Companion.EXTRA_REMINDER_ID) ?: return
         Log.d(Companion.tag, "Goal completed via notification: $reminderId")
 
@@ -433,20 +470,23 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
 
         // Закриваємо активність, якщо вона відкрита
         if (ReminderLockScreenActivity.isActive) {
-            val closeIntent = Intent(context, ReminderLockScreenActivity::class.java).apply {
-                putExtra("ACTION", "CLOSE")
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
+            val closeIntent =
+                Intent(context, ReminderLockScreenActivity::class.java).apply {
+                    putExtra("ACTION", "CLOSE")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
             try {
                 context.startActivity(closeIntent)
-            }
-            catch (e: Exception) {
+            } catch (e: Exception) {
                 Log.w(Companion.tag, "Could not close lock screen activity", e)
             }
         }
     }
 
-    private suspend fun handleSnoozeAction(context: Context, intent: Intent) {
+    private suspend fun handleSnoozeAction(
+        context: Context,
+        intent: Intent,
+    ) {
         val reminderId = intent.getStringExtra(Companion.EXTRA_REMINDER_ID) ?: return
         Log.d(Companion.tag, "Goal snoozed via notification: $reminderId")
 
@@ -457,10 +497,11 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
 
         // Закриваємо активність
         if (ReminderLockScreenActivity.isActive) {
-            val closeIntent = Intent(context, ReminderLockScreenActivity::class.java).apply {
-                putExtra("ACTION", "CLOSE")
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
+            val closeIntent =
+                Intent(context, ReminderLockScreenActivity::class.java).apply {
+                    putExtra("ACTION", "CLOSE")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
             try {
                 context.startActivity(closeIntent)
             } catch (e: Exception) {
@@ -469,7 +510,10 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         }
     }
 
-    private suspend fun handleDismissAction(context: Context, intent: Intent) {
+    private suspend fun handleDismissAction(
+        context: Context,
+        intent: Intent,
+    ) {
         val reminderId = intent.getStringExtra(Companion.EXTRA_REMINDER_ID) ?: return
         Log.d(Companion.tag, "Goal dismissed via notification: $reminderId")
 
@@ -480,10 +524,11 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
 
         // Закриваємо активність
         if (ReminderLockScreenActivity.isActive) {
-            val closeIntent = Intent(context, ReminderLockScreenActivity::class.java).apply {
-                putExtra("ACTION", "CLOSE")
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
+            val closeIntent =
+                Intent(context, ReminderLockScreenActivity::class.java).apply {
+                    putExtra("ACTION", "CLOSE")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
             try {
                 context.startActivity(closeIntent)
             } catch (e: Exception) {
@@ -491,5 +536,4 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
             }
         }
     }
-
 }

@@ -16,12 +16,20 @@ data class EvaluationTabUiState(
 
 interface EvaluationTabActions {
     fun onValueImportanceChange(value: Float)
+
     fun onValueImpactChange(value: Float)
+
     fun onEffortChange(value: Float)
+
     fun onCostChange(value: Float)
+
     fun onRiskChange(value: Float)
+
     fun onWeightEffortChange(value: Float)
+
     fun onWeightCostChange(value: Float)
+
     fun onWeightRiskChange(value: Float)
+
     fun onScoringStatusChange(newStatus: String)
 }

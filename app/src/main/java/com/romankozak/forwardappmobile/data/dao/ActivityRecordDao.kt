@@ -24,20 +24,20 @@ interface ActivityRecordDao {
     suspend fun findLastOngoingActivityForGoal(goalId: String): ActivityRecord?
 
     @Query(
-        "SELECT * FROM activity_records WHERE project_id = :projectId AND endTime IS NULL AND startTime IS NOT NULL ORDER BY startTime DESC LIMIT 1",
+        "SELECT * FROM activity_records WHERE context_id = :contextId AND endTime IS NULL AND startTime IS NOT NULL ORDER BY startTime DESC LIMIT 1",
     )
-    suspend fun findLastOngoingActivityForProject(projectId: String): ActivityRecord?
+    suspend fun findLastOngoingActivityForContext(contextId: String): ActivityRecord?
 
     @Query(
         """
         SELECT * FROM activity_records
-        WHERE (project_id = :projectId OR goal_id IN (:goalIds))
+        WHERE (context_id = :contextId OR goal_id IN (:goalIds))
         AND createdAt BETWEEN :startTime AND :endTime
         AND startTime IS NOT NULL AND endTime IS NOT NULL
     """,
     )
-    suspend fun getCompletedActivitiesForProject(
-        projectId: String,
+    suspend fun getCompletedActivitiesForContext(
+        contextId: String,
         goalIds: List<String>,
         startTime: Long,
         endTime: Long,
@@ -68,12 +68,12 @@ interface ActivityRecordDao {
     @Query(
         """
     SELECT * FROM activity_records
-    WHERE (project_id = :projectId OR goal_id IN (:goalIds))
+    WHERE (context_id = :contextId OR goal_id IN (:goalIds))
     AND startTime IS NOT NULL AND endTime IS NOT NULL
 """,
     )
-    suspend fun getAllCompletedActivitiesForProject(
-        projectId: String,
+    suspend fun getAllCompletedActivitiesForContext(
+        contextId: String,
         goalIds: List<String>,
     ): List<ActivityRecord>
 

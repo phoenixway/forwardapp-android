@@ -5,30 +5,29 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.widget.Toast
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.PowerManager
 import android.util.Log
+import android.widget.Toast
 import androidx.core.content.ContextCompat
-import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
-import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.BuildConfig
+import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import javax.inject.Provider
 import javax.inject.Inject
+import javax.inject.Provider
 import javax.inject.Singleton
-
 
 @Singleton
 class AlarmScheduler
     @Inject
     constructor(
         @ApplicationContext private val context: Context,
-        private val projectRepositoryProvider: Provider<ProjectRepository>,
+        private val contextRepositoryProvider: Provider<ContextRepository>,
         private val dayManagementRepository: com.romankozak.forwardappmobile.data.repository.DayManagementRepository,
         private val goalRepositoryProvider: Provider<com.romankozak.forwardappmobile.data.repository.GoalRepository>,
     ) : AlarmSchedulerInterface {
@@ -37,54 +36,56 @@ class AlarmScheduler
         private val tag = "ReminderFlow"
 
         suspend fun schedule(reminder: Reminder) {
-            val projectRepository = projectRepositoryProvider.get()
+            val contextRepository = contextRepositoryProvider.get()
             Log.d(
                 tag,
                 "AlarmScheduler: schedule() called for reminder ID: ${reminder.id}, entityId: ${reminder.entityId}, entityType: ${reminder.entityType}, reminderTime: ${reminder.reminderTime}",
             )
             val reminderTime = reminder.reminderTime
             val currentTime = System.currentTimeMillis()
-            
+
             // Додаємо буфер в 2 секунди для snooze
             if (reminderTime < currentTime - 2000) {
                 Log.w(tag, "AlarmScheduler: Reminder time is too far in the past (${currentTime - reminderTime}ms ago). Aborting schedule.")
                 return
             }
-            
+
             // Якщо час у минулому але менше 2 секунд - плануємо на +5 секунд від зараз
-            var adjustedTime = if (reminderTime <= currentTime) {
-                val newTime = currentTime + 5000 // +5 секунд
-                Log.w(tag, "AlarmScheduler: Reminder time adjusted from ${reminderTime} to ${newTime} (now + 5s)")
-                newTime
-            } else {
-                reminderTime
-            }
+            var adjustedTime =
+                if (reminderTime <= currentTime) {
+                    val newTime = currentTime + 5000 // +5 секунд
+                    Log.w(tag, "AlarmScheduler: Reminder time adjusted from $reminderTime to $newTime (now + 5s)")
+                    newTime
+                } else {
+                    reminderTime
+                }
 
             if (BuildConfig.DEBUG) {
                 adjustedTime = System.currentTimeMillis() + 20000 // 20 seconds
             }
-            
+
             if (!checkPermissions()) return
 
             val intent =
                 Intent(context, ReminderBroadcastReceiver::class.java).apply {
                     putExtra(ReminderBroadcastReceiver.EXTRA_REMINDER_ID, reminder.id)
                     putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_ID, reminder.entityId)
-                    val (title, description, emoji) = when (reminder.entityType) {
-                        "GOAL" -> {
-                            val goal = goalRepository.getGoalById(reminder.entityId)
-                            Triple(goal?.text, goal?.description, "🎯")
+                    val (title, description, emoji) =
+                        when (reminder.entityType) {
+                            "GOAL" -> {
+                                val goal = goalRepository.getGoalById(reminder.entityId)
+                                Triple(goal?.text, goal?.description, "🎯")
+                            }
+                            "CONTEXT" -> {
+                                val context = contextRepository.getContextById(reminder.entityId)
+                                Triple(context?.name, context?.description, "📂")
+                            }
+                            "TASK" -> {
+                                val task = dayManagementRepository.getTaskById(reminder.entityId)
+                                Triple(task?.title, task?.description, "📅")
+                            }
+                            else -> Triple("Reminder", "You have a reminder", "🔔")
                         }
-                        "PROJECT" -> {
-                            val project = projectRepository.getProjectById(reminder.entityId)
-                            Triple(project?.name, project?.description, "📂")
-                        }
-                        "TASK" -> {
-                            val task = dayManagementRepository.getTaskById(reminder.entityId)
-                            Triple(task?.title, task?.description, "📅")
-                        }
-                        else -> Triple("Reminder", "You have a reminder", "🔔")
-                    }
                     putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_TEXT, title)
                     putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_DESCRIPTION, description)
                     putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_EMOJI, emoji)
@@ -96,7 +97,6 @@ class AlarmScheduler
             Log.d(tag, "AlarmScheduler: cancel() called for reminder ID: ${reminder.id}")
             cancelAlarm(ReminderBroadcastReceiver.Companion.getNotificationId(reminder.id))
         }
-
 
         override fun scheduleNotification(
             requestCode: Int,
@@ -169,36 +169,37 @@ class AlarmScheduler
             Log.i(tag, "AlarmScheduler: Alarm for requestCode: $requestCode was cancelled.")
         }
 
-    private fun checkPermissions(): Boolean {
-        // Перевірка дозволу на сповіщення для Android 13+
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val notificationPermission = ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.POST_NOTIFICATIONS
-            )
-            if (notificationPermission != PackageManager.PERMISSION_GRANTED) {
-                Log.e(tag, "AlarmScheduler: POST_NOTIFICATIONS permission not granted")
-                Toast.makeText(context, "Please grant notification permission to schedule reminders.", Toast.LENGTH_LONG).show()
-                return false
+        private fun checkPermissions(): Boolean {
+            // Перевірка дозволу на сповіщення для Android 13+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                val notificationPermission =
+                    ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.POST_NOTIFICATIONS,
+                    )
+                if (notificationPermission != PackageManager.PERMISSION_GRANTED) {
+                    Log.e(tag, "AlarmScheduler: POST_NOTIFICATIONS permission not granted")
+                    Toast.makeText(context, "Please grant notification permission to schedule reminders.", Toast.LENGTH_LONG).show()
+                    return false
+                }
             }
-        }
 
-        // Перевірка дозволу на точні будильники для Android 12+
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (!alarmManager.canScheduleExactAlarms()) {
-                Log.e(tag, "AlarmScheduler: Cannot schedule exact alarms. Permission denied.")
-                Log.e(tag, "AlarmScheduler: User needs to grant SCHEDULE_EXACT_ALARM permission in system settings")
-                Toast.makeText(context, "Please grant permission to schedule exact alarms.", Toast.LENGTH_LONG).show()
-                return false
+            // Перевірка дозволу на точні будильники для Android 12+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (!alarmManager.canScheduleExactAlarms()) {
+                    Log.e(tag, "AlarmScheduler: Cannot schedule exact alarms. Permission denied.")
+                    Log.e(tag, "AlarmScheduler: User needs to grant SCHEDULE_EXACT_ALARM permission in system settings")
+                    Toast.makeText(context, "Please grant permission to schedule exact alarms.", Toast.LENGTH_LONG).show()
+                    return false
+                }
             }
+
+            // Full-screen notification flow does not require SYSTEM_ALERT_WINDOW; avoid blocking scheduling.
+            checkBatteryOptimization()
+
+            Log.i(tag, "AlarmScheduler: All permissions are granted")
+            return true
         }
-
-        // Full-screen notification flow does not require SYSTEM_ALERT_WINDOW; avoid blocking scheduling.
-        checkBatteryOptimization()
-
-        Log.i(tag, "AlarmScheduler: All permissions are granted")
-        return true
-    }
 
         private fun checkBatteryOptimization() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -235,10 +236,7 @@ class AlarmScheduler
         }
 
         fun scheduleTestAlarm() {
-
         }
-
-
 
         suspend fun snooze(reminder: Reminder) {
             Log.d(tag, "AlarmScheduler: snooze() called for reminder ID: ${reminder.id}")

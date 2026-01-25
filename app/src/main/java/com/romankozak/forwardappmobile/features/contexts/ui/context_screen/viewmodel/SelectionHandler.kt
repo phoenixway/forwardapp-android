@@ -1,15 +1,15 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel
 
 import android.util.Log
+import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
-import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.GoalActionType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class SelectionHandler(
-    private val projectRepository: ProjectRepository,
+    private val contextRepository: ContextRepository,
     private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
     private val scope: CoroutineScope,
     private val projectIdFlow: StateFlow<String>,
@@ -117,7 +117,7 @@ class SelectionHandler(
         clearSelection()
 
         scope.launch {
-            projectRepository.deleteListItems(projectIdFlow.value, selectedIds.toList())
+            contextRepository.deleteListItems(projectIdFlow.value, selectedIds.toList())
             resultListener.showSnackbar("Видалено елементів: ${selectedIds.size}", "Скасувати")
         }
     }

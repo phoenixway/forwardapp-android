@@ -5,7 +5,6 @@ import org.junit.Test
 
 @Ignore("DnD visuals unit tests очікують попередній API; тимчасово відключено")
 class DnDVisualsManagerTest {
-
     @Test
     fun dndVisuals_placeholder() {
         // Тест вимкнено.

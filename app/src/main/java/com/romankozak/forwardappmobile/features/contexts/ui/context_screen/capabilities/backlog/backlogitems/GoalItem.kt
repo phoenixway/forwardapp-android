@@ -1,6 +1,5 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems
 
-import androidx.compose.material.icons.filled.Flag
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
@@ -9,20 +8,21 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
-import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
-import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
-import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.runtime.collectAsState
+import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
+import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
+import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
+import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
@@ -44,22 +44,25 @@ fun GoalItem(
 ) {
     val reminder = reminders.firstOrNull()
     val parsedData = rememberParsedText(goal.text, contextMarkerToEmojiMap)
-    val viewModel: GoalItemViewModel = viewModel(key = goal.hashCode().toString(), factory = GoalItemViewModelFactory(goal, parsedData, reminder))
+    val viewModel: GoalItemViewModel =
+        viewModel(key = goal.hashCode().toString(), factory = GoalItemViewModelFactory(goal, parsedData, reminder))
     val shouldShowStatusIcons by viewModel.shouldShowStatusIcons.collectAsState()
 
     Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp, horizontal = 8.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(vertical = 6.dp, horizontal = 8.dp),
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = if (isSelected) 4.dp else 1.dp,
         tonalElevation = if (isSelected) 3.dp else 1.dp,
-        border = if (isSelected) {
-            BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
-        } else {
-            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-        },
+        border =
+            if (isSelected) {
+                BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+            } else {
+                BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+            },
     ) {
         Box(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
@@ -69,7 +72,7 @@ fun GoalItem(
                     Checkbox(
                         checked = goal.completed,
                         onCheckedChange = onCheckedChange,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(24.dp),
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                 }
@@ -77,13 +80,13 @@ fun GoalItem(
                     imageVector = Icons.Default.Flag,
                     contentDescription = "Goal",
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(24.dp),
                 )
 
                 Spacer(modifier = Modifier.width(16.dp))
 
                 Column(
-                    modifier = 
+                    modifier =
                         Modifier
                             .padding(end = 48.dp) // Reserve space for the handle
                             .pointerInput(onItemClick, onLongClick) {
@@ -125,7 +128,7 @@ fun GoalItem(
                                 parsedData = parsedData,
                                 reminder = reminder,
                                 emojiToHide = emojiToHide,
-                                onRelatedLinkClick = onRelatedLinkClick
+                                onRelatedLinkClick = onRelatedLinkClick,
                             )
                         }
                     }

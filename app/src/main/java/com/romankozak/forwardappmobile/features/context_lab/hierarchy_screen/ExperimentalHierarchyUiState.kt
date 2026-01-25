@@ -5,5 +5,5 @@ import com.romankozak.forwardappmobile.core.context.ContextId
 
 data class ExperimentalHierarchyUiState(
     val contexts: List<Context> = emptyList(),
-    val activeContextId: ContextId? = null
+    val activeContextId: ContextId? = null,
 )

@@ -11,7 +11,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 
-
 typealias PlanningModeManager = ProjectHierarchyScreenPlanningModeManager
 
 @ViewModelScoped

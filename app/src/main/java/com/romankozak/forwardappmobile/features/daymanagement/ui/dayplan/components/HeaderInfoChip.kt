@@ -18,30 +18,34 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun HeaderInfoChip(icon: ImageVector, text: String, contentColor: Color) {
-  Surface(
-    color = contentColor.copy(alpha = 0.12f),
-    contentColor = contentColor,
-    shape = RoundedCornerShape(12.dp),
-    tonalElevation = 0.dp,
-    shadowElevation = 0.dp,
-  ) {
-    Row(
-      modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-      verticalAlignment = Alignment.CenterVertically,
-      horizontalArrangement = Arrangement.spacedBy(6.dp),
+fun HeaderInfoChip(
+    icon: ImageVector,
+    text: String,
+    contentColor: Color,
+) {
+    Surface(
+        color = contentColor.copy(alpha = 0.12f),
+        contentColor = contentColor,
+        shape = RoundedCornerShape(12.dp),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
     ) {
-      Icon(
-        icon,
-        contentDescription = null,
-        modifier = Modifier.size(14.dp),
-        tint = contentColor,
-      )
-      Text(
-        text = text,
-        style = MaterialTheme.typography.labelMedium,
-        fontWeight = FontWeight.Medium,
-      )
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = contentColor,
+            )
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Medium,
+            )
+        }
     }
-  }
 }

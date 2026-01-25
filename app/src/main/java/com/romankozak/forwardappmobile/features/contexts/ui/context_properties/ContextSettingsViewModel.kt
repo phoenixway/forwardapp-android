@@ -1,18 +1,14 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_properties
 
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
-import com.romankozak.forwardappmobile.data.repository.ProjectRepository
+import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.domain.structure.StructurePresetService
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
-import com.romankozak.forwardappmobile.core.navigation.NavTarget
-import com.romankozak.forwardappmobile.ui.screens.common.tabs.RemindersTabActions
+import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.EvaluationTabActions
+import com.romankozak.forwardappmobile.ui.screens.common.tabs.RemindersTabActions
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,294 +19,309 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import javax.inject.Inject
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.romankozak.forwardappmobile.core.navigation.NavTarget
 
 @HiltViewModel
-class ContextSettingsViewModel @Inject constructor(
-    private val projectRepository: ProjectRepository,
-    private val reminderRepository: ReminderRepository,
-    private val savedStateHandle: SavedStateHandle,
-    private val structurePresetDao: StructurePresetDao,
-    private val contextStructureRepository: ContextStructureRepository,
-    private val structurePresetService: StructurePresetService,
-) : ViewModel(), EvaluationTabActions, RemindersTabActions {
+class ContextSettingsViewModel
+    @Inject
+    constructor(
+        private val contextRepository: ContextRepository,
+        private val reminderRepository: ReminderRepository,
+        private val savedStateHandle: SavedStateHandle,
+        private val structurePresetDao: StructurePresetDao,
+        private val contextStructureRepository: ContextStructureRepository,
+        private val structurePresetService: StructurePresetService,
+    ) : ViewModel(), EvaluationTabActions, RemindersTabActions {
+        private val projectId: String? = savedStateHandle["projectId"]
 
-    private val projectId: String? = savedStateHandle["projectId"]
+        private val _uiState = MutableStateFlow(ContextSettingsUiState())
+        val uiState: StateFlow<ContextSettingsUiState> = _uiState.asStateFlow()
 
-    private val _uiState = MutableStateFlow(ContextSettingsUiState())
-    val uiState: StateFlow<ContextSettingsUiState> = _uiState.asStateFlow()
+        private val _events = Channel<ContextSettingsEvent>()
+        val events = _events.receiveAsFlow()
 
-    private val _events = Channel<ContextSettingsEvent>()
-    val events = _events.receiveAsFlow()
+        init {
+            viewModelScope.launch {
+                if (projectId != null) {
+                    loadExistingProject(projectId)
+                    reminderRepository.getRemindersForEntityFlow(projectId).collect { reminders ->
+                        _uiState.update { it.copy(reminderTime = reminders.firstOrNull()?.reminderTime) }
+                    }
+                } else {
+                    // TODO: Handle project creation
+                }
+            }
 
-    init {
-        viewModelScope.launch {
-            if (projectId != null) {
-                loadExistingProject(projectId)
-                reminderRepository.getRemindersForEntityFlow(projectId).collect { reminders ->
-                    _uiState.update { it.copy(reminderTime = reminders.firstOrNull()?.reminderTime) }
+            viewModelScope.launch {
+                structurePresetDao.getAll().collect { presets ->
+                    _uiState.update { it.copy(availablePresets = presets) }
+                }
+            }
+        }
+
+        private suspend fun loadExistingProject(projectId: String) {
+            val project = contextRepository.getContextById(projectId)
+            if (project != null) {
+                _uiState.update {
+                    it.copy(
+                        title = it.title.copy(project.name),
+                        description = it.description.copy(project.description ?: ""),
+                        tags = project.tags ?: emptyList(),
+                        isReady = true,
+                        isNewProject = false,
+                        showCheckboxes = project.showCheckboxes,
+                        valueImportance = project.valueImportance,
+                        valueImpact = project.valueImpact,
+                        effort = project.effort,
+                        cost = project.cost,
+                        risk = project.risk,
+                        weightEffort = project.weightEffort,
+                        weightCost = project.weightCost,
+                        weightRisk = project.weightRisk,
+                        rawScore = project.rawScore,
+                        displayScore = project.displayScore,
+                        scoringStatus = project.scoringStatus,
+                        isScoringEnabled = project.scoringStatus != ScoringStatusValues.IMPOSSIBLE_TO_ASSESS,
+                        isProjectManagementEnabled = project.isContextManagementEnabled ?: false,
+                    )
+                }
+                val structure = contextStructureRepository.getStructureByProject(projectId)
+                val presetLabel = structure?.basePresetCode?.let { code -> structurePresetDao.getByCode(code)?.label }
+                val structureFeatures =
+                    mapOf(
+                        "Inbox" to (structure?.enableInbox ?: _uiState.value.features["Inbox"] ?: true),
+                        "Log" to (structure?.enableLog ?: _uiState.value.features["Log"] ?: true),
+                        "Artifact" to (structure?.enableArtifact ?: _uiState.value.features["Artifact"] ?: true),
+                        "Advanced" to (structure?.enableAdvanced ?: _uiState.value.features["Advanced"] ?: false),
+                        "Dashboard" to (structure?.enableDashboard ?: _uiState.value.features["Dashboard"] ?: true),
+                        "Backlog" to (structure?.enableBacklog ?: _uiState.value.features["Backlog"] ?: true),
+                        "Attachments" to (structure?.enableAttachments ?: _uiState.value.features["Attachments"] ?: true),
+                        "Auto link subprojects" to (structure?.enableAutoLinkSubprojects ?: _uiState.value.features["Auto link subprojects"] ?: true),
+                    )
+                _uiState.update {
+                    it.copy(
+                        currentPresetLabel = presetLabel,
+                        features = structureFeatures,
+                        autoLinkSubprojects = structureFeatures["Auto link subprojects"] ?: true,
+                        isProjectManagementEnabled = structureFeatures["Advanced"] == true,
+                    )
                 }
             } else {
-                // TODO: Handle project creation
+                _events.send(ContextSettingsEvent.NavigateBack("Проект не знайдено"))
             }
         }
 
-        viewModelScope.launch {
-            structurePresetDao.getAll().collect { presets ->
-                _uiState.update { it.copy(availablePresets = presets) }
+        fun onSave() {
+            viewModelScope.launch {
+                if (_uiState.value.title.text.isBlank()) {
+                    _events.send(ContextSettingsEvent.NavigateBack("Назва проекту не може бути пустою"))
+                    return@launch
+                }
+                saveProject()
+                _events.send(ContextSettingsEvent.NavigateBack("Збережено"))
             }
         }
-    }
 
-    private suspend fun loadExistingProject(projectId: String) {
-        val project = projectRepository.getProjectById(projectId)
-        if (project != null) {
-            _uiState.update {
-                it.copy(
-                    title = it.title.copy(project.name),
-                    description = it.description.copy(project.description ?: ""),
-                    tags = project.tags ?: emptyList(),
-                    isReady = true,
-                    isNewProject = false,
-                    showCheckboxes = project.showCheckboxes,
-                    valueImportance = project.valueImportance,
-                    valueImpact = project.valueImpact,
-                    effort = project.effort,
-                    cost = project.cost,
-                    risk = project.risk,
-                    weightEffort = project.weightEffort,
-                    weightCost = project.weightCost,
-                    weightRisk = project.weightRisk,
-                    rawScore = project.rawScore,
-                    displayScore = project.displayScore,
-                    scoringStatus = project.scoringStatus,
-                    isScoringEnabled = project.scoringStatus != ScoringStatusValues.IMPOSSIBLE_TO_ASSESS,
-                    isProjectManagementEnabled = project.isProjectManagementEnabled ?: false,
+        private suspend fun saveProject() {
+            val projectId: String = savedStateHandle["projectId"] ?: return
+            val project = contextRepository.getContextById(projectId) ?: return
+
+            val updatedProject =
+                project.copy(
+                    name = _uiState.value.title.text,
+                    description = _uiState.value.description.text.ifEmpty { null },
+                    tags = _uiState.value.tags,
+                    showCheckboxes = _uiState.value.showCheckboxes,
+                    isContextManagementEnabled = _uiState.value.isProjectManagementEnabled,
+                    valueImportance = _uiState.value.valueImportance,
+                    valueImpact = _uiState.value.valueImpact,
+                    effort = _uiState.value.effort,
+                    cost = _uiState.value.cost,
+                    risk = _uiState.value.risk,
+                    weightEffort = _uiState.value.weightEffort,
+                    weightCost = _uiState.value.weightCost,
+                    weightRisk = _uiState.value.weightRisk,
+                    rawScore = _uiState.value.rawScore,
+                    displayScore = _uiState.value.displayScore,
+                    scoringStatus = _uiState.value.scoringStatus,
                 )
-            }
-            val structure = contextStructureRepository.getStructureByProject(projectId)
-            val presetLabel = structure?.basePresetCode?.let { code -> structurePresetDao.getByCode(code)?.label }
-            val structureFeatures = mapOf(
-                "Inbox" to (structure?.enableInbox ?: _uiState.value.features["Inbox"] ?: true),
-                "Log" to (structure?.enableLog ?: _uiState.value.features["Log"] ?: true),
-                "Artifact" to (structure?.enableArtifact ?: _uiState.value.features["Artifact"] ?: true),
-                "Advanced" to (structure?.enableAdvanced ?: _uiState.value.features["Advanced"] ?: false),
-                "Dashboard" to (structure?.enableDashboard ?: _uiState.value.features["Dashboard"] ?: true),
-                "Backlog" to (structure?.enableBacklog ?: _uiState.value.features["Backlog"] ?: true),
-                "Attachments" to (structure?.enableAttachments ?: _uiState.value.features["Attachments"] ?: true),
-                "Auto link subprojects" to (structure?.enableAutoLinkSubprojects ?: _uiState.value.features["Auto link subprojects"] ?: true),
-            )
-            _uiState.update {
-                it.copy(
-                    currentPresetLabel = presetLabel,
-                    features = structureFeatures,
-                    autoLinkSubprojects = structureFeatures["Auto link subprojects"] ?: true,
-                    isProjectManagementEnabled = structureFeatures["Advanced"] == true
-                )
-            }
-        } else {
-            _events.send(ContextSettingsEvent.NavigateBack("Проект не знайдено"))
-        }
-    }
-
-    fun onSave() {
-        viewModelScope.launch {
-            if (_uiState.value.title.text.isBlank()) {
-                _events.send(ContextSettingsEvent.NavigateBack("Назва проекту не може бути пустою"))
-                return@launch
-            }
-            saveProject()
-            _events.send(ContextSettingsEvent.NavigateBack("Збережено"))
-        }
-    }
-
-    private suspend fun saveProject() {
-        val projectId: String = savedStateHandle["projectId"] ?: return
-        val project = projectRepository.getProjectById(projectId) ?: return
-
-        val updatedProject = project.copy(
-            name = _uiState.value.title.text,
-            description = _uiState.value.description.text.ifEmpty { null },
-            tags = _uiState.value.tags,
-            showCheckboxes = _uiState.value.showCheckboxes,
-            isProjectManagementEnabled = _uiState.value.isProjectManagementEnabled,
-            valueImportance = _uiState.value.valueImportance,
-            valueImpact = _uiState.value.valueImpact,
-            effort = _uiState.value.effort,
-            cost = _uiState.value.cost,
-            risk = _uiState.value.risk,
-            weightEffort = _uiState.value.weightEffort,
-            weightCost = _uiState.value.weightCost,
-            weightRisk = _uiState.value.weightRisk,
-            rawScore = _uiState.value.rawScore,
-            displayScore = _uiState.value.displayScore,
-            scoringStatus = _uiState.value.scoringStatus
-        )
-        projectRepository.updateProject(updatedProject)
-        persistFeatureFlags()
-    }
-
-    fun onTextChange(newValue: TextFieldValue) = _uiState.update { it.copy(title = newValue) }
-
-    fun onDescriptionChange(newValue: TextFieldValue) = _uiState.update { it.copy(description = newValue) }
-
-    override fun onValueImportanceChange(value: Float) = _uiState.update { it.copy(valueImportance = value) }
-
-    override fun onValueImpactChange(value: Float) = _uiState.update { it.copy(valueImpact = value) }
-
-    override fun onEffortChange(value: Float) = _uiState.update { it.copy(effort = value) }
-
-    override fun onCostChange(value: Float) = _uiState.update { it.copy(cost = value) }
-
-    override fun onRiskChange(value: Float) = _uiState.update { it.copy(risk = value) }
-
-    override fun onWeightEffortChange(value: Float) = _uiState.update { it.copy(weightEffort = value) }
-
-    override fun onWeightCostChange(value: Float) = _uiState.update { it.copy(weightCost = value) }
-
-    override fun onWeightRiskChange(value: Float) = _uiState.update { it.copy(weightRisk = value) }
-
-    override fun onScoringStatusChange(newStatus: String) {
-        _uiState.update { it.copy(scoringStatus = newStatus, isScoringEnabled = newStatus != ScoringStatusValues.IMPOSSIBLE_TO_ASSESS) }
-    }
-
-    fun openDescriptionEditor() = _uiState.update { it.copy(isDescriptionEditorOpen = true) }
-
-    fun closeDescriptionEditor() = _uiState.update { it.copy(isDescriptionEditorOpen = false) }
-
-    fun onDescriptionChangeAndCloseEditor(newDescription: String) {
-        _uiState.update {
-            it.copy(
-                description = it.description.copy(text = newDescription),
-                isDescriptionEditorOpen = false,
-            )
-        }
-    }
-
-    fun onTabSelected(index: Int) {
-        _uiState.update { it.copy(selectedTabIndex = index) }
-    }
-
-    fun onShowCheckboxesChange(show: Boolean) {
-        _uiState.update { it.copy(showCheckboxes = show) }
-    }
-
-    fun onAddTag(tag: String) {
-        _uiState.update { it.copy(tags = it.tags + tag) }
-    }
-
-    fun onRemoveTag(tag: String) {
-        _uiState.update { it.copy(tags = it.tags - tag) }
-    }
-
-    fun onProjectManagementChange(enabled: Boolean) {
-        _uiState.update { it.copy(isProjectManagementEnabled = enabled) }
-    }
-
-    fun onAutoLinkSubprojectsChange(enabled: Boolean) {
-        _uiState.update {
-            it.copy(
-                autoLinkSubprojects = enabled,
-                features = it.features + ("Auto link subprojects" to enabled)
-            )
-        }
-    }
-
-    fun onApplyPreset(code: String) {
-        val pid = projectId ?: return
-        viewModelScope.launch {
-            structurePresetService.applyPresetToProject(pid, code)
-            val label = structurePresetDao.getByCode(code)?.label
-            val preset = structurePresetDao.getByCode(code)
-            _uiState.update { state ->
-                state.copy(
-                    currentPresetLabel = label,
-                    features = state.features + mapOf(
-                        "Inbox" to (preset?.enableInbox ?: true),
-                        "Log" to (preset?.enableLog ?: true),
-                        "Artifact" to (preset?.enableArtifact ?: true),
-                        "Advanced" to (preset?.enableAdvanced ?: false),
-                        "Dashboard" to (preset?.enableDashboard ?: true),
-                        "Backlog" to (preset?.enableBacklog ?: true),
-                        "Attachments" to (preset?.enableAttachments ?: true),
-                        "Auto link subprojects" to (preset?.enableAutoLinkSubprojects ?: true),
-                    ),
-                    autoLinkSubprojects = preset?.enableAutoLinkSubprojects ?: state.autoLinkSubprojects,
-                    isProjectManagementEnabled = preset?.enableAdvanced ?: state.isProjectManagementEnabled
-                )
-            }
+            contextRepository.updateContext(updatedProject)
             persistFeatureFlags()
         }
-    }
 
-    fun onToggleFeature(key: String, enabled: Boolean) {
-        _uiState.update { state ->
-            state.copy(
-                features = state.features + (key to enabled),
-                isProjectManagementEnabled = if (key == "Advanced") enabled else state.isProjectManagementEnabled,
-                autoLinkSubprojects = if (key == "Auto link subprojects") enabled else state.autoLinkSubprojects,
-            )
+        fun onTextChange(newValue: TextFieldValue) = _uiState.update { it.copy(title = newValue) }
+
+        fun onDescriptionChange(newValue: TextFieldValue) = _uiState.update { it.copy(description = newValue) }
+
+        override fun onValueImportanceChange(value: Float) = _uiState.update { it.copy(valueImportance = value) }
+
+        override fun onValueImpactChange(value: Float) = _uiState.update { it.copy(valueImpact = value) }
+
+        override fun onEffortChange(value: Float) = _uiState.update { it.copy(effort = value) }
+
+        override fun onCostChange(value: Float) = _uiState.update { it.copy(cost = value) }
+
+        override fun onRiskChange(value: Float) = _uiState.update { it.copy(risk = value) }
+
+        override fun onWeightEffortChange(value: Float) = _uiState.update { it.copy(weightEffort = value) }
+
+        override fun onWeightCostChange(value: Float) = _uiState.update { it.copy(weightCost = value) }
+
+        override fun onWeightRiskChange(value: Float) = _uiState.update { it.copy(weightRisk = value) }
+
+        override fun onScoringStatusChange(newStatus: String) {
+            _uiState.update { it.copy(scoringStatus = newStatus, isScoringEnabled = newStatus != ScoringStatusValues.IMPOSSIBLE_TO_ASSESS) }
         }
-    }
 
-    private suspend fun persistFeatureFlags() {
-        val pid = projectId ?: return
-        val structure = contextStructureRepository.ensureStructure(pid)
-        val flags = _uiState.value.features + mapOf(
-            "Inbox" to (_uiState.value.features["Inbox"] ?: true),
-            "Log" to (_uiState.value.features["Log"] ?: true),
-            "Artifact" to (_uiState.value.features["Artifact"] ?: true),
-            "Advanced" to (_uiState.value.features["Advanced"] ?: false),
-            "Auto link subprojects" to (_uiState.value.features["Auto link subprojects"] ?: true),
-        )
-        val updated = structure.copy(
-            enableInbox = flags["Inbox"],
-            enableLog = flags["Log"],
-            enableArtifact = flags["Artifact"],
-            enableAdvanced = flags["Advanced"],
-            enableDashboard = flags["Dashboard"],
-            enableBacklog = flags["Backlog"],
-            enableAttachments = flags["Attachments"],
-            enableAutoLinkSubprojects = flags["Auto link subprojects"],
-        )
-        contextStructureRepository.updateStructure(updated)
-        _uiState.update { it.copy(isProjectManagementEnabled = flags["Advanced"] == true) }
-    }
+        fun openDescriptionEditor() = _uiState.update { it.copy(isDescriptionEditorOpen = true) }
 
-    override fun onSetReminder(
-        year: Int,
-        month: Int,
-        day: Int,
-        hour: Int,
-        minute: Int,
-    ) {
-        val calendar =
-            Calendar.getInstance().apply {
-                set(year, month, day, hour, minute, 0)
+        fun closeDescriptionEditor() = _uiState.update { it.copy(isDescriptionEditorOpen = false) }
+
+        fun onDescriptionChangeAndCloseEditor(newDescription: String) {
+            _uiState.update {
+                it.copy(
+                    description = it.description.copy(text = newDescription),
+                    isDescriptionEditorOpen = false,
+                )
             }
-        val newReminderTime = calendar.timeInMillis
-        _uiState.update { it.copy(reminderTime = newReminderTime) }
+        }
 
-        projectId?.let {
+        fun onTabSelected(index: Int) {
+            _uiState.update { it.copy(selectedTabIndex = index) }
+        }
+
+        fun onShowCheckboxesChange(show: Boolean) {
+            _uiState.update { it.copy(showCheckboxes = show) }
+        }
+
+        fun onAddTag(tag: String) {
+            _uiState.update { it.copy(tags = it.tags + tag) }
+        }
+
+        fun onRemoveTag(tag: String) {
+            _uiState.update { it.copy(tags = it.tags - tag) }
+        }
+
+        fun onProjectManagementChange(enabled: Boolean) {
+            _uiState.update { it.copy(isProjectManagementEnabled = enabled) }
+        }
+
+        fun onAutoLinkSubprojectsChange(enabled: Boolean) {
+            _uiState.update {
+                it.copy(
+                    autoLinkSubprojects = enabled,
+                    features = it.features + ("Auto link subprojects" to enabled),
+                )
+            }
+        }
+
+        fun onApplyPreset(code: String) {
+            val pid = projectId ?: return
             viewModelScope.launch {
-                reminderRepository.createReminder(it, "PROJECT", newReminderTime)
+                structurePresetService.applyPresetToContext(pid, code)
+                val label = structurePresetDao.getByCode(code)?.label
+                val preset = structurePresetDao.getByCode(code)
+                _uiState.update { state ->
+                    state.copy(
+                        currentPresetLabel = label,
+                        features =
+                            state.features +
+                                mapOf(
+                                    "Inbox" to (preset?.enableInbox ?: true),
+                                    "Log" to (preset?.enableLog ?: true),
+                                    "Artifact" to (preset?.enableArtifact ?: true),
+                                    "Advanced" to (preset?.enableAdvanced ?: false),
+                                    "Dashboard" to (preset?.enableDashboard ?: true),
+                                    "Backlog" to (preset?.enableBacklog ?: true),
+                                    "Attachments" to (preset?.enableAttachments ?: true),
+                                    "Auto link subprojects" to (preset?.enableAutoLinkSubprojects ?: true),
+                                ),
+                        autoLinkSubprojects = preset?.enableAutoLinkSubprojects ?: state.autoLinkSubprojects,
+                        isProjectManagementEnabled = preset?.enableAdvanced ?: state.isProjectManagementEnabled,
+                    )
+                }
+                persistFeatureFlags()
             }
         }
-    }
 
-    override fun onClearReminder() {
-        _uiState.update { it.copy(reminderTime = null) }
-        projectId?.let {
-            viewModelScope.launch {
-                reminderRepository.clearRemindersForEntity(it)
+        fun onToggleFeature(
+            key: String,
+            enabled: Boolean,
+        ) {
+            _uiState.update { state ->
+                state.copy(
+                    features = state.features + (key to enabled),
+                    isProjectManagementEnabled = if (key == "Advanced") enabled else state.isProjectManagementEnabled,
+                    autoLinkSubprojects = if (key == "Auto link subprojects") enabled else state.autoLinkSubprojects,
+                )
             }
         }
-    }
 
-    fun onOpenStructure() {
-        projectId?.let {
-            viewModelScope.launch {
-                _events.send(ContextSettingsEvent.Navigate(NavTarget.ProjectStructure(it)))
+        private suspend fun persistFeatureFlags() {
+            val pid = projectId ?: return
+            val structure = contextStructureRepository.ensureStructure(pid)
+            val flags =
+                _uiState.value.features +
+                    mapOf(
+                        "Inbox" to (_uiState.value.features["Inbox"] ?: true),
+                        "Log" to (_uiState.value.features["Log"] ?: true),
+                        "Artifact" to (_uiState.value.features["Artifact"] ?: true),
+                        "Advanced" to (_uiState.value.features["Advanced"] ?: false),
+                        "Auto link subprojects" to (_uiState.value.features["Auto link subprojects"] ?: true),
+                    )
+            val updated =
+                structure.copy(
+                    enableInbox = flags["Inbox"],
+                    enableLog = flags["Log"],
+                    enableArtifact = flags["Artifact"],
+                    enableAdvanced = flags["Advanced"],
+                    enableDashboard = flags["Dashboard"],
+                    enableBacklog = flags["Backlog"],
+                    enableAttachments = flags["Attachments"],
+                    enableAutoLinkSubprojects = flags["Auto link subprojects"],
+                )
+            contextStructureRepository.updateStructure(updated)
+            _uiState.update { it.copy(isProjectManagementEnabled = flags["Advanced"] == true) }
+        }
+
+        override fun onSetReminder(
+            year: Int,
+            month: Int,
+            day: Int,
+            hour: Int,
+            minute: Int,
+        ) {
+            val calendar =
+                Calendar.getInstance().apply {
+                    set(year, month, day, hour, minute, 0)
+                }
+            val newReminderTime = calendar.timeInMillis
+            _uiState.update { it.copy(reminderTime = newReminderTime) }
+
+            projectId?.let {
+                viewModelScope.launch {
+                    reminderRepository.createReminder(it, "PROJECT", newReminderTime)
+                }
+            }
+        }
+
+        override fun onClearReminder() {
+            _uiState.update { it.copy(reminderTime = null) }
+            projectId?.let {
+                viewModelScope.launch {
+                    reminderRepository.clearRemindersForEntity(it)
+                }
+            }
+        }
+
+        fun onOpenStructure() {
+            projectId?.let {
+                viewModelScope.launch {
+                    _events.send(ContextSettingsEvent.Navigate(NavTarget.ProjectStructure(it)))
+                }
             }
         }
     }
-}

@@ -1,21 +1,21 @@
 package com.romankozak.forwardappmobile.features.attachments.specific_types.script
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,11 +34,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.R
@@ -73,7 +73,17 @@ fun ScriptEditorScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (uiState.scriptId == null) stringResource(R.string.script_editor_new) else stringResource(R.string.script_editor_edit)) },
+                title = {
+                    Text(
+                        if (uiState.scriptId == null) {
+                            stringResource(
+                                R.string.script_editor_new,
+                            )
+                        } else {
+                            stringResource(R.string.script_editor_edit)
+                        },
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
@@ -103,7 +113,11 @@ fun ScriptEditorScreen(
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(stringResource(R.string.script_editor_primary_section), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        stringResource(R.string.script_editor_primary_section),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
                     OutlinedTextField(
                         value = uiState.name,
                         onValueChange = viewModel::onNameChange,
@@ -125,7 +139,11 @@ fun ScriptEditorScreen(
                 colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface),
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(stringResource(R.string.script_editor_code_section), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        stringResource(R.string.script_editor_code_section),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
                     Text(
                         text = stringResource(R.string.script_editor_mock_hint),
                         style = MaterialTheme.typography.labelMedium,
@@ -148,7 +166,15 @@ fun ScriptEditorScreen(
                     enabled = !uiState.isPreviewRunning && uiState.content.isNotBlank(),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
                 ) {
-                    Text(if (uiState.isPreviewRunning) stringResource(R.string.script_editor_dry_running) else stringResource(R.string.script_editor_dry_run))
+                    Text(
+                        if (uiState.isPreviewRunning) {
+                            stringResource(
+                                R.string.script_editor_dry_running,
+                            )
+                        } else {
+                            stringResource(R.string.script_editor_dry_run)
+                        },
+                    )
                 }
                 Button(onClick = { viewModel.onSave() }, enabled = !uiState.isSaving) {
                     Text("Зберегти та закрити")

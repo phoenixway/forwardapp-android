@@ -44,7 +44,6 @@ data class NavigationEntry(
     }
 }
 
-
 @Parcelize
 enum class NavigationType : Parcelable {
     PROJECT_HIERARCHY_SCREEN,

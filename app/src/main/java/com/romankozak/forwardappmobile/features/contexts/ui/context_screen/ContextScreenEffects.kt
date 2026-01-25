@@ -2,62 +2,45 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen
 
 import android.content.Intent
 import android.util.Log
-import androidx.core.net.toUri
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextViewMode
-
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.utils.handleRelatedLinkClick
-import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 
-
-
-
 private const val TAG = "SendDebug"
 
 @Composable
-
 fun GoalDetailEffects(
-
     navController: NavController,
-
     viewModel: BacklogViewModel,
-
     snackbarHostState: SnackbarHostState,
-
     listState: LazyListState,
-
     inboxListState: LazyListState,
-
     coroutineScope: CoroutineScope,
-
 ) {
-
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
 
     val list by viewModel.project.collectAsStateWithLifecycle()
 
-
-
     val inboxRecords by viewModel.inboxHandler.inboxRecords.collectAsStateWithLifecycle()
-
-
 
     val localContext = LocalContext.current
 
@@ -67,8 +50,6 @@ fun GoalDetailEffects(
 
     val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
 
-
-
     val displayList =
         remember(listContent, list?.isAttachmentsExpanded) {
             val attachmentItems = listContent.filterIsInstance<BacklogItemContent.LinkItem>()
@@ -76,70 +57,41 @@ fun GoalDetailEffects(
             if (list?.isAttachmentsExpanded == true) attachmentItems + draggableItems else draggableItems
         }
 
-
-
-    
-
     LaunchedEffect(Unit) {
-
         viewModel.uiEventFlow.collect { event ->
 
             when (event) {
-
-                
-
-                
-
                 is UiEvent.Navigate -> {
-
                     Log.d(TAG, "GoalDetailEffects: Отримано подію Navigate.")
 
                     navController.navigate(NavTargetRouter.routeOf(event.target))
-
                 }
 
                 is UiEvent.NavigateBack -> {
-
                     navController.popBackStack()
-
                 }
 
                 is UiEvent.ShowSnackbar -> {
-
                     coroutineScope.launch {
-
                         val result =
 
                             snackbarHostState.showSnackbar(
-
                                 message = event.message,
-
                                 actionLabel = event.action,
-
                                 duration = SnackbarDuration.Short,
-
                             )
 
                         if (result == SnackbarResult.ActionPerformed) {
-
                             when (event.action) {
-
                                 "Обмежити в часі" -> viewModel.onLimitLastActivityRequested()
 
                                 else -> viewModel.itemActionHandler.undoDelete()
-
                             }
-
                         }
-
                     }
-
                 }
 
                 is UiEvent.NavigateBackAndReveal -> {
-
-                    
-
                     navController.previousBackStackEntry
 
                         ?.savedStateHandle
@@ -147,23 +99,16 @@ fun GoalDetailEffects(
                         ?.set("project_to_reveal", event.projectId)
 
                     navController.popBackStack()
-
                 }
 
-
-
                 is UiEvent.HandleLinkClick -> {
-
                     handleRelatedLinkClick(event.link, obsidianVaultName, localContext, navController)
-
                 }
 
                 is UiEvent.OpenUri -> {
-
                     val intent = Intent(Intent.ACTION_VIEW, event.uri.toUri())
 
                     localContext.startActivity(intent)
-
                 }
 
                 is UiEvent.ResetSwipeState -> viewModel.onSwipeStateReset(event.itemId)
@@ -171,92 +116,56 @@ fun GoalDetailEffects(
                 is UiEvent.ScrollTo -> listState.animateScrollToItem(event.index)
 
                 is UiEvent.ScrollToLatestInboxRecord -> {
-
                     coroutineScope.launch {
-
                         if (inboxRecords.isNotEmpty()) {
-
                             inboxListState.animateScrollToItem(inboxRecords.lastIndex)
-
                         }
-
                     }
-
                 }
-
             }
-
         }
-
     }
 
-
-
-    
-
-
-
-    
-
     DisposableEffect(savedStateHandle, lifecycleOwner, viewModel) {
-
         val observer =
 
             LifecycleEventObserver { _, event ->
 
                 if (event == Lifecycle.Event.ON_RESUME) {
-
                     if (savedStateHandle?.contains("list_chooser_result") == true) {
-
                         val result = savedStateHandle.get<String>("list_chooser_result")
 
                         if (result != null) {
-
                             Log.d("AddSublistDebug", "BacklogScreen: Received result from chooser: '$result'")
 
                             viewModel.onListChooserResult(result)
-
                         }
 
                         savedStateHandle.remove<String>("list_chooser_result")
-
                     }
-
                 }
-
             }
 
         lifecycleOwner.lifecycle.addObserver(observer)
 
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-
     }
 
-
-
-    
-
     DisposableEffect(lifecycleOwner, viewModel) {
-
         val observer =
 
             LifecycleEventObserver { _, event ->
 
                 if (event == Lifecycle.Event.ON_RESUME) {
-
                     viewModel.forceRefresh()
-
                 }
-
             }
 
         lifecycleOwner.lifecycle.addObserver(observer)
 
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-
     }
 
-    
     LaunchedEffect(uiState.goalToHighlight, uiState.itemToHighlight, displayList, list?.isAttachmentsExpanded) {
         val goalId = uiState.goalToHighlight
         val itemId = uiState.itemToHighlight
@@ -271,9 +180,10 @@ fun GoalDetailEffects(
 
         if (displayIndex != null) {
             val targetItem = displayList.getOrNull(displayIndex)
-            val actualIndex = targetItem?.let { item ->
-                listContent.indexOfFirst { it.backlogItem.id == item.backlogItem.id }
-            } ?: -1
+            val actualIndex =
+                targetItem?.let { item ->
+                    listContent.indexOfFirst { it.backlogItem.id == item.backlogItem.id }
+                } ?: -1
 
             if (actualIndex != -1) {
                 listState.animateScrollToItem(actualIndex)
@@ -285,7 +195,6 @@ fun GoalDetailEffects(
         viewModel.onHighlightShown()
     }
 
-    
     LaunchedEffect(uiState.inboxRecordToHighlight, inboxRecords.isNotEmpty()) {
         val recordId = uiState.inboxRecordToHighlight
         val recordsAreLoaded = inboxRecords.isNotEmpty()
@@ -297,7 +206,6 @@ fun GoalDetailEffects(
         }
     }
 
-    
     LaunchedEffect(uiState.inboxRecordToHighlight, uiState.currentView, inboxRecords) {
         val recordId = uiState.inboxRecordToHighlight
         if (recordId != null && uiState.currentView == ContextViewMode.INBOX && inboxRecords.isNotEmpty()) {
@@ -317,7 +225,6 @@ fun GoalDetailEffects(
         }
     }
 
-    
     LaunchedEffect(uiState.newlyAddedItemId, displayList) {
         val itemId = uiState.newlyAddedItemId
         Log.d("AutoScrollDebug", "newlyAddedItemId: $itemId, displayList size: ${displayList.size}")
@@ -330,9 +237,10 @@ fun GoalDetailEffects(
             Log.d("AutoScrollDebug", "Final index: $index for itemId: $itemId")
             if (index != -1) {
                 val targetItem = displayList.getOrNull(index)
-                val actualIndex = targetItem?.let { item ->
-                    listContent.indexOfFirst { it.backlogItem.id == item.backlogItem.id }
-                } ?: -1
+                val actualIndex =
+                    targetItem?.let { item ->
+                        listContent.indexOfFirst { it.backlogItem.id == item.backlogItem.id }
+                    } ?: -1
 
                 if (actualIndex != -1) {
                     yield() // дочекаємось оновленого лейауту перед прокруткою

@@ -1,13 +1,13 @@
 package com.romankozak.forwardappmobile.features.contexts.data.models
 
-import androidx.room.Entity
-import androidx.room.PrimaryKey
-import androidx.room.Index
 import androidx.room.ColumnInfo
+import androidx.room.Entity
+import androidx.room.Index
+import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "structure_presets",
-    indices = [Index(value = ["code"], unique = true)]
+    indices = [Index(value = ["code"], unique = true)],
 )
 data class ContextRoleProfile(
     @PrimaryKey val id: String,

@@ -1,8 +1,8 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_properties
 
 import androidx.compose.ui.text.input.TextFieldValue
-import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfile
+import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
 
 data class ContextSettingsUiState(
     val title: TextFieldValue = TextFieldValue(""),
@@ -30,14 +30,15 @@ data class ContextSettingsUiState(
     val currentPresetLabel: String? = null,
     val availablePresets: List<ContextRoleProfile> = emptyList(),
     val autoLinkSubprojects: Boolean = true,
-    val features: Map<String, Boolean> = mapOf(
-        "Inbox" to true,
-        "Log" to true,
-        "Artifact" to true,
-        "Advanced" to false,
-        "Dashboard" to true,
-        "Backlog" to true,
-        "Attachments" to true,
-        "Auto link subprojects" to true,
-    ),
+    val features: Map<String, Boolean> =
+        mapOf(
+            "Inbox" to true,
+            "Log" to true,
+            "Artifact" to true,
+            "Advanced" to false,
+            "Dashboard" to true,
+            "Backlog" to true,
+            "Attachments" to true,
+            "Auto link subprojects" to true,
+        ),
 )

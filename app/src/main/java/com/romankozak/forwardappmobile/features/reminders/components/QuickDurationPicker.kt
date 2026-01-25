@@ -71,11 +71,11 @@ private fun DurationChip(
         label = { Text(duration.name) },
         selected = isSelected,
         leadingIcon =
-        if (isSelected) {
-            { Icon(Icons.Default.AccessTime, contentDescription = null, modifier = Modifier.size(16.dp)) }
-        } else {
-            null
-        },
+            if (isSelected) {
+                { Icon(Icons.Default.AccessTime, contentDescription = null, modifier = Modifier.size(16.dp)) }
+            } else {
+                null
+            },
         modifier = modifier,
     )
 }

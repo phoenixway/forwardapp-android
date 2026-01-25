@@ -2,8 +2,8 @@ package com.romankozak.forwardappmobile.data.database
 
 import android.util.Log
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedGroup
 import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedContextKeys
+import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedGroup
 import java.text.Normalizer
 import java.util.UUID
 
@@ -39,7 +39,9 @@ private fun normalizeSpecialProjectNames(db: SupportSQLiteDatabase) {
     db.execSQL("UPDATE projects SET name = 'strategic' WHERE name = 'Стратегічні'")
     db.execSQL("UPDATE projects SET name = 'mission' WHERE name = 'Місія'")
     db.execSQL("UPDATE projects SET name = 'long-term-strategy' WHERE name = 'Довгострокова стратегія'")
-    db.execSQL("UPDATE projects SET name = 'medium-term-strategy' WHERE name IN ('Середньострокова програма', 'medium-term-program', 'medium-term-programs')")
+    db.execSQL(
+        "UPDATE projects SET name = 'medium-term-strategy' WHERE name IN ('Середньострокова програма', 'medium-term-program', 'medium-term-programs')",
+    )
     db.execSQL("UPDATE projects SET name = 'active-quests' WHERE name = 'Активні квести'")
     db.execSQL("UPDATE projects SET name = 'strategic-inbox' WHERE name IN ('Стратегічні цілі', 'strategic-goals')")
     db.execSQL("UPDATE projects SET name = 'strategic-review' WHERE name = 'Стратегічний огляд'")
@@ -50,7 +52,7 @@ private fun normalizeSpecialProjectNames(db: SupportSQLiteDatabase) {
            SET name = 'strategic-beacons'
          WHERE name = 'main-beacons'
            AND reserved_group IN ('main_beacons_group', 'MainBeaconsGroup')
-        """.trimIndent()
+        """.trimIndent(),
     )
     db.execSQL("UPDATE projects SET name = 'strategic-programs' WHERE name IN ('strategic-program', 'strategic-programs')")
     db.execSQL("DELETE FROM projects WHERE name LIKE 'main-beacons-realization%' OR system_key = 'main-beacons-realization'")
@@ -62,7 +64,7 @@ private fun normalizeSpecialProjectNames(db: SupportSQLiteDatabase) {
 
     Log.d(
         MIGRATION_LOG_TAG,
-        "normalizeSpecialProjectNames: personal-management, strategic, medium-term-strategy and reserved_group aliases normalized (main-beacons-realization removed)"
+        "normalizeSpecialProjectNames: personal-management, strategic, medium-term-strategy and reserved_group aliases normalized (main-beacons-realization removed)",
     )
 }
 
@@ -78,7 +80,7 @@ private fun migrateSpecialProjectsLegacy(db: SupportSQLiteDatabase) {
     if (personalManagementProjectId != null) {
         db.execSQL(
             "UPDATE projects SET name = 'personal-management' WHERE id = ?",
-            arrayOf(personalManagementProjectId)
+            arrayOf(personalManagementProjectId),
         )
 
         val strategicGroupIdCursor =
@@ -100,7 +102,10 @@ private fun migrateSpecialProjectsLegacy(db: SupportSQLiteDatabase) {
 
             if (strategicBeaconsGroupId == null) {
                 val beaconsUnderRootCursor =
-                    db.query("SELECT id FROM projects WHERE parentId = ? AND name = 'strategic-beacons' LIMIT 1", arrayOf(personalManagementProjectId))
+                    db.query(
+                        "SELECT id FROM projects WHERE parentId = ? AND name = 'strategic-beacons' LIMIT 1",
+                        arrayOf(personalManagementProjectId),
+                    )
                 if (beaconsUnderRootCursor.moveToFirst()) {
                     strategicBeaconsGroupId = beaconsUnderRootCursor.getString(beaconsUnderRootCursor.getColumnIndexOrThrow("id"))
                 }
@@ -111,12 +116,21 @@ private fun migrateSpecialProjectsLegacy(db: SupportSQLiteDatabase) {
                 strategicBeaconsGroupId = UUID.randomUUID().toString()
                 db.execSQL(
                     "INSERT INTO projects (id, name, parentId, is_expanded, project_type, reserved_group, createdAt, scoring_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                    arrayOf(strategicBeaconsGroupId, "strategic-beacons", strategicGroupId, 0, "RESERVED", "main_beacons_group", System.currentTimeMillis(), "NOT_ASSESSED")
+                    arrayOf(
+                        strategicBeaconsGroupId,
+                        "strategic-beacons",
+                        strategicGroupId,
+                        0,
+                        "RESERVED",
+                        "main_beacons_group",
+                        System.currentTimeMillis(),
+                        "NOT_ASSESSED",
+                    ),
                 )
             } else {
                 db.execSQL(
                     "UPDATE projects SET name = 'strategic-beacons', parentId = ? WHERE id = ?",
-                    arrayOf(strategicGroupId, strategicBeaconsGroupId)
+                    arrayOf(strategicGroupId, strategicBeaconsGroupId),
                 )
             }
 
@@ -133,13 +147,13 @@ private fun migrateSpecialProjectsLegacy(db: SupportSQLiteDatabase) {
             if (missionProjectId != null && missionParentId != strategicBeaconsGroupId) {
                 db.execSQL(
                     "UPDATE projects SET parentId = ? WHERE id = ?",
-                    arrayOf(strategicBeaconsGroupId, missionProjectId)
+                    arrayOf(strategicBeaconsGroupId, missionProjectId),
                 )
             }
 
             db.execSQL(
                 "UPDATE projects SET parentId = ? WHERE name = 'long-term-strategy'",
-                arrayOf(strategicBeaconsGroupId)
+                arrayOf(strategicBeaconsGroupId),
             )
 
             var strategicProgramsExists = false
@@ -151,7 +165,7 @@ private fun migrateSpecialProjectsLegacy(db: SupportSQLiteDatabase) {
                 if (currentParentId != strategicBeaconsGroupId) {
                     db.execSQL(
                         "UPDATE projects SET parentId = ? WHERE id = ?",
-                        arrayOf(strategicBeaconsGroupId, existingStrategicProgramsId)
+                        arrayOf(strategicBeaconsGroupId, existingStrategicProgramsId),
                     )
                 }
             }
@@ -161,14 +175,23 @@ private fun migrateSpecialProjectsLegacy(db: SupportSQLiteDatabase) {
                 val strategicProgramsId = UUID.randomUUID().toString()
                 db.execSQL(
                     "INSERT INTO projects (id, name, parentId, is_expanded, project_type, reserved_group, createdAt, scoring_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                    arrayOf(strategicProgramsId, "strategic-programs", strategicBeaconsGroupId, 0, "RESERVED", "strategic", System.currentTimeMillis(), "NOT_ASSESSED")
+                    arrayOf(
+                        strategicProgramsId,
+                        "strategic-programs",
+                        strategicBeaconsGroupId,
+                        0,
+                        "RESERVED",
+                        "strategic",
+                        System.currentTimeMillis(),
+                        "NOT_ASSESSED",
+                    ),
                 )
             }
         }
 
         db.execSQL(
             "UPDATE projects SET parentId = ? WHERE name = 'medium-term-strategy'",
-            arrayOf(personalManagementProjectId)
+            arrayOf(personalManagementProjectId),
         )
 
         var weekProjectId: String? = null
@@ -183,61 +206,74 @@ private fun migrateSpecialProjectsLegacy(db: SupportSQLiteDatabase) {
             weekProjectId = UUID.randomUUID().toString()
             db.execSQL(
                 "INSERT INTO projects (id, name, parentId, is_expanded, project_type, reserved_group, createdAt, scoring_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                arrayOf(weekProjectId, "week", personalManagementProjectId, 0, "RESERVED", "strategic", System.currentTimeMillis(), "NOT_ASSESSED")
+                arrayOf(
+                    weekProjectId,
+                    "week",
+                    personalManagementProjectId,
+                    0,
+                    "RESERVED",
+                    "strategic",
+                    System.currentTimeMillis(),
+                    "NOT_ASSESSED",
+                ),
             )
         }
 
         db.execSQL(
             "UPDATE projects SET parentId = ? WHERE name = 'active-quests'",
-            arrayOf(weekProjectId)
+            arrayOf(weekProjectId),
         )
     }
 }
 
 private fun migrateSpecialProjectsWithSystemKeys(db: SupportSQLiteDatabase) {
-    val personalManagementId = ensureProjectWithKey(
-        db = db,
-        key = ReservedContextKeys.PERSONAL_MANAGEMENT,
-        defaultName = "personal-management",
-        projectType = "SYSTEM",
-        reservedGroup = null,
-        parentId = null,
-        legacyNames = listOf("personal-management", "special", "Спеціальні")
-    ) ?: return
+    val personalManagementId =
+        ensureProjectWithKey(
+            db = db,
+            key = ReservedContextKeys.PERSONAL_MANAGEMENT,
+            defaultName = "personal-management",
+            projectType = "SYSTEM",
+            reservedGroup = null,
+            parentId = null,
+            legacyNames = listOf("personal-management", "special", "Спеціальні"),
+        ) ?: return
 
-    val strategicId = ensureProjectWithKey(
-        db = db,
-        key = ReservedContextKeys.STRATEGIC,
-        defaultName = "strategic",
-        projectType = "RESERVED",
-        reservedGroup = ReservedGroup.StrategicGroup.groupName,
-        parentId = personalManagementId,
-        legacyNames = listOf("strategic", "Стратегічні")
-    ) ?: return
+    val strategicId =
+        ensureProjectWithKey(
+            db = db,
+            key = ReservedContextKeys.STRATEGIC,
+            defaultName = "strategic",
+            projectType = "RESERVED",
+            reservedGroup = ReservedGroup.StrategicGroup.groupName,
+            parentId = personalManagementId,
+            legacyNames = listOf("strategic", "Стратегічні"),
+        ) ?: return
 
-    val strategicBeaconsId = ensureProjectWithKey(
-        db = db,
-        key = ReservedContextKeys.STRATEGIC_BEACONS,
-        defaultName = "strategic-beacons",
-        projectType = "RESERVED",
-        reservedGroup = ReservedGroup.MainBeaconsGroup.groupName,
-        parentId = strategicId,
-        legacyParentIds = listOf(personalManagementId),
-        legacyNames = listOf("strategic-beacons"),
-        legacyNamePatterns = listOf("strategic-beacons%"),
-        legacyReservedGroups = listOf("main_beacons_group", "MainBeaconsGroup")
-    ) ?: return
+    val strategicBeaconsId =
+        ensureProjectWithKey(
+            db = db,
+            key = ReservedContextKeys.STRATEGIC_BEACONS,
+            defaultName = "strategic-beacons",
+            projectType = "RESERVED",
+            reservedGroup = ReservedGroup.MainBeaconsGroup.groupName,
+            parentId = strategicId,
+            legacyParentIds = listOf(personalManagementId),
+            legacyNames = listOf("strategic-beacons"),
+            legacyNamePatterns = listOf("strategic-beacons%"),
+            legacyReservedGroups = listOf("main_beacons_group", "MainBeaconsGroup"),
+        ) ?: return
 
-    val weekId = ensureProjectWithKey(
-        db = db,
-        key = ReservedContextKeys.WEEK,
-        defaultName = "week",
-        projectType = "RESERVED",
-        reservedGroup = ReservedGroup.Strategic.groupName,
-        parentId = personalManagementId,
-        legacyNames = listOf("week"),
-        legacyNamePatterns = listOf("week%", "Week%")
-    ) ?: return
+    val weekId =
+        ensureProjectWithKey(
+            db = db,
+            key = ReservedContextKeys.WEEK,
+            defaultName = "week",
+            projectType = "RESERVED",
+            reservedGroup = ReservedGroup.Strategic.groupName,
+            parentId = personalManagementId,
+            legacyNames = listOf("week"),
+            legacyNamePatterns = listOf("week%", "Week%"),
+        ) ?: return
 
     val todayId =
         ensureProjectWithKey(
@@ -263,17 +299,18 @@ private fun migrateSpecialProjectsWithSystemKeys(db: SupportSQLiteDatabase) {
             legacyReservedGroups = listOf(ReservedGroup.MainBeacons.groupName),
         )
 
-    val mediumTermId = ensureProjectWithKey(
-        db = db,
-        key = ReservedContextKeys.MEDIUM_TERM_STRATEGY,
-        defaultName = "medium-term-strategy",
-        projectType = "RESERVED",
-        reservedGroup = ReservedGroup.Strategic.groupName,
-        parentId = personalManagementId,
-        legacyParentIds = listOf(strategicId),
-        legacyNames = listOf("medium-term-strategy", "medium-term-program", "medium-term-programs", "Середньострокова програма"),
-        legacyNamePatterns = listOf("%medium-term%", "%medium%strategy%", "%Середнь%")
-    )
+    val mediumTermId =
+        ensureProjectWithKey(
+            db = db,
+            key = ReservedContextKeys.MEDIUM_TERM_STRATEGY,
+            defaultName = "medium-term-strategy",
+            projectType = "RESERVED",
+            reservedGroup = ReservedGroup.Strategic.groupName,
+            parentId = personalManagementId,
+            legacyParentIds = listOf(strategicId),
+            legacyNames = listOf("medium-term-strategy", "medium-term-program", "medium-term-programs", "Середньострокова програма"),
+            legacyNamePatterns = listOf("%medium-term%", "%medium%strategy%", "%Середнь%"),
+        )
 
     ensureProjectWithKey(
         db = db,
@@ -284,7 +321,7 @@ private fun migrateSpecialProjectsWithSystemKeys(db: SupportSQLiteDatabase) {
         parentId = todayId ?: personalManagementId,
         legacyNames = listOf("inbox", "Вхідні"),
         legacyNamePatterns = listOf("inbox%", "Inbox%"),
-        fuzzyNameCandidates = listOf("inbox")
+        fuzzyNameCandidates = listOf("inbox"),
     )
 
     if (todayId != null) {
@@ -306,7 +343,7 @@ private fun migrateSpecialProjectsWithSystemKeys(db: SupportSQLiteDatabase) {
         projectType = "RESERVED",
         reservedGroup = ReservedGroup.Strategic.groupName,
         parentId = strategicId,
-        legacyNames = listOf("strategic-inbox", "strategic-goals", "Стратегічні цілі")
+        legacyNames = listOf("strategic-inbox", "strategic-goals", "Стратегічні цілі"),
     )
 
     ensureProjectWithKey(
@@ -316,7 +353,7 @@ private fun migrateSpecialProjectsWithSystemKeys(db: SupportSQLiteDatabase) {
         projectType = "RESERVED",
         reservedGroup = ReservedGroup.Strategic.groupName,
         parentId = strategicId,
-        legacyNames = listOf("strategic-review", "Стратегічний огляд")
+        legacyNames = listOf("strategic-review", "Стратегічний огляд"),
     )
 
     ensureProjectWithKey(
@@ -328,7 +365,7 @@ private fun migrateSpecialProjectsWithSystemKeys(db: SupportSQLiteDatabase) {
         parentId = strategicBeaconsId,
         legacyParentIds = listOf(strategicId),
         legacyNames = listOf("mission", "Місія"),
-        legacyReservedGroups = listOf("main_beacons", "MainBeacons")
+        legacyReservedGroups = listOf("main_beacons", "MainBeacons"),
     )
 
     ensureProjectWithKey(
@@ -339,31 +376,33 @@ private fun migrateSpecialProjectsWithSystemKeys(db: SupportSQLiteDatabase) {
         reservedGroup = ReservedGroup.Strategic.groupName,
         parentId = strategicBeaconsId,
         legacyParentIds = listOf(strategicId),
-        legacyNames = listOf("long-term-strategy", "Довгострокова стратегія")
+        legacyNames = listOf("long-term-strategy", "Довгострокова стратегія"),
     )
 
-    val strategicProgramsId = ensureProjectWithKey(
-        db = db,
-        key = ReservedContextKeys.STRATEGIC_PROGRAMS,
-        defaultName = "strategic-programs",
-        projectType = "RESERVED",
-        reservedGroup = ReservedGroup.Strategic.groupName,
-        parentId = strategicBeaconsId,
-        legacyParentIds = listOf(strategicId),
-        legacyNames = listOf("strategic-programs", "strategic-program"),
-        legacyNamePatterns = listOf("%strategic%program%")
-    )
+    val strategicProgramsId =
+        ensureProjectWithKey(
+            db = db,
+            key = ReservedContextKeys.STRATEGIC_PROGRAMS,
+            defaultName = "strategic-programs",
+            projectType = "RESERVED",
+            reservedGroup = ReservedGroup.Strategic.groupName,
+            parentId = strategicBeaconsId,
+            legacyParentIds = listOf(strategicId),
+            legacyNames = listOf("strategic-programs", "strategic-program"),
+            legacyNamePatterns = listOf("%strategic%program%"),
+        )
 
-    val activeQuestsId = ensureProjectWithKey(
-        db = db,
-        key = ReservedContextKeys.ACTIVE_QUESTS,
-        defaultName = "active-quests",
-        projectType = "RESERVED",
-        reservedGroup = ReservedGroup.Strategic.groupName,
-        parentId = weekId,
-        legacyNames = listOf("active-quests", "Активні квести"),
-        legacyNamePatterns = listOf("active-quests%")
-    )
+    val activeQuestsId =
+        ensureProjectWithKey(
+            db = db,
+            key = ReservedContextKeys.ACTIVE_QUESTS,
+            defaultName = "active-quests",
+            projectType = "RESERVED",
+            reservedGroup = ReservedGroup.Strategic.groupName,
+            parentId = weekId,
+            legacyNames = listOf("active-quests", "Активні квести"),
+            legacyNamePatterns = listOf("active-quests%"),
+        )
 
     cleanUpDuplicateReservedProjects(db, "week", weekId)
     cleanUpDuplicateReservedProjects(db, "strategic-beacons", strategicBeaconsId)
@@ -386,7 +425,7 @@ private fun ensureProjectWithKey(
     legacyReservedGroups: List<String> = emptyList(),
     legacyParentIds: List<String?> = emptyList(),
     fuzzyNameCandidates: List<String> = emptyList(),
-    createIfMissing: Boolean = true
+    createIfMissing: Boolean = true,
 ): String? {
     var discoveryStrategy: String? = null
     val parentScopeCandidates = (listOf(parentId) + legacyParentIds).distinct()
@@ -400,37 +439,41 @@ private fun ensureProjectWithKey(
         parentCandidates.forEach { parent ->
             val placeholders = legacyNames.joinToString(",") { "?" }
             val args = arrayOf(parent) + legacyNames.toTypedArray()
-            targetId = db.queryUniqueId(
-                "SELECT id FROM projects WHERE parentId = ? AND name IN ($placeholders) LIMIT 2",
-                args
-            )
+            targetId =
+                db.queryUniqueId(
+                    "SELECT id FROM projects WHERE parentId = ? AND name IN ($placeholders) LIMIT 2",
+                    args,
+                )
             if (targetId != null) return@forEach
         }
     }
 
     if (targetId == null && legacyNames.isNotEmpty()) {
         val placeholders = legacyNames.joinToString(",") { "?" }
-        targetId = db.queryUniqueId(
-            "SELECT id FROM projects WHERE name IN ($placeholders) LIMIT 2",
-            legacyNames.toTypedArray()
-        )
+        targetId =
+            db.queryUniqueId(
+                "SELECT id FROM projects WHERE name IN ($placeholders) LIMIT 2",
+                legacyNames.toTypedArray(),
+            )
         if (targetId != null) discoveryStrategy = "legacy_name"
     }
 
     if (targetId == null && legacyNamePatterns.isNotEmpty()) {
         parentScopesFallback.forEach { parent ->
             legacyNamePatterns.forEach { pattern ->
-                val condition = buildString {
-                    if (parent != null) append("parentId = ? AND ")
-                    append("name LIKE ? AND system_key IS NULL")
-                }
+                val condition =
+                    buildString {
+                        if (parent != null) append("parentId = ? AND ")
+                        append("name LIKE ? AND system_key IS NULL")
+                    }
                 val args = mutableListOf<String>()
                 if (parent != null) args += parent
                 args += pattern
-                val candidate = db.queryUniqueId(
-                    "SELECT id FROM projects WHERE $condition LIMIT 2",
-                    args.toTypedArray()
-                )
+                val candidate =
+                    db.queryUniqueId(
+                        "SELECT id FROM projects WHERE $condition LIMIT 2",
+                        args.toTypedArray(),
+                    )
                 if (candidate != null) {
                     targetId = candidate
                     discoveryStrategy = "legacy_pattern"
@@ -453,10 +496,11 @@ private fun ensureProjectWithKey(
                 val condition = StringBuilder(baseCondition)
                 condition.append(" AND parentId = ?")
                 args += parent
-                val candidate = db.queryUniqueId(
-                    "SELECT id FROM projects WHERE $condition LIMIT 2",
-                    args.toTypedArray()
-                )
+                val candidate =
+                    db.queryUniqueId(
+                        "SELECT id FROM projects WHERE $condition LIMIT 2",
+                        args.toTypedArray(),
+                    )
                 if (candidate != null) {
                     targetId = candidate
                     return@forEach
@@ -464,30 +508,32 @@ private fun ensureProjectWithKey(
             }
 
             if (targetId == null) {
-                targetId = db.queryUniqueId(
-                    "SELECT id FROM projects WHERE $baseCondition LIMIT 2",
-                    baseArgs.toTypedArray()
-                )
+                targetId =
+                    db.queryUniqueId(
+                        "SELECT id FROM projects WHERE $baseCondition LIMIT 2",
+                        baseArgs.toTypedArray(),
+                    )
                 if (targetId != null) discoveryStrategy = "reserved_group"
             }
         }
     }
 
     if (targetId == null) {
-        val fuzzyTargets = (fuzzyNameCandidates + legacyNames + listOf(defaultName, key))
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-            .distinct()
+        val fuzzyTargets =
+            (fuzzyNameCandidates + legacyNames + listOf(defaultName, key))
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .distinct()
 
         if (fuzzyTargets.isNotEmpty()) {
             targetId = db.findProjectByFuzzyName(
                 targetNames = fuzzyTargets,
                 parentCandidates = parentScopeCandidates,
-                requireParentMatch = parentScopeCandidates.isNotEmpty()
+                requireParentMatch = parentScopeCandidates.isNotEmpty(),
             )?.also { discoveryStrategy = "fuzzy_parent" } ?: db.findProjectByFuzzyName(
                 targetNames = fuzzyTargets,
                 parentCandidates = parentScopeCandidates,
-                requireParentMatch = false
+                requireParentMatch = false,
             )?.also { discoveryStrategy = "fuzzy_any" }
         }
     }
@@ -496,7 +542,7 @@ private fun ensureProjectWithKey(
         targetId = UUID.randomUUID().toString()
         db.execSQL(
             "INSERT INTO projects (id, name, parentId, is_expanded, project_type, reserved_group, createdAt, scoring_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            arrayOf(targetId, defaultName, parentId, 0, projectType, reservedGroup, System.currentTimeMillis(), "NOT_ASSESSED")
+            arrayOf(targetId, defaultName, parentId, 0, projectType, reservedGroup, System.currentTimeMillis(), "NOT_ASSESSED"),
         )
         discoveryStrategy = "created"
     }
@@ -539,7 +585,7 @@ private fun ensureProjectWithKey(
 
     Log.d(
         MIGRATION_LOG_TAG,
-        "ensureProjectWithKey[$key]: resolved $targetId via ${discoveryStrategy ?: "unknown"} (parent=$parentId)"
+        "ensureProjectWithKey[$key]: resolved $targetId via ${discoveryStrategy ?: "unknown"} (parent=$parentId)",
     )
 
     return targetId
@@ -548,17 +594,18 @@ private fun ensureProjectWithKey(
 private fun cleanUpDuplicateReservedProjects(
     db: SupportSQLiteDatabase,
     defaultName: String,
-    canonicalId: String?
+    canonicalId: String?,
 ) {
     canonicalId ?: return
 
-    val deleteQuery = """
+    val deleteQuery =
+        """
         DELETE FROM projects
         WHERE name = ?
           AND system_key IS NULL
           AND project_type = 'RESERVED'
           AND id != ?
-    """.trimIndent()
+        """.trimIndent()
     db.execSQL(deleteQuery, arrayOf(defaultName, canonicalId))
 }
 
@@ -567,8 +614,9 @@ private val NON_ALPHANUMERIC_REGEX = "[^a-z0-9]+".toRegex()
 
 private fun normalizeProjectName(value: String?): String? {
     if (value.isNullOrBlank()) return null
-    val withoutDiacritics = Normalizer.normalize(value.lowercase(), Normalizer.Form.NFD)
-        .replace(DIACRITICS_REGEX, "")
+    val withoutDiacritics =
+        Normalizer.normalize(value.lowercase(), Normalizer.Form.NFD)
+            .replace(DIACRITICS_REGEX, "")
     val normalized = NON_ALPHANUMERIC_REGEX.replace(withoutDiacritics, "-").trim('-')
     return normalized.ifBlank { null }
 }
@@ -582,7 +630,10 @@ private fun computeFuzzyThreshold(target: String): Int {
     }
 }
 
-private fun levenshteinDistance(left: String, right: String): Int {
+private fun levenshteinDistance(
+    left: String,
+    right: String,
+): Int {
     if (left == right) return 0
     if (left.isEmpty()) return right.length
     if (right.isEmpty()) return left.length
@@ -609,7 +660,7 @@ private fun levenshteinDistance(left: String, right: String): Int {
 private fun SupportSQLiteDatabase.findProjectByFuzzyName(
     targetNames: List<String>,
     parentCandidates: List<String?>,
-    requireParentMatch: Boolean
+    requireParentMatch: Boolean,
 ): String? {
     val normalizedTargets = targetNames.mapNotNull { normalizeProjectName(it) }.distinct()
     if (normalizedTargets.isEmpty()) return null
@@ -646,19 +697,22 @@ private fun SupportSQLiteDatabase.findProjectByFuzzyName(
     if (bestId != null) {
         Log.d(
             MIGRATION_LOG_TAG,
-            "findProjectByFuzzyName targets=$normalizedTargets requireParentMatch=$requireParentMatch -> $bestId (score=$bestScore)"
+            "findProjectByFuzzyName targets=$normalizedTargets requireParentMatch=$requireParentMatch -> $bestId (score=$bestScore)",
         )
     } else {
         Log.d(
             MIGRATION_LOG_TAG,
-            "findProjectByFuzzyName targets=$normalizedTargets requireParentMatch=$requireParentMatch -> no match"
+            "findProjectByFuzzyName targets=$normalizedTargets requireParentMatch=$requireParentMatch -> no match",
         )
     }
 
     return bestId
 }
 
-private fun SupportSQLiteDatabase.queryUniqueId(query: String, args: Array<String>): String? {
+private fun SupportSQLiteDatabase.queryUniqueId(
+    query: String,
+    args: Array<String>,
+): String? {
     val cursor = this.query(query, args)
     cursor.use {
         if (!it.moveToFirst()) return null
@@ -667,7 +721,10 @@ private fun SupportSQLiteDatabase.queryUniqueId(query: String, args: Array<Strin
     }
 }
 
-private fun SupportSQLiteDatabase.hasColumn(table: String, column: String): Boolean {
+private fun SupportSQLiteDatabase.hasColumn(
+    table: String,
+    column: String,
+): Boolean {
     val cursor = query("PRAGMA table_info($table)")
     cursor.use {
         val nameIndex = it.getColumnIndex("name")

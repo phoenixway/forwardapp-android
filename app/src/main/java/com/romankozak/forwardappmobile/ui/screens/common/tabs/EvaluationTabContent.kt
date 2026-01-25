@@ -51,10 +51,10 @@ fun EvaluationTabContent(
         Column {
             Row(
                 modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .clickable { isExpanded = !isExpanded }
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { isExpanded = !isExpanded }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
@@ -133,9 +133,9 @@ fun EvaluationTabs(
         HorizontalPager(
             state = pagerState,
             modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp),
             userScrollEnabled = isEnabled,
         ) { page ->
             Column(

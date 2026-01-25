@@ -39,12 +39,12 @@ fun LinksTabContent(
     onAddProjectLink: () -> Unit,
     onAddWebLink: () -> Unit,
     onAddObsidianLink: () -> Unit,
-    onRemoveLink: (String) -> Unit
+    onRemoveLink: (String) -> Unit,
 ) {
     Column(modifier = Modifier.padding(16.dp).fillMaxSize()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             FilledTonalButton(onClick = onAddProjectLink, modifier = Modifier.weight(1f)) {
                 Icon(Icons.Default.Add, contentDescription = null)
@@ -69,20 +69,20 @@ fun LinksTabContent(
             Column(
                 modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                verticalArrangement = Arrangement.Center,
             ) {
                 Icon(
                     imageVector = Icons.Outlined.LinkOff,
                     contentDescription = "No links",
                     modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     "No links added yet.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
                 )
             }
         } else {
@@ -97,28 +97,32 @@ fun LinksTabContent(
 }
 
 @Composable
-private fun LinkItem(link: RelatedLink, onRemoveClick: () -> Unit) {
+private fun LinkItem(
+    link: RelatedLink,
+    onRemoveClick: () -> Unit,
+) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 12.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Icon(
             imageVector = getIconForLinkType(link.type),
             contentDescription = link.type?.name,
-            tint = MaterialTheme.colorScheme.primary
+            tint = MaterialTheme.colorScheme.primary,
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = link.displayName ?: link.target,
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyLarge,
             )
             Text(
                 text = link.type?.name ?: "Unknown",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         IconButton(onClick = onRemoveClick) {

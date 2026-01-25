@@ -9,7 +9,7 @@ class LongDeserializer : JsonDeserializer<Long> {
     override fun deserialize(
         json: JsonElement,
         typeOfT: java.lang.reflect.Type?,
-        context: com.google.gson.JsonDeserializationContext?
+        context: com.google.gson.JsonDeserializationContext?,
     ): Long {
         return when {
             json.isJsonNull -> 0L
@@ -25,10 +25,11 @@ class LongDeserializer : JsonDeserializer<Long> {
                             else -> {
                                 // Try parsing as ISO 8601 date
                                 try {
-                                    val instant = OffsetDateTime.parse(
-                                        strValue,
-                                        DateTimeFormatter.ISO_OFFSET_DATE_TIME
-                                    ).toInstant()
+                                    val instant =
+                                        OffsetDateTime.parse(
+                                            strValue,
+                                            DateTimeFormatter.ISO_OFFSET_DATE_TIME,
+                                        ).toInstant()
                                     instant.toEpochMilli()
                                 } catch (e: Exception) {
                                     0L

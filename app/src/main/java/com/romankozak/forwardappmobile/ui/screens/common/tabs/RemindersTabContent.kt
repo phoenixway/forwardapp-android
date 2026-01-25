@@ -11,6 +11,6 @@ fun RemindersTabContent(
     ReminderSection(
         reminderTime = reminderTime,
         onSetReminder = onViewModelAction::onSetReminder,
-        onClearReminder = onViewModelAction::onClearReminder
+        onClearReminder = onViewModelAction::onClearReminder,
     )
 }

@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.features.attachments.specific_types.chec
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -10,56 +11,63 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckBox
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.CheckBoxOutlineBlank
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DeleteSweep
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.rememberSwipeToDismissBoxState
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.IconToggleButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -67,36 +75,26 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import androidx.compose.material3.Surface
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.type
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextAlign
-import sh.calvin.reorderable.ReorderableItem
-import sh.calvin.reorderable.rememberReorderableLazyListState
 import com.romankozak.forwardappmobile.R
-
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.ui.platform.LocalHapticFeedback
 import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableCollectionItemScope
+import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.ReorderableLazyListState
-
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -106,28 +104,30 @@ fun ChecklistScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
-    val reorderState = rememberReorderableLazyListState(listState) { from, to ->
-        viewModel.onMoveItem(from.index, to.index)
-    }
+    val reorderState =
+        rememberReorderableLazyListState(listState) { from, to ->
+            viewModel.onMoveItem(from.index, to.index)
+        }
     val snackbarHostState = remember { SnackbarHostState() }
     val clipboardManager = LocalClipboardManager.current
     val coroutineScope = rememberCoroutineScope()
-    
-        LaunchedEffect(uiState.showUndoSnackbar) {
-            if (uiState.showUndoSnackbar) {
-                val result = snackbarHostState.showSnackbar(
+
+    LaunchedEffect(uiState.showUndoSnackbar) {
+        if (uiState.showUndoSnackbar) {
+            val result =
+                snackbarHostState.showSnackbar(
                     message = "Item deleted",
-                    actionLabel = "Undo"
+                    actionLabel = "Undo",
                 )
-                if (result == SnackbarResult.ActionPerformed) {
-                    viewModel.onUndoDelete()
-                } else {
-                    viewModel.onConfirmDelete()
-                }
+            if (result == SnackbarResult.ActionPerformed) {
+                viewModel.onUndoDelete()
+            } else {
+                viewModel.onConfirmDelete()
             }
         }
-    
-        val sheetState = rememberModalBottomSheetState()
+    }
+
+    val sheetState = rememberModalBottomSheetState()
     var showBottomSheet by remember { mutableStateOf(false) }
     var selectedItem by remember { mutableStateOf<ChecklistItemUiModel?>(null) }
 
@@ -142,7 +142,7 @@ fun ChecklistScreen(
     if (showBottomSheet) {
         ModalBottomSheet(
             onDismissRequest = { showBottomSheet = false },
-            sheetState = sheetState
+            sheetState = sheetState,
         ) {
             Column {
                 ListItem(
@@ -151,13 +151,14 @@ fun ChecklistScreen(
                         Icon(
                             Icons.Outlined.Delete,
                             contentDescription = "Delete",
-                            tint = MaterialTheme.colorScheme.error
+                            tint = MaterialTheme.colorScheme.error,
                         )
                     },
-                    modifier = Modifier.clickable {
-                        showBottomSheet = false
-                        selectedItem?.let { viewModel.onDeleteItem(it.id) }
-                    }
+                    modifier =
+                        Modifier.clickable {
+                            showBottomSheet = false
+                            selectedItem?.let { viewModel.onDeleteItem(it.id) }
+                        },
                 )
             }
         }
@@ -335,59 +336,63 @@ private fun ChecklistContent(
                 ReorderableItem(reorderState, key = item.id) { isDragging ->
                     val reorderableScope = this
                     val clipboardManager = LocalClipboardManager.current
-                    val dismissState = rememberSwipeToDismissBoxState(
-                        confirmValueChange = {
-                            when (it) {
-                                SwipeToDismissBoxValue.EndToStart -> {
-                                    onDelete(item.id)
-                                    true
+                    val dismissState =
+                        rememberSwipeToDismissBoxState(
+                            confirmValueChange = {
+                                when (it) {
+                                    SwipeToDismissBoxValue.EndToStart -> {
+                                        onDelete(item.id)
+                                        true
+                                    }
+                                    SwipeToDismissBoxValue.StartToEnd -> {
+                                        clipboardManager.setText(AnnotatedString(item.content))
+                                        false
+                                    }
+                                    else -> false
                                 }
-                                SwipeToDismissBoxValue.StartToEnd -> {
-                                    clipboardManager.setText(AnnotatedString(item.content))
-                                    false
-                                }
-                                else -> false
-                            }
-                        }
-                    )
+                            },
+                        )
                     SwipeToDismissBox(
                         state = dismissState,
                         backgroundContent = {
-                            val color = when (dismissState.dismissDirection) {
-                                SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
-                                SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primaryContainer
-                                else -> Color.Transparent
-                            }
-                            val icon = when (dismissState.dismissDirection) {
-                                SwipeToDismissBoxValue.EndToStart -> Icons.Outlined.Delete
-                                SwipeToDismissBoxValue.StartToEnd -> Icons.Default.ContentCopy
-                                else -> null
-                            }
-                            val alignment = when (dismissState.dismissDirection) {
-                                SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
-                                SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
-                                else -> Alignment.Center
-                            }
+                            val color =
+                                when (dismissState.dismissDirection) {
+                                    SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
+                                    SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primaryContainer
+                                    else -> Color.Transparent
+                                }
+                            val icon =
+                                when (dismissState.dismissDirection) {
+                                    SwipeToDismissBoxValue.EndToStart -> Icons.Outlined.Delete
+                                    SwipeToDismissBoxValue.StartToEnd -> Icons.Default.ContentCopy
+                                    else -> null
+                                }
+                            val alignment =
+                                when (dismissState.dismissDirection) {
+                                    SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
+                                    SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+                                    else -> Alignment.Center
+                                }
                             Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(color)
-                                    .padding(horizontal = 16.dp),
-                                contentAlignment = alignment
+                                modifier =
+                                    Modifier
+                                        .fillMaxSize()
+                                        .background(color)
+                                        .padding(horizontal = 16.dp),
+                                contentAlignment = alignment,
                             ) {
                                 if (icon != null) {
                                     Icon(
                                         imageVector = icon,
-                                        contentDescription = null
+                                        contentDescription = null,
                                     )
                                 }
                             }
-                        }
+                        },
                     ) {
                         ChecklistItemRow(
                             item = item,
                             reorderableScope = reorderableScope,
-
                             showCheckbox = uiState.showCheckboxes,
                             isDragging = isDragging,
                             shouldRequestFocus = item.id == uiState.pendingFocusItemId,
@@ -432,11 +437,12 @@ private fun ChecklistTopBar(
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text(text = stringResource(R.string.checklist_title_placeholder)) },
                 singleLine = true,
-colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.Transparent,
-                    unfocusedBorderColor = Color.Transparent,
-                    disabledBorderColor = Color.Transparent,
-                ),
+                colors =
+                    OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color.Transparent,
+                        unfocusedBorderColor = Color.Transparent,
+                        disabledBorderColor = Color.Transparent,
+                    ),
             )
         },
         navigationIcon = {
@@ -451,21 +457,22 @@ colors = OutlinedTextFieldDefaults.colors(
             IconButton(onClick = { menuExpanded = true }) {
                 Icon(
                     imageVector = Icons.Filled.MoreVert,
-                    contentDescription = "More options"
+                    contentDescription = "More options",
                 )
             }
             DropdownMenu(
                 expanded = menuExpanded,
-                onDismissRequest = { menuExpanded = false }
+                onDismissRequest = { menuExpanded = false },
             ) {
                 DropdownMenuItem(
                     text = {
                         Text(
-                            text = if (showCheckboxes) {
-                                "Hide checkboxes"
-                            } else {
-                                "Show checkboxes"
-                            }
+                            text =
+                                if (showCheckboxes) {
+                                    "Hide checkboxes"
+                                } else {
+                                    "Show checkboxes"
+                                },
                         )
                     },
                     leadingIcon = {
@@ -476,7 +483,7 @@ colors = OutlinedTextFieldDefaults.colors(
                     onClick = {
                         menuExpanded = false
                         onToggleCheckboxes()
-                    }
+                    },
                 )
                 DropdownMenuItem(
                     text = { Text("Clear completed") },
@@ -486,7 +493,7 @@ colors = OutlinedTextFieldDefaults.colors(
                     onClick = {
                         menuExpanded = false
                         onClearCompleted()
-                    }
+                    },
                 )
                 DropdownMenuItem(
                     text = { Text("Copy as Markdown") },
@@ -496,7 +503,7 @@ colors = OutlinedTextFieldDefaults.colors(
                     onClick = {
                         menuExpanded = false
                         onExportMarkdown()
-                    }
+                    },
                 )
                 DropdownMenuItem(
                     text = { Text("Import from clipboard") },
@@ -506,7 +513,7 @@ colors = OutlinedTextFieldDefaults.colors(
                     onClick = {
                         menuExpanded = false
                         onImportFromClipboard()
-                    }
+                    },
                 )
                 DropdownMenuItem(
                     text = { Text("Select all") },
@@ -514,7 +521,7 @@ colors = OutlinedTextFieldDefaults.colors(
                     onClick = {
                         menuExpanded = false
                         onSelectAll()
-                    }
+                    },
                 )
                 DropdownMenuItem(
                     text = { Text("Mark all done") },
@@ -522,7 +529,7 @@ colors = OutlinedTextFieldDefaults.colors(
                     onClick = {
                         menuExpanded = false
                         onMarkAllCompleted()
-                    }
+                    },
                 )
                 DropdownMenuItem(
                     text = { Text("Mark all not done") },
@@ -530,7 +537,7 @@ colors = OutlinedTextFieldDefaults.colors(
                     onClick = {
                         menuExpanded = false
                         onMarkAllIncomplete()
-                    }
+                    },
                 )
             }
         },
@@ -557,7 +564,6 @@ private fun ChecklistItemRow(
 
     val hapticFeedback = LocalHapticFeedback.current
 
-
     LaunchedEffect(shouldRequestFocus) {
         if (shouldRequestFocus) {
             focusRequester.requestFocus()
@@ -565,201 +571,120 @@ private fun ChecklistItemRow(
         }
     }
 
-        Surface(
-
-            modifier = Modifier.fillMaxWidth(),
-
-            shape = MaterialTheme.shapes.large,
-
-            tonalElevation = if (isDragging) 4.dp else 1.dp,
-
-            color = MaterialTheme.colorScheme.surface,
-
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        tonalElevation = if (isDragging) 4.dp else 1.dp,
+        color = MaterialTheme.colorScheme.surface,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 0.dp, vertical = 0.dp),
+            verticalAlignment = Alignment.Top,
         ) {
-
-            Row(
-
-                modifier = Modifier.padding(horizontal = 0.dp, vertical = 0.dp),
-
-                verticalAlignment = Alignment.Top,
-
-            ) {
-
-                if (showCheckbox) {
-
-                    IconToggleButton(
-
-                        checked = item.isChecked,
-
-                        onCheckedChange = onCheckedChange,
-
-                        modifier = Modifier.padding(top = 16.dp).size(32.dp)
-
-                    ) {
-
-                        Surface(
-
-                            shape = CircleShape,
-
-                            color = if (item.isChecked) 
-
-                                MaterialTheme.colorScheme.primary 
-
-                            else 
-
-                                Color.Transparent,
-
-                            border = if (!item.isChecked)
-
+            if (showCheckbox) {
+                IconToggleButton(
+                    checked = item.isChecked,
+                    onCheckedChange = onCheckedChange,
+                    modifier = Modifier.padding(top = 16.dp).size(32.dp),
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color =
+                            if (item.isChecked) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                Color.Transparent
+                            },
+                        border =
+                            if (!item.isChecked) {
                                 BorderStroke(
-
-                                    2.dp, 
-
-                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-
-                                ) 
-
-                            else null,
-
-                            modifier = Modifier.size(18.dp)
-
+                                    2.dp,
+                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                )
+                            } else {
+                                null
+                            },
+                        modifier = Modifier.size(18.dp),
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.fillMaxSize(),
                         ) {
-
-                            Box(
-
-                                contentAlignment = Alignment.Center,
-
-                                modifier = Modifier.fillMaxSize()
-
-                            ) {
-
-                                if (item.isChecked) {
-
-                                    Icon(
-
-                                        imageVector = Icons.Filled.Check,
-
-                                        contentDescription = "Checkbox",
-
-                                        tint = MaterialTheme.colorScheme.onPrimary,
-
-                                        modifier = Modifier.size(12.dp)
-
-                                    )
-
-                                }
-
+                            if (item.isChecked) {
+                                Icon(
+                                    imageVector = Icons.Filled.Check,
+                                    contentDescription = "Checkbox",
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.size(12.dp),
+                                )
                             }
-
                         }
-
                     }
-
-                    Spacer(modifier = Modifier.width(1.dp))
-
                 }
 
-                OutlinedTextField(
+                Spacer(modifier = Modifier.width(1.dp))
+            }
 
-                    value = item.content,
+            OutlinedTextField(
+                value = item.content,
+                onValueChange = onContentChange,
+                modifier =
 
-                    onValueChange = onContentChange,
+                    Modifier
+                        .weight(1f)
+                        .focusRequester(focusRequester)
+                        .onKeyEvent { event ->
 
-                    modifier =
+                            if (event.type == KeyEventType.KeyUp && event.key == Key.Enter) {
+                                onAddBelow()
 
-                        Modifier
+                                true
+                            } else if (event.type == KeyEventType.KeyUp && event.key == Key.Tab) {
+                                focusManager.clearFocus()
 
-                            .weight(1f)
-
-                            .focusRequester(focusRequester)
-
-                            .onKeyEvent { event ->
-
-                                if (event.type == KeyEventType.KeyUp && event.key == Key.Enter) {
-
-                                    onAddBelow()
-
-                                    true
-
-                                } else if (event.type == KeyEventType.KeyUp && event.key == Key.Tab) {
-
-                                    focusManager.clearFocus()
-
-                                    false
-
-                                } else {
-
-                                    false
-
-                                }
-
-                            },
-
-                    placeholder = { 
-
-                        Text(
-
-                            text = stringResource(R.string.checklist_item_placeholder),
-
-                            style = MaterialTheme.typography.bodyLarge
-
-                        ) 
-
-                    },
-
-                    minLines = 1,
-                    maxLines = 10,
-
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-
-                    keyboardActions = KeyboardActions(onNext = { onAddBelow() }),
-
-                    colors = OutlinedTextFieldDefaults.colors(
-
+                                false
+                            } else {
+                                false
+                            }
+                        },
+                placeholder = {
+                    Text(
+                        text = stringResource(R.string.checklist_item_placeholder),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                },
+                minLines = 1,
+                maxLines = 10,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardActions = KeyboardActions(onNext = { onAddBelow() }),
+                colors =
+                    OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Color.Transparent,
-
                         unfocusedBorderColor = Color.Transparent,
-
                         disabledBorderColor = Color.Transparent,
-
                         focusedContainerColor = Color.Transparent,
-
                         unfocusedContainerColor = Color.Transparent,
-
                     ),
+                textStyle = MaterialTheme.typography.bodyMedium,
+            )
 
-                    textStyle = MaterialTheme.typography.bodyMedium,
-
-                )
-
-                IconButton(
-
-                    onClick = { onShowItemActions(item) },
-
-                    modifier = with(reorderableScope) {
+            IconButton(
+                onClick = { onShowItemActions(item) },
+                modifier =
+                    with(reorderableScope) {
                         Modifier
                             .draggableHandle()
                             .padding(top = 16.dp)
                             .size(40.dp)
-                    }
-
-                ) {
-
-                    Icon(
-
-                        imageVector = Icons.Default.MoreVert,
-
-                        contentDescription = "More options",
-
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-
-                        modifier = Modifier.size(24.dp),
-
-                    )
-
-                }
-
+                    },
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "More options",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                    modifier = Modifier.size(24.dp),
+                )
             }
-
         }
+    }
 }

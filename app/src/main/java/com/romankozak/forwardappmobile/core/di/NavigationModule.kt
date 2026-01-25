@@ -13,15 +13,10 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class NavigationModule {
-
     @Binds @Singleton
-    abstract fun bindNavigationDispatcher(
-        impl: DefaultNavigationDispatcher
-    ): NavigationDispatcher
+    abstract fun bindNavigationDispatcher(impl: DefaultNavigationDispatcher): NavigationDispatcher
 
     @Binds
     @Singleton
-    abstract fun bindNavigator(
-        impl: NavigationDispatcherNavigator
-    ): Navigator
+    abstract fun bindNavigator(impl: NavigationDispatcherNavigator): Navigator
 }

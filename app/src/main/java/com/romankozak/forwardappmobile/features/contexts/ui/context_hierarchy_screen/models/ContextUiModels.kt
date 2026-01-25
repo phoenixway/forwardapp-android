@@ -15,11 +15,9 @@ data class BreadcrumbItem(
 )
 
 data class HierarchyDisplaySettings(
-    
     val maxCollapsibleLevels: Int = 3,
     val useBreadcrumbsAfter: Int = 2,
     val maxIndentation: Dp = 120.dp,
-    
     val showCompletedProjects: Boolean = true,
     val showProjectTags: Boolean = true,
     val showProjectProgress: Boolean = false,

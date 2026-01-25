@@ -19,5 +19,5 @@ data class RecentItem(
     val lastAccessed: Long,
     val displayName: String,
     val target: String, // Project ID, Legacy Note ID, Note ID, or Obsidian URI
-    val isPinned: Boolean = false
+    val isPinned: Boolean = false,
 )

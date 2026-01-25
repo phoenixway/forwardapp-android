@@ -4,6 +4,5 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 object FAHeaderUtils {
-    fun currentDate(): String =
-        LocalDate.now().format(DateTimeFormatter.ofPattern("d MMM yyyy"))
+    fun currentDate(): String = LocalDate.now().format(DateTimeFormatter.ofPattern("d MMM yyyy"))
 }

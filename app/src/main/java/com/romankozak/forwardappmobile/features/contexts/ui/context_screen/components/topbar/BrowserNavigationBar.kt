@@ -142,28 +142,30 @@ private fun RightButtons(
     Row(verticalAlignment = Alignment.CenterVertically) {
         Surface(
             shape = RoundedCornerShape(18.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
         ) {
             Row(modifier = Modifier.height(36.dp), verticalAlignment = Alignment.CenterVertically) {
                 val views = listOf(ContextViewMode.BACKLOG, ContextViewMode.INBOX)
                 views.forEach { viewMode ->
                     val isSelected = currentView == viewMode
                     Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .background(
-                                color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.Transparent,
-                                shape = RoundedCornerShape(18.dp),
-                            )
-                            .clickable { onViewChange(viewMode) },
-                        contentAlignment = Alignment.Center
+                        modifier =
+                            Modifier
+                                .size(36.dp)
+                                .background(
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.Transparent,
+                                    shape = RoundedCornerShape(18.dp),
+                                )
+                                .clickable { onViewChange(viewMode) },
+                        contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            imageVector = when (viewMode) {
-                                ContextViewMode.BACKLOG -> Icons.AutoMirrored.Outlined.List
-                                ContextViewMode.INBOX -> Icons.Outlined.Inbox
-                                else -> Icons.Default.Error // Should not happen
-                            },
+                            imageVector =
+                                when (viewMode) {
+                                    ContextViewMode.BACKLOG -> Icons.AutoMirrored.Outlined.List
+                                    ContextViewMode.INBOX -> Icons.Outlined.Inbox
+                                    else -> Icons.Default.Error // Should not happen
+                                },
                             contentDescription = viewMode.name,
                             modifier = Modifier.size(18.dp),
                             tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
@@ -174,10 +176,11 @@ private fun RightButtons(
                 Box(modifier = Modifier.width(1.dp).height(24.dp).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)))
 
                 Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clickable { onToggleAttachments() },
-                    contentAlignment = Alignment.Center
+                    modifier =
+                        Modifier
+                            .size(36.dp)
+                            .clickable { onToggleAttachments() },
+                    contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Default.Attachment,

@@ -16,7 +16,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
 fun EditLogEntryDialog(
     logEntry: ContextLog,
     onDismiss: () -> Unit,
-    onConfirm: (String, String?) -> Unit
+    onConfirm: (String, String?) -> Unit,
 ) {
     var description by remember { mutableStateOf(logEntry.description) }
     var details by remember { mutableStateOf(logEntry.details ?: "") }
@@ -29,13 +29,13 @@ fun EditLogEntryDialog(
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Description") }
+                    label = { Text("Description") },
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = details,
                     onValueChange = { details = it },
-                    label = { Text("Details") }
+                    label = { Text("Details") },
                 )
             }
         },
@@ -48,6 +48,6 @@ fun EditLogEntryDialog(
             Button(onClick = onDismiss) {
                 Text("Cancel")
             }
-        }
+        },
     )
 }

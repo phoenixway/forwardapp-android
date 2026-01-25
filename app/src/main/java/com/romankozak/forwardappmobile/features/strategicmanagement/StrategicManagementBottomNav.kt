@@ -7,10 +7,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Dashboard
-import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Analytics
 import androidx.compose.material.icons.outlined.Chat
+import androidx.compose.material.icons.outlined.Dashboard
+import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -35,9 +35,10 @@ fun StrategicManagementBottomNav(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 8.dp, end = 8.dp, bottom = 8.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(start = 8.dp, end = 8.dp, bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
@@ -45,20 +46,20 @@ fun StrategicManagementBottomNav(
                     text = "Dashboard",
                     icon = Icons.Outlined.Dashboard,
                     isSelected = currentTab == StrategicManagementTab.DASHBOARD,
-                    onClick = { onTabSelected(StrategicManagementTab.DASHBOARD) }
+                    onClick = { onTabSelected(StrategicManagementTab.DASHBOARD) },
                 )
                 ModernBottomNavButton(text = "Contexts", icon = Icons.Outlined.Home, onClick = onHomeClick)
                 ModernBottomNavButton(
                     text = "AI Insights",
                     icon = Icons.Outlined.Analytics,
                     isSelected = currentTab == StrategicManagementTab.AI_INSIGHTS,
-                    onClick = { onTabSelected(StrategicManagementTab.AI_INSIGHTS) }
+                    onClick = { onTabSelected(StrategicManagementTab.AI_INSIGHTS) },
                 )
                 ModernBottomNavButton(
                     text = "Ask AI",
                     icon = Icons.Outlined.Chat,
                     isSelected = currentTab == StrategicManagementTab.AI_CHAT,
-                    onClick = { onTabSelected(StrategicManagementTab.AI_CHAT) }
+                    onClick = { onTabSelected(StrategicManagementTab.AI_CHAT) },
                 )
             }
         }

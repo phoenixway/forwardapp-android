@@ -5,40 +5,31 @@ import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextHierarchyData
 import com.romankozak.forwardappmobile.features.recent.data.models.RecentItem
-import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 import com.romankozak.forwardappmobile.features.sync.WifiSyncStatus
-
+import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 
 typealias MainScreenUiState = ProjectHierarchyScreenUiState
 
 data class ProjectHierarchyScreenUiState(
-
     val subStateStack: List<MainSubState> = listOf(ProjectHierarchyScreenSubState.Hierarchy),
-
     val searchQuery: TextFieldValue = TextFieldValue(""),
     val searchHistory: List<String> = emptyList(),
-
     val projectHierarchy: ContextHierarchyData = ContextHierarchyData(),
     val flattenedHierarchy: List<FlatHierarchyItem> = emptyList(),
     val currentBreadcrumbs: List<BreadcrumbItem> = emptyList(),
     val areAnyProjectsExpanded: Boolean = false,
-
     val planningMode: PlanningMode = PlanningMode.All,
     val planningSettings: PlanningSettingsState = PlanningSettingsState(),
-
     val dialogState: DialogState = DialogState.Hidden,
     val showRecentListsSheet: Boolean = false,
     val isBottomNavExpanded: Boolean = false,
-
     val recentItems: List<RecentItem> = emptyList(),
     val allContexts: List<UiContext> = emptyList(),
     val listChooserFinalExpandedIds: Set<String> = emptySet(),
     val filteredListHierarchyForDialog: ContextHierarchyData = ContextHierarchyData(),
-
     val canGoBack: Boolean = false,
     val canGoForward: Boolean = false,
     val showNavigationMenu: Boolean = false,
-
     val isProcessingReveal: Boolean = false,
     val isReadyForFiltering: Boolean = false,
     val obsidianVaultName: String = "",

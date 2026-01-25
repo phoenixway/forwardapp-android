@@ -9,9 +9,9 @@ import androidx.room.TypeConverter
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.DayStatus
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
-import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.TaskPriority
 import com.romankozak.forwardappmobile.features.contexts.data.models.TaskStatus
 import java.time.DayOfWeek
@@ -30,8 +30,6 @@ data class NewTaskParameters(
     val taskType: String? = null,
     val points: Int = 0,
 )
-
-
 
 @Entity(tableName = "day_plans")
 data class DayPlan(
@@ -101,35 +99,28 @@ data class DayTask(
     val dayPlanId: String,
     val title: String,
     val description: String? = null,
-
     val goalId: String? = null,
     val projectId: String? = null,
     val activityRecordId: String? = null,
     val recurringTaskId: String? = null,
-
     val taskType: String? = null,
     val entityId: String? = null,
-
     val order: Long = 0,
     val priority: TaskPriority = TaskPriority.MEDIUM,
     val status: TaskStatus = TaskStatus.NOT_STARTED,
     val completed: Boolean = false,
-
     val scheduledTime: Long? = null,
     val estimatedDurationMinutes: Long? = null,
     val actualDurationMinutes: Long? = null,
     val dueTime: Long? = null,
-
     @ColumnInfo(defaultValue = "0.0") val valueImportance: Float = 0f,
     @ColumnInfo(defaultValue = "0.0") val valueImpact: Float = 0f,
     @ColumnInfo(defaultValue = "0.0") val effort: Float = 0f,
     @ColumnInfo(defaultValue = "0.0") val cost: Float = 0f,
     @ColumnInfo(defaultValue = "0.0") val risk: Float = 0f,
-
     val location: String? = null,
     val tags: List<String>? = null,
     val notes: String? = null,
-
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long? = null,
     val syncedAt: Long? = null,
@@ -140,27 +131,22 @@ data class DayTask(
     @ColumnInfo(defaultValue = "0") val points: Int = 0,
 )
 
-
 @Entity(tableName = "daily_metrics")
 data class DailyMetric(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
     val dayPlanId: String,
     val date: Long,
-    
     val tasksPlanned: Int = 0,
     val tasksCompleted: Int = 0,
     val completionRate: Float = 0f,
-    
     val totalPlannedTime: Long = 0,
     val totalActiveTime: Long = 0,
     @ColumnInfo(defaultValue = "0") val completedPoints: Int = 0,
     val totalBreakTime: Long = 0,
-    
     val morningEnergyLevel: Int? = null,
     val eveningEnergyLevel: Int? = null,
     val overallMood: String? = null,
     val stressLevel: Int? = null,
-    
     val customMetrics: Map<String, Float>? = null,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long? = null,
@@ -168,7 +154,6 @@ data class DailyMetric(
     val isDeleted: Boolean = false,
     val version: Long = 0,
 )
-
 
 class DailyPlanConverters {
     @TypeConverter

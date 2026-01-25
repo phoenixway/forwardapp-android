@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 
-
 @ViewModelScoped
 class DialogStateManager
     @Inject
@@ -34,12 +33,10 @@ class DialogStateManager
         }
 
         fun onShowAboutDialog() {
-            
             _dialogState.value = DialogState.About
         }
 
         fun onImportFromFileRequested(uri: Uri) {
-            
             _dialogState.value = DialogState.ConfirmImport(uri)
         }
 

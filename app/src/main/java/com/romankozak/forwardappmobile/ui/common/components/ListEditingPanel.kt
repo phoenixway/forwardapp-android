@@ -1,5 +1,8 @@
 package com.romankozak.forwardappmobile.ui.common.components
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,15 +32,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
 
 @Composable
 fun ListEditingPanel(
     modifier: Modifier = Modifier,
     value: TextFieldValue,
-    onValueChange: (TextFieldValue) -> Unit
+    onValueChange: (TextFieldValue) -> Unit,
 ) {
     val context = LocalContext.current
     val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -45,12 +45,12 @@ fun ListEditingPanel(
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surfaceVariant,
-        tonalElevation = 4.dp
+        tonalElevation = 4.dp,
     ) {
         Column(modifier = Modifier.padding(vertical = 4.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceAround
+                horizontalArrangement = Arrangement.SpaceAround,
             ) {
                 StyledIconButton(onClick = { onValueChange(ListEditingLogic.toggleList(value)) }) {
                     Icon(Icons.Default.FormatListBulleted, contentDescription = "Toggle List")
@@ -83,7 +83,7 @@ fun ListEditingPanel(
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceAround
+                horizontalArrangement = Arrangement.SpaceAround,
             ) {
                 StyledIconButton(onClick = { onValueChange(ListEditingLogic.moveLineUp(value)) }) {
                     Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Move Line Up")
@@ -106,10 +106,13 @@ fun ListEditingPanel(
 }
 
 @Composable
-private fun StyledIconButton(onClick: () -> Unit, content: @Composable () -> Unit) {
+private fun StyledIconButton(
+    onClick: () -> Unit,
+    content: @Composable () -> Unit,
+) {
     Surface(
         modifier = Modifier.size(40.dp).clip(CircleShape),
-        color = MaterialTheme.colorScheme.secondaryContainer
+        color = MaterialTheme.colorScheme.secondaryContainer,
     ) {
         IconButton(onClick = onClick) {
             content()

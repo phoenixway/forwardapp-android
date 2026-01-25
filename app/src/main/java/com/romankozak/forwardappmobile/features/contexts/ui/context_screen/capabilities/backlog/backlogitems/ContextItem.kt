@@ -1,7 +1,6 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems
 
 import android.util.Log
-import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -25,6 +24,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -43,9 +43,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
-import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
+import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.AnimatedContextEmoji
@@ -55,10 +54,9 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.compo
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.ModernTagChip
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.NoteIndicatorBadge
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.TagType
+import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import kotlinx.coroutines.delay
-
-
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
@@ -84,18 +82,20 @@ fun ProjectItem(
     val parsedData = rememberParsedText(project.name, contextMarkerToEmojiMap)
 
     Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp, horizontal = 8.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(vertical = 6.dp, horizontal = 8.dp),
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = if (isSelected) 4.dp else 1.dp,
         tonalElevation = if (isSelected) 3.dp else 1.dp,
-        border = if (isSelected) {
-            BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
-        } else {
-            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-        },
+        border =
+            if (isSelected) {
+                BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+            } else {
+                BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+            },
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
@@ -105,34 +105,36 @@ fun ProjectItem(
                 imageVector = Icons.Default.AccountTree,
                 contentDescription = "Context",
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(24.dp),
             )
 
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(
                 modifier =
-                Modifier
-                    .weight(1f)
-                    .pointerInput(onItemClick, onLongClick) {
-                        detectTapGestures(
-                            onLongPress = { onLongClick() },
-                            onTap = { onItemClick() },
-                        )
-                    },
+                    Modifier
+                        .weight(1f)
+                        .pointerInput(onItemClick, onLongClick) {
+                            detectTapGestures(
+                                onLongPress = { onLongClick() },
+                                onTap = { onItemClick() },
+                            )
+                        },
             ) {
-                val textColor = if (project.isCompleted) {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                }
+                val textColor =
+                    if (project.isCompleted) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    }
                 val textDecoration = if (project.isCompleted) TextDecoration.LineThrough else null
 
                 Text(
                     text = parsedData.mainText,
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = if (project.isCompleted) FontWeight.Normal else FontWeight.Medium,
-                    ),
+                    style =
+                        MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = if (project.isCompleted) FontWeight.Normal else FontWeight.Medium,
+                        ),
                     maxLines = 4,
                     overflow = TextOverflow.Ellipsis,
                     color = textColor,
@@ -150,10 +152,10 @@ fun ProjectItem(
                 AnimatedVisibility(
                     visible = hasStatusContent,
                     enter =
-                    slideInVertically(
-                        initialOffsetY = { height -> -height },
-                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                    ) + fadeIn(),
+                        slideInVertically(
+                            initialOffsetY = { height -> -height },
+                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                        ) + fadeIn(),
                 ) {
                     Column {
                         Spacer(modifier = Modifier.height(6.dp))
@@ -185,12 +187,12 @@ fun ProjectItem(
                                         AnimatedVisibility(
                                             visible = delayedVisible,
                                             enter =
-                                            scaleIn(
-                                                animationSpec =
-                                                spring(
-                                                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                                                ),
-                                            ) + fadeIn(),
+                                                scaleIn(
+                                                    animationSpec =
+                                                        spring(
+                                                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                                                        ),
+                                                ) + fadeIn(),
                                         ) {
                                             AnimatedContextEmoji(
                                                 emoji = icon,
@@ -223,24 +225,23 @@ fun ProjectItem(
                                     AnimatedVisibility(
                                         visible = delayedVisible,
                                         enter =
-                                        slideInHorizontally(
-                                            initialOffsetX = { fullWidth -> fullWidth },
-                                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                                        ) + fadeIn(),
+                                            slideInHorizontally(
+                                                initialOffsetX = { fullWidth -> fullWidth },
+                                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                            ) + fadeIn(),
                                     ) {
                                         EnhancedRelatedLinkChip(
-                                            link = RelatedLink(
-                                                type = LinkType.PROJECT,
-                                                target = childProject.id,
-                                                displayName = childProject.name
-                                            ),
+                                            link =
+                                                RelatedLink(
+                                                    type = LinkType.PROJECT,
+                                                    target = childProject.id,
+                                                    displayName = childProject.name,
+                                                ),
                                             onClick = { onChildProjectClick(childProject) },
                                         )
                                     }
                                 }
                             }
-
-
                         }
                     }
                 }

@@ -5,7 +5,10 @@ import android.net.Uri
 import android.provider.DocumentsContract
 import android.provider.OpenableColumns
 
-fun getFileName(uri: Uri, context: Context): String {
+fun getFileName(
+    uri: Uri,
+    context: Context,
+): String {
     var fileName: String? = null
     try {
         context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
@@ -22,7 +25,10 @@ fun getFileName(uri: Uri, context: Context): String {
     return fileName ?: "Unknown file"
 }
 
-fun getFolderName(uri: Uri, context: Context): String = 
+fun getFolderName(
+    uri: Uri,
+    context: Context,
+): String =
     try {
         val docUri = DocumentsContract.buildDocumentUriUsingTree(uri, DocumentsContract.getTreeDocumentId(uri))
         context.contentResolver.query(docUri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->

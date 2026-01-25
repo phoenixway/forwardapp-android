@@ -16,41 +16,39 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
-import com.romankozak.forwardappmobile.features.contexts.data.models.Context
-import com.romankozak.forwardappmobile.domain.ner.NerState
-import com.romankozak.forwardappmobile.domain.ner.ReminderParseResult
-import com.romankozak.forwardappmobile.ui.common.components.ShareDialog
-import com.romankozak.forwardappmobile.ui.common.editor.UniversalEditorScreen
-import com.romankozak.forwardappmobile.ui.common.editor.components.FullScreenTextEditor
-import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEditorViewModel
-import com.romankozak.forwardappmobile.features.reminders.dialogs.RemindersDialog
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.config.FeatureToggles
-
+import com.romankozak.forwardappmobile.domain.ner.NerState
+import com.romankozak.forwardappmobile.domain.ner.ReminderParseResult
+import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Overlay
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.rememberHoldMenu2
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.ModernInputPanel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.topbar.AdaptiveTopBar
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.dialogs.EditLogEntryDialog
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.dialogs.GoalDetailDialogs
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.dialogs.ProjectDisplayPropertiesDialog
+import com.romankozak.forwardappmobile.features.reminders.dialogs.RemindersDialog
+import com.romankozak.forwardappmobile.ui.common.components.ShareDialog
+import com.romankozak.forwardappmobile.ui.common.editor.UniversalEditorScreen
+import com.romankozak.forwardappmobile.ui.common.editor.components.FullScreenTextEditor
+import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEditorViewModel
 import com.romankozak.forwardappmobile.ui.shared.InProgressIndicator
 import kotlinx.coroutines.delay
-import androidx.compose.ui.zIndex
-import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Overlay
-import com.romankozak.forwardappmobile.features.common.components.holdmenu2.rememberHoldMenu2
-
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -85,7 +83,7 @@ fun ProjectsScreen(
                 value = textValue,
                 onValueChange = { textValue = it },
                 onSave = { viewModel.inboxHandler.onInboxRecordEditConfirm(textValue.text) },
-                onCancel = { viewModel.inboxHandler.onInboxRecordEditDismiss() }
+                onCancel = { viewModel.inboxHandler.onInboxRecordEditDismiss() },
             )
         }
         uiState.artifactToEdit != null -> {
@@ -95,7 +93,7 @@ fun ProjectsScreen(
                 if (editorViewModel.uiState.value.content.text != artifact.content) {
                     val newContent = artifact.content
                     editorViewModel.onContentChange(
-                        TextFieldValue(newContent, androidx.compose.ui.text.TextRange(newContent.length))
+                        TextFieldValue(newContent, androidx.compose.ui.text.TextRange(newContent.length)),
                     )
                 }
             }
@@ -130,7 +128,7 @@ fun ProjectsScreen(
                 viewModel = viewModel,
                 projectId = projectId,
                 sharedTransitionScope = sharedTransitionScope,
-                animatedVisibilityScope = animatedVisibilityScope
+                animatedVisibilityScope = animatedVisibilityScope,
             )
         }
     }
@@ -168,18 +166,19 @@ private fun ProjectScaffold(
     val animatedBackgroundColor by animateColorAsState(
         targetValue = targetBackgroundColor,
         animationSpec = tween(600),
-        label = "background_color_animation"
+        label = "background_color_animation",
     )
 
     val transition = rememberInfiniteTransition(label = "glow_transition")
     val glow by transition.animateFloat(
         initialValue = 1f,
         targetValue = 1.03f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1500, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "glow_scale"
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(1500, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "glow_scale",
     )
 
     LaunchedEffect(navController) {
@@ -196,13 +195,14 @@ private fun ProjectScaffold(
             onDismiss = { viewModel.onShareDialogDismiss() },
             onCopyToClipboard = { viewModel.onCopyToClipboardRequest() },
             onTransfer = { viewModel.onTransferBacklogToServerRequest() },
-            content = viewModel.getBacklogAsMarkdown()
+            content = viewModel.getBacklogAsMarkdown(),
         )
     }
 
-    val draggableItems = remember(listContent) {
-        listContent.filterNot { it is BacklogItemContent.LinkItem }
-    }
+    val draggableItems =
+        remember(listContent) {
+            listContent.filterNot { it is BacklogItemContent.LinkItem }
+        }
 
     GoalDetailEffects(
         navController = navController,
@@ -210,7 +210,7 @@ private fun ProjectScaffold(
         snackbarHostState = snackbarHostState,
         listState = listState,
         inboxListState = inboxListState,
-        coroutineScope = coroutineScope
+        coroutineScope = coroutineScope,
     )
 
     GoalDetailDialogs(viewModel = viewModel)
@@ -219,7 +219,7 @@ private fun ProjectScaffold(
         ProjectDisplayPropertiesDialog(
             isProjectManagementEnabled = uiState.isProjectManagementEnabled,
             onToggleProjectManagement = viewModel::onToggleProjectManagement,
-            onDismiss = viewModel::onDismissDisplayPropertiesDialog
+            onDismiss = viewModel::onDismissDisplayPropertiesDialog,
         )
     }
 
@@ -229,7 +229,7 @@ private fun ProjectScaffold(
             onDismiss = viewModel::onDismissEditLogEntryDialog,
             onConfirm = { description, details ->
                 viewModel.onUpdateLogEntry(description, details)
-            }
+            },
         )
     }
 
@@ -267,19 +267,20 @@ private fun ProjectScaffold(
                 val topBarContainerColor = MaterialTheme.colorScheme.surfaceContainer
                 with(sharedTransitionScope) {
                     Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .sharedElement(
-                                sharedContentState = rememberSharedContentState(key = "project-card-$projectId"),
-                                animatedVisibilityScope = animatedVisibilityScope,
-                                boundsTransform = { _, _ ->
-                                    tween(durationMillis = 600, easing = FastOutSlowInEasing)
-                                }
-                            )
-                            .graphicsLayer {
-                                scaleX = glow
-                                scaleY = glow
-                            },
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .sharedElement(
+                                    sharedContentState = rememberSharedContentState(key = "project-card-$projectId"),
+                                    animatedVisibilityScope = animatedVisibilityScope,
+                                    boundsTransform = { _, _ ->
+                                        tween(durationMillis = 600, easing = FastOutSlowInEasing)
+                                    },
+                                )
+                                .graphicsLayer {
+                                    scaleX = glow
+                                    scaleY = glow
+                                },
                         shape = RoundedCornerShape(0.dp),
                         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
                         colors = CardDefaults.cardColors(containerColor = topBarContainerColor),
@@ -295,7 +296,7 @@ private fun ProjectScaffold(
                             onMoreActions = { actionType ->
                                 viewModel.selectionHandler.onBulkActionRequest(
                                     actionType,
-                                    uiState.selectedItemIds
+                                    uiState.selectedItemIds,
                                 )
                             },
                             onInboxClick = {
@@ -326,15 +327,16 @@ private fun ProjectScaffold(
                         suggestions = suggestions,
                         project = project,
                         onShowDisplayPropertiesClick = viewModel::onShowDisplayPropertiesDialog,
-                        holdMenuController = holdMenuController
+                        holdMenuController = holdMenuController,
                     )
                 }
-            }
+            },
         ) { paddingValues ->
             GoalDetailContent(
-                modifier = Modifier
-                    .padding(paddingValues)
-                    .glitch(trigger = uiState.currentView),
+                modifier =
+                    Modifier
+                        .padding(paddingValues)
+                        .glitch(trigger = uiState.currentView),
                 viewModel = viewModel,
                 uiState = uiState,
                 listState = listState,
@@ -357,7 +359,7 @@ private fun ProjectScaffold(
 
         HoldMenu2Overlay(
             controller = holdMenuController,
-            modifier = Modifier.fillMaxSize().zIndex(10f)
+            modifier = Modifier.fillMaxSize().zIndex(10f),
         )
     }
 
@@ -365,7 +367,7 @@ private fun ProjectScaffold(
         RemindersDialog(
             viewModel = reminderViewModel,
             item = selectedItemForReminders!!,
-            onDismiss = { showRemindersListDialog = false }
+            onDismiss = { showRemindersListDialog = false },
         )
     }
 }
@@ -384,7 +386,7 @@ private fun ProjectBottomBar(
     suggestions: List<String>,
     project: Context?,
     onShowDisplayPropertiesClick: () -> Unit,
-    holdMenuController: com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller
+    holdMenuController: com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller,
 ) {
     val indicatorState = remember { com.romankozak.forwardappmobile.ui.shared.InProgressIndicatorState(isInitiallyExpanded = false) }
 
@@ -397,7 +399,7 @@ private fun ProjectBottomBar(
                 val today = System.currentTimeMillis()
                 navController.navigate("day_plan_screen/$today?startTab=TRACK")
             },
-            indicatorState = indicatorState
+            indicatorState = indicatorState,
         )
         AnimatedVisibility(
             visible = !uiState.isSelectionModeActive,
@@ -453,9 +455,10 @@ private fun ProjectBottomBar(
                 enableBacklog = uiState.enableBacklog,
                 enableDashboard = uiState.enableDashboard,
                 enableAttachments = uiState.enableAttachments,
-                modifier = Modifier
-                    .navigationBarsPadding()
-                    .imePadding(),
+                modifier =
+                    Modifier
+                        .navigationBarsPadding()
+                        .imePadding(),
                 onToggleProjectManagement = viewModel::onToggleProjectManagement,
                 onExportProjectState = viewModel::onExportProjectStateRequest,
                 onAddProjectToDayPlan = viewModel::addCurrentProjectToDayPlan,
@@ -466,14 +469,17 @@ private fun ProjectBottomBar(
                 suggestions = suggestions,
                 onSuggestionClick = viewModel::onSuggestionClick,
                 onShowDisplayPropertiesClick = onShowDisplayPropertiesClick,
-                onAddScript = if (FeatureToggles.isEnabled(FeatureFlag.ScriptsLibrary)) {
-                    {
-                        val route =
-                            project?.id?.let { id -> "script_editor_screen?projectId=$id" }
-                                ?: "script_editor_screen"
-                        navController.navigate(route)
-                    }
-                } else null,
+                onAddScript =
+                    if (FeatureToggles.isEnabled(FeatureFlag.ScriptsLibrary)) {
+                        {
+                            val route =
+                                project?.id?.let { id -> "script_editor_screen?projectId=$id" }
+                                    ?: "script_editor_screen"
+                            navController.navigate(route)
+                        }
+                    } else {
+                        null
+                    },
             )
         }
     }
@@ -495,24 +501,23 @@ private fun TransparentSystemBars(isDarkTheme: Boolean = isSystemInDarkTheme()) 
     }
 }
 
+fun Modifier.glitch(trigger: Any): Modifier =
+    composed {
+        var glitchAmount by remember { mutableFloatStateOf(0f) }
 
+        LaunchedEffect(key1 = trigger) {
+            val glitchDuration = 150L
+            val startTime = withFrameNanos { it }
 
-fun Modifier.glitch(trigger: Any): Modifier = composed {
-    var glitchAmount by remember { mutableFloatStateOf(0f) }
-
-    LaunchedEffect(key1 = trigger) {
-        val glitchDuration = 150L
-        val startTime = withFrameNanos { it }
-
-        while (withFrameNanos { it } < startTime + (glitchDuration * 1_000_000)) {
-            glitchAmount = (Math.random() * 10 - 5).toFloat()
-            delay(40)
+            while (withFrameNanos { it } < startTime + (glitchDuration * 1_000_000)) {
+                glitchAmount = (Math.random() * 10 - 5).toFloat()
+                delay(40)
+            }
+            glitchAmount = 0f
         }
-        glitchAmount = 0f
-    }
 
-    this.graphicsLayer {
-        translationX = glitchAmount
-        translationY = (Math.random() * glitchAmount - glitchAmount / 2).toFloat()
+        this.graphicsLayer {
+            translationX = glitchAmount
+            translationY = (Math.random() * glitchAmount - glitchAmount / 2).toFloat()
+        }
     }
-}

@@ -17,14 +17,15 @@ fun LimitedFlowRow(
     modifier: Modifier = Modifier,
     spacing: Dp = 8.dp,
     maxLines: Int = 2,
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
 
     SubcomposeLayout(modifier = modifier) { constraints ->
-        val placeables = subcompose(Unit, content).map {
-            it.measure(constraints)
-        }
+        val placeables =
+            subcompose(Unit, content).map {
+                it.measure(constraints)
+            }
 
         val spacingInPx = spacing.toPx().toInt()
 
@@ -49,9 +50,10 @@ fun LimitedFlowRow(
         val hasMore = lines.size > maxLines && !expanded
 
         val width = constraints.maxWidth
-        val height = (linesToShow.size * (placeables.firstOrNull()?.height ?: 0) + (linesToShow.size - 1).coerceAtLeast(0) * spacingInPx).let {
-            if (hasMore) it + 24.dp.toPx().toInt() else it
-        }
+        val height =
+            (linesToShow.size * (placeables.firstOrNull()?.height ?: 0) + (linesToShow.size - 1).coerceAtLeast(0) * spacingInPx).let {
+                if (hasMore) it + 24.dp.toPx().toInt() else it
+            }
 
         layout(width, height) {
             var y = 0
@@ -65,15 +67,16 @@ fun LimitedFlowRow(
             }
 
             if (hasMore) {
-                val moreIconMeasurable = subcompose("more_icon") {
-                    Box(modifier = Modifier.clickable { expanded = true }) {
-                        Icon(
-                            imageVector = Icons.Default.MoreHoriz,
-                            contentDescription = "Show more",
-                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        )
-                    }
-                }.first().measure(constraints)
+                val moreIconMeasurable =
+                    subcompose("more_icon") {
+                        Box(modifier = Modifier.clickable { expanded = true }) {
+                            Icon(
+                                imageVector = Icons.Default.MoreHoriz,
+                                contentDescription = "Show more",
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            )
+                        }
+                    }.first().measure(constraints)
 
                 moreIconMeasurable.placeRelative(0, y)
             }

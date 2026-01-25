@@ -1,8 +1,8 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel
 
 import androidx.compose.ui.text.input.TextFieldValue
+import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.features.contexts.data.models.InboxRecord
-import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
@@ -23,7 +23,7 @@ interface InboxHandlerResultListener {
 }
 
 class InboxHandler(
-    private val projectRepository: ProjectRepository,
+    private val contextRepository: ContextRepository,
     private val inboxRepository: com.romankozak.forwardappmobile.data.repository.InboxRepository,
     private val scope: CoroutineScope,
     private val projectIdFlow: StateFlow<String>,

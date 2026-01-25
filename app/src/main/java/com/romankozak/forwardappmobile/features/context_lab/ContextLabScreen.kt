@@ -18,7 +18,6 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.capability.CapabilityDescriptor
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
-import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.ContextRole
 import com.romankozak.forwardappmobile.core.navigation.routes.EXPERIMENTAL_HIERARCHY_ROUTE
 
@@ -26,7 +25,7 @@ import com.romankozak.forwardappmobile.core.navigation.routes.EXPERIMENTAL_HIERA
 @Composable
 fun ContextLabScreen(
     viewModel: ContextLabViewModel,
-    navController: NavController
+    navController: NavController,
 ) {
     val contexts by viewModel.uiState.collectAsState()
     val activeId by viewModel.activeContextId.collectAsState()
@@ -45,39 +44,41 @@ fun ContextLabScreen(
                     IconButton(onClick = { navController.navigate(EXPERIMENTAL_HIERARCHY_ROUTE) }) {
                         Icon(
                             imageVector = Icons.Default.List,
-                            contentDescription = "Open Experimental Hierarchy"
+                            contentDescription = "Open Experimental Hierarchy",
                         )
                     }
-                }
+                },
             )
-        }
+        },
     ) { padding ->
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp)
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(16.dp),
         ) {
             item {
                 Text(
                     text = "Експериментальне керування поліморфними контекстами",
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    modifier = Modifier.padding(bottom = 16.dp),
                 )
             }
 
             item {
                 Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
                             text = "Створити новий контекст",
                             style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(bottom = 8.dp)
+                            modifier = Modifier.padding(bottom = 8.dp),
                         )
 
                         OutlinedTextField(
@@ -85,7 +86,7 @@ fun ContextLabScreen(
                             onValueChange = { newContextName = it },
                             label = { Text("Ім'я контексту") },
                             modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
+                            singleLine = true,
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -101,14 +102,14 @@ fun ContextLabScreen(
                                     IconButton(onClick = { expanded = true }) {
                                         Icon(
                                             imageVector = Icons.Filled.ArrowDropDown,
-                                            contentDescription = "Вибрати роль"
+                                            contentDescription = "Вибрати роль",
                                         )
                                     }
-                                }
+                                },
                             )
                             DropdownMenu(
                                 expanded = expanded,
-                                onDismissRequest = { expanded = false }
+                                onDismissRequest = { expanded = false },
                             ) {
                                 availableRoles.forEach { role ->
                                     DropdownMenuItem(
@@ -116,7 +117,7 @@ fun ContextLabScreen(
                                         onClick = {
                                             selectedRoleCode = role.code
                                             expanded = false
-                                        }
+                                        },
                                     )
                                 }
                             }
@@ -132,7 +133,7 @@ fun ContextLabScreen(
                                 }
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            enabled = newContextName.isNotBlank() && selectedRoleCode.isNotBlank()
+                            enabled = newContextName.isNotBlank() && selectedRoleCode.isNotBlank(),
                         ) {
                             Text("Створити контекст")
                         }
@@ -148,7 +149,7 @@ fun ContextLabScreen(
                     availableRoles = availableRoles,
                     onToggle = { capId -> viewModel.onToggleCapability(context.id, capId) },
                     onActivate = { viewModel.onActivateContext(context.id) },
-                    onChangeRole = { newRoleCode -> viewModel.onChangeRole(context.id, newRoleCode) }
+                    onChangeRole = { newRoleCode -> viewModel.onChangeRole(context.id, newRoleCode) },
                 )
             }
         }
@@ -163,20 +164,21 @@ fun ContextItemCard(
     availableRoles: List<ContextRole>,
     onToggle: (CapabilityId) -> Unit,
     onActivate: () -> Unit,
-    onChangeRole: (String) -> Unit
+    onChangeRole: (String) -> Unit,
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
         border = if (isActive) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column {
                     Text(text = context.id.raw, style = MaterialTheme.typography.titleLarge)
@@ -193,14 +195,14 @@ fun ContextItemCard(
                                 IconButton(onClick = { expanded = true }) {
                                     Icon(
                                         imageVector = Icons.Filled.ArrowDropDown,
-                                        contentDescription = "Вибрати роль"
+                                        contentDescription = "Вибрати роль",
                                     )
                                 }
-                            }
+                            },
                         )
                         DropdownMenu(
                             expanded = expanded,
-                            onDismissRequest = { expanded = false }
+                            onDismissRequest = { expanded = false },
                         ) {
                             availableRoles.forEach { role ->
                                 DropdownMenuItem(
@@ -208,7 +210,7 @@ fun ContextItemCard(
                                     onClick = {
                                         onChangeRole(role.code)
                                         expanded = false
-                                    }
+                                    },
                                 )
                             }
                         }
@@ -218,7 +220,7 @@ fun ContextItemCard(
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
                         contentDescription = "Active",
-                        tint = Color.Green
+                        tint = Color.Green,
                     )
                 }
             }
@@ -229,14 +231,15 @@ fun ContextItemCard(
 
             allCapabilities.forEach { cap ->
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Checkbox(
                         checked = context.config.activeCapabilities.contains(cap.id),
-                        onCheckedChange = { onToggle(cap.id) }
+                        onCheckedChange = { onToggle(cap.id) },
                     )
                     Text(text = cap.label, style = MaterialTheme.typography.bodyMedium)
                 }
@@ -247,7 +250,7 @@ fun ContextItemCard(
             Button(
                 onClick = onActivate,
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !isActive && context.config.activeViews.isNotEmpty()
+                enabled = !isActive && context.config.activeViews.isNotEmpty(),
             ) {
                 Text(if (isActive) "АКТИВНИЙ" else "АКТИВУВАТИ КОНТЕКСТ")
             }
@@ -256,7 +259,7 @@ fun ContextItemCard(
                     text = "Цей контекст не має жодного екрану. Активуйте можливості з UI.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = 4.dp)
+                    modifier = Modifier.padding(top = 4.dp),
                 )
             }
         }

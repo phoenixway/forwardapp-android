@@ -1,6 +1,4 @@
 package com.romankozak.forwardappmobile.core.capability
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * Реєстр усіх доступних можливостей (Capabilities) у системі.
@@ -13,4 +11,3 @@ interface CapabilityRegistry {
     /** Знаходить дескриптор за його унікальним ідентифікатором.  */
     fun get(id: CapabilityId): CapabilityDescriptor?
 }
-

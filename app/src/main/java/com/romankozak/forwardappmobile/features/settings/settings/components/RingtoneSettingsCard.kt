@@ -89,11 +89,12 @@ fun RingtoneSettingsCard(
                         Column(modifier = Modifier.padding(start = 4.dp)) {
                             Text(type.title, style = MaterialTheme.typography.bodyLarge)
                             Text(
-                                text = when (type) {
-                                    RingtoneType.Energetic -> "Гучний, енергійний сигнал"
-                                    RingtoneType.Moderate -> "Збалансований сигнал"
-                                    RingtoneType.Quiet -> "М’який, стриманий сигнал"
-                                },
+                                text =
+                                    when (type) {
+                                        RingtoneType.Energetic -> "Гучний, енергійний сигнал"
+                                        RingtoneType.Moderate -> "Збалансований сигнал"
+                                        RingtoneType.Quiet -> "М’який, стриманий сигнал"
+                                    },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -110,21 +111,22 @@ fun RingtoneSettingsCard(
                 var lastPicked by remember(type, currentUri) { mutableStateOf(currentUri) }
                 var volume by remember(type, ringtoneVolumes[type]) { mutableStateOf(ringtoneVolumes[type] ?: 1f) }
 
-                val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-                    val uri: Uri? = result.data?.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI, Uri::class.java)
-                    uri?.let {
-                        try {
-                            context.contentResolver.takePersistableUriPermission(
-                                it,
-                                Intent.FLAG_GRANT_READ_URI_PERMISSION,
-                            )
-                        } catch (_: SecurityException) {
-                            // Some providers do not support persistable permissions; ignore.
+                val launcher =
+                    rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                        val uri: Uri? = result.data?.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI, Uri::class.java)
+                        uri?.let {
+                            try {
+                                context.contentResolver.takePersistableUriPermission(
+                                    it,
+                                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                                )
+                            } catch (_: SecurityException) {
+                                // Some providers do not support persistable permissions; ignore.
+                            }
+                            lastPicked = it.toString()
+                            onRingtonePicked(type, it.toString())
                         }
-                        lastPicked = it.toString()
-                        onRingtonePicked(type, it.toString())
                     }
-                }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -157,12 +159,16 @@ fun RingtoneSettingsCard(
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(onClick = {
-                            val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
-                                putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, type.toSystemType())
-                                putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
-                                putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
-                                putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, lastPicked.takeIf { it.isNotBlank() }?.let(Uri::parse))
-                            }
+                            val intent =
+                                Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+                                    putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, type.toSystemType())
+                                    putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+                                    putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
+                                    putExtra(
+                                        RingtoneManager.EXTRA_RINGTONE_EXISTING_URI,
+                                        lastPicked.takeIf { it.isNotBlank() }?.let(Uri::parse),
+                                    )
+                                }
                             launcher.launch(intent)
                         }) {
                             Text(if (lastPicked.isBlank()) "Обрати" else "Змінити")
@@ -172,12 +178,13 @@ fun RingtoneSettingsCard(
                                 it.stop()
                                 it.release()
                             }
-                            previewPlayer = playPreview(
-                                context = context,
-                                uriString = lastPicked,
-                                type = type,
-                                volume = volume,
-                            )
+                            previewPlayer =
+                                playPreview(
+                                    context = context,
+                                    uriString = lastPicked,
+                                    type = type,
+                                    volume = volume,
+                                )
                         }) {
                             Text("Тест")
                         }
@@ -188,7 +195,11 @@ fun RingtoneSettingsCard(
     }
 }
 
-private fun ringtoneLabel(context: Context, type: RingtoneType, uriString: String): String {
+private fun ringtoneLabel(
+    context: Context,
+    type: RingtoneType,
+    uriString: String,
+): String {
     if (uriString.isBlank()) return "Системний за замовчуванням"
     return try {
         val title = RingtoneManager.getRingtone(context, Uri.parse(uriString))?.getTitle(context)
@@ -213,9 +224,10 @@ private fun playPreview(
     type: RingtoneType,
     volume: Float,
 ): MediaPlayer? {
-    val uri = uriString.takeIf { it.isNotBlank() }?.let(Uri::parse)
-        ?: defaultUriFor(type)
-        ?: return null
+    val uri =
+        uriString.takeIf { it.isNotBlank() }?.let(Uri::parse)
+            ?: defaultUriFor(type)
+            ?: return null
 
     return try {
         MediaPlayer().apply {
@@ -224,7 +236,7 @@ private fun playPreview(
                 AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_ALARM)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build()
+                    .build(),
             )
             isLooping = false
             setVolume(volume.coerceIn(0f, 1f), volume.coerceIn(0f, 1f))

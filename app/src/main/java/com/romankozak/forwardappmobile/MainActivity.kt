@@ -20,27 +20,27 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
-import com.romankozak.forwardappmobile.data.repository.ProjectRepository
-import com.romankozak.forwardappmobile.domain.reminders.ReminderBroadcastReceiver
 import com.romankozak.forwardappmobile.core.navigation.routes.AppNavigation
-import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import com.romankozak.forwardappmobile.core.theme.ForwardAppMobileTheme
+import com.romankozak.forwardappmobile.core.theme.ThemeSettings
+import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.domain.reminders.ReminderBroadcastReceiver
+import com.romankozak.forwardappmobile.ui.common.ContextUtils
+import com.romankozak.forwardappmobile.ui.common.LocalContextUtils
+import com.romankozak.forwardappmobile.ui.common.RemoteConfigManager
+import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.util.Calendar
-import androidx.core.net.toUri
 import javax.inject.Inject
-import com.romankozak.forwardappmobile.ui.common.LocalContextUtils
-import com.romankozak.forwardappmobile.ui.common.ContextUtils
-import androidx.compose.runtime.CompositionLocalProvider
-import com.romankozak.forwardappmobile.core.theme.ThemeSettings
-import com.romankozak.forwardappmobile.ui.common.RemoteConfigManager
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -48,7 +48,7 @@ class MainActivity : ComponentActivity() {
     private val tag = "MainActivity"
 
     @Inject
-    lateinit var projectRepository: ProjectRepository
+    lateinit var contextRepository: ContextRepository
 
     @Inject
     lateinit var settingsRepository: com.romankozak.forwardappmobile.data.repository.SettingsRepository
@@ -69,7 +69,6 @@ class MainActivity : ComponentActivity() {
             contextHandler.initialize()
         }
         enableEdgeToEdge()
-
 
         Log.d(tag, "MainActivity: onCreate called")
         Log.w(tag, "WE HERE, UPDATED BUILD HERE!!!")
@@ -126,7 +125,7 @@ class MainActivity : ComponentActivity() {
                 while (dayToProcess.before(todayCalendar)) {
                     val projectId = "your_project_id_to_log"
 
-                    projectRepository.logProjectTimeSummaryForDate(projectId, dayToProcess)
+                    contextRepository.logProjectTimeSummaryForDate(projectId, dayToProcess)
 
                     dayToProcess.add(Calendar.DAY_OF_YEAR, 1)
                 }

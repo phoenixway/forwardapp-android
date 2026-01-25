@@ -21,7 +21,7 @@ class DateDeserializer : JsonDeserializer<Date> {
     override fun deserialize(
         json: JsonElement,
         typeOfT: Type,
-        context: JsonDeserializationContext
+        context: JsonDeserializationContext,
     ): Date {
         try {
             return format.parse(json.asString)

@@ -14,15 +14,15 @@ import java.util.UUID
         ForeignKey(
             entity = Context::class,
             parentColumns = ["id"],
-            childColumns = ["projectId"],
+            childColumns = ["contextId"],
             onDelete = ForeignKey.CASCADE,
         ),
     ],
-    indices = [Index(value = ["projectId"], name = "index_checklists_projectId")],
+    indices = [Index(value = ["contextId"], name = "index_checklists_contextId")],
 )
 data class ChecklistEntity(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
-    val projectId: String,
+    val contextId: String,
     var name: String,
     val updatedAt: Long? = null,
     val syncedAt: Long? = null,

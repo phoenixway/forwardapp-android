@@ -12,7 +12,6 @@ import dagger.multibindings.IntoSet
 @Module
 @InstallIn(SingletonComponent::class)
 object NotesCapabilityModule {
-
     @Provides
     @IntoSet
     fun provideNotesCapability(): CapabilityDescriptor {

@@ -49,10 +49,8 @@ fun SearchProjectHierarchyBottomBar(
     onPerformGlobalSearch: (String) -> Unit,
     onShowSearchHistory: () -> Unit,
 ) {
-    
     val focusRequester = remember { FocusRequester() }
 
-    
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
     }
@@ -123,7 +121,6 @@ fun SearchProjectHierarchyBottomBar(
                         .height(52.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                
                 IconButton(onClick = onCloseSearch) {
                     Icon(
                         imageVector = Icons.Outlined.Close,

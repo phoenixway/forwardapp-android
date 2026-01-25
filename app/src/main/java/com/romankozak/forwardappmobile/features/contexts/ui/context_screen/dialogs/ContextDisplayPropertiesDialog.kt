@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
 fun ProjectDisplayPropertiesDialog(
     isProjectManagementEnabled: Boolean,
     onToggleProjectManagement: (Boolean) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     var showCheckboxes by remember { mutableStateOf(true) }
     var isAdvancedModeEnabled by remember { mutableStateOf(isProjectManagementEnabled) }
@@ -32,29 +32,29 @@ fun ProjectDisplayPropertiesDialog(
         title = { Text("Властивості відображення") },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text("Display", modifier = Modifier.padding(bottom = 4.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text("Просунутий режим проєкту")
                     Switch(
                         checked = isAdvancedModeEnabled,
-                        onCheckedChange = { isAdvancedModeEnabled = it }
+                        onCheckedChange = { isAdvancedModeEnabled = it },
                     )
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text("Показувати чекбокси")
                     Switch(
                         checked = showCheckboxes,
-                        onCheckedChange = { showCheckboxes = it }
+                        onCheckedChange = { showCheckboxes = it },
                     )
                 }
             }
@@ -66,6 +66,6 @@ fun ProjectDisplayPropertiesDialog(
             }) {
                 Text("Готово")
             }
-        }
+        },
     )
 }

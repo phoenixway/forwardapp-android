@@ -28,14 +28,12 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.NavigationType
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NavigationHistoryMenu(
     navManager: EnhancedNavigationManager,
     onDismiss: () -> Unit,
 ) {
-    
     val history = remember { navManager.getNavigationHistory() }
     val currentEntry by navManager.currentEntry.collectAsState()
 

@@ -7,7 +7,10 @@ import com.google.gson.stream.JsonWriter
 import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedGroup
 
 class ReservedGroupAdapter : TypeAdapter<ReservedGroup>() {
-    override fun write(out: JsonWriter, value: ReservedGroup?) {
+    override fun write(
+        out: JsonWriter,
+        value: ReservedGroup?,
+    ) {
         if (value == null) {
             out.nullValue()
         } else {

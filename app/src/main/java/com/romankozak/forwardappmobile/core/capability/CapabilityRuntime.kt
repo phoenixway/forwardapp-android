@@ -5,13 +5,10 @@ import com.romankozak.forwardappmobile.core.navigation.capability.ScreenId
 import com.romankozak.forwardappmobile.domain.lifecontext.LifeContextRule
 
 interface CapabilityRuntime {
-
     fun registerScreen(
         screenId: ScreenId,
         factory: ScreenFactory,
     )
 
-    fun registerRule(
-        rule: LifeContextRule,
-    )
+    fun registerRule(rule: LifeContextRule)
 }

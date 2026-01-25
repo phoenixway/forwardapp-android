@@ -68,7 +68,6 @@ JOIN path_cte pc ON p.id = pc.id
 WHERE (g.text LIKE :query OR g.description LIKE :query) AND g.is_deleted = 0
 """,
     )
-    
     suspend fun searchGoalsGlobal(query: String): List<GlobalGoalSearchResult>
 
     @Query("SELECT COUNT(*) FROM goals WHERE is_deleted = 0")

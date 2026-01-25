@@ -40,12 +40,12 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.abs
 
- @Composable
+@Composable
 fun LogContent(
-     logs: List<ContextLog>,
-     isManagementEnabled: Boolean,
-     onEditLog: (ContextLog) -> Unit,
-     onDeleteLog: (ContextLog) -> Unit,
+    logs: List<ContextLog>,
+    isManagementEnabled: Boolean,
+    onEditLog: (ContextLog) -> Unit,
+    onDeleteLog: (ContextLog) -> Unit,
 ) {
     if (!isManagementEnabled) {
         PlaceholderContent(text = "Увімкніть підтримку реалізації на Дашборді, щоб бачити історію.")
@@ -54,24 +54,26 @@ fun LogContent(
 
     var showSearch by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
-    val allTypes = remember {
-        listOf(
-            ContextLogEntryTypeValues.STATUS_CHANGE,
-            ContextLogEntryTypeValues.COMMENT,
-            ContextLogEntryTypeValues.AUTOMATIC,
-            ContextLogEntryTypeValues.INSIGHT,
-            ContextLogEntryTypeValues.MILESTONE,
-        )
-    }
+    val allTypes =
+        remember {
+            listOf(
+                ContextLogEntryTypeValues.STATUS_CHANGE,
+                ContextLogEntryTypeValues.COMMENT,
+                ContextLogEntryTypeValues.AUTOMATIC,
+                ContextLogEntryTypeValues.INSIGHT,
+                ContextLogEntryTypeValues.MILESTONE,
+            )
+        }
     val typeStates = remember { allTypes.associateWith { mutableStateOf(true) } }
 
-    val filteredLogs = logs
-        .filter { typeStates[it.type]?.value == true }
-        .filter {
-            it.description.contains(searchQuery, true) ||
+    val filteredLogs =
+        logs
+            .filter { typeStates[it.type]?.value == true }
+            .filter {
+                it.description.contains(searchQuery, true) ||
                     (it.details?.contains(searchQuery, true) == true)
-        }
-        .sortedByDescending { it.timestamp }
+            }
+            .sortedByDescending { it.timestamp }
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -84,7 +86,7 @@ fun LogContent(
                 onCloseSearch = {
                     showSearch = false
                     searchQuery = ""
-                }
+                },
             )
         }
 
@@ -111,7 +113,7 @@ fun LogContent(
                         log = log,
                         onEdit = { onEditLog(log) },
                         onDelete = { onDeleteLog(log) },
-                        onToggleSearch = { showSearch = !showSearch }
+                        onToggleSearch = { showSearch = !showSearch },
                     )
                 }
             }
@@ -127,9 +129,10 @@ private fun FilterPanel(
     onCloseSearch: () -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 10.dp)
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
     ) {
         OutlinedTextField(
             value = searchQuery,
@@ -142,7 +145,7 @@ private fun FilterPanel(
                 }
             },
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true
+            singleLine = true,
         )
         Spacer(modifier = Modifier.height(8.dp))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -154,21 +157,22 @@ private fun FilterPanel(
                     leadingIcon = {
                         Icon(
                             imageVector = typeToIcon(type),
-                            contentDescription = null
+                            contentDescription = null,
                         )
                     },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = typeToColor(type).copy(alpha = 0.2f)
-                    )
+                    colors =
+                        FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = typeToColor(type).copy(alpha = 0.2f),
+                        ),
                 )
             }
         }
     }
 }
 
-/* ---------------------------------------------------------- */
-/*                       LOG ENTRY ITEM                        */
-/* ---------------------------------------------------------- */
+// ----------------------------------------------------------
+// LOG ENTRY ITEM
+// ----------------------------------------------------------
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 private fun LogEntryItem(
@@ -186,27 +190,29 @@ private fun LogEntryItem(
     val fullTime = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(log.timestamp))
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .combinedClickable(
-                onClick = {},
-                onLongClick = { expanded = true }
-            ),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = {},
+                    onLongClick = { expanded = true },
+                ),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             // Icon column
             Column(
                 modifier = Modifier.weight(0.1f),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                verticalArrangement = Arrangement.Center,
             ) {
                 Icon(icon, null, tint = accent, modifier = Modifier.size(24.dp))
             }
@@ -218,7 +224,7 @@ private fun LogEntryItem(
                 Text(
                     text = log.description.ifEmpty { smallLabel },
                     style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
-                    maxLines = Int.MAX_VALUE
+                    maxLines = Int.MAX_VALUE,
                 )
 
                 log.details?.let {
@@ -226,7 +232,7 @@ private fun LogEntryItem(
                         text = it,
                         style = MaterialTheme.typography.bodySmall,
                         maxLines = Int.MAX_VALUE,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
                     )
                 }
 
@@ -236,13 +242,13 @@ private fun LogEntryItem(
                     Text(
                         text = timeText,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = fullTime,
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                        color = MaterialTheme.colorScheme.outline
+                        color = MaterialTheme.colorScheme.outline,
                     )
                     Spacer(modifier = Modifier.weight(1f))
                     IconButton(onClick = { expanded = true }) {
@@ -252,9 +258,9 @@ private fun LogEntryItem(
             }
 
             DropdownMenu(
-                expanded = expanded, 
+                expanded = expanded,
                 onDismissRequest = { expanded = false },
-                modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh),
             ) {
                 DropdownMenuItem(
                     text = { Text("Редагувати") },
@@ -262,7 +268,7 @@ private fun LogEntryItem(
                         expanded = false
                         onEdit()
                     },
-                    leadingIcon = { Icon(Icons.Default.Edit, null) }
+                    leadingIcon = { Icon(Icons.Default.Edit, null) },
                 )
                 DropdownMenuItem(
                     text = { Text("Видалити") },
@@ -270,7 +276,7 @@ private fun LogEntryItem(
                         expanded = false
                         onDelete()
                     },
-                    leadingIcon = { Icon(Icons.Default.Delete, null) }
+                    leadingIcon = { Icon(Icons.Default.Delete, null) },
                 )
                 DropdownMenuItem(
                     text = { Text("Пошук") },
@@ -278,42 +284,45 @@ private fun LogEntryItem(
                         expanded = false
                         onToggleSearch()
                     },
-                    leadingIcon = { Icon(Icons.Default.Search, null) }
+                    leadingIcon = { Icon(Icons.Default.Search, null) },
                 )
             }
         }
     }
 }
 
-/* ---------------------------------------------------------- */
-/*                       UTILITIES                             */
-/* ---------------------------------------------------------- */
-private fun typeToColor(type: String?): Color = when (type) {
-    ContextLogEntryTypeValues.STATUS_CHANGE -> Color(0xFF00695C)
-    ContextLogEntryTypeValues.COMMENT -> Color(0xFF1565C0)
-    ContextLogEntryTypeValues.AUTOMATIC -> Color(0xFF6A1B9A)
-    ContextLogEntryTypeValues.INSIGHT -> Color(0xFFF57C00)
-    ContextLogEntryTypeValues.MILESTONE -> Color(0xFFD32F2F)
-    else -> Color(0xFF546E7A)
-}
+// ----------------------------------------------------------
+// UTILITIES
+// ----------------------------------------------------------
+private fun typeToColor(type: String?): Color =
+    when (type) {
+        ContextLogEntryTypeValues.STATUS_CHANGE -> Color(0xFF00695C)
+        ContextLogEntryTypeValues.COMMENT -> Color(0xFF1565C0)
+        ContextLogEntryTypeValues.AUTOMATIC -> Color(0xFF6A1B9A)
+        ContextLogEntryTypeValues.INSIGHT -> Color(0xFFF57C00)
+        ContextLogEntryTypeValues.MILESTONE -> Color(0xFFD32F2F)
+        else -> Color(0xFF546E7A)
+    }
 
-private fun typeToIcon(type: String?) = when (type) {
-    ContextLogEntryTypeValues.STATUS_CHANGE -> Icons.Default.TrendingUp
-    ContextLogEntryTypeValues.COMMENT -> Icons.Default.Comment
-    ContextLogEntryTypeValues.AUTOMATIC -> Icons.Default.ReceiptLong
-    ContextLogEntryTypeValues.INSIGHT -> Icons.Default.Lightbulb
-    ContextLogEntryTypeValues.MILESTONE -> Icons.Default.Flag
-    else -> Icons.Default.Info
-}
+private fun typeToIcon(type: String?) =
+    when (type) {
+        ContextLogEntryTypeValues.STATUS_CHANGE -> Icons.Default.TrendingUp
+        ContextLogEntryTypeValues.COMMENT -> Icons.Default.Comment
+        ContextLogEntryTypeValues.AUTOMATIC -> Icons.Default.ReceiptLong
+        ContextLogEntryTypeValues.INSIGHT -> Icons.Default.Lightbulb
+        ContextLogEntryTypeValues.MILESTONE -> Icons.Default.Flag
+        else -> Icons.Default.Info
+    }
 
-private fun typeToLabel(type: String?): String = when (type) {
-    ContextLogEntryTypeValues.STATUS_CHANGE -> "Статус"
-    ContextLogEntryTypeValues.COMMENT -> "Коментар"
-    ContextLogEntryTypeValues.AUTOMATIC -> "Системний"
-    ContextLogEntryTypeValues.INSIGHT -> "Ідея"
-    ContextLogEntryTypeValues.MILESTONE -> "Віха"
-    else -> "Інше"
-}
+private fun typeToLabel(type: String?): String =
+    when (type) {
+        ContextLogEntryTypeValues.STATUS_CHANGE -> "Статус"
+        ContextLogEntryTypeValues.COMMENT -> "Коментар"
+        ContextLogEntryTypeValues.AUTOMATIC -> "Системний"
+        ContextLogEntryTypeValues.INSIGHT -> "Ідея"
+        ContextLogEntryTypeValues.MILESTONE -> "Віха"
+        else -> "Інше"
+    }
 
 private fun formatRelativeTime(timestamp: Long): String {
     val now = System.currentTimeMillis()
@@ -331,43 +340,66 @@ private fun formatRelativeTime(timestamp: Long): String {
     }
 }
 
- @Composable
+@Composable
 internal fun PlaceholderContent(text: String) {
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(20.dp),
-        contentAlignment = Alignment.Center
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(20.dp),
+        contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = text,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "Додайте перший запис, щоб відстежувати прогрес.",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline
+                color = MaterialTheme.colorScheme.outline,
             )
         }
     }
 }
 
-/* ---------------------------------------------------------- */
-/*                       PREVIEW                               */
-/* ---------------------------------------------------------- */
+// ----------------------------------------------------------
+// PREVIEW
+// ----------------------------------------------------------
 @Preview(showBackground = true)
 @Composable
 private fun LogContentPreview() {
     val now = System.currentTimeMillis()
-    val sample = listOf(
-        ContextLog(id = "1", projectId = "0", timestamp = now - 20 * 60_000, type = ContextLogEntryTypeValues.STATUS_CHANGE, description = "Перенесено до 'Робота'", details = "Завершено перевірку"),
-        ContextLog(id = "2", projectId = "0", timestamp = now - 120 * 60_000, type = ContextLogEntryTypeValues.COMMENT, description = "Коментар", details = "Потрібно уточнити терміни"),
-        ContextLog(id = "3", projectId = "0", timestamp = now - 3_600_000 * 5, type = ContextLogEntryTypeValues.INSIGHT, description = "Ідея: кешування", details = "Зменшить навантаження"),
-    )
+    val sample =
+        listOf(
+            ContextLog(
+                id = "1",
+                projectId = "0",
+                timestamp = now - 20 * 60_000,
+                type = ContextLogEntryTypeValues.STATUS_CHANGE,
+                description = "Перенесено до 'Робота'",
+                details = "Завершено перевірку",
+            ),
+            ContextLog(
+                id = "2",
+                projectId = "0",
+                timestamp = now - 120 * 60_000,
+                type = ContextLogEntryTypeValues.COMMENT,
+                description = "Коментар",
+                details = "Потрібно уточнити терміни",
+            ),
+            ContextLog(
+                id = "3",
+                projectId = "0",
+                timestamp = now - 3_600_000 * 5,
+                type = ContextLogEntryTypeValues.INSIGHT,
+                description = "Ідея: кешування",
+                details = "Зменшить навантаження",
+            ),
+        )
     MaterialTheme {
         LogContent(sample, true, {}, {})
     }

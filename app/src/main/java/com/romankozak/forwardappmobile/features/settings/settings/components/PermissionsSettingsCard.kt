@@ -36,9 +36,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import androidx.compose.ui.res.stringResource
 import com.romankozak.forwardappmobile.R
 
 @Composable
@@ -46,36 +46,40 @@ fun PermissionsSettingsCard() {
     val context = LocalContext.current
     var permissionUpdateTrigger by remember { mutableIntStateOf(0) }
 
-    val hasNotificationPermission = remember(permissionUpdateTrigger) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
-        } else {
-            true
+    val hasNotificationPermission =
+        remember(permissionUpdateTrigger) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+            } else {
+                true
+            }
         }
-    }
 
-    val canScheduleExactAlarms = remember(permissionUpdateTrigger) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            alarmManager.canScheduleExactAlarms()
-        } else {
-            true
+    val canScheduleExactAlarms =
+        remember(permissionUpdateTrigger) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+                alarmManager.canScheduleExactAlarms()
+            } else {
+                true
+            }
         }
-    }
 
-    val ignoresBatteryOptimizations = remember(permissionUpdateTrigger) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
-            powerManager.isIgnoringBatteryOptimizations(context.packageName)
-        } else {
-            true
+    val ignoresBatteryOptimizations =
+        remember(permissionUpdateTrigger) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+                powerManager.isIgnoringBatteryOptimizations(context.packageName)
+            } else {
+                true
+            }
         }
-    }
 
-    val notificationLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-        onResult = { permissionUpdateTrigger++ }
-    )
+    val notificationLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestPermission(),
+            onResult = { permissionUpdateTrigger++ },
+        )
 
     SettingsCard(title = stringResource(id = R.string.settings_permissions_title), icon = Icons.Default.Security) {
         PermissionRow(
@@ -87,7 +91,7 @@ fun PermissionsSettingsCard() {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                 }
-            }
+            },
         )
         Divider(modifier = Modifier.padding(vertical = 8.dp))
         PermissionRow(
@@ -97,12 +101,13 @@ fun PermissionsSettingsCard() {
             isGranted = canScheduleExactAlarms,
             onGrantClick = {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
-                        data = Uri.fromParts("package", context.packageName, null)
-                    }
+                    val intent =
+                        Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                            data = Uri.fromParts("package", context.packageName, null)
+                        }
                     context.startActivity(intent)
                 }
-            }
+            },
         )
         Divider(modifier = Modifier.padding(vertical = 8.dp))
         PermissionRow(
@@ -112,12 +117,13 @@ fun PermissionsSettingsCard() {
             isGranted = ignoresBatteryOptimizations,
             onGrantClick = {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
-                        data = Uri.parse("package:${context.packageName}")
-                    }
+                    val intent =
+                        Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                            data = Uri.parse("package:${context.packageName}")
+                        }
                     context.startActivity(intent)
                 }
-            }
+            },
         )
     }
 }
@@ -129,7 +135,7 @@ private fun PermissionRow(
     name: String,
     description: String,
     isGranted: Boolean,
-    onGrantClick: () -> Unit
+    onGrantClick: () -> Unit,
 ) {
     ListItem(
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
@@ -137,7 +143,7 @@ private fun PermissionRow(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
+                tint = MaterialTheme.colorScheme.primary,
             )
         },
         headlineContent = { Text(name) },
@@ -147,13 +153,13 @@ private fun PermissionRow(
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
                     contentDescription = stringResource(id = R.string.settings_permission_granted),
-                    tint = Color(0xFF388E3C)
+                    tint = Color(0xFF388E3C),
                 )
             } else {
                 Button(onClick = onGrantClick, contentPadding = PaddingValues(horizontal = 16.dp)) {
                     Text(stringResource(id = R.string.settings_permission_grant_action))
                 }
             }
-        }
+        },
     )
 }

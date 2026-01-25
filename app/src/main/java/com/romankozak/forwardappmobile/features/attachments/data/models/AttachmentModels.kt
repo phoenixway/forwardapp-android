@@ -55,7 +55,9 @@ data class AttachmentEntity(
 data class ContextAttachmentCrossRef(
     @ColumnInfo(name = "context_id") @SerializedName(value = "contextId", alternate = ["a"]) val contextId: String,
     @ColumnInfo(name = "attachment_id") @SerializedName(value = "attachmentId", alternate = ["b"]) val attachmentId: String,
-    @ColumnInfo(name = "attachment_order") @SerializedName(value = "attachmentOrder", alternate = ["c"]) val attachmentOrder: Long = -System.currentTimeMillis(),
+    @ColumnInfo(
+        name = "attachment_order",
+    ) @SerializedName(value = "attachmentOrder", alternate = ["c"]) val attachmentOrder: Long = -System.currentTimeMillis(),
     val updatedAt: Long? = null,
     val syncedAt: Long? = null,
     val isDeleted: Boolean = false,
@@ -67,4 +69,3 @@ data class AttachmentWithContext(
     @ColumnInfo(name = "context_id") val contextId: String?,
     @ColumnInfo(name = "attachment_order") val attachmentOrder: Long?,
 )
-

@@ -36,8 +36,6 @@ class NavigationHistoryManager(
         var savedHistory = savedStateHandle.get<List<NavigationEntry>>(HISTORY_KEY) ?: emptyList()
         var savedIndex = savedStateHandle.get<Int>(INDEX_KEY) ?: -1
 
-        
-        
         if (savedHistory.isEmpty()) {
             savedHistory = listOf(NavigationEntry.createProjectHierarchyScreen())
             savedIndex = 0
@@ -56,8 +54,6 @@ class NavigationHistoryManager(
             savedStateHandle[INDEX_KEY] = _currentIndex.value
         }
     }
-
-    
 
     private fun updateStates(caller: String) {
         val history = _history.value

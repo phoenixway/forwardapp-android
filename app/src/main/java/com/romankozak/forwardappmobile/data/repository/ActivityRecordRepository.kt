@@ -7,17 +7,19 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class ActivityRecordRepository @Inject constructor(
-    private val activityRecordDao: ActivityRecordDao,
-) {
-    suspend fun getRecentRecords(daysBack: Int = 7): List<ActivityRecord> {
-        val now = System.currentTimeMillis()
-        val from = now - TimeUnit.DAYS.toMillis(daysBack.toLong())
-        return activityRecordDao.getRecordsFrom(from)
-    }
+class ActivityRecordRepository
+    @Inject
+    constructor(
+        private val activityRecordDao: ActivityRecordDao,
+    ) {
+        suspend fun getRecentRecords(daysBack: Int = 7): List<ActivityRecord> {
+            val now = System.currentTimeMillis()
+            val from = now - TimeUnit.DAYS.toMillis(daysBack.toLong())
+            return activityRecordDao.getRecordsFrom(from)
+        }
 
-    suspend fun getRecordsBetween(
-        startTimestamp: Long,
-        endTimestamp: Long,
-    ): List<ActivityRecord> = activityRecordDao.getRecordsBetween(startTimestamp, endTimestamp)
-}
+        suspend fun getRecordsBetween(
+            startTimestamp: Long,
+            endTimestamp: Long,
+        ): List<ActivityRecord> = activityRecordDao.getRecordsBetween(startTimestamp, endTimestamp)
+    }

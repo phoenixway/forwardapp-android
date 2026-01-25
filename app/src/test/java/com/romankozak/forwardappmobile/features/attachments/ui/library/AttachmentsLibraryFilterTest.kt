@@ -5,7 +5,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AttachmentsLibraryFilterTest {
-
     @Test
     fun `all filter matches every type`() {
         AttachmentLibraryType.values().forEach { type ->

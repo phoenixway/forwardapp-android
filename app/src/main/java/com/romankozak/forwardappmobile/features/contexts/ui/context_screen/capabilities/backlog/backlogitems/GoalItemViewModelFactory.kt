@@ -9,7 +9,7 @@ import com.romankozak.forwardappmobile.ui.common.ParsedTextData
 class GoalItemViewModelFactory(
     private val goal: Goal,
     private val parsedData: ParsedTextData,
-    private val reminder: Reminder?
+    private val reminder: Reminder?,
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(GoalItemViewModel::class.java)) {

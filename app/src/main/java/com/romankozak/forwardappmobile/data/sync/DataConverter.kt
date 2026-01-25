@@ -1,16 +1,28 @@
 package com.romankozak.forwardappmobile.data.sync
 
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
-import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
 fun DesktopGoal.toGoal(): Goal {
-    val updatedAtMillis = this.updatedAt?.let {
-        try { OffsetDateTime.parse(it, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toInstant().toEpochMilli() } catch (e: Exception) { null }
-    }
-    val createdAtMillis = try { OffsetDateTime.parse(this.createdAt, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toInstant().toEpochMilli() } catch (e: Exception) { System.currentTimeMillis() }
+    val updatedAtMillis =
+        this.updatedAt?.let {
+            try {
+                OffsetDateTime.parse(it, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toInstant().toEpochMilli()
+            } catch (e: Exception) {
+                null
+            }
+        }
+    val createdAtMillis =
+        try {
+            OffsetDateTime.parse(this.createdAt, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toInstant().toEpochMilli()
+        } catch (
+            e: Exception,
+        ) {
+            System.currentTimeMillis()
+        }
 
     return Goal(
         id = this.id,
@@ -31,15 +43,27 @@ fun DesktopGoal.toGoal(): Goal {
         weightRisk = this.weightRisk,
         rawScore = this.rawScore,
         displayScore = this.displayScore,
-        scoringStatus = this.scoringStatus ?: ScoringStatusValues.NOT_ASSESSED
+        scoringStatus = this.scoringStatus ?: ScoringStatusValues.NOT_ASSESSED,
     )
 }
 
 fun DesktopGoalList.toProject(): Context {
-    val updatedAtMillis = this.updatedAt?.let {
-        try { OffsetDateTime.parse(it, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toInstant().toEpochMilli() } catch (e: Exception) { null }
-    }
-    val createdAtMillis = try { OffsetDateTime.parse(this.createdAt, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toInstant().toEpochMilli() } catch (e: Exception) { System.currentTimeMillis() }
+    val updatedAtMillis =
+        this.updatedAt?.let {
+            try {
+                OffsetDateTime.parse(it, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toInstant().toEpochMilli()
+            } catch (e: Exception) {
+                null
+            }
+        }
+    val createdAtMillis =
+        try {
+            OffsetDateTime.parse(this.createdAt, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toInstant().toEpochMilli()
+        } catch (
+            e: Exception,
+        ) {
+            System.currentTimeMillis()
+        }
 
     return Context(
         id = this.id,
@@ -57,6 +81,6 @@ fun DesktopGoalList.toProject(): Context {
         effort = this.effort,
         cost = this.cost,
         risk = this.risk,
-        scoringStatus = this.scoringStatus ?: ScoringStatusValues.NOT_ASSESSED
+        scoringStatus = this.scoringStatus ?: ScoringStatusValues.NOT_ASSESSED,
     )
 }

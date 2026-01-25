@@ -5,35 +5,32 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.dialogs.ContextMenuDialog
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DialogState
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
 import com.romankozak.forwardappmobile.ui.dialogs.AboutAppDialog
 import com.romankozak.forwardappmobile.ui.dialogs.AddProjectDialog
 import com.romankozak.forwardappmobile.ui.dialogs.WifiImportDialog
 import com.romankozak.forwardappmobile.ui.dialogs.WifiServerDialog
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.dialogs.ContextMenuDialog
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DialogState
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
-
 
 @Composable
 fun HandleProjectHierarchyDialogs(
     uiState: ProjectHierarchyScreenUiState,
     onEvent: (ContextHierarchyScreenEvent) -> Unit,
 ) {
-    
     when (val state = uiState.dialogState) {
         is DialogState.Hidden -> { }
         is DialogState.AddProject -> {
             AddProjectDialog(
                 title = if (state.parentId == null) "Створити новий проект" else "Створити підпроект",
                 onDismiss = { onEvent(ContextHierarchyScreenEvent.DismissDialog) },
-                
                 onConfirm = { name ->
                     onEvent(ContextHierarchyScreenEvent.AddContextConfirm(name, state.parentId))
                 },
             )
         }
-        
+
         is DialogState.ProjectMenu -> {
             ContextMenuDialog(
                 project = state.project,
@@ -64,14 +61,14 @@ fun HandleProjectHierarchyDialogs(
                 dismissButton = { TextButton(onClick = { onEvent(ContextHierarchyScreenEvent.DismissDialog) }) { Text("Cancel") } },
             )
         }
-        
+
         is DialogState.About -> {
             AboutAppDialog(
                 stats = uiState.appStatistics,
                 onDismiss = { onEvent(ContextHierarchyScreenEvent.DismissDialog) },
             )
         }
-        
+
         is DialogState.ConfirmImport -> {
             AlertDialog(
                 onDismissRequest = { onEvent(ContextHierarchyScreenEvent.DismissDialog) },
@@ -83,7 +80,6 @@ fun HandleProjectHierarchyDialogs(
                 },
                 confirmButton = {
                     Button(
-                        
                         onClick = { onEvent(ContextHierarchyScreenEvent.FullImportConfirm(state.uri)) },
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                     ) { Text("Delete and Restore") }
@@ -91,17 +87,14 @@ fun HandleProjectHierarchyDialogs(
                 dismissButton = { TextButton(onClick = { onEvent(ContextHierarchyScreenEvent.DismissDialog) }) { Text("Cancel") } },
             )
         }
-        
+
         is DialogState.EditProject -> {
-            
-            
             onEvent(ContextHierarchyScreenEvent.DismissDialog)
         }
         is DialogState.WifiImport -> { }
         is DialogState.WifiServer -> { }
     }
 
-    
     if (uiState.showWifiServerDialog && uiState.featureToggles[FeatureFlag.WifiSync] == true) {
         WifiServerDialog(
             address = uiState.wifiServerAddress,

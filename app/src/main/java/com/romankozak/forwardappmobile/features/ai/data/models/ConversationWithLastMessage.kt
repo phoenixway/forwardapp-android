@@ -7,7 +7,7 @@ data class ConversationWithLastMessage(
     @Embedded val conversation: ConversationEntity,
     @Relation(
         parentColumn = "id",
-        entityColumn = "conversationId"
+        entityColumn = "conversationId",
     )
-    val lastMessage: ChatMessageEntity?
+    val lastMessage: ChatMessageEntity?,
 )

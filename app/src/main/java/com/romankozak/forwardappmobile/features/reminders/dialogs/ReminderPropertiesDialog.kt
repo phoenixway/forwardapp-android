@@ -6,26 +6,25 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.ui.components.AdaptiveSegmentedControl
-import com.romankozak.forwardappmobile.ui.components.SegmentedTab
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
+import com.romankozak.forwardappmobile.ui.components.AdaptiveSegmentedControl
+import com.romankozak.forwardappmobile.ui.components.SegmentedTab
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
 data class ReminderPreset(
     val label: String,
     val minutes: Long,
-    val isDatePreset: Boolean = false
+    val isDatePreset: Boolean = false,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,7 +33,7 @@ fun ReminderPropertiesDialog(
     onDismiss: () -> Unit,
     onSetReminder: (time: Long) -> Unit,
     onRemoveReminder: ((String) -> Unit)? = null,
-    currentReminders: List<Reminder> = emptyList()
+    currentReminders: List<Reminder> = emptyList(),
 ) {
     val datePickerState = rememberDatePickerState()
     var timeText by remember {
@@ -49,19 +48,23 @@ fun ReminderPropertiesDialog(
     var selectedTab by remember { mutableStateOf(0) }
 
     // Об'єднані пресети для кращого UX
-    val quickPresets = remember {
-        listOf(
-            ReminderPreset("5 хв", 5L),
-            ReminderPreset("10 хв", 10L),
-            ReminderPreset("15 хв", 15L),
-            ReminderPreset("20 хв", 20L),
-            ReminderPreset("30 хв", 30L),
-            ReminderPreset("1 год", 60L),
-            ReminderPreset("3 год", 180L),
-        )
-    }
+    val quickPresets =
+        remember {
+            listOf(
+                ReminderPreset("5 хв", 5L),
+                ReminderPreset("10 хв", 10L),
+                ReminderPreset("15 хв", 15L),
+                ReminderPreset("20 хв", 20L),
+                ReminderPreset("30 хв", 30L),
+                ReminderPreset("1 год", 60L),
+                ReminderPreset("3 год", 180L),
+            )
+        }
 
-    fun calculatePresetTime(minutes: Long, isDatePreset: Boolean = false): Long {
+    fun calculatePresetTime(
+        minutes: Long,
+        isDatePreset: Boolean = false,
+    ): Long {
         return if (isDatePreset && minutes == TimeUnit.DAYS.toMinutes(1)) {
             // Завтра о 9:00
             Calendar.getInstance().apply {
@@ -83,35 +86,37 @@ fun ReminderPropertiesDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         modifier = Modifier.fillMaxWidth(0.94f),
-        title = { 
+        title = {
             Text(
                 text = stringResource(id = R.string.set_reminder_title),
-                style = MaterialTheme.typography.titleLarge
-            ) 
+                style = MaterialTheme.typography.titleLarge,
+            )
         },
-    text = {
-        Column(
-            modifier = Modifier
-                .verticalScroll(rememberScrollState())
-                .fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+        text = {
+            Column(
+                modifier =
+                    Modifier
+                        .verticalScroll(rememberScrollState())
+                        .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 // Відображення поточних нагадувань
                 if (currentReminders.isNotEmpty()) {
                     CurrentRemindersSection(
                         reminders = currentReminders,
-                        onRemoveReminder = onRemoveReminder
+                        onRemoveReminder = onRemoveReminder,
                     )
                     HorizontalDivider()
                 }
 
                 // Перемикач режимів
                 AdaptiveSegmentedControl(
-                    tabs = listOf(
-                        SegmentedTab("Швидко", Icons.Default.Timer),
-                        SegmentedTab("Дата і час", Icons.Default.CalendarMonth),
-                        SegmentedTab("Інтервал", Icons.Default.Timer),
-                    ),
+                    tabs =
+                        listOf(
+                            SegmentedTab("Швидко", Icons.Default.Timer),
+                            SegmentedTab("Дата і час", Icons.Default.CalendarMonth),
+                            SegmentedTab("Інтервал", Icons.Default.Timer),
+                        ),
                     selectedTabIndex = selectedTab,
                     onTabSelected = { index ->
                         selectedTab = index
@@ -119,48 +124,52 @@ fun ReminderPropertiesDialog(
                             showCustomInput = false
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
 
                 when (selectedTab) {
-                    0 -> QuickPresetsSection(
-                        presets = quickPresets,
-                        onSelect = { minutes, isDate ->
-                            onSetReminder(calculatePresetTime(minutes, isDate))
-                            onDismiss()
-                        }
-                    )
-                    1 -> ExactDateSection(
-                        datePickerState = datePickerState,
-                        timeText = timeText,
-                        timeError = timeError,
-                        onTimeChange = {
-                            timeText = it
-                            timeError = null
-                        },
-                        onSet = { dateMillis, hour, minute ->
-                            val calendar = Calendar.getInstance().apply {
-                                timeInMillis = dateMillis
-                                set(Calendar.HOUR_OF_DAY, hour)
-                                set(Calendar.MINUTE, minute)
-                                set(Calendar.SECOND, 0)
-                                set(Calendar.MILLISECOND, 0)
-                            }
-                            onSetReminder(calendar.timeInMillis)
-                            onDismiss()
-                        },
-                        onTimeValidationError = { timeError = it }
-                    )
-                    2 -> IntervalSection(
-                        customValue = customValue,
-                        onCustomValueChange = { customValue = it },
-                        selectedUnit = selectedUnit,
-                        onUnitChange = { selectedUnit = it },
-                        onSet = {
-                            onSetReminder(calculateCustomTime())
-                            onDismiss()
-                        }
-                    )
+                    0 ->
+                        QuickPresetsSection(
+                            presets = quickPresets,
+                            onSelect = { minutes, isDate ->
+                                onSetReminder(calculatePresetTime(minutes, isDate))
+                                onDismiss()
+                            },
+                        )
+                    1 ->
+                        ExactDateSection(
+                            datePickerState = datePickerState,
+                            timeText = timeText,
+                            timeError = timeError,
+                            onTimeChange = {
+                                timeText = it
+                                timeError = null
+                            },
+                            onSet = { dateMillis, hour, minute ->
+                                val calendar =
+                                    Calendar.getInstance().apply {
+                                        timeInMillis = dateMillis
+                                        set(Calendar.HOUR_OF_DAY, hour)
+                                        set(Calendar.MINUTE, minute)
+                                        set(Calendar.SECOND, 0)
+                                        set(Calendar.MILLISECOND, 0)
+                                    }
+                                onSetReminder(calendar.timeInMillis)
+                                onDismiss()
+                            },
+                            onTimeValidationError = { timeError = it },
+                        )
+                    2 ->
+                        IntervalSection(
+                            customValue = customValue,
+                            onCustomValueChange = { customValue = it },
+                            selectedUnit = selectedUnit,
+                            onUnitChange = { selectedUnit = it },
+                            onSet = {
+                                onSetReminder(calculateCustomTime())
+                                onDismiss()
+                            },
+                        )
                 }
             }
         },
@@ -168,9 +177,8 @@ fun ReminderPropertiesDialog(
             TextButton(onClick = onDismiss) {
                 Text("Закрити")
             }
-        }
+        },
     )
-
 }
 
 @Composable
@@ -182,19 +190,19 @@ private fun QuickPresetsSection(
         Text(
             text = "Швидкий вибір",
             style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         presets.chunked(3).forEach { rowPresets ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 rowPresets.forEach { preset ->
                     FilterChip(
                         selected = false,
                         onClick = { onSelect(preset.minutes, preset.isDatePreset) },
                         label = { Text(preset.label, maxLines = 1, softWrap = false) },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     )
                 }
                 repeat(3 - rowPresets.size) {
@@ -219,24 +227,24 @@ private fun ExactDateSection(
         Text(
             text = "Точна дата і час",
             style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         ) {
             Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 // Опційний вибір іншої дати
                 var showDate by remember { mutableStateOf(false) }
                 OutlinedButton(
                     onClick = { showDate = true },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     Icon(
                         imageVector = Icons.Default.CalendarMonth,
                         contentDescription = null,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(20.dp),
                     )
                     Spacer(Modifier.width(8.dp))
                     Text("Вибрати дату (не сьогодні)")
@@ -259,7 +267,10 @@ private fun ExactDateSection(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     supportingText = {
                         val helper = timeError ?: "Вкажіть час у форматі 24г, напр. 08:15"
-                        Text(helper, color = if (timeError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            helper,
+                            color = if (timeError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
@@ -275,7 +286,7 @@ private fun ExactDateSection(
                         }
                         onSet(dateMillis, h, m)
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text("Встановити")
                 }
@@ -296,7 +307,7 @@ private fun IntervalSection(
         Text(
             text = "Власний інтервал",
             style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
         CustomIntervalSection(
@@ -305,7 +316,7 @@ private fun IntervalSection(
             selectedUnit = selectedUnit,
             onUnitChange = onUnitChange,
             onSet = onSet,
-            onCancel = { /* no-op */ }
+            onCancel = { /* no-op */ },
         )
     }
 }
@@ -313,20 +324,20 @@ private fun IntervalSection(
 @Composable
 private fun CurrentRemindersSection(
     reminders: List<Reminder>,
-    onRemoveReminder: ((String) -> Unit)?
+    onRemoveReminder: ((String) -> Unit)?,
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
             text = "Активні нагадування",
             style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         reminders.forEach { reminder ->
             ReminderChip(
                 reminder = reminder,
-                onRemove = { onRemoveReminder?.invoke(reminder.id) }
+                onRemove = { onRemoveReminder?.invoke(reminder.id) },
             )
         }
     }
@@ -335,26 +346,30 @@ private fun CurrentRemindersSection(
 @Composable
 private fun ReminderChip(
     reminder: Reminder,
-    onRemove: () -> Unit
+    onRemove: () -> Unit,
 ) {
-    val timeText = remember(reminder.reminderTime, reminder.snoozeUntil) {
-        val time = reminder.snoozeUntil ?: reminder.reminderTime
-        val format = java.text.SimpleDateFormat("dd MMM, HH:mm", java.util.Locale("uk"))
-        val prefix = if (reminder.snoozeUntil != null) "Відкладено: " else ""
-        prefix + format.format(time)
-    }
+    val timeText =
+        remember(reminder.reminderTime, reminder.snoozeUntil) {
+            val time = reminder.snoozeUntil ?: reminder.reminderTime
+            val format = java.text.SimpleDateFormat("dd MMM, HH:mm", java.util.Locale("uk"))
+            val prefix = if (reminder.snoozeUntil != null) "Відкладено: " else ""
+            prefix + format.format(time)
+        }
 
-    val chipColors = when (reminder.status) {
-        "SNOOZED" -> AssistChipDefaults.assistChipColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-            labelColor = MaterialTheme.colorScheme.onTertiaryContainer
-        )
-        "SCHEDULED" -> AssistChipDefaults.assistChipColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            labelColor = MaterialTheme.colorScheme.onPrimaryContainer
-        )
-        else -> AssistChipDefaults.assistChipColors()
-    }
+    val chipColors =
+        when (reminder.status) {
+            "SNOOZED" ->
+                AssistChipDefaults.assistChipColors(
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    labelColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+            "SCHEDULED" ->
+                AssistChipDefaults.assistChipColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    labelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            else -> AssistChipDefaults.assistChipColors()
+        }
 
     AssistChip(
         onClick = onRemove,
@@ -363,10 +378,10 @@ private fun ReminderChip(
             Icon(
                 imageVector = Icons.Default.Delete,
                 contentDescription = "Видалити нагадування",
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(18.dp),
             )
         },
-        colors = chipColors
+        colors = chipColors,
     )
 }
 
@@ -377,10 +392,10 @@ private fun CustomIntervalSection(
     selectedUnit: TimeUnit,
     onUnitChange: (TimeUnit) -> Unit,
     onSet: () -> Unit,
-    onCancel: () -> Unit
+    onCancel: () -> Unit,
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         OutlinedTextField(
             value = customValue,
@@ -392,52 +407,52 @@ private fun CustomIntervalSection(
             singleLine = true,
             supportingText = {
                 Text("Мінімум 1 ${getUnitName(selectedUnit)}")
-            }
+            },
         )
-        
+
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             FilterChip(
                 selected = selectedUnit == TimeUnit.MINUTES,
                 onClick = { onUnitChange(TimeUnit.MINUTES) },
                 label = { Text("Хвилини") },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
             )
             FilterChip(
                 selected = selectedUnit == TimeUnit.HOURS,
                 onClick = { onUnitChange(TimeUnit.HOURS) },
                 label = { Text("Години") },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
             )
             FilterChip(
                 selected = selectedUnit == TimeUnit.DAYS,
                 onClick = { onUnitChange(TimeUnit.DAYS) },
                 label = { Text("Дні") },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
             )
         }
-        
+
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             OutlinedButton(
                 onClick = onCancel,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
             ) {
                 Text("Скасувати")
             }
             Button(
                 onClick = onSet,
                 enabled = customValue.toLongOrNull()?.let { it > 0 } == true,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
             ) {
                 Icon(
                     imageVector = Icons.Default.Timer,
                     contentDescription = null,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(18.dp),
                 )
                 Spacer(Modifier.width(4.dp))
                 Text("Встановити")

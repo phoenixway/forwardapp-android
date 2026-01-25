@@ -11,6 +11,9 @@ data class LifeSystemState(
 )
 
 enum class LoadLevel { LOW, NORMAL, HIGH, CRITICAL }
+
 enum class ExecutionMode { FOCUSED, SCATTERED, STUCK }
+
 enum class StabilityLevel { STABLE, UNSTABLE, FRAGMENTED }
+
 enum class EntropyLevel { LOW, MEDIUM, HIGH }

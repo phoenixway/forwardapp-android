@@ -28,6 +28,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -39,7 +40,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,8 +48,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructureItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfile
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructureItem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,15 +76,16 @@ fun ProjectStructureScreen(
                         Icon(Icons.Default.Add, contentDescription = "Add item")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
             )
-        }
+        },
     ) { padding ->
         Column(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
+            modifier =
+                Modifier
+                    .padding(padding)
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface),
         ) {
             PresetSelector(
                 presets = uiState.presets,
@@ -95,24 +96,25 @@ fun ProjectStructureScreen(
                 },
                 expanded = presetMenuExpanded,
                 onExpandChange = { presetMenuExpanded = it },
-                basePresetCode = uiState.basePresetCode
+                basePresetCode = uiState.basePresetCode,
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
             FeatureFlagsSection(
                 flags = uiState.featureFlags,
-                onToggle = viewModel::onToggleFeatureFlag
+                onToggle = viewModel::onToggleFeatureFlag,
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text("Елементи структури", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 OutlinedButton(onClick = { viewModel.applyStructure() }) {
@@ -127,12 +129,12 @@ fun ProjectStructureScreen(
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(uiState.items, key = { it.id }) { item ->
                     StructureItemRow(
                         item = item,
-                        onToggle = { enabled -> viewModel.toggleItem(item, enabled) }
+                        onToggle = { enabled -> viewModel.toggleItem(item, enabled) },
                     )
                 }
             }
@@ -145,7 +147,7 @@ fun ProjectStructureScreen(
             onConfirm = { entityType, roleCode, containerType, title, mandatory ->
                 viewModel.addItem(entityType, roleCode, containerType, title, mandatory)
                 addDialogVisible = false
-            }
+            },
         )
     }
 }
@@ -158,21 +160,22 @@ private fun PresetSelector(
     onApplyClick: () -> Unit,
     expanded: Boolean,
     onExpandChange: (Boolean) -> Unit,
-    basePresetCode: String?
+    basePresetCode: String?,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
-            .padding(12.dp)
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
+                .padding(12.dp),
     ) {
         Text("Пресет", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(6.dp))
         Box {
             OutlinedButton(
                 onClick = { onExpandChange(true) },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(selectedPresetCode ?: basePresetCode ?: "Не вибрано")
             }
@@ -186,7 +189,7 @@ private fun PresetSelector(
                         onClick = {
                             onPresetSelect(preset.code)
                             onExpandChange(false)
-                        }
+                        },
                     )
                 }
             }
@@ -195,7 +198,7 @@ private fun PresetSelector(
         Button(
             onClick = onApplyClick,
             enabled = selectedPresetCode != null,
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
         ) {
             Text("Застосувати пресет")
         }
@@ -208,21 +211,23 @@ private fun FeatureFlagsSection(
     onToggle: (String, Boolean) -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
+                .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text("Фічі", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         flags.toList().forEach { (key, value) ->
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onToggle(key, !value) },
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { onToggle(key, !value) },
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(key)
                 Switch(checked = value, onCheckedChange = { onToggle(key, it) })
@@ -238,12 +243,13 @@ private fun StructureItemRow(
 ) {
     val disabledToggle = item.mandatory
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
-            .padding(12.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
+                .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(item.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
@@ -263,7 +269,7 @@ private fun StructureItemRow(
         Switch(
             checked = item.isEnabled || item.mandatory,
             onCheckedChange = { onToggle(it) },
-            enabled = !disabledToggle
+            enabled = !disabledToggle,
         )
     }
 }
@@ -295,10 +301,18 @@ fun AddStructureItemDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box {
-                    OutlinedButton(onClick = { showEntityMenu = true }) { Text(if (entityType == "ATTACHMENT") "Вкладення" else "Підпроєкт") }
+                    OutlinedButton(
+                        onClick = { showEntityMenu = true },
+                    ) { Text(if (entityType == "ATTACHMENT") "Вкладення" else "Підпроєкт") }
                     DropdownMenu(expanded = showEntityMenu, onDismissRequest = { showEntityMenu = false }) {
-                        DropdownMenuItem(text = { Text("Вкладення") }, onClick = { entityType = "ATTACHMENT"; showEntityMenu = false })
-                        DropdownMenuItem(text = { Text("Підпроєкт") }, onClick = { entityType = "SUBPROJECT"; showEntityMenu = false })
+                        DropdownMenuItem(text = { Text("Вкладення") }, onClick = {
+                            entityType = "ATTACHMENT"
+                            showEntityMenu = false
+                        })
+                        DropdownMenuItem(text = { Text("Підпроєкт") }, onClick = {
+                            entityType = "SUBPROJECT"
+                            showEntityMenu = false
+                        })
                     }
                 }
                 if (entityType == "ATTACHMENT") {
@@ -318,22 +332,22 @@ fun AddStructureItemDialog(
                     value = roleCode,
                     onValueChange = { roleCode = it },
                     label = { Text("Role code") },
-                    singleLine = true
+                    singleLine = true,
                 )
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
                     label = { Text("Title") },
-                    singleLine = true
+                    singleLine = true,
                 )
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Switch(checked = mandatory, onCheckedChange = { mandatory = it })
                     Text("Mandatory")
                 }
             }
-        }
+        },
     )
 }

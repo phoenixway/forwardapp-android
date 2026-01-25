@@ -3,7 +3,6 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 
 sealed interface ProjectUiEvent {
-    
     data class NavigateToDetails(val projectId: String) : ProjectUiEvent
 
     data class NavigateToSyncScreenWithData(val json: String) : ProjectUiEvent
@@ -18,14 +17,16 @@ sealed interface ProjectUiEvent {
 
     data class NavigateToDayPlan(val date: Long, val startTab: String? = null) : ProjectUiEvent
 
-    
     data class ShowToast(val message: String) : ProjectUiEvent
 
     data object FocusSearchField : ProjectUiEvent
+
     data object HideKeyboard : ProjectUiEvent
 
     data class OpenUri(val uri: String) : ProjectUiEvent
+
     data class ScrollToIndex(val index: Int) : ProjectUiEvent
+
     data object NavigateToStrategicManagement : ProjectUiEvent
 }
 

@@ -4,9 +4,11 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 
 object ListEditingLogic {
-
     // Returns Pair<start, end> where end is exclusive
-    private fun getCurrentLineBounds(text: String, cursorPosition: Int): Pair<Int, Int> {
+    private fun getCurrentLineBounds(
+        text: String,
+        cursorPosition: Int,
+    ): Pair<Int, Int> {
         val start = text.lastIndexOf('\n', startIndex = (cursorPosition - 1).coerceAtLeast(0)).let { if (it == -1) 0 else it + 1 }
         val end = text.indexOf('\n', startIndex = cursorPosition).let { if (it == -1) text.length else it }
         return start to end
@@ -16,7 +18,10 @@ object ListEditingLogic {
         return line.takeWhile { it.isWhitespace() }.length
     }
 
-    private fun getBlockLines(text: String, startLineIndex: Int): List<String> {
+    private fun getBlockLines(
+        text: String,
+        startLineIndex: Int,
+    ): List<String> {
         val lines = text.lines()
         if (startLineIndex >= lines.size) return emptyList()
 
@@ -134,7 +139,10 @@ object ListEditingLogic {
         }
     }
 
-    private fun applyToBlock(value: TextFieldValue, transform: (String) -> String): TextFieldValue {
+    private fun applyToBlock(
+        value: TextFieldValue,
+        transform: (String) -> String,
+    ): TextFieldValue {
         val text = value.text
         val cursorPosition = value.selection.start
         val lines = text.lines().toMutableList()
@@ -170,9 +178,9 @@ object ListEditingLogic {
         val prevLineNumber = (currentLineNumber - 1).coerceAtLeast(0)
         val prevBlock = getBlockLines(text, prevLineNumber)
         if (prevBlock.isEmpty()) return value
-        
+
         val mutableLines = lines.toMutableList()
-        mutableLines.subList(prevLineNumber, currentLineNumber + currentBlock.size -1).clear()
+        mutableLines.subList(prevLineNumber, currentLineNumber + currentBlock.size - 1).clear()
         mutableLines.addAll(prevLineNumber, currentBlock)
         mutableLines.addAll(prevLineNumber + currentBlock.size, prevBlock)
 
@@ -222,7 +230,10 @@ object ListEditingLogic {
         return value.text.substring(lineStart, lineEnd)
     }
 
-    fun pasteLine(value: TextFieldValue, clipboardText: String): TextFieldValue {
+    fun pasteLine(
+        value: TextFieldValue,
+        clipboardText: String,
+    ): TextFieldValue {
         val text = value.text
         val cursorPosition = value.selection.start
         val (lineStart, lineEnd) = getCurrentLineBounds(text, cursorPosition)
@@ -232,11 +243,12 @@ object ListEditingLogic {
         val currentLineHasMarker = currentLine.trim().startsWith("- ")
         val clipboardHasMarker = trimmedClipboard.startsWith("- ")
 
-        val textToInsert = if (currentLineHasMarker && clipboardHasMarker) {
-            trimmedClipboard.replaceFirst(Regex("^\\s*- "), "")
-        } else {
-            clipboardText
-        }
+        val textToInsert =
+            if (currentLineHasMarker && clipboardHasMarker) {
+                trimmedClipboard.replaceFirst(Regex("^\\s*- "), "")
+            } else {
+                clipboardText
+            }
 
         val newText = text.replaceRange(lineStart, lineEnd, textToInsert)
         val newCursorPosition = lineStart + textToInsert.length

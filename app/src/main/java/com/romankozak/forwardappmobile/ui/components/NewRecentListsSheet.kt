@@ -13,10 +13,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.automirrored.outlined.Note
 import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.PushPin
-import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -40,7 +40,7 @@ fun NewRecentListsSheet(
     if (showSheet) {
         ModalBottomSheet(
             onDismissRequest = onDismiss,
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         ) {
             val tabs = listOf("Недавні", "Закріплені")
             val pagerState = rememberPagerState { tabs.size }
@@ -49,22 +49,22 @@ fun NewRecentListsSheet(
             Column(Modifier.navigationBarsPadding()) {
                 TabRow(
                     selectedTabIndex = pagerState.currentPage,
-                    containerColor = Color.Transparent
+                    containerColor = Color.Transparent,
                 ) {
                     tabs.forEachIndexed { index, title ->
                         Tab(
                             selected = pagerState.currentPage == index,
                             onClick = { coroutineScope.launch { pagerState.animateScrollToPage(index) } },
-                            text = { Text(text = title) }
+                            text = { Text(text = title) },
                         )
                     }
                 }
 
                 HorizontalPager(
                     state = pagerState,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
-                    page ->
+                        page ->
                     val items = if (page == 0) recentItems else recentItems.filter { it.isPinned }
                     RecentItemsGrid(items = items, onItemClick = onItemClick, onPinClick = onPinClick)
                 }
@@ -77,12 +77,12 @@ fun NewRecentListsSheet(
 private fun RecentItemsGrid(
     items: List<RecentItem>,
     onItemClick: (RecentItem) -> Unit,
-    onPinClick: (RecentItem) -> Unit
+    onPinClick: (RecentItem) -> Unit,
 ) {
     if (items.isEmpty()) {
         Box(
             modifier = Modifier.fillMaxSize().padding(16.dp),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = "Історія порожня.",
@@ -94,7 +94,7 @@ private fun RecentItemsGrid(
             columns = GridCells.Adaptive(minSize = 150.dp),
             contentPadding = PaddingValues(16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             items(items, key = { it.id }) { item ->
                 RecentItemCard(item = item, onClick = { onItemClick(item) }, onPinClick = { onPinClick(item) })
@@ -107,50 +107,53 @@ private fun RecentItemsGrid(
 private fun RecentItemCard(
     item: RecentItem,
     onClick: () -> Unit,
-    onPinClick: () -> Unit
+    onPinClick: () -> Unit,
 ) {
     val color = getColorsForType(item.type)
     Card(
-        modifier = Modifier
-            .aspectRatio(1.3f)
-            .clickable(onClick = onClick)
-            .border(
-                width = 1.dp,
-                color = color,
-                shape = MaterialTheme.shapes.medium
-            ),
+        modifier =
+            Modifier
+                .aspectRatio(1.3f)
+                .clickable(onClick = onClick)
+                .border(
+                    width = 1.dp,
+                    color = color,
+                    shape = MaterialTheme.shapes.medium,
+                ),
         shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(12.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                verticalAlignment = Alignment.Top,
             ) {
                 Icon(
-                    imageVector = when (item.type) {
-                        RecentItemType.PROJECT -> Icons.Outlined.Folder
-                        RecentItemType.NOTE -> Icons.AutoMirrored.Outlined.Note
-                        RecentItemType.NOTE_DOCUMENT -> Icons.AutoMirrored.Outlined.List
-                        RecentItemType.CHECKLIST -> Icons.Outlined.Checklist
-                        RecentItemType.OBSIDIAN_LINK -> Icons.Outlined.Link
-                    },
+                    imageVector =
+                        when (item.type) {
+                            RecentItemType.PROJECT -> Icons.Outlined.Folder
+                            RecentItemType.NOTE -> Icons.AutoMirrored.Outlined.Note
+                            RecentItemType.NOTE_DOCUMENT -> Icons.AutoMirrored.Outlined.List
+                            RecentItemType.CHECKLIST -> Icons.Outlined.Checklist
+                            RecentItemType.OBSIDIAN_LINK -> Icons.Outlined.Link
+                        },
                     contentDescription = null,
                     modifier = Modifier.size(36.dp),
-                    tint = color
+                    tint = color,
                 )
                 IconButton(onClick = onPinClick, modifier = Modifier.size(24.dp)) {
                     Icon(
                         imageVector = if (item.isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
                         contentDescription = "Pin",
                         tint = color,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(18.dp),
                     )
                 }
             }
@@ -158,7 +161,7 @@ private fun RecentItemCard(
                 text = item.displayName,
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                 color = color,
-                maxLines = 3
+                maxLines = 3,
             )
         }
     }

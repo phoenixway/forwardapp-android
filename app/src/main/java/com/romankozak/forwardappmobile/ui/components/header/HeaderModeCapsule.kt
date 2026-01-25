@@ -12,18 +12,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
- @Composable
+@Composable
 fun ModeCapsule(
     text: String,
     onClick: () -> Unit,
-    color: Color = MaterialTheme.colorScheme.primary
+    color: Color = MaterialTheme.colorScheme.primary,
 ) {
     Box(
-        modifier = Modifier
-            .clip(MaterialTheme.shapes.large)
-            .background(color.copy(alpha = 0.12f))
-            .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+        modifier =
+            Modifier
+                .clip(MaterialTheme.shapes.large)
+                .background(color.copy(alpha = 0.12f))
+                .clickable { onClick() }
+                .padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
         Text(text, fontSize = 13.sp, color = color)
     }

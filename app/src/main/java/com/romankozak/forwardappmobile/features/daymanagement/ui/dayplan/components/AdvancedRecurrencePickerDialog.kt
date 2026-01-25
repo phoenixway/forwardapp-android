@@ -15,7 +15,7 @@ import java.time.DayOfWeek
 @Composable
 fun AdvancedRecurrencePickerDialog(
     onDismiss: () -> Unit,
-    onConfirm: (RecurrenceRule?) -> Unit
+    onConfirm: (RecurrenceRule?) -> Unit,
 ) {
     var selectedFrequency by remember { mutableStateOf(RecurrenceFrequency.DAILY) }
     var interval by remember { mutableStateOf("1") }
@@ -35,10 +35,11 @@ fun AdvancedRecurrencePickerDialog(
                         readOnly = true,
                         label = { Text("Частота") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
                     )
                     ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                        RecurrenceFrequency.values().filter { it != RecurrenceFrequency.MONTHLY && it != RecurrenceFrequency.YEARLY }.forEach { frequency ->
+                        RecurrenceFrequency.values().filter { it != RecurrenceFrequency.MONTHLY && it != RecurrenceFrequency.YEARLY }.forEach {
+                                frequency ->
                             DropdownMenuItem(text = { Text(frequency.name) }, onClick = {
                                 selectedFrequency = frequency
                                 expanded = false
@@ -53,7 +54,7 @@ fun AdvancedRecurrencePickerDialog(
                     onValueChange = { if (it.all { char -> char.isDigit() }) interval = it },
                     label = { Text("Інтервал (в ${getIntervalUnit(selectedFrequency)})") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
 
                 // Day of Week Selector
@@ -67,11 +68,12 @@ fun AdvancedRecurrencePickerDialog(
         confirmButton = {
             Button(onClick = {
                 val finalInterval = interval.toIntOrNull() ?: 1
-                val rule = RecurrenceRule(
-                    frequency = selectedFrequency,
-                    interval = finalInterval,
-                    daysOfWeek = if (selectedFrequency == RecurrenceFrequency.WEEKLY) selectedDays.toList() else null
-                )
+                val rule =
+                    RecurrenceRule(
+                        frequency = selectedFrequency,
+                        interval = finalInterval,
+                        daysOfWeek = if (selectedFrequency == RecurrenceFrequency.WEEKLY) selectedDays.toList() else null,
+                    )
                 onConfirm(rule)
             }) {
                 Text("Зберегти")
@@ -81,14 +83,14 @@ fun AdvancedRecurrencePickerDialog(
             TextButton(onClick = { onConfirm(null) }) {
                 Text("Не повторювати")
             }
-        }
+        },
     )
 }
 
 @Composable
 private fun DayOfWeekSelector(
     selectedDays: Set<DayOfWeek>,
-    onDaySelected: (DayOfWeek) -> Unit
+    onDaySelected: (DayOfWeek) -> Unit,
 ) {
     val days = DayOfWeek.values()
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -97,7 +99,7 @@ private fun DayOfWeekSelector(
                 selected = selectedDays.contains(day),
                 onClick = { onDaySelected(day) },
                 label = { Text(day.name.first().toString()) },
-                modifier = Modifier.padding(horizontal = 2.dp)
+                modifier = Modifier.padding(horizontal = 2.dp),
             )
         }
     }

@@ -10,25 +10,27 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class AiControlEngine @Inject constructor(
-    private val eventRepo: AiEventRepository,
-    private val stateRepo: LifeSystemStateRepository,
-    private val inferencer: LifeStateInferencer,
-    private val policies: Set<@JvmSuppressWildcards AiPolicy>,
-    private val actuators: Set<@JvmSuppressWildcards AiActuator>,
-) {
-    suspend fun tick() {
-        val previousState = stateRepo.get()
-        val since = previousState?.updatedAt ?: Instant.EPOCH
-        val events = eventRepo.getEvents(since)
-        if (events.isEmpty()) return
+class AiControlEngine
+    @Inject
+    constructor(
+        private val eventRepo: AiEventRepository,
+        private val stateRepo: LifeSystemStateRepository,
+        private val inferencer: LifeStateInferencer,
+        private val policies: Set<@JvmSuppressWildcards AiPolicy>,
+        private val actuators: Set<@JvmSuppressWildcards AiActuator>,
+    ) {
+        suspend fun tick() {
+            val previousState = stateRepo.get()
+            val since = previousState?.updatedAt ?: Instant.EPOCH
+            val events = eventRepo.getEvents(since)
+            if (events.isEmpty()) return
 
-        val newState = inferencer.infer(previousState, events)
-        stateRepo.save(newState)
+            val newState = inferencer.infer(previousState, events)
+            stateRepo.save(newState)
 
-        val decisions = policies.flatMap { it.evaluate(newState) }
-        decisions.forEach { decision ->
-            actuators.forEach { it.apply(decision) }
+            val decisions = policies.flatMap { it.evaluate(newState) }
+            decisions.forEach { decision ->
+                actuators.forEach { it.apply(decision) }
+            }
         }
     }
-}

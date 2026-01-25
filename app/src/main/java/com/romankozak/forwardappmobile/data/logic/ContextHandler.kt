@@ -1,9 +1,9 @@
 
 package com.romankozak.forwardappmobile.data.logic
 
-import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
-import com.romankozak.forwardappmobile.data.repository.ProjectRepository
+import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -20,12 +20,12 @@ import javax.inject.Singleton
 class ContextHandler
     @Inject
     constructor(
-        private val projectRepositoryProvider: Provider<ProjectRepository>,
+        private val contextRepositoryProvider: Provider<ContextRepository>,
         private val settingsRepository: SettingsRepository,
         private val goalRepositoryProvider: Provider<com.romankozak.forwardappmobile.data.repository.GoalRepository>,
         private val iconProvider: com.romankozak.forwardappmobile.ui.common.IconProvider,
     ) {
-        private val projectRepository: ProjectRepository by lazy { projectRepositoryProvider.get() }
+        private val contextRepository: ContextRepository by lazy { contextRepositoryProvider.get() }
         private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository by lazy { goalRepositoryProvider.get() }
 
         private val contextTagMap = mutableMapOf<String, String>()
@@ -65,9 +65,10 @@ class ContextHandler
 
             val contextsBeingBuilt = mutableListOf<UiContext>()
 
-            val reservedContextsInfo = SettingsRepository.ContextKeys.reservedContexts.map { (name, keys) ->
-                Triple(name, keys.first, keys.second)
-            }
+            val reservedContextsInfo =
+                SettingsRepository.ContextKeys.reservedContexts.map { (name, keys) ->
+                    Triple(name, keys.first, keys.second)
+                }
 
             reservedContextsInfo.forEach { (name, tagKey, emojiKey) ->
                 val tag = settingsRepository.getContextTagFlow(tagKey).first()
@@ -137,10 +138,10 @@ class ContextHandler
                     async {
                         val tag = contextTagMap[contextName.lowercase()]
                         if (tag != null) {
-                            val targetProjectIds = projectRepository.findProjectIdsByTag(tag)
-                            for (projectId in targetProjectIds) {
-                                if (!projectRepository.doesLinkExist(goal.id, projectId)) {
-                                    goalRepository.createGoalLinks(listOf(goal.id), projectId)
+                            val targetContextIds = contextRepository.findContextIdsByTag(tag)
+                            for (contextId in targetContextIds) {
+                                if (!contextRepository.doesLinkToContextExist(goal.id, contextId)) {
+                                    goalRepository.createGoalLinks(listOf(goal.id), contextId)
                                 }
                             }
                         }
@@ -170,9 +171,9 @@ class ContextHandler
                     async {
                         val tag = contextTagMap[contextName.lowercase()]
                         if (tag != null) {
-                            val targetProjectIds = projectRepository.findProjectIdsByTag(tag)
-                            for (projectId in targetProjectIds) {
-                                projectRepository.deleteLinkByEntityIdAndProjectId(entityId = oldGoal.id, projectId = projectId)
+                            val targetContextIds = contextRepository.findContextIdsByTag(tag)
+                            for (contextId in targetContextIds) {
+                                contextRepository.deleteLinkByEntityIdAndContextId(entityId = oldGoal.id, contextId = contextId)
                             }
                         }
                     }

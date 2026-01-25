@@ -15,22 +15,23 @@ data class HoldMenuColors(
     val scrim: Color,
 )
 
-val LocalHoldMenuColors = staticCompositionLocalOf {
-    HoldMenuColors(
-        background = Color(0xFF1F1F1F),
-        border = Color(0x33FFFFFF),
-        itemHoverBackground = Color(0x33FFFFFF),
-        itemText = Color.White,
-        itemTextMuted = Color(0xCCFFFFFF),
-        tooltipBackground = Color(0xFF2A2A2A),
-        tooltipText = Color.White,
-        scrim = Color(0x66000000)
-    )
-}
+val LocalHoldMenuColors =
+    staticCompositionLocalOf {
+        HoldMenuColors(
+            background = Color(0xFF1F1F1F),
+            border = Color(0x33FFFFFF),
+            itemHoverBackground = Color(0x33FFFFFF),
+            itemText = Color.White,
+            itemTextMuted = Color(0xCCFFFFFF),
+            tooltipBackground = Color(0xFF2A2A2A),
+            tooltipText = Color.White,
+            scrim = Color(0x66000000),
+        )
+    }
 
 fun holdMenuColorsFromScheme(
     colorScheme: ColorScheme,
-    isDark: Boolean
+    isDark: Boolean,
 ): HoldMenuColors {
     val hoverAlpha = if (isDark) 0.22f else 0.14f
     val scrimAlpha = if (isDark) 0.55f else 0.35f
@@ -44,6 +45,6 @@ fun holdMenuColorsFromScheme(
         itemTextMuted = colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
         tooltipBackground = colorScheme.secondaryContainer.copy(alpha = 0.95f),
         tooltipText = colorScheme.onSecondaryContainer,
-        scrim = colorScheme.scrim.copy(alpha = scrimAlpha)
+        scrim = colorScheme.scrim.copy(alpha = scrimAlpha),
     )
 }

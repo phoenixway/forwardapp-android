@@ -18,20 +18,21 @@ fun DisplayTabContent(
     onShowCheckboxesChange: (Boolean) -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Text("Show checkboxes")
             Switch(
                 checked = showCheckboxes,
-                onCheckedChange = onShowCheckboxesChange
+                onCheckedChange = onShowCheckboxesChange,
             )
         }
     }

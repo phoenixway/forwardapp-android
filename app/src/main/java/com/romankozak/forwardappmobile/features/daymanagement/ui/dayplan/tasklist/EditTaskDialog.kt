@@ -13,8 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
-import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask
 import com.romankozak.forwardappmobile.features.contexts.data.models.TaskPriority
+import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,9 +29,9 @@ fun EditTaskDialog(
     var durationText by remember { mutableStateOf(task.estimatedDurationMinutes?.toString() ?: "") }
     var priority by remember { mutableStateOf(task.priority) }
 
-    //---------------------------------------------------------------------
+    // ---------------------------------------------------------------------
     // DIALOG
-    //---------------------------------------------------------------------
+    // ---------------------------------------------------------------------
     AlertDialog(
         onDismissRequest = onDismissRequest,
         properties = DialogProperties(usePlatformDefaultWidth = false),
@@ -40,41 +40,42 @@ fun EditTaskDialog(
             Text(
                 text = "Редагувати завдання",
                 style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.primary,
             )
         },
-
-        //-----------------------------------------------------------------
+        // -----------------------------------------------------------------
         // CONTENT
-        //-----------------------------------------------------------------
+        // -----------------------------------------------------------------
         text = {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
-
                 // ---------------------------------------------------------
                 // TITLE
                 // ---------------------------------------------------------
                 ElevatedCard(
                     shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.elevatedCardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
-                    )
+                    colors =
+                        CardDefaults.elevatedCardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                        ),
                 ) {
                     OutlinedTextField(
                         value = title,
                         onValueChange = { title = it },
                         label = { Text("Назва") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
                         singleLine = true,
                         leadingIcon = { Icon(Icons.Default.Title, contentDescription = null) },
                         isError = title.isBlank(),
-                        supportingText = { if (title.isBlank()) Text("Обов'язкове поле") }
+                        supportingText = { if (title.isBlank()) Text("Обов'язкове поле") },
                     )
                 }
 
@@ -83,20 +84,22 @@ fun EditTaskDialog(
                 // ---------------------------------------------------------
                 ElevatedCard(
                     shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.elevatedCardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f)
-                    )
+                    colors =
+                        CardDefaults.elevatedCardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f),
+                        ),
                 ) {
                     OutlinedTextField(
                         value = description,
                         onValueChange = { description = it },
                         label = { Text("Опис") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp)
-                            .heightIn(80.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp)
+                                .heightIn(80.dp),
                         maxLines = 5,
-                        leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) }
+                        leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) },
                     )
                 }
 
@@ -105,9 +108,10 @@ fun EditTaskDialog(
                 // ---------------------------------------------------------
                 ElevatedCard(
                     shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.elevatedCardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f)
-                    )
+                    colors =
+                        CardDefaults.elevatedCardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f),
+                        ),
                 ) {
                     OutlinedTextField(
                         value = durationText,
@@ -115,13 +119,14 @@ fun EditTaskDialog(
                             if (it.all(Char::isDigit) || it.isEmpty()) durationText = it
                         },
                         label = { Text("Тривалість") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         leadingIcon = { Icon(Icons.Default.AccessTime, contentDescription = null) },
-                        suffix = { if (durationText.isNotEmpty()) Text("хв") }
+                        suffix = { if (durationText.isNotEmpty()) Text("хв") },
                     )
                 }
 
@@ -132,12 +137,12 @@ fun EditTaskDialog(
                     Text(
                         "Пріоритет",
                         style = MaterialTheme.typography.labelMedium,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        modifier = Modifier.padding(bottom = 8.dp),
                     )
 
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         TaskPriority.values().forEach { p ->
                             val selected = p == priority
@@ -146,56 +151,60 @@ fun EditTaskDialog(
                                 onClick = { priority = p },
                                 label = { Text(p.getDisplayName()) },
                                 leadingIcon = {
-                                    if (selected)
+                                    if (selected) {
                                         Icon(Icons.Default.Check, contentDescription = null)
+                                    }
                                 },
                                 shape = RoundedCornerShape(14.dp),
-                                colors = AssistChipDefaults.assistChipColors(
-                                    containerColor =
-                                        if (selected)
-                                            MaterialTheme.colorScheme.primaryContainer
-                                        else
-                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.20f)
-                                ),
+                                colors =
+                                    AssistChipDefaults.assistChipColors(
+                                        containerColor =
+                                            if (selected) {
+                                                MaterialTheme.colorScheme.primaryContainer
+                                            } else {
+                                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.20f)
+                                            },
+                                    ),
                                 border =
-                                    if (selected)
+                                    if (selected) {
                                         BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
-                                    else null
+                                    } else {
+                                        null
+                                    },
                             )
                         }
                     }
                 }
             }
         },
-
-        //---------------------------------------------------------------------
+        // ---------------------------------------------------------------------
         // BUTTONS
-        //---------------------------------------------------------------------
+        // ---------------------------------------------------------------------
         confirmButton = {
             FilledTonalButton(
                 onClick = {
                     val duration = durationText.toLongOrNull()
                     onConfirm(title, description, duration, priority)
                 },
-                enabled = title.isNotBlank()
+                enabled = title.isNotBlank(),
             ) {
                 Icon(Icons.Default.Done, contentDescription = null)
                 Spacer(Modifier.width(6.dp))
                 Text("Зберегти")
             }
         },
-
         dismissButton = {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 // DELETE button with danger accent
                 TextButton(
                     onClick = onDelete,
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
+                    colors =
+                        ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error,
+                        ),
                 ) {
                     Icon(Icons.Default.Delete, contentDescription = null)
                     Spacer(Modifier.width(4.dp))
@@ -206,6 +215,6 @@ fun EditTaskDialog(
                     Text("Скасувати")
                 }
             }
-        }
+        },
     )
 }

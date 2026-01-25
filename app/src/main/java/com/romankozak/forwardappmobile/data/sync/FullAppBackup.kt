@@ -7,25 +7,25 @@ import com.romankozak.forwardappmobile.features.ai.data.models.AiInsightEntity
 import com.romankozak.forwardappmobile.features.ai.data.models.ChatMessageEntity
 import com.romankozak.forwardappmobile.features.ai.data.models.ConversationEntity
 import com.romankozak.forwardappmobile.features.ai.data.models.ConversationFolderEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
 import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistItemEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
-import com.romankozak.forwardappmobile.features.contexts.data.models.InboxRecord
-import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentItemEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.SystemAppEntity
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextArtifact
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextConfiguration
-import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructureItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfile
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfileItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
+import com.romankozak.forwardappmobile.features.contexts.data.models.InboxRecord
+import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
+import com.romankozak.forwardappmobile.features.contexts.data.models.ProjectStructureItem
+import com.romankozak.forwardappmobile.features.contexts.data.models.SystemAppEntity
 import com.romankozak.forwardappmobile.features.daymanagement.data.models.DailyMetric
 import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayPlan
 import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask
@@ -78,8 +78,8 @@ data class DatabaseContent(
     @SerializedName(value = "attachments", alternate = ["attachment_items"])
     val attachments: List<com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentEntity> = emptyList(),
     @SerializedName(value = "projectAttachmentCrossRefs", alternate = ["project_attachment_links"])
-    val projectAttachmentCrossRefs: List<com.romankozak.forwardappmobile.features.attachments.data.models.ProjectAttachmentCrossRef> = emptyList(),
-
+    val projectAttachmentCrossRefs: List<com.romankozak.forwardappmobile.features.attachments.data.models.ProjectAttachmentCrossRef> =
+        emptyList(),
     // --- Extended Entities ---
     @SerializedName("dayPlans")
     val dayPlans: List<DayPlan> = emptyList(),
@@ -87,36 +87,31 @@ data class DatabaseContent(
     val dayTasks: List<DayTask> = emptyList(),
     @SerializedName("dailyMetrics")
     val dailyMetrics: List<DailyMetric> = emptyList(),
-
     @SerializedName("conversations")
     val conversations: List<ConversationEntity> = emptyList(),
     @SerializedName("chatMessages")
     val chatMessages: List<ChatMessageEntity> = emptyList(),
     @SerializedName("conversationFolders")
     val conversationFolders: List<ConversationFolderEntity> = emptyList(),
-
     @SerializedName("reminders")
     val reminders: List<Reminder> = emptyList(),
     @SerializedName("recurringTasks")
     val recurringTasks: List<RecurringTask> = emptyList(),
-
     @SerializedName("systemApps")
     val systemApps: List<SystemAppEntity> = emptyList(),
     @SerializedName("projectArtifacts")
     val contextArtifacts: List<ContextArtifact> = emptyList(),
-
     @SerializedName("tacticalMissions")
     val tacticalMissions: List<com.romankozak.forwardappmobile.features.missions.data.model.TacticalMission> = emptyList(),
     @SerializedName("tacticalMissionAttachments")
-    val tacticalMissionAttachments: List<com.romankozak.forwardappmobile.features.missions.data.model.TacticalMissionAttachmentCrossRef> = emptyList(),
-
+    val tacticalMissionAttachments: List<com.romankozak.forwardappmobile.features.missions.data.model.TacticalMissionAttachmentCrossRef> =
+        emptyList(),
     @SerializedName("aiEvents")
     val aiEvents: List<AiEventEntity> = emptyList(),
     @SerializedName("aiInsights")
     val aiInsights: List<AiInsightEntity> = emptyList(),
     @SerializedName("lifeSystemStates")
     val lifeSystemStates: List<LifeSystemStateEntity> = emptyList(),
-
     @SerializedName("structurePresets")
     val contextRoleProfiles: List<ContextRoleProfile> = emptyList(),
     @SerializedName("structurePresetItems")
@@ -133,5 +128,5 @@ data class SettingsContent(
 
 data class RecentProjectEntry(
     val projectId: String,
-    val timestamp: Long
+    val timestamp: Long,
 )

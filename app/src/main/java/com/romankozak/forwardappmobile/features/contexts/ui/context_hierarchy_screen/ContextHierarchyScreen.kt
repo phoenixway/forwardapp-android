@@ -1,31 +1,30 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen
 
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
 import com.romankozak.forwardappmobile.core.navigation.routes.navigateToDayManagement
 import com.romankozak.forwardappmobile.core.navigation.routes.navigateToStrategicManagement
-import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
-import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
-import kotlinx.coroutines.flow.collectLatest
-
-import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionScope
-import androidx.core.net.toUri
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.ProjectHierarchyScreenScaffold
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectUiEvent
+import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
+import kotlinx.coroutines.flow.collectLatest
 
 private const val UI_TAG = "ProjectHierarchyScreenUI_DEBUG"
 
@@ -43,7 +42,6 @@ fun ProjectHierarchyScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val focusManager = LocalFocusManager.current
 
-    
     LaunchedEffect(Unit) {
         viewModel.uiEventFlow.collectLatest { event ->
             when (event) {
@@ -55,14 +53,16 @@ fun ProjectHierarchyScreen(
                 is ProjectUiEvent.ShowToast -> Toast.makeText(navController.context, event.message, Toast.LENGTH_LONG).show()
                 is ProjectUiEvent.NavigateToGlobalSearch -> navController.navigate("global_search_screen/${event.query}")
                 is ProjectUiEvent.NavigateToSettings -> navController.navigate("settings_screen")
-                is ProjectUiEvent.NavigateToEditProjectScreen -> navController.navigate("project_settings_screen?projectId=${event.projectId}")
+                is ProjectUiEvent.NavigateToEditProjectScreen ->
+                    navController.navigate(
+                        "project_settings_screen?projectId=${event.projectId}",
+                    )
                 is ProjectUiEvent.Navigate -> navController.navigate(NavTargetRouter.routeOf(event.target))
                 is ProjectUiEvent.NavigateToDayPlan ->
                     navController.navigateToDayManagement(event.date, event.startTab)
                 is ProjectUiEvent.NavigateToStrategicManagement ->
                     navController.navigateToStrategicManagement()
                 is ProjectUiEvent.FocusSearchField -> {
-                    
                 }
                 is ProjectUiEvent.HideKeyboard -> {
                     focusManager.clearFocus()
@@ -76,7 +76,6 @@ fun ProjectHierarchyScreen(
         }
     }
 
-    
     DisposableEffect(navController, lifecycleOwner, viewModel) {
         val observer =
             LifecycleEventObserver { _, event ->

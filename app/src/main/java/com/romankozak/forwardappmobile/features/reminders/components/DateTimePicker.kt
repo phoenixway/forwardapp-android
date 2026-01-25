@@ -62,9 +62,9 @@ fun DateTimePicker(
         ) {
             Row(
                 modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
@@ -79,11 +79,11 @@ fun DateTimePicker(
                     text = selectedDateTime?.let { formatDateTime(it) } ?: "Обрати дату і час",
                     style = MaterialTheme.typography.bodyLarge,
                     color =
-                    if (selectedDateTime != null) {
-                        MaterialTheme.colorScheme.onSurface
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
+                        if (selectedDateTime != null) {
+                            MaterialTheme.colorScheme.onSurface
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                 )
             }
         }
@@ -171,9 +171,9 @@ fun DateTimePickerDialog(
 
                 Card(
                     colors =
-                    CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    ),
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        ),
                 ) {
                     Text(
                         text = "Нагадування: ${formatDateTime(finalDateTime)}",
@@ -201,13 +201,13 @@ fun DateTimePickerDialog(
                     onConfirm(finalDateTime)
                 },
                 enabled =
-                Calendar
-                    .getInstance()
-                    .apply {
-                        timeInMillis = selectedDate
-                        set(Calendar.HOUR_OF_DAY, selectedTime.first)
-                        set(Calendar.MINUTE, selectedTime.second)
-                    }.timeInMillis > System.currentTimeMillis(),
+                    Calendar
+                        .getInstance()
+                        .apply {
+                            timeInMillis = selectedDate
+                            set(Calendar.HOUR_OF_DAY, selectedTime.first)
+                            set(Calendar.MINUTE, selectedTime.second)
+                        }.timeInMillis > System.currentTimeMillis(),
             ) {
                 Text("Підтвердити")
             }

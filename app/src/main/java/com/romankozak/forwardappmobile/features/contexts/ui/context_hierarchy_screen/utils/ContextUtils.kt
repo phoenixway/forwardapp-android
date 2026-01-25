@@ -1,12 +1,11 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils
 
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextHierarchyData
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
+import com.romankozak.forwardappmobile.features.contexts.data.models.ContextHierarchyData
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FlatHierarchyItem
 
 private const val TAG = "SendDebug"
-
 
 fun fuzzyMatch(
     query: String,
@@ -27,7 +26,6 @@ fun fuzzyMatch(
     return queryIndex == lowerQuery.length
 }
 
-
 fun findAncestorsRecursive(
     projectId: String?,
     projectLookup: Map<String, Context>,
@@ -41,7 +39,6 @@ fun findAncestorsRecursive(
     }
 }
 
-
 fun findDescendantsForDeletion(
     projectId: String,
     childMap: Map<String, List<Context>>,
@@ -51,7 +48,6 @@ fun findDescendantsForDeletion(
     val children = childMap[projectId] ?: emptyList()
     return children + children.flatMap { findDescendantsForDeletion(it.id, childMap, visited) }
 }
-
 
 fun getDescendantIds(
     projectId: String,
@@ -69,7 +65,6 @@ fun getDescendantIds(
     }
     return descendants
 }
-
 
 fun buildPathToProject(
     targetId: String,
@@ -95,7 +90,6 @@ fun buildPathToProject(
     findPath(hierarchy.topLevelProjects, 0)
     return path.toList()
 }
-
 
 fun flattenHierarchy(
     currentProjects: List<Context>,

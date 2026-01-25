@@ -14,15 +14,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask
 import com.romankozak.forwardappmobile.features.contexts.data.models.TaskPriority
-
-
+import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,7 +56,6 @@ fun TaskOptionsBottomSheet(
                 modifier =
                     Modifier.clickable {
                         onEdit(task)
-                        
                     },
             )
 
@@ -99,7 +95,6 @@ fun TaskOptionsBottomSheet(
     }
 }
 
-
 fun TaskPriority.getDisplayName(): String =
     when (this) {
         TaskPriority.CRITICAL -> "Критичний"
@@ -108,8 +103,6 @@ fun TaskPriority.getDisplayName(): String =
         TaskPriority.LOW -> "Низький"
         TaskPriority.NONE -> "Без пріоритету"
     }
-
-
 
 @Composable
 private fun TaskInfoHeader(
@@ -127,7 +120,6 @@ private fun TaskInfoHeader(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors =
@@ -159,13 +151,11 @@ private fun TaskInfoHeader(
                     )
                 }
 
-                
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -183,7 +173,6 @@ private fun TaskInfoHeader(
                         )
                     }
 
-                    
                     task.estimatedDurationMinutes?.takeIf { it > 0 }?.let { duration ->
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -203,7 +192,6 @@ private fun TaskInfoHeader(
                         }
                     }
 
-                    
                     task.dueTime?.let { dueTimestamp ->
                         val formattedTime =
                             remember(dueTimestamp) {
@@ -305,5 +293,5 @@ private fun getPriorityColor(priority: TaskPriority): Color {
         TaskPriority.MEDIUM -> MaterialTheme.colorScheme.primary
         TaskPriority.LOW -> MaterialTheme.colorScheme.onSurfaceVariant
         TaskPriority.NONE -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-    } 
+    }
 }

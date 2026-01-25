@@ -1,14 +1,12 @@
 package com.romankozak.forwardappmobile.core.navigation
-
 import android.util.Log
-import com.romankozak.forwardappmobile.features.contexts.data.models.Context
-import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.core.di.IoDispatcher
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
+import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenPlanningMode
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectUiEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.state.ProjectHierarchyScreenPlanningModeManager
-
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.ProjectHierarchyScreenPlanningUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.ProjectHierarchyScreenSearchUseCase
 import kotlinx.coroutines.CoroutineDispatcher
@@ -18,7 +16,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
-
 
 sealed interface ClearCommand {
     data object Home : ClearCommand
@@ -30,13 +27,11 @@ sealed interface ClearCommand {
     data object CollapseAll : ClearCommand
 }
 
-
 sealed class ClearResult {
     data object Success : ClearResult()
 
     data class Error(val message: String, val cause: Throwable? = null) : ClearResult()
 }
-
 
 data class ClearExecutionContext(
     val currentProjects: List<Context>,
@@ -52,14 +47,13 @@ data class ClearExecutionContext(
 class ClearAndNavigateHomeUseCase
     @Inject
     constructor(
-        private val projectRepository: ProjectRepository,
+        private val contextRepository: ContextRepository,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     ) {
         companion object {
             private const val TAG = "ClearNavigateUseCase"
         }
 
-        
         suspend fun execute(
             command: ClearCommand,
             context: ClearExecutionContext,
@@ -80,8 +74,6 @@ class ClearAndNavigateHomeUseCase
                 Log.e(TAG, "Failed to execute command: $command", e)
                 ClearResult.Error("Failed to execute clear command: ${command::class.simpleName}", e)
             }
-
-        
 
         private suspend fun executeHomeNavigation(context: ClearExecutionContext) {
             clearUIStateToHome(context)
@@ -105,7 +97,7 @@ class ClearAndNavigateHomeUseCase
         ) {
             clearSearchAndNavigation(context)
             resetSubStateToHierarchy(context)
-            
+
             context.enhancedNavigationManager?.navigateToProject(command.projectId, command.projectName)
         }
 
@@ -115,8 +107,6 @@ class ClearAndNavigateHomeUseCase
             resetSubStateToHierarchy(context)
             scrollToTop(context)
         }
-
-        
 
         private suspend fun clearUIStateToHome(context: ClearExecutionContext) {
             withContext(Dispatchers.Main.immediate) {
@@ -148,7 +138,7 @@ class ClearAndNavigateHomeUseCase
 
                 if (expandedProjects.isNotEmpty()) {
                     val collapsedProjects = expandedProjects.map { it.copy(isExpanded = false) }
-                    projectRepository.updateProjects(collapsedProjects)
+                    contextRepository.updateContext(collapsedProjects)
                     Log.d(TAG, "Collapsed ${collapsedProjects.size} projects")
                 }
             }
@@ -180,10 +170,6 @@ class ClearAndNavigateHomeUseCase
                 context.uiEventChannel.trySend(ProjectUiEvent.ScrollToIndex(0))
             }
         }
-
-        
-
-
 
         @Deprecated("Use execute() with ClearCommand instead")
         suspend operator fun invoke(
@@ -217,7 +203,6 @@ class ClearAndNavigateHomeUseCase
             }
         }
     }
-
 
 fun createClearExecutionContext(
     currentProjects: List<Context>,

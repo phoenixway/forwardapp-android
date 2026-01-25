@@ -21,6 +21,7 @@ import javax.inject.Inject
 
 // --- Data Models for Retrofit ---
 data class FileData(val filename: String, val content: String)
+
 data class ApiResponse(val status: String, val message: String)
 
 // --- Retrofit Service Interface ---
@@ -28,13 +29,12 @@ interface FamApiService {
     @POST("api/v1/files")
     suspend fun sendFile(
         @Body fileData: FileData,
-        @Query("subdir") subdir: String? = "shared-from-android"
+        @Query("subdir") subdir: String? = "shared-from-android",
     ): ApiResponse
 }
 
 @AndroidEntryPoint
 class ShareReceiverActivity : AppCompatActivity() {
-
     @Inject
     lateinit var settingsRepository: SettingsRepository
 
@@ -68,13 +68,17 @@ class ShareReceiverActivity : AppCompatActivity() {
         }
     }
 
-    private fun sendTextToServer(baseUrl: String, text: String) {
+    private fun sendTextToServer(
+        baseUrl: String,
+        text: String,
+    ) {
         coroutineScope.launch(Dispatchers.IO) {
             try {
-                val retrofit = Retrofit.Builder()
-                    .baseUrl(baseUrl)
-                    .addConverterFactory(GsonConverterFactory.create())
-                    .build()
+                val retrofit =
+                    Retrofit.Builder()
+                        .baseUrl(baseUrl)
+                        .addConverterFactory(GsonConverterFactory.create())
+                        .build()
 
                 val service = retrofit.create(FamApiService::class.java)
                 val filename = "note-${System.currentTimeMillis()}"

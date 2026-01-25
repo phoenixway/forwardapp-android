@@ -1,6 +1,5 @@
 package com.romankozak.forwardappmobile.core.di
 
-import com.romankozak.forwardappmobile.data.dao.LifeSystemStateDao
 import com.romankozak.forwardappmobile.data.repository.AiEventRepository
 import com.romankozak.forwardappmobile.data.repository.AiEventRepositoryImpl
 import com.romankozak.forwardappmobile.data.repository.LifeSystemStateRepository
@@ -17,19 +16,19 @@ import com.romankozak.forwardappmobile.domain.ai.policy.AiPolicy
 import com.romankozak.forwardappmobile.domain.ai.policy.EntropyPolicy
 import com.romankozak.forwardappmobile.domain.ai.policy.OverloadPolicy
 import com.romankozak.forwardappmobile.domain.ai.policy.StuckPolicy
+import com.romankozak.forwardappmobile.domain.ai.serialization.InstantAsLongSerializer
+import com.romankozak.forwardappmobile.domain.lifestate.LlmApi
+import com.romankozak.forwardappmobile.domain.lifestate.OllamaLlmApi
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import javax.inject.Singleton
-import kotlinx.serialization.json.Json
 import dagger.multibindings.IntoSet
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
-import com.romankozak.forwardappmobile.domain.ai.serialization.InstantAsLongSerializer
 import java.time.Instant
-import com.romankozak.forwardappmobile.domain.lifestate.LlmApi
-import com.romankozak.forwardappmobile.domain.lifestate.OllamaLlmApi
+import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -82,11 +81,13 @@ abstract class AiBindingModule {
 object AiModule {
     @Provides
     @Singleton
-    fun provideJson(): Json = Json {
-        ignoreUnknownKeys = true
-        classDiscriminator = "type"
-        serializersModule = SerializersModule {
-            contextual(Instant::class, InstantAsLongSerializer)
+    fun provideJson(): Json =
+        Json {
+            ignoreUnknownKeys = true
+            classDiscriminator = "type"
+            serializersModule =
+                SerializersModule {
+                    contextual(Instant::class, InstantAsLongSerializer)
+                }
         }
-    }
 }

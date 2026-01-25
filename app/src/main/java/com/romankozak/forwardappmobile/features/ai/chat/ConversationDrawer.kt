@@ -30,13 +30,13 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun ConversationDrawer(
     drawerItems: List<DrawerItem>,
-    onConversationClick: (Long) -> Unit
+    onConversationClick: (Long) -> Unit,
 ) {
     Column {
         Text(
             "Chats",
             modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp),
-            style = MaterialTheme.typography.titleMedium
+            style = MaterialTheme.typography.titleMedium,
         )
         Divider()
         val expandedFolders = remember { mutableStateMapOf<Long, Boolean>() }
@@ -48,32 +48,33 @@ fun ConversationDrawer(
                         val isExpanded = expandedFolders[item.folder.id] ?: false
                         Column {
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { expandedFolders[item.folder.id] = !isExpanded }
-                                    .padding(vertical = 8.dp, horizontal = 16.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .clickable { expandedFolders[item.folder.id] = !isExpanded }
+                                        .padding(vertical = 8.dp, horizontal = 16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Folder,
                                     contentDescription = "Folder",
-                                    modifier = Modifier.padding(end = 8.dp)
+                                    modifier = Modifier.padding(end = 8.dp),
                                 )
                                 Text(
                                     item.folder.name,
                                     modifier = Modifier.weight(1f),
                                     maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    overflow = TextOverflow.Ellipsis,
                                 )
                                 Icon(
                                     imageVector = if (isExpanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowRight,
-                                    contentDescription = if (isExpanded) "Collapse" else "Expand"
+                                    contentDescription = if (isExpanded) "Collapse" else "Expand",
                                 )
                             }
                             AnimatedVisibility(
                                 visible = isExpanded,
                                 enter = expandVertically(),
-                                exit = shrinkVertically()
+                                exit = shrinkVertically(),
                             ) {
                                 Column {
                                     item.conversations.forEach { conversation ->
@@ -82,12 +83,13 @@ fun ConversationDrawer(
                                                 Text(
                                                     conversation.conversation.title,
                                                     maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
+                                                    overflow = TextOverflow.Ellipsis,
                                                 )
                                             },
-                                            modifier = Modifier
-                                                .clickable { onConversationClick(conversation.conversation.id) }
-                                                .padding(start = 32.dp, top = 4.dp, bottom = 4.dp, end = 8.dp)
+                                            modifier =
+                                                Modifier
+                                                    .clickable { onConversationClick(conversation.conversation.id) }
+                                                    .padding(start = 32.dp, top = 4.dp, bottom = 4.dp, end = 8.dp),
                                         )
                                     }
                                 }
@@ -100,12 +102,13 @@ fun ConversationDrawer(
                                 Text(
                                     item.conversationWithLastMessage.conversation.title,
                                     maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    overflow = TextOverflow.Ellipsis,
                                 )
                             },
-                            modifier = Modifier
-                                .clickable { onConversationClick(item.conversationWithLastMessage.conversation.id) }
-                                .padding(vertical = 4.dp, horizontal = 8.dp)
+                            modifier =
+                                Modifier
+                                    .clickable { onConversationClick(item.conversationWithLastMessage.conversation.id) }
+                                    .padding(vertical = 4.dp, horizontal = 8.dp),
                         )
                     }
                 }

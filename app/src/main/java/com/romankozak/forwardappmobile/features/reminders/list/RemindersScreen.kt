@@ -34,9 +34,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.ProjectItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.GoalItem
-import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
 import com.romankozak.forwardappmobile.features.reminders.components.ReminderAction
 import com.romankozak.forwardappmobile.features.reminders.components.ReminderActionsDialog
 import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
@@ -48,7 +48,7 @@ import com.romankozak.forwardappmobile.features.reminders.viewmodel.RemindersUiE
 @Composable
 fun RemindersScreen(
     navController: NavController,
-    viewModel: ReminderViewModel = hiltViewModel()
+    viewModel: ReminderViewModel = hiltViewModel(),
 ) {
     val reminders by viewModel.reminders.collectAsStateWithLifecycle()
     val showPropertiesDialog by viewModel.showPropertiesDialog.collectAsStateWithLifecycle()
@@ -80,9 +80,9 @@ fun RemindersScreen(
                     IconButton(onClick = { viewModel.clearAllReminders() }) {
                         Icon(Icons.Default.ClearAll, contentDescription = "Clear all reminders")
                     }
-                }
+                },
             )
-        }
+        },
     ) { paddingValues ->
         if (reminders.isEmpty()) {
             EmptyRemindersView()
@@ -107,7 +107,7 @@ fun RemindersScreen(
                                     IconButton(onClick = { showActionsDialogForItem = reminderItem }) {
                                         Icon(Icons.Default.MoreHoriz, "...")
                                     }
-                                }
+                                },
                             )
                         }
                         is ReminderListItem.ProjectReminder -> {
@@ -129,10 +129,10 @@ fun RemindersScreen(
                                     IconButton(onClick = { showActionsDialogForItem = reminderItem }) {
                                         Icon(Icons.Default.MoreHoriz, "...")
                                     }
-                                }
+                                },
                             )
                         }
-                        is ReminderListItem.SimpleReminder -> { 
+                        is ReminderListItem.SimpleReminder -> {
                             // Handle SimpleReminder if needed
                         }
                     }
@@ -161,33 +161,34 @@ fun RemindersScreen(
                 }
                 viewModel.onDismissPropertiesDialog()
             },
-            currentReminders = editingReminder?.let { listOf(it) } ?: emptyList()
+            currentReminders = editingReminder?.let { listOf(it) } ?: emptyList(),
         )
     }
 
     showActionsDialogForItem?.let { item ->
-        val actions = listOf(
-            ReminderAction(
-                text = "Show in project",
-                icon = Icons.Outlined.TravelExplore,
-                onClick = {
-                    viewModel.showItemInProject(item)
-                    showActionsDialogForItem = null
-                }
-            ),
-            ReminderAction(
-                text = "Delete",
-                icon = Icons.Outlined.Delete,
-                onClick = {
-                    viewModel.deleteReminder(item.reminder)
-                    showActionsDialogForItem = null
-                },
-                color = MaterialTheme.colorScheme.error
+        val actions =
+            listOf(
+                ReminderAction(
+                    text = "Show in project",
+                    icon = Icons.Outlined.TravelExplore,
+                    onClick = {
+                        viewModel.showItemInProject(item)
+                        showActionsDialogForItem = null
+                    },
+                ),
+                ReminderAction(
+                    text = "Delete",
+                    icon = Icons.Outlined.Delete,
+                    onClick = {
+                        viewModel.deleteReminder(item.reminder)
+                        showActionsDialogForItem = null
+                    },
+                    color = MaterialTheme.colorScheme.error,
+                ),
             )
-        )
         ReminderActionsDialog(
             onDismiss = { showActionsDialogForItem = null },
-            actions = actions
+            actions = actions,
         )
     }
 }
@@ -196,27 +197,27 @@ fun RemindersScreen(
 fun EmptyRemindersView() {
     Box(
         modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Icon(
                 imageVector = Icons.Outlined.NotificationsOff,
                 contentDescription = "No reminders",
                 modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
             )
             Text(
                 text = "No reminders yet",
                 style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
                 text = "Add a reminder to a goal to see it here.",
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             )
         }
     }

@@ -3,18 +3,18 @@ package com.romankozak.forwardappmobile.features.attachments.specific_types.chec
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistItemEntity
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
+import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
+import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistItemEntity
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class ChecklistItemUiModel(
     val id: String,
@@ -36,370 +36,393 @@ data class ChecklistUiState(
 )
 
 @HiltViewModel
-class ChecklistViewModel @Inject constructor(
-    private val checklistRepository: ChecklistRepository,
-    private val recentItemsRepository: RecentItemsRepository,
-    savedStateHandle: SavedStateHandle,
-) : ViewModel() {
-
-    companion object {
-        private const val DEFAULT_CHECKLIST_NAME = "Новий чекліст"
-    }
-
-    private val _uiState = MutableStateFlow(ChecklistUiState())
-    val uiState: StateFlow<ChecklistUiState> = _uiState.asStateFlow()
-
-    private val itemsById = MutableStateFlow<Map<String, ChecklistItemEntity>>(emptyMap())
-    private val currentChecklist = MutableStateFlow<ChecklistEntity?>(null)
-    private val checklistIdState = MutableStateFlow(savedStateHandle.get<String>("checklistId"))
-    private val projectId: String? = savedStateHandle.get<String>("projectId")
-
-    private var hasLoggedAccess = false
-
-    init {
-        viewModelScope.launch {
-            val resolvedId =
-                when (val existingId = checklistIdState.value) {
-                    null, "" -> {
-                        val project = projectId
-                        if (project.isNullOrBlank()) {
-                            _uiState.update { it.copy(isLoading = false, errorMessage = "Не вдалося відкрити чекліст") }
-                            return@launch
-                        }
-                        val createdId = checklistRepository.createChecklist(DEFAULT_CHECKLIST_NAME, project)
-                        val firstItemId = checklistRepository.addItem(createdId, order = 0)
-                        checklistIdState.value = createdId
-                        savedStateHandle["checklistId"] = createdId
-                        _uiState.update {
-                            it.copy(
-                                title = DEFAULT_CHECKLIST_NAME,
-                                pendingFocusItemId = firstItemId,
-                            )
-                        }
-                        createdId
-                    }
-                    else -> existingId
-                }
-
-            startObservingChecklist(resolvedId)
+class ChecklistViewModel
+    @Inject
+    constructor(
+        private val checklistRepository: ChecklistRepository,
+        private val recentItemsRepository: RecentItemsRepository,
+        savedStateHandle: SavedStateHandle,
+    ) : ViewModel() {
+        companion object {
+            private const val DEFAULT_CHECKLIST_NAME = "Новий чекліст"
         }
-    }
 
-    private fun startObservingChecklist(checklistId: String) {
-        viewModelScope.launch {
-            combine(
-                checklistRepository.observeChecklistById(checklistId),
-                checklistRepository.getItemsForChecklist(checklistId),
-            ) { checklist, items ->
-                val activeItems = items.filterNot { it.isDeleted }
-                checklist to activeItems.sortedBy { it.itemOrder }
-            }.collect { (checklist, items) ->
-                if (checklist != null && !hasLoggedAccess) {
-                    recentItemsRepository.logChecklistAccess(checklist)
-                    hasLoggedAccess = true
-                }
+        private val _uiState = MutableStateFlow(ChecklistUiState())
+        val uiState: StateFlow<ChecklistUiState> = _uiState.asStateFlow()
 
-                currentChecklist.value = checklist
-                itemsById.value = items.associateBy { it.id }
+        private val itemsById = MutableStateFlow<Map<String, ChecklistItemEntity>>(emptyMap())
+        private val currentChecklist = MutableStateFlow<ChecklistEntity?>(null)
+        private val checklistIdState = MutableStateFlow(savedStateHandle.get<String>("checklistId"))
+        private val projectId: String? = savedStateHandle.get<String>("projectId")
 
-                _uiState.update { state ->
-                    state.copy(
-                        isLoading = false,
-                        checklistId = checklistId,
-                        title = checklist?.name ?: state.title,
-                        items =
-                            items.map { entity ->
-                                ChecklistItemUiModel(
-                                    id = entity.id,
-                                    content = entity.content,
-                                    isChecked = entity.isChecked,
-                                    order = entity.itemOrder,
+        private var hasLoggedAccess = false
+
+        init {
+            viewModelScope.launch {
+                val resolvedId =
+                    when (val existingId = checklistIdState.value) {
+                        null, "" -> {
+                            val project = projectId
+                            if (project.isNullOrBlank()) {
+                                _uiState.update { it.copy(isLoading = false, errorMessage = "Не вдалося відкрити чекліст") }
+                                return@launch
+                            }
+                            val createdId = checklistRepository.createChecklist(DEFAULT_CHECKLIST_NAME, project)
+                            val firstItemId = checklistRepository.addItem(createdId, order = 0)
+                            checklistIdState.value = createdId
+                            savedStateHandle["checklistId"] = createdId
+                            _uiState.update {
+                                it.copy(
+                                    title = DEFAULT_CHECKLIST_NAME,
+                                    pendingFocusItemId = firstItemId,
                                 )
-                            },
-                        errorMessage = if (checklist == null) state.errorMessage else null,
-                    )
+                            }
+                            createdId
+                        }
+                        else -> existingId
+                    }
+
+                startObservingChecklist(resolvedId)
+            }
+        }
+
+        private fun startObservingChecklist(checklistId: String) {
+            viewModelScope.launch {
+                combine(
+                    checklistRepository.observeChecklistById(checklistId),
+                    checklistRepository.getItemsForChecklist(checklistId),
+                ) { checklist, items ->
+                    val activeItems = items.filterNot { it.isDeleted }
+                    checklist to activeItems.sortedBy { it.itemOrder }
+                }.collect { (checklist, items) ->
+                    if (checklist != null && !hasLoggedAccess) {
+                        recentItemsRepository.logChecklistAccess(checklist)
+                        hasLoggedAccess = true
+                    }
+
+                    currentChecklist.value = checklist
+                    itemsById.value = items.associateBy { it.id }
+
+                    _uiState.update { state ->
+                        state.copy(
+                            isLoading = false,
+                            checklistId = checklistId,
+                            title = checklist?.name ?: state.title,
+                            items =
+                                items.map { entity ->
+                                    ChecklistItemUiModel(
+                                        id = entity.id,
+                                        content = entity.content,
+                                        isChecked = entity.isChecked,
+                                        order = entity.itemOrder,
+                                    )
+                                },
+                            errorMessage = if (checklist == null) state.errorMessage else null,
+                        )
+                    }
                 }
             }
         }
-    }
 
-    fun onTitleChange(newTitle: String) {
-        _uiState.update { it.copy(title = newTitle) }
-        val checklist = currentChecklist.value ?: return
-        if (checklist.name == newTitle) return
+        fun onTitleChange(newTitle: String) {
+            _uiState.update { it.copy(title = newTitle) }
+            val checklist = currentChecklist.value ?: return
+            if (checklist.name == newTitle) return
 
-        viewModelScope.launch {
-            checklistRepository.updateChecklist(checklist.copy(name = newTitle))
-        }
-    }
-
-    fun onToggleCheckboxVisibility() {
-        _uiState.update { it.copy(showCheckboxes = !it.showCheckboxes) }
-    }
-
-    fun onItemContentChange(itemId: String, newContent: String) {
-        _uiState.update { state ->
-            state.copy(
-                items =
-                    state.items.map { item ->
-                        if (item.id == itemId) item.copy(content = newContent) else item
-                    },
-            )
+            viewModelScope.launch {
+                checklistRepository.updateChecklist(checklist.copy(name = newTitle))
+            }
         }
 
-        val entity = itemsById.value[itemId] ?: return
-        if (entity.content == newContent) return
-
-        val updatedEntity = entity.copy(content = newContent)
-        itemsById.value = itemsById.value + (itemId to updatedEntity)
-        viewModelScope.launch {
-            checklistRepository.updateItem(updatedEntity)
-        }
-    }
-
-    fun onToggleItemChecked(itemId: String, isChecked: Boolean) {
-        _uiState.update { state ->
-            state.copy(
-                items =
-                    state.items.map { item ->
-                        if (item.id == itemId) item.copy(isChecked = isChecked) else item
-                    },
-            )
+        fun onToggleCheckboxVisibility() {
+            _uiState.update { it.copy(showCheckboxes = !it.showCheckboxes) }
         }
 
-        val entity = itemsById.value[itemId] ?: return
-        if (entity.isChecked == isChecked) return
-
-        val updatedEntity = entity.copy(isChecked = isChecked)
-        itemsById.value = itemsById.value + (itemId to updatedEntity)
-        viewModelScope.launch {
-            checklistRepository.updateItem(updatedEntity)
-        }
-    }
-
-    fun onAddItem(afterItemId: String?) {
-        val checklistId = checklistIdState.value ?: return
-        val currentItems = _uiState.value.items
-
-        val existingBlankItem =
-            currentItems.firstOrNull { it.content.isBlank() }
-        if (existingBlankItem != null) {
-            _uiState.update { it.copy(pendingFocusItemId = existingBlankItem.id) }
-            return
-        }
-
-        val insertIndex =
-            when {
-                afterItemId == null -> currentItems.size
-                else -> currentItems.indexOfFirst { it.id == afterItemId }.let { index -> if (index == -1) currentItems.size else index + 1 }
+        fun onItemContentChange(
+            itemId: String,
+            newContent: String,
+        ) {
+            _uiState.update { state ->
+                state.copy(
+                    items =
+                        state.items.map { item ->
+                            if (item.id == itemId) item.copy(content = newContent) else item
+                        },
+                )
             }
 
-        val itemsToShift =
-            if (currentItems.isEmpty() || insertIndex >= currentItems.size) {
-                emptyList()
-            } else {
-                currentItems
-                    .subList(insertIndex, currentItems.size)
-                    .mapNotNull { uiItem ->
-                        itemsById.value[uiItem.id]?.copy(itemOrder = uiItem.order + 1)
-                    }
+            val entity = itemsById.value[itemId] ?: return
+            if (entity.content == newContent) return
+
+            val updatedEntity = entity.copy(content = newContent)
+            itemsById.value = itemsById.value + (itemId to updatedEntity)
+            viewModelScope.launch {
+                checklistRepository.updateItem(updatedEntity)
+            }
+        }
+
+        fun onToggleItemChecked(
+            itemId: String,
+            isChecked: Boolean,
+        ) {
+            _uiState.update { state ->
+                state.copy(
+                    items =
+                        state.items.map { item ->
+                            if (item.id == itemId) item.copy(isChecked = isChecked) else item
+                        },
+                )
             }
 
-        viewModelScope.launch {
-            if (itemsToShift.isNotEmpty()) {
-                checklistRepository.updateItems(itemsToShift)
+            val entity = itemsById.value[itemId] ?: return
+            if (entity.isChecked == isChecked) return
+
+            val updatedEntity = entity.copy(isChecked = isChecked)
+            itemsById.value = itemsById.value + (itemId to updatedEntity)
+            viewModelScope.launch {
+                checklistRepository.updateItem(updatedEntity)
             }
-            val newItemOrder = insertIndex.toLong()
-            val newItemId = checklistRepository.addItem(checklistId, order = newItemOrder)
-            _uiState.update { it.copy(pendingFocusItemId = newItemId) }
         }
-    }
 
-    fun onMoveItem(fromIndex: Int, toIndex: Int) {
-        if (fromIndex == toIndex) return
+        fun onAddItem(afterItemId: String?) {
+            val checklistId = checklistIdState.value ?: return
+            val currentItems = _uiState.value.items
 
-        val reordered =
-            _uiState.value.items.toMutableList().apply {
-                val moved = removeAt(fromIndex)
-                add(toIndex, moved)
+            val existingBlankItem =
+                currentItems.firstOrNull { it.content.isBlank() }
+            if (existingBlankItem != null) {
+                _uiState.update { it.copy(pendingFocusItemId = existingBlankItem.id) }
+                return
             }
 
-        _uiState.update { it.copy(items = reordered) }
-        normalizeOrder(reordered)
-    }
+            val insertIndex =
+                when {
+                    afterItemId == null -> currentItems.size
+                    else ->
+                        currentItems.indexOfFirst { it.id == afterItemId }.let {
+                                index ->
+                            if (index == -1) currentItems.size else index + 1
+                        }
+                }
 
-    fun onSelectAllItems() {
-        markAll(isChecked = true)
-    }
+            val itemsToShift =
+                if (currentItems.isEmpty() || insertIndex >= currentItems.size) {
+                    emptyList()
+                } else {
+                    currentItems
+                        .subList(insertIndex, currentItems.size)
+                        .mapNotNull { uiItem ->
+                            itemsById.value[uiItem.id]?.copy(itemOrder = uiItem.order + 1)
+                        }
+                }
 
-    fun onMarkAllCompleted() {
-        markAll(isChecked = true)
-    }
-
-    fun onMarkAllIncomplete() {
-        markAll(isChecked = false)
-    }
-
-    private fun markAll(isChecked: Boolean) {
-        val updatedEntities = itemsById.value.values.map { it.copy(isChecked = isChecked) }
-        itemsById.value = updatedEntities.associateBy { it.id }
-        _uiState.update { state ->
-            state.copy(items = state.items.map { it.copy(isChecked = isChecked) })
+            viewModelScope.launch {
+                if (itemsToShift.isNotEmpty()) {
+                    checklistRepository.updateItems(itemsToShift)
+                }
+                val newItemOrder = insertIndex.toLong()
+                val newItemId = checklistRepository.addItem(checklistId, order = newItemOrder)
+                _uiState.update { it.copy(pendingFocusItemId = newItemId) }
+            }
         }
-        viewModelScope.launch {
-            checklistRepository.updateItems(updatedEntities)
+
+        fun onMoveItem(
+            fromIndex: Int,
+            toIndex: Int,
+        ) {
+            if (fromIndex == toIndex) return
+
+            val reordered =
+                _uiState.value.items.toMutableList().apply {
+                    val moved = removeAt(fromIndex)
+                    add(toIndex, moved)
+                }
+
+            _uiState.update { it.copy(items = reordered) }
+            normalizeOrder(reordered)
         }
-    }
 
-    fun onDeleteItem(itemId: String) {
-        val itemToDelete = itemsById.value[itemId] ?: return
+        fun onSelectAllItems() {
+            markAll(isChecked = true)
+        }
 
-        // If another delete is pending, we can't undo it anymore.
-        if (_uiState.value.showUndoSnackbar) {
+        fun onMarkAllCompleted() {
+            markAll(isChecked = true)
+        }
+
+        fun onMarkAllIncomplete() {
+            markAll(isChecked = false)
+        }
+
+        private fun markAll(isChecked: Boolean) {
+            val updatedEntities = itemsById.value.values.map { it.copy(isChecked = isChecked) }
+            itemsById.value = updatedEntities.associateBy { it.id }
+            _uiState.update { state ->
+                state.copy(items = state.items.map { it.copy(isChecked = isChecked) })
+            }
+            viewModelScope.launch {
+                checklistRepository.updateItems(updatedEntities)
+            }
+        }
+
+        fun onDeleteItem(itemId: String) {
+            val itemToDelete = itemsById.value[itemId] ?: return
+
+            // If another delete is pending, we can't undo it anymore.
+            if (_uiState.value.showUndoSnackbar) {
+                _uiState.update { it.copy(lastDeletedItem = null, showUndoSnackbar = false) }
+            }
+
+            itemsById.value = itemsById.value - itemId
+            _uiState.update { state ->
+                state.copy(
+                    items = state.items.filterNot { it.id == itemId },
+                    lastDeletedItem = itemToDelete,
+                    showUndoSnackbar = true,
+                )
+            }
+
+            viewModelScope.launch {
+                checklistRepository.deleteItem(itemId)
+            }
+        }
+
+        fun onUndoDelete() {
+            val itemToRestore = _uiState.value.lastDeletedItem ?: return
+
+            val restoredUiItem =
+                ChecklistItemUiModel(
+                    id = itemToRestore.id,
+                    content = itemToRestore.content,
+                    isChecked = itemToRestore.isChecked,
+                    order = itemToRestore.itemOrder,
+                )
+
+            itemsById.value = itemsById.value + (itemToRestore.id to itemToRestore)
+            _uiState.update { state ->
+                val updatedItems =
+                    (state.items + restoredUiItem)
+                        .sortedBy { it.order }
+                state.copy(
+                    items = updatedItems,
+                    lastDeletedItem = null,
+                    showUndoSnackbar = false,
+                )
+            }
+
+            viewModelScope.launch {
+                checklistRepository.addItems(listOf(itemToRestore))
+            }
+        }
+
+        fun onConfirmDelete() {
             _uiState.update { it.copy(lastDeletedItem = null, showUndoSnackbar = false) }
         }
 
-        itemsById.value = itemsById.value - itemId
-        _uiState.update { state ->
-            state.copy(
-                items = state.items.filterNot { it.id == itemId },
-                lastDeletedItem = itemToDelete,
-                showUndoSnackbar = true,
-            )
+        fun onClearCompleted() {
+            val completedIds = itemsById.value.filterValues { it.isChecked }.keys
+            if (completedIds.isEmpty()) return
+
+            viewModelScope.launch {
+                completedIds.forEach { id -> checklistRepository.deleteItem(id) }
+            }
         }
 
-        viewModelScope.launch {
-            checklistRepository.deleteItem(itemId)
-        }
-    }
-
-    fun onUndoDelete() {
-        val itemToRestore = _uiState.value.lastDeletedItem ?: return
-
-        val restoredUiItem =
-            ChecklistItemUiModel(
-                id = itemToRestore.id,
-                content = itemToRestore.content,
-                isChecked = itemToRestore.isChecked,
-                order = itemToRestore.itemOrder,
-            )
-
-        itemsById.value = itemsById.value + (itemToRestore.id to itemToRestore)
-        _uiState.update { state ->
-            val updatedItems =
-                (state.items + restoredUiItem)
-                    .sortedBy { it.order }
-            state.copy(
-                items = updatedItems,
-                lastDeletedItem = null,
-                showUndoSnackbar = false,
-            )
+        fun onPendingFocusConsumed() {
+            _uiState.update { it.copy(pendingFocusItemId = null) }
         }
 
-        viewModelScope.launch {
-            checklistRepository.addItems(listOf(itemToRestore))
-        }
-    }
+        private fun normalizeOrder(items: List<ChecklistItemUiModel>) {
+            viewModelScope.launch {
+                val updatedEntities =
+                    items.mapIndexedNotNull { index, item ->
+                        itemsById.value[item.id]?.copy(itemOrder = index.toLong())
+                    }
 
-    fun onConfirmDelete() {
-        _uiState.update { it.copy(lastDeletedItem = null, showUndoSnackbar = false) }
-    }
-
-    fun onClearCompleted() {
-        val completedIds = itemsById.value.filterValues { it.isChecked }.keys
-        if (completedIds.isEmpty()) return
-
-        viewModelScope.launch {
-            completedIds.forEach { id -> checklistRepository.deleteItem(id) }
-        }
-    }
-
-    fun onPendingFocusConsumed() {
-        _uiState.update { it.copy(pendingFocusItemId = null) }
-    }
-
-    private fun normalizeOrder(items: List<ChecklistItemUiModel>) {
-        viewModelScope.launch {
-            val updatedEntities =
-                items.mapIndexedNotNull { index, item ->
-                    itemsById.value[item.id]?.copy(itemOrder = index.toLong())
-                }
-
-            if (updatedEntities.isNotEmpty()) {
-                checklistRepository.updateItems(updatedEntities)
-                itemsById.value = itemsById.value.toMutableMap().apply {
-                    updatedEntities.forEach { put(it.id, it) }
+                if (updatedEntities.isNotEmpty()) {
+                    checklistRepository.updateItems(updatedEntities)
+                    itemsById.value =
+                        itemsById.value.toMutableMap().apply {
+                            updatedEntities.forEach { put(it.id, it) }
+                        }
                 }
             }
         }
-    }
 
-    fun buildMarkdownExport(): String {
-        val state = _uiState.value
-        val titleLine = state.title.takeIf { it.isNotBlank() } ?: DEFAULT_CHECKLIST_NAME
-        val builder = StringBuilder()
-        builder.append("# ").append(titleLine).append("\n\n")
-        if (state.items.isEmpty()) {
-            builder.append("_(empty checklist)_\n")
-        } else {
-            state.items.forEach { item ->
-                val checkbox = if (item.isChecked) "[x]" else "[ ]"
-                val content = item.content.ifBlank { "(blank)" }
-                builder.append("- ").append(checkbox).append(" ").append(content).append("\n")
-            }
-        }
-        return builder.toString()
-    }
-
-    fun importMarkdown(markdown: String, onResult: (Boolean) -> Unit = {}) {
-        val checklistId = checklistIdState.value ?: run {
-            onResult(false)
-            return
-        }
-        val parsedItems = parseMarkdown(markdown, checklistId)
-        if (parsedItems.isEmpty()) {
-            onResult(false)
-            return
-        }
-        viewModelScope.launch {
-            checklistRepository.deleteItemsByChecklist(checklistId)
-            checklistRepository.addItems(parsedItems)
-            onResult(true)
-        }
-    }
-
-    private fun parseMarkdown(markdown: String, checklistId: String): List<ChecklistItemEntity> {
-        val checkboxRegex = Regex("""^\s*[-*+] \[(x|X| )]\s*(.+)$""")
-        val bulletRegex = Regex("""^\s*(?:[-*+]|[0-9]+\.)\s*(.+)$""")
-        val result = mutableListOf<ChecklistItemEntity>()
-        var order = 0L
-        markdown.lineSequence().forEach { rawLine ->
-            val line = rawLine.trim()
-            if (line.isEmpty()) return@forEach
-
-            var isChecked = false
-            var content: String? = null
-
-            val checkboxMatch = checkboxRegex.find(line)
-            if (checkboxMatch != null) {
-                isChecked = checkboxMatch.groupValues[1].equals("x", ignoreCase = true)
-                content = checkboxMatch.groupValues[2].trim()
+        fun buildMarkdownExport(): String {
+            val state = _uiState.value
+            val titleLine = state.title.takeIf { it.isNotBlank() } ?: DEFAULT_CHECKLIST_NAME
+            val builder = StringBuilder()
+            builder.append("# ").append(titleLine).append("\n\n")
+            if (state.items.isEmpty()) {
+                builder.append("_(empty checklist)_\n")
             } else {
-                val bulletMatch = bulletRegex.find(line)
-                if (bulletMatch != null) {
-                    content = bulletMatch.groupValues[1].trim()
+                state.items.forEach { item ->
+                    val checkbox = if (item.isChecked) "[x]" else "[ ]"
+                    val content = item.content.ifBlank { "(blank)" }
+                    builder.append("- ").append(checkbox).append(" ").append(content).append("\n")
                 }
             }
+            return builder.toString()
+        }
 
-            if (!content.isNullOrBlank()) {
-                result += ChecklistItemEntity(
-                    checklistId = checklistId,
-                    content = content,
-                    isChecked = isChecked,
-                    itemOrder = order++
-                )
+        fun importMarkdown(
+            markdown: String,
+            onResult: (Boolean) -> Unit = {},
+        ) {
+            val checklistId =
+                checklistIdState.value ?: run {
+                    onResult(false)
+                    return
+                }
+            val parsedItems = parseMarkdown(markdown, checklistId)
+            if (parsedItems.isEmpty()) {
+                onResult(false)
+                return
+            }
+            viewModelScope.launch {
+                checklistRepository.deleteItemsByChecklist(checklistId)
+                checklistRepository.addItems(parsedItems)
+                onResult(true)
             }
         }
-        return result
+
+        private fun parseMarkdown(
+            markdown: String,
+            checklistId: String,
+        ): List<ChecklistItemEntity> {
+            val checkboxRegex = Regex("""^\s*[-*+] \[(x|X| )]\s*(.+)$""")
+            val bulletRegex = Regex("""^\s*(?:[-*+]|[0-9]+\.)\s*(.+)$""")
+            val result = mutableListOf<ChecklistItemEntity>()
+            var order = 0L
+            markdown.lineSequence().forEach { rawLine ->
+                val line = rawLine.trim()
+                if (line.isEmpty()) return@forEach
+
+                var isChecked = false
+                var content: String? = null
+
+                val checkboxMatch = checkboxRegex.find(line)
+                if (checkboxMatch != null) {
+                    isChecked = checkboxMatch.groupValues[1].equals("x", ignoreCase = true)
+                    content = checkboxMatch.groupValues[2].trim()
+                } else {
+                    val bulletMatch = bulletRegex.find(line)
+                    if (bulletMatch != null) {
+                        content = bulletMatch.groupValues[1].trim()
+                    }
+                }
+
+                if (!content.isNullOrBlank()) {
+                    result +=
+                        ChecklistItemEntity(
+                            checklistId = checklistId,
+                            content = content,
+                            isChecked = isChecked,
+                            itemOrder = order++,
+                        )
+                }
+            }
+            return result
+        }
     }
-}

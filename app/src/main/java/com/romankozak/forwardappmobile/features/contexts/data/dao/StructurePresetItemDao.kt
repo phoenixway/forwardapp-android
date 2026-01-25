@@ -26,7 +26,10 @@ interface StructurePresetItemDao {
     suspend fun deleteItemsByPreset(presetId: String)
 
     @Transaction
-    suspend fun replaceItems(presetId: String, items: List<ContextRoleProfileItem>) {
+    suspend fun replaceItems(
+        presetId: String,
+        items: List<ContextRoleProfileItem>,
+    ) {
         deleteItemsByPreset(presetId)
         insertItems(items)
     }

@@ -19,58 +19,57 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
-import com.romankozak.forwardappmobile.features.recent.data.models.RecentItem
-import com.romankozak.forwardappmobile.features.recent.data.models.RecentItemType
-import com.romankozak.forwardappmobile.features.attachments.specific_types.checklist.ChecklistScreen
-import com.romankozak.forwardappmobile.features.attachments.ui.library.AttachmentsLibraryScreen
-import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
 import com.romankozak.forwardappmobile.core.navigation.AppNavigationViewModel
+import com.romankozak.forwardappmobile.core.navigation.NavTarget
+import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
 import com.romankozak.forwardappmobile.core.navigation.NavigationCommand
-import com.romankozak.forwardappmobile.features.recent.RecentViewModel
-import com.romankozak.forwardappmobile.features.settings.ManageContextsScreen
+import com.romankozak.forwardappmobile.core.navigation.ui.PlaceholderScreen
 import com.romankozak.forwardappmobile.features.activitytracker.ActivityTrackerScreen
-import com.romankozak.forwardappmobile.features.mainscreen.MainScreenLayout
-import com.romankozak.forwardappmobile.features.mainscreen.CharacterScreen
-import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.EditTaskScreen
-import com.romankozak.forwardappmobile.features.globalsearch.GlobalSearchScreen
-import com.romankozak.forwardappmobile.features.globalsearch.GlobalSearchViewModel
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.inbox.InboxEditorScreen
 import com.romankozak.forwardappmobile.features.ai.insights.AiInsightsScreen
-import com.romankozak.forwardappmobile.features.lifestate.LifeStateScreen
-import com.romankozak.forwardappmobile.features.contexts.ui.context_chooser.FilterableListChooserScreen
-import com.romankozak.forwardappmobile.features.contexts.ui.context_chooser.FilterableListChooserViewModel
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ContextHierarchyScreenViewModel
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
+import com.romankozak.forwardappmobile.features.attachments.specific_types.checklist.ChecklistScreen
 import com.romankozak.forwardappmobile.features.attachments.specific_types.notedocument.NoteDocumentEditorScreen
 import com.romankozak.forwardappmobile.features.attachments.specific_types.notedocument.NoteDocumentScreen
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.BacklogViewModel
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.ProjectsScreen
-import com.romankozak.forwardappmobile.features.contexts.ui.context_properties.ProjectSettingsScreen
 import com.romankozak.forwardappmobile.features.attachments.specific_types.script.ScriptChooserScreen
-import com.romankozak.forwardappmobile.features.contexts.ui.context_configuration.ProjectStructureScreen
-import com.romankozak.forwardappmobile.features.contexts.ui.context_configuration.StructurePresetEditorScreen
-import com.romankozak.forwardappmobile.features.contexts.ui.context_configuration.StructurePresetsScreen
 import com.romankozak.forwardappmobile.features.attachments.specific_types.script.ScriptEditorScreen
 import com.romankozak.forwardappmobile.features.attachments.specific_types.script.ScriptsLibraryScreen
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.goalproperties.GoalSettingsScreen
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ProjectHierarchyScreen
-import com.romankozak.forwardappmobile.features.sync.selectiveimport.SelectiveImportScreen
-import com.romankozak.forwardappmobile.features.settings.settings.SettingsScreen
-import com.romankozak.forwardappmobile.features.sync.SyncScreen
-import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
-import java.net.URLDecoder
-import kotlinx.coroutines.launch
+import com.romankozak.forwardappmobile.features.attachments.ui.library.AttachmentsLibraryScreen
 import com.romankozak.forwardappmobile.features.context_lab.ContextLabScreen
 import com.romankozak.forwardappmobile.features.context_lab.ContextLabViewModel
 import com.romankozak.forwardappmobile.features.context_lab.hierarchy_screen.ExperimentalHierarchyScreen
-import com.romankozak.forwardappmobile.core.navigation.NavTarget
-import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
-import com.romankozak.forwardappmobile.core.navigation.ui.PlaceholderScreen
-import com.romankozak.forwardappmobile.features.reminders.list.RemindersScreen
+import com.romankozak.forwardappmobile.features.contexts.ui.context_chooser.FilterableListChooserScreen
+import com.romankozak.forwardappmobile.features.contexts.ui.context_chooser.FilterableListChooserViewModel
+import com.romankozak.forwardappmobile.features.contexts.ui.context_configuration.ProjectStructureScreen
+import com.romankozak.forwardappmobile.features.contexts.ui.context_configuration.StructurePresetEditorScreen
+import com.romankozak.forwardappmobile.features.contexts.ui.context_configuration.StructurePresetsScreen
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ContextHierarchyScreenViewModel
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ProjectHierarchyScreen
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
+import com.romankozak.forwardappmobile.features.contexts.ui.context_properties.ProjectSettingsScreen
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.BacklogViewModel
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.ProjectsScreen
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.goalproperties.GoalSettingsScreen
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.inbox.InboxEditorScreen
+import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.EditTaskScreen
 import com.romankozak.forwardappmobile.features.dev_task.KanbanScreen
-import com.romankozak.forwardappmobile.features.vet_case.VetCaseSummaryScreen
+import com.romankozak.forwardappmobile.features.globalsearch.GlobalSearchScreen
+import com.romankozak.forwardappmobile.features.globalsearch.GlobalSearchViewModel
+import com.romankozak.forwardappmobile.features.lifestate.LifeStateScreen
+import com.romankozak.forwardappmobile.features.mainscreen.CharacterScreen
+import com.romankozak.forwardappmobile.features.mainscreen.MainScreenLayout
+import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
+import com.romankozak.forwardappmobile.features.recent.RecentViewModel
+import com.romankozak.forwardappmobile.features.recent.data.models.RecentItem
+import com.romankozak.forwardappmobile.features.recent.data.models.RecentItemType
+import com.romankozak.forwardappmobile.features.reminders.list.RemindersScreen
+import com.romankozak.forwardappmobile.features.settings.ManageContextsScreen
+import com.romankozak.forwardappmobile.features.settings.settings.SettingsScreen
+import com.romankozak.forwardappmobile.features.sync.SyncScreen
+import com.romankozak.forwardappmobile.features.sync.selectiveimport.SelectiveImportScreen
 import com.romankozak.forwardappmobile.features.vet_case.VetCaseHistoryScreen
-
+import com.romankozak.forwardappmobile.features.vet_case.VetCaseSummaryScreen
+import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
+import kotlinx.coroutines.launch
+import java.net.URLDecoder
 
 const val MAIN_GRAPH_ROUTE = "main_graph"
 const val COMMAND_DECK_ROUTE = "command_deck_screen"
@@ -89,487 +88,508 @@ const val EXPERIMENTAL_HIERARCHY_ROUTE = "experimental_hierarchy_screen"
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
-  val navController = rememberNavController()
-  val appNavigationViewModel: AppNavigationViewModel = hiltViewModel()
+    val navController = rememberNavController()
+    val appNavigationViewModel: AppNavigationViewModel = hiltViewModel()
 
-  val navigationManager = appNavigationViewModel.navigationManager
+    val navigationManager = appNavigationViewModel.navigationManager
 
-  // Прив'язка NavHostController до NavigationDispatcher
-  LaunchedEffect(navController) {
-    appNavigationViewModel.attachNavController(navController)
-  }
-
-  LaunchedEffect(navigationManager, navController) {
-    navigationManager.navigationCommandFlow.collect { command ->
-      when (command) {
-        is NavigationCommand.Navigate -> {
-          val options = command.builder
-          navController.navigate(command.route, options ?: {})
-        }
-
-        is NavigationCommand.NavigateTarget -> {
-          val route = NavTargetRouter.routeOf(command.target)
-          val options = command.builder
-          navController.navigate(route, options ?: {})
-        }
-
-        is NavigationCommand.PopBack -> {
-          if (command.key != null && command.value != null) {
-            navController.previousBackStackEntry?.savedStateHandle?.set(command.key, command.value)
-          }
-          navController.popBackStack()
-        }
-      }
+    // Прив'язка NavHostController до NavigationDispatcher
+    LaunchedEffect(navController) {
+        appNavigationViewModel.attachNavController(navController)
     }
-  }
 
-  SharedTransitionLayout {
-    NavHost(navController = navController, startDestination = MAIN_GRAPH_ROUTE) {
-      navigation(startDestination = COMMAND_DECK_ROUTE, route = MAIN_GRAPH_ROUTE) {
-        mainGraph(
-          navController,
-          syncDataViewModel,
-          appNavigationViewModel,
-          this@SharedTransitionLayout,
-        )
-      }
+    LaunchedEffect(navigationManager, navController) {
+        navigationManager.navigationCommandFlow.collect { command ->
+            when (command) {
+                is NavigationCommand.Navigate -> {
+                    val options = command.builder
+                    navController.navigate(command.route, options ?: {})
+                }
+
+                is NavigationCommand.NavigateTarget -> {
+                    val route = NavTargetRouter.routeOf(command.target)
+                    val options = command.builder
+                    navController.navigate(route, options ?: {})
+                }
+
+                is NavigationCommand.PopBack -> {
+                    if (command.key != null && command.value != null) {
+                        navController.previousBackStackEntry?.savedStateHandle?.set(command.key, command.value)
+                    }
+                    navController.popBackStack()
+                }
+            }
+        }
     }
-  }
+
+    SharedTransitionLayout {
+        NavHost(navController = navController, startDestination = MAIN_GRAPH_ROUTE) {
+            navigation(startDestination = COMMAND_DECK_ROUTE, route = MAIN_GRAPH_ROUTE) {
+                mainGraph(
+                    navController,
+                    syncDataViewModel,
+                    appNavigationViewModel,
+                    this@SharedTransitionLayout,
+                )
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 private fun NavGraphBuilder.mainGraph(
-  navController: NavHostController,
-  syncDataViewModel: SyncDataViewModel,
-  appNavigationViewModel: AppNavigationViewModel,
-  sharedTransitionScope: SharedTransitionScope,
+    navController: NavHostController,
+    syncDataViewModel: SyncDataViewModel,
+    appNavigationViewModel: AppNavigationViewModel,
+    sharedTransitionScope: SharedTransitionScope,
 ) {
-  composable(COMMAND_DECK_ROUTE) { backStackEntry ->
-    val parentEntry = remember(backStackEntry) { navController.getBackStackEntry(MAIN_GRAPH_ROUTE) }
-      val viewModel: ContextHierarchyScreenViewModel = hiltViewModel(parentEntry)
-      val scope = rememberCoroutineScope()
+    composable(COMMAND_DECK_ROUTE) { backStackEntry ->
+        val parentEntry = remember(backStackEntry) { navController.getBackStackEntry(MAIN_GRAPH_ROUTE) }
+        val viewModel: ContextHierarchyScreenViewModel = hiltViewModel(parentEntry)
+        val scope = rememberCoroutineScope()
 
-      MainScreenLayout(
-        navController = navController,
-        onNavigateToProjectHierarchy = { navController.navigate(GOAL_LISTS_ROUTE) },
-        onNavigateToPresets = {
-          navController.navigate(NavTargetRouter.routeOf(NavTarget.StructurePresets))
-        },
-      onNavigateToCharacter = { navController.navigate(CHARACTER_SCREEN_ROUTE) },
-      onNavigateToGlobalSearch = { navController.navigate("global_search") },
-      onNavigateToSettings = { navController.navigate("settings_screen") },
-      onNavigateToInbox = {
-        scope.launch {
-          val inboxId = viewModel.getInboxProjectId()
-          if (inboxId != null) {
-            navController.navigate("goal_detail_screen/$inboxId?initialViewMode=INBOX")
-          }
+        MainScreenLayout(
+            navController = navController,
+            onNavigateToProjectHierarchy = { navController.navigate(GOAL_LISTS_ROUTE) },
+            onNavigateToPresets = {
+                navController.navigate(NavTargetRouter.routeOf(NavTarget.StructurePresets))
+            },
+            onNavigateToCharacter = { navController.navigate(CHARACTER_SCREEN_ROUTE) },
+            onNavigateToGlobalSearch = { navController.navigate("global_search") },
+            onNavigateToSettings = { navController.navigate("settings_screen") },
+            onNavigateToInbox = {
+                scope.launch {
+                    val inboxId = viewModel.getInboxProjectId()
+                    if (inboxId != null) {
+                        navController.navigate("goal_detail_screen/$inboxId?initialViewMode=INBOX")
+                    }
+                }
+            },
+            onNavigateToTracker = { navController.navigate("activity_tracker_screen") },
+            onNavigateToReminders = { navController.navigate("reminders_screen") },
+            onNavigateToAiChat = { navController.navigate(CHAT_ROUTE) },
+            onNavigateToAiInsights = { navController.navigate(AI_INSIGHTS_ROUTE) },
+            onNavigateToAiLifeManagement = { navController.navigate(LIFE_STATE_ROUTE) },
+            onNavigateToImportExport = {
+                navController.navigate("selective_import_screen")
+            },
+            onNavigateToAttachments = { navController.navigate("attachments_library_screen") },
+            onNavigateToScripts = { navController.navigate("scripts_library_screen") },
+            onNavigateToRecentItem = { item: RecentItem ->
+                when (item.type) {
+                    RecentItemType.PROJECT -> navController.navigate("goal_detail_screen/${item.target}")
+
+                    RecentItemType.NOTE,
+                    RecentItemType.NOTE_DOCUMENT,
+                    ->
+                        navController.navigate("note_document_screen/${item.target}")
+
+                    RecentItemType.CHECKLIST ->
+                        navController.navigate("checklist_screen?checklistId=${item.target}")
+
+                    RecentItemType.OBSIDIAN_LINK -> {
+                        // Поки що просто лог або нічого
+                        Log.d("RecentItemNav", "Obsidian link clicked: ${item.target}")
+                    }
+                }
+            },
+            recentViewModel = hiltViewModel<RecentViewModel>(),
+        )
+    }
+
+    composable(CHARACTER_SCREEN_ROUTE) {
+        CharacterScreen()
+    }
+
+    composable(
+        route = "project_structure_screen/{projectId}",
+        arguments = listOf(navArgument("projectId") { type = NavType.StringType }),
+    ) {
+        ProjectStructureScreen(navController = navController)
+    }
+
+    composable("structure_presets_screen") {
+        StructurePresetsScreen(navController = navController)
+    }
+
+    composable(
+        route = "structure_preset_editor_screen?presetId={presetId}&copyFromPresetId={copyFromPresetId}",
+        arguments =
+            listOf(
+                navArgument("presetId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("copyFromPresetId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+            ),
+    ) {
+        StructurePresetEditorScreen(navController = navController)
+    }
+
+    composable(GOAL_LISTS_ROUTE) { backStackEntry ->
+        val parentEntry = remember(backStackEntry) { navController.getBackStackEntry(MAIN_GRAPH_ROUTE) }
+        val viewModel: ContextHierarchyScreenViewModel = hiltViewModel(parentEntry)
+
+        viewModel.enhancedNavigationManager = appNavigationViewModel.navigationManager
+
+        ProjectHierarchyScreen(
+            navController = navController,
+            syncDataViewModel = syncDataViewModel,
+            viewModel = viewModel,
+            sharedTransitionScope = sharedTransitionScope,
+            animatedVisibilityScope = this,
+        )
+    }
+
+    composable(
+        route =
+            "goal_detail_screen/{listId}?goalId={goalId}&itemIdToHighlight={itemIdToHighlight}&inboxRecordIdToHighlight={inboxRecordIdToHighlight}&initialViewMode={initialViewMode}",
+        arguments =
+            listOf(
+                navArgument("listId") { type = NavType.StringType },
+                navArgument("goalId") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+                navArgument("itemIdToHighlight") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+                navArgument("inboxRecordIdToHighlight") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+                navArgument("initialViewMode") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+            ),
+    ) { backStackEntry -> // Add backStackEntry here
+        val viewModel: BacklogViewModel = hiltViewModel()
+        viewModel.enhancedNavigationManager = appNavigationViewModel.navigationManager
+
+        // FIX: Extract the 'listId' argument from the route and assign it to a variable.
+        val projectId = backStackEntry.arguments?.getString("listId")
+
+        ProjectsScreen(
+            navController = navController,
+            viewModel = viewModel,
+            projectId = projectId, // Now 'projectId' is a resolved reference.
+            sharedTransitionScope = sharedTransitionScope,
+            animatedVisibilityScope = this,
+        )
+    }
+
+    composable(
+        "global_search_screen/{query}",
+        arguments = listOf(navArgument("query") { type = NavType.StringType }),
+    ) {
+        val viewModel: GlobalSearchViewModel = hiltViewModel()
+        viewModel.enhancedNavigationManager = appNavigationViewModel.navigationManager
+
+        GlobalSearchScreen(viewModel = viewModel, navController = navController)
+    }
+
+    composable("attachments_library_screen") {
+        AttachmentsLibraryScreen(navController = navController)
+    }
+
+    composable("scripts_library_screen") { ScriptsLibraryScreen(navController = navController) }
+
+    composable("script_chooser_screen") { ScriptChooserScreen(navController = navController) }
+
+    composable(LIFE_STATE_ROUTE) { LifeStateScreen(navController = navController) }
+
+    composable("settings_screen") { backStackEntry ->
+        val parentEntry = remember(backStackEntry) { navController.getBackStackEntry(MAIN_GRAPH_ROUTE) }
+        val goalListViewModel: ContextHierarchyScreenViewModel = hiltViewModel(parentEntry)
+
+        val uiState by goalListViewModel.uiState.collectAsStateWithLifecycle()
+        val reservedContextCount = uiState.allContexts.count { it.isReserved }
+
+        SettingsScreen(
+            planningSettings = uiState.planningSettings,
+            initialVaultName = uiState.obsidianVaultName,
+            reservedContextCount = reservedContextCount,
+            onManageContextsClick = { navController.navigate("manage_contexts_screen") },
+            onBack = { navController.popBackStack() },
+            onSave = { settings ->
+                goalListViewModel.onEvent(ContextHierarchyScreenEvent.SaveSettings(settings))
+            },
+        )
+    }
+
+    composable("manage_contexts_screen") { backStackEntry ->
+        val parentEntry = remember(backStackEntry) { navController.getBackStackEntry(MAIN_GRAPH_ROUTE) }
+        val goalListViewModel: ContextHierarchyScreenViewModel = hiltViewModel(parentEntry)
+
+        val uiState by goalListViewModel.uiState.collectAsStateWithLifecycle()
+
+        ManageContextsScreen(
+            initialContexts = uiState.allContexts,
+            onBack = { navController.popBackStack() },
+            onSave = { updatedContexts ->
+                goalListViewModel.onEvent(ContextHierarchyScreenEvent.SaveAllContexts(updatedContexts))
+                navController.popBackStack()
+            },
+        )
+    }
+
+    composable("activity_tracker_screen") { ActivityTrackerScreen(navController = navController) }
+
+    composable(
+        route = "project_settings_screen?goalId={goalId}&projectId={projectId}",
+        arguments =
+            listOf(
+                navArgument("goalId") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+                navArgument("projectId") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+            ),
+    ) {
+        ProjectSettingsScreen(navController = navController, viewModel = hiltViewModel())
+    }
+
+    composable(
+        route = "goal_settings_screen/{goalId}",
+        arguments = listOf(navArgument("goalId") { type = NavType.StringType }),
+    ) {
+        GoalSettingsScreen(
+            navController = navController,
+            viewModel = hiltViewModel(),
+        )
+    }
+
+    composable("sync_screen") {
+        SyncScreen(
+            syncDataViewModel = syncDataViewModel,
+            onSyncComplete = { navController.popBackStack() },
+        )
+    }
+
+    // Об'єднаний екран для перегляду/редагування існуючого списку
+    composable(
+        route = "note_document_screen/{documentId}?startEdit={startEdit}",
+        arguments =
+            listOf(
+                navArgument("documentId") { type = NavType.StringType },
+                navArgument("startEdit") {
+                    type = NavType.BoolType
+                    defaultValue = false
+                },
+            ),
+    ) { backStackEntry ->
+        val startEdit = backStackEntry.arguments?.getBoolean("startEdit") ?: false
+        NoteDocumentEditorScreen(navController = navController, startEdit = startEdit)
+    }
+
+    composable(
+        route = "note_document_create_screen/{projectId}",
+        arguments = listOf(navArgument("projectId") { type = NavType.StringType }),
+    ) {
+        NoteDocumentScreen(navController = navController)
+    }
+
+    composable(
+        route = "note_document_edit_screen?projectId={projectId}&documentId={documentId}",
+        arguments =
+            listOf(
+                navArgument("projectId") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+                navArgument("documentId") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+            ),
+    ) {
+        NoteDocumentScreen(navController = navController)
+    }
+
+    composable(
+        route = "script_editor_screen?projectId={projectId}&scriptId={scriptId}",
+        arguments =
+            listOf(
+                navArgument("projectId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("scriptId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+            ),
+    ) {
+        ScriptEditorScreen(navController = navController)
+    }
+
+    composable(
+        route = "checklist_screen?projectId={projectId}&checklistId={checklistId}",
+        arguments =
+            listOf(
+                navArgument("projectId") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+                navArgument("checklistId") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+            ),
+    ) {
+        ChecklistScreen(
+            navController = navController,
+        )
+    }
+
+    composable(
+        route =
+            "list_chooser_screen/{title}?currentParentId={currentParentId}&disabledIds={disabledIds}",
+        arguments =
+            listOf(
+                navArgument("title") { type = NavType.StringType },
+                navArgument("currentParentId") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+                navArgument("disabledIds") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+            ),
+    ) { backStackEntry ->
+        val viewModel: FilterableListChooserViewModel = hiltViewModel()
+        val TAG = "MOVE_DEBUG"
+
+        val title =
+            backStackEntry.arguments?.getString("title")?.let { URLDecoder.decode(it, "UTF-8") }
+                ?: "Select a list"
+
+        val disabledIds =
+            backStackEntry.arguments?.getString("disabledIds")?.split(",")?.toSet() ?: emptySet()
+        val currentParentIdArg = backStackEntry.arguments?.getString("currentParentId")
+        val currentParentId = if (currentParentIdArg == "root") null else currentParentIdArg
+
+        Log.d(TAG, "[Nav] list_chooser_screen launched.")
+
+        val chooserUiState by viewModel.chooserState.collectAsStateWithLifecycle()
+        val filterText by viewModel.filterText.collectAsStateWithLifecycle()
+        val expandedIds by viewModel.expandedIds.collectAsStateWithLifecycle()
+        val showDescendants by viewModel.showDescendants.collectAsStateWithLifecycle()
+
+        FilterableListChooserScreen(
+            title = title,
+            filterText = filterText,
+            onFilterTextChanged = viewModel::updateFilterText,
+            chooserUiState = chooserUiState,
+            expandedIds = expandedIds,
+            onToggleExpanded = viewModel::toggleExpanded,
+            onNavigateBack = { navController.popBackStack() },
+            onConfirm = { selectedId ->
+                navController.previousBackStackEntry
+                    ?.savedStateHandle
+                    ?.set("list_chooser_result", selectedId ?: "root")
+
+                navController.popBackStack()
+            },
+            currentParentId = currentParentId,
+            disabledIds = disabledIds,
+            onAddNewList = viewModel::addNewProject,
+            showDescendants = showDescendants,
+            onToggleShowDescendants = viewModel::toggleShowDescendants,
+        )
+    }
+    chatScreen(navController)
+    dayManagementGraph(navController)
+    dayManagementScreen(navController)
+    strategicManagementScreen(navController)
+
+    composable("tactical_management_screen") { TacticalManagementScreen() }
+
+    composable(CONTEXT_LAB_ROUTE) {
+        val viewModel: ContextLabViewModel = hiltViewModel()
+        ContextLabScreen(viewModel = viewModel, navController = navController)
+    }
+
+    composable(EXPERIMENTAL_HIERARCHY_ROUTE) {
+        ExperimentalHierarchyScreen()
+    }
+
+    composable(AI_INSIGHTS_ROUTE) { AiInsightsScreen(navController = navController) }
+
+    composable("reminders_screen") { RemindersScreen(navController = navController) }
+
+    composable(
+        route = "edit_task_screen/{taskId}",
+        arguments = listOf(navArgument("taskId") { type = NavType.StringType }),
+    ) {
+        EditTaskScreen(onNavigateUp = { navController.navigateUp() })
+    }
+
+    composable(
+        route = "inbox_editor_screen/{inboxId}",
+        arguments = listOf(navArgument("inboxId") { type = NavType.StringType }),
+    ) {
+        InboxEditorScreen(navController = navController)
+    }
+
+    composable(
+        route = SELECTIVE_IMPORT_ROUTE,
+        arguments =
+            listOf(
+                navArgument("fileUri") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+            ),
+    ) { backStackEntry ->
+        val fileUri =
+            backStackEntry.arguments?.getString("fileUri")?.let { URLDecoder.decode(it, "UTF-8") }
+        if (fileUri != null) {
+            SelectiveImportScreen(
+                onNavigateBack = { navController.popBackStack() },
+            )
+        } else {
+            // Handle error: URI is missing. Maybe pop back or show an error message.
+            navController.popBackStack()
         }
-      },
-      onNavigateToTracker = { navController.navigate("activity_tracker_screen") },
-      onNavigateToReminders = { navController.navigate("reminders_screen") },
-      onNavigateToAiChat = { navController.navigate(CHAT_ROUTE) },
-      onNavigateToAiInsights = { navController.navigate(AI_INSIGHTS_ROUTE) },
-      onNavigateToAiLifeManagement = { navController.navigate(LIFE_STATE_ROUTE) },
-      onNavigateToImportExport = {
-        navController.navigate("selective_import_screen")
-      },
-      onNavigateToAttachments = { navController.navigate("attachments_library_screen") },
-      onNavigateToScripts = { navController.navigate("scripts_library_screen") },
-      onNavigateToRecentItem = { item: RecentItem ->
-        when (item.type) {
-          RecentItemType.PROJECT -> navController.navigate("goal_detail_screen/${item.target}")
+    }
 
-          RecentItemType.NOTE,
-          RecentItemType.NOTE_DOCUMENT ->
-            navController.navigate("note_document_screen/${item.target}")
+    composable(KANBAN_ROUTE) { KanbanScreen() }
+    composable(VET_CASE_SUMMARY_ROUTE) { VetCaseSummaryScreen() }
+    composable(VET_CASE_HISTORY_ROUTE) { VetCaseHistoryScreen() }
 
-          RecentItemType.CHECKLIST ->
-            navController.navigate("checklist_screen?checklistId=${item.target}")
+    composable(
+        route = "placeholder_screen/{viewId}/{screenId}",
+        arguments =
+            listOf(
+                navArgument("viewId") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+                navArgument("screenId") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+            ),
+    ) { backStackEntry ->
+        val viewId = backStackEntry.arguments?.getString("viewId")
+        val screenId = backStackEntry.arguments?.getString("screenId")
+        PlaceholderScreen(viewId = viewId, screenId = screenId)
+    }
+}
 
-          RecentItemType.OBSIDIAN_LINK -> {
-            // Поки що просто лог або нічого
-            Log.d("RecentItemNav", "Obsidian link clicked: ${item.target}")
-          }
-        }
-      },
-      recentViewModel = hiltViewModel<RecentViewModel>(),
-    )
-  }
-
-  composable(CHARACTER_SCREEN_ROUTE) {
-    CharacterScreen()
-  }
-
-  composable(
-    route = "project_structure_screen/{projectId}",
-    arguments = listOf(navArgument("projectId") { type = NavType.StringType }),
-  ) {
-    ProjectStructureScreen(navController = navController)
-  }
-
-  composable("structure_presets_screen") {
-      StructurePresetsScreen(navController = navController)
-  }
-
-  composable(
-    route = "structure_preset_editor_screen?presetId={presetId}&copyFromPresetId={copyFromPresetId}",
-    arguments = listOf(
-      navArgument("presetId") { type = NavType.StringType; nullable = true; defaultValue = null },
-      navArgument("copyFromPresetId") { type = NavType.StringType; nullable = true; defaultValue = null },
-    )
-  ) {
-      StructurePresetEditorScreen(navController = navController)
-  }
-
-  composable(GOAL_LISTS_ROUTE) { backStackEntry ->
-    val parentEntry = remember(backStackEntry) { navController.getBackStackEntry(MAIN_GRAPH_ROUTE) }
-    val viewModel: ContextHierarchyScreenViewModel = hiltViewModel(parentEntry)
-
-    viewModel.enhancedNavigationManager = appNavigationViewModel.navigationManager
-
-    ProjectHierarchyScreen(
-      navController = navController,
-      syncDataViewModel = syncDataViewModel,
-      viewModel = viewModel,
-      sharedTransitionScope = sharedTransitionScope,
-      animatedVisibilityScope = this,
-    )
-  }
-
-  composable(
-    route =
-      "goal_detail_screen/{listId}?goalId={goalId}&itemIdToHighlight={itemIdToHighlight}&inboxRecordIdToHighlight={inboxRecordIdToHighlight}&initialViewMode={initialViewMode}",
-    arguments =
-      listOf(
-        navArgument("listId") { type = NavType.StringType },
-        navArgument("goalId") {
-          type = NavType.StringType
-          nullable = true
-        },
-        navArgument("itemIdToHighlight") {
-          type = NavType.StringType
-          nullable = true
-        },
-        navArgument("inboxRecordIdToHighlight") {
-          type = NavType.StringType
-          nullable = true
-        },
-        navArgument("initialViewMode") {
-          type = NavType.StringType
-          nullable = true
-        },
-      ),
-  ) { backStackEntry -> // Add backStackEntry here
-    val viewModel: BacklogViewModel = hiltViewModel()
-    viewModel.enhancedNavigationManager = appNavigationViewModel.navigationManager
-
-    // FIX: Extract the 'listId' argument from the route and assign it to a variable.
-    val projectId = backStackEntry.arguments?.getString("listId")
-
-    ProjectsScreen(
-      navController = navController,
-      viewModel = viewModel,
-      projectId = projectId, // Now 'projectId' is a resolved reference.
-      sharedTransitionScope = sharedTransitionScope,
-      animatedVisibilityScope = this,
-    )
-  }
-
-  composable(
-    "global_search_screen/{query}",
-    arguments = listOf(navArgument("query") { type = NavType.StringType }),
-  ) {
-    val viewModel: GlobalSearchViewModel = hiltViewModel()
-    viewModel.enhancedNavigationManager = appNavigationViewModel.navigationManager
-
-    GlobalSearchScreen(viewModel = viewModel, navController = navController)
-  }
-
-  composable("attachments_library_screen") {
-    AttachmentsLibraryScreen(navController = navController)
-  }
-
-  composable("scripts_library_screen") { ScriptsLibraryScreen(navController = navController) }
-
-  composable("script_chooser_screen") { ScriptChooserScreen(navController = navController) }
-
-  composable(LIFE_STATE_ROUTE) { LifeStateScreen(navController = navController) }
-
-  composable("settings_screen") { backStackEntry ->
-    val parentEntry = remember(backStackEntry) { navController.getBackStackEntry(MAIN_GRAPH_ROUTE) }
-    val goalListViewModel: ContextHierarchyScreenViewModel = hiltViewModel(parentEntry)
-
-    val uiState by goalListViewModel.uiState.collectAsStateWithLifecycle()
-    val reservedContextCount = uiState.allContexts.count { it.isReserved }
-
-    SettingsScreen(
-      planningSettings = uiState.planningSettings,
-      initialVaultName = uiState.obsidianVaultName,
-      reservedContextCount = reservedContextCount,
-      onManageContextsClick = { navController.navigate("manage_contexts_screen") },
-      onBack = { navController.popBackStack() },
-      onSave = { settings ->
-        goalListViewModel.onEvent(ContextHierarchyScreenEvent.SaveSettings(settings))
-      },
-    )
-  }
-
-  composable("manage_contexts_screen") { backStackEntry ->
-    val parentEntry = remember(backStackEntry) { navController.getBackStackEntry(MAIN_GRAPH_ROUTE) }
-    val goalListViewModel: ContextHierarchyScreenViewModel = hiltViewModel(parentEntry)
-
-    val uiState by goalListViewModel.uiState.collectAsStateWithLifecycle()
-
-    ManageContextsScreen(
-      initialContexts = uiState.allContexts,
-      onBack = { navController.popBackStack() },
-      onSave = { updatedContexts ->
-        goalListViewModel.onEvent(ContextHierarchyScreenEvent.SaveAllContexts(updatedContexts))
-        navController.popBackStack()
-      },
-    )
-  }
-
-  composable("activity_tracker_screen") { ActivityTrackerScreen(navController = navController) }
-
-  composable(
-    route = "project_settings_screen?goalId={goalId}&projectId={projectId}",
-    arguments =
-      listOf(
-        navArgument("goalId") {
-          type = NavType.StringType
-          nullable = true
-        },
-        navArgument("projectId") {
-          type = NavType.StringType
-          nullable = true
-        },
-      ),
-  ) {
-    ProjectSettingsScreen(navController = navController, viewModel = hiltViewModel())
-  }
-
-  composable(
-    route = "goal_settings_screen/{goalId}",
-    arguments = listOf(navArgument("goalId") { type = NavType.StringType }),
-  ) {
-    GoalSettingsScreen(
-      navController = navController,
-      viewModel = hiltViewModel(),
-    )
-  }
-
-  composable("sync_screen") {
-    SyncScreen(
-      syncDataViewModel = syncDataViewModel,
-      onSyncComplete = { navController.popBackStack() },
-    )
-  }
-
-  // Об'єднаний екран для перегляду/редагування існуючого списку
-  composable(
-    route = "note_document_screen/{documentId}?startEdit={startEdit}",
-    arguments =
-      listOf(
-        navArgument("documentId") { type = NavType.StringType },
-        navArgument("startEdit") {
-          type = NavType.BoolType
-          defaultValue = false
-        },
-      ),
-  ) { backStackEntry ->
-    val startEdit = backStackEntry.arguments?.getBoolean("startEdit") ?: false
-    NoteDocumentEditorScreen(navController = navController, startEdit = startEdit)
-  }
-
-  composable(
-    route = "note_document_create_screen/{projectId}",
-    arguments = listOf(navArgument("projectId") { type = NavType.StringType }),
-  ) {
-    NoteDocumentScreen(navController = navController)
-  }
-
-  composable(
-    route = "note_document_edit_screen?projectId={projectId}&documentId={documentId}",
-    arguments =
-      listOf(
-        navArgument("projectId") {
-          type = NavType.StringType
-          nullable = true
-        },
-        navArgument("documentId") {
-          type = NavType.StringType
-          nullable = true
-        },
-      ),
-  ) {
-    NoteDocumentScreen(navController = navController)
-  }
-
-  composable(
-    route = "script_editor_screen?projectId={projectId}&scriptId={scriptId}",
-    arguments =
-      listOf(
-        navArgument("projectId") {
-          type = NavType.StringType
-          nullable = true
-          defaultValue = null
-        },
-        navArgument("scriptId") {
-          type = NavType.StringType
-          nullable = true
-          defaultValue = null
-        },
-      ),
-  ) {
-    ScriptEditorScreen(navController = navController)
-  }
-
-  composable(
-    route = "checklist_screen?projectId={projectId}&checklistId={checklistId}",
-    arguments =
-      listOf(
-        navArgument("projectId") {
-          type = NavType.StringType
-          nullable = true
-        },
-        navArgument("checklistId") {
-          type = NavType.StringType
-          nullable = true
-        },
-      ),
-  ) {
-      ChecklistScreen(
-          navController = navController
-      )
-  }
-
-  composable(
-    route =
-      "list_chooser_screen/{title}?currentParentId={currentParentId}&disabledIds={disabledIds}",
-    arguments =
-      listOf(
-        navArgument("title") { type = NavType.StringType },
-        navArgument("currentParentId") {
-          type = NavType.StringType
-          nullable = true
-        },
-        navArgument("disabledIds") {
-          type = NavType.StringType
-          nullable = true
-        },
-      ),
-  ) { backStackEntry ->
-    val viewModel: FilterableListChooserViewModel = hiltViewModel()
-    val TAG = "MOVE_DEBUG"
-
-    val title =
-      backStackEntry.arguments?.getString("title")?.let { URLDecoder.decode(it, "UTF-8") }
-        ?: "Select a list"
-
-    val disabledIds =
-      backStackEntry.arguments?.getString("disabledIds")?.split(",")?.toSet() ?: emptySet()
-    val currentParentIdArg = backStackEntry.arguments?.getString("currentParentId")
-    val currentParentId = if (currentParentIdArg == "root") null else currentParentIdArg
-
-    Log.d(TAG, "[Nav] list_chooser_screen launched.")
-
-    val chooserUiState by viewModel.chooserState.collectAsStateWithLifecycle()
-    val filterText by viewModel.filterText.collectAsStateWithLifecycle()
-    val expandedIds by viewModel.expandedIds.collectAsStateWithLifecycle()
-    val showDescendants by viewModel.showDescendants.collectAsStateWithLifecycle()
-
-    FilterableListChooserScreen(
-      title = title,
-      filterText = filterText,
-      onFilterTextChanged = viewModel::updateFilterText,
-      chooserUiState = chooserUiState,
-      expandedIds = expandedIds,
-      onToggleExpanded = viewModel::toggleExpanded,
-      onNavigateBack = { navController.popBackStack() },
-      onConfirm = { selectedId ->
-        navController.previousBackStackEntry
-          ?.savedStateHandle
-          ?.set("list_chooser_result", selectedId ?: "root")
-
-        navController.popBackStack()
-      },
-      currentParentId = currentParentId,
-      disabledIds = disabledIds,
-      onAddNewList = viewModel::addNewProject,
-      showDescendants = showDescendants,
-      onToggleShowDescendants = viewModel::toggleShowDescendants,
-    )
-  }
-  chatScreen(navController)
-  dayManagementGraph(navController)
-  dayManagementScreen(navController)
-  strategicManagementScreen(navController)
-
-  composable("tactical_management_screen") { TacticalManagementScreen() }
-
-  composable(CONTEXT_LAB_ROUTE) {
-    val viewModel: ContextLabViewModel = hiltViewModel()
-    ContextLabScreen(viewModel = viewModel, navController = navController)
-  }
-
-  composable(EXPERIMENTAL_HIERARCHY_ROUTE) {
-    ExperimentalHierarchyScreen()
-  }
-
-  composable(AI_INSIGHTS_ROUTE) { AiInsightsScreen(navController = navController) }
-
-  composable("reminders_screen") { RemindersScreen(navController = navController) }
-
-  composable(
-    route = "edit_task_screen/{taskId}",
-    arguments = listOf(navArgument("taskId") { type = NavType.StringType }),
-  ) {
-    EditTaskScreen(onNavigateUp = { navController.navigateUp() })
-  }
-
-  composable(
-    route = "inbox_editor_screen/{inboxId}",
-    arguments = listOf(navArgument("inboxId") { type = NavType.StringType }),
-  ) {
-    InboxEditorScreen(navController = navController)
-  }
-
-      composable(
-          route = SELECTIVE_IMPORT_ROUTE,
-          arguments = listOf(navArgument("fileUri") { 
-              type = NavType.StringType
-              nullable = true
-              defaultValue = null
-          }),
-      ) { backStackEntry ->
-          val fileUri =
-              backStackEntry.arguments?.getString("fileUri")?.let { URLDecoder.decode(it, "UTF-8") }
-          if (fileUri != null) {
-              SelectiveImportScreen(
-                  onNavigateBack = { navController.popBackStack() }
-              )
-          } else {
-              // Handle error: URI is missing. Maybe pop back or show an error message.
-              navController.popBackStack()
-          }
-      }
-  
-      composable(KANBAN_ROUTE) { KanbanScreen() }
-      composable(VET_CASE_SUMMARY_ROUTE) { VetCaseSummaryScreen() }
-      composable(VET_CASE_HISTORY_ROUTE) { VetCaseHistoryScreen() }
-  
-      composable(
-          route = "placeholder_screen/{viewId}/{screenId}",
-          arguments = listOf(
-              navArgument("viewId") { type = NavType.StringType; nullable = true },
-              navArgument("screenId") { type = NavType.StringType; nullable = true }
-          )
-      ) { backStackEntry ->
-          val viewId = backStackEntry.arguments?.getString("viewId")
-          val screenId = backStackEntry.arguments?.getString("screenId")
-          PlaceholderScreen(viewId = viewId, screenId = screenId)
-      }
-  }
 fun mapTargetToRoute(target: NavTarget): String = NavTargetRouter.routeOf(target)

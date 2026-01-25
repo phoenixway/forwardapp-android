@@ -64,7 +64,7 @@ private fun SelectableDatabaseContent.allSections(): List<List<SelectableDiffIte
 @Composable
 fun SelectiveImportScreen(
     viewModel: SelectiveImportViewModel = hiltViewModel(),
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -83,28 +83,30 @@ fun SelectiveImportScreen(
         bottomBar = {
             val selectedCount = uiState.backupContent?.totalSelectedCount() ?: 0
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
                 Button(onClick = onNavigateBack) {
                     Text("Cancel")
                 }
                 Button(
                     onClick = { viewModel.onImportClicked() },
-                    enabled = !uiState.isLoading && uiState.error == null && hasItemsSelected(uiState)
+                    enabled = !uiState.isLoading && uiState.error == null && hasItemsSelected(uiState),
                 ) {
                     Text("Імпортувати ($selectedCount)")
                 }
             }
-        }
+        },
     ) { paddingValues ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             when {
                 uiState.isLoading -> {
@@ -114,14 +116,15 @@ fun SelectiveImportScreen(
                     Text(
                         text = "Error: ${uiState.error}",
                         color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(16.dp)
+                        modifier = Modifier.padding(16.dp),
                     )
                 }
                 uiState.backupContent != null -> {
                     Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp)
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 16.dp),
                     ) {
                         DiffSummaryBar(content = uiState.backupContent!!)
                         Spacer(modifier = Modifier.height(12.dp))
@@ -129,7 +132,7 @@ fun SelectiveImportScreen(
                         Spacer(modifier = Modifier.height(12.dp))
                         BackupContentList(
                             content = uiState.backupContent!!,
-                            viewModel = viewModel
+                            viewModel = viewModel,
                         )
                     }
                 }
@@ -142,16 +145,16 @@ fun SelectiveImportScreen(
 private fun SectionHeader(
     title: String,
     onSelectAll: () -> Unit,
-    onDeselectAll: () -> Unit
+    onDeselectAll: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(
             text = title,
-            style = MaterialTheme.typography.titleMedium
+            style = MaterialTheme.typography.titleMedium,
         )
         Row {
             Button(onClick = onSelectAll, modifier = Modifier.padding(end = 8.dp)) {
@@ -167,39 +170,50 @@ private fun SectionHeader(
 
 @Composable
 private fun StatusBadge(status: DiffStatus) {
-    val (label, bg, fg) = when (status) {
-        DiffStatus.NEW -> Triple("Новий", MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f), MaterialTheme.colorScheme.secondary)
-        DiffStatus.UPDATED -> Triple("Оновлення", MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f), MaterialTheme.colorScheme.tertiary)
-        DiffStatus.DELETED -> Triple("Видалено", MaterialTheme.colorScheme.error.copy(alpha = 0.15f), MaterialTheme.colorScheme.error)
-    }
+    val (label, bg, fg) =
+        when (status) {
+            DiffStatus.NEW -> Triple("Новий", MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f), MaterialTheme.colorScheme.secondary)
+            DiffStatus.UPDATED ->
+                Triple(
+                    "Оновлення",
+                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f),
+                    MaterialTheme.colorScheme.tertiary,
+                )
+            DiffStatus.DELETED -> Triple("Видалено", MaterialTheme.colorScheme.error.copy(alpha = 0.15f), MaterialTheme.colorScheme.error)
+        }
     Surface(
         color = bg,
-        shape = MaterialTheme.shapes.small
+        shape = MaterialTheme.shapes.small,
     ) {
         Text(
             text = label,
             color = fg,
             style = MaterialTheme.typography.labelSmall,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
         )
     }
 }
 
 @Composable
-private fun SummaryChip(label: String, value: Int, status: DiffStatus? = null) {
-    val (bg, fg) = when (status) {
-        DiffStatus.NEW -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f) to MaterialTheme.colorScheme.onSecondaryContainer
-        DiffStatus.UPDATED -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f) to MaterialTheme.colorScheme.onTertiaryContainer
-        DiffStatus.DELETED -> MaterialTheme.colorScheme.error.copy(alpha = 0.1f) to MaterialTheme.colorScheme.onErrorContainer
-        else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
-    }
+private fun SummaryChip(
+    label: String,
+    value: Int,
+    status: DiffStatus? = null,
+) {
+    val (bg, fg) =
+        when (status) {
+            DiffStatus.NEW -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f) to MaterialTheme.colorScheme.onSecondaryContainer
+            DiffStatus.UPDATED -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f) to MaterialTheme.colorScheme.onTertiaryContainer
+            DiffStatus.DELETED -> MaterialTheme.colorScheme.error.copy(alpha = 0.1f) to MaterialTheme.colorScheme.onErrorContainer
+            else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
+        }
     Surface(
         color = bg,
-        shape = MaterialTheme.shapes.medium
+        shape = MaterialTheme.shapes.medium,
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
         ) {
             Text(text = label, color = fg, style = MaterialTheme.typography.labelMedium)
             Spacer(modifier = Modifier.width(8.dp))
@@ -219,17 +233,17 @@ private fun DiffSummaryBar(content: SelectableDatabaseContent) {
     Surface(
         shape = MaterialTheme.shapes.medium,
         tonalElevation = 2.dp,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = "Зміни у файлі",
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
             )
             Spacer(modifier = Modifier.height(12.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 SummaryChip(label = "Нові", value = newCount, status = DiffStatus.NEW)
                 SummaryChip(label = "Оновлення", value = updatedCount, status = DiffStatus.UPDATED)
@@ -239,7 +253,7 @@ private fun DiffSummaryBar(content: SelectableDatabaseContent) {
             Text(
                 text = "Вибрано $totalSelected з $totalAvailable",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -252,16 +266,17 @@ private fun SelectableRow(
     isSelectable: Boolean,
     status: DiffStatus,
     subtitle: String? = null,
-    onToggle: (Boolean) -> Unit
+    onToggle: (Boolean) -> Unit,
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = label)
@@ -269,7 +284,7 @@ private fun SelectableRow(
                     Text(
                         text = subtitle,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -277,7 +292,7 @@ private fun SelectableRow(
             Checkbox(
                 checked = isSelected,
                 enabled = isSelectable,
-                onCheckedChange = { onToggle(it) }
+                onCheckedChange = { onToggle(it) },
             )
         }
     }
@@ -286,18 +301,18 @@ private fun SelectableRow(
 @Composable
 private fun BackupContentList(
     content: SelectableDatabaseContent,
-    viewModel: SelectiveImportViewModel
+    viewModel: SelectiveImportViewModel,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 96.dp)
+        contentPadding = PaddingValues(bottom = 96.dp),
     ) {
         if (content.projects.isNotEmpty()) {
             item {
                 SectionHeader(
                     title = "Проекти (${content.projects.size})",
                     onSelectAll = { viewModel.toggleAllSelection(EntityType.PROJECT, true) },
-                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.PROJECT, false) }
+                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.PROJECT, false) },
                 )
             }
             items(content.projects, key = { it.item.id }) { selectableProject ->
@@ -308,7 +323,7 @@ private fun BackupContentList(
                     status = selectableProject.status,
                     onToggle = { isSelected ->
                         viewModel.toggleProjectSelection(selectableProject.item.id, isSelected)
-                    }
+                    },
                 )
             }
         }
@@ -319,7 +334,7 @@ private fun BackupContentList(
                 SectionHeader(
                     title = "Цілі (${content.goals.size})",
                     onSelectAll = { viewModel.toggleAllSelection(EntityType.GOAL, true) },
-                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.GOAL, false) }
+                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.GOAL, false) },
                 )
             }
             items(content.goals, key = { it.item.id }) { selectableGoal ->
@@ -330,7 +345,7 @@ private fun BackupContentList(
                     status = selectableGoal.status,
                     onToggle = { isSelected ->
                         viewModel.toggleGoalSelection(selectableGoal.item.id, isSelected)
-                    }
+                    },
                 )
             }
         }
@@ -341,7 +356,7 @@ private fun BackupContentList(
                 SectionHeader(
                     title = "Нотатки (${content.legacyNotes.size})",
                     onSelectAll = { viewModel.toggleAllSelection(EntityType.LEGACY_NOTE, true) },
-                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.LEGACY_NOTE, false) }
+                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.LEGACY_NOTE, false) },
                 )
             }
             items(content.legacyNotes, key = { it.item.id }) { selectableItem ->
@@ -352,7 +367,7 @@ private fun BackupContentList(
                     status = selectableItem.status,
                     onToggle = { isSelected ->
                         viewModel.toggleLegacyNoteSelection(selectableItem.item.id, isSelected)
-                    }
+                    },
                 )
             }
         }
@@ -363,7 +378,7 @@ private fun BackupContentList(
                 SectionHeader(
                     title = "Активності (${content.activityRecords.size})",
                     onSelectAll = { viewModel.toggleAllSelection(EntityType.ACTIVITY_RECORD, true) },
-                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.ACTIVITY_RECORD, false) }
+                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.ACTIVITY_RECORD, false) },
                 )
             }
             items(content.activityRecords, key = { it.item.id }) { selectableItem ->
@@ -374,7 +389,7 @@ private fun BackupContentList(
                     status = selectableItem.status,
                     onToggle = { isSelected ->
                         viewModel.toggleActivityRecordSelection(selectableItem.item.id, isSelected)
-                    }
+                    },
                 )
             }
         }
@@ -385,7 +400,7 @@ private fun BackupContentList(
                 SectionHeader(
                     title = "Елементи списку (${content.backlogItems.size})",
                     onSelectAll = { viewModel.toggleAllSelection(EntityType.LIST_ITEM, true) },
-                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.LIST_ITEM, false) }
+                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.LIST_ITEM, false) },
                 )
             }
             items(content.backlogItems, key = { it.item.id }) { selectableItem ->
@@ -397,7 +412,7 @@ private fun BackupContentList(
                     status = selectableItem.status,
                     onToggle = { isSelected ->
                         viewModel.toggleListItemSelection(selectableItem.item.id, isSelected)
-                    }
+                    },
                 )
             }
         }
@@ -408,7 +423,7 @@ private fun BackupContentList(
                 SectionHeader(
                     title = "Документи (${content.documents.size})",
                     onSelectAll = { viewModel.toggleAllSelection(EntityType.DOCUMENT, true) },
-                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.DOCUMENT, false) }
+                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.DOCUMENT, false) },
                 )
             }
             items(content.documents, key = { it.item.id }) { selectableItem ->
@@ -419,7 +434,7 @@ private fun BackupContentList(
                     status = selectableItem.status,
                     onToggle = { isSelected ->
                         viewModel.toggleDocumentSelection(selectableItem.item.id, isSelected)
-                    }
+                    },
                 )
             }
         }
@@ -430,7 +445,7 @@ private fun BackupContentList(
                 SectionHeader(
                     title = "Чеклісти (${content.checklists.size})",
                     onSelectAll = { viewModel.toggleAllSelection(EntityType.CHECKLIST, true) },
-                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.CHECKLIST, false) }
+                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.CHECKLIST, false) },
                 )
             }
             items(content.checklists, key = { it.item.id }) { selectableItem ->
@@ -441,7 +456,7 @@ private fun BackupContentList(
                     status = selectableItem.status,
                     onToggle = { isSelected ->
                         viewModel.toggleChecklistSelection(selectableItem.item.id, isSelected)
-                    }
+                    },
                 )
             }
         }
@@ -452,7 +467,7 @@ private fun BackupContentList(
                 SectionHeader(
                     title = "Посилання (${content.linkItems.size})",
                     onSelectAll = { viewModel.toggleAllSelection(EntityType.LINK_ITEM, true) },
-                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.LINK_ITEM, false) }
+                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.LINK_ITEM, false) },
                 )
             }
             items(content.linkItems, key = { it.item.id }) { selectableItem ->
@@ -463,7 +478,7 @@ private fun BackupContentList(
                     status = selectableItem.status,
                     onToggle = { isSelected ->
                         viewModel.toggleLinkItemSelection(selectableItem.item.id, isSelected)
-                    }
+                    },
                 )
             }
         }
@@ -474,7 +489,7 @@ private fun BackupContentList(
                 SectionHeader(
                     title = "Записи Inbox (${content.inboxRecords.size})",
                     onSelectAll = { viewModel.toggleAllSelection(EntityType.INBOX_RECORD, true) },
-                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.INBOX_RECORD, false) }
+                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.INBOX_RECORD, false) },
                 )
             }
             items(content.inboxRecords, key = { it.item.id }) { selectableItem ->
@@ -485,7 +500,7 @@ private fun BackupContentList(
                     status = selectableItem.status,
                     onToggle = { isSelected ->
                         viewModel.toggleInboxRecordSelection(selectableItem.item.id, isSelected)
-                    }
+                    },
                 )
             }
         }
@@ -496,7 +511,7 @@ private fun BackupContentList(
                 SectionHeader(
                     title = "Логи виконання проектів (${content.contextLogs.size})",
                     onSelectAll = { viewModel.toggleAllSelection(EntityType.PROJECT_EXECUTION_LOG, true) },
-                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.PROJECT_EXECUTION_LOG, false) }
+                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.PROJECT_EXECUTION_LOG, false) },
                 )
             }
             items(content.contextLogs, key = { it.item.id }) { selectableItem ->
@@ -507,7 +522,7 @@ private fun BackupContentList(
                     status = selectableItem.status,
                     onToggle = { isSelected ->
                         viewModel.toggleProjectExecutionLogSelection(selectableItem.item.id, isSelected)
-                    }
+                    },
                 )
             }
         }
@@ -518,7 +533,7 @@ private fun BackupContentList(
                 SectionHeader(
                     title = "Скрипти (${content.scripts.size})",
                     onSelectAll = { viewModel.toggleAllSelection(EntityType.SCRIPT, true) },
-                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.SCRIPT, false) }
+                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.SCRIPT, false) },
                 )
             }
             items(content.scripts, key = { it.item.id }) { selectableItem ->
@@ -529,7 +544,7 @@ private fun BackupContentList(
                     status = selectableItem.status,
                     onToggle = { isSelected ->
                         viewModel.toggleScriptSelection(selectableItem.item.id, isSelected)
-                    }
+                    },
                 )
             }
         }
@@ -540,7 +555,7 @@ private fun BackupContentList(
                 SectionHeader(
                     title = "Вкладення (${content.attachments.size})",
                     onSelectAll = { viewModel.toggleAllSelection(EntityType.ATTACHMENT, true) },
-                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.ATTACHMENT, false) }
+                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.ATTACHMENT, false) },
                 )
             }
             items(content.attachments, key = { it.item.id }) { selectableItem ->
@@ -551,7 +566,7 @@ private fun BackupContentList(
                     status = selectableItem.status,
                     onToggle = { isSelected ->
                         viewModel.toggleAttachmentSelection(selectableItem.item.id, isSelected)
-                    }
+                    },
                 )
             }
         }
