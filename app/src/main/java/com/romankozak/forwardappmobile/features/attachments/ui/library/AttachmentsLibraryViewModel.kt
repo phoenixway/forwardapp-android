@@ -68,6 +68,7 @@ class AttachmentsLibraryViewModel
                                 BacklogItemTypeValues.NOTE_DOCUMENT -> AttachmentLibraryType.NOTE_DOCUMENT
                                 BacklogItemTypeValues.CHECKLIST -> AttachmentLibraryType.CHECKLIST
                                 BacklogItemTypeValues.LINK_ITEM -> AttachmentLibraryType.LINK
+                                BacklogItemTypeValues.CONTEXT -> AttachmentLibraryType.CONTEXT
                                 else -> return@mapNotNull null
                             }
 
@@ -77,7 +78,7 @@ class AttachmentsLibraryViewModel
                                 ?.distinctBy { it.id }
                                 ?: emptyList()
 
-                        val ownerContext = result.ownerContextId?.let { contextRefs[it] }
+                        val ownerProject = result.ownerProjectId?.let { projectRefs[it] }
 
                         when (type) {
                             AttachmentLibraryType.NOTE_DOCUMENT -> {
@@ -133,6 +134,21 @@ class AttachmentsLibraryViewModel
                                     ownerContext = ownerContext,
                                     updatedAt = result.linkCreatedAt ?: result.attachmentUpdatedAt,
                                     linkData = linkData,
+                                )
+                            }
+                            AttachmentLibraryType.CONTEXT -> {
+                                if (result.contextName == null) {
+                                    return@mapNotNull null
+                                }
+                                AttachmentLibraryItem(
+                                    id = result.id,
+                                    entityId = result.entityId,
+                                    title = result.contextName,
+                                    subtitle = null,
+                                    type = type,
+                                    projects = associatedProjects,
+                                    ownerProject = ownerProject,
+                                    updatedAt = result.contextUpdatedAt ?: result.attachmentUpdatedAt,
                                 )
                             }
                         }

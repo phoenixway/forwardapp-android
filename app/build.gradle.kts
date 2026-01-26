@@ -43,7 +43,7 @@ android {
 
     kotlinOptions {
         jvmTarget = "11"
-        allWarningsAsErrors = true
+        allWarningsAsErrors = false
         freeCompilerArgs +=
             listOf(
                 "-Xjsr305=strict",

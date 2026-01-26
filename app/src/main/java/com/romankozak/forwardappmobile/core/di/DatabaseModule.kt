@@ -154,10 +154,10 @@ object DatabaseModule {
     ): AppDatabase {
         val callback =
             object : RoomDatabase.Callback() {
-                override fun onOpen(dbSupport: SupportSQLiteDatabase) {
-                    super.onOpen(dbSupport)
+                override fun onOpen(db: SupportSQLiteDatabase) {
+                    super.onOpen(db)
                     scope.launch(Dispatchers.IO) {
-                        migrateSpecialProjects(dbSupport)
+                        migrateSpecialProjects(db)
                     }
                 }
             }
@@ -166,7 +166,7 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             "forward_app_database",
-        ).fallbackToDestructiveMigration().addMigrations(
+        ).fallbackToDestructiveMigration(true).addMigrations(
             MIGRATION_8_9,
             MIGRATION_10_11,
             MIGRATION_11_12,

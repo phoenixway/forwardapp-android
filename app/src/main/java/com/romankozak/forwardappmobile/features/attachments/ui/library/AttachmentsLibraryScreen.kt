@@ -180,7 +180,7 @@ fun AttachmentsLibraryScreen(
                                         if (linkData != null) {
                                             when (linkData.type) {
                                                 LinkType.CONTEXT ->
-                                                    navController.navigate("context_detail_screen/${linkData.target}")
+                                                    navController.navigate("goal_detail_screen/${linkData.target}")
                                                 LinkType.URL, null ->
                                                     openExternalLink(context, linkData.target)
                                                 LinkType.OBSIDIAN ->
@@ -188,6 +188,8 @@ fun AttachmentsLibraryScreen(
                                             }
                                         }
                                     }
+                                    AttachmentLibraryType.CONTEXT ->
+                                        navController.navigate("goal_detail_screen/${item.entityId}")
                                 }
                             },
                             onShareClick = { viewModel.onShareToContextClick(item) },
@@ -309,6 +311,7 @@ private fun AttachmentLibraryFilter.displayName(): String =
         AttachmentLibraryFilter.Notes -> "Нотатки"
         AttachmentLibraryFilter.Checklists -> "Чеклісти"
         AttachmentLibraryFilter.Links -> "Посилання"
+        AttachmentLibraryFilter.Contexts -> "Контексти"
     }
 
 private fun AttachmentLibraryType.label(): String =
@@ -316,6 +319,7 @@ private fun AttachmentLibraryType.label(): String =
         AttachmentLibraryType.NOTE_DOCUMENT -> "Нотатка"
         AttachmentLibraryType.CHECKLIST -> "Чекліст"
         AttachmentLibraryType.LINK -> "Посилання"
+        AttachmentLibraryType.CONTEXT -> "Контекст"
     }
 
 private fun openExternalLink(

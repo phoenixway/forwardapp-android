@@ -64,6 +64,7 @@ object BacklogItemTypeValues {
     const val NOTE_DOCUMENT = "NOTE_DOCUMENT"
     const val CHECKLIST = "CHECKLIST"
     const val SCRIPT = "SCRIPT"
+    const val CONTEXT = "CONTEXT"
 }
 
 enum class ContextViewMode { BACKLOG, INBOX, ADVANCED, ATTACHMENTS, DASHBOARD }

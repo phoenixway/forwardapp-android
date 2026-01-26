@@ -289,3 +289,5 @@ AttachmentsViewModel.kt
 
 app/src/main/java/com/romankozak/forwardappmobile/features/attachments/ui/context/AttachmentsViewModel
 app/src/main/java/com/romankozak/forwardappmobile/features/attachments/data/AttachmentRepository
+app/src/main/java/com/romankozak/forwardappmobile/features/attachments/ui/library/AttachmentsLibraryScreen.kt
+/app/src/main/java/com/romankozak/forwardappmobile/features/attachments/ui/library/AttachmentsLibraryViewModel.kt

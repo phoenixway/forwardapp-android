@@ -153,30 +153,25 @@ class AttachmentRepository
                 ATTACHMENT_LOG_TAG,
                 "[createLinkAttachment] START: context=$contextId, link=${link.displayName ?: link.target}, ts=$timestamp",
             )
-            val linkItem =
-                LinkItemEntity(
-                    id = UUID.randomUUID().toString(),
-                    linkData = link,
-                    createdAt = timestamp,
-                    updatedAt = timestamp,
-                    version = 1,
-                )
-            linkItemDao.insert(linkItem)
 
-            val attachment =
+            val newAttachment =
                 ensureAttachmentForEntity(
                     attachmentType = BacklogItemTypeValues.LINK_ITEM,
-                    entityId = linkItem.id,
+                    entityId = link.target,
                     ownerContextId = contextId,
                     createdAt = timestamp,
                     roleCode = roleCode,
                     isSystem = isSystem,
                 )
+            Log.d(
+                ATTACHMENT_LOG_TAG,
+                "[createLinkAttachment] STEP2: Attachment ensured: id=${newAttachment.id}, type=LINK_ITEM, entityId=${link.target}, owner=$contextId, version=${newAttachment.version}, syncedAt=${newAttachment.syncedAt}",
+            )
 
             attachmentDao.insertContextAttachmentLink(
                 ContextAttachmentCrossRef(
                     contextId = contextId,
-                    attachmentId = attachment.id,
+                    attachmentId = newAttachment.id,
                     attachmentOrder = -timestamp,
                     updatedAt = timestamp,
                     syncedAt = null,
@@ -185,13 +180,13 @@ class AttachmentRepository
             )
             Log.d(
                 ATTACHMENT_LOG_TAG,
-                "[createLinkAttachment] STEP3: ContextAttachmentCrossRef created: context=$contextId, attachment=${attachment.id}, version=1, syncedAt=null (NEW - WILL NEED SYNC)",
+                "[createLinkAttachment] STEP3: ContextAttachmentCrossRef created: context=$contextId, attachment=${newAttachment.id}, version=1, syncedAt=null (NEW - WILL NEED SYNC)",
             )
             Log.d(
                 ATTACHMENT_LOG_TAG,
-                "[createLinkAttachment] DONE: attachment=${attachment.id}, this attachment is NEW and unsync'd (syncedAt=null), it will be exported on next sync",
+                "[createLinkAttachment] DONE: attachment=${newAttachment.id}, this attachment is NEW and unsync'd (syncedAt=null), it will be exported on next sync",
             )
-            return attachment
+            return newAttachment
         }
 
         suspend fun linkAttachmentToContext(
@@ -215,7 +210,7 @@ class AttachmentRepository
             attachmentId: String,
             contextId: String,
         ): Boolean {
-            val attachment = attachmentDao.getAttachmentById(attachmentId) ?: return false
+            val existing = attachmentDao.getAttachmentById(attachmentId) ?: return false
             val now = System.currentTimeMillis()
             val link = attachmentDao.getContextAttachmentLink(contextId, attachmentId)
             if (link != null) {
@@ -229,10 +224,10 @@ class AttachmentRepository
             val noMoreLinks = remainingLinks <= 0
             if (noMoreLinks) {
                 attachmentDao.insertAttachment(
-                    attachment.softDelete(now),
+                    existing.softDelete(now),
                 )
-                if (attachment.attachmentType == BacklogItemTypeValues.LINK_ITEM) {
-                    linkItemDao.deleteById(attachment.entityId)
+                if (existing.attachmentType == BacklogItemTypeValues.LINK_ITEM) {
+                    linkItemDao.deleteById(existing.entityId)
                 }
             }
             return noMoreLinks
@@ -240,10 +235,10 @@ class AttachmentRepository
 
         suspend fun deleteAttachment(attachmentId: String) {
             val now = System.currentTimeMillis()
-            val attachment = attachmentDao.getAttachmentById(attachmentId)
-            if (attachment != null) {
+            val existing = attachmentDao.getAttachmentById(attachmentId)
+            if (existing != null) {
                 attachmentDao.insertAttachment(
-                    attachment.softDelete(now),
+                    existing.softDelete(now),
                 )
                 // mark links deleted too
                 val links = attachmentDao.getContextAttachmentLinksForAttachment(attachmentId)
@@ -252,12 +247,12 @@ class AttachmentRepository
                         link.softDelete(now),
                     )
                 }
+                if (existing.attachmentType == BacklogItemTypeValues.LINK_ITEM) {
+                    linkItemDao.deleteById(existing.entityId)
+                }
             } else {
                 attachmentDao.deleteAllLinksForAttachment(attachmentId)
                 attachmentDao.deleteAttachment(attachmentId)
-            }
-            if (attachment != null && attachment.attachmentType == BacklogItemTypeValues.LINK_ITEM) {
-                linkItemDao.deleteById(attachment.entityId)
             }
         }
 

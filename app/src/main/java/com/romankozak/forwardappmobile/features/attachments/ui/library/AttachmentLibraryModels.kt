@@ -6,6 +6,7 @@ enum class AttachmentLibraryType {
     NOTE_DOCUMENT,
     CHECKLIST,
     LINK,
+    CONTEXT
 }
 
 enum class AttachmentLibraryFilter {
@@ -13,6 +14,7 @@ enum class AttachmentLibraryFilter {
     Notes,
     Checklists,
     Links,
+    Contexts,
     ;
 
     fun matches(type: AttachmentLibraryType): Boolean =
@@ -21,6 +23,7 @@ enum class AttachmentLibraryFilter {
             Notes -> type == AttachmentLibraryType.NOTE_DOCUMENT
             Checklists -> type == AttachmentLibraryType.CHECKLIST
             Links -> type == AttachmentLibraryType.LINK
+            Contexts -> type == AttachmentLibraryType.CONTEXT
         }
 }
 
@@ -53,6 +56,8 @@ data class AttachmentLibraryQueryResult(
     val linkDisplayName: String?,
     val linkTarget: String?,
     val linkCreatedAt: Long?,
+    val contextName: String?,
+    val contextUpdatedAt: Long?,
 )
 
 data class AttachmentsLibraryUiState(

@@ -12,7 +12,6 @@ import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
-import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
@@ -36,6 +35,17 @@ import kotlinx.coroutines.launch
 import java.net.URLEncoder
 import java.util.Calendar
 import javax.inject.Inject
+
+import com.romankozak.forwardappmobile.features.contexts.data.models.Context
+
+enum class AttachmentType {
+    NOTES,
+    CHECKLIST,
+    WEB_LINK,
+    OBSIDIAN_LINK,
+    CONTEXT_LINK,
+    CONTEXT_SHORTCUT,
+}
 
 enum class AddAttachmentDialogType {
     NONE,
@@ -168,7 +178,7 @@ class AttachmentsViewModel
                     viewModelScope.launch {
                         _uiEventFlow.send(
                             UiEvent.Navigate(
-                                NavTarget.NoteDocumentEdit(contextId = contextId.value),
+                                NavTarget.NoteDocumentEdit(projectId = contextId.value, documentId = null),
                             ),
                         )
                     }
@@ -177,7 +187,7 @@ class AttachmentsViewModel
                     viewModelScope.launch {
                         _uiEventFlow.send(
                             UiEvent.Navigate(
-                                NavTarget.Checklist(contextId = contextId.value),
+                                NavTarget.Checklist(projectId = contextId.value, id = null),
                             ),
                         )
                     }
@@ -223,7 +233,7 @@ class AttachmentsViewModel
                     LinkType.CONTEXT -> {
                         _uiEventFlow.send(
                             UiEvent.Navigate(
-                                NavTarget.ContextDetail(contextId = link.target),
+                                NavTarget.ProjectDetail(projectId = link.target),
                             ),
                         )
                     }
@@ -356,7 +366,7 @@ class AttachmentsViewModel
                             weightRisk = uiState.value.weightRisk,
                             rawScore = uiState.value.rawScore,
                         )
-                    val scoredContext = goalScoringManager.calculateScoresForContext(updatedContext)
+                    val scoredContext = goalScoringManager.calculateScoresForProject(updatedContext)
                     contextRepository.updateContext(scoredContext)
                 }
             }
