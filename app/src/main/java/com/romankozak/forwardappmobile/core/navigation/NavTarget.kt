@@ -54,8 +54,6 @@ sealed interface NavTarget {
 
     data object Chat : NavTarget
 
-    override fun toString(): String = this.javaClass.simpleName
-
     data object AttachmentsLibrary : NavTarget
 
     data object ScriptsLibrary : NavTarget

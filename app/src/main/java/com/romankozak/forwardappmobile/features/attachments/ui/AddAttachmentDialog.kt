@@ -9,7 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.features.attachments.ui.project.AttachmentType
+import com.romankozak.forwardappmobile.features.attachments.ui.context.AttachmentType
 
 @Composable
 fun AddAttachmentDialog(
@@ -37,17 +37,17 @@ fun AddAttachmentDialog(
                         }.padding(16.dp),
                 )
                 Text(
-                    "Link to another project",
+                    "Link to another context",
                     modifier =
                         Modifier.fillMaxWidth().clickable {
-                            onAttachmentTypeSelected(AttachmentType.PROJECT_LINK)
+                            onAttachmentTypeSelected(AttachmentType.CONTEXT_LINK)
                         }.padding(16.dp),
                 )
                 Text(
-                    "Shortcut to another project",
+                    "Shortcut to another context",
                     modifier =
                         Modifier.fillMaxWidth().clickable {
-                            onAttachmentTypeSelected(AttachmentType.PROJECT_SHORTCUT)
+                            onAttachmentTypeSelected(AttachmentType.CONTEXT_SHORTCUT)
                         }.padding(16.dp),
                 )
             }

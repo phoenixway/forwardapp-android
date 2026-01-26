@@ -179,8 +179,8 @@ fun AttachmentsLibraryScreen(
                                         val linkData = item.linkData
                                         if (linkData != null) {
                                             when (linkData.type) {
-                                                LinkType.PROJECT ->
-                                                    navController.navigate("goal_detail_screen/${linkData.target}")
+                                                LinkType.CONTEXT ->
+                                                    navController.navigate("context_detail_screen/${linkData.target}")
                                                 LinkType.URL, null ->
                                                     openExternalLink(context, linkData.target)
                                                 LinkType.OBSIDIAN ->
@@ -190,7 +190,7 @@ fun AttachmentsLibraryScreen(
                                     }
                                 }
                             },
-                            onShareClick = { viewModel.onShareToProjectClick(item) },
+                            onShareClick = { viewModel.onShareToContextClick(item) },
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                     }
@@ -254,7 +254,7 @@ private fun AttachmentCard(
                     modifier = Modifier.weight(1f),
                 )
                 IconButton(onClick = onShareClick) {
-                    Icon(Icons.Filled.Share, contentDescription = "Зберегти в проєкт")
+                    Icon(Icons.Filled.Share, contentDescription = "Зберегти в контекст")
                 }
             }
 
@@ -281,7 +281,7 @@ private fun AttachmentCard(
                     label = { Text(item.type.label()) },
                 )
 
-                item.ownerProject?.let { owner ->
+                item.ownerContext?.let { owner ->
                     AssistChip(
                         onClick = {},
                         enabled = false,
@@ -289,13 +289,13 @@ private fun AttachmentCard(
                     )
                 }
 
-                item.projects
-                    .filterNot { owner -> item.ownerProject?.id == owner.id }
-                    .forEach { project ->
+                item.contexts
+                    .filterNot { owner -> item.ownerContext?.id == owner.id }
+                    .forEach { context ->
                         AssistChip(
                             onClick = {},
                             enabled = false,
-                            label = { Text(project.name) },
+                            label = { Text(context.name) },
                         )
                     }
             }

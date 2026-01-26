@@ -14,11 +14,11 @@ object NavTargetRouter {
 
     fun routeOf(target: NavTarget): String =
         when (target) {
-            NavTarget.ProjectHierarchy ->
+            NavTarget.ContextHierarchy ->
                 "goal_lists_screen"
 
-            is NavTarget.ProjectDetail ->
-                "goal_detail_screen/${target.projectId}" +
+            is NavTarget.ContextDetail ->
+                "goal_detail_screen/${target.contextId}" +
                     buildQuery(
                         listOf(
                             "goalId" to target.goalId,
@@ -36,7 +36,7 @@ object NavTargetRouter {
                 "note_document_edit_screen" +
                     buildQuery(
                         listOf(
-                            "projectId" to target.projectId,
+                            "contextId" to target.contextId,
                             "documentId" to target.documentId,
                         ),
                     )
@@ -45,7 +45,7 @@ object NavTargetRouter {
                 "checklist_screen" +
                     buildQuery(
                         listOf(
-                            "projectId" to target.projectId,
+                            "contextId" to target.contextId,
                             "checklistId" to target.id,
                         ),
                     )
@@ -97,7 +97,7 @@ object NavTargetRouter {
                 "script_editor_screen" +
                     buildQuery(
                         listOf(
-                            "projectId" to target.projectId,
+                            "contextId" to target.contextId,
                             "scriptId" to target.scriptId,
                         ),
                     )
@@ -109,8 +109,8 @@ object NavTargetRouter {
                     "selective_import_screen"
                 }
 
-            is NavTarget.ProjectStructure ->
-                "project_structure_screen/${target.projectId}"
+            is NavTarget.ContextStructure ->
+                "project_structure_screen/${target.contextId}"
 
             NavTarget.StructurePresets ->
                 "structure_presets_screen"

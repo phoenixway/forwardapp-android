@@ -50,15 +50,15 @@ class AttachmentsLibraryViewModel
                 val links = array[1] as List<ContextAttachmentCrossRef>
 
                 @Suppress("UNCHECKED_CAST")
-                val projects = array[2] as List<Context>
+                val contexts = array[2] as List<Context>
                 val query = array[3] as String
                 val filter = array[4] as AttachmentLibraryFilter
 
                 Log.d("ATTACHMENTS_LIBRARY", "Query results: ${queryResults.size} items")
                 Log.d("ATTACHMENTS_LIBRARY", "Links: ${links.size} cross-refs")
-                Log.d("ATTACHMENTS_LIBRARY", "Projects: ${projects.size} projects")
+                Log.d("ATTACHMENTS_LIBRARY", "Contexts: ${contexts.size} contexts")
 
-                val projectRefs = projects.associateBy({ it.id }) { AttachmentProjectRef(it.id, it.name) }
+                val contextRefs = contexts.associateBy({ it.id }) { AttachmentContextRef(it.id, it.name) }
                 val linksByAttachment = links.groupBy { it.attachmentId }
 
                 val items =
@@ -71,13 +71,13 @@ class AttachmentsLibraryViewModel
                                 else -> return@mapNotNull null
                             }
 
-                        val associatedProjects =
+                        val associatedContexts =
                             linksByAttachment[result.id]
-                                ?.mapNotNull { link -> projectRefs[link.contextId] }
+                                ?.mapNotNull { link -> contextRefs[link.contextId] }
                                 ?.distinctBy { it.id }
                                 ?: emptyList()
 
-                        val ownerProject = result.ownerContextId?.let { projectRefs[it] }
+                        val ownerContext = result.ownerContextId?.let { contextRefs[it] }
 
                         when (type) {
                             AttachmentLibraryType.NOTE_DOCUMENT -> {
@@ -90,8 +90,8 @@ class AttachmentsLibraryViewModel
                                     title = result.noteName,
                                     subtitle = null,
                                     type = type,
-                                    projects = associatedProjects,
-                                    ownerProject = ownerProject,
+                                    contexts = associatedContexts,
+                                    ownerContext = ownerContext,
                                     updatedAt = result.noteUpdatedAt ?: result.attachmentUpdatedAt,
                                 )
                             }
@@ -105,8 +105,8 @@ class AttachmentsLibraryViewModel
                                     title = result.checklistName,
                                     subtitle = null,
                                     type = type,
-                                    projects = associatedProjects,
-                                    ownerProject = ownerProject,
+                                    contexts = associatedContexts,
+                                    ownerContext = ownerContext,
                                     updatedAt = result.attachmentUpdatedAt,
                                 )
                             }
@@ -129,8 +129,8 @@ class AttachmentsLibraryViewModel
                                     title = linkData.displayName ?: linkData.target,
                                     subtitle = linkData.target,
                                     type = type,
-                                    projects = associatedProjects,
-                                    ownerProject = ownerProject,
+                                    contexts = associatedContexts,
+                                    ownerContext = ownerContext,
                                     updatedAt = result.linkCreatedAt ?: result.attachmentUpdatedAt,
                                     linkData = linkData,
                                 )
@@ -145,7 +145,7 @@ class AttachmentsLibraryViewModel
                                 query.isBlank() ||
                                     item.title.contains(query, ignoreCase = true) ||
                                     (item.subtitle?.contains(query, ignoreCase = true) == true) ||
-                                    item.projects.any { it.name.contains(query, ignoreCase = true) }
+                                    item.contexts.any { it.name.contains(query, ignoreCase = true) }
                             )
                     }.sortedByDescending { it.updatedAt }
 
@@ -177,18 +177,18 @@ class AttachmentsLibraryViewModel
             filterState.value = filter
         }
 
-        fun onShareToProjectClick(item: AttachmentLibraryItem) {
+        fun onShareToContextClick(item: AttachmentLibraryItem) {
             pendingShareItem = item
             viewModelScope.launch {
                 _events.emit(
-                    AttachmentsLibraryEvent.NavigateToProjectChooser(
-                        title = "Виберіть проєкт для \"${item.title}\"",
+                    AttachmentsLibraryEvent.NavigateToContextChooser(
+                        title = "Виберіть контекст для \"${item.title}\"",
                     ),
                 )
             }
         }
 
-        fun onProjectChosen(contextId: String?) {
+        fun onContextChosen(contextId: String?) {
             val attachment = pendingShareItem ?: return
             if (contextId.isNullOrBlank() || contextId == "root") {
                 pendingShareItem = null
@@ -200,7 +200,7 @@ class AttachmentsLibraryViewModel
                     attachmentId = attachment.id,
                     contextId = contextId,
                 )
-                _events.emit(AttachmentsLibraryEvent.ShowToast("Додано до проєкту"))
+                _events.emit(AttachmentsLibraryEvent.ShowToast("Додано до контексту"))
                 pendingShareItem = null
             }
         }
