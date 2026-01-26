@@ -41,7 +41,6 @@ object SyncMapper {
             contextLogLevel = project.contextLogLevel ?: ContextLogLevelValues.NORMAL,
             totalTimeSpentMinutes = project.totalTimeSpentMinutes ?: 0,
             scoringStatus = project.scoringStatus ?: ScoringStatusValues.NOT_ASSESSED,
-            contextType = project.contextType ?: ContextType.DEFAULT,
             // ViewMode залишаємо як є (не форсуємо BACKLOG при синхронізації)
             defaultViewModeName = project.defaultViewModeName,
         )

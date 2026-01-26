@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.features.sync
 import android.app.Application
 import android.util.Log
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
-import com.romankozak.forwardappmobile.data.repository.SyncRepository
+import com.romankozak.forwardappmobile.features.sync.data.repository.SyncRepository
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectUiEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

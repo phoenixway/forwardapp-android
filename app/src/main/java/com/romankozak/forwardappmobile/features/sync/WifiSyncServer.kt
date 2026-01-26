@@ -15,7 +15,7 @@ import com.google.gson.JsonParseException
 import com.google.gson.JsonPrimitive
 import com.google.gson.JsonSerializationContext
 import com.google.gson.JsonSerializer
-import com.romankozak.forwardappmobile.data.repository.SyncRepository
+import com.romankozak.forwardappmobile.features.sync.data.repository.SyncRepository
 import com.romankozak.forwardappmobile.data.sync.FullAppBackup
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
