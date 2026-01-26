@@ -320,7 +320,7 @@ class ContextSettingsViewModel
         fun onOpenStructure() {
             projectId?.let {
                 viewModelScope.launch {
-                    _events.send(ContextSettingsEvent.Navigate(NavTarget.ProjectStructure(it)))
+                    _events.send(ContextSettingsEvent.Navigate(NavTarget.ContextStructure(it)))
                 }
             }
         }

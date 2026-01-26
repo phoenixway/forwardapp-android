@@ -4,8 +4,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
-import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
@@ -131,12 +131,12 @@ class ReminderViewModel
             viewModelScope.launch {
                 when (item) {
                     is ReminderListItem.GoalReminder -> {
-                        val projectId = goalRepository.findContextIdForGoal(item.goal.id)
-                        if (projectId != null) {
+                        val contextId = goalRepository.findContextIdForGoal(item.goal.id)
+                        if (contextId != null) {
                             _uiEvent.send(
                                 RemindersUiEvent.Navigate(
-                                    NavTarget.ProjectDetail(
-                                        projectId = projectId,
+                                    NavTarget.ContextDetail(
+                                        contextId = contextId,
                                         goalId = item.goal.id,
                                     ),
                                 ),
@@ -146,7 +146,7 @@ class ReminderViewModel
                     is ReminderListItem.ProjectReminder -> {
                         _uiEvent.send(
                             RemindersUiEvent.Navigate(
-                                NavTarget.ProjectDetail(projectId = item.project.id),
+                                NavTarget.ContextDetail(contextId = item.project.id),
                             ),
                         )
                     }

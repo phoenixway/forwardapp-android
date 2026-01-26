@@ -78,7 +78,7 @@ class AttachmentsLibraryViewModel
                                 ?.distinctBy { it.id }
                                 ?: emptyList()
 
-                        val ownerProject = result.ownerProjectId?.let { projectRefs[it] }
+                        val ownerContext = result.ownerContextId?.let { contextRefs[it] }
 
                         when (type) {
                             AttachmentLibraryType.NOTE_DOCUMENT -> {
@@ -146,8 +146,8 @@ class AttachmentsLibraryViewModel
                                     title = result.contextName,
                                     subtitle = null,
                                     type = type,
-                                    projects = associatedProjects,
-                                    ownerProject = ownerProject,
+                                    contexts = associatedContexts,
+                                    ownerContext = ownerContext,
                                     updatedAt = result.contextUpdatedAt ?: result.attachmentUpdatedAt,
                                 )
                             }

@@ -75,7 +75,7 @@ fun AttachmentsLibraryScreen(
             ?.collect { result ->
                 result?.let {
                     savedStateHandle["list_chooser_result"] = null
-                    viewModel.onProjectChosen(it)
+                    viewModel.onContextChosen(it)
                 }
             }
     }
@@ -83,7 +83,7 @@ fun AttachmentsLibraryScreen(
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
-                is AttachmentsLibraryEvent.NavigateToProjectChooser -> {
+                is AttachmentsLibraryEvent.NavigateToContextChooser -> {
                     val title = URLEncoder.encode(event.title, "UTF-8")
                     navController.navigate("list_chooser_screen/$title")
                 }

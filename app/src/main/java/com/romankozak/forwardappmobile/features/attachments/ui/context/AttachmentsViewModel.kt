@@ -36,15 +36,6 @@ import java.net.URLEncoder
 import java.util.Calendar
 import javax.inject.Inject
 
-enum class AttachmentType {
-    NOTES,
-    CHECKLIST,
-    WEB_LINK,
-    OBSIDIAN_LINK,
-    CONTEXT_LINK,
-    CONTEXT_SHORTCUT,
-}
-
 enum class AddAttachmentDialogType {
     NONE,
     WEB_LINK,
@@ -176,7 +167,7 @@ class AttachmentsViewModel
                     viewModelScope.launch {
                         _uiEventFlow.send(
                             UiEvent.Navigate(
-                                NavTarget.NoteDocumentEdit(projectId = contextId.value, documentId = null),
+                                NavTarget.NoteDocumentEdit(contextId = contextId.value, documentId = null),
                             ),
                         )
                     }
@@ -185,7 +176,7 @@ class AttachmentsViewModel
                     viewModelScope.launch {
                         _uiEventFlow.send(
                             UiEvent.Navigate(
-                                NavTarget.Checklist(projectId = contextId.value, id = null),
+                                NavTarget.Checklist(contextId = contextId.value, id = null),
                             ),
                         )
                     }
@@ -231,7 +222,7 @@ class AttachmentsViewModel
                     LinkType.CONTEXT -> {
                         _uiEventFlow.send(
                             UiEvent.Navigate(
-                                NavTarget.ProjectDetail(projectId = link.target),
+                                NavTarget.ContextDetail(contextId = link.target),
                             ),
                         )
                     }
@@ -364,7 +355,7 @@ class AttachmentsViewModel
                             weightRisk = uiState.value.weightRisk,
                             rawScore = uiState.value.rawScore,
                         )
-                    val scoredContext = goalScoringManager.calculateScoresForProject(updatedContext)
+                    val scoredContext = goalScoringManager.calculateScoresForContext(updatedContext)
                     contextRepository.updateContext(scoredContext)
                 }
             }

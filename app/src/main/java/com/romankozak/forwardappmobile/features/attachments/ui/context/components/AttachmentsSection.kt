@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.attachments.ui.project.components
+package com.romankozak.forwardappmobile.features.attachments.ui.context.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
@@ -52,7 +52,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.features.attachments.ui.project.AttachmentType
+import com.romankozak.forwardappmobile.features.attachments.ui.context.AttachmentType
+import com.romankozak.forwardappmobile.features.attachments.ui.project.components.ChecklistItemRow
+import com.romankozak.forwardappmobile.features.attachments.ui.project.components.LinkItemRow
+import com.romankozak.forwardappmobile.features.attachments.ui.project.components.NoteDocumentItemRow
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
@@ -268,12 +271,12 @@ private fun AddAttachmentButton(onAddAttachment: (AttachmentType) -> Unit) {
                 onAddAttachment(type)
                 showAddMenu = false
             }
-            AttachmentTypeMenuItem(R.string.attachment_type_project_link, AttachmentType.PROJECT_LINK) { type ->
+            AttachmentTypeMenuItem(R.string.attachment_type_project_link, AttachmentType.CONTEXT_LINK) { type ->
                 onAddAttachment(type)
                 showAddMenu = false
             }
             HorizontalDivider()
-            AttachmentTypeMenuItem(R.string.menu_add_project_shortcut, AttachmentType.PROJECT_SHORTCUT) { type ->
+            AttachmentTypeMenuItem(R.string.menu_add_project_shortcut, AttachmentType.CONTEXT_SHORTCUT) { type ->
                 onAddAttachment(type)
                 showAddMenu = false
             }

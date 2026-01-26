@@ -41,11 +41,7 @@ import java.net.BindException
 import java.net.Inet4Address
 import java.net.InetSocketAddress
 import java.net.ServerSocket
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.StandardOpenOption
 import java.text.SimpleDateFormat
-import java.time.Instant
 import java.util.Date
 import java.util.Locale
 
@@ -128,9 +124,10 @@ class WifiSyncServer(
                                     dir.mkdirs() // Створюємо папку, якщо її немає
                                 }
 
-                                val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(
-                                    Date()
-                                )
+                                val timestamp =
+                                    SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(
+                                        Date(),
+                                    )
                                 val fileName = "${prefix}_$timestamp.json"
                                 val file = File(dir, fileName)
 

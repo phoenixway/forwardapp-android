@@ -18,10 +18,10 @@ import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
+import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
-import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.domain.ner.NerManager
 import com.romankozak.forwardappmobile.domain.ner.NerState
@@ -33,7 +33,7 @@ import com.romankozak.forwardappmobile.features.activitytracker.data.models.Acti
 import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.features.attachments.ui.project.AttachmentType
+import com.romankozak.forwardappmobile.features.attachments.ui.context.AttachmentType
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextArtifact
@@ -94,7 +94,7 @@ sealed class UiEvent {
 
     data class ScrollTo(val index: Int) : UiEvent()
 
-    data class NavigateBackAndReveal(val projectId: String) : UiEvent()
+    data class NavigateBackAndReveal(val contextId: String) : UiEvent()
 
     data class HandleLinkClick(val link: RelatedLink) : UiEvent()
 
@@ -221,7 +221,7 @@ class BacklogMarkdownHandler
 
         fun importFromMarkdown(
             markdownText: String,
-            projectId: String,
+            contextId: String,
         ) {
             if (markdownText.isBlank()) {
                 listener.showSnackbar("Nothing to import.", null)
@@ -237,7 +237,7 @@ class BacklogMarkdownHandler
                             trimmedLine.startsWith("- [ ]") -> {
                                 val goalText = trimmedLine.removePrefix("- [ ]").trim()
                                 if (goalText.isNotEmpty()) {
-                                    goalRepository.addGoalToContext(goalText, projectId, completed = false)
+                                    goalRepository.addGoalToContext(goalText, contextId, completed = false)
                                     importedCount++
                                 }
                             }
@@ -245,7 +245,7 @@ class BacklogMarkdownHandler
                             trimmedLine.startsWith("- [x]") -> {
                                 val goalText = trimmedLine.removePrefix("- [x]").trim()
                                 if (goalText.isNotEmpty()) {
-                                    goalRepository.addGoalToContext(goalText, projectId, completed = true)
+                                    goalRepository.addGoalToContext(goalText, contextId, completed = true)
                                     importedCount++
                                 }
                             }
@@ -334,14 +334,14 @@ class BacklogViewModel
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
         private var batchSaveJob: Job? = null
-        private val projectIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("listId", "")
+        private val contextIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("listId", "")
         private val _listContent = MutableStateFlow<List<BacklogItemContent>>(emptyList())
         val listContent: StateFlow<List<BacklogItemContent>> = _listContent.asStateFlow()
 
         val itemActionHandler =
-            ItemActionHandler(contextRepository, goalRepository, recentItemsRepository, viewModelScope, projectIdFlow, this)
-        val selectionHandler = SelectionHandler(contextRepository, goalRepository, viewModelScope, projectIdFlow, _listContent, this)
-        val inboxHandler = InboxHandler(contextRepository, inboxRepository, viewModelScope, projectIdFlow, this)
+            ItemActionHandler(contextRepository, goalRepository, recentItemsRepository, viewModelScope, contextIdFlow, this)
+        val selectionHandler = SelectionHandler(contextRepository, goalRepository, viewModelScope, contextIdFlow, _listContent, this)
+        val inboxHandler = InboxHandler(contextRepository, inboxRepository, viewModelScope, contextIdFlow, this)
         val inboxMarkdownHandler = InboxMarkdownHandler(contextRepository, goalRepository, viewModelScope, this)
         val backlogMarkdownHandler = BacklogMarkdownHandler(contextRepository, goalRepository, viewModelScope, this)
 
@@ -363,7 +363,7 @@ class BacklogViewModel
         val isLoading = _isLoading.asStateFlow()
 
         val projectLogs: StateFlow<List<ContextLog>> =
-            projectIdFlow
+            contextIdFlow
                 .flatMapLatest { id ->
                     if (id.isNotEmpty()) {
                         contextRepository.getContextLogsStream(id)
@@ -374,7 +374,7 @@ class BacklogViewModel
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
         val contextArtifact: StateFlow<ContextArtifact?> =
-            projectIdFlow
+            contextIdFlow
                 .flatMapLatest { id ->
                     if (id.isNotEmpty()) {
                         contextRepository.getContextArtifactStream(id)
@@ -390,7 +390,7 @@ class BacklogViewModel
                 goalRepository,
                 listItemRepository,
                 viewModelScope,
-                projectIdFlow,
+                contextIdFlow,
                 this,
                 reminderParser,
                 alarmScheduler,
@@ -410,7 +410,7 @@ class BacklogViewModel
             contextHandler.contextMarkerToEmojiMap
 
         val project: StateFlow<com.romankozak.forwardappmobile.features.contexts.data.models.Context?> =
-            combine(projectIdFlow, _refreshTrigger) { id, _ -> id }
+            combine(contextIdFlow, _refreshTrigger) { id, _ -> id }
                 .flatMapLatest { id ->
                     if (id.isNotEmpty()) contextRepository.getContextByIdFlow(id) else flowOf(null)
                 }
@@ -446,7 +446,7 @@ class BacklogViewModel
 
         private val databaseContentStream: Flow<List<BacklogItemContent>> =
             combine(
-                projectIdFlow,
+                contextIdFlow,
                 _uiState.map { it.localSearchQuery }.distinctUntilChanged(),
                 _refreshTrigger,
             ) { id, query, _ ->
@@ -498,7 +498,7 @@ class BacklogViewModel
 
             var autoLinkChildProjectsEnsured = false
             viewModelScope.launch {
-                projectIdFlow
+                contextIdFlow
                     .filter { it.isNotEmpty() }
                     .flatMapLatest { contextId ->
                         contextStructureRepository.observeStructure(contextId).map { contextId to it }
@@ -630,7 +630,7 @@ class BacklogViewModel
             }
 
             viewModelScope.launch {
-                projectIdFlow
+                contextIdFlow
                     .filter { it.isNotEmpty() }
                     .collect { id ->
                         contextRepository.getContextById(id)?.let {
@@ -758,7 +758,7 @@ class BacklogViewModel
 
         fun onToggleProjectManagement(isEnabled: Boolean) {
             viewModelScope.launch {
-                contextRepository.toggleContextManagement(projectIdFlow.value, isEnabled)
+                contextRepository.toggleContextManagement(contextIdFlow.value, isEnabled)
             }
         }
 
@@ -767,14 +767,14 @@ class BacklogViewModel
             statusText: String?,
         ) {
             viewModelScope.launch {
-                contextRepository.updateContextStatus(projectIdFlow.value, newStatus, statusText)
+                contextRepository.updateContextStatus(contextIdFlow.value, newStatus, statusText)
             }
         }
 
         override fun addProjectComment(text: String) {
             if (text.isBlank()) return
             viewModelScope.launch(Dispatchers.IO) {
-                contextRepository.addContextComment(projectIdFlow.value, text)
+                contextRepository.addContextComment(contextIdFlow.value, text)
                 withContext(Dispatchers.Main) {
                     _uiState.update {
                         it.copy(
@@ -791,7 +791,7 @@ class BacklogViewModel
             if (text.isBlank()) return
             viewModelScope.launch(Dispatchers.IO) {
                 contextLogRepository.addContextLogEntry(
-                    contextId = projectIdFlow.value,
+                    contextId = contextIdFlow.value,
                     type = ContextLogEntryTypeValues.MILESTONE,
                     description = text,
                 )
@@ -821,13 +821,13 @@ class BacklogViewModel
                     return@launch
                 }
                 if (route.startsWith("goal_detail_screen/")) {
-                    val projectId = route.substringAfter("goal_detail_screen/")
+                    val contextId = route.substringAfter("goal_detail_screen/")
 
                     val projectName =
                         withContext(ioDispatcher) {
-                            contextRepository.getContextById(projectId)?.name ?: "Context"
+                            contextRepository.getContextById(contextId)?.name ?: "Context"
                         }
-                    enhancedNavigationManager.navigateToProject(projectId, projectName)
+                    enhancedNavigationManager.navigateToProject(contextId, projectName)
                     return@launch
                 } else if (route.startsWith(HANDLE_LINK_CLICK_ROUTE)) {
                     val target = route.substringAfter(HANDLE_LINK_CLICK_ROUTE + "/")
@@ -889,7 +889,7 @@ class BacklogViewModel
                             if (parts.size == 2) parts[0] to parts[1] else null
                         }.toMap()
                     NavTarget.NoteDocumentEdit(
-                        projectId = paramMap["projectId"]?.takeIf { it.isNotBlank() },
+                        contextId = paramMap["contextId"]?.takeIf { it.isNotBlank() },
                         documentId = paramMap["documentId"]?.takeIf { it.isNotBlank() },
                     )
                 }
@@ -902,7 +902,7 @@ class BacklogViewModel
                         }.toMap()
                     NavTarget.Checklist(
                         id = paramMap["checklistId"]?.takeIf { it.isNotBlank() },
-                        projectId = paramMap["projectId"]?.takeIf { it.isNotBlank() },
+                        contextId = paramMap["contextId"]?.takeIf { it.isNotBlank() },
                     )
                 }
                 route.startsWith("list_chooser_screen/") -> {
@@ -1048,15 +1048,15 @@ class BacklogViewModel
             _uiState.update { it.copy(selectedItemIds = selectedIds) }
         }
 
-        fun onListChooserResult(targetProjectId: String) {
+        fun onListChooserResult(targetcontextId: String) {
             pendingAttachmentShare?.let { attachment ->
                 pendingAttachmentShare = null
-                shareAttachmentToProject(attachment, targetProjectId)
+                shareAttachmentToProject(attachment, targetcontextId)
                 return
             }
 
             if (inboxHandler.recordForPromotion.value != null) {
-                inboxHandler.onListSelectedForInboxPromotion(targetProjectId)
+                inboxHandler.onListSelectedForInboxPromotion(targetcontextId)
                 return
             }
 
@@ -1067,19 +1067,19 @@ class BacklogViewModel
 
             viewModelScope.launch(Dispatchers.IO) {
                 when (actionType) {
-                    GoalActionType.CreateInstance -> goalRepository.createGoalLinks(goalIds, targetProjectId)
+                    GoalActionType.CreateInstance -> goalRepository.createGoalLinks(goalIds, targetcontextId)
 
-                    GoalActionType.MoveInstance -> listItemRepository.moveListItemsToContext(itemIds, targetProjectId)
-                    GoalActionType.CopyGoal -> goalRepository.copyGoalsToContext(goalIds, targetProjectId)
+                    GoalActionType.MoveInstance -> listItemRepository.moveListItemsToContext(itemIds, targetcontextId)
+                    GoalActionType.CopyGoal -> goalRepository.copyGoalsToContext(goalIds, targetcontextId)
                     GoalActionType.AddLinkToList -> {
-                        val targetProject = contextRepository.getContextById(targetProjectId)
+                        val targetProject = contextRepository.getContextById(targetcontextId)
                         val link =
                             RelatedLink(
                                 type = LinkType.CONTEXT,
-                                target = targetProjectId,
+                                target = targetcontextId,
                                 displayName = targetProject?.name ?: "Untitled context",
                             )
-                        val newItemId = contextRepository.addLinkItemToContextFromLink(projectIdFlow.value, link)
+                        val newItemId = contextRepository.addLinkItemToContextFromLink(contextIdFlow.value, link)
                         withContext(Dispatchers.Main) {
                             _uiState.update { it.copy(newlyAddedItemId = newItemId) }
                         }
@@ -1089,13 +1089,13 @@ class BacklogViewModel
                         if (goalIds.isNotEmpty()) {
                             val subprojectToLinkId = goalIds.first()
                             val newItemId =
-                                listItemRepository.addContextLinkToContext(subprojectToLinkId, targetProjectId)
+                                listItemRepository.addContextLinkToContext(subprojectToLinkId, targetcontextId)
                             withContext(Dispatchers.Main) {
                                 _uiState.update { it.copy(newlyAddedItemId = newItemId) }
                             }
                         } else {
                             val newItemId =
-                                listItemRepository.addContextLinkToContext(targetProjectId, projectIdFlow.value)
+                                listItemRepository.addContextLinkToContext(targetcontextId, contextIdFlow.value)
                             withContext(Dispatchers.Main) {
                                 _uiState.update { it.copy(newlyAddedItemId = newItemId) }
                             }
@@ -1112,7 +1112,7 @@ class BacklogViewModel
 
         private fun navigateToListChooser(title: String) {
             viewModelScope.launch {
-                val disabledIds = projectIdFlow.value
+                val disabledIds = contextIdFlow.value
                 _uiEventFlow.send(
                     UiEvent.Navigate(
                         NavTarget.ListChooser(
@@ -1140,7 +1140,7 @@ class BacklogViewModel
 
         private fun shareAttachmentToProject(
             attachment: BacklogItemContent,
-            targetProjectId: String,
+            targetcontextId: String,
         ) {
             viewModelScope.launch(Dispatchers.IO) {
                 val isAttachmentSupported =
@@ -1159,20 +1159,20 @@ class BacklogViewModel
                         contextRepository.ensureAttachmentLinkedToContext(
                             attachmentType = attachment.backlogItem.itemType,
                             entityId = attachment.backlogItem.entityId,
-                            targetContextId = targetProjectId,
+                            targetContextId = targetcontextId,
                             ownerContextId =
                                 attachment.backlogItem.contextId.takeIf { it.isNotBlank() }
-                                    ?: projectIdFlow.value,
+                                    ?: contextIdFlow.value,
                         )
                     } catch (e: Exception) {
-                        Log.e(TAG, "Failed to link attachment to project=$targetProjectId", e)
+                        Log.e(TAG, "Failed to link attachment to project=$targetcontextId", e)
                         withContext(Dispatchers.Main) {
                             showSnackbar("Failed to add attachment to context", null)
                         }
                         return@launch
                     }
                 withContext(Dispatchers.Main) {
-                    if (targetProjectId == projectIdFlow.value) {
+                    if (targetcontextId == contextIdFlow.value) {
                         _uiState.update { it.copy(newlyAddedItemId = attachmentId) }
                         forceRefresh()
                     }
@@ -1264,7 +1264,7 @@ class BacklogViewModel
                         listItemRepository.updateListItemsOrder(updatedItems)
                     }
                     if (attachmentOrders.isNotEmpty()) {
-                        contextRepository.updateAttachmentOrders(projectIdFlow.value, attachmentOrders)
+                        contextRepository.updateAttachmentOrders(contextIdFlow.value, attachmentOrders)
                     }
                     Log.d(
                         TAG,
@@ -1386,22 +1386,22 @@ class BacklogViewModel
                     viewModelScope.launch {
                         _uiEventFlow.send(
                             UiEvent.Navigate(
-                                NavTarget.NoteDocumentEdit(projectId = projectIdFlow.value),
+                                NavTarget.NoteDocumentEdit(contextId = contextIdFlow.value),
                             ),
                         )
                     }
                 }
                 AttachmentType.WEB_LINK -> inputHandler.onShowAddWebLinkDialog()
                 AttachmentType.OBSIDIAN_LINK -> inputHandler.onShowAddObsidianLinkDialog()
-                AttachmentType.PROJECT_LINK -> inputHandler.onAddListLinkRequest()
-                AttachmentType.PROJECT_SHORTCUT -> inputHandler.onAddListShortcutRequest()
+                AttachmentType.CONTEXT_LINK -> inputHandler.onAddListLinkRequest()
+                AttachmentType.CONTEXT_SHORTCUT -> inputHandler.onAddListShortcutRequest()
                 AttachmentType.CHECKLIST -> {
-                    val projectId = projectIdFlow.value
-                    if (projectId.isNotBlank()) {
+                    val contextId = contextIdFlow.value
+                    if (contextId.isNotBlank()) {
                         viewModelScope.launch {
                             _uiEventFlow.send(
                                 UiEvent.Navigate(
-                                    NavTarget.Checklist(projectId = projectId),
+                                    NavTarget.Checklist(contextId = contextId),
                                 ),
                             )
                         }
@@ -1423,8 +1423,8 @@ class BacklogViewModel
 
         fun deleteCurrentProject() {
             viewModelScope.launch(Dispatchers.IO) {
-                val projectId = projectIdFlow.value
-                if (projectId.isNotEmpty()) {
+                val contextId = contextIdFlow.value
+                if (contextId.isNotEmpty()) {
                     contextRepository.deleteContextsAndSubContexts(listOf(project.value!!))
                     withContext(Dispatchers.Main) { requestNavigation("back") }
                 }
@@ -1447,7 +1447,7 @@ class BacklogViewModel
                 Log.d("ATTACHMENT_DEBUG", "VM: Updating uiState.currentView to $newView.")
                 it.copy(currentView = newView, inputMode = getInputModeForView(newView))
             }
-            viewModelScope.launch { contextRepository.updateContextViewMode(projectIdFlow.value, newView) }
+            viewModelScope.launch { contextRepository.updateContextViewMode(contextIdFlow.value, newView) }
         }
 
         fun onDashboardTabSelected(tab: ContextManagementTab) {
@@ -1471,7 +1471,7 @@ class BacklogViewModel
         }
 
         fun onImportFromMarkdownConfirm(markdownText: String) {
-            inboxMarkdownHandler.importFromMarkdown(markdownText, projectIdFlow.value)
+            inboxMarkdownHandler.importFromMarkdown(markdownText, contextIdFlow.value)
             onImportFromMarkdownDismiss()
         }
 
@@ -1488,7 +1488,7 @@ class BacklogViewModel
         }
 
         fun onImportBacklogFromMarkdownConfirm(markdownText: String) {
-            backlogMarkdownHandler.importFromMarkdown(markdownText, projectIdFlow.value)
+            backlogMarkdownHandler.importFromMarkdown(markdownText, contextIdFlow.value)
             onImportBacklogFromMarkdownDismiss()
         }
 
@@ -1690,11 +1690,11 @@ class BacklogViewModel
         }
 
         fun onStartTrackingCurrentProject() {
-            val currentProjectId = projectIdFlow.value
-            if (currentProjectId.isBlank()) return
+            val currentcontextId = contextIdFlow.value
+            if (currentcontextId.isBlank()) return
 
             viewModelScope.launch {
-                val record = activityRepository.startContextActivity(currentProjectId)
+                val record = activityRepository.startContextActivity(currentcontextId)
                 if (record != null) {
                     showSnackbar("Відстежую проєкт", "Обмежити в часі")
                     pendingActivityForReminder = record
@@ -1720,13 +1720,13 @@ class BacklogViewModel
         }
 
         fun onRecalculateTime() {
-            val currentProjectId = projectIdFlow.value
-            if (currentProjectId.isNotBlank()) {
+            val currentcontextId = contextIdFlow.value
+            if (currentcontextId.isNotBlank()) {
                 viewModelScope.launch {
-                    val metrics = contextRepository.calculateContextTimeMetrics(currentProjectId)
+                    val metrics = contextRepository.calculateContextTimeMetrics(currentcontextId)
                     _uiState.update { it.copy(contextTimeMetrics = metrics) }
 
-                    contextRepository.recalculateAndLogContextTime(currentProjectId)
+                    contextRepository.recalculateAndLogContextTime(currentcontextId)
                 }
             }
         }
@@ -1767,8 +1767,8 @@ class BacklogViewModel
         }
 
         fun addCurrentProjectToDayPlan() {
-            val currentProjectId = projectIdFlow.value
-            if (currentProjectId.isBlank()) {
+            val currentcontextId = contextIdFlow.value
+            if (currentcontextId.isBlank()) {
                 showSnackbar("Неможливо додати, проект не визначено", null)
                 return
             }
@@ -1776,7 +1776,7 @@ class BacklogViewModel
             viewModelScope.launch {
                 val today = System.currentTimeMillis()
                 val dayPlan = dayManagementRepository.createOrUpdateDayPlan(today)
-                dayManagementRepository.addProjectToDayPlan(dayPlan.id, currentProjectId)
+                dayManagementRepository.addProjectToDayPlan(dayPlan.id, currentcontextId)
                 showSnackbar("Проект додано до плану на сьогодні", null)
             }
         }
@@ -1930,12 +1930,12 @@ class BacklogViewModel
 
         private fun updateProjectNameInHistory(newName: String) {}
 
-        fun onRevealInExplorer(currentProjectId: String) {
-            if (currentProjectId.isEmpty()) return
+        fun onRevealInExplorer(currentcontextId: String) {
+            if (currentcontextId.isEmpty()) return
 
             enhancedNavigationManager.navigateHomeWithResult(
                 key = "project_to_reveal",
-                value = currentProjectId,
+                value = currentcontextId,
             )
         }
 
@@ -2086,15 +2086,15 @@ class BacklogViewModel
         }
 
         fun onCreateChecklist() {
-            val projectId = projectIdFlow.value
-            if (projectId.isBlank()) {
+            val contextId = contextIdFlow.value
+            if (contextId.isBlank()) {
                 showSnackbar("Не вдалося створити чекліст для невідомого проєкту", null)
                 return
             }
             viewModelScope.launch {
                 _uiEventFlow.send(
                     UiEvent.Navigate(
-                        NavTarget.Checklist(projectId = projectId),
+                        NavTarget.Checklist(contextId = contextId),
                     ),
                 )
             }
@@ -2105,7 +2105,7 @@ class BacklogViewModel
                 _uiState.update { it.copy(showCreateNoteDocumentDialog = false) }
                 _uiEventFlow.send(
                     UiEvent.Navigate(
-                        NavTarget.NoteDocumentEdit(projectId = projectIdFlow.value),
+                        NavTarget.NoteDocumentEdit(contextId = contextIdFlow.value),
                     ),
                 )
             }
@@ -2153,7 +2153,7 @@ class BacklogViewModel
                 Log.d("NoteTitleExtractor", "onSaveNoteDocument called, content length=${content.length}")
                 val title = extractTitleFromContent(content)
                 Log.d("NoteTitleExtractor", "onSaveNoteDocument extracted title='$title'")
-                noteDocumentRepository.createDocument(title, projectIdFlow.value, content)
+                noteDocumentRepository.createDocument(title, contextIdFlow.value, content)
                 onDismissNoteDocumentEditor()
             }
         }
@@ -2165,7 +2165,7 @@ class BacklogViewModel
         fun onAddMilestone() {
             viewModelScope.launch {
                 contextLogRepository.addContextLogEntry(
-                    contextId = projectIdFlow.value,
+                    contextId = contextIdFlow.value,
                     type = ContextLogEntryTypeValues.MILESTONE,
                     description = "New Milestone",
                 )
@@ -2179,7 +2179,7 @@ class BacklogViewModel
                     contextRepository.createContextArtifact(
                         ContextArtifact(
                             id = UUID.randomUUID().toString(),
-                            contextId = projectIdFlow.value,
+                            contextId = contextIdFlow.value,
                             content = content,
                             createdAt = System.currentTimeMillis(),
                             updatedAt = System.currentTimeMillis(),
