@@ -284,7 +284,8 @@ class ContextFactory {
   я в процесі рефакторинга. мета його - перейменувати сутність проекти на сутність контексти. по всьому коду. і зробити щоб це компілювалося. зроблено я сказав би на 80%. 
   запусти ./gradlew compileExpDebugKotlin. визнач помилки і виправ їх. заверш рефакторинг
 
-   > я в процесі рефакторинга. мета його - перейменувати сутність проекти на сутність           │
-│   контексти. по всьому коду. і зробити щоб це компілювалося. зроблено я сказав би на 80%.    │
-│     запусти ./gradlew compileExpDebugKotlin. визнач помилки і виправ їх. заверш рефакторинг  │
-╰─────────────────────────────────────────────────────────────────────────────────────────────
+AttachmentRepository.kt
+AttachmentsViewModel.kt
+
+app/src/main/java/com/romankozak/forwardappmobile/features/attachments/ui/context/AttachmentsViewModel
+app/src/main/java/com/romankozak/forwardappmobile/features/attachments/data/AttachmentRepository
