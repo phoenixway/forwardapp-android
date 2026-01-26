@@ -5,7 +5,6 @@ import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
-import androidx.core.net.toUri
 import androidx.room.withTransaction
 import com.google.gson.GsonBuilder
 import com.romankozak.forwardappmobile.core.context.ContextId
@@ -24,15 +23,7 @@ import com.romankozak.forwardappmobile.features.daymanagement.data.models.*
 import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
 import com.romankozak.forwardappmobile.features.recent.data.models.*
 import dagger.hilt.android.qualifiers.ApplicationContext
-import io.ktor.client.*
-import io.ktor.client.call.body
-import io.ktor.client.engine.cio.CIO
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.request.*
-import io.ktor.http.*
-import io.ktor.serialization.gson.gson
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.first
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
@@ -63,18 +54,10 @@ class SyncRepository @Inject constructor(
     private val aiInsightDao: AiInsightDao,
 ) {
     private val TAG = "SyncRepository"
-    private val WIFI_SYNC_TAG = "WIFI_SYNC"
-    private val WIFI_LOG = "FWD_SYNC_WIFI"
 
     private val gson = GsonBuilder()
         .registerTypeAdapter(Long::class.java, LongDeserializer())
         .create()
-
-    private val client by lazy {
-        HttpClient(CIO) {
-            install(ContentNegotiation) { gson() }
-        }
-    }
 
     suspend fun exportFullBackupToFile(): Result<String> = try {
         val json = createFullBackupJsonString()
@@ -196,19 +179,6 @@ class SyncRepository @Inject constructor(
         return allSyncedTimes.minOrNull()
     }
 
-    suspend fun fetchBackupFromWifi(address: String, deltaSince: Long? = null): Result<String> = try {
-        Log.d(WIFI_LOG, "Fetching from $address, deltaSince=$deltaSince")
-        val fullUrl = buildWifiUrl(address, "/export").let { base ->
-            if (deltaSince != null) "$base?deltaSince=$deltaSince" else base
-        }
-        val response: String = client.get(fullUrl).body()
-        Log.d(WIFI_LOG, "Successfully fetched ${response.length} bytes")
-        Result.success(response)
-    } catch (e: Exception) {
-        Log.e(WIFI_LOG, "Error fetching from Wi‑Fi", e)
-        Result.failure(e)
-    }
-
     suspend fun createSyncReport(jsonString: String): SyncReport {
         val backup = gson.fromJson(jsonString, FullAppBackup::class.java)
         val incomingDb = backup.database ?: return SyncReport(emptyList())
@@ -285,20 +255,6 @@ class SyncRepository @Inject constructor(
             Log.e(TAG, "Failed to parse backup file", e)
             Result.failure(e)
         }
-    }
-
-    suspend fun createDeltaBackupJsonString(deltaSince: Long): String {
-        val changes = syncLocalService.getChangesSince(deltaSince)
-
-        val enrichedCrossRefs = logicHelper.synthesizeMissingCrossRefs(
-            attachments = changes.attachments,
-            existingCrossRefs = changes.contextAttachmentCrossRefs,
-        )
-
-        runCatching { attachmentDao.insertContextAttachmentLinks(enrichedCrossRefs) }
-
-        val deltaBackup = FullAppBackup(database = changes.copy(contextAttachmentCrossRefs = enrichedCrossRefs))
-        return gson.toJson(deltaBackup)
     }
 
     suspend fun applyServerChanges(changes: DatabaseContent): Result<Unit> {
@@ -535,50 +491,6 @@ class SyncRepository @Inject constructor(
         }
     }
 
-    suspend fun pushUnsyncedToWifi(address: String): Result<Unit> = try {
-        Log.d(WIFI_SYNC_TAG, "[pushUnsyncedToWifi] Початок процесу. Адреса: $address")
-
-        val unsynced = syncLocalService.getUnsyncedChanges()
-
-        Log.d(
-            WIFI_SYNC_TAG,
-            "[pushUnsyncedToWifi] Знайдено змін: projects=${unsynced.projects.size}, " +
-                    "goals=${unsynced.goals.size}, listItems=${unsynced.backlogItems.size}, " +
-                    "attachments=${unsynced.attachments.size}",
-        )
-
-        if (unsynced.projects.isEmpty() && unsynced.goals.isEmpty() &&
-            unsynced.backlogItems.isEmpty() && unsynced.attachments.isEmpty() &&
-            unsynced.documents.isEmpty()) {
-            Log.d(WIFI_SYNC_TAG, "[pushUnsyncedToWifi] Несинхронізованих даних не знайдено. Пропускаємо.")
-            Result.success(Unit)
-        } else {
-            val fullUrl = buildWifiUrl(address, "/import")
-            val backupWrapper = FullAppBackup(database = unsynced)
-            val payload = gson.toJson(backupWrapper)
-
-            Log.d(WIFI_SYNC_TAG, "[pushUnsyncedToWifi] POST запит на $fullUrl. Розмір payload: ${payload.length} байт")
-
-            val response = client.post(fullUrl) {
-                contentType(ContentType.Application.Json)
-                setBody(payload)
-            }
-
-            if (response.status.isSuccess()) {
-                Log.d(WIFI_SYNC_TAG, "[pushUnsyncedToWifi] Дані успішно прийнято сервером. Оновлюємо локальний статус.")
-                syncLocalService.markSyncedNow(unsynced)
-                Result.success(Unit)
-            } else {
-                val errorMsg = "Сервер повернув помилку: ${response.status.value}"
-                Log.e(WIFI_SYNC_TAG, "[pushUnsyncedToWifi] $errorMsg")
-                Result.failure(Exception(errorMsg))
-            }
-        }
-    } catch (e: Exception) {
-        Log.e(WIFI_SYNC_TAG, "[pushUnsyncedToWifi] Критична помилка під час синхронізації", e)
-        Result.failure(e)
-    }
-
     suspend fun exportAttachmentsToFile(): Result<String> = try {
         val backupJson = createAttachmentsBackupJsonString()
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
@@ -657,13 +569,6 @@ class SyncRepository @Inject constructor(
             Log.e(IMPORT_TAG, "Critical error during attachments import", e)
             return Result.failure(e)
         }
-    }
-
-    private suspend fun buildWifiUrl(address: String, path: String): String {
-        val cleanAddress = address.trim().let { if (it.startsWith("http")) it else "http://$it" }
-        val uri = cleanAddress.toUri()
-        val port = if (uri.port != -1) uri.port else settingsRepository.wifiSyncPortFlow.first()
-        return "http://${uri.host}:$port$path"
     }
 
     private fun readTextFromUri(uri: Uri): String? =
