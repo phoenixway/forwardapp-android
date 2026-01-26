@@ -340,8 +340,6 @@ private fun migrateSpecialProjectsWithSystemKeys(db: SupportSQLiteDatabase) {
             db = db,
             key = ReservedContextKeys.ACTIVE_QUESTS,
             defaultName = "active-quests",
-            projectType = "RESERVED",
-            reservedGroup = ReservedGroup.Strategic.groupName,
             parentId = weekId,
             legacyNames = listOf("active-quests", "Активні квести"),
             legacyNamePatterns = listOf("active-quests%"),
