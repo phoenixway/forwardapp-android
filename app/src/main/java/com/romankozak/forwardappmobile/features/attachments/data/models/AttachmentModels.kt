@@ -21,7 +21,9 @@ data class AttachmentEntity(
     @PrimaryKey @SerializedName(value = "id", alternate = ["a"]) val id: String = UUID.randomUUID().toString(),
     @ColumnInfo(name = "attachment_type") @SerializedName(value = "attachmentType", alternate = ["b"]) val attachmentType: String,
     @ColumnInfo(name = "entity_id") @SerializedName(value = "entityId", alternate = ["c"]) val entityId: String,
-    @ColumnInfo(name = "owner_context_id") @SerializedName(value = "ownerContextId", alternate = ["d", "ownerProjectId"]) val ownerContextId: String? = null,
+    @ColumnInfo(
+        name = "owner_context_id",
+    ) @SerializedName(value = "ownerContextId", alternate = ["d", "ownerProjectId"]) val ownerContextId: String? = null,
     @ColumnInfo(name = "role_code") val roleCode: String? = null,
     @ColumnInfo(name = "is_system", defaultValue = "0") val isSystem: Boolean = false,
     @SerializedName(value = "createdAt", alternate = ["crAt"]) val createdAt: Long = System.currentTimeMillis(),

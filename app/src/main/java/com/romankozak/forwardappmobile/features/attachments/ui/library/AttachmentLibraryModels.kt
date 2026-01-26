@@ -6,7 +6,7 @@ enum class AttachmentLibraryType {
     NOTE_DOCUMENT,
     CHECKLIST,
     LINK,
-    CONTEXT
+    CONTEXT,
 }
 
 enum class AttachmentLibraryFilter {

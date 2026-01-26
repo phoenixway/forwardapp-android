@@ -13,7 +13,6 @@ import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
  * Не містить залежностей від бази даних чи контексту Android.
  */
 object SyncMapper {
-
     // --- Методи нормалізації ---
 
     fun normalizeGoal(goal: Goal): Goal {
@@ -26,12 +25,12 @@ object SyncMapper {
             valueImpact = goal.valueImpact,
             effort = goal.effort,
             cost = goal.cost,
-            risk = goal.risk
+            risk = goal.risk,
         )
     }
 
     fun normalizeProject(
-        project: com.romankozak.forwardappmobile.features.contexts.data.models.Context
+        project: com.romankozak.forwardappmobile.features.contexts.data.models.Context,
     ): com.romankozak.forwardappmobile.features.contexts.data.models.Context {
         return project.copy(
             tags = project.tags ?: emptyList(),
@@ -44,15 +43,14 @@ object SyncMapper {
             scoringStatus = project.scoringStatus ?: ScoringStatusValues.NOT_ASSESSED,
             contextType = project.contextType ?: ContextType.DEFAULT,
             // ViewMode залишаємо як є (не форсуємо BACKLOG при синхронізації)
-            defaultViewModeName = project.defaultViewModeName
+            defaultViewModeName = project.defaultViewModeName,
         )
     }
 
     // --- Extension-функції для обчислення мітки часу оновлення (updatedTs) ---
     // Використовується для алгоритму LWW (Last-Write-Wins)
 
-    fun com.romankozak.forwardappmobile.features.contexts.data.models.Context.updatedTs(): Long =
-        this.updatedAt ?: this.createdAt
+    fun com.romankozak.forwardappmobile.features.contexts.data.models.Context.updatedTs(): Long = this.updatedAt ?: this.createdAt
 
     fun Goal.updatedTs(): Long = this.updatedAt ?: this.createdAt
 
@@ -66,8 +64,7 @@ object SyncMapper {
 
     fun ChecklistItemEntity.updatedTs(): Long = this.updatedAt ?: this.version
 
-    fun ActivityRecord.updatedTs(): Long =
-        this.updatedAt ?: (this.endTime ?: this.startTime ?: this.createdAt)
+    fun ActivityRecord.updatedTs(): Long = this.updatedAt ?: (this.endTime ?: this.startTime ?: this.createdAt)
 
     fun InboxRecord.updatedTs(): Long = this.updatedAt ?: this.createdAt
 
@@ -83,8 +80,7 @@ object SyncMapper {
 
     fun AttachmentEntity.updatedTs(): Long = this.updatedAt
 
-    fun ContextAttachmentCrossRef.updatedTs(): Long =
-        this.updatedAt ?: this.attachmentOrder.toLong()
+    fun ContextAttachmentCrossRef.updatedTs(): Long = this.updatedAt ?: this.attachmentOrder.toLong()
 
     fun DayPlan.updatedTs(): Long = this.updatedAt ?: this.createdAt
 
