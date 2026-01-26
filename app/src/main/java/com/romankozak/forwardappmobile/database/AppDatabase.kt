@@ -57,14 +57,12 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfile
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfileItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextStructureItem
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextTypeConverter
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextsFts
 import com.romankozak.forwardappmobile.features.contexts.data.models.Converters
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.data.models.GoalFts
 import com.romankozak.forwardappmobile.features.contexts.data.models.InboxRecord
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedGroupConverter
 import com.romankozak.forwardappmobile.features.contexts.data.models.SystemAppEntity
 import com.romankozak.forwardappmobile.features.daymanagement.data.models.DailyMetric
 import com.romankozak.forwardappmobile.features.daymanagement.data.models.DailyPlanConverters
@@ -126,7 +124,7 @@ import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
     version = 94,
     exportSchema = true,
 )
-@TypeConverters(Converters::class, DailyPlanConverters::class, ContextTypeConverter::class, ReservedGroupConverter::class)
+@TypeConverters(Converters::class, DailyPlanConverters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun contextDao(): ContextDao
 

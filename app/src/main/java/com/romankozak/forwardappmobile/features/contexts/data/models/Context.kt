@@ -5,23 +5,6 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
-enum class ContextType {
-    DEFAULT,
-    RESERVED,
-    SYSTEM,
-    ;
-
-    companion object {
-        fun fromString(value: String?): ContextType {
-            return try {
-                if (value == null) ContextType.DEFAULT else valueOf(value)
-            } catch (e: IllegalArgumentException) {
-                ContextType.DEFAULT
-            }
-        }
-    }
-}
-
 @Entity(
     tableName = "contexts",
     indices = [
@@ -63,7 +46,5 @@ data class Context(
     @ColumnInfo(defaultValue = "0") val displayScore: Int = 0,
     @ColumnInfo(name = "scoring_status") val scoringStatus: String = ScoringStatusValues.NOT_ASSESSED,
     @ColumnInfo(name = "show_checkboxes", defaultValue = "0") val showCheckboxes: Boolean = false,
-    @ColumnInfo(name = "context_type", defaultValue = "'DEFAULT'") val contextType: ContextType = ContextType.DEFAULT,
-    @ColumnInfo(name = "reserved_group") val reservedGroup: ReservedGroup? = null,
     @ColumnInfo(name = "role_code") val roleCode: String? = null,
 )

@@ -1,14 +1,10 @@
 package com.romankozak.forwardappmobile.features.daymanagement.ui
 
-import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.di.IoDispatcher
 import com.romankozak.forwardappmobile.core.navigation.routes.DAY_PLAN_DATE_ARG
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextType
-import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedGroup
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.channels.Channel
@@ -72,14 +68,8 @@ class DayManagementViewModel
 
         fun onInboxClicked() {
             viewModelScope.launch(ioDispatcher) {
-                val projects = contextRepository.getAllContexts()
-                val specialProject = projects.find { it.contextType == ContextType.SYSTEM }
-                if (specialProject != null) {
-                    val inboxProject = projects.find { it.reservedGroup == ReservedGroup.Inbox && it.parentId == specialProject.id }
-                    inboxProject?.let {
-                        _uiEvent.send(DayManagementUiEvent.NavigateToProject(it.id))
-                    }
-                }
+                val inboxContextId = SystemContexts.INBOX.raw
+                _uiEvent.send(DayManagementUiEvent.NavigateToProject(inboxContextId))
             }
         }
 

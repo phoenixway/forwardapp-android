@@ -291,3 +291,10 @@ app/src/main/java/com/romankozak/forwardappmobile/features/attachments/ui/contex
 app/src/main/java/com/romankozak/forwardappmobile/features/attachments/data/AttachmentRepository
 app/src/main/java/com/romankozak/forwardappmobile/features/attachments/ui/library/AttachmentsLibraryScreen.kt
 /app/src/main/java/com/romankozak/forwardappmobile/features/attachments/ui/library/AttachmentsLibraryViewModel.kt
+
+Ось оновлений, максимально деталізований промпт для агента. Він побудований на принципі **"Test-Driven Refactoring"** — ми не переходимо до наступного кроку, поки не переконаємося, що поточний працює на реальному пристрої.
+
+***
+
+пошукай в @app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/DatabaseInitializer.kt і інших місцях які ще системні і зарезервовані проекти використовувалися. забув сказати - я в процесі рефакторинга. мета його - перейменувати сутність проекти на сутність контексти. по всьому коду. і зробити щоб це компілювалося. зроблено я сказав би на 80%. тобто проекти - це стара назва, контексти - нова 
+

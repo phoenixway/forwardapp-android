@@ -17,7 +17,6 @@ import com.google.gson.JsonSerializationContext
 import com.google.gson.JsonSerializer
 import com.romankozak.forwardappmobile.data.repository.SyncRepository
 import com.romankozak.forwardappmobile.data.sync.FullAppBackup
-import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedGroup
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.gson.gson
@@ -52,29 +51,9 @@ class WifiSyncServer(
     private val TAG = "WifiSyncServer"
     private val DEBUG_TAG = "FWD_SYNC_TEST"
     private var server: ApplicationEngine? = null
-    private val reservedGroupAdapter =
-        object :
-            JsonSerializer<ReservedGroup>,
-            JsonDeserializer<ReservedGroup> {
-            override fun serialize(
-                src: ReservedGroup?,
-                typeOfSrc: Type?,
-                ctx: JsonSerializationContext?,
-            ): JsonElement? = src?.let { JsonPrimitive(it.groupName) }
 
-            override fun deserialize(
-                json: JsonElement?,
-                typeOfT: Type?,
-                ctx: JsonDeserializationContext?,
-            ): ReservedGroup? {
-                if (json == null || json.isJsonNull) return null
-                if (json.isJsonPrimitive) return ReservedGroup.Companion.fromString(json.asString)
-                throw JsonParseException("Invalid ReservedGroup json: $json")
-            }
-        }
     private val gson: Gson by lazy {
         GsonBuilder()
-            .registerTypeAdapter(ReservedGroup::class.java, reservedGroupAdapter)
             .setPrettyPrinting()
             .create()
     }
@@ -107,7 +86,6 @@ class WifiSyncServer(
                 embeddedServer(CIO, port = port, host = "0.0.0.0") {
                     install(ContentNegotiation) {
                         gson {
-                            registerTypeAdapter(ReservedGroup::class.java, reservedGroupAdapter)
                             setPrettyPrinting()
                         }
                     }

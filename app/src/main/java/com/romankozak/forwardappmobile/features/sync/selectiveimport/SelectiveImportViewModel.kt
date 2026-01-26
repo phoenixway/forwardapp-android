@@ -1,11 +1,7 @@
 package com.romankozak.forwardappmobile.features.sync.selectiveimport
 
-import android.app.Application
-import android.net.Uri
-import android.util.Log
-import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import com.romankozak.forwardappmobile.core.context.ContextId
+import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.data.repository.SyncRepository
 import com.romankozak.forwardappmobile.data.sync.DatabaseContent
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -110,7 +106,7 @@ class SelectiveImportViewModel
                 Log.d("IMPORT_DEBUG", "Root projects (no parent): ${selectedProjects.filter { it.parentId == null }.size}")
 
                 // Filter out system projects (those with systemKey) to prevent duplication
-                val regularProjects = selectedProjects.filter { it.systemKey == null }
+                val regularProjects = selectedProjects.filter { !SystemContexts.isSystem(ContextId(it.id)) }
                 val systemProjectsCount = selectedProjects.size - regularProjects.size
                 Log.d("IMPORT_DEBUG", "Regular (non-system) projects: ${regularProjects.size}, System projects: $systemProjectsCount")
 
@@ -139,7 +135,7 @@ class SelectiveImportViewModel
 
                     // Parent must be either a system project or a selected regular project
                     val isParentValid =
-                        if (parentProject.systemKey != null) {
+                        if (SystemContexts.isSystem(ContextId(parentProject.id))) {
                             // System projects already exist in DB, so they're valid
                             true
                         } else {

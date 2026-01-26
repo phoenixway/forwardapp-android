@@ -73,11 +73,7 @@ interface ContextDao {
     @Query("SELECT * FROM contexts WHERE tags LIKE '%' || :tag || '%'")
     suspend fun getContextsByTag(tag: String): List<Context>
 
-    @Query("SELECT * FROM contexts WHERE context_type = :contextType")
-    suspend fun getContextsByType(contextType: String): List<Context>
 
-    @Query("SELECT * FROM contexts WHERE reserved_group = :reservedGroup")
-    suspend fun getContextsByReservedGroup(reservedGroup: String): List<Context>
 
     @Query("SELECT id FROM contexts WHERE tags LIKE '%' || :tag || '%' ORDER BY goal_order ASC, createdAt ASC")
     suspend fun getContextIdsByTag(tag: String): List<String>
