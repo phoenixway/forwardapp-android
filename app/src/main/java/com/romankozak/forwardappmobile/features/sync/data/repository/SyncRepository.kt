@@ -1,8 +1,6 @@
 package com.romankozak.forwardappmobile.features.sync.data.repository
 
 import android.net.Uri
-import com.romankozak.forwardappmobile.data.repository.AttachmentsRepository
-import com.romankozak.forwardappmobile.data.repository.BackupRepository
 import com.romankozak.forwardappmobile.data.repository.MergeRepository
 import com.romankozak.forwardappmobile.data.repository.SyncChange
 import com.romankozak.forwardappmobile.data.repository.SyncReport

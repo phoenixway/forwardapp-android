@@ -45,7 +45,7 @@ import android.content.Context as AndroidContext
  * Manages export/import of full database backups to/from files.
  */
 @Singleton
-internal class SyncFileService @Inject constructor(
+class SyncFileService @Inject constructor(
     @param:ApplicationContext private val context: AndroidContext,
     private val appDatabase: AppDatabase,
     private val syncLocalService: SyncLocalService,

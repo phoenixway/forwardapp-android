@@ -1,14 +1,13 @@
-package com.romankozak.forwardappmobile.data.repository
+package com.romankozak.forwardappmobile.features.sync.data.repository
 
 import android.net.Uri
 import android.util.Log
 import androidx.room.withTransaction
 import com.google.gson.GsonBuilder
-import com.romankozak.forwardappmobile.data.dao.*
+import com.romankozak.forwardappmobile.data.repository.SyncLogicHelper
 import com.romankozak.forwardappmobile.data.sync.*
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.attachments.data.*
-import com.romankozak.forwardappmobile.features.attachments.data.models.*
 import com.romankozak.forwardappmobile.features.contexts.data.dao.*
 import java.text.SimpleDateFormat
 import java.util.*

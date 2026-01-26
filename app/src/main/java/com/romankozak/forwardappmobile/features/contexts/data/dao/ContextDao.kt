@@ -34,10 +34,10 @@ interface ContextDao {
     @Update
     suspend fun update(contexts: List<Context>): Int
 
-    @Query("DELETE FROM contexts WHERE id = :id AND context_type = 'DEFAULT'")
+    @Query("DELETE FROM contexts WHERE id = :id")
     suspend fun delete(id: String)
 
-    @Query("DELETE FROM contexts WHERE id = :contextId AND context_type = 'DEFAULT'")
+    @Query("DELETE FROM contexts WHERE id = :contextId")
     suspend fun deleteContextById(contextId: String)
 
     @Query("SELECT * FROM contexts WHERE id IN (:contextIds)")
