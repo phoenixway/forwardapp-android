@@ -25,7 +25,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.features.activitytracker.ActivityTrackerScreen
 import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask
-import com.romankozak.forwardappmobile.features.daymanagement.ui.components.DayManagementBottomBar
+
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayanalitics.DayAnalyticsScreen
 import com.romankozak.forwardappmobile.features.daymanagement.ui.daydashboard.DayDashboardScreen
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanScreen
@@ -86,25 +86,7 @@ fun DayManagementScreen(
         containerColor = Color.Transparent,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        bottomBar = {
-            if (uiState.dayPlanId != null) {
-                if (tabs[pagerState.currentPage] == DayManagementTab.PLAN) {
-                    DayManagementBottomBar(
-                        onAddTask = { addTaskTrigger++ },
-                        onNavigateToSettings = { mainNavController.navigate("settings_screen") },
-                    )
-                } else {
-                    DayManagementBottomNav(
-                        currentTab = tabs[pagerState.currentPage],
-                        onTabSelected = { tab ->
-                            coroutineScope.launch { pagerState.animateScrollToPage(tab.ordinal) }
-                        },
-                        onHomeClick = { mainNavController.popBackStack() },
-                        onInboxClick = { viewModel.onInboxClicked() },
-                    )
-                }
-            }
-        },
+
         floatingActionButton = {},
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {

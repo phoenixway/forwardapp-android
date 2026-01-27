@@ -672,9 +672,9 @@ class ContextHierarchyScreenViewModel
                 is ContextHierarchyScreenEvent.OpenInboxContext -> {
                     viewModelScope.launch {
                         val inboxProject =
-                            _allProjectsFlat.value.firstOrNull { it.id == SystemContexts.INBOX.id.id }
+                            _allProjectsFlat.value.firstOrNull { it.id == SystemContexts.INBOX.raw }
                                 ?: _allProjectsFlat.value.firstOrNull {
-                                    it.name.equals("Inbox", ignoreCase = true) && it.id != SystemContexts.TODAY.id.id
+                                    it.name.equals("Inbox", ignoreCase = true) && it.id != SystemContexts.TODAY.raw
                                 }
                         if (inboxProject == null) {
                             _uiEventChannel.send(ProjectUiEvent.ShowToast("Inbox project not found"))
@@ -794,7 +794,7 @@ class ContextHierarchyScreenViewModel
 
         private fun createNoteInInbox() {
             val inboxProjectId =
-                _allProjectsFlat.value.firstOrNull { it.id == SystemContexts.INBOX.id }?.id
+                _allProjectsFlat.value.firstOrNull { it.id == SystemContexts.INBOX.raw }?.id
             if (inboxProjectId == null) {
                 viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.ShowToast("Inbox проект не знайдено")) }
                 return
@@ -816,7 +816,7 @@ class ContextHierarchyScreenViewModel
 
         private fun createChecklistInInbox() {
             val inboxProjectId =
-                _allProjectsFlat.value.firstOrNull { it.id == SystemContexts.INBOX.id }?.id
+                _allProjectsFlat.value.firstOrNull { it.id == SystemContexts.INBOX.raw }?.id
             if (inboxProjectId == null) {
                 viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.ShowToast("Inbox проект не знайдено")) }
                 return
@@ -879,9 +879,9 @@ class ContextHierarchyScreenViewModel
             withContext(ioDispatcher) {
                 val allProjects = _allProjectsFlat.first()
                 val inboxProject =
-                    allProjects.firstOrNull { it.id == SystemContexts.INBOX.id }
+                    allProjects.firstOrNull { it.id == SystemContexts.INBOX.raw }
                         ?: allProjects.firstOrNull {
-                            it.name.equals("Inbox", ignoreCase = true) && it.id != SystemContexts.TODAY.id
+                            it.name.equals("Inbox", ignoreCase = true) && it.id != SystemContexts.TODAY.raw
                         }
                 inboxProject?.id
             }

@@ -39,6 +39,7 @@ import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlan
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.features.recent.data.models.RecentItem
+import com.romankozak.forwardappmobile.features.mainscreen.StrategicArcViewModel
 import com.romankozak.forwardappmobile.features.strategicmanagement.StrategicManagementScreen
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckHeaderPreset
@@ -219,17 +220,17 @@ fun MainScreenLayout(
                 }
             },
             bottomBar = {
-                if (currentRoute == MAIN_SCREEN_DASHBOARD_ROUTE) {
-                    Box(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 12.dp)
-                                .clip(RoundedCornerShape(20.dp))
-                                .then(CommandDeckBackgroundModifier())
-                                .padding(horizontal = 22.dp, vertical = 12.dp),
-                    ) {
-                        DashboardBottomBar(
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                            .then(CommandDeckBackgroundModifier())
+                            .padding(horizontal = 22.dp, vertical = 12.dp),
+                ) {
+                    when (currentRoute) {
+                        MAIN_SCREEN_DASHBOARD_ROUTE -> DashboardBottomBar(
                             onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
                             onNavigateToProjectSearch = {
                                 navController.navigate(GOAL_LISTS_ROUTE) {
@@ -251,6 +252,18 @@ fun MainScreenLayout(
                             onNavigateToRecentItem = onNavigateToRecentItem,
                             recentViewModel = recentViewModel,
                         )
+                        MAIN_SCREEN_STRATEGIC_ARC_ROUTE -> {
+                            val entry = remember(navBackStackEntry) { innerNavController.getBackStackEntry(MAIN_SCREEN_STRATEGIC_ARC_ROUTE) }
+                            val viewModel: StrategicArcViewModel = hiltViewModel(entry)
+                            StrategicArcBottomBar(viewModel)
+                        }
+                        MAIN_SCREEN_TODAY_ROUTE -> {
+                            val entry = remember(navBackStackEntry) { innerNavController.getBackStackEntry(MAIN_SCREEN_TODAY_ROUTE) }
+                            val viewModel: DayPlanViewModel = hiltViewModel(entry)
+                            TodayBottomBar(viewModel, onNavigateToSettings)
+                        }
+                        MAIN_SCREEN_CORE_ROUTE -> CoreBottomBar()
+                        MAIN_SCREEN_TACTICS_ROUTE -> TacticsBottomBar()
                     }
                 }
             },
