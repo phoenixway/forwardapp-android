@@ -1,3 +1,6 @@
+🧰
+
+
  codex resume 019add97-00ee-7470-a66e-5d10290cd78c
 
  codex resume 019adab2-2e46-7cc1-9be5-b7214f2f9e50
@@ -466,4 +469,30 @@ Database Initializer: Онови RoomDatabase.Callback, щоб при чисті
        * У DatabaseModule.kt (у RoomDatabase.Callback для чистої установки).
    4. Видалити `ReservedContextKeys.kt` (після реалізації нової логіки).
    5. Видалити `migrateSpecialProjects` та її помічників (після реалізації нової логіки та перевірки).
+
+***
+
+
+  Загальна Мета: Завершити рефакторинг від ReservedContextKeys та systemKey до SystemContexts.
+
+  Поточний Стан:
+   1. MIGRATION_94_95 реалізовано та зареєстровано.
+   2. Всі посилання на systemKey у ContextDao.kt, SystemAppRepository.kt, ContextHierarchyScreenViewModel.kt, WifiSyncServer.kt, MergeRepository.kt, та DatabaseInitializer.kt виправлено.
+   3. SyncFileService.kt відновлено до чистого стану (без runPostBackupMigration()).
+   4. Користувач висловив занепокоєння щодо видалення runPostBackupMigration() (яка викликає migrateSpecialProjects), що була важливою для обробки системних проєктів після резервного копіювання.
+
+  Мій Переглянутий План (Цілі):
+
+   1. Перевірка Збірки: Успішно скомпілювати додаток, щоб переконатися, що всі посилання на systemKey вирішено. (Позначити TODO #1 як "in_progress")
+   2. Реалізувати нову Реконсиляцію Системних Контекстів:
+       * Створити новий клас/функцію `SystemContextReconciler`: Для забезпечення існування та правильної конфігурації всіх системних контекстів після імпорту резервної копії або чистої установки.
+       * Інтегрувати `SystemContextReconciler` у `SyncFileService.kt`: Викликати після імпорту повної резервної копії.
+       * Інтегрувати `SystemContextReconciler` у `DatabaseModule.kt`: Викликати у RoomDatabase.Callback для чистих установок.
+   3. Очищення:
+       * Запитати дозвіл користувача на видалення застарілої функції migrateSpecialProjects та її помічників з MigrationUtils.kt. (Позначити TODO #2 як "pending", #3 як "pending")
+       * Видалити функцію migrateSpecialProjects та її пов'язані приватні функції з MigrationUtils.kt (після підтвердження користувача).
+       * Видалити файл ReservedContextKeys.kt. (Позначити TODO #4 як "pending")
+   4. Фінальна Збірка та Перевірка: Виконати фінальну збірку та перевірку. (Позначити TODO #6 як "pending")
+
+  Я представлю цей план користувачеві. Мій негайний наступний крок – зібрати проєкт для підтвердження виправлення systemKey.
 
