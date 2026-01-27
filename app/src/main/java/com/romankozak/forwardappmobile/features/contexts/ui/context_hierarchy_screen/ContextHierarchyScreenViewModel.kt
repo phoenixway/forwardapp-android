@@ -672,9 +672,9 @@ class ContextHierarchyScreenViewModel
                 is ContextHierarchyScreenEvent.OpenInboxContext -> {
                     viewModelScope.launch {
                         val inboxProject =
-                            _allProjectsFlat.value.firstOrNull { it.id == SystemContexts.INBOX.id }
+                            _allProjectsFlat.value.firstOrNull { it.id == SystemContexts.INBOX.id.id }
                                 ?: _allProjectsFlat.value.firstOrNull {
-                                    it.name.equals("Inbox", ignoreCase = true) && it.id != SystemContexts.TODAY.id
+                                    it.name.equals("Inbox", ignoreCase = true) && it.id != SystemContexts.TODAY.id.id
                                 }
                         if (inboxProject == null) {
                             _uiEventChannel.send(ProjectUiEvent.ShowToast("Inbox project not found"))
