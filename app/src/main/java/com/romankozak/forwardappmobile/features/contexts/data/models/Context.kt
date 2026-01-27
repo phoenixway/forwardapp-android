@@ -7,16 +7,12 @@ import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "contexts",
-    indices = [
-        Index("system_key", unique = true, name = "idx_contexts_systemkey_unique"),
-    ],
 )
 data class Context(
     @PrimaryKey val id: String,
     val name: String,
     val description: String?,
     val parentId: String?,
-    @ColumnInfo(name = "system_key") val systemKey: String? = null,
     val createdAt: Long,
     val updatedAt: Long?,
     @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,

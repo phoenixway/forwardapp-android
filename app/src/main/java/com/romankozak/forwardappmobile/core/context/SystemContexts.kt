@@ -1,20 +1,20 @@
 package com.romankozak.forwardappmobile.core.context
 
 object SystemContexts {
-    val PERSONAL_MANAGEMENT = ContextId("personal-management")
-    val STRATEGIC = ContextId("strategic")
-    val STRATEGIC_BEACONS = ContextId("strategic-beacons")
-    val MISSION = ContextId("mission")
-    val LONG_TERM_STRATEGY = ContextId("long-term-strategy")
-    val STRATEGIC_PROGRAMS = ContextId("strategic-programs")
-    val MEDIUM_TERM_STRATEGY = ContextId("medium-term-strategy")
-    val ACTIVE_QUESTS = ContextId("active-quests")
-    val WEEK = ContextId("week")
-    val INBOX = ContextId("inbox")
-    val STRATEGIC_INBOX = ContextId("strategic-inbox")
-    val STRATEGIC_REVIEW = ContextId("strategic-review")
-    val MAIN_BEACONS = ContextId("main-beacons")
-    val TODAY = ContextId("today")
+    val PERSONAL_MANAGEMENT = ContextId("sys_personal-management")
+    val STRATEGIC = ContextId("sys_strategic")
+    val STRATEGIC_BEACONS = ContextId("sys_strategic-beacons")
+    val MISSION = ContextId("sys_mission")
+    val LONG_TERM_STRATEGY = ContextId("sys_long-term-strategy")
+    val STRATEGIC_PROGRAMS = ContextId("sys_strategic-programs")
+    val MEDIUM_TERM_STRATEGY = ContextId("sys_medium-term-strategy")
+    val ACTIVE_QUESTS = ContextId("sys_active-quests")
+    val WEEK = ContextId("sys_week")
+    val INBOX = ContextId("sys_inbox")
+    val STRATEGIC_INBOX = ContextId("sys_strategic-inbox")
+    val STRATEGIC_REVIEW = ContextId("sys_strategic-review")
+    val MAIN_BEACONS = ContextId("sys_main-beacons")
+    val TODAY = ContextId("sys_today")
 
     private val RESERVED = setOf(
         PERSONAL_MANAGEMENT,

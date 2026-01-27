@@ -49,8 +49,7 @@ interface ContextDao {
     @Query("SELECT * FROM contexts WHERE id = :id")
     fun getContextByIdStream(id: String): Flow<Context?>
 
-    @Query("SELECT * FROM contexts WHERE system_key = :systemKey")
-    suspend fun getContextBySystemKey(systemKey: String): Context?
+
 
     @Query("UPDATE contexts SET goal_order = :order WHERE id = :contextId")
     suspend fun updateOrder(

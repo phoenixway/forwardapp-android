@@ -6,6 +6,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.di.IoDispatcher
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
@@ -671,9 +672,9 @@ class ContextHierarchyScreenViewModel
                 is ContextHierarchyScreenEvent.OpenInboxContext -> {
                     viewModelScope.launch {
                         val inboxProject =
-                            _allProjectsFlat.value.firstOrNull { it.systemKey == ReservedContextKeys.INBOX }
+                            _allProjectsFlat.value.firstOrNull { it.id == SystemContexts.INBOX.id }
                                 ?: _allProjectsFlat.value.firstOrNull {
-                                    it.name.equals("Inbox", ignoreCase = true) && it.systemKey != ReservedContextKeys.TODAY
+                                    it.name.equals("Inbox", ignoreCase = true) && it.id != SystemContexts.TODAY.id
                                 }
                         if (inboxProject == null) {
                             _uiEventChannel.send(ProjectUiEvent.ShowToast("Inbox project not found"))
@@ -793,7 +794,7 @@ class ContextHierarchyScreenViewModel
 
         private fun createNoteInInbox() {
             val inboxProjectId =
-                _allProjectsFlat.value.firstOrNull { it.systemKey == ReservedContextKeys.INBOX }?.id
+                _allProjectsFlat.value.firstOrNull { it.id == SystemContexts.INBOX.id }?.id
             if (inboxProjectId == null) {
                 viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.ShowToast("Inbox проект не знайдено")) }
                 return
@@ -815,7 +816,7 @@ class ContextHierarchyScreenViewModel
 
         private fun createChecklistInInbox() {
             val inboxProjectId =
-                _allProjectsFlat.value.firstOrNull { it.systemKey == ReservedContextKeys.INBOX }?.id
+                _allProjectsFlat.value.firstOrNull { it.id == SystemContexts.INBOX.id }?.id
             if (inboxProjectId == null) {
                 viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.ShowToast("Inbox проект не знайдено")) }
                 return
@@ -878,9 +879,9 @@ class ContextHierarchyScreenViewModel
             withContext(ioDispatcher) {
                 val allProjects = _allProjectsFlat.first()
                 val inboxProject =
-                    allProjects.firstOrNull { it.systemKey == ReservedContextKeys.INBOX }
+                    allProjects.firstOrNull { it.id == SystemContexts.INBOX.id }
                         ?: allProjects.firstOrNull {
-                            it.name.equals("Inbox", ignoreCase = true) && it.systemKey != ReservedContextKeys.TODAY
+                            it.name.equals("Inbox", ignoreCase = true) && it.id != SystemContexts.TODAY.id
                         }
                 inboxProject?.id
             }

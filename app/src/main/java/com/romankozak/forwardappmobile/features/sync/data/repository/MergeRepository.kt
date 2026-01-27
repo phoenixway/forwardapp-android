@@ -123,12 +123,11 @@ class MergeRepository @Inject constructor(
                 val allProjectIds = local.projects.map { it.id }.toSet()
 
                 val idRedirects = mutableMapOf<String, String>()
-                val localSystemProjects = local.projects.filter { it.systemKey != null }.associateBy { it.systemKey!! }
+                val localSystemProjects = local.projects.filter { SystemContexts.isSystem(ContextId(it.id)) }.associateBy { it.id }
 
                 val correctedIncomingProjects = changes.projects.map { incoming ->
-                    val key = incoming.systemKey
-                    if (key != null) {
-                        localSystemProjects[key]?.let { localSys ->
+                    if (SystemContexts.isSystem(ContextId(incoming.id))) {
+                        localSystemProjects[incoming.id]?.let { localSys ->
                             if (localSys.id != incoming.id) {
                                 idRedirects[incoming.id] = localSys.id
                                 return@map incoming.copy(id = localSys.id)

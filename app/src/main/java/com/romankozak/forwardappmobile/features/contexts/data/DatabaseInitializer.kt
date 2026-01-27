@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.features.contexts.data
 
 import com.romankozak.forwardappmobile.data.repository.SystemAppRepository
+import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedContextKeys
@@ -24,87 +25,88 @@ class DatabaseInitializer
             val personalManagementProjectId =
                 ensureProjectExists(
                     contextDao,
-                    ReservedContextKeys.PERSONAL_MANAGEMENT,
+                    SystemContexts.PERSONAL_MANAGEMENT.id,
                     "personal-management",
                     null,
                 )
             val strategicGroupId =
                 ensureProjectExists(
                     contextDao,
-                    ReservedContextKeys.STRATEGIC,
+                    SystemContexts.STRATEGIC.id,
                     "strategic",
                     personalManagementProjectId,
                 )
             val strategicBeaconsGroupId =
                 ensureProjectExists(
                     contextDao,
-                    ReservedContextKeys.STRATEGIC_BEACONS,
+                    SystemContexts.STRATEGIC_BEACONS.id,
                     "strategic-beacons",
                     strategicGroupId,
                 )
             val weekProjectId =
                 ensureProjectExists(
                     contextDao,
-                    ReservedContextKeys.WEEK,
+                    SystemContexts.WEEK.id,
                     "week",
                     personalManagementProjectId,
                 )
             val todayProjectId =
                 ensureProjectExists(
                     contextDao,
-                    ReservedContextKeys.TODAY,
+                    SystemContexts.TODAY.id,
                     "today",
                     personalManagementProjectId,
                 )
             ensureProjectExists(
                 contextDao,
-                ReservedContextKeys.MAIN_BEACONS,
+                SystemContexts.MAIN_BEACONS.id,
                 "main-beacons",
                 personalManagementProjectId,
             )
             ensureProjectExists(
                 contextDao,
-                ReservedContextKeys.MISSION,
+                SystemContexts.MISSION.id,
                 "mission",
                 strategicBeaconsGroupId,
             )
             ensureProjectExists(
                 contextDao,
-                ReservedContextKeys.LONG_TERM_STRATEGY,
+                SystemContexts.LONG_TERM_STRATEGY.id,
                 "long-term-strategy",
                 strategicBeaconsGroupId,
             )
             ensureProjectExists(
                 contextDao,
-                ReservedContextKeys.STRATEGIC_PROGRAMS,
+                SystemContexts.STRATEGIC_PROGRAMS.id,
                 "strategic-programs",
                 strategicBeaconsGroupId,
             )
             ensureProjectExists(
                 contextDao,
-                ReservedContextKeys.MEDIUM_TERM_STRATEGY,
+                SystemContexts.MEDIUM_TERM_STRATEGY.id,
                 "medium-term-strategy",
                 personalManagementProjectId,
             )
             ensureProjectExists(
                 contextDao,
-                ReservedContextKeys.ACTIVE_QUESTS,
+                SystemContexts.ACTIVE_QUESTS.id,
                 "active-quests",
                 weekProjectId,
             )
             ensureProjectExists(
                 contextDao,
-                ReservedContextKeys.STRATEGIC_INBOX,
+                SystemContexts.STRATEGIC_INBOX.id,
                 "strategic-inbox",
                 strategicGroupId,
             )
             ensureProjectExists(
                 contextDao,
-                ReservedContextKeys.STRATEGIC_REVIEW,
+                SystemContexts.STRATEGIC_REVIEW.id,
                 "strategic-review",
                 strategicGroupId,
             )
-            ensureProjectExists(contextDao, ReservedContextKeys.INBOX, "inbox", todayProjectId)
+            ensureProjectExists(contextDao, SystemContexts.INBOX.id, "inbox", todayProjectId)
+
         }
 
         private suspend fun ensureProjectExists(
@@ -121,7 +123,6 @@ class DatabaseInitializer
             val newProject =
                 Context(
                     id = id,
-                    systemKey = id,
                     name = name,
                     parentId = parentId,
                     isExpanded = false,

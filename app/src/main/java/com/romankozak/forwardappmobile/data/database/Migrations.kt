@@ -1242,3 +1242,111 @@ val MIGRATION_92_93 =
             db.execSQL("ALTER TABLE tactical_missions ADD COLUMN linkedAttachmentIds TEXT")
         }
     }
+
+val MIGRATION_94_95 = object : Migration(94, 95) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("PRAGMA foreign_keys=off;")
+        db.beginTransaction()
+        try {
+            // 1. Define mappings from old string keys to new sys-prefixed IDs
+            val keyToNewId = mapOf(
+                "personal-management" to "sys_personal-management",
+                "strategic" to "sys_strategic",
+                "strategic-beacons" to "sys_strategic-beacons",
+                "mission" to "sys_mission",
+                "long-term-strategy" to "sys_long-term-strategy",
+                "strategic-programs" to "sys_strategic-programs",
+                "medium-term-strategy" to "sys_medium-term-strategy",
+                "active-quests" to "sys_active-quests",
+                "week" to "sys_week",
+                "inbox" to "sys_inbox",
+                "strategic-inbox" to "sys_strategic-inbox",
+                "strategic-review" to "sys_strategic-review",
+                "main-beacons" to "sys_main-beacons",
+                "today" to "sys_today"
+            )
+
+            // 2. Collect a map of old_id -> new_id for system contexts
+            val oldIdToNewId = mutableMapOf<String, String>()
+            val keysInClause = keyToNewId.keys.joinToString(",") { "'${it}'" }
+            db.query("SELECT id, system_key FROM contexts WHERE system_key IN ($keysInClause)").use { cursor ->
+                val idIndex = cursor.getColumnIndex("id")
+                val keyIndex = cursor.getColumnIndex("system_key")
+                while (cursor.moveToNext()) {
+                    val oldId = cursor.getString(idIndex)
+                    val systemKey = cursor.getString(keyIndex)
+                    keyToNewId[systemKey]?.let { newId ->
+                        oldIdToNewId[oldId] = newId
+                    }
+                }
+            }
+
+            // 3. Define all tables and columns that reference contexts.id
+            val tablesToUpdate = mapOf(
+                "contexts" to "parentId", // Self-reference
+                "backlog_orders" to "list_id",
+                "context_execution_logs" to "contextId",
+                "inbox_records" to "projectId", // Legacy name from before contexts rename
+                "list_items" to "context_id",
+                "note_documents" to "projectId", // Legacy name
+                "checklists" to "projectId", // Legacy name
+                "scripts" to "projectId", // Legacy name
+                "context_artifacts" to "contextId",
+                "context_attachment_cross_ref" to "context_id",
+                "tactical_missions" to "projectId",
+                "system_apps" to "context_id",
+                "attachments" to "owner_context_id"
+            )
+            
+            // 4. Update all tables with the new IDs
+            oldIdToNewId.forEach { (oldId, newId) ->
+                // First update all foreign key columns in child tables
+                tablesToUpdate.forEach { (table, column) ->
+                    if (db.hasColumn(table, column)) {
+                        db.execSQL("UPDATE $table SET $column = ? WHERE $column = ?", arrayOf(newId, oldId))
+                    }
+                }
+                
+                // Then update the primary key in the parent table
+                db.execSQL("UPDATE contexts SET id = ?, system_key = ? WHERE id = ?", arrayOf(newId, newId, oldId))
+
+                // Special handling for tactical_missions.linkedProjectIds (TEXT column with JSON array of strings)
+                if (db.hasColumn("tactical_missions", "linkedProjectIds")) {
+                    db.query("SELECT id, linkedProjectIds FROM tactical_missions WHERE linkedProjectIds LIKE ?", arrayOf("%$oldId%")).use { cursor ->
+                        val idIndex = cursor.getColumnIndex("id")
+                        val jsonIndex = cursor.getColumnIndex("linkedProjectIds")
+                        while(cursor.moveToNext()){
+                            val missionId = cursor.getString(idIndex)
+                            val jsonString = cursor.getString(jsonIndex)
+                            if(!jsonString.isNullOrEmpty()){
+                                val updatedJson = jsonString.replace(oldId, newId)
+                                db.execSQL("UPDATE tactical_missions SET linkedProjectIds = ? WHERE id = ?", arrayOf(updatedJson, missionId))
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // 5. Drop old columns if they exist
+            if (db.hasColumn("contexts", "project_type")) {
+                db.execSQL("ALTER TABLE contexts DROP COLUMN project_type")
+            }
+             if (db.hasColumn("contexts", "context_type")) {
+                db.execSQL("ALTER TABLE contexts DROP COLUMN context_type")
+            }
+            if (db.hasColumn("contexts", "reserved_group")) {
+                db.execSQL("ALTER TABLE contexts DROP COLUMN reserved_group")
+            }
+
+            // 6. Drop old indexes if they exist
+            db.execSQL("DROP INDEX IF EXISTS index_contexts_project_type")
+            db.execSQL("DROP INDEX IF EXISTS index_contexts_reserved_group")
+            db.execSQL("DROP INDEX IF EXISTS idx_projects_systemkey_unique") // old index on system_key
+
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+            db.execSQL("PRAGMA foreign_keys=on;")
+        }
+    }
+}

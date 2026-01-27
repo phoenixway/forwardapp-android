@@ -379,3 +379,91 @@ Database Initializer: Онови RoomDatabase.Callback, щоб при чисті
 Кожна зміна ID має супроводжуватися оновленням зв'язків у notes та tasks.
 
 Якщо ти не впевнений, де використовується стара логіка — використовуй глобальний пошук за назвами полів.
+
+***
+Поточний план
+
+ ПОТОЧНА СИТУАЦІЯ:
+
+   * `SystemContexts.kt`: Містить коректний набір системних ContextId.
+   * `ReservedContextKeys.kt`: Визначає рядкові константи для старих системних ключів.
+   * `Migrations.kt`: Містить існуючі міграції бази даних Room до версії 94.
+   * `MigrationUtils.kt`: Містить допоміжні функції для міграцій; hasColumn зроблено internal.
+   * Статус компіляції: Проект компілюється успішно після виправлення попередніх помилок. Залишилися міграція бази даних та очищення застарілої логіки.
+
+  НАСТУПНІ КРОКИ (Етап 2: Міграція даних (SQL) та Етап 3: Видалення застарілих сутностей):
+
+  Фаза 1: Реалізація міграції бази даних (MIGRATION_94_95)
+
+   1. Визначити `MIGRATION_94_95` у `app/src/main/java/com/romankozak/forwardappmobile/data/database/Migrations.kt`
+       * Дія: Додати новий об'єкт MIGRATION_94_95 до файлу Migrations.kt. Ця міграція оброблятиме зміни ID та очищення схеми.
+       * Ключові файли:
+           * app/src/main/java/com/romankozak/forwardappmobile/data/database/Migrations.kt
+           * app/src/main/java/com/romankozak/forwardappmobile/data/database/MigrationUtils.kt (для помічника hasColumn)
+           * app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/models/ReservedContextKeys.kt (для зіставлення старих системних ключів з новими ID)
+       * Логіка всередині `MIGRATION_94_95.migrate(db: SupportSQLiteDatabase)`:
+           * Зіставити системні ключі: Створити Kotlin map зі старих ReservedContextKeys (наприклад, "personal-management") на нові ContextId з префіксом sys_ (наприклад, "sys_personal_management").
+           * Визначити таблиці з зовнішніми ключами: Визначені таблиці: contexts, backlog_orders, context_execution_logs, inbox_records, list_items, notes, note_documents, checklists, scripts, context_artifacts,
+             context_attachment_cross_ref, tactical_missions, tactical_mission_attachment_cross_ref.
+               * Самокорекція: Підтверджено, що AiEventEntity, LifeSystemStateEntity, AiInsightEntity не мають полів contextId, тому їх буде виключено з оновлень.
+           * Зібрати мапу Old-to-New ID: Проітерувати таблицю contexts. Для кожного Context з system_key записати його поточний id та цільовий новий sys_ prefixed ID. Зберігати це в мапі oldId -> newId.
+           * Оновити таблицю `contexts`: Для кожного запису в мапі oldId -> newId виконати оператор UPDATE на таблиці contexts для зміни id на newId та system_key на newId.
+           * Оновити пов'язані таблиці: Для кожної таблиці, визначеної як така, що має зовнішній ключ до contexts.id, проітерувати мапу oldId -> newId та оновити відповідний contextId (або псевдонім стовпця, такий як list_id) у цих
+             таблицях. Використовувати hasColumn для безпечної перевірки існування стовпця.
+           * Видалити старі стовпці: Використати ALTER TABLE contexts DROP COLUMN project_type та ALTER TABLE contexts DROP COLUMN reserved_group. Огорнути це в перевірки hasColumn.
+           * Видалити старі індекси: Використати DROP INDEX IF EXISTS index_contexts_project_type та DROP INDEX IF EXISTS index_contexts_reserved_group.
+
+   2. Оновити `DatabaseModule.kt` для включення `MIGRATION_94_95`
+       * Дія: Додати MIGRATION_94_95 до списку міграцій у app/src/main/java/com/romankozak/forwardappmobile/core/di/DatabaseModule.kt.
+       * Ключовий файл: app/src/main/java/com/romankozak/forwardappmobile/core/di/DatabaseModule.kt
+
+   3. Оновити `RoomDatabase.Callback` для початкових даних (якщо застосовно)
+       * Дія: Переглянути DatabaseModule.kt на предмет заповнення початкових даних бази даних (наприклад, addCallback). Якщо системні контексти створюються там, переконатися, що вони використовують нові ContextId з префіксом sys_.
+       * Ключовий файл: app/src/main/java/com/romankozak/forwardappmobile/core/di/DatabaseModule.kt
+
+  Фаза 2: Очищення старих сутностей (Етап 3: Видалення застарілих сутностей)
+
+   1. Видалити `system_key` з сутності `Context`
+       * Дія: Модифікувати клас даних Context у app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/models/Context.kt, щоб видалити поле system_key. Це робиться після виконання міграції, тому база даних більше не
+         очікує цього стовпця.
+       * Ключовий файл: app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/models/Context.kt
+
+   3. вирішити що робити з migrateSpecialProjects. спитати в користувача
+
+  Перевірка після кожної фази:
+
+   * Компіляція: Переконатися, що проект компілюється успішно.
+   * Ручне тестування: Запустити програму та вручну перевірити:
+       * Існуючі "Вхідні" та інші системні проекти функціонують як очікувалося.
+       * Системні проекти неможливо видалити.
+       * Нотатки та завдання в системних проектах коректно пов'язані.
+       * (Після Фази 2) Схема бази даних більше не містить стовпців project_type або reserved_group (можна перевірити за допомогою Database Inspector).
+
+  Це детальний план. Я почну з Фази 1, Кроку 1 (визначення MIGRATION_94_95).
+
+***
+
+  Май на увазі що я перейменував проекти в контексти в процесі минулого рефакторингу. можуть залишатися залишки старої назви
+
+***
+
+✦ Користувач вважає, що видалення runPostBackupMigration() було помилкою, оскільки вона, можливо, забезпечувала коректну обробку системних проєктів після відновлення з резервної копії.
+
+  Я визнав свою помилку: migrateSpecialProjects (яку викликала runPostBackupMigration) була "лікувальним" механізмом для системних проєктів після імпорту резервної копії. Моя MIGRATION_94_95 та DatabaseInitializer не покривають цей
+  сценарій.
+
+  Необхідно створити нову функцію (наприклад, reconcileSystemContextsAfterImport), яка, використовуючи новий підхід SystemContexts, буде:
+   1. Перевіряти наявність усіх зарезервованих системних ContextId.
+   2. Створювати їх, якщо відсутні (наприклад, через стару резервну копію).
+   3. Оновлювати некоректні імена (наприклад, "Вхідні" на "Inbox").
+
+  Переглянутий план:
+
+   1. Повернути виклик `runPostBackupMigration()` у SyncFileService.kt.
+   2. Створити нову функцію/клас `SystemContextReconciler` для примирення системних контекстів.
+   3. Викликати цей новий примиритель замість старої міграції:
+       * У SyncFileService.kt (після імпорту резервної копії).
+       * У DatabaseModule.kt (у RoomDatabase.Callback для чистої установки).
+   4. Видалити `ReservedContextKeys.kt` (після реалізації нової логіки).
+   5. Видалити `migrateSpecialProjects` та її помічників (після реалізації нової логіки та перевірки).
+

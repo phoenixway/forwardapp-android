@@ -15,6 +15,8 @@ import com.google.gson.JsonParseException
 import com.google.gson.JsonPrimitive
 import com.google.gson.JsonSerializationContext
 import com.google.gson.JsonSerializer
+import com.romankozak.forwardappmobile.core.context.ContextId
+import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.features.sync.data.repository.SyncRepository
 import com.romankozak.forwardappmobile.data.sync.FullAppBackup
 import io.ktor.http.ContentType
@@ -142,7 +144,7 @@ class WifiSyncServer(
                                                     FullAppBackup::class.java,
                                                 ).database?.projects ?: emptyList()
                                             }
-                                        val missing = projects.count { it.systemKey == null }
+                                        val missing = projects.count { !SystemContexts.isSystem(ContextId(it.id)) }
                                         val total = projects.size
                                         "systemKeys=${total - missing}/$total"
                                     }.getOrElse { "systemKeys=error:${it.message}" }

@@ -28,7 +28,7 @@ class SystemAppRepository
             documentName: String,
         ): SystemAppEntity {
             val contextId =
-                contextDao.getContextBySystemKey(projectSystemKey)?.id
+                contextDao.getContextById("sys_$projectSystemKey")?.id
                     ?: throw IllegalStateException("System project $projectSystemKey не знайдено")
 
             val existingApp = systemAppDao.getBySystemKey(systemKey)
@@ -64,7 +64,7 @@ class SystemAppRepository
         ) {
             val systemApp = systemAppDao.getBySystemKey(systemKey) ?: return
             val noteId = systemApp.noteDocumentId ?: return
-            val targetcontextId = contextDao.getContextBySystemKey(targetProjectSystemKey)?.id ?: return
+            val targetcontextId = contextDao.getContextById("sys_$targetProjectSystemKey")?.id ?: return
 
             attachmentRepository.ensureAttachmentLinkedToContext(
                 attachmentType = BacklogItemTypeValues.NOTE_DOCUMENT,
