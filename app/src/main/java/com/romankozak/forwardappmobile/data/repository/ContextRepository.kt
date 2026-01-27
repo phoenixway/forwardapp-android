@@ -27,6 +27,8 @@ import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
+import com.romankozak.forwardappmobile.core.context.SystemContexts
+import com.romankozak.forwardappmobile.core.context.ContextId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -353,10 +355,20 @@ class ContextRepository
         @Transaction
         suspend fun deleteContextsAndSubContexts(contextsToDelete: List<Context>) {
             if (contextsToDelete.isEmpty()) return
-            val contextIds = contextsToDelete.map { it.id }
+
+            val nonSystemContextsToDelete = contextsToDelete.filter { context ->
+                !SystemContexts.isSystem(ContextId(context.id))
+            }
+
+            if (nonSystemContextsToDelete.isEmpty()) {
+                val systemContextIds = contextsToDelete.filter { SystemContexts.isSystem(ContextId(it.id)) }.map { it.id }
+                throw IllegalArgumentException("Cannot delete system contexts: $systemContextIds. No non-system contexts provided for deletion.")
+            }
+
+            val contextIds = nonSystemContextsToDelete.map { it.id }
             listItemRepository.deleteItemsForContexts(contextIds)
             val now = System.currentTimeMillis()
-            contextsToDelete.forEach { context ->
+            nonSystemContextsToDelete.forEach { context ->
                 contextDao.insert(
                     context.softDelete(now),
                 )
