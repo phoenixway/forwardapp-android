@@ -94,7 +94,7 @@ fun GoalDetailEffects(
                 is UiEvent.NavigateBackAndReveal -> {
                                         navController.previousBackStackEntry
                                             ?.savedStateHandle
-                                            ?.set("project_to_reveal", event.contextId)
+                                            ?.set("context_to_reveal", event.contextId)
 
                     navController.popBackStack()
                 }

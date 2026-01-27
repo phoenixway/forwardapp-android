@@ -608,7 +608,7 @@ private fun SupportSQLiteDatabase.queryUniqueId(
     }
 }
 
-private fun SupportSQLiteDatabase.hasColumn(
+internal fun SupportSQLiteDatabase.hasColumn(
     table: String,
     column: String,
 ): Boolean {
