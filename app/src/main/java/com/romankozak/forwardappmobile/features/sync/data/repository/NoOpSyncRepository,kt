@@ -1,0 +1,38 @@
+package com.romankozak.forwardappmobile.features.sync.data.repository
+
+class NoOpBackupRepository : BackupRepository() {
+    override suspend fun exportFullBackupToFile(): Result<String> = Result.success("")
+    override suspend fun createFullBackupJsonString(): String = "{}"
+    override suspend fun importFullBackupFromFile(uri: Uri): Result<String> = Result.success("")
+    override suspend fun parseBackupFile(uri: Uri): Result<FullAppBackup> = Result.success(FullAppBackup())
+    override suspend fun getLastSyncTime(): Long? = null
+}
+
+class NoOpWifiSyncRepository : WifiSyncRepository() {
+    override suspend fun fetchBackupFromWifi(address: String, deltaSince: Long?): Result<String> = Result.success("")
+    override suspend fun pushUnsyncedToWifi(address: String): Result<Unit> = Result.success(Unit)
+    override suspend fun createDeltaBackupJsonString(deltaSince: Long): String = "{}"
+}
+
+class NoOpMergeRepository : MergeRepository() {
+    override suspend fun createSyncReport(jsonString: String): SyncReport = SyncReport(emptyList())
+    override suspend fun applyChanges(approvedChanges: List<SyncChange>) {}
+    override suspend fun applyServerChanges(changes: DatabaseContent): Result<Unit> = Result.success(Unit)
+    override suspend fun createBackupDiff(incoming: DatabaseContent): BackupDiff = BackupDiff(emptyList())
+    override suspend fun importSelectedData(selectedData: DatabaseContent): Result<String> = Result.success("")
+}
+
+class NoOpAttachmentsRepository : AttachmentsRepository() {
+    override suspend fun exportAttachmentsToFile(): Result<String> = Result.success("")
+    override suspend fun createAttachmentsBackupJsonString(): String = "{}"
+    override suspend fun importAttachmentsFromFile(uri: Uri): Result<String> = Result.success("")
+}
+
+class NoOpSyncRepository : SyncRepository(
+    backupRepository = NoOpBackupRepository(),
+    wifiSyncRepository = NoOpWifiSyncRepository(),
+    mergeRepository = NoOpMergeRepository(),
+    attachmentsRepository = NoOpAttachmentsRepository()
+) {
+    // Всі методи успадковуються, нічого не роблять
+}

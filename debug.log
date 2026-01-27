@@ -1,11 +1,386 @@
-2026-01-23 14:57:57,614 - debug - ERROR - Initial token status update failed: 'OpenAICompatibleProvider' object has no attribute 'get_tokenizer'
-2026-01-23 14:58:04,033 - debug - INFO - DEBUG: on_input_submitted called with: 'from pathlib import Path import re from textual.widgets import Input from textual.binding import Binding from textual.events import Paste # --------------------------------------------------------------------- # History file resolution # --------------------------------------------------------------------- try: from modules.config_loader import CONFIG_DIR HISTORY_FILE = CONFIG_DIR / "history.txt" except (ImportError, FileNotFoundError): HISTORY_FILE = Path.home() / ".config" / "angelica" / "history.txt" HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True) # --------------------------------------------------------------------- # Helpers # --------------------------------------------------------------------- def normalize_for_input(text: str) -> str: """ Convert multiline text into a single line suitable for Input. """ text = text.replace("\r\n", "\n").replace("\r", "\n") text = text.replace("\t", " ") text = text.replace("\n", " ") text = re.sub(r"\s+", " ", text) return text.strip() def escape_multiline(text: str) -> str: """ Store multiline text as a single line in history file. """ return text.replace("\\", "\\\\").replace("\n", "\\n") def unescape_multiline(text: str) -> str: """ Restore multiline text from escaped form. """ return text.replace("\\n", "\n").replace("\\\\", "\\") # --------------------------------------------------------------------- # Widget # --------------------------------------------------------------------- class HistoryAwareInput(Input): """ Input widget with history and correct multiline paste handling. - Input always receives single-line text - History stores original multiline text """ BINDINGS = [ Binding("ctrl+up", "history_up", show=False), Binding("ctrl+down", "history_down", show=False), ] def __init__(self, *args, **kwargs): super().__init__(*args, **kwargs) self._history: list[str] = [] # original multiline entries self._history_index: int = -1 self._draft: str = "" # Stores raw multiline text from last paste self._last_paste_raw: str | None = None self._load_history() # ----------------------------------------------------------------- # Paste handling (CRITICAL PART) # ----------------------------------------------------------------- def on_paste(self, event: Paste) -> None: """ Intercept paste BEFORE Textual Input truncates multiline text. """ raw_text = event.text if not raw_text: return # Stop default Input paste behavior event.stop() # Save original multiline text for history self._last_paste_raw = raw_text # Insert normalized single-line text into input single_line = normalize_for_input(raw_text) self._insert_text_at_cursor(single_line) def _insert_text_at_cursor(self, text: str) -> None: """ Insert text at the current cursor position. """ cursor = self.cursor_position value = self.value self.value = value[:cursor] + text + value[cursor:] self.cursor_position = cursor + len(text) # ----------------------------------------------------------------- # History I/O # ----------------------------------------------------------------- def _load_history(self) -> None: if not HISTORY_FILE.exists(): return try: with open(HISTORY_FILE, "r", encoding="utf-8") as f: for line in f: line = line.rstrip("\n") if not line: continue self._history.append(unescape_multiline(line)) except Exception: pass def _append_to_file(self, text: str) -> None: try: with open(HISTORY_FILE, "a", encoding="utf-8") as f: f.write(escape_multiline(text) + "\n") except Exception: pass def add_entry(self, text: str) -> None: """ Add entry to history. Priority: - original multiline paste (if present) - fallback to current input value """ original = self._last_paste_raw or text original = original.strip() if not original: return if not self._history or self._history[-1] != original: self._history.append(original) self._append_to_file(original) self._history_index = -1 self._draft = "" self._last_paste_raw = None # ----------------------------------------------------------------- # History navigation # ----------------------------------------------------------------- def action_history_up(self) -> None: if not self._history: return if self._history_index == -1: self._draft = self.value self._history_index = len(self._history) - 1 elif self._history_index > 0: self._history_index -= 1 else: return self.value = normalize_for_input(self._history[self._history_index]) def action_history_down(self) -> None: if self._history_index == -1: return if self._history_index < len(self._history) - 1: self._history_index += 1 self.value = normalize_for_input(self._history[self._history_index]) else: self._history_index = -1 self.value = self._draftfrom pathlib import Path'
-2026-01-23 14:58:04,035 - debug - INFO - DEBUG: Processing regular prompt: 'from pathlib import Path import re from textual.widgets import Input from textual.binding import Binding from textual.events import Paste # --------------------------------------------------------------------- # History file resolution # --------------------------------------------------------------------- try: from modules.config_loader import CONFIG_DIR HISTORY_FILE = CONFIG_DIR / "history.txt" except (ImportError, FileNotFoundError): HISTORY_FILE = Path.home() / ".config" / "angelica" / "history.txt" HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True) # --------------------------------------------------------------------- # Helpers # --------------------------------------------------------------------- def normalize_for_input(text: str) -> str: """ Convert multiline text into a single line suitable for Input. """ text = text.replace("\r\n", "\n").replace("\r", "\n") text = text.replace("\t", " ") text = text.replace("\n", " ") text = re.sub(r"\s+", " ", text) return text.strip() def escape_multiline(text: str) -> str: """ Store multiline text as a single line in history file. """ return text.replace("\\", "\\\\").replace("\n", "\\n") def unescape_multiline(text: str) -> str: """ Restore multiline text from escaped form. """ return text.replace("\\n", "\n").replace("\\\\", "\\") # --------------------------------------------------------------------- # Widget # --------------------------------------------------------------------- class HistoryAwareInput(Input): """ Input widget with history and correct multiline paste handling. - Input always receives single-line text - History stores original multiline text """ BINDINGS = [ Binding("ctrl+up", "history_up", show=False), Binding("ctrl+down", "history_down", show=False), ] def __init__(self, *args, **kwargs): super().__init__(*args, **kwargs) self._history: list[str] = [] # original multiline entries self._history_index: int = -1 self._draft: str = "" # Stores raw multiline text from last paste self._last_paste_raw: str | None = None self._load_history() # ----------------------------------------------------------------- # Paste handling (CRITICAL PART) # ----------------------------------------------------------------- def on_paste(self, event: Paste) -> None: """ Intercept paste BEFORE Textual Input truncates multiline text. """ raw_text = event.text if not raw_text: return # Stop default Input paste behavior event.stop() # Save original multiline text for history self._last_paste_raw = raw_text # Insert normalized single-line text into input single_line = normalize_for_input(raw_text) self._insert_text_at_cursor(single_line) def _insert_text_at_cursor(self, text: str) -> None: """ Insert text at the current cursor position. """ cursor = self.cursor_position value = self.value self.value = value[:cursor] + text + value[cursor:] self.cursor_position = cursor + len(text) # ----------------------------------------------------------------- # History I/O # ----------------------------------------------------------------- def _load_history(self) -> None: if not HISTORY_FILE.exists(): return try: with open(HISTORY_FILE, "r", encoding="utf-8") as f: for line in f: line = line.rstrip("\n") if not line: continue self._history.append(unescape_multiline(line)) except Exception: pass def _append_to_file(self, text: str) -> None: try: with open(HISTORY_FILE, "a", encoding="utf-8") as f: f.write(escape_multiline(text) + "\n") except Exception: pass def add_entry(self, text: str) -> None: """ Add entry to history. Priority: - original multiline paste (if present) - fallback to current input value """ original = self._last_paste_raw or text original = original.strip() if not original: return if not self._history or self._history[-1] != original: self._history.append(original) self._append_to_file(original) self._history_index = -1 self._draft = "" self._last_paste_raw = None # ----------------------------------------------------------------- # History navigation # ----------------------------------------------------------------- def action_history_up(self) -> None: if not self._history: return if self._history_index == -1: self._draft = self.value self._history_index = len(self._history) - 1 elif self._history_index > 0: self._history_index -= 1 else: return self.value = normalize_for_input(self._history[self._history_index]) def action_history_down(self) -> None: if self._history_index == -1: return if self._history_index < len(self._history) - 1: self._history_index += 1 self.value = normalize_for_input(self._history[self._history_index]) else: self._history_index = -1 self.value = self._draftfrom pathlib import Path'
-2026-01-23 14:58:04,040 - debug - INFO - DEBUG: Message printed to UI, starting agent worker
-2026-01-23 14:58:04,051 - debug - DEBUG - LOG_HISTORY_ADD_MESSAGE_RAW: Role=system, Content=''You are Angelica AI, a professional coding agent optimized for autonomous problem-solving in Linux (Fedora/Desktop) and Android (Termux).\n\n## RESPONSE FORMAT (Strict Sequence)\n1. **Planning (<plan>)**: For complex tasks, START with a `<plan>` block outlining your step-by-step strategy. This is optional for simple queries.\n2. **Reasoning (<think>)**: Use a `<think>` block for internal analysis, file path verification, and command construction.\n3. **Action (<action> tag)**: After `</think>`, if an action is needed, provide EXACTLY ONE JSON object wrapped in `<action>` tags.\n   - **CRITICAL**: The JSON **MUST** contain a "type" field matching a tool name (e.g., "run_shell", "read_file").\n4. **Text Message**: If no action is needed, provide a concise text response.\n\n## COMMAND STRUCTURE\nAll actions must include:\n- "type": The exact name of the tool (e.g., "run_shell").\n- "before_execution": Explain what you are doing (shown to user).\n- "during_execution": Status message (e.g. "Editing...").\n- "after_execution": Message on success.\n\n## BATCHING & EXECUTION RULES\n1.  **Batching**: You can include multiple `<action>` blocks in a single response for **read-only** commands (`read_file`, `list_directory`, `find_files`, `git_diff`).\n2.  **Smart Stop**: If a response includes a state-modifying action (one that alters files or system state), only that first action will be executed. The agent will then immediately use the result of that action to determine the next step in its autonomous loop. Do not batch state-modifying actions with other actions in the same response.\n    The following actions are state-modifying:\n    - `run_shell`\n    - `create_file`\n    - `replace` or `edit_file`\n    - Any `git` command that writes (`commit`, `checkout`, `add`)\n\n## GUIDELINES & STRATEGIES\n1. **File Editing**: \n   - New files: `create_file`.\n   - Existing files: Use `replace` (or `edit_file`) to change specific blocks. AVOID overwriting entire files unless necessary.\n   - **Context**: Always `read_file` before editing to ensure your `old_string` (search text) is exact.\n\n2. **Loop Prevention**:\n   - If an action fails, DO NOT repeat it identically.\n   - Analyze the error in `<think>`, check your assumptions (e.g., does the file exist? is the path correct?), and try a different approach.\n\n3. **Self-Correction**:\n   - If you see a system message starting with "CRITICAL" or "SYSTEM INSTRUCTION", prioritize it immediately.\n\n## ENVIRONMENT\nYou have a full shell (Termux/Linux). You can use `grep`, `fd`, `git`, `python3`, etc., via `run_shell`.\n\n---\nAVAILABLE TOOLS:\n- create_file: Creates a NEW file with content. Fails if file exists. Params: \'path\' (str), \'content\' (str)\n- edit_file: Surgically edits an existing file by replacing a specific block of text. Params: \'path\' (str), \'search_text\' (str), \'replace_text\' (str). The \'search_text\' must exactly match a part of the file.\n- read_file: Reads the full content of a file. Use this before editing. Params: \'path\' (str)\n- write_file: Overwrites an existing file. Params: \'path\' (str), \'content\' (str)\n- search_content: Searches for text patterns inside files using \'ripgrep\' (rg). Useful for finding code usage, TODOs, or specific strings. Parameters: pattern (str, required) - the regex pattern to search for; path (str, optional) - directory to search in (default: current).\n- search_files: Finds files matching a pattern using \'fd\'. Useful for locating files by name or extension. Parameters: pattern (str, required) - the glob pattern or regex to search for (e.g. \'*.py\', \'main\'); path (str, optional) - directory to search in (default: current).\n- run_shell: Executes a shell command in the current environment. Params: \'command\' (str)\n\n---\n\nBegin your response with an analysis (and optional plan) in <think> tags.\n\nProject Structure:\n├── .aider.tags.cache.v4/\n│   ├── c5/\n│   │   └── 06/\n│   └── cache.db\n├── .code-index/\n│   └── entities.json\n├── .github/\n│   └── workflows/\n│       └── android_build.yml\n├── .gradle-local/\n│   └── wrapper/\n│       └── dists/\n├── .gradle-tmp/\n│   └── wrapper/\n│       └── dists/\n├── .vscode/\n│   └── tasks.json\n├── android-sync/\n│   └── fixtures/\n│       ├── README.md\n│       ├── delta_added.json\n│       ├── full_base.json\n│       └── invalid_fk.json\n├── app/\n│   ├── res/\n│   │   └── layout/\n│   ├── src/\n│   │   ├── androidTest/\n│   │   ├── main/\n│   │   └── test/\n│   ├── .gitignore\n│   ├── build.gradle.kts\n│   ├── debug.keystore\n│   ├── google-services.json\n│   ├── keystore.jks\n│   └── proguard-rules.pro\n├── apps/\n│   └── android/\n│       └── src/\n├── config/\n│   ├── detekt/\n│   │   └── detekt.yml\n│   └── Gemini_Reorderable_Analysis.md\n├── docs/\n│   ├── prompts/\n│   │   ├── context-imp.txt\n│   │   ├── desighn-prompt.md\n│   │   ├── improve-prompt.md\n│   │   └── ui-prompt.md\n│   ├── ARCHITECTURE_NOTES.md\n│   ├── ATTACHMENT_CROSSREF_FILTER_BUG.md\n│   ├── ATTACHMENT_CROSSREF_IMPORT_FIX.md\n│   ├── ATTACHMENT_DEFECT_ANALYSIS.md\n│   ├── ATTACHMENT_SYNC_DEBUG_GUIDE.md\n│   ├── ATTACHMENT_SYNC_FIXES_COMPLETE.md\n│   ├── CONTEXT_MIGRATION_PLAN.md\n│   ├── CONTEXT_SWITCHING_MANUAL.md\n│   ├── DB_CONSTRAINT_RECOMMENDATION.md\n│   ├── DB_MIGRATION_HISTORY.md\n│   ├── DEFECT_1_FIX_SUMMARY.md\n│   ├── DEFECT_2_FIX_SUMMARY.md\n│   ├── DEFECT_3_FIX_SUMMARY.md\n│   ├── EXPERIMENTAL_FEATURE_MODULE_GUIDE.md\n│   ├── FEATURES.md\n│   ├── FEATURES2.md\n│   ├── FEATURES_DETAILED_OVERVIEW.md\n│   ├── FINAL_DEBUG_PROMPT.md\n│   ├── HoldMenu2-manual.md\n│   ├── Life-Context-Intake.md\n│   ├── NAVIGATION_ARCHITECTURE.md\n│   ├── REVOLUTIONARY_IDEAS.md\n│   ├── SYNAPSE_DESIGN.md\n│   ├── SYNC_DEBUG_SUMMARY.md\n│   ├── SYNC_FEATURE_SPEC.md\n│   ├── SYNC_TEST_MANUAL.md\n│   ├── SYSTEM_ENTITIES_ANALYSIS.md\n│   ├── SYSTEM_ENTITIES_ARCHITECTURE.md\n│   ├── SYSTEM_ENTITIES_IMPROVED_LOGIC.kt\n│   ├── SYSTEM_ENTITIES_TEST_PLAN.md\n│   ├── ai-layer.md\n│   ├── attachment_sync_manual.md\n│   ├── backup_schema_spec.md\n│   ├── backup_schema_v1.md\n│   ├── design-prompt.md\n│   ├── notes.md\n│   ├── sync_target_spec.md\n│   └── task.md\n├── forwardapp-devtools/\n│   ├── context/\n│   │   ├── Context-example.md\n│   │   ├── Context-update-proposal.md\n│   │   ├── Context.md\n│   │   ├── Masterplan.md\n│   │   └── Progress.md\n│   ├── dictionary/\n│   │   └── default.env\n│   ├── templates/\n│   │   ├── end.md\n│   │   ├── fix.md\n│   │   ├── start.md\n│   │   └── step.md\n│   └── work.sh\n├── gradle/\n│   ├── wrapper/\n│   │   ├── gradle-wrapper.jar\n│   │   └── gradle-wrapper.properties\n│   └── libs.versions.toml\n├── ktlint-rules/\n│   ├── src/\n│   │   └── main/\n│   ├── .gitignore\n│   └── build.gradle.kts\n├── libs/\n│   └── Reorderable/\n├── tools/\n│   ├── attachment_sync_queries.sql\n│   ├── collect_attachment_logs.sh\n│   ├── deploy.sh\n│   ├── gh_deploy.sh\n│   └── install_apk.sh\n├── .aider.chat.history.md\n├── .aider.input.history\n├── .angelica_session.json\n├── .gitignore\n├── .ktlint.yml\n├── AGENTS.md\n├── CONTEXT_MIGRATION_PLAN.html\n├── CONTEXT_MIGRATION_PLAN.md\n├── GEMINI.md\n├── Makefile\n├── NOTES.md\n├── NewFileName.kt\n├── README.md\n├── backup_schema_spec.md\n├── build.gradle.kts\n├── chat_history.md\n├── communication.log\n├── concat_into.py\n├── debug.log\n├── desktop-export.json\n├── functionality_overview.md\n├── gradle.properties\n├── gradlew\n├── gradlew.bat\n├── note.py\n├── path.txt\n├── problem_files.txt\n├── release.jks\n├── settings.gradle.kts\n└── sources.txt\n\n--- OPEN FILES CONTENT ---\nFILE: docs/ARCHITECTURE_NOTES.md\n# Архітектурні нотатки\n\n## Навіщо цей документ\nПід час роботи над головним екраном кілька разів виникала потреба згадати, чому конкретні флоу влаштовані саме так. Цей файл — стартова точка для коротких нотаток про архітектурні рішення, щоб вони не губилися між задачами.\n\n- Пишемо українською, короткими блоками.\n- Для великих тем створюємо окремий файл у `docs/` і додаємо сюди посилання.\n- Уникаємо дублювання інформації з код-коментарів: сюди виносимо лише те, що допоможе зрозуміти _чому_ ми зробили саме так.\n\n## Головний екран: потоки готовності `PlanningUseCase`\n\n- `PlanningUseCase` позначено `@ViewModelScoped`, щоб усі залежні use-case-и працювали з одним інстансом. Це критично: якщо створити його повторно, `filterStateFlow` залишиться у стані `isReady=false`, і UI не отримає ієрархію.\n- Побудова дерева винесена в `HierarchyStateBuilder`. Він:\n  - кешує останній не порожній `flatList` для fallback\'у після переходу у `ready` з пустим списком;\n  - тримає останню побудовану `ListHierarchyData`, щоб UI не блимав, доки `PlanningUseCase` ще не готовий;\n  - повторно використовує існуючі `HierarchyDebug`-логи, тож діагностика залишилась незмінною.\n- Обов\'язкові тести: `PlanningUseCaseTest` (існуючий) і `HierarchyStateBuilderTest` (перевіряє нормалізацію та fallback).\n\n## Керування станом у `BacklogView`\n\nДля складних екранів, як `BacklogView`, було розглянуто використання MVI-бібліотеки (наприклад, Orbit MVI), щоб зробити потік даних більш передбачуваним. Наразі рішення не прийнято, але це може бути гарним напрямком для майбутнього рефакторингу.\n\n## Як додавати нові нотатки\n\n1. Якщо тема невелика — додаємо новий підрозділ у цьому файлі.\n2. Якщо потрібен розлогий опис/діаграма, створюємо новий файл `docs/<назва>.md`, а тут залишаємо короткий bullet з посиланням.\n3. Для рішень, що впливають на командну роботу (наприклад, вимоги до scope), варто продублювати коротку згадку у `MASTER_PLAN.md`, щоб їх не забули перед великими змінами.\n\n---\n''
-2026-01-23 14:58:04,052 - debug - DEBUG - LOG_HISTORY_ADD_MESSAGE_CLEANED: Role=system, Content=''You are Angelica AI, a professional coding agent optimized for autonomous problem-solving in Linux (Fedora/Desktop) and Android (Termux).\n\n## RESPONSE FORMAT (Strict Sequence)\n1. **Planning (<plan>)**: For complex tasks, START with a `<plan>` block outlining your step-by-step strategy. This is optional for simple queries.\n2. **Reasoning (<think>)**: Use a `<think>` block for internal analysis, file path verification, and command construction.\n3. **Action (<action> tag)**: After `</think>`, if an action is needed, provide EXACTLY ONE JSON object wrapped in `<action>` tags.\n   - **CRITICAL**: The JSON **MUST** contain a "type" field matching a tool name (e.g., "run_shell", "read_file").\n4. **Text Message**: If no action is needed, provide a concise text response.\n\n## COMMAND STRUCTURE\nAll actions must include:\n- "type": The exact name of the tool (e.g., "run_shell").\n- "before_execution": Explain what you are doing (shown to user).\n- "during_execution": Status message (e.g. "Editing...").\n- "after_execution": Message on success.\n\n## BATCHING & EXECUTION RULES\n1.  **Batching**: You can include multiple `<action>` blocks in a single response for **read-only** commands (`read_file`, `list_directory`, `find_files`, `git_diff`).\n2.  **Smart Stop**: If a response includes a state-modifying action (one that alters files or system state), only that first action will be executed. The agent will then immediately use the result of that action to determine the next step in its autonomous loop. Do not batch state-modifying actions with other actions in the same response.\n    The following actions are state-modifying:\n    - `run_shell`\n    - `create_file`\n    - `replace` or `edit_file`\n    - Any `git` command that writes (`commit`, `checkout`, `add`)\n\n## GUIDELINES & STRATEGIES\n1. **File Editing**: \n   - New files: `create_file`.\n   - Existing files: Use `replace` (or `edit_file`) to change specific blocks. AVOID overwriting entire files unless necessary.\n   - **Context**: Always `read_file` before editing to ensure your `old_string` (search text) is exact.\n\n2. **Loop Prevention**:\n   - If an action fails, DO NOT repeat it identically.\n   - Analyze the error in `<think>`, check your assumptions (e.g., does the file exist? is the path correct?), and try a different approach.\n\n3. **Self-Correction**:\n   - If you see a system message starting with "CRITICAL" or "SYSTEM INSTRUCTION", prioritize it immediately.\n\n## ENVIRONMENT\nYou have a full shell (Termux/Linux). You can use `grep`, `fd`, `git`, `python3`, etc., via `run_shell`.\n\n---\nAVAILABLE TOOLS:\n- create_file: Creates a NEW file with content. Fails if file exists. Params: \'path\' (str), \'content\' (str)\n- edit_file: Surgically edits an existing file by replacing a specific block of text. Params: \'path\' (str), \'search_text\' (str), \'replace_text\' (str). The \'search_text\' must exactly match a part of the file.\n- read_file: Reads the full content of a file. Use this before editing. Params: \'path\' (str)\n- write_file: Overwrites an existing file. Params: \'path\' (str), \'content\' (str)\n- search_content: Searches for text patterns inside files using \'ripgrep\' (rg). Useful for finding code usage, TODOs, or specific strings. Parameters: pattern (str, required) - the regex pattern to search for; path (str, optional) - directory to search in (default: current).\n- search_files: Finds files matching a pattern using \'fd\'. Useful for locating files by name or extension. Parameters: pattern (str, required) - the glob pattern or regex to search for (e.g. \'*.py\', \'main\'); path (str, optional) - directory to search in (default: current).\n- run_shell: Executes a shell command in the current environment. Params: \'command\' (str)\n\n---\n\nBegin your response with an analysis (and optional plan) in <think> tags.\n\nProject Structure:\n├── .aider.tags.cache.v4/\n│   ├── c5/\n│   │   └── 06/\n│   └── cache.db\n├── .code-index/\n│   └── entities.json\n├── .github/\n│   └── workflows/\n│       └── android_build.yml\n├── .gradle-local/\n│   └── wrapper/\n│       └── dists/\n├── .gradle-tmp/\n│   └── wrapper/\n│       └── dists/\n├── .vscode/\n│   └── tasks.json\n├── android-sync/\n│   └── fixtures/\n│       ├── README.md\n│       ├── delta_added.json\n│       ├── full_base.json\n│       └── invalid_fk.json\n├── app/\n│   ├── res/\n│   │   └── layout/\n│   ├── src/\n│   │   ├── androidTest/\n│   │   ├── main/\n│   │   └── test/\n│   ├── .gitignore\n│   ├── build.gradle.kts\n│   ├── debug.keystore\n│   ├── google-services.json\n│   ├── keystore.jks\n│   └── proguard-rules.pro\n├── apps/\n│   └── android/\n│       └── src/\n├── config/\n│   ├── detekt/\n│   │   └── detekt.yml\n│   └── Gemini_Reorderable_Analysis.md\n├── docs/\n│   ├── prompts/\n│   │   ├── context-imp.txt\n│   │   ├── desighn-prompt.md\n│   │   ├── improve-prompt.md\n│   │   └── ui-prompt.md\n│   ├── ARCHITECTURE_NOTES.md\n│   ├── ATTACHMENT_CROSSREF_FILTER_BUG.md\n│   ├── ATTACHMENT_CROSSREF_IMPORT_FIX.md\n│   ├── ATTACHMENT_DEFECT_ANALYSIS.md\n│   ├── ATTACHMENT_SYNC_DEBUG_GUIDE.md\n│   ├── ATTACHMENT_SYNC_FIXES_COMPLETE.md\n│   ├── CONTEXT_MIGRATION_PLAN.md\n│   ├── CONTEXT_SWITCHING_MANUAL.md\n│   ├── DB_CONSTRAINT_RECOMMENDATION.md\n│   ├── DB_MIGRATION_HISTORY.md\n│   ├── DEFECT_1_FIX_SUMMARY.md\n│   ├── DEFECT_2_FIX_SUMMARY.md\n│   ├── DEFECT_3_FIX_SUMMARY.md\n│   ├── EXPERIMENTAL_FEATURE_MODULE_GUIDE.md\n│   ├── FEATURES.md\n│   ├── FEATURES2.md\n│   ├── FEATURES_DETAILED_OVERVIEW.md\n│   ├── FINAL_DEBUG_PROMPT.md\n│   ├── HoldMenu2-manual.md\n│   ├── Life-Context-Intake.md\n│   ├── NAVIGATION_ARCHITECTURE.md\n│   ├── REVOLUTIONARY_IDEAS.md\n│   ├── SYNAPSE_DESIGN.md\n│   ├── SYNC_DEBUG_SUMMARY.md\n│   ├── SYNC_FEATURE_SPEC.md\n│   ├── SYNC_TEST_MANUAL.md\n│   ├── SYSTEM_ENTITIES_ANALYSIS.md\n│   ├── SYSTEM_ENTITIES_ARCHITECTURE.md\n│   ├── SYSTEM_ENTITIES_IMPROVED_LOGIC.kt\n│   ├── SYSTEM_ENTITIES_TEST_PLAN.md\n│   ├── ai-layer.md\n│   ├── attachment_sync_manual.md\n│   ├── backup_schema_spec.md\n│   ├── backup_schema_v1.md\n│   ├── design-prompt.md\n│   ├── notes.md\n│   ├── sync_target_spec.md\n│   └── task.md\n├── forwardapp-devtools/\n│   ├── context/\n│   │   ├── Context-example.md\n│   │   ├── Context-update-proposal.md\n│   │   ├── Context.md\n│   │   ├── Masterplan.md\n│   │   └── Progress.md\n│   ├── dictionary/\n│   │   └── default.env\n│   ├── templates/\n│   │   ├── end.md\n│   │   ├── fix.md\n│   │   ├── start.md\n│   │   └── step.md\n│   └── work.sh\n├── gradle/\n│   ├── wrapper/\n│   │   ├── gradle-wrapper.jar\n│   │   └── gradle-wrapper.properties\n│   └── libs.versions.toml\n├── ktlint-rules/\n│   ├── src/\n│   │   └── main/\n│   ├── .gitignore\n│   └── build.gradle.kts\n├── libs/\n│   └── Reorderable/\n├── tools/\n│   ├── attachment_sync_queries.sql\n│   ├── collect_attachment_logs.sh\n│   ├── deploy.sh\n│   ├── gh_deploy.sh\n│   └── install_apk.sh\n├── .aider.chat.history.md\n├── .aider.input.history\n├── .angelica_session.json\n├── .gitignore\n├── .ktlint.yml\n├── AGENTS.md\n├── CONTEXT_MIGRATION_PLAN.html\n├── CONTEXT_MIGRATION_PLAN.md\n├── GEMINI.md\n├── Makefile\n├── NOTES.md\n├── NewFileName.kt\n├── README.md\n├── backup_schema_spec.md\n├── build.gradle.kts\n├── chat_history.md\n├── communication.log\n├── concat_into.py\n├── debug.log\n├── desktop-export.json\n├── functionality_overview.md\n├── gradle.properties\n├── gradlew\n├── gradlew.bat\n├── note.py\n├── path.txt\n├── problem_files.txt\n├── release.jks\n├── settings.gradle.kts\n└── sources.txt\n\n--- OPEN FILES CONTENT ---\nFILE: docs/ARCHITECTURE_NOTES.md\n# Архітектурні нотатки\n\n## Навіщо цей документ\nПід час роботи над головним екраном кілька разів виникала потреба згадати, чому конкретні флоу влаштовані саме так. Цей файл — стартова точка для коротких нотаток про архітектурні рішення, щоб вони не губилися між задачами.\n\n- Пишемо українською, короткими блоками.\n- Для великих тем створюємо окремий файл у `docs/` і додаємо сюди посилання.\n- Уникаємо дублювання інформації з код-коментарів: сюди виносимо лише те, що допоможе зрозуміти _чому_ ми зробили саме так.\n\n## Головний екран: потоки готовності `PlanningUseCase`\n\n- `PlanningUseCase` позначено `@ViewModelScoped`, щоб усі залежні use-case-и працювали з одним інстансом. Це критично: якщо створити його повторно, `filterStateFlow` залишиться у стані `isReady=false`, і UI не отримає ієрархію.\n- Побудова дерева винесена в `HierarchyStateBuilder`. Він:\n  - кешує останній не порожній `flatList` для fallback\'у після переходу у `ready` з пустим списком;\n  - тримає останню побудовану `ListHierarchyData`, щоб UI не блимав, доки `PlanningUseCase` ще не готовий;\n  - повторно використовує існуючі `HierarchyDebug`-логи, тож діагностика залишилась незмінною.\n- Обов\'язкові тести: `PlanningUseCaseTest` (існуючий) і `HierarchyStateBuilderTest` (перевіряє нормалізацію та fallback).\n\n## Керування станом у `BacklogView`\n\nДля складних екранів, як `BacklogView`, було розглянуто використання MVI-бібліотеки (наприклад, Orbit MVI), щоб зробити потік даних більш передбачуваним. Наразі рішення не прийнято, але це може бути гарним напрямком для майбутнього рефакторингу.\n\n## Як додавати нові нотатки\n\n1. Якщо тема невелика — додаємо новий підрозділ у цьому файлі.\n2. Якщо потрібен розлогий опис/діаграма, створюємо новий файл `docs/<назва>.md`, а тут залишаємо короткий bullet з посиланням.\n3. Для рішень, що впливають на командну роботу (наприклад, вимоги до scope), варто продублювати коротку згадку у `MASTER_PLAN.md`, щоб їх не забули перед великими змінами.\n\n---''
-2026-01-23 14:58:04,052 - debug - DEBUG - LOG_HISTORY_ADD_MESSAGE_RAW: Role=user, Content=''from pathlib import Path import re from textual.widgets import Input from textual.binding import Binding from textual.events import Paste # --------------------------------------------------------------------- # History file resolution # --------------------------------------------------------------------- try: from modules.config_loader import CONFIG_DIR HISTORY_FILE = CONFIG_DIR / "history.txt" except (ImportError, FileNotFoundError): HISTORY_FILE = Path.home() / ".config" / "angelica" / "history.txt" HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True) # --------------------------------------------------------------------- # Helpers # --------------------------------------------------------------------- def normalize_for_input(text: str) -> str: """ Convert multiline text into a single line suitable for Input. """ text = text.replace("\\r\\n", "\\n").replace("\\r", "\\n") text = text.replace("\\t", " ") text = text.replace("\\n", " ") text = re.sub(r"\\s+", " ", text) return text.strip() def escape_multiline(text: str) -> str: """ Store multiline text as a single line in history file. """ return text.replace("\\\\", "\\\\\\\\").replace("\\n", "\\\\n") def unescape_multiline(text: str) -> str: """ Restore multiline text from escaped form. """ return text.replace("\\\\n", "\\n").replace("\\\\\\\\", "\\\\") # --------------------------------------------------------------------- # Widget # --------------------------------------------------------------------- class HistoryAwareInput(Input): """ Input widget with history and correct multiline paste handling. - Input always receives single-line text - History stores original multiline text """ BINDINGS = [ Binding("ctrl+up", "history_up", show=False), Binding("ctrl+down", "history_down", show=False), ] def __init__(self, *args, **kwargs): super().__init__(*args, **kwargs) self._history: list[str] = [] # original multiline entries self._history_index: int = -1 self._draft: str = "" # Stores raw multiline text from last paste self._last_paste_raw: str | None = None self._load_history() # ----------------------------------------------------------------- # Paste handling (CRITICAL PART) # ----------------------------------------------------------------- def on_paste(self, event: Paste) -> None: """ Intercept paste BEFORE Textual Input truncates multiline text. """ raw_text = event.text if not raw_text: return # Stop default Input paste behavior event.stop() # Save original multiline text for history self._last_paste_raw = raw_text # Insert normalized single-line text into input single_line = normalize_for_input(raw_text) self._insert_text_at_cursor(single_line) def _insert_text_at_cursor(self, text: str) -> None: """ Insert text at the current cursor position. """ cursor = self.cursor_position value = self.value self.value = value[:cursor] + text + value[cursor:] self.cursor_position = cursor + len(text) # ----------------------------------------------------------------- # History I/O # ----------------------------------------------------------------- def _load_history(self) -> None: if not HISTORY_FILE.exists(): return try: with open(HISTORY_FILE, "r", encoding="utf-8") as f: for line in f: line = line.rstrip("\\n") if not line: continue self._history.append(unescape_multiline(line)) except Exception: pass def _append_to_file(self, text: str) -> None: try: with open(HISTORY_FILE, "a", encoding="utf-8") as f: f.write(escape_multiline(text) + "\\n") except Exception: pass def add_entry(self, text: str) -> None: """ Add entry to history. Priority: - original multiline paste (if present) - fallback to current input value """ original = self._last_paste_raw or text original = original.strip() if not original: return if not self._history or self._history[-1] != original: self._history.append(original) self._append_to_file(original) self._history_index = -1 self._draft = "" self._last_paste_raw = None # ----------------------------------------------------------------- # History navigation # ----------------------------------------------------------------- def action_history_up(self) -> None: if not self._history: return if self._history_index == -1: self._draft = self.value self._history_index = len(self._history) - 1 elif self._history_index > 0: self._history_index -= 1 else: return self.value = normalize_for_input(self._history[self._history_index]) def action_history_down(self) -> None: if self._history_index == -1: return if self._history_index < len(self._history) - 1: self._history_index += 1 self.value = normalize_for_input(self._history[self._history_index]) else: self._history_index = -1 self.value = self._draftfrom pathlib import Path''
-2026-01-23 14:58:04,052 - debug - DEBUG - LOG_HISTORY_ADD_MESSAGE_CLEANED: Role=user, Content=''from pathlib import Path import re from textual.widgets import Input from textual.binding import Binding from textual.events import Paste # --------------------------------------------------------------------- # History file resolution # --------------------------------------------------------------------- try: from modules.config_loader import CONFIG_DIR HISTORY_FILE = CONFIG_DIR / "history.txt" except (ImportError, FileNotFoundError): HISTORY_FILE = Path.home() / ".config" / "angelica" / "history.txt" HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True) # --------------------------------------------------------------------- # Helpers # --------------------------------------------------------------------- def normalize_for_input(text: str) -> str: """ Convert multiline text into a single line suitable for Input. """ text = text.replace("\\r\\n", "\\n").replace("\\r", "\\n") text = text.replace("\\t", " ") text = text.replace("\\n", " ") text = re.sub(r"\\s+", " ", text) return text.strip() def escape_multiline(text: str) -> str: """ Store multiline text as a single line in history file. """ return text.replace("\\\\", "\\\\\\\\").replace("\\n", "\\\\n") def unescape_multiline(text: str) -> str: """ Restore multiline text from escaped form. """ return text.replace("\\\\n", "\\n").replace("\\\\\\\\", "\\\\") # --------------------------------------------------------------------- # Widget # --------------------------------------------------------------------- class HistoryAwareInput(Input): """ Input widget with history and correct multiline paste handling. - Input always receives single-line text - History stores original multiline text """ BINDINGS = [ Binding("ctrl+up", "history_up", show=False), Binding("ctrl+down", "history_down", show=False), ] def __init__(self, *args, **kwargs): super().__init__(*args, **kwargs) self._history: list[str] = [] # original multiline entries self._history_index: int = -1 self._draft: str = "" # Stores raw multiline text from last paste self._last_paste_raw: str | None = None self._load_history() # ----------------------------------------------------------------- # Paste handling (CRITICAL PART) # ----------------------------------------------------------------- def on_paste(self, event: Paste) -> None: """ Intercept paste BEFORE Textual Input truncates multiline text. """ raw_text = event.text if not raw_text: return # Stop default Input paste behavior event.stop() # Save original multiline text for history self._last_paste_raw = raw_text # Insert normalized single-line text into input single_line = normalize_for_input(raw_text) self._insert_text_at_cursor(single_line) def _insert_text_at_cursor(self, text: str) -> None: """ Insert text at the current cursor position. """ cursor = self.cursor_position value = self.value self.value = value[:cursor] + text + value[cursor:] self.cursor_position = cursor + len(text) # ----------------------------------------------------------------- # History I/O # ----------------------------------------------------------------- def _load_history(self) -> None: if not HISTORY_FILE.exists(): return try: with open(HISTORY_FILE, "r", encoding="utf-8") as f: for line in f: line = line.rstrip("\\n") if not line: continue self._history.append(unescape_multiline(line)) except Exception: pass def _append_to_file(self, text: str) -> None: try: with open(HISTORY_FILE, "a", encoding="utf-8") as f: f.write(escape_multiline(text) + "\\n") except Exception: pass def add_entry(self, text: str) -> None: """ Add entry to history. Priority: - original multiline paste (if present) - fallback to current input value """ original = self._last_paste_raw or text original = original.strip() if not original: return if not self._history or self._history[-1] != original: self._history.append(original) self._append_to_file(original) self._history_index = -1 self._draft = "" self._last_paste_raw = None # ----------------------------------------------------------------- # History navigation # ----------------------------------------------------------------- def action_history_up(self) -> None: if not self._history: return if self._history_index == -1: self._draft = self.value self._history_index = len(self._history) - 1 elif self._history_index > 0: self._history_index -= 1 else: return self.value = normalize_for_input(self._history[self._history_index]) def action_history_down(self) -> None: if self._history_index == -1: return if self._history_index < len(self._history) - 1: self._history_index += 1 self.value = normalize_for_input(self._history[self._history_index]) else: self._history_index = -1 self.value = self._draftfrom pathlib import Path''
-2026-01-23 14:58:04,195 - debug - INFO - DEBUG: Agent worker scheduled
-2026-01-23 15:00:23,055 - debug - INFO - DEBUG: action_quit called. Saving session...
-2026-01-23 15:00:23,060 - debug - INFO - DEBUG: Session saved. Exiting...
+2026-01-27 12:05:02,945 - debug - INFO - --- KEY PRESSED ---
+key: 'ctrl+@'
+character: '\x00'
+name: 'ctrl_@'
+
+2026-01-27 12:05:04,017 - debug - INFO - --- KEY PRESSED ---
+key: 'k'
+character: 'k'
+name: 'k'
+
+2026-01-27 12:05:04,403 - debug - INFO - --- KEY PRESSED ---
+key: 'backspace'
+character: '\x7f'
+name: 'backspace'
+
+2026-01-27 12:05:04,695 - debug - INFO - --- KEY PRESSED ---
+key: 'l'
+character: 'l'
+name: 'l'
+
+2026-01-27 12:05:05,043 - debug - INFO - --- KEY PRESSED ---
+key: 'backspace'
+character: '\x7f'
+name: 'backspace'
+
+2026-01-27 12:05:11,512 - debug - INFO - --- KEY PRESSED ---
+key: 'д'
+character: 'д'
+name: 'д'
+
+2026-01-27 12:05:11,913 - debug - INFO - --- KEY PRESSED ---
+key: 'е'
+character: 'е'
+name: 'е'
+
+2026-01-27 12:05:11,929 - debug - INFO - --- KEY PRESSED ---
+key: 'space'
+character: ' '
+name: 'space'
+
+2026-01-27 12:05:12,530 - debug - INFO - --- KEY PRESSED ---
+key: 'п'
+character: 'п'
+name: 'п'
+
+2026-01-27 12:05:12,813 - debug - INFO - --- KEY PRESSED ---
+key: 'і'
+character: 'і'
+name: 'і'
+
+2026-01-27 12:05:13,221 - debug - INFO - --- KEY PRESSED ---
+key: 'д'
+character: 'д'
+name: 'д'
+
+2026-01-27 12:05:13,513 - debug - INFO - --- KEY PRESSED ---
+key: 'к'
+character: 'к'
+name: 'к'
+
+2026-01-27 12:05:14,182 - debug - INFO - --- KEY PRESSED ---
+key: 'л'
+character: 'л'
+name: 'л'
+
+2026-01-27 12:05:14,602 - debug - INFO - --- KEY PRESSED ---
+key: 'ю'
+character: 'ю'
+name: 'ю'
+
+2026-01-27 12:05:15,045 - debug - INFO - --- KEY PRESSED ---
+key: 'ч'
+character: 'ч'
+name: 'ч'
+
+2026-01-27 12:05:15,108 - debug - INFO - --- KEY PRESSED ---
+key: 'а'
+character: 'а'
+name: 'а'
+
+2026-01-27 12:05:15,622 - debug - INFO - --- KEY PRESSED ---
+key: 'є'
+character: 'є'
+name: 'є'
+
+2026-01-27 12:05:15,954 - debug - INFO - --- KEY PRESSED ---
+key: 'т'
+character: 'т'
+name: 'т'
+
+2026-01-27 12:05:15,976 - debug - INFO - --- KEY PRESSED ---
+key: 'ь'
+character: 'ь'
+name: 'ь'
+
+2026-01-27 12:05:16,416 - debug - INFO - --- KEY PRESSED ---
+key: 'с'
+character: 'с'
+name: 'с'
+
+2026-01-27 12:05:16,592 - debug - INFO - --- KEY PRESSED ---
+key: 'я'
+character: 'я'
+name: 'я'
+
+2026-01-27 12:05:16,784 - debug - INFO - --- KEY PRESSED ---
+key: 'space'
+character: ' '
+name: 'space'
+
+2026-01-27 12:05:16,974 - debug - INFO - --- KEY PRESSED ---
+key: 'ч'
+character: 'ч'
+name: 'ч'
+
+2026-01-27 12:05:17,347 - debug - INFO - --- KEY PRESSED ---
+key: 'е'
+character: 'е'
+name: 'е'
+
+2026-01-27 12:05:17,436 - debug - INFO - --- KEY PRESSED ---
+key: 'р'
+character: 'р'
+name: 'р'
+
+2026-01-27 12:05:17,571 - debug - INFO - --- KEY PRESSED ---
+key: 'е'
+character: 'е'
+name: 'е'
+
+2026-01-27 12:05:17,931 - debug - INFO - --- KEY PRESSED ---
+key: 'з'
+character: 'з'
+name: 'з'
+
+2026-01-27 12:05:18,469 - debug - INFO - --- KEY PRESSED ---
+key: 'space'
+character: ' '
+name: 'space'
+
+2026-01-27 12:05:30,611 - debug - INFO - --- KEY PRESSED ---
+key: 'd'
+character: 'd'
+name: 'd'
+
+2026-01-27 12:05:31,062 - debug - INFO - --- KEY PRESSED ---
+key: 'i'
+character: 'i'
+name: 'i'
+
+2026-01-27 12:05:31,089 - debug - INFO - --- KEY PRESSED ---
+key: 'space'
+character: ' '
+name: 'space'
+
+2026-01-27 12:05:31,606 - debug - INFO - --- KEY PRESSED ---
+key: 's'
+character: 's'
+name: 's'
+
+2026-01-27 12:05:32,340 - debug - INFO - --- KEY PRESSED ---
+key: 'y'
+character: 'y'
+name: 'y'
+
+2026-01-27 12:05:32,544 - debug - INFO - --- KEY PRESSED ---
+key: 'n'
+character: 'n'
+name: 'n'
+
+2026-01-27 12:05:32,972 - debug - INFO - --- KEY PRESSED ---
+key: 'c'
+character: 'c'
+name: 'c'
+
+2026-01-27 12:05:34,057 - debug - INFO - --- KEY PRESSED ---
+key: 'r'
+character: 'r'
+name: 'r'
+
+2026-01-27 12:05:34,094 - debug - INFO - --- KEY PRESSED ---
+key: 'e'
+character: 'e'
+name: 'e'
+
+2026-01-27 12:05:34,584 - debug - INFO - --- KEY PRESSED ---
+key: 'p'
+character: 'p'
+name: 'p'
+
+2026-01-27 12:05:34,794 - debug - INFO - --- KEY PRESSED ---
+key: 'o'
+character: 'o'
+name: 'o'
+
+2026-01-27 12:05:35,157 - debug - INFO - --- KEY PRESSED ---
+key: 's'
+character: 's'
+name: 's'
+
+2026-01-27 12:05:35,860 - debug - INFO - --- KEY PRESSED ---
+key: 'i'
+character: 'i'
+name: 'i'
+
+2026-01-27 12:05:36,354 - debug - INFO - --- KEY PRESSED ---
+key: 't'
+character: 't'
+name: 't'
+
+2026-01-27 12:05:36,720 - debug - INFO - --- KEY PRESSED ---
+key: 'o'
+character: 'o'
+name: 'o'
+
+2026-01-27 12:05:37,000 - debug - INFO - --- KEY PRESSED ---
+key: 'r'
+character: 'r'
+name: 'r'
+
+2026-01-27 12:05:37,445 - debug - INFO - --- KEY PRESSED ---
+key: 'y'
+character: 'y'
+name: 'y'
+
+2026-01-27 12:05:38,105 - debug - INFO - --- KEY PRESSED ---
+key: 'question_mark'
+character: '?'
+name: 'question_mark'
+
+2026-01-27 12:05:38,829 - debug - INFO - --- KEY PRESSED ---
+key: 'enter'
+character: '\r'
+name: 'enter'
+
+2026-01-27 12:05:38,830 - debug - INFO - --- ENTER DETECTED ---
+Submitting text: 'де підключається через di syncrepository?'
+
+2026-01-27 12:05:38,831 - debug - INFO - --- POSTING SUBMITTED MESSAGE ---
+value: 'де підключається через di syncrepository?'
+
+2026-01-27 12:05:38,837 - debug - INFO - DEBUG: on_history_aware_text_area_submitted called with: 'де підключається через di syncrepository?'
+2026-01-27 12:05:38,844 - debug - INFO - DEBUG: Processing regular prompt: 'де підключається через di syncrepository?'
+2026-01-27 12:05:38,853 - debug - INFO - DEBUG: Message printed to UI, starting agent worker
+2026-01-27 12:05:38,887 - debug - DEBUG - Added message: role=system, type=None, content='You are Angelica AI, a professional coding agent o...'
+2026-01-27 12:05:38,888 - debug - DEBUG - Added message: role=user, type=None, content='де підключається через di syncrepository?...'
+2026-01-27 12:05:39,113 - debug - INFO - DEBUG: Agent worker scheduled
+2026-01-27 12:05:46,369 - debug - ERROR - Failed to update token status: 'OpenAICompatibleProvider' object has no attribute 'get_tokenizer'
+2026-01-27 12:05:46,596 - debug - INFO - DEBUG: SelectionScreen mounted
+2026-01-27 12:05:49,369 - debug - INFO - DEBUG: ListItem selected at index: 0
+2026-01-27 12:05:49,369 - debug - INFO - DEBUG: Dismissing SelectionScreen with value: Allow
+2026-01-27 12:05:49,682 - debug - INFO - DEBUG: SelectionScreen mounted
+2026-01-27 12:05:52,927 - debug - INFO - DEBUG: ListItem selected at index: 1
+2026-01-27 12:05:52,927 - debug - INFO - DEBUG: Dismissing SelectionScreen with value: Show Full Output
+2026-01-27 12:05:52,961 - debug - DEBUG - Added message: role=assistant, type=None, content='<think>
+Користувач запитує, де підключається SyncR...'
+2026-01-27 12:05:52,961 - debug - DEBUG - Added message: role=system, type=None, content='SYSTEM RESULT for `search_content`: app/src/main/j...'
+2026-01-27 12:06:00,253 - debug - ERROR - Failed to update token status: 'OpenAICompatibleProvider' object has no attribute 'get_tokenizer'
+2026-01-27 12:06:00,325 - debug - INFO - DEBUG: SelectionScreen mounted
+2026-01-27 12:06:02,236 - debug - INFO - DEBUG: ListItem selected at index: 0
+2026-01-27 12:06:02,236 - debug - INFO - DEBUG: Dismissing SelectionScreen with value: Allow
+2026-01-27 12:06:02,344 - debug - DEBUG - Added message: role=assistant, type=None, content='<think>
+Тепер потрібно знайти, де SyncRepository п...'
+2026-01-27 12:06:02,344 - debug - DEBUG - Added message: role=system, type=None, content='SYSTEM RESULT for `search_files`: app/src/main/jav...'
+2026-01-27 12:06:10,295 - debug - ERROR - Failed to update token status: 'OpenAICompatibleProvider' object has no attribute 'get_tokenizer'
+2026-01-27 12:06:10,356 - debug - INFO - DEBUG: SelectionScreen mounted
+2026-01-27 12:06:12,464 - debug - INFO - DEBUG: ListItem selected at index: 0
+2026-01-27 12:06:12,464 - debug - INFO - DEBUG: Dismissing SelectionScreen with value: Allow
+2026-01-27 12:06:12,542 - debug - INFO - DEBUG: SelectionScreen mounted
+2026-01-27 12:06:14,563 - debug - INFO - DEBUG: ListItem selected at index: 1
+2026-01-27 12:06:14,563 - debug - INFO - DEBUG: Dismissing SelectionScreen with value: Show Full Output
+2026-01-27 12:06:14,596 - debug - DEBUG - Added message: role=assistant, type=None, content='<think>
+Тепер перевіримо RepositoryModule.kt, оскі...'
+2026-01-27 12:06:14,597 - debug - DEBUG - Added message: role=system, type=None, content='SYSTEM RESULT for `read_file`: package com.romanko...'
+2026-01-27 12:06:21,722 - debug - ERROR - Failed to update token status: 'OpenAICompatibleProvider' object has no attribute 'get_tokenizer'
+2026-01-27 12:06:21,787 - debug - INFO - DEBUG: SelectionScreen mounted
+2026-01-27 12:06:23,370 - debug - INFO - DEBUG: ListItem selected at index: 0
+2026-01-27 12:06:23,370 - debug - INFO - DEBUG: Dismissing SelectionScreen with value: Allow
+2026-01-27 12:06:23,427 - debug - DEBUG - Added message: role=assistant, type=None, content='<think>
+У RepositoryModule немає SyncRepository. М...'
+2026-01-27 12:06:23,427 - debug - DEBUG - Added message: role=system, type=None, content='SYSTEM RESULT for `search_content`: Tool execution...'
+2026-01-27 12:06:33,360 - debug - ERROR - Failed to update token status: 'OpenAICompatibleProvider' object has no attribute 'get_tokenizer'
+2026-01-27 12:06:33,432 - debug - INFO - DEBUG: SelectionScreen mounted
+2026-01-27 12:06:35,723 - debug - INFO - DEBUG: ListItem selected at index: 0
+2026-01-27 12:06:35,723 - debug - INFO - DEBUG: Dismissing SelectionScreen with value: Allow
+2026-01-27 12:06:35,845 - debug - DEBUG - Added message: role=assistant, type=None, content='<think>
+Помилка: ContentSearchTool.execute() missi...'
+2026-01-27 12:06:35,845 - debug - DEBUG - Added message: role=system, type=None, content='SYSTEM RESULT for `search_content`: No matches fou...'
+2026-01-27 12:06:35,930 - debug - INFO - DEBUG: SelectionScreen mounted
+2026-01-27 12:06:37,166 - debug - INFO - DEBUG: ListItem selected at index: 0
+2026-01-27 12:06:37,166 - debug - INFO - DEBUG: Dismissing SelectionScreen with value: Continue
+2026-01-27 12:06:46,800 - debug - ERROR - Failed to update token status: 'OpenAICompatibleProvider' object has no attribute 'get_tokenizer'
+2026-01-27 12:06:46,875 - debug - INFO - DEBUG: SelectionScreen mounted
+2026-01-27 12:06:49,105 - debug - INFO - DEBUG: ListItem selected at index: 0
+2026-01-27 12:06:49,105 - debug - INFO - DEBUG: Dismissing SelectionScreen with value: Allow
+2026-01-27 12:06:49,200 - debug - DEBUG - Added message: role=assistant, type=None, content='<think>
+Не знайдено. Можливо, SyncRepository підкл...'
+2026-01-27 12:06:49,201 - debug - DEBUG - Added message: role=system, type=None, content='SYSTEM RESULT for `search_files`: app/src/main/jav...'
+2026-01-27 12:06:49,289 - debug - INFO - DEBUG: SelectionScreen mounted
+2026-01-27 12:06:50,385 - debug - INFO - DEBUG: ListItem selected at index: 0
+2026-01-27 12:06:50,386 - debug - INFO - DEBUG: Dismissing SelectionScreen with value: Continue
+2026-01-27 12:06:56,032 - debug - ERROR - Failed to update token status: 'OpenAICompatibleProvider' object has no attribute 'get_tokenizer'
+2026-01-27 12:06:56,094 - debug - INFO - DEBUG: SelectionScreen mounted
+2026-01-27 12:06:57,508 - debug - INFO - DEBUG: ListItem selected at index: 0
+2026-01-27 12:06:57,508 - debug - INFO - DEBUG: Dismissing SelectionScreen with value: Allow
+2026-01-27 12:06:57,601 - debug - INFO - DEBUG: SelectionScreen mounted
+2026-01-27 12:07:00,425 - debug - INFO - DEBUG: ListItem selected at index: 1
+2026-01-27 12:07:00,425 - debug - INFO - DEBUG: Dismissing SelectionScreen with value: Show Full Output
+2026-01-27 12:07:00,464 - debug - DEBUG - Added message: role=assistant, type=None, content='<think>
+Знайдено файли SyncRepository.kt та WifiSy...'
+2026-01-27 12:07:00,464 - debug - DEBUG - Added message: role=system, type=None, content='SYSTEM RESULT for `read_file`: package com.romanko...'
+2026-01-27 12:07:00,549 - debug - INFO - DEBUG: SelectionScreen mounted
+2026-01-27 12:07:01,333 - debug - INFO - DEBUG: ListItem selected at index: 0
+2026-01-27 12:07:01,334 - debug - INFO - DEBUG: Dismissing SelectionScreen with value: Continue
+2026-01-27 12:07:30,796 - debug - ERROR - Failed to update token status: 'OpenAICompatibleProvider' object has no attribute 'get_tokenizer'
+2026-01-27 12:07:30,882 - debug - INFO - DEBUG: SelectionScreen mounted
+2026-01-27 12:07:33,242 - debug - INFO - DEBUG: ListItem selected at index: 0
+2026-01-27 12:07:33,242 - debug - INFO - DEBUG: Dismissing SelectionScreen with value: Allow
+2026-01-27 12:07:33,339 - debug - DEBUG - Added message: role=assistant, type=None, content='<think>
+SyncRepository має анотацію @Singleton та ...'
+2026-01-27 12:07:33,340 - debug - DEBUG - Added message: role=system, type=None, content='SYSTEM RESULT for `search_files`: No files found m...'
+2026-01-27 12:07:33,436 - debug - INFO - DEBUG: SelectionScreen mounted
+2026-01-27 12:07:35,854 - debug - INFO - DEBUG: ListItem selected at index: 0
+2026-01-27 12:07:35,855 - debug - INFO - DEBUG: Dismissing SelectionScreen with value: Continue
+2026-01-27 12:07:44,074 - debug - ERROR - Failed to update token status: 'OpenAICompatibleProvider' object has no attribute 'get_tokenizer'
+2026-01-27 12:07:44,147 - debug - INFO - DEBUG: SelectionScreen mounted
+2026-01-27 12:07:45,623 - debug - INFO - DEBUG: ListItem selected at index: 0
+2026-01-27 12:07:45,623 - debug - INFO - DEBUG: Dismissing SelectionScreen with value: Allow
+2026-01-27 12:07:45,692 - debug - DEBUG - Added message: role=assistant, type=None, content='<think>
+Не знайдено модулів синхронізації. Можливо...'
+2026-01-27 12:07:45,693 - debug - DEBUG - Added message: role=system, type=None, content='SYSTEM RESULT for `search_files`: Tool execution f...'
+2026-01-27 12:07:45,790 - debug - INFO - DEBUG: SelectionScreen mounted
+2026-01-27 12:07:47,031 - debug - INFO - DEBUG: ListItem selected at index: 0
+2026-01-27 12:07:47,031 - debug - INFO - DEBUG: Dismissing SelectionScreen with value: Continue
+2026-01-27 12:07:58,388 - debug - ERROR - Failed to update token status: 'OpenAICompatibleProvider' object has no attribute 'get_tokenizer'
+2026-01-27 12:07:58,479 - debug - INFO - DEBUG: SelectionScreen mounted
+2026-01-27 12:08:00,069 - debug - INFO - DEBUG: ListItem selected at index: 0
+2026-01-27 12:08:00,070 - debug - INFO - DEBUG: Dismissing SelectionScreen with value: Allow
+2026-01-27 12:08:00,176 - debug - DEBUG - Added message: role=assistant, type=None, content='<think>
+Помилка: FileSearchTool.execute() missing ...'
+2026-01-27 12:08:00,176 - debug - DEBUG - Added message: role=system, type=None, content='SYSTEM RESULT for `search_files`: No files found m...'
+2026-01-27 12:08:00,284 - debug - INFO - DEBUG: SelectionScreen mounted
+2026-01-27 12:08:01,274 - debug - INFO - DEBUG: ListItem selected at index: 0
+2026-01-27 12:08:01,274 - debug - INFO - DEBUG: Dismissing SelectionScreen with value: Continue
+2026-01-27 12:08:10,160 - debug - ERROR - Failed to update token status: 'OpenAICompatibleProvider' object has no attribute 'get_tokenizer'
+2026-01-27 12:08:10,237 - debug - INFO - DEBUG: SelectionScreen mounted
+2026-01-27 12:08:11,834 - debug - INFO - DEBUG: ListItem selected at index: 0
+2026-01-27 12:08:11,835 - debug - INFO - DEBUG: Dismissing SelectionScreen with value: Allow
+2026-01-27 12:08:11,910 - debug - DEBUG - Added message: role=assistant, type=None, content='<think>
+Не знайдено AppModule. Можливо, в проекті ...'
+2026-01-27 12:08:11,910 - debug - DEBUG - Added message: role=system, type=None, content='SYSTEM RESULT for `search_files`: Tool execution f...'
+2026-01-27 12:08:12,014 - debug - INFO - DEBUG: SelectionScreen mounted
+2026-01-27 12:08:12,888 - debug - INFO - DEBUG: ListItem selected at index: 0
+2026-01-27 12:08:12,888 - debug - INFO - DEBUG: Dismissing SelectionScreen with value: Continue
+2026-01-27 12:08:20,822 - debug - ERROR - Failed to update token status: 'OpenAICompatibleProvider' object has no attribute 'get_tokenizer'
+2026-01-27 12:08:20,908 - debug - INFO - DEBUG: SelectionScreen mounted
+2026-01-27 12:08:23,678 - debug - INFO - DEBUG: ListItem selected at index: 0
+2026-01-27 12:08:23,678 - debug - INFO - DEBUG: Dismissing SelectionScreen with value: Allow
+2026-01-27 12:08:23,811 - debug - DEBUG - Added message: role=assistant, type=None, content='<think>
+Помилка знову через неправильний формат JS...'
+2026-01-27 12:08:23,811 - debug - DEBUG - Added message: role=system, type=None, content='SYSTEM RESULT for `search_files`: app/src/main/jav...'
+2026-01-27 12:08:23,925 - debug - INFO - DEBUG: SelectionScreen mounted
+2026-01-27 12:08:24,966 - debug - INFO - DEBUG: ListItem selected at index: 0
+2026-01-27 12:08:24,967 - debug - INFO - DEBUG: Dismissing SelectionScreen with value: Continue
+2026-01-27 12:08:33,460 - debug - ERROR - Failed to update token status: 'OpenAICompatibleProvider' object has no attribute 'get_tokenizer'
+2026-01-27 12:08:33,503 - debug - INFO - DEBUG: SelectionScreen mounted
+2026-01-27 12:08:35,077 - debug - INFO - DEBUG: ListItem selected at index: 0
+2026-01-27 12:08:35,077 - debug - INFO - DEBUG: Dismissing SelectionScreen with value: Allow
+2026-01-27 12:08:35,154 - debug - DEBUG - Added message: role=assistant, type=None, content='<think>
+Знайдено BackupRepository.kt. Прочитаємо й...'
+2026-01-27 12:08:35,154 - debug - DEBUG - Added message: role=system, type=None, content='SYSTEM RESULT for `read_file`: package com.romanko...'
+2026-01-27 12:08:35,263 - debug - INFO - DEBUG: SelectionScreen mounted
+2026-01-27 12:08:36,773 - debug - INFO - DEBUG: ListItem selected at index: 0
+2026-01-27 12:08:36,773 - debug - INFO - DEBUG: Dismissing SelectionScreen with value: Continue
+2026-01-27 12:08:43,368 - debug - INFO - --- KEY PRESSED ---
+key: 'escape'
+character: '\x1b'
+name: 'escape'
+
+2026-01-27 12:08:45,223 - debug - INFO - --- KEY PRESSED ---
+key: 'ctrl+q'
+character: '\x11'
+name: 'ctrl_q'
+
+2026-01-27 12:08:45,236 - debug - INFO - DEBUG: action_quit called. Saving session...
+2026-01-27 12:08:45,238 - debug - INFO - DEBUG: Session saved. Exiting...

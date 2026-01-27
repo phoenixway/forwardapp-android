@@ -75,10 +75,12 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
+            buildConfigField("boolean", "SYNC_ENABLED", "false")
         }
 
         release {
             isMinifyEnabled = true
+            buildConfigField("boolean", "SYNC_ENABLED", "false")
             isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
