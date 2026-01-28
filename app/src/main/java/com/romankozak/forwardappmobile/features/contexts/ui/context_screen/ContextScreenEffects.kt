@@ -16,7 +16,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.data.models.ContextViewMode
 import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
+import com.romankozak.forwardappmobile.core.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.utils.handleRelatedLinkClick
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay

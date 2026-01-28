@@ -15,10 +15,10 @@ import com.romankozak.forwardappmobile.core.data.models.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.Goal
 import com.romankozak.forwardappmobile.core.data.models.InboxRecord
 import com.romankozak.forwardappmobile.core.data.models.LinkItemEntity
-import com.romankozak.forwardappmobile.features.daymanagement.data.models.DailyMetric
-import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayPlan
-import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask
-import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
+import com.romankozak.forwardappmobile.core.data.models.day_management.DailyMetric
+import com.romankozak.forwardappmobile.core.data.models.day_management.DayPlan
+import com.romankozak.forwardappmobile.core.data.models.day_management.DayTask
+import com.romankozak.forwardappmobile.core.data.models.Reminder
 
 private inline fun bumpVersion(version: Long) = if (version == Long.MAX_VALUE) version else version + 1
 

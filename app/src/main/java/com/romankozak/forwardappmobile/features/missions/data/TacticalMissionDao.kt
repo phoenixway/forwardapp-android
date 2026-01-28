@@ -5,8 +5,8 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-import com.romankozak.forwardappmobile.features.missions.data.model.TacticalMission
-import com.romankozak.forwardappmobile.features.missions.data.model.TacticalMissionAttachmentCrossRef
+import com.romankozak.forwardappmobile.core.data.models.tactical.TacticalMission
+import com.romankozak.forwardappmobile.core.data.models.tactical.TacticalMissionAttachmentCrossRef
 import kotlinx.coroutines.flow.Flow
 
 @Dao

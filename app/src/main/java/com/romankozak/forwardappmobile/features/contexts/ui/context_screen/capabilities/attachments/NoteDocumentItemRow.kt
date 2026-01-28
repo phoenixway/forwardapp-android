@@ -13,7 +13,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
+import com.romankozak.forwardappmobile.core.data.models.BacklogItemContent
 
 @Composable
 fun NoteDocumentItemRow(

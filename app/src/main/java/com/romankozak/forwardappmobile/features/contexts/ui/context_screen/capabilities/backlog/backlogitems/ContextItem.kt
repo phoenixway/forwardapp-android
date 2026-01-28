@@ -54,7 +54,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.compo
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.ModernTagChip
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.NoteIndicatorBadge
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.TagType
-import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
+import com.romankozak.forwardappmobile.core.data.models.Reminder
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import kotlinx.coroutines.delay
 

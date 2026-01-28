@@ -24,7 +24,7 @@ import com.romankozak.forwardappmobile.core.data.models.Context
 import com.romankozak.forwardappmobile.core.data.models.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.EnhancedRelatedLinkChip
-import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
+import com.romankozak.forwardappmobile.core.data.models.Reminder
 import com.romankozak.forwardappmobile.ui.common.ParsedTextData
 import kotlinx.coroutines.delay
 

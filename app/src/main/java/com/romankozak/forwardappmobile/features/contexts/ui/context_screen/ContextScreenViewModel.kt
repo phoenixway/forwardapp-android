@@ -40,7 +40,7 @@ import com.romankozak.forwardappmobile.core.data.models.ChecklistEntity
 import com.romankozak.forwardappmobile.core.data.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.features.attachments.ui.context.AttachmentType
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
+import com.romankozak.forwardappmobile.core.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.core.data.models.ContextArtifact
 import com.romankozak.forwardappmobile.core.data.models.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.ContextTimeMetrics
@@ -59,9 +59,9 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewm
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.InboxMarkdownHandler
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.ItemActionHandler
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.SelectionHandler
-import com.romankozak.forwardappmobile.features.recent.data.models.RecentItem
-import com.romankozak.forwardappmobile.features.recent.data.models.RecentItemType
-import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
+import com.romankozak.forwardappmobile.core.data.models.RecentItem
+import com.romankozak.forwardappmobile.core.data.models.RecentItemType
+import com.romankozak.forwardappmobile.core.data.models.Reminder
 import com.romankozak.forwardappmobile.ui.common.editor.NoteTitleExtractor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher

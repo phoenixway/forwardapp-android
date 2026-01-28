@@ -1,21 +1,21 @@
 package com.romankozak.forwardappmobile.sync
 
-import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
-import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistItemEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.ContextAttachmentCrossRef
-import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentItemEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
-import com.romankozak.forwardappmobile.features.contexts.data.models.Context
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
-import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
-import com.romankozak.forwardappmobile.features.contexts.data.models.InboxRecord
-import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
+import com.romankozak.forwardappmobile.core.data.models.ActivityRecord
+import com.romankozak.forwardappmobile.core.data.models.AttachmentEntity
+import com.romankozak.forwardappmobile.core.data.models.BacklogItem
+import com.romankozak.forwardappmobile.core.data.models.BacklogOrder
+import com.romankozak.forwardappmobile.core.data.models.ChecklistEntity
+import com.romankozak.forwardappmobile.core.data.models.ChecklistItemEntity
+import com.romankozak.forwardappmobile.core.data.models.Context
+import com.romankozak.forwardappmobile.core.data.models.ContextAttachmentCrossRef
+import com.romankozak.forwardappmobile.core.data.models.ContextLog
+import com.romankozak.forwardappmobile.core.data.models.Goal
+import com.romankozak.forwardappmobile.core.data.models.InboxRecord
+import com.romankozak.forwardappmobile.core.data.models.LegacyNoteEntity
+import com.romankozak.forwardappmobile.core.data.models.LinkItemEntity
+import com.romankozak.forwardappmobile.core.data.models.NoteDocumentEntity
+import com.romankozak.forwardappmobile.core.data.models.NoteDocumentItemEntity
+import com.romankozak.forwardappmobile.core.data.models.ScriptEntity
 
 enum class DiffStatus { NEW, UPDATED, DELETED }
 

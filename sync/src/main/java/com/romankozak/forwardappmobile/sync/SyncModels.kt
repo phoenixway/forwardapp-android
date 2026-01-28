@@ -1,7 +1,8 @@
 package com.romankozak.forwardappmobile.sync
 
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
-import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
+import com.romankozak.forwardappmobile.core.data.models.BacklogItem
+import com.romankozak.forwardappmobile.core.data.models.Context
+import com.romankozak.forwardappmobile.core.data.models.Goal
 
 enum class ChangeType { Add, Update, Delete, Move }
 
@@ -18,6 +19,6 @@ data class SyncReport(val changes: List<SyncChange>)
 
 internal data class LocalSyncState(
     val goals: Map<String, Goal>,
-    val goalLists: Map<String, com.romankozak.forwardappmobile.features.contexts.data.models.Context>,
+    val goalLists: Map<String, Context>,
     val backlogItems: Map<String, BacklogItem>,
 )

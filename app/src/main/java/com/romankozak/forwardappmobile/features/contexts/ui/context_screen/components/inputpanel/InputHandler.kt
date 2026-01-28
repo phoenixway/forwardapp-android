@@ -8,8 +8,8 @@ import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.domain.ner.ReminderParser
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.GoalActionType
-import com.romankozak.forwardappmobile.features.recent.data.models.RecentItem
-import com.romankozak.forwardappmobile.features.recent.data.models.RecentItemType
+import com.romankozak.forwardappmobile.core.data.models.RecentItem
+import com.romankozak.forwardappmobile.core.data.models.RecentItemType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job

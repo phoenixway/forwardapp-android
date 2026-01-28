@@ -4,7 +4,7 @@ import com.romankozak.forwardappmobile.core.data.models.LinkType
 import com.romankozak.forwardappmobile.core.data.models.RelatedLink
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
+import com.romankozak.forwardappmobile.core.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.core.data.models.Goal
 
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.BacklogViewModel

@@ -5,8 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
 import com.romankozak.forwardappmobile.features.attachments.ui.library.AttachmentLibraryQueryResult
-import com.romankozak.forwardappmobile.features.missions.data.model.TacticalMission
-import com.romankozak.forwardappmobile.features.missions.domain.model.MissionStatus // Added import
+import com.romankozak.forwardappmobile.core.data.models.tactical.TacticalMission
+import com.romankozak.forwardappmobile.core.data.models.tactical.MissionStatus // Added import
 import com.romankozak.forwardappmobile.features.missions.domain.usecase.AddTacticalMissionUseCase
 import com.romankozak.forwardappmobile.features.missions.domain.usecase.DeleteTacticalMissionUseCase
 import com.romankozak.forwardappmobile.features.missions.domain.usecase.GetTacticalMissionsUseCase

@@ -1,32 +1,26 @@
 package com.romankozak.forwardappmobile.sync
 
 import android.util.Log
-import androidx.room.withTransaction
 import com.google.gson.GsonBuilder
 import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
-import com.romankozak.forwardappmobile.sync.*
-import com.romankozak.forwardappmobile.database.AppDatabase
-import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
-import com.romankozak.forwardappmobile.features.contexts.data.*
-import com.romankozak.forwardappmobile.features.contexts.data.dao.*
-import com.romankozak.forwardappmobile.features.contexts.data.models.*
+import com.romankozak.forwardappmobile.core.data.models.BacklogItem
+import com.romankozak.forwardappmobile.core.data.models.Context
+import com.romankozak.forwardappmobile.core.data.models.Goal
+import com.romankozak.forwardappmobile.sync.datasource.MergeLocalDataSource
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
  * Repository responsible for merging data from different sources,
  * creating sync reports, applying changes, and handling selective imports.
+ * It contains the business logic for synchronization and delegates data access
+ * to a local data source.
  */
 @Singleton
 class MergeRepository @Inject constructor(
-    private val appDatabase: AppDatabase,
-    private val syncLocalService: SyncLocalService,
+    private val localDataSource: MergeLocalDataSource,
     private val logicHelper: SyncLogicHelper,
-    private val goalDao: GoalDao,
-    private val contextDao: ContextDao,
-    private val listItemDao: ListItemDao,
-    private val attachmentDao: AttachmentDao,
 ) {
     private val TAG = "MergeRepository"
 
@@ -43,8 +37,8 @@ class MergeRepository @Inject constructor(
         val backup = gson.fromJson(jsonString, FullAppBackup::class.java)
         val incomingDb = backup.database ?: return SyncReport(emptyList())
 
-        val localProjects = contextDao.getAll().associateBy { it.id }
-        val localGoals = goalDao.getAll().associateBy { it.id }
+        val localProjects = localDataSource.getContexts().associateBy { it.id }
+        val localGoals = localDataSource.getGoals().associateBy { it.id }
         val changes = mutableListOf<SyncChange>()
 
         incomingDb.goals.forEach { incomingRaw ->
@@ -84,26 +78,7 @@ class MergeRepository @Inject constructor(
      * @param approvedChanges List of changes to apply
      */
     suspend fun applyChanges(approvedChanges: List<SyncChange>) {
-        appDatabase.withTransaction {
-            approvedChanges.forEach { change ->
-                when (change.type) {
-                    ChangeType.Delete -> {
-                        when (change.entityType) {
-                            "Список" -> contextDao.deleteContextById(change.id)
-                            "Ціль" -> goalDao.deleteGoalById(change.id)
-                            "Привʼязка" -> listItemDao.deleteItemsByIds(listOf(change.id))
-                        }
-                    }
-                    ChangeType.Update, ChangeType.Add, ChangeType.Move -> {
-                        when (change.entity) {
-                            is Context -> contextDao.insert(change.entity)
-                            is Goal -> goalDao.insertGoal(change.entity)
-                            is BacklogItem -> listItemDao.insertItem(change.entity)
-                        }
-                    }
-                }
-            }
-        }
+        localDataSource.applyChanges(approvedChanges)
     }
 
     /**
@@ -116,90 +91,89 @@ class MergeRepository @Inject constructor(
         return try {
             Log.d(TAG, "[applyServerChanges] Incoming items: projects=${changes.projects.size}, attachments=${changes.attachments.size}")
 
-            appDatabase.withTransaction {
-                val local = syncLocalService.loadLocalDatabaseContent()
-                val allProjectIds = local.projects.map { it.id }.toSet()
+            val local = localDataSource.getLocalDatabaseContent()
+            val allProjectIds = local.projects.map { it.id }.toSet()
 
-                val idRedirects = mutableMapOf<String, String>()
-                val localSystemProjects = local.projects.filter { SystemContexts.isSystem(ContextId(it.id)) }.associateBy { it.id }
+            val idRedirects = mutableMapOf<String, String>()
+            val localSystemProjects = local.projects.filter { SystemContexts.isSystem(ContextId(it.id)) }.associateBy { it.id }
 
-                val correctedIncomingProjects = changes.projects.map { incoming ->
-                    if (SystemContexts.isSystem(ContextId(incoming.id))) {
-                        localSystemProjects[incoming.id]?.let { localSys ->
-                            if (localSys.id != incoming.id) {
-                                idRedirects[incoming.id] = localSys.id
-                                return@map incoming.copy(id = localSys.id)
-                            }
+            val correctedIncomingProjects = changes.projects.map { incoming ->
+                if (SystemContexts.isSystem(ContextId(incoming.id))) {
+                    localSystemProjects[incoming.id]?.let { localSys ->
+                        if (localSys.id != incoming.id) {
+                            idRedirects[incoming.id] = localSys.id
+                            return@map incoming.copy(id = localSys.id)
                         }
                     }
-                    incoming
                 }
-
-                val mergedContexts = logicHelper.mergeAndMark(
-                    incoming = correctedIncomingProjects.map { SyncMapper.normalizeProject(it) },
-                    localMap = local.projects.associateBy { it.id },
-                    idSelector = { it.id },
-                    versionSelector = { it.version },
-                    updatedSelector = { it.updatedTs() },
-                    markSynced = { p, s -> p.copy(syncedAt = s) },
-                    syncedAt = ts,
-                    isDeletedSelector = { it.isDeleted },
-                )
-                if (mergedContexts.isNotEmpty()) contextDao.insertContexts(mergedContexts)
-
-                val mergedGoals = logicHelper.mergeAndMark(
-                    incoming = changes.goals.map { SyncMapper.normalizeGoal(it) },
-                    localMap = local.goals.associateBy { it.id },
-                    idSelector = { it.id },
-                    versionSelector = { it.version },
-                    updatedSelector = { it.updatedTs() },
-                    markSynced = { g, s -> g.copy(syncedAt = s) },
-                    syncedAt = ts,
-                    isDeletedSelector = { it.isDeleted },
-                )
-                if (mergedGoals.isNotEmpty()) goalDao.insertGoals(mergedGoals)
-
-                val contextIds = (allProjectIds + mergedContexts.map { it.id }).toSet()
-
-                val processedAttachments = changes.attachments.map { att ->
-                    val newOwnerId = att.ownerContextId?.let { idRedirects[it] ?: it }
-                    att.copy(ownerContextId = newOwnerId)
-                }.filter { it.ownerContextId == null || it.ownerContextId in contextIds }
-
-                val incomingAttachments = logicHelper.mergeAndMark(
-                    incoming = processedAttachments,
-                    localMap = local.attachments.associateBy { it.id },
-                    idSelector = { it.id },
-                    versionSelector = { it.version },
-                    updatedSelector = { it.updatedTs() },
-                    markSynced = { at, s -> at.copy(syncedAt = s) },
-                    syncedAt = ts,
-                )
-
-                val alreadySyncedIds = incomingAttachments.map { it.id }.toSet()
-                val matchedExisting = processedAttachments
-                    .filter { it.id !in alreadySyncedIds }
-                    .mapNotNull { inc -> local.attachments.find { it.id == inc.id } }
-                    .map { it.copy(syncedAt = ts) }
-
-                attachmentDao.insertAttachments(incomingAttachments + matchedExisting)
-
-                val synthesizedRefs = logicHelper.synthesizeMissingCrossRefs(processedAttachments, changes.contextAttachmentCrossRefs)
-                val finalRefs = synthesizedRefs.map { ref ->
-                    val newCtxId = idRedirects[ref.contextId] ?: ref.contextId
-                    ref.copy(contextId = newCtxId, syncedAt = ts)
-                }.filter { it.contextId in contextIds }
-
-                attachmentDao.insertContextAttachmentLinks(finalRefs)
-
-                val cleanedListItems = changes.backlogItems.map {
-                    it.copy(
-                        contextId = idRedirects[it.contextId] ?: it.contextId,
-                        entityId = if (it.itemType == BacklogItemTypeValues.SUBLIST) idRedirects[it.entityId] ?: it.entityId else it.entityId,
-                    )
-                }
-                listItemDao.insertItems(logicHelper.dedupListItems(cleanedListItems))
+                incoming
             }
+
+            val mergedContexts = logicHelper.mergeAndMark(
+                incoming = correctedIncomingProjects.map { SyncMapper.normalizeProject(it) },
+                localMap = local.projects.associateBy { it.id },
+                idSelector = { it.id },
+                versionSelector = { it.version },
+                updatedSelector = { it.updatedTs() },
+                markSynced = { p, s -> p.copy(syncedAt = s) },
+                syncedAt = ts,
+                isDeletedSelector = { it.isDeleted },
+            )
+            if (mergedContexts.isNotEmpty()) localDataSource.insertContexts(mergedContexts)
+
+            val mergedGoals = logicHelper.mergeAndMark(
+                incoming = changes.goals.map { SyncMapper.normalizeGoal(it) },
+                localMap = local.goals.associateBy { it.id },
+                idSelector = { it.id },
+                versionSelector = { it.version },
+                updatedSelector = { it.updatedTs() },
+                markSynced = { g, s -> g.copy(syncedAt = s) },
+                syncedAt = ts,
+                isDeletedSelector = { it.isDeleted },
+            )
+            if (mergedGoals.isNotEmpty()) localDataSource.insertGoals(mergedGoals)
+
+            val contextIds = (allProjectIds + mergedContexts.map { it.id }).toSet()
+
+            val processedAttachments = changes.attachments.map { att ->
+                val newOwnerId = att.ownerContextId?.let { idRedirects[it] ?: it }
+                att.copy(ownerContextId = newOwnerId)
+            }.filter { it.ownerContextId == null || it.ownerContextId in contextIds }
+
+            val incomingAttachments = logicHelper.mergeAndMark(
+                incoming = processedAttachments,
+                localMap = local.attachments.associateBy { it.id },
+                idSelector = { it.id },
+                versionSelector = { it.version },
+                updatedSelector = { it.updatedTs() },
+                markSynced = { at, s -> at.copy(syncedAt = s) },
+                syncedAt = ts,
+            )
+
+            val alreadySyncedIds = incomingAttachments.map { it.id }.toSet()
+            val matchedExisting = processedAttachments
+                .filter { it.id !in alreadySyncedIds }
+                .mapNotNull { inc -> local.attachments.find { it.id == inc.id } }
+                .map { it.copy(syncedAt = ts) }
+
+            localDataSource.insertAttachments(incomingAttachments + matchedExisting)
+
+            val synthesizedRefs = logicHelper.synthesizeMissingCrossRefs(processedAttachments, changes.contextAttachmentCrossRefs)
+            val finalRefs = synthesizedRefs.map { ref ->
+                val newCtxId = idRedirects[ref.contextId] ?: ref.contextId
+                ref.copy(contextId = newCtxId, syncedAt = ts)
+            }.filter { it.contextId in contextIds }
+
+            localDataSource.insertContextAttachmentLinks(finalRefs)
+
+            val cleanedListItems = changes.backlogItems.map {
+                it.copy(
+                    contextId = idRedirects[it.contextId] ?: it.contextId,
+                    entityId = if (it.itemType == BacklogItemTypeValues.SUBLIST) idRedirects[it.entityId] ?: it.entityId else it.entityId,
+                )
+            }
+            localDataSource.insertListItems(logicHelper.dedupListItems(cleanedListItems))
+
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to apply server changes", e)
@@ -213,7 +187,7 @@ class MergeRepository @Inject constructor(
      * @return BackupDiff with categorized differences
      */
     suspend fun createBackupDiff(incoming: DatabaseContent): BackupDiff {
-        val local = syncLocalService.loadLocalDatabaseContent()
+        val local = localDataSource.getLocalDatabaseContent()
 
         return BackupDiff(
             projects = logicHelper.diffEntities(
@@ -275,8 +249,7 @@ class MergeRepository @Inject constructor(
     suspend fun importSelectedData(selectedData: DatabaseContent): Result<String> {
         val IMPORT_TAG = "MergeRepo_Selective"
         return try {
-            val local = syncLocalService.loadLocalDatabaseContent()
-            val ts = System.currentTimeMillis()
+            val local = localDataSource.getLocalDatabaseContent()
 
             fun <T> filterNewer(
                 incoming: List<T>,
@@ -294,58 +267,55 @@ class MergeRepository @Inject constructor(
                 updatedAtSelector(inc) > updatedAtSelector(loc)
             }
 
-            appDatabase.withTransaction {
-                Log.d(IMPORT_TAG, "Starting selective transaction...")
+            Log.d(IMPORT_TAG, "Starting selective transaction...")
 
-                val regularProjects = selectedData.projects.filter { !SystemContexts.isSystem(ContextId(it.id)) }
-                val newerProjects = filterNewer(
-                    regularProjects,
-                    local.projects.associateBy { it.id },
-                    { it.id },
-                    { it.version },
-                    { it.updatedTs() },
-                )
-                if (newerProjects.isNotEmpty()) {
-                    contextDao.insertContexts(newerProjects.map { it.copy(syncedAt = ts) })
-                }
+            val regularProjects = selectedData.projects.filter { !SystemContexts.isSystem(ContextId(it.id)) }
+            val newerProjects = filterNewer(
+                regularProjects,
+                local.projects.associateBy { it.id },
+                { it.id },
+                { it.version },
+                { it.updatedTs() },
+            )
 
-                val newerGoals = filterNewer(
-                    selectedData.goals,
-                    local.goals.associateBy { it.id },
-                    { it.id },
-                    { it.version },
-                    { it.updatedTs() },
-                )
-                if (newerGoals.isNotEmpty()) {
-                    goalDao.insertGoals(newerGoals.map { it.copy(syncedAt = ts) })
-                }
+            val newerGoals = filterNewer(
+                selectedData.goals,
+                local.goals.associateBy { it.id },
+                { it.id },
+                { it.version },
+                { it.updatedTs() },
+            )
 
-                val currentContextIds = (local.projects.map { it.id } + newerProjects.map { it.id }).toSet()
-                val currentGoalIds = (local.goals.map { it.id } + newerGoals.map { it.id }).toSet()
+            val currentContextIds = (local.projects.map { it.id } + newerProjects.map { it.id }).toSet()
+            val currentGoalIds = (local.goals.map { it.id } + newerGoals.map { it.id }).toSet()
 
-                val validListItems = selectedData.backlogItems.filter {
-                    it.contextId in currentContextIds || it.entityId in currentGoalIds
-                }
-                listItemDao.insertItems(validListItems.map { it.copy(syncedAt = ts) })
-
-                if (selectedData.attachments.isNotEmpty()) {
-                    val newerAttachments = filterNewer(
-                        selectedData.attachments,
-                        local.attachments.associateBy { it.id },
-                        { it.id },
-                        { it.version },
-                        { it.updatedTs() },
-                    )
-                    attachmentDao.insertAttachments(newerAttachments.map { it.copy(syncedAt = ts) })
-                }
-
-                if (selectedData.contextAttachmentCrossRefs.isNotEmpty()) {
-                    val validCrossRefs = selectedData.contextAttachmentCrossRefs.filter {
-                        it.contextId in currentContextIds
-                    }
-                    attachmentDao.insertContextAttachmentLinks(validCrossRefs.map { it.copy(syncedAt = ts) })
-                }
+            val validListItems = selectedData.backlogItems.filter {
+                it.contextId in currentContextIds || it.entityId in currentGoalIds
             }
+
+            val newerAttachments = if (selectedData.attachments.isNotEmpty()) {
+                filterNewer(
+                    selectedData.attachments,
+                    local.attachments.associateBy { it.id },
+                    { it.id },
+                    { it.version },
+                    { it.updatedTs() },
+                )
+            } else emptyList()
+
+            val validCrossRefs = if (selectedData.contextAttachmentCrossRefs.isNotEmpty()) {
+                selectedData.contextAttachmentCrossRefs.filter {
+                    it.contextId in currentContextIds
+                }
+            } else emptyList()
+
+            localDataSource.importSelectedData(
+                projects = newerProjects,
+                goals = newerGoals,
+                listItems = validListItems,
+                attachments = newerAttachments,
+                crossRefs = validCrossRefs
+            )
 
             Result.success("Вибрані дані успішно імпортовано.")
         } catch (e: Exception) {

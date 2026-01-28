@@ -5,9 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.data.models.TaskPriority
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
-import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask
-import com.romankozak.forwardappmobile.features.daymanagement.data.models.RecurrenceFrequency
-import com.romankozak.forwardappmobile.features.daymanagement.data.models.RecurrenceRule
+import com.romankozak.forwardappmobile.core.data.models.day_management.DayTask
+import com.romankozak.forwardappmobile.core.data.models.day_management.RecurrenceFrequency
+import com.romankozak.forwardappmobile.core.data.models.day_management.RecurrenceRule
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow

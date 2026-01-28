@@ -5,7 +5,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.core.theme.ThemeMode
 import com.romankozak.forwardappmobile.core.theme.ThemeName
 import com.romankozak.forwardappmobile.core.data.models.Context
-import com.romankozak.forwardappmobile.features.recent.data.models.RecentItem
+import com.romankozak.forwardappmobile.core.data.models.RecentItem
 import com.romankozak.forwardappmobile.features.settings.settings.models.PlanningSettings
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 

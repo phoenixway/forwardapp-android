@@ -19,10 +19,10 @@ import com.romankozak.forwardappmobile.core.data.models.LinkItemEntity
 import com.romankozak.forwardappmobile.core.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.core.data.models.NoteDocumentItemEntity
 import com.romankozak.forwardappmobile.core.data.models.ScriptEntity
-import com.romankozak.forwardappmobile.features.daymanagement.data.models.DailyMetric
-import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayPlan
-import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask
-import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
+import com.romankozak.forwardappmobile.core.data.models.day_management.DailyMetric
+import com.romankozak.forwardappmobile.core.data.models.day_management.DayPlan
+import com.romankozak.forwardappmobile.core.data.models.day_management.DayTask
+import com.romankozak.forwardappmobile.core.data.models.Reminder
 
 /**
  * Відповідає за нормалізацію даних та обчислення метаданих для синхронізації.

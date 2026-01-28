@@ -19,9 +19,9 @@ import com.romankozak.forwardappmobile.core.data.models.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.ContextTimeMetrics
 import com.romankozak.forwardappmobile.core.data.models.GlobalSearchResultItem
 import com.romankozak.forwardappmobile.core.data.models.BacklogItem
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
+import com.romankozak.forwardappmobile.core.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.core.data.models.Goal
-import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
+import com.romankozak.forwardappmobile.core.data.models.Reminder
 import com.romankozak.forwardappmobile.core.data.models.LinkItemEntity
 
 import com.romankozak.forwardappmobile.core.context.SystemContexts

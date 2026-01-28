@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.features.ai.data.repository
 
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
-import com.romankozak.forwardappmobile.features.ai.data.models.AiInsightEntity
+import com.romankozak.forwardappmobile.core.data.models.ai.AiInsightEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext

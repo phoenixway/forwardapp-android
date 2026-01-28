@@ -1,26 +1,28 @@
 package com.romankozak.forwardappmobile.sync
 
+import com.romankozak.forwardappmobile.core.data.models.ActivityRecord
+import com.romankozak.forwardappmobile.core.data.models.AttachmentEntity
+import com.romankozak.forwardappmobile.core.data.models.BacklogItem
+import com.romankozak.forwardappmobile.core.data.models.BacklogOrder
+import com.romankozak.forwardappmobile.core.data.models.ChecklistEntity
+import com.romankozak.forwardappmobile.core.data.models.ChecklistItemEntity
 import com.romankozak.forwardappmobile.core.data.models.ContextLogLevelValues
 import com.romankozak.forwardappmobile.core.data.models.ContextStatusValues
 import com.romankozak.forwardappmobile.core.data.models.Context
-import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
-import com.romankozak.forwardappmobile.features.attachments.data.models.*
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
-import com.romankozak.forwardappmobile.features.contexts.data.models.ChecklistEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.ChecklistItemEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
-import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
-import com.romankozak.forwardappmobile.features.contexts.data.models.InboxRecord
-import com.romankozak.forwardappmobile.features.contexts.data.models.LegacyNoteEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.NoteDocumentItemEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.ScriptEntity
-import com.romankozak.forwardappmobile.features.daymanagement.data.models.DailyMetric
-import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayPlan
-import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask
-import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
+import com.romankozak.forwardappmobile.core.data.models.ContextAttachmentCrossRef
+import com.romankozak.forwardappmobile.core.data.models.ContextLog
+import com.romankozak.forwardappmobile.core.data.models.Goal
+import com.romankozak.forwardappmobile.core.data.models.InboxRecord
+import com.romankozak.forwardappmobile.core.data.models.LegacyNoteEntity
+import com.romankozak.forwardappmobile.core.data.models.LinkItemEntity
+import com.romankozak.forwardappmobile.core.data.models.NoteDocumentEntity
+import com.romankozak.forwardappmobile.core.data.models.NoteDocumentItemEntity
+import com.romankozak.forwardappmobile.core.data.models.Reminder
+import com.romankozak.forwardappmobile.core.data.models.ScoringStatusValues
+import com.romankozak.forwardappmobile.core.data.models.ScriptEntity
+import com.romankozak.forwardappmobile.core.data.models.day_management.DailyMetric
+import com.romankozak.forwardappmobile.core.data.models.day_management.DayPlan
+import com.romankozak.forwardappmobile.core.data.models.day_management.DayTask
 
 /**
  * Відповідає за нормалізацію даних та обчислення метаданих для синхронізації.
@@ -44,8 +46,8 @@ object SyncMapper {
     }
 
     fun normalizeProject(
-        project: com.romankozak.forwardappmobile.features.contexts.data.models.Context,
-    ): com.romankozak.forwardappmobile.features.contexts.data.models.Context {
+        project: Context,
+    ): Context {
         return project.copy(
             tags = project.tags ?: emptyList(),
             relatedLinks = project.relatedLinks ?: emptyList(),
@@ -63,7 +65,7 @@ object SyncMapper {
     // --- Extension-функції для обчислення мітки часу оновлення (updatedTs) ---
     // Використовується для алгоритму LWW (Last-Write-Wins)
 
-    fun com.romankozak.forwardappmobile.features.contexts.data.models.Context.updatedTs(): Long = this.updatedAt ?: this.createdAt
+    fun Context.updatedTs(): Long = this.updatedAt ?: this.createdAt
 
     fun Goal.updatedTs(): Long = this.updatedAt ?: this.createdAt
 

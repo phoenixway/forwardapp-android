@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import com.google.accompanist.flowlayout.FlowRow
 import com.romankozak.forwardappmobile.core.data.models.TaskPriority
-import com.romankozak.forwardappmobile.features.daymanagement.data.models.RecurrenceRule
+import com.romankozak.forwardappmobile.core.data.models.day_management.RecurrenceRule
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.components.AdvancedRecurrencePickerDialog
 
 @OptIn(ExperimentalMaterial3Api::class)

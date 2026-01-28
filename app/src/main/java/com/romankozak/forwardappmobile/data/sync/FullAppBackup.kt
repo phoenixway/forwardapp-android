@@ -3,11 +3,11 @@ package com.romankozak.forwardappmobile.data.sync
 import com.google.gson.annotations.SerializedName
 import com.romankozak.forwardappmobile.core.data.models.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.AttachmentEntity
-import com.romankozak.forwardappmobile.features.ai.data.models.AiEventEntity
-import com.romankozak.forwardappmobile.features.ai.data.models.AiInsightEntity
-import com.romankozak.forwardappmobile.features.ai.data.models.ChatMessageEntity
-import com.romankozak.forwardappmobile.features.ai.data.models.ConversationEntity
-import com.romankozak.forwardappmobile.features.ai.data.models.ConversationFolderEntity
+import com.romankozak.forwardappmobile.core.data.models.ai.AiEventEntity
+import com.romankozak.forwardappmobile.core.data.models.ai.AiInsightEntity
+import com.romankozak.forwardappmobile.core.data.models.ai.ChatMessageEntity
+import com.romankozak.forwardappmobile.core.data.models.ai.ConversationEntity
+import com.romankozak.forwardappmobile.core.data.models.ai.ConversationFolderEntity
 import com.romankozak.forwardappmobile.core.data.models.ChecklistEntity
 import com.romankozak.forwardappmobile.core.data.models.ChecklistItemEntity
 import com.romankozak.forwardappmobile.core.data.models.LegacyNoteEntity
@@ -27,13 +27,15 @@ import com.romankozak.forwardappmobile.core.data.models.ContextStructureItem
 import com.romankozak.forwardappmobile.core.data.models.Goal
 import com.romankozak.forwardappmobile.core.data.models.InboxRecord
 import com.romankozak.forwardappmobile.core.data.models.LinkItemEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.SystemAppEntity
-import com.romankozak.forwardappmobile.features.daymanagement.data.models.DailyMetric
-import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayPlan
-import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask
-import com.romankozak.forwardappmobile.features.daymanagement.data.models.RecurringTask
-import com.romankozak.forwardappmobile.features.lifestate.data.models.LifeSystemStateEntity
-import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
+import com.romankozak.forwardappmobile.core.data.models.SystemAppEntity
+import com.romankozak.forwardappmobile.core.data.models.day_management.DailyMetric
+import com.romankozak.forwardappmobile.core.data.models.day_management.DayPlan
+import com.romankozak.forwardappmobile.core.data.models.day_management.DayTask
+import com.romankozak.forwardappmobile.core.data.models.day_management.RecurringTask
+import com.romankozak.forwardappmobile.core.data.models.LifeSystemStateEntity
+import com.romankozak.forwardappmobile.core.data.models.Reminder
+import com.romankozak.forwardappmobile.core.data.models.tactical.TacticalMission
+import com.romankozak.forwardappmobile.core.data.models.tactical.TacticalMissionAttachmentCrossRef
 
 data class FullAppBackup(
     @SerializedName(value = "backupSchemaVersion", alternate = ["a"])
@@ -104,9 +106,9 @@ data class DatabaseContent(
     @SerializedName("projectArtifacts")
     val contextArtifacts: List<ContextArtifact> = emptyList(),
     @SerializedName("tacticalMissions")
-    val tacticalMissions: List<com.romankozak.forwardappmobile.features.missions.data.model.TacticalMission> = emptyList(),
+    val tacticalMissions: List<TacticalMission> = emptyList(),
     @SerializedName("tacticalMissionAttachments")
-    val tacticalMissionAttachments: List<com.romankozak.forwardappmobile.features.missions.data.model.TacticalMissionAttachmentCrossRef> =
+    val tacticalMissionAttachments: List<TacticalMissionAttachmentCrossRef> =
         emptyList(),
     @SerializedName("aiEvents")
     val aiEvents: List<AiEventEntity> = emptyList(),

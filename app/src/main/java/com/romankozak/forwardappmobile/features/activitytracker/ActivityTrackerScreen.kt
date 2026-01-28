@@ -53,7 +53,7 @@ import com.romankozak.forwardappmobile.features.common.components.holdmenu2.Hold
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.IconPosition
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.MenuAlignment
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.rememberHoldMenu2
-import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
+import com.romankozak.forwardappmobile.core.data.models.Reminder
 import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
 import com.romankozak.forwardappmobile.ui.shared.InProgressIndicator
 import com.romankozak.forwardappmobile.ui.shared.InProgressIndicatorState

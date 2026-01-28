@@ -1,13 +1,13 @@
 package com.romankozak.forwardappmobile.sync
 
+import com.romankozak.forwardappmobile.core.data.models.AttachmentEntity
+import com.romankozak.forwardappmobile.core.data.models.BacklogItem
+import com.romankozak.forwardappmobile.core.data.models.BacklogOrder
+import com.romankozak.forwardappmobile.core.data.models.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.sync.SyncMapper.updatedTs
 import com.romankozak.forwardappmobile.sync.BacklogOrderUtils
 import com.romankozak.forwardappmobile.sync.DiffResult
 import com.romankozak.forwardappmobile.sync.UpdatedItem
-import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.ContextAttachmentCrossRef
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
 import javax.inject.Inject
 import javax.inject.Singleton
 

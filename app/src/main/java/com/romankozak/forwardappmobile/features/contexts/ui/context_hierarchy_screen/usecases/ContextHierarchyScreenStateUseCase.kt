@@ -22,7 +22,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.SearchResult
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.flattenHierarchyWithLevels
-import com.romankozak.forwardappmobile.features.recent.data.models.RecentItem
+import com.romankozak.forwardappmobile.core.data.models.RecentItem
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 import dagger.hilt.android.scopes.ViewModelScoped
 import kotlinx.coroutines.CoroutineScope
