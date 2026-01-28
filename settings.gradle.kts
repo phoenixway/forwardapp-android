@@ -33,3 +33,4 @@ rootProject.name = "ForwardAppMobile"
 include(":app")
 include(":core-data-models")
 include(":core-data-interfaces")
+include(":sync")
