@@ -145,9 +145,10 @@ class SelectiveImportViewModel
                             // System projects already exist in DB, so they're valid
                             true
                         } else {
-                            // Regular projects must be selected and have valid parents recursively
-                            project.parentId in regularcontextIds && isProjectValidForImport(project.parentId, visited + contextId)
-                        }
+                project.parentId?.let { pid ->
+                    pid in regularcontextIds && isProjectValidForImport(pid, visited + contextId)
+                } ?: false
+            }
 
                     return isParentValid
                 }

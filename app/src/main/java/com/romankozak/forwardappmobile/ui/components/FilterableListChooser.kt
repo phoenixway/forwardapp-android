@@ -33,7 +33,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import com.romankozak.forwardappmobile.features.contexts.data.models.Context
+import com.romankozak.forwardappmobile.core.data.models.Context
 import kotlinx.coroutines.delay
 import java.util.UUID
 

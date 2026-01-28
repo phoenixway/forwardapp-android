@@ -4,6 +4,7 @@ import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.romankozak.forwardappmobile.core.data.models.RelatedLink
 import com.romankozak.forwardappmobile.features.missions.domain.model.MissionPriority
 import com.romankozak.forwardappmobile.features.missions.domain.model.MissionStatus
 

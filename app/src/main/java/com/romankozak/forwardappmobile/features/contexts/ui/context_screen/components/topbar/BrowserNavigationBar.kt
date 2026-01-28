@@ -23,7 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextViewMode
+import com.romankozak.forwardappmobile.core.data.models.ContextViewMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

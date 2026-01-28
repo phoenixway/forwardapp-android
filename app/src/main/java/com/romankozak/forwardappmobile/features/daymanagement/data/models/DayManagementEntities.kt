@@ -9,11 +9,11 @@ import androidx.room.TypeConverter
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
-import com.romankozak.forwardappmobile.features.contexts.data.models.Context
-import com.romankozak.forwardappmobile.features.contexts.data.models.DayStatus
+import com.romankozak.forwardappmobile.core.data.models.Context
+import com.romankozak.forwardappmobile.core.data.models.DayStatus
+import com.romankozak.forwardappmobile.core.data.models.TaskPriority
+import com.romankozak.forwardappmobile.core.data.models.TaskStatus
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
-import com.romankozak.forwardappmobile.features.contexts.data.models.TaskPriority
-import com.romankozak.forwardappmobile.features.contexts.data.models.TaskStatus
 import java.time.DayOfWeek
 import java.util.UUID
 

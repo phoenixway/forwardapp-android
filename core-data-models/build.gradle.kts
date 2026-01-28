@@ -25,12 +25,13 @@ android {
 }
 
 dependencies {
+    api(kotlin("stdlib"))
     // Basic Kotlin and AndroidX dependencies for data classes
-    implementation("androidx.core:core-ktx:1.13.1")
+    implementation(libs.androidx.core.ktx)
     implementation("androidx.annotation:annotation:1.8.0")
     // If models use Room annotations like @Entity, @PrimaryKey, etc.
-    api("androidx.room:room-common:2.6.1")
-    api("com.google.code.gson:gson:2.11.0")
+    api("androidx.room:room-common:2.8.1")
+    api(libs.google.gson)
     // If models need kotlinx.serialization
     api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 

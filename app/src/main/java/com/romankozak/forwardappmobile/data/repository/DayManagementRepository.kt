@@ -2,6 +2,7 @@
 package com.romankozak.forwardappmobile.data.repository
 
 import androidx.room.Transaction
+import com.romankozak.forwardappmobile.core.data.models.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.di.IoDispatcher
 import com.romankozak.forwardappmobile.data.dao.*
 import com.romankozak.forwardappmobile.domain.ai.events.TaskCompletedEvent
@@ -11,12 +12,11 @@ import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
 import com.romankozak.forwardappmobile.features.ai.data.models.DailyAnalytics
 import com.romankozak.forwardappmobile.features.ai.data.models.WeeklyInsights
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
-import com.romankozak.forwardappmobile.features.contexts.data.models.Context
-import com.romankozak.forwardappmobile.features.contexts.data.models.DayStatus
+import com.romankozak.forwardappmobile.core.data.models.Context
+import com.romankozak.forwardappmobile.core.data.models.DayStatus
+import com.romankozak.forwardappmobile.core.data.models.TaskPriority
+import com.romankozak.forwardappmobile.core.data.models.TaskStatus
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
-import com.romankozak.forwardappmobile.features.contexts.data.models.TaskPriority
-import com.romankozak.forwardappmobile.features.contexts.data.models.TaskStatus
 import com.romankozak.forwardappmobile.features.daymanagement.data.models.DailyMetric
 import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayPlan
 import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask

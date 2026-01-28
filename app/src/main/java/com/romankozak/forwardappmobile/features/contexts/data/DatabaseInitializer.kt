@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.features.contexts.data
 import com.romankozak.forwardappmobile.data.repository.SystemAppRepository
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
-import com.romankozak.forwardappmobile.features.contexts.data.models.Context
+import com.romankozak.forwardappmobile.core.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedContextKeys
 import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedSystemAppKeys
 import javax.inject.Inject

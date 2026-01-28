@@ -1,14 +1,14 @@
 package com.romankozak.forwardappmobile.features.attachments.data
 
 import android.util.Log
+import com.romankozak.forwardappmobile.core.data.models.BacklogItemTypeValues
+import com.romankozak.forwardappmobile.core.data.models.RelatedLink
 import com.romankozak.forwardappmobile.data.sync.softDelete
 import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentWithContext
 import com.romankozak.forwardappmobile.features.attachments.data.models.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject

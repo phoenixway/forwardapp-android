@@ -9,6 +9,12 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.romankozak.forwardappmobile.core.data.models.BacklogItemTypeValues
+import com.romankozak.forwardappmobile.core.data.models.Context
+import com.romankozak.forwardappmobile.core.data.models.ContextLogEntryTypeValues
+import com.romankozak.forwardappmobile.core.data.models.ContextViewMode
+import com.romankozak.forwardappmobile.core.data.models.LinkType
+import com.romankozak.forwardappmobile.core.data.models.RelatedLink
 import com.romankozak.forwardappmobile.core.di.IoDispatcher
 import com.romankozak.forwardappmobile.core.navigation.ClearAndNavigateHomeUseCase
 import com.romankozak.forwardappmobile.core.navigation.ClearCommand
@@ -35,14 +41,9 @@ import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNo
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.features.attachments.ui.context.AttachmentType
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextArtifact
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLogEntryTypeValues
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextTimeMetrics
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextViewMode
-import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
-import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectUiEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.state.PlanningModeManager
@@ -328,7 +329,7 @@ class BacklogViewModel
                 .getAllContextsFlow()
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-        val subprojectChildren: StateFlow<Map<String?, List<com.romankozak.forwardappmobile.features.contexts.data.models.Context>>> =
+        val subprojectChildren: StateFlow<Map<String?, List<Context>>> =
             _allProjects
                 .map { allProjects -> allProjects.groupBy { it.parentId } }
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
@@ -409,7 +410,7 @@ class BacklogViewModel
         val contextMarkerToEmojiMap: StateFlow<Map<String, String>> =
             contextHandler.contextMarkerToEmojiMap
 
-        val project: StateFlow<com.romankozak.forwardappmobile.features.contexts.data.models.Context?> =
+        val project: StateFlow<Context?> =
             combine(contextIdFlow, _refreshTrigger) { id, _ -> id }
                 .flatMapLatest { id ->
                     if (id.isNotEmpty()) contextRepository.getContextByIdFlow(id) else flowOf(null)
@@ -1506,7 +1507,7 @@ class BacklogViewModel
         }
 
         fun onSubprojectCompletedChanged(
-            subproject: com.romankozak.forwardappmobile.features.contexts.data.models.Context,
+            subproject: Context,
             isCompleted: Boolean,
         ) {
             viewModelScope.launch {
@@ -2071,7 +2072,7 @@ class BacklogViewModel
             }
         }
 
-        fun onChildProjectClick(childProject: com.romankozak.forwardappmobile.features.contexts.data.models.Context) {
+        fun onChildProjectClick(childProject: Context) {
             viewModelScope.launch {
                 enhancedNavigationManager.navigateToProject(childProject.id, childProject.name)
             }

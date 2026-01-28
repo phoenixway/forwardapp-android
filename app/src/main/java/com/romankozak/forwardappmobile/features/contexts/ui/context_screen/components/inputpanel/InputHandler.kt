@@ -2,11 +2,11 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.comp
 
 import android.util.Log
 import androidx.compose.ui.text.input.TextFieldValue
+import com.romankozak.forwardappmobile.core.data.models.LinkType
+import com.romankozak.forwardappmobile.core.data.models.RelatedLink
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.domain.ner.ReminderParser
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
-import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
-import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.GoalActionType
 import com.romankozak.forwardappmobile.features.recent.data.models.RecentItem
 import com.romankozak.forwardappmobile.features.recent.data.models.RecentItemType
@@ -282,7 +282,8 @@ class InputHandler(
             return
         }
         scope.launch(Dispatchers.IO) {
-            val link = RelatedLink(type = LinkType.OBSIDIAN, target = noteName, displayName = noteName)
+            val link =
+                RelatedLink(type = LinkType.OBSIDIAN, target = noteName, displayName = noteName)
             val newItemId = contextRepository.addLinkItemToContextFromLink(projectIdFlow.value, link)
             resultListener.updateInputState(newlyAddedItemId = newItemId)
         }

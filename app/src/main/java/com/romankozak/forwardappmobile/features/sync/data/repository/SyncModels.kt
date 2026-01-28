@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.data.repository
 
+import com.romankozak.forwardappmobile.core.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
 
@@ -18,6 +19,6 @@ data class SyncReport(val changes: List<SyncChange>)
 
 internal data class LocalSyncState(
     val goals: Map<String, Goal>,
-    val goalLists: Map<String, com.romankozak.forwardappmobile.features.contexts.data.models.Context>,
+    val goalLists: Map<String, Context>,
     val backlogItems: Map<String, BacklogItem>,
 )

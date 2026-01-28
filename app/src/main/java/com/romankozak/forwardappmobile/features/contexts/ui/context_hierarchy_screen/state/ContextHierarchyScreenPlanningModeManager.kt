@@ -2,7 +2,7 @@
 
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.state
 
-import com.romankozak.forwardappmobile.features.contexts.data.models.Context
+import com.romankozak.forwardappmobile.core.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenPlanningMode
 import dagger.hilt.android.scopes.ViewModelScoped

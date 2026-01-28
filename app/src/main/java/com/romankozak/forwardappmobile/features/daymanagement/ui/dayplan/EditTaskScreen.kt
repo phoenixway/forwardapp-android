@@ -45,7 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.romankozak.forwardappmobile.features.contexts.data.models.TaskPriority
+import com.romankozak.forwardappmobile.core.data.models.TaskPriority
 import com.romankozak.forwardappmobile.features.daymanagement.data.models.RecurrenceFrequency
 import java.time.DayOfWeek
 import java.time.format.TextStyle

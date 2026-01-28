@@ -28,9 +28,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.features.contexts.data.models.Context
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextStatusValues
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextViewMode
+import com.romankozak.forwardappmobile.core.data.models.Context
+import com.romankozak.forwardappmobile.core.data.models.ContextStatusValues
+import com.romankozak.forwardappmobile.core.data.models.ContextViewMode
+
 import kotlinx.coroutines.delay
 
 // Single StatusVisuals data class
@@ -345,11 +346,11 @@ fun ListTitleBar(
                     )
                 }
             }
-
             AnimatedVisibility(visible = isStatusExpanded) {
-                if (project?.contextStatus != null) {
+                // Використовуємо .let для створення локальної копії 'status'
+                project?.contextStatus?.let { status ->
                     contextStatusIndicator(
-                        status = project.contextStatus,
+                        status = status, // Тепер тут гарантовано не-null String
                         statusText = project.contextStatusText,
                     )
                 }

@@ -20,7 +20,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.features.contexts.data.models.TaskPriority
+import com.romankozak.forwardappmobile.core.data.models.TaskPriority
 import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask
 import com.romankozak.forwardappmobile.features.reminders.components.ReminderBadge
 import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder

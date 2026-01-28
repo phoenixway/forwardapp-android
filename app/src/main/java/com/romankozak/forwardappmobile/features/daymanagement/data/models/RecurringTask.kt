@@ -5,7 +5,7 @@ import androidx.room.Entity
 import androidx.room.Fts4
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import com.romankozak.forwardappmobile.features.contexts.data.models.TaskPriority
+import com.romankozak.forwardappmobile.core.data.models.TaskPriority
 import java.util.UUID
 
 @Entity(tableName = "recurring_tasks", indices = [Index(value = ["goalId"])])

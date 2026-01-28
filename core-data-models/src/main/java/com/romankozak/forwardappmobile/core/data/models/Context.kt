@@ -1,8 +1,7 @@
-package com.romankozak.forwardappmobile.features.contexts.data.models
+package com.romankozak.forwardappmobile.core.data.models
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
-import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(

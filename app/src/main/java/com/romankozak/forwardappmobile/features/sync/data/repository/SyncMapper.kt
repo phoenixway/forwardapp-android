@@ -1,5 +1,9 @@
 package com.romankozak.forwardappmobile.data.repository
 
+import com.romankozak.forwardappmobile.core.data.models.Context
+import com.romankozak.forwardappmobile.core.data.models.ContextLogLevelValues
+import com.romankozak.forwardappmobile.core.data.models.ContextStatusValues
+import com.romankozak.forwardappmobile.core.data.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
 import com.romankozak.forwardappmobile.features.attachments.data.models.*
 import com.romankozak.forwardappmobile.features.contexts.data.models.*
@@ -30,8 +34,8 @@ object SyncMapper {
     }
 
     fun normalizeProject(
-        project: com.romankozak.forwardappmobile.features.contexts.data.models.Context,
-    ): com.romankozak.forwardappmobile.features.contexts.data.models.Context {
+        project: Context,
+    ): Context {
         return project.copy(
             tags = project.tags ?: emptyList(),
             relatedLinks = project.relatedLinks ?: emptyList(),
@@ -49,7 +53,7 @@ object SyncMapper {
     // --- Extension-функції для обчислення мітки часу оновлення (updatedTs) ---
     // Використовується для алгоритму LWW (Last-Write-Wins)
 
-    fun com.romankozak.forwardappmobile.features.contexts.data.models.Context.updatedTs(): Long = this.updatedAt ?: this.createdAt
+    fun Context.updatedTs(): Long = this.updatedAt ?: this.createdAt
 
     fun Goal.updatedTs(): Long = this.updatedAt ?: this.createdAt
 
