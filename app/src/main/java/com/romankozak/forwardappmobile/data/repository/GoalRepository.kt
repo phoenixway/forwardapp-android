@@ -8,8 +8,8 @@ import com.romankozak.forwardappmobile.data.sync.softDelete
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
-import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
+import com.romankozak.forwardappmobile.core.data.models.BacklogItem
+import com.romankozak.forwardappmobile.core.data.models.Goal
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject

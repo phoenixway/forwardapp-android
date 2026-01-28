@@ -37,9 +37,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.data.models.LinkType
 import com.romankozak.forwardappmobile.core.data.models.RelatedLink
-import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
-import com.romankozak.forwardappmobile.features.contexts.data.models.GlobalGoalSearchResult
-import com.romankozak.forwardappmobile.features.contexts.data.models.GlobalSearchResultItem
+import com.romankozak.forwardappmobile.core.data.models.ActivityRecord
+import com.romankozak.forwardappmobile.core.data.models.GlobalGoalSearchResult
+import com.romankozak.forwardappmobile.core.data.models.GlobalSearchResultItem
 import com.romankozak.forwardappmobile.features.globalsearch.components.InboxSearchResultItem
 import com.romankozak.forwardappmobile.features.globalsearch.components.LinkSearchResultItem
 import com.romankozak.forwardappmobile.features.globalsearch.components.ProjectSearchResultItem

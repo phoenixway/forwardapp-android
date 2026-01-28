@@ -1,6 +1,9 @@
 package com.romankozak.forwardappmobile.features.contexts.data.models
 
+import com.romankozak.forwardappmobile.core.data.models.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.Context
+import com.romankozak.forwardappmobile.core.data.models.Goal
+import com.romankozak.forwardappmobile.core.data.models.LinkItemEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity

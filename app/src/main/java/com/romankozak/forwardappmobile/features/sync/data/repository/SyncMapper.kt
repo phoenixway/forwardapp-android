@@ -4,9 +4,14 @@ import com.romankozak.forwardappmobile.core.data.models.Context
 import com.romankozak.forwardappmobile.core.data.models.ContextLogLevelValues
 import com.romankozak.forwardappmobile.core.data.models.ContextStatusValues
 import com.romankozak.forwardappmobile.core.data.models.ScoringStatusValues
-import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
+import com.romankozak.forwardappmobile.core.data.models.ActivityRecord
+import com.romankozak.forwardappmobile.core.data.models.BacklogItem
+import com.romankozak.forwardappmobile.core.data.models.BacklogOrder
+import com.romankozak.forwardappmobile.core.data.models.ContextLog
+import com.romankozak.forwardappmobile.core.data.models.Goal
+import com.romankozak.forwardappmobile.core.data.models.InboxRecord
+import com.romankozak.forwardappmobile.core.data.models.LinkItemEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.*
-import com.romankozak.forwardappmobile.features.contexts.data.models.*
 import com.romankozak.forwardappmobile.features.daymanagement.data.models.DailyMetric
 import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayPlan
 import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask

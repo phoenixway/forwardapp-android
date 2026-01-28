@@ -1,8 +1,8 @@
 package com.romankozak.forwardappmobile.data.sync
 
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
+import com.romankozak.forwardappmobile.core.data.models.BacklogItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
+import com.romankozak.forwardappmobile.core.data.models.BacklogOrder
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

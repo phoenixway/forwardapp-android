@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.view
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.core.data.models.Context
 import com.romankozak.forwardappmobile.core.data.models.ContextStatusValues
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
+import com.romankozak.forwardappmobile.core.data.models.ContextLog
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.BacklogMarkdownHandlerResultListener
 import java.text.SimpleDateFormat
 import java.util.Date

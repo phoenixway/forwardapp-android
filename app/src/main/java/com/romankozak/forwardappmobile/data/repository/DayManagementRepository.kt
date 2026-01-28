@@ -9,14 +9,14 @@ import com.romankozak.forwardappmobile.domain.ai.events.TaskCompletedEvent
 import com.romankozak.forwardappmobile.domain.ai.events.TaskCreatedEvent
 import com.romankozak.forwardappmobile.domain.ai.events.TaskDeferredEvent
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
-import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
+import com.romankozak.forwardappmobile.core.data.models.ActivityRecord
 import com.romankozak.forwardappmobile.features.ai.data.models.DailyAnalytics
 import com.romankozak.forwardappmobile.features.ai.data.models.WeeklyInsights
 import com.romankozak.forwardappmobile.core.data.models.Context
 import com.romankozak.forwardappmobile.core.data.models.DayStatus
 import com.romankozak.forwardappmobile.core.data.models.TaskPriority
 import com.romankozak.forwardappmobile.core.data.models.TaskStatus
-import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
+import com.romankozak.forwardappmobile.core.data.models.Goal
 import com.romankozak.forwardappmobile.features.daymanagement.data.models.DailyMetric
 import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayPlan
 import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask

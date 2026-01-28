@@ -4,7 +4,7 @@ import android.net.Uri
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
-import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
+import com.romankozak.forwardappmobile.core.data.models.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DialogState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.state.DialogStateManager

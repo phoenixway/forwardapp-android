@@ -43,7 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
+import com.romankozak.forwardappmobile.core.data.models.ActivityRecord
 import com.romankozak.forwardappmobile.features.activitytracker.dialogs.TimePickerDialog
 import com.romankozak.forwardappmobile.features.activitytracker.dialogs.formatDuration
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Button
@@ -419,9 +419,17 @@ private fun LogEntryItem(
                     text = record.text,
                     textStyle = MaterialTheme.typography.bodyLarge,
                     badge = {
+                        // File: ActivityTrackerScreen.kt
+
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            if (!record.isOngoing && record.endTime != null) {
-                                val duration = record.endTime - record.startTime!!
+                            // 1. Shadowing the properties locally fixes the smart cast issue
+                            val endTime = record.endTime
+                            val startTime = record.startTime
+
+                            // 2. Add clarifying parentheses as requested by the linter
+                            if ((!record.isOngoing) && (endTime != null) && (startTime != null)) {
+                                val duration = endTime - startTime
+
                                 if (duration > 0) {
                                     Surface(
                                         shape = RoundedCornerShape(8.dp),
@@ -437,6 +445,7 @@ private fun LogEntryItem(
                                     }
                                 }
                             }
+                        
                             if ((record.xpGained ?: 0) > 0) {
                                 Surface(
                                     shape = RoundedCornerShape(8.dp),

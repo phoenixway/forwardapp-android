@@ -8,7 +8,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.models.Attachme
 import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentWithContext
 import com.romankozak.forwardappmobile.features.attachments.data.models.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
-import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
+import com.romankozak.forwardappmobile.core.data.models.LinkItemEntity
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject

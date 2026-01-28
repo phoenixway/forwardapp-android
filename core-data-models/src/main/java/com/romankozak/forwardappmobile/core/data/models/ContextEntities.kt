@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.contexts.data.models
+package com.romankozak.forwardappmobile.core.data.models
 
 import androidx.room.ColumnInfo
 import androidx.room.Embedded
@@ -9,10 +9,6 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverters
 import com.google.gson.annotations.SerializedName
-import com.romankozak.forwardappmobile.core.data.models.Context
-import com.romankozak.forwardappmobile.core.data.models.RelatedLink
-import com.romankozak.forwardappmobile.core.data.models.ScoringStatusValues
-import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
 
 @Entity(
     tableName = "backlog_orders",

@@ -7,8 +7,8 @@ import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
 import com.romankozak.forwardappmobile.core.data.models.Context
-import com.romankozak.forwardappmobile.features.contexts.data.models.GlobalContextSearchResult
-import com.romankozak.forwardappmobile.features.contexts.data.models.GlobalSubcontextSearchResult
+import com.romankozak.forwardappmobile.core.data.models.GlobalContextSearchResult
+import com.romankozak.forwardappmobile.core.data.models.GlobalSubcontextSearchResult
 import kotlinx.coroutines.flow.Flow
 
 @Dao

@@ -6,7 +6,7 @@ import com.romankozak.forwardappmobile.data.sync.bumpSync
 import com.romankozak.forwardappmobile.data.sync.softDelete
 import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
+import com.romankozak.forwardappmobile.core.data.models.BacklogItem
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject

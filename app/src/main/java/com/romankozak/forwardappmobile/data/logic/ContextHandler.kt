@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.data.logic
 
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
-import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
+import com.romankozak.forwardappmobile.core.data.models.Goal
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll

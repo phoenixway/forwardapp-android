@@ -1,8 +1,8 @@
 package com.romankozak.forwardappmobile.data.repository
 
 import com.romankozak.forwardappmobile.core.data.models.Context
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
-import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
+import com.romankozak.forwardappmobile.core.data.models.BacklogItem
+import com.romankozak.forwardappmobile.core.data.models.Goal
 
 enum class ChangeType { Add, Update, Delete, Move }
 

@@ -5,16 +5,15 @@ import androidx.room.withTransaction
 import com.google.gson.GsonBuilder
 import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
+import com.romankozak.forwardappmobile.core.data.models.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.Context
-import com.romankozak.forwardappmobile.data.dao.*
+import com.romankozak.forwardappmobile.core.data.models.Goal
 import com.romankozak.forwardappmobile.data.repository.SyncMapper.updatedTs
 import com.romankozak.forwardappmobile.data.sync.*
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
-import com.romankozak.forwardappmobile.features.contexts.data.*
 import com.romankozak.forwardappmobile.features.contexts.data.dao.*
-import com.romankozak.forwardappmobile.features.contexts.data.models.*
 import javax.inject.Inject
 import javax.inject.Singleton
 

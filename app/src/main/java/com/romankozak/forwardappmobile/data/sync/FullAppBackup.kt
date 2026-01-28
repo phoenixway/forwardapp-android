@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.data.sync
 
 import com.google.gson.annotations.SerializedName
-import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
+import com.romankozak.forwardappmobile.core.data.models.ActivityRecord
 import com.romankozak.forwardappmobile.features.ai.data.models.AiEventEntity
 import com.romankozak.forwardappmobile.features.ai.data.models.AiInsightEntity
 import com.romankozak.forwardappmobile.features.ai.data.models.ChatMessageEntity
@@ -13,18 +13,18 @@ import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNo
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentItemEntity
 import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
+import com.romankozak.forwardappmobile.core.data.models.BacklogItem
+import com.romankozak.forwardappmobile.core.data.models.BacklogOrder
 import com.romankozak.forwardappmobile.core.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextArtifact
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextConfiguration
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
+import com.romankozak.forwardappmobile.core.data.models.ContextLog
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfile
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfileItem
 import com.romankozak.forwardappmobile.features.contexts.data.models.ContextStructureItem
-import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
-import com.romankozak.forwardappmobile.features.contexts.data.models.InboxRecord
-import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
+import com.romankozak.forwardappmobile.core.data.models.Goal
+import com.romankozak.forwardappmobile.core.data.models.InboxRecord
+import com.romankozak.forwardappmobile.core.data.models.LinkItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.models.SystemAppEntity
 import com.romankozak.forwardappmobile.features.daymanagement.data.models.DailyMetric
 import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayPlan

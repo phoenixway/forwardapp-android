@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.activitytracker.data.models
+package com.romankozak.forwardappmobile.core.data.models
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity

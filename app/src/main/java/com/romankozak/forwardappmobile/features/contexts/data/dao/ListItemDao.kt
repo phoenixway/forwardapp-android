@@ -5,7 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
+import com.romankozak.forwardappmobile.core.data.models.BacklogItem
 import kotlinx.coroutines.flow.Flow
 
 @Dao

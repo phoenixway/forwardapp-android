@@ -4,7 +4,7 @@ import com.romankozak.forwardappmobile.core.data.models.ContextLogEntryTypeValue
 import com.romankozak.forwardappmobile.data.sync.bumpSync
 import com.romankozak.forwardappmobile.data.sync.softDelete
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
+import com.romankozak.forwardappmobile.core.data.models.ContextLog
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject

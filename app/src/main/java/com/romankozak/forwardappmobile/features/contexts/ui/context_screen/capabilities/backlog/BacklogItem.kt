@@ -45,7 +45,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.Context
 import com.romankozak.forwardappmobile.core.data.models.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.ScoringStatusValues
-import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
+import com.romankozak.forwardappmobile.core.data.models.Goal
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.MarkdownText
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.StatusIconsRow
 import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder

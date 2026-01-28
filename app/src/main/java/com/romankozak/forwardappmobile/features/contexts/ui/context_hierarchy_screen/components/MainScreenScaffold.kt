@@ -53,7 +53,7 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.NavigationHistoryMenu
-import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
+import com.romankozak.forwardappmobile.core.data.models.ActivityRecord
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Button
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Overlay
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenuItem
