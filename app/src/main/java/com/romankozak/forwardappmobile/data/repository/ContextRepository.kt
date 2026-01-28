@@ -6,7 +6,7 @@ import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.sync.bumpSync
 import com.romankozak.forwardappmobile.data.sync.softDelete
 import com.romankozak.forwardappmobile.domain.ai.events.ProjectActivatedEvent
-import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
+import com.romankozak.forwardappmobile.sync.AttachmentsRepository
 import com.romankozak.forwardappmobile.core.data.models.AttachmentWithContext
 import com.romankozak.forwardappmobile.core.data.models.ChecklistEntity
 import com.romankozak.forwardappmobile.core.data.models.LegacyNoteEntity
@@ -55,7 +55,7 @@ class ContextRepository
         private val searchRepository: SearchRepository,
         private val noteDocumentRepository: NoteDocumentRepository,
         private val checklistRepository: ChecklistRepository,
-        private val attachmentRepository: AttachmentRepository,
+        private val attachmentRepository: com.romankozak.forwardappmobile.sync.AttachmentsRepository,
         private val goalRepository: GoalRepository,
         private val inboxRepository: InboxRepository,
         private val contextTimeTrackingRepository: ContextTimeTrackingRepository,

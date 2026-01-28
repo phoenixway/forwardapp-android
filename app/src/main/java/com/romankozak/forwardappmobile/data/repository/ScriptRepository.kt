@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.data.repository
 
 import com.romankozak.forwardappmobile.core.data.models.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.data.dao.ScriptDao
-import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
+import com.romankozak.forwardappmobile.sync.AttachmentsRepository // Updated import
 import com.romankozak.forwardappmobile.core.data.models.ScriptEntity
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
@@ -14,7 +14,7 @@ class ScriptRepository
     @Inject
     constructor(
         private val scriptDao: ScriptDao,
-        private val attachmentRepository: AttachmentRepository,
+        private val attachmentRepository: com.romankozak.forwardappmobile.sync.AttachmentsRepository, // Updated type
     ) {
         fun getAllScripts(): Flow<List<ScriptEntity>> = scriptDao.getAll()
 

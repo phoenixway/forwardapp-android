@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.data.repository
 
 import com.romankozak.forwardappmobile.core.data.models.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.data.dao.SystemAppDao
-import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
+import com.romankozak.forwardappmobile.sync.AttachmentsRepository // Updated import
 import com.romankozak.forwardappmobile.core.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
@@ -18,7 +18,7 @@ class SystemAppRepository
         private val systemAppDao: SystemAppDao,
         private val contextDao: ContextDao,
         private val noteDocumentDao: NoteDocumentDao,
-        private val attachmentRepository: AttachmentRepository,
+        private val attachmentRepository: com.romankozak.forwardappmobile.sync.AttachmentsRepository, // Updated type
     ) {
         suspend fun getSystemApp(systemKey: String): SystemAppEntity? = systemAppDao.getBySystemKey(systemKey)
 

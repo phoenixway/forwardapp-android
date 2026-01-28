@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.config.FeatureToggles
 import com.romankozak.forwardappmobile.core.data.models.BacklogItemTypeValues
-import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
+import com.romankozak.forwardappmobile.sync.AttachmentsRepository // Updated import
 import com.romankozak.forwardappmobile.core.data.models.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.core.data.models.Context
@@ -25,7 +25,7 @@ import javax.inject.Inject
 class AttachmentsLibraryViewModel
     @Inject
     constructor(
-        private val attachmentRepository: AttachmentRepository,
+        private val attachmentRepository: com.romankozak.forwardappmobile.sync.AttachmentsRepository, // Updated type
         private val contextDao: ContextDao,
     ) : ViewModel() {
         private val _events = MutableSharedFlow<AttachmentsLibraryEvent>()

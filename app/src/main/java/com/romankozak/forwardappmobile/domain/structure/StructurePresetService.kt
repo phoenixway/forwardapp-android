@@ -7,7 +7,7 @@ import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
-import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
+import com.romankozak.forwardappmobile.sync.AttachmentsRepository // Updated import
 import com.romankozak.forwardappmobile.core.data.models.ContextStructureItem
 
 import java.util.Locale
@@ -19,7 +19,7 @@ class StructurePresetService
     @Inject
     constructor(
         private val contextStructureRepository: ContextStructureRepository,
-        private val attachmentRepository: AttachmentRepository,
+        private val attachmentRepository: com.romankozak.forwardappmobile.sync.AttachmentsRepository, // Updated type
         private val noteDocumentRepository: NoteDocumentRepository,
         private val checklistRepository: ChecklistRepository,
         private val contextRepository: ContextRepository,
