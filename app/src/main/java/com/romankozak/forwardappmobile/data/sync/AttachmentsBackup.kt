@@ -1,11 +1,11 @@
 package com.romankozak.forwardappmobile.data.sync
 
-import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistItemEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.ContextAttachmentCrossRef
-import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentItemEntity
+import com.romankozak.forwardappmobile.core.data.models.AttachmentEntity
+import com.romankozak.forwardappmobile.core.data.models.ChecklistEntity
+import com.romankozak.forwardappmobile.core.data.models.ChecklistItemEntity
+import com.romankozak.forwardappmobile.core.data.models.ContextAttachmentCrossRef
+import com.romankozak.forwardappmobile.core.data.models.NoteDocumentEntity
+import com.romankozak.forwardappmobile.core.data.models.NoteDocumentItemEntity
 import com.romankozak.forwardappmobile.core.data.models.LinkItemEntity
 
 data class AttachmentsBackup(

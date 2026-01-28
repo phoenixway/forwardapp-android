@@ -26,7 +26,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
 import com.romankozak.forwardappmobile.core.data.models.Context
 import com.romankozak.forwardappmobile.core.data.models.ContextViewMode
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextArtifact
+import com.romankozak.forwardappmobile.core.data.models.ContextArtifact
 import com.romankozak.forwardappmobile.core.data.models.ContextLog
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.attachments.AttachmentsView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.BacklogListScreen

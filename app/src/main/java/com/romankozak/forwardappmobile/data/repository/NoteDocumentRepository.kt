@@ -8,9 +8,9 @@ import com.romankozak.forwardappmobile.data.sync.bumpSync
 import com.romankozak.forwardappmobile.data.sync.softDelete
 import com.romankozak.forwardappmobile.domain.ai.events.SystemNoteUpdatedEvent
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
-import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentItemEntity
+import com.romankozak.forwardappmobile.core.data.models.LegacyNoteEntity
+import com.romankozak.forwardappmobile.core.data.models.NoteDocumentEntity
+import com.romankozak.forwardappmobile.core.data.models.NoteDocumentItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject

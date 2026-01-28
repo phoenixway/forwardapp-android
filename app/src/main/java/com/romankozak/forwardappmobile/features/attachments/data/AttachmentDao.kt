@@ -5,9 +5,9 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
-import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentWithContext
-import com.romankozak.forwardappmobile.features.attachments.data.models.ContextAttachmentCrossRef
+import com.romankozak.forwardappmobile.core.data.models.AttachmentEntity
+import com.romankozak.forwardappmobile.core.data.models.AttachmentWithContext
+import com.romankozak.forwardappmobile.core.data.models.ContextAttachmentCrossRef
 import kotlinx.coroutines.flow.Flow
 
 @Dao

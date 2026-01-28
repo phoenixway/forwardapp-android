@@ -2,26 +2,28 @@ package com.romankozak.forwardappmobile.data.sync
 
 import com.google.gson.annotations.SerializedName
 import com.romankozak.forwardappmobile.core.data.models.ActivityRecord
+import com.romankozak.forwardappmobile.core.data.models.AttachmentEntity
 import com.romankozak.forwardappmobile.features.ai.data.models.AiEventEntity
 import com.romankozak.forwardappmobile.features.ai.data.models.AiInsightEntity
 import com.romankozak.forwardappmobile.features.ai.data.models.ChatMessageEntity
 import com.romankozak.forwardappmobile.features.ai.data.models.ConversationEntity
 import com.romankozak.forwardappmobile.features.ai.data.models.ConversationFolderEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistItemEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentItemEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEntity
+import com.romankozak.forwardappmobile.core.data.models.ChecklistEntity
+import com.romankozak.forwardappmobile.core.data.models.ChecklistItemEntity
+import com.romankozak.forwardappmobile.core.data.models.LegacyNoteEntity
+import com.romankozak.forwardappmobile.core.data.models.NoteDocumentEntity
+import com.romankozak.forwardappmobile.core.data.models.NoteDocumentItemEntity
+import com.romankozak.forwardappmobile.core.data.models.ScriptEntity
 import com.romankozak.forwardappmobile.core.data.models.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.BacklogOrder
 import com.romankozak.forwardappmobile.core.data.models.Context
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextArtifact
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextConfiguration
+import com.romankozak.forwardappmobile.core.data.models.ContextArtifact
+import com.romankozak.forwardappmobile.core.data.models.ContextAttachmentCrossRef
+import com.romankozak.forwardappmobile.core.data.models.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.ContextLog
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfile
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfileItem
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextStructureItem
+import com.romankozak.forwardappmobile.core.data.models.ContextRoleProfile
+import com.romankozak.forwardappmobile.core.data.models.ContextRoleProfileItem
+import com.romankozak.forwardappmobile.core.data.models.ContextStructureItem
 import com.romankozak.forwardappmobile.core.data.models.Goal
 import com.romankozak.forwardappmobile.core.data.models.InboxRecord
 import com.romankozak.forwardappmobile.core.data.models.LinkItemEntity
@@ -76,9 +78,9 @@ data class DatabaseContent(
     @SerializedName(value = "projectExecutionLogs", alternate = ["m"])
     val contextLogs: List<ContextLog> = emptyList(),
     @SerializedName(value = "attachments", alternate = ["attachment_items"])
-    val attachments: List<com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentEntity> = emptyList(),
+    val attachments: List<AttachmentEntity> = emptyList(),
     @SerializedName(value = "contextAttachmentCrossRefs", alternate = ["project_attachment_links", "projectAttachmentCrossRefs"])
-    val contextAttachmentCrossRefs: List<com.romankozak.forwardappmobile.features.attachments.data.models.ContextAttachmentCrossRef> =
+    val contextAttachmentCrossRefs: List<ContextAttachmentCrossRef> =
         emptyList(),
     // --- Extended Entities ---
     @SerializedName("dayPlans")

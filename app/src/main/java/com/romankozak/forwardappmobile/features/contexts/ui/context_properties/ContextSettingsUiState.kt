@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_properties
 
 import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.core.data.models.ScoringStatusValues
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfile
+import com.romankozak.forwardappmobile.core.data.models.ContextRoleProfile
 
 data class ContextSettingsUiState(
     val title: TextFieldValue = TextFieldValue(""),

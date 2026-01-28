@@ -6,6 +6,7 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverters
+import com.romankozak.forwardappmobile.core.data.models.AttachmentEntity
 import com.romankozak.forwardappmobile.core.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.data.models.Converters
 import com.romankozak.forwardappmobile.features.missions.domain.model.MissionPriority
@@ -49,7 +50,7 @@ data class TacticalMission(
             onDelete = ForeignKey.CASCADE,
         ),
         ForeignKey(
-            entity = com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentEntity::class,
+            entity = AttachmentEntity::class,
             parentColumns = ["id"],
             childColumns = ["attachmentId"],
             onDelete = ForeignKey.CASCADE,

@@ -4,8 +4,8 @@ import com.romankozak.forwardappmobile.core.data.models.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.data.sync.bumpSync
 import com.romankozak.forwardappmobile.data.sync.softDelete
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
-import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistItemEntity
+import com.romankozak.forwardappmobile.core.data.models.ChecklistEntity
+import com.romankozak.forwardappmobile.core.data.models.ChecklistItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject

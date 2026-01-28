@@ -8,7 +8,7 @@ import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextStructureItem
+import com.romankozak.forwardappmobile.core.data.models.ContextStructureItem
 
 import java.util.Locale
 import javax.inject.Inject

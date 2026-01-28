@@ -4,8 +4,8 @@ import com.romankozak.forwardappmobile.data.repository.SyncMapper.updatedTs
 import com.romankozak.forwardappmobile.data.sync.BacklogOrderUtils
 import com.romankozak.forwardappmobile.data.sync.DiffResult
 import com.romankozak.forwardappmobile.data.sync.UpdatedItem
-import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.ContextAttachmentCrossRef
+import com.romankozak.forwardappmobile.core.data.models.AttachmentEntity
+import com.romankozak.forwardappmobile.core.data.models.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.BacklogOrder
 import javax.inject.Inject

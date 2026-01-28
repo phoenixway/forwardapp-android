@@ -6,9 +6,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import com.romankozak.forwardappmobile.core.data.models.Context
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextArtifact
+import com.romankozak.forwardappmobile.core.data.models.ContextArtifact
 import com.romankozak.forwardappmobile.core.data.models.ContextLog
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextTimeMetrics
+import com.romankozak.forwardappmobile.core.data.models.ContextTimeMetrics
 
 @Composable
 fun ProjectDashboardView(

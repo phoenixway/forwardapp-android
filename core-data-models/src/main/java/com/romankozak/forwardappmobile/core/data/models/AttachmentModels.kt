@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.attachments.data.models
+package com.romankozak.forwardappmobile.core.data.models
 
 import androidx.room.ColumnInfo
 import androidx.room.Embedded
@@ -7,7 +7,6 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.google.gson.annotations.SerializedName
-import com.romankozak.forwardappmobile.core.data.models.Context
 import java.util.UUID
 
 @Entity(

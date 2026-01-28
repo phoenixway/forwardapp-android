@@ -4,7 +4,7 @@ import com.romankozak.forwardappmobile.core.data.models.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
 import com.romankozak.forwardappmobile.data.sync.bumpSync
 import com.romankozak.forwardappmobile.data.sync.softDelete
-import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteEntity
+import com.romankozak.forwardappmobile.core.data.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.core.data.models.BacklogItem
 import kotlinx.coroutines.flow.Flow

@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.attachments.data.models
+package com.romankozak.forwardappmobile.core.data.models
 
 import androidx.room.Entity
 import androidx.room.Fts4
