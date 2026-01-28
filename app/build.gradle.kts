@@ -217,6 +217,8 @@ dependencies {
     implementation(libs.google.gson)
     implementation(libs.compose.dnd)
     implementation(libs.androidx.work.runtime)
+    implementation(project(":core-data-models"))
+    implementation(project(":core-data-interfaces"))
 
     // Testing
     testImplementation(libs.junit)
