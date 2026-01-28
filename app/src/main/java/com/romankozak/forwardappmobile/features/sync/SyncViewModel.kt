@@ -3,8 +3,8 @@ package com.romankozak.forwardappmobile.features.sync
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.data.repository.ChangeType
-import com.romankozak.forwardappmobile.data.repository.SyncReport
+import com.romankozak.forwardappmobile.features.sync.data.repository.ChangeType
+import com.romankozak.forwardappmobile.features.sync.data.repository.SyncReport
 import com.romankozak.forwardappmobile.features.sync.data.repository.SyncRepository
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel

@@ -1,6 +1,8 @@
 package com.romankozak.forwardappmobile.sync
 
 import androidx.room.withTransaction
+import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
+import com.romankozak.forwardappmobile.core.data.models.sync.RecentProjectEntry
 import com.romankozak.forwardappmobile.sync.SyncMapper.updatedTs
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
@@ -84,22 +86,118 @@ class SyncLocalService @Inject constructor(
         val local = loadLocalDatabaseContent()
 
         return DatabaseContent(
-            projects = local.projects.filter { logicHelper.isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
-            goals = local.goals.filter { logicHelper.isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
-            backlogItems = local.backlogItems.filter { logicHelper.isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
-            backlogOrders = local.backlogOrders.filter { logicHelper.isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
-            legacyNotes = local.legacyNotes.filter { logicHelper.isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
-            documents = local.documents.filter { logicHelper.isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
-            documentItems = local.documentItems.filter { logicHelper.isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
-            checklists = local.checklists.filter { logicHelper.isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
-            checklistItems = local.checklistItems.filter { logicHelper.isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
-            activityRecords = local.activityRecords.filter { logicHelper.isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
-            linkItemEntities = local.linkItemEntities.filter { logicHelper.isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
-            inboxRecords = local.inboxRecords.filter { logicHelper.isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
-            contextLogs = local.contextLogs.filter { logicHelper.isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
-            scripts = local.scripts.filter { logicHelper.isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
-            attachments = local.attachments.filter { logicHelper.isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
-            contextAttachmentCrossRefs = local.contextAttachmentCrossRefs.filter { logicHelper.isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
+            projects = local.projects.filter {
+                logicHelper.isUnsynced(
+                    it,
+                    { it.syncedAt },
+                    { it.updatedTs() },
+                    { it.isDeleted })
+            },
+            goals = local.goals.filter {
+                logicHelper.isUnsynced(
+                    it,
+                    { it.syncedAt },
+                    { it.updatedTs() },
+                    { it.isDeleted })
+            },
+            backlogItems = local.backlogItems.filter {
+                logicHelper.isUnsynced(
+                    it,
+                    { it.syncedAt },
+                    { it.updatedTs() },
+                    { it.isDeleted })
+            },
+            backlogOrders = local.backlogOrders.filter {
+                logicHelper.isUnsynced(
+                    it,
+                    { it.syncedAt },
+                    { it.updatedTs() },
+                    { it.isDeleted })
+            },
+            legacyNotes = local.legacyNotes.filter {
+                logicHelper.isUnsynced(
+                    it,
+                    { it.syncedAt },
+                    { it.updatedTs() },
+                    { it.isDeleted })
+            },
+            documents = local.documents.filter {
+                logicHelper.isUnsynced(
+                    it,
+                    { it.syncedAt },
+                    { it.updatedTs() },
+                    { it.isDeleted })
+            },
+            documentItems = local.documentItems.filter {
+                logicHelper.isUnsynced(
+                    it,
+                    { it.syncedAt },
+                    { it.updatedTs() },
+                    { it.isDeleted })
+            },
+            checklists = local.checklists.filter {
+                logicHelper.isUnsynced(
+                    it,
+                    { it.syncedAt },
+                    { it.updatedTs() },
+                    { it.isDeleted })
+            },
+            checklistItems = local.checklistItems.filter {
+                logicHelper.isUnsynced(
+                    it,
+                    { it.syncedAt },
+                    { it.updatedTs() },
+                    { it.isDeleted })
+            },
+            activityRecords = local.activityRecords.filter {
+                logicHelper.isUnsynced(
+                    it,
+                    { it.syncedAt },
+                    { it.updatedTs() },
+                    { it.isDeleted })
+            },
+            linkItemEntities = local.linkItemEntities.filter {
+                logicHelper.isUnsynced(
+                    it,
+                    { it.syncedAt },
+                    { it.updatedTs() },
+                    { it.isDeleted })
+            },
+            inboxRecords = local.inboxRecords.filter {
+                logicHelper.isUnsynced(
+                    it,
+                    { it.syncedAt },
+                    { it.updatedTs() },
+                    { it.isDeleted })
+            },
+            contextLogs = local.contextLogs.filter {
+                logicHelper.isUnsynced(
+                    it,
+                    { it.syncedAt },
+                    { it.updatedTs() },
+                    { it.isDeleted })
+            },
+            scripts = local.scripts.filter {
+                logicHelper.isUnsynced(
+                    it,
+                    { it.syncedAt },
+                    { it.updatedTs() },
+                    { it.isDeleted })
+            },
+            attachments = local.attachments.filter {
+                logicHelper.isUnsynced(
+                    it,
+                    { it.syncedAt },
+                    { it.updatedTs() },
+                    { it.isDeleted })
+            },
+            contextAttachmentCrossRefs = local.contextAttachmentCrossRefs.filter {
+                logicHelper.isUnsynced(
+                    it,
+                    { it.syncedAt },
+                    { it.updatedTs() },
+                    { it.isDeleted })
+            },
             recentProjectEntries = emptyList()
         )
     }

@@ -5,8 +5,8 @@ import com.romankozak.forwardappmobile.core.data.models.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.Context
 import com.romankozak.forwardappmobile.core.data.models.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.Goal
-import com.romankozak.forwardappmobile.sync.DatabaseContent
-import com.romankozak.forwardappmobile.sync.SyncChange
+import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
+import com.romankozak.forwardappmobile.core.data.models.sync.SyncChange
 
 /**
  * Interface for local data operations required by MergeRepository.

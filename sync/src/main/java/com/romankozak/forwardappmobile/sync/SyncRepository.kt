@@ -1,15 +1,9 @@
 package com.romankozak.forwardappmobile.sync
 
 import android.net.Uri
-import com.romankozak.forwardappmobile.sync.BackupDiff
-import com.romankozak.forwardappmobile.sync.BackupRepository
-import com.romankozak.forwardappmobile.sync.DatabaseContent
-import com.romankozak.forwardappmobile.sync.FullAppBackup
-import com.romankozak.forwardappmobile.sync.MergeRepository
-import com.romankozak.forwardappmobile.sync.SyncChange
-import com.romankozak.forwardappmobile.sync.SyncReport
-import com.romankozak.forwardappmobile.sync.WifiSyncRepository
-import com.romankozak.forwardappmobile.sync.AttachmentsRepository
+import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
+import com.romankozak.forwardappmobile.core.data.models.sync.SyncChange
+import com.romankozak.forwardappmobile.core.data.models.sync.SyncReport
 import javax.inject.Inject
 import javax.inject.Singleton
 

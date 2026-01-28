@@ -4,9 +4,10 @@ import android.util.Log
 import com.google.gson.GsonBuilder
 import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
-import com.romankozak.forwardappmobile.core.data.models.BacklogItem
-import com.romankozak.forwardappmobile.core.data.models.Context
-import com.romankozak.forwardappmobile.core.data.models.Goal
+import com.romankozak.forwardappmobile.core.data.models.sync.ChangeType
+import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
+import com.romankozak.forwardappmobile.core.data.models.sync.SyncChange
+import com.romankozak.forwardappmobile.core.data.models.sync.SyncReport
 import com.romankozak.forwardappmobile.sync.datasource.MergeLocalDataSource
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -46,9 +47,25 @@ class MergeRepository @Inject constructor(
             val local = localGoals[incoming.id]?.let { SyncMapper.normalizeGoal(it) }
 
             if (local == null) {
-                changes.add(SyncChange(ChangeType.Add, "Ціль", incoming.id, "Нова ціль: ${incoming.text}", entity = incoming))
+                changes.add(
+                    SyncChange(
+                        ChangeType.Add,
+                        "Ціль",
+                        incoming.id,
+                        "Нова ціль: ${incoming.text}",
+                        entity = incoming
+                    )
+                )
             } else if (incoming.updatedTs() > local.updatedTs()) {
-                changes.add(SyncChange(ChangeType.Update, "Ціль", incoming.id, "Оновлено ціль: ${incoming.text}", entity = incoming))
+                changes.add(
+                    SyncChange(
+                        ChangeType.Update,
+                        "Ціль",
+                        incoming.id,
+                        "Оновлено ціль: ${incoming.text}",
+                        entity = incoming
+                    )
+                )
             }
         }
 
@@ -57,16 +74,40 @@ class MergeRepository @Inject constructor(
             val local = localProjects[incoming.id]?.let { SyncMapper.normalizeProject(it) }
 
             if (local == null) {
-                changes.add(SyncChange(ChangeType.Add, "Список", incoming.id, "Новий список: ${incoming.name}", entity = incoming))
+                changes.add(
+                    SyncChange(
+                        ChangeType.Add,
+                        "Список",
+                        incoming.id,
+                        "Новий список: ${incoming.name}",
+                        entity = incoming
+                    )
+                )
             } else if (incoming.updatedTs() > local.updatedTs()) {
-                changes.add(SyncChange(ChangeType.Update, "Список", incoming.id, "Оновлено список: ${incoming.name}", entity = incoming))
+                changes.add(
+                    SyncChange(
+                        ChangeType.Update,
+                        "Список",
+                        incoming.id,
+                        "Оновлено список: ${incoming.name}",
+                        entity = incoming
+                    )
+                )
             }
         }
 
         val incomingGoalIds = incomingDb.goals.map { it.id }.toSet()
         localGoals.keys.minus(incomingGoalIds).forEach { id ->
             localGoals[id]?.let {
-                changes.add(SyncChange(ChangeType.Delete, "Ціль", id, "Видалено ціль: ${it.text}", entity = it))
+                changes.add(
+                    SyncChange(
+                        ChangeType.Delete,
+                        "Ціль",
+                        id,
+                        "Видалено ціль: ${it.text}",
+                        entity = it
+                    )
+                )
             }
         }
 

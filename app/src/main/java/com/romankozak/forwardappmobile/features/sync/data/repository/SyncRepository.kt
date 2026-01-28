@@ -2,8 +2,6 @@ package com.romankozak.forwardappmobile.features.sync.data.repository
 
 import android.net.Uri
 import com.romankozak.forwardappmobile.data.repository.MergeRepository
-import com.romankozak.forwardappmobile.data.repository.SyncChange
-import com.romankozak.forwardappmobile.data.repository.SyncReport
 import com.romankozak.forwardappmobile.data.sync.*
 import javax.inject.Inject
 import javax.inject.Singleton

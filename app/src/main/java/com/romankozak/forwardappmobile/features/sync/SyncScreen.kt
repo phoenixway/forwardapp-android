@@ -22,8 +22,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.romankozak.forwardappmobile.data.repository.ChangeType
-import com.romankozak.forwardappmobile.data.repository.SyncChange
+import com.romankozak.forwardappmobile.features.sync.data.repository.ChangeType
+import com.romankozak.forwardappmobile.features.sync.data.repository.SyncChange
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 
 private object ChangeTypeMetadata {

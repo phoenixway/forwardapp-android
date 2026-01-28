@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.data.repository
+package com.romankozak.forwardappmobile.features.sync.data.repository
 
 import com.romankozak.forwardappmobile.core.data.models.Context
 import com.romankozak.forwardappmobile.core.data.models.BacklogItem

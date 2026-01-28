@@ -1,6 +1,9 @@
 package com.romankozak.forwardappmobile.sync
 
 import android.net.Uri
+import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
+import com.romankozak.forwardappmobile.core.data.models.sync.SyncChange
+import com.romankozak.forwardappmobile.core.data.models.sync.SyncReport
 
 interface SyncApi {
     suspend fun exportFullBackupToFile(): Result<String>
