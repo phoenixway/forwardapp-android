@@ -9,6 +9,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.core.data.models.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.Goal
 import com.romankozak.forwardappmobile.core.data.models.sync.bumpSync
+import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject
@@ -153,4 +154,38 @@ class GoalRepository @Inject constructor(
             listItemDao.insertItems(newItems)
         }
     }
+    suspend fun copyGoalsToContext(goalIds: List<String>, targetContextId: String) {
+        if (goalIds.isEmpty()) return
+        val originalGoals = goalDao.getGoalsByIdsSuspend(goalIds)
+        val now = System.currentTimeMillis()
+
+        originalGoals.forEach { original ->
+            val newGoal = original.copy(id = UUID.randomUUID().toString(), createdAt = now, updatedAt = now, syncedAt = null)
+            goalDao.insertGoal(newGoal)
+
+            val newItem = BacklogItem(
+                id = UUID.randomUUID().toString(),
+                contextId = targetContextId,
+                itemType = BacklogItemTypeValues.GOAL,
+                entityId = newGoal.id,
+                order = -now
+            )
+            listItemDao.insertItem(newItem)
+        }
+    }
+
+    suspend fun deleteGoal(goalId: String) {
+        val now = System.currentTimeMillis()
+        goalDao.getGoalById(goalId)?.let { goal ->
+            goalDao.insertGoal(goal.softDelete(now))
+        }
+        listItemDao.getListItemByEntityId(goalId)?.let { item ->
+            listItemDao.insertItem(item.softDelete(now))
+        }
+    }
+
+    suspend fun findContextIdForGoal(goalId: String): String? =
+        listItemDao.findContextIdForGoal(goalId)
+
+    suspend fun getAllGoals(): List<Goal> = goalDao.getAll()
 }

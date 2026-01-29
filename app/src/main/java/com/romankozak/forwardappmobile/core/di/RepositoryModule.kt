@@ -58,7 +58,7 @@ abstract class RepositoryModule {
             settingsRepository: SettingsRepository
         ): SyncSettingsSource = SyncSettingsSourceImpl(settingsRepository)
 
-        @Provides
+        /*@Provides
         @Singleton
         fun provideAttachmentsRepository(
             localDataSource: AttachmentsLocalDataSource,
@@ -68,7 +68,7 @@ abstract class RepositoryModule {
             localDataSource,
             syncFileService,
             logicHelper
-        )
+        )*/
 
         @Provides
         @Singleton

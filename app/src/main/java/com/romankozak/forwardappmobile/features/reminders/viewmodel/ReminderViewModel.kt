@@ -127,22 +127,23 @@ class ReminderViewModel
             _showPropertiesDialog.value = true
         }
 
-        fun showItemInProject(item: ReminderListItem) {
-            viewModelScope.launch {
-                when (item) {
-                    is ReminderListItem.GoalReminder -> {
-                        val contextId = goalRepository.findContextIdForGoal(item.goal.id)
-                        if (contextId != null) {
-                            _uiEvent.send(
-                                RemindersUiEvent.Navigate(
-                                    NavTarget.ContextDetail(
-                                        contextId = contextId,
-                                        goalId = item.goal.id,
-                                    ),
-                                ),
+    fun showItemInProject(item: ReminderListItem) {
+        viewModelScope.launch {
+            when (item) {
+                is ReminderListItem.GoalReminder -> {
+                    // Виправляємо goalId на item.goal.id
+                    val contextId = contextRepository.findContextIdForGoal(item.goal.id) ?: return@launch
+
+                    // if (contextId != null) більше не потрібен, бо є перевірка вище
+                    _uiEvent.send(
+                        RemindersUiEvent.Navigate(
+                            NavTarget.ContextDetail(
+                                contextId = contextId,
+                                goalId = item.goal.id
                             )
-                        }
-                    }
+                        )
+                    )
+                }
                     is ReminderListItem.ProjectReminder -> {
                         _uiEvent.send(
                             RemindersUiEvent.Navigate(

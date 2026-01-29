@@ -34,7 +34,16 @@ class ContextHandler @Inject constructor(
     private val _tagToContextNameMap = MutableStateFlow<Map<String, String>>(emptyMap())
     val tagToContextNameMap: StateFlow<Map<String, String>> = _tagToContextNameMap.asStateFlow()
 
+    private val _contextMarkerToEmojiMap = MutableStateFlow<Map<String, String>>(emptyMap())
+    private val _contextNamesFlow = MutableStateFlow<List<String>>(emptyList())
+
+    // 2. ПУБЛІЧНІ поля (доступні для читання)
+    val contextMarkerToEmojiMap: StateFlow<Map<String, String>> = _contextMarkerToEmojiMap.asStateFlow()
+    val contextNamesFlow: StateFlow<List<String>> = _contextNamesFlow.asStateFlow()
+
     fun getContextMarker(contextName: String): String? = contextMarkerMap[contextName.uppercase()]
+
+    fun getContextTag(contextName: String): String? = contextTagMap[contextName.lowercase()]
 
     suspend fun initialize() {
         loadContextSettings()

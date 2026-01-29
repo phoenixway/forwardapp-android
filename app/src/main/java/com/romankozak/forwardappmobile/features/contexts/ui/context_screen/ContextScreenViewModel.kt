@@ -363,16 +363,15 @@ class BacklogViewModel
         private val _isLoading = MutableStateFlow(false)
         val isLoading = _isLoading.asStateFlow()
 
-        val projectLogs: StateFlow<List<ContextLog>> =
-            contextIdFlow
-                .flatMapLatest { id ->
-                    if (id.isNotEmpty()) {
-                        contextRepository.getContextLogsStream(id)
-                    } else {
-                        flowOf(emptyList())
-                    }
-                }
-                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val projectLogs: StateFlow<List<ContextLog>> = contextIdFlow
+        .flatMapLatest { id ->
+            if (id.isNotEmpty()) {
+                contextRepository.getContextLogsStream(id)
+            } else {
+                flowOf(emptyList()) // Прибрано '->', додано правильні дужки
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
         val contextArtifact: StateFlow<ContextArtifact?> =
             contextIdFlow
@@ -1155,25 +1154,23 @@ class BacklogViewModel
                     return@launch
                 }
 
-                val attachmentId =
-                    try {
-                        contextRepository.ensureAttachmentLinkedToContext(
-                            attachmentType = attachment.backlogItem.itemType,
-                            entityId = attachment.backlogItem.entityId,
-                            targetContextId = targetcontextId,
-                            ownerContextId =
-                                attachment.backlogItem.contextId.takeIf { it.isNotBlank() }
-                                    ?: contextIdFlow.value,
-                        )
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Failed to link attachment to project=$targetcontextId", e)
-                        withContext(Dispatchers.Main) {
-                            showSnackbar("Failed to add attachment to context", null)
-                        }
-                        return@launch
-                    }
+                val attachmentId = try {
+                    contextRepository.ensureAttachmentLinkedToContext(
+                        attachmentType = attachment.backlogItem.itemType,
+                        entityId = attachment.backlogItem.entityId,
+                        targetContextId = targetcontextId,
+                        ownerContextId = attachment.backlogItem.contextId.takeIf { it.isNotBlank() } ?: contextIdFlow.value,
+                    )
+                    // ДОДАЙТЕ ЦЕ: повертаємо entityId, щоб він зберігся в змінну attachmentId
+                    attachment.backlogItem.entityId
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to link attachment", e)
+                    null // У разі помилки повертаємо null
+                }
+
+// Тепер attachmentId має тип String?, і цей блок скомпілюється:
                 withContext(Dispatchers.Main) {
-                    if (targetcontextId == contextIdFlow.value) {
+                    if (targetcontextId == contextIdFlow.value && attachmentId != null) {
                         _uiState.update { it.copy(newlyAddedItemId = attachmentId) }
                         forceRefresh()
                     }

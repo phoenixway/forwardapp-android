@@ -11,81 +11,12 @@
   <component name="ChangeListManager">
     <list default="true" id="dec4991f-6ae0-4b6d-adb7-135ff1c91165" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/di/RepositoryModule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/di/RepositoryModule.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/logic/ContextHandler.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/logic/ContextHandler.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/repository/ActivityRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/repository/ActivityRepository.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/repository/ContextLogRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/repository/ContextLogRepository.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/repository/ContextRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/repository/ContextRepository.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/repository/DayManagementRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/repository/DayManagementRepository.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/repository/GoalRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/repository/GoalRepository.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/repository/InboxRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/repository/InboxRepository.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/repository/LegacyNoteRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/repository/LegacyNoteRepository.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/repository/ListItemRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/repository/ListItemRepository.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/repository/ReminderRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/repository/ReminderRepository.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/repository/SystemAppRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/repository/SystemAppRepository.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/sync/AttachmentsLocalDataSourceImpl.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/sync/AttachmentsLocalDataSourceImpl.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/domain/structure/StructurePresetService.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/domain/structure/StructurePresetService.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/attachments/data/AttachmentDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/attachments/data/AttachmentDao.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/attachments/ui/library/AttachmentLibraryModels.kt" beforeDir="false" afterPath="$PROJECT_DIR$/core-data-interfaces/src/main/java/com/romankozak/forwardappmobile/sync/AttachmentLibraryModels.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/attachments/ui/library/AttachmentsLibraryScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/attachments/ui/library/AttachmentsLibraryScreen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/attachments/ui/library/AttachmentsLibraryViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/attachments/ui/library/AttachmentsLibraryViewModel.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/dao/ContextDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/dao/ContextDao.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/daymanagement/ui/dayplan/DayPlanViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/daymanagement/ui/dayplan/DayPlanViewModel.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/missions/presentation/TacticalMissionViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/missions/presentation/TacticalMissionViewModel.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/SyncScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/SyncScreen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/WifiSyncManager.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/WifiSyncManager.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/WifiSyncServer.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/WifiSyncServer.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/selectiveimport/SelectiveImportScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/selectiveimport/SelectiveImportScreen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/selectiveimport/SelectiveImportState.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/selectiveimport/SelectiveImportState.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/test/java/com/romankozak/forwardappmobile/features/attachments/ui/library/AttachmentsLibraryFilterTest.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/test/java/com/romankozak/forwardappmobile/features/attachments/ui/library/AttachmentsLibraryFilterTest.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core-data-interfaces/src/main/java/com/romankozak/forwardappmobile/sync/AttachmentsRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/core-data-interfaces/src/main/java/com/romankozak/forwardappmobile/sync/AttachmentsRepository.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core-data-interfaces/src/main/java/com/romankozak/forwardappmobile/sync/datasource/AttachmentsLocalDataSource.kt" beforeDir="false" afterPath="$PROJECT_DIR$/core-data-interfaces/src/main/java/com/romankozak/forwardappmobile/sync/datasource/AttachmentsLocalDataSource.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/ARCHITECTURE_NOTES.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/ATTACHMENT_CROSSREF_FILTER_BUG.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/ATTACHMENT_CROSSREF_IMPORT_FIX.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/ATTACHMENT_DEFECT_ANALYSIS.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/ATTACHMENT_SYNC_DEBUG_GUIDE.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/ATTACHMENT_SYNC_FIXES_COMPLETE.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/CONTEXT_MIGRATION_PLAN.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/CONTEXT_MIGRATION_PLAN.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/CONTEXT_SWITCHING_MANUAL.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/DB_CONSTRAINT_RECOMMENDATION.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/DB_MIGRATION_HISTORY.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/DEFECT_1_FIX_SUMMARY.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/DEFECT_2_FIX_SUMMARY.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/DEFECT_3_FIX_SUMMARY.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/EXPERIMENTAL_FEATURE_MODULE_GUIDE.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/FEATURES.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/FEATURES2.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/FEATURES_DETAILED_OVERVIEW.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/FINAL_DEBUG_PROMPT.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/HoldMenu2-manual.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/Life-Context-Intake.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/NAVIGATION_ARCHITECTURE.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/REVOLUTIONARY_IDEAS.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/SYNAPSE_DESIGN.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/SYNC_DEBUG_SUMMARY.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/SYNC_FEATURE_SPEC.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/SYNC_TEST_MANUAL.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/SYSTEM_ENTITIES_ANALYSIS.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/SYSTEM_ENTITIES_ARCHITECTURE.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/SYSTEM_ENTITIES_IMPROVED_LOGIC.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/SYSTEM_ENTITIES_TEST_PLAN.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/ai-layer.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/attachment_sync_manual.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/backup_schema_spec.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/backup_schema_v1.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/chat_history.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/design-prompt.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/functionality_overview.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/notes.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/prompts/context-imp.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/prompts/desighn-prompt.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/prompts/improve-prompt.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/prompts/ui-prompt.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/quotes.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/sync_target_spec.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/task.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/AttachmentsRepositoryImpl.kt" beforeDir="false" afterPath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/AttachmentsRepositoryImpl.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreenViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreenViewModel.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/reminders/viewmodel/ReminderViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/reminders/viewmodel/ReminderViewModel.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -143,22 +74,22 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Android App.fff.executor": "Run",
-    "ResourceManagerPrefKey.ResourceType": "MIPMAP",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.cidr.known.project.marker": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.readMode.enableVisualFormatting": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "cf.first.check.clang-format": "false",
-    "cidr.known.project.marker": "true",
-    "com.google.services.firebase.aqiPopupShown": "true",
-    "git-widget-placeholder": "dev",
-    "settings.editor.selected.configurable": "preferences.pluginManager"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Android App.fff.executor&quot;: &quot;Run&quot;,
+    &quot;ResourceManagerPrefKey.ResourceType&quot;: &quot;MIPMAP&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
+    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;com.google.services.firebase.aqiPopupShown&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;dev&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="K2MoveDeclarationsDialog.RECENT_PACKAGE_KEY">
       <recent name="com.romankozak.forwardappmobile.sync" />

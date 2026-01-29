@@ -3,43 +3,26 @@ package com.romankozak.forwardappmobile.data.repository
 import androidx.room.Transaction
 import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
-import com.romankozak.forwardappmobile.core.data.models.AttachmentWithContext
-import com.romankozak.forwardappmobile.core.data.models.BacklogItem
-import com.romankozak.forwardappmobile.core.data.models.BacklogItemContent
-import com.romankozak.forwardappmobile.core.data.models.BacklogItemTypeValues
-import com.romankozak.forwardappmobile.core.data.models.BacklogOrder
-import com.romankozak.forwardappmobile.core.data.models.ChecklistEntity
-import com.romankozak.forwardappmobile.core.data.models.Context
-import com.romankozak.forwardappmobile.core.data.models.ContextArtifact
-import com.romankozak.forwardappmobile.core.data.models.ContextLog
-import com.romankozak.forwardappmobile.core.data.models.ContextViewMode
-import com.romankozak.forwardappmobile.core.data.models.Goal
-import com.romankozak.forwardappmobile.core.data.models.LegacyNoteEntity
-import com.romankozak.forwardappmobile.core.data.models.LinkItemEntity
-import com.romankozak.forwardappmobile.core.data.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.core.data.models.RelatedLink
-import com.romankozak.forwardappmobile.core.data.models.Reminder
+import com.romankozak.forwardappmobile.core.data.models.*
 import com.romankozak.forwardappmobile.core.data.models.sync.bumpSync
 import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
+import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.features.contexts.data.dao.*
 import com.romankozak.forwardappmobile.sync.AttachmentsRepository
 import java.util.Calendar
 import java.util.UUID
 import javax.inject.Inject
+import javax.inject.Provider
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.StateFlow
 
-enum class ContextTextAction {
-  ADD,
-  REMOVE,
-} // Тепер він доступний всюди
+enum class ContextTextAction { ADD, REMOVE }
 
 @Singleton
-class ContextRepository
-@Inject
-constructor(
+class ContextRepository @Inject constructor(
     private val contextDao: ContextDao,
     private val legacyNoteRepository: LegacyNoteRepository,
     private val activityRepository: ActivityRepository,
@@ -56,287 +39,279 @@ constructor(
     private val listItemRepository: ListItemRepository,
     private val backlogOrderRepository: BacklogOrderRepository,
     private val aiEventRepository: AiEventRepository,
+    // ДОДАНО: Потрібен провайдер для уникнення циклічної залежності
+    private val contextHandlerProvider: Provider<ContextHandler>,
 ) {
 
-  fun getContextLogsStream(contextId: String): Flow<List<ContextLog>> =
-      contextLogRepository.getContextLogsStream(contextId)
+    private val contextHandler: ContextHandler by lazy { contextHandlerProvider.get() }
+    // --- Потоки та Дані з Handler ---
+    val contextMarkerToEmojiMap: StateFlow<Map<String, String>> get() = contextHandler.contextMarkerToEmojiMap
+    val contextNamesFlow: StateFlow<List<String>> get() = contextHandler.contextNamesFlow
+    private val internalHandler: ContextHandler by lazy { contextHandlerProvider.get() }
+    fun getContextTag(contextName: String): String? = contextHandler.getContextTag(contextName)
+    // --- Базові операції з Контекстами ---
+    fun getAllContextsFlow(): Flow<List<Context>> =
+        contextDao.getAllContextsFlow().map { list -> list.map { it.withNormalizedParentId() } }
 
-  suspend fun toggleContextManagement(contextId: String, isEnabled: Boolean) {
-    val context = getContextById(contextId) ?: return
-    if (context.isContextManagementEnabled == isEnabled) return
-    updateContext(context.copy(isContextManagementEnabled = isEnabled))
-    contextLogRepository.addToggleContextManagementLog(contextId, isEnabled)
-  }
+    suspend fun getContextById(id: String): Context? =
+        contextDao.getContextById(id)?.withNormalizedParentId()
 
-  suspend fun updateContextStatus(contextId: String, newStatus: String, statusText: String?) {
-    val context = getContextById(contextId) ?: return
-    if (context.contextStatus == newStatus && context.contextStatusText == statusText) return
-    updateContext(context.copy(contextStatus = newStatus, contextStatusText = statusText))
-    contextLogRepository.addUpdateContextStatusLog(contextId, newStatus, statusText)
-  }
+    fun getContextByIdFlow(id: String): Flow<Context?> =
+        contextDao.getContextByIdStream(id).map { it?.withNormalizedParentId() }
 
-  fun getContextContentStream(contextId: String): Flow<List<BacklogItemContent>> {
-    return combine(
-        listItemRepository.getItemsForContextStream(contextId),
-        backlogOrderRepository.observeAll(),
-        reminderRepository.getAllReminders(),
-        goalRepository.getAllGoalsFlow(),
-        contextDao.getAllContextsFlow(),
-        listItemRepository.getAllEntitiesAsFlow(),
-        legacyNoteRepository.getAllAsFlow(),
-        noteDocumentRepository.getAllDocumentsAsFlow(),
-        checklistRepository.getAllChecklistsAsFlow(),
-        attachmentRepository.getAttachmentsForContext(contextId),
-    ) { array ->
-      val items = array[0] as List<BacklogItem>
-      val backlogOrders = array[1] as List<BacklogOrder>
-      val reminders = array[2] as List<Reminder>
-      val goals = array[3] as List<Goal>
-      val contexts = array[4] as List<Context>
-      val links = array[5] as List<LinkItemEntity>
-      val notes = array[6] as List<LegacyNoteEntity>
-      val noteDocuments = array[7] as List<NoteDocumentEntity>
-      val checklists = array[8] as List<ChecklistEntity>
-      val attachments = array[9] as List<AttachmentWithContext>
-
-      mapToListItemContent(
-          contextId,
-          items,
-          backlogOrders,
-          attachments,
-          reminders,
-          goals,
-          contexts,
-          links,
-          notes,
-          noteDocuments,
-          checklists,
-      )
+    private fun Context.withNormalizedParentId(): Context {
+        val normalized = parentId?.trim()?.takeIf { it.isNotEmpty() && !it.equals("null", ignoreCase = true) }
+        return if (normalized != parentId) copy(parentId = normalized) else this
     }
-  }
 
-  private fun mapToListItemContent(
-      contextId: String,
-      items: List<BacklogItem>,
-      backlogOrders: List<BacklogOrder>,
-      attachments: List<AttachmentWithContext>,
-      reminders: List<Reminder>,
-      goals: List<Goal>,
-      contexts: List<Context>,
-      links: List<LinkItemEntity>,
-      notes: List<LegacyNoteEntity>,
-      noteDocuments: List<NoteDocumentEntity>,
-      checklists: List<ChecklistEntity>,
-  ): List<BacklogItemContent> {
-    val attachmentBacklogItems =
-        attachments.map { attachment ->
-          val order = attachment.attachmentOrder ?: -attachment.attachment.createdAt
-          BacklogItem(
-              id = attachment.attachment.id,
-              contextId = contextId,
-              itemType = attachment.attachment.attachmentType,
-              entityId = attachment.attachment.entityId,
-              order = order,
-          )
+    fun getContextContentStream(contextId: String): Flow<List<BacklogItemContent>> {
+        return combine(
+            listItemRepository.getItemsForContextStream(contextId),
+            backlogOrderRepository.observeAll(),
+            reminderRepository.getAllReminders(),
+            goalRepository.getAllGoalsFlow(),
+            contextDao.getAllContextsFlow(),
+            listItemRepository.getAllEntitiesAsFlow(),
+            legacyNoteRepository.getAllAsFlow(),
+            noteDocumentRepository.getAllDocumentsAsFlow(),
+            checklistRepository.getAllChecklistsAsFlow(),
+            attachmentRepository.getAttachmentsForContext(contextId),
+        ) { array ->
+            @Suppress("UNCHECKED_CAST")
+            mapToListItemContent(
+                contextId = contextId,
+                items = array[0] as List<BacklogItem>,
+                backlogOrders = array[1] as List<BacklogOrder>,
+                attachments = array[9] as List<AttachmentWithContext>,
+                reminders = array[2] as List<Reminder>,
+                goals = array[3] as List<Goal>,
+                contexts = array[4] as List<Context>,
+                links = array[5] as List<LinkItemEntity>,
+                notes = array[6] as List<LegacyNoteEntity>,
+                noteDocuments = array[7] as List<NoteDocumentEntity>,
+                checklists = array[8] as List<ChecklistEntity>
+            )
         }
-    val orderOverrideMap = backlogOrders.associateBy { it.itemId to it.listId }
+    }
 
-    val combinedItems =
-        (items + attachmentBacklogItems).sortedWith { a, b ->
-          val orderA = orderOverrideMap[a.entityId to a.contextId]?.order ?: a.order
-          val orderB = orderOverrideMap[b.entityId to b.contextId]?.order ?: b.order
-          if (orderA != orderB) orderA.compareTo(orderB) else a.id.compareTo(b.id)
+    private fun mapToListItemContent(
+        contextId: String,
+        items: List<BacklogItem>,
+        backlogOrders: List<BacklogOrder>,
+        attachments: List<AttachmentWithContext>,
+        reminders: List<Reminder>,
+        goals: List<Goal>,
+        contexts: List<Context>,
+        links: List<LinkItemEntity>,
+        notes: List<LegacyNoteEntity>,
+        noteDocuments: List<NoteDocumentEntity>,
+        checklists: List<ChecklistEntity>,
+    ): List<BacklogItemContent> {
+        val attachmentBacklogItems = attachments.map { attachment ->
+            val order = attachment.attachmentOrder ?: -attachment.attachment.createdAt
+            BacklogItem(
+                id = attachment.attachment.id,
+                contextId = contextId,
+                itemType = attachment.attachment.attachmentType,
+                entityId = attachment.attachment.entityId,
+                order = order,
+            )
+        }
+        val orderOverrideMap = backlogOrders.associateBy { it.itemId to it.listId }
+
+        val combinedItems = (items + attachmentBacklogItems).sortedWith { a, b ->
+            val orderA = orderOverrideMap[a.entityId to a.contextId]?.order ?: a.order
+            val orderB = orderOverrideMap[b.entityId to b.contextId]?.order ?: b.order
+            if (orderA != orderB) orderA.compareTo(orderB) else a.id.compareTo(b.id)
         }
 
-    val remindersMap = reminders.groupBy { it.entityId }
-    val goalsMap = goals.associateBy { it.id }
-    val contextsMap = contexts.associateBy { it.id }
-    val linksMap = links.associateBy { it.id }
-    val notesMap = notes.associateBy { it.id }
-    val noteDocumentsMap = noteDocuments.associateBy { it.id }
-    val checklistsMap = checklists.associateBy { it.id }
+        val remindersMap = reminders.groupBy { it.entityId }
+        val goalsMap = goals.associateBy { it.id }
+        val contextsMap = contexts.associateBy { it.id }
+        val linksMap = links.associateBy { it.id }
+        val notesMap = notes.associateBy { it.id }
+        val noteDocumentsMap = noteDocuments.associateBy { it.id }
+        val checklistsMap = checklists.associateBy { it.id }
 
-    return combinedItems.mapNotNull { item ->
-      when (item.itemType) {
-        BacklogItemTypeValues.GOAL ->
-            goalsMap[item.entityId]?.let {
-              BacklogItemContent.GoalItem(it, remindersMap[it.id] ?: emptyList(), item)
+        return combinedItems.mapNotNull { item ->
+            when (item.itemType) {
+                BacklogItemTypeValues.GOAL -> goalsMap[item.entityId]?.let { BacklogItemContent.GoalItem(it, remindersMap[it.id] ?: emptyList(), item) }
+                BacklogItemTypeValues.SUBLIST -> contextsMap[item.entityId]?.let { BacklogItemContent.SublistItem(it, remindersMap[it.id] ?: emptyList(), item) }
+                BacklogItemTypeValues.LINK_ITEM -> linksMap[item.entityId]?.let { BacklogItemContent.LinkItem(it, item) }
+                BacklogItemTypeValues.NOTE -> notesMap[item.entityId]?.let { BacklogItemContent.NoteItem(it, item) }
+                BacklogItemTypeValues.NOTE_DOCUMENT -> noteDocumentsMap[item.entityId]?.let { BacklogItemContent.NoteDocumentItem(it, item) }
+                BacklogItemTypeValues.CHECKLIST -> checklistsMap[item.entityId]?.let { BacklogItemContent.ChecklistItem(it, item) }
+                else -> null
             }
-        BacklogItemTypeValues.SUBLIST ->
-            contextsMap[item.entityId]?.let {
-              BacklogItemContent.SublistItem(it, remindersMap[it.id] ?: emptyList(), item)
-            }
-        BacklogItemTypeValues.LINK_ITEM ->
-            linksMap[item.entityId]?.let { BacklogItemContent.LinkItem(it, item) }
-        BacklogItemTypeValues.NOTE ->
-            notesMap[item.entityId]?.let { BacklogItemContent.NoteItem(it, item) }
-        BacklogItemTypeValues.NOTE_DOCUMENT ->
-            noteDocumentsMap[item.entityId]?.let { BacklogItemContent.NoteDocumentItem(it, item) }
-        BacklogItemTypeValues.CHECKLIST ->
-            checklistsMap[item.entityId]?.let { BacklogItemContent.ChecklistItem(it, item) }
-        else -> null
-      }
-    }
-  }
-
-  suspend fun deleteListItemsFromContext(contextId: String, itemIds: List<String>) {
-    if (itemIds.isEmpty()) return
-    val backlogIds = mutableListOf<String>()
-
-    for (itemId in itemIds) {
-      val attachment = attachmentRepository.getAttachmentById(itemId)
-      if (attachment != null) {
-        when (attachment.attachmentType) {
-          BacklogItemTypeValues.NOTE_DOCUMENT ->
-              noteDocumentRepository.deleteDocument(attachment.entityId)
-          BacklogItemTypeValues.CHECKLIST ->
-              checklistRepository.deleteChecklist(attachment.entityId)
-          else -> attachmentRepository.unlinkAttachmentFromContext(attachment.id, contextId)
         }
-      } else {
-        backlogIds += itemId
-      }
     }
-    if (backlogIds.isNotEmpty()) listItemRepository.deleteListItems(backlogIds)
-  }
 
-  suspend fun updateAttachmentOrders(contextId: String, updates: List<Pair<String, Long>>) {
-    // Конвертуємо List<Pair> у Map<String, Long> для репозиторію
-    attachmentRepository.updateAttachmentOrders(contextId, updates.toMap())
-  }
 
-  suspend fun updateContext(context: Context) {
-    val now = System.currentTimeMillis()
-    // bumpSync має повертати Context, а не Unit
-    val bumped = context.bumpSync(now)
-    contextDao.update(bumped)
-    recentItemsRepository.updateRecentItemDisplayName(context.id, context.name)
-  }
+    // --- Операції переміщення та логіки ---
+    @Transaction
+    suspend fun moveContext(contextToMove: Context, newParentId: String?) {
+        val oldParentId = contextToMove.parentId
+        if (oldParentId == newParentId) return
 
-  suspend fun updateContexts(contexts: List<Context>): Int {
-    if (contexts.isEmpty()) return 0
-    val now = System.currentTimeMillis()
-    val bumpedList = contexts.map { it.bumpSync(now) }
-    return contextDao.update(bumpedList)
-  }
+        // 1. Оновлюємо посилання в списках (ListItem)
+        if (oldParentId != null) {
+            listItemRepository.deleteLinkByEntityIdAndContextId(contextToMove.id, oldParentId)
+        }
+        if (newParentId != null) {
+            listItemRepository.addContextLinkToContext(contextToMove.id, newParentId)
+        }
 
-  @Transaction
-  suspend fun deleteContextsAndSubContexts(contextsToDelete: List<Context>) {
-    val nonSystem = contextsToDelete.filter { !SystemContexts.isSystem(ContextId(it.id)) }
-    if (nonSystem.isEmpty()) return
+        // 2. Оновлюємо сам об'єкт контексту
+        val updatedContext = contextToMove.copy(
+            parentId = newParentId,
+            updatedAt = System.currentTimeMillis(),
+            version = contextToMove.version + 1,
+            syncedAt = null
+        )
+        contextDao.update(updatedContext)
+    }
 
-    val contextIds = nonSystem.map { it.id }
-    listItemRepository.deleteItemsForContexts(contextIds)
-    val now = System.currentTimeMillis()
-    nonSystem.forEach { contextDao.insert(it.softDelete(now)) }
-  }
+    // --- Делегати для інших репозиторіїв (ViewModels їх шукають тут) ---
+    suspend fun findContextIdsByTag(tag: String) = contextDao.getContextIdsByTag(tag)
+    suspend fun doesLinkToContextExist(eId: String, cId: String) = listItemRepository.doesLinkExist(eId, cId)
+    suspend fun deleteLinkByEntityIdAndContextId(eId: String, cId: String) = listItemRepository.deleteLinkByEntityIdAndContextId(eId, cId)
+    suspend fun addContextLinkToContext(cId: String, pId: String) = listItemRepository.addContextLinkToContext(cId, pId)
+    suspend fun restoreListItems(items: List<BacklogItem>) = listItemRepository.restoreListItems(items)
 
-  suspend fun addLinkItemToContextFromLink(contextId: String, link: RelatedLink): String {
-    // createLinkAttachment вже повертає String (ID), не потрібно викликати .id
-    return attachmentRepository.createLinkAttachment(contextId, link)
-  }
+    suspend fun deleteGoal(id: String) = goalRepository.deleteGoal(id)
+    suspend fun copyGoalsToContext(ids: List<String>, target: String) = goalRepository.copyGoalsToContext(ids, target)
+    suspend fun findContextIdForGoal(id: String) = goalRepository.findContextIdForGoal(id)
+    suspend fun getAllGoals() = goalRepository.getAllGoals()
 
-  suspend fun ensureAttachmentLinkedToContext(
-      attachmentType: String,
-      entityId: String,
-      targetContextId: String,
-      ownerContextId: String?,
-      createdAt: Long = System.currentTimeMillis(),
-      roleCode: String? = null,
-      isSystem: Boolean = false,
-  ): String {
-    // ensureAttachmentLinkedToContext тепер повертає ID як String
-    attachmentRepository.ensureAttachmentLinkedToContext(
-        attachmentType,
-        entityId,
-        targetContextId,
-        ownerContextId,
-        createdAt,
-        roleCode,
-        isSystem,
-    )
-    // Якщо метод повертає Unit, нам потрібно знайти ID або змінити інтерфейс.
-    // Припускаємо, що ми оновили інтерфейс, щоб він повертав ID.
-    return entityId
-  }
-
-  suspend fun unlinkAttachmentFromContext(contextId: String, attachmentId: String) {
-    attachmentRepository.unlinkAttachmentFromContext(attachmentId, contextId)
-  }
-
-  fun getAllContextsFlow(): Flow<List<Context>> =
-      contextDao
-          .getAllContextsFlow() // Використовуємо Flow версію
-          .map { contexts -> contexts.map { it.withNormalizedParentId() } }
-
-  suspend fun getContextById(id: String): Context? =
-      contextDao.getContextById(id)?.withNormalizedParentId()
-
-  private fun Context.withNormalizedParentId(): Context {
-    val normalized =
-        parentId?.trim()?.takeIf { it.isNotEmpty() && !it.equals("null", ignoreCase = true) }
-    return if (normalized != parentId) copy(parentId = normalized) else this
-  }
-
-  suspend fun searchGlobal(query: String) = searchRepository.searchGlobal(query)
-
-  suspend fun logContextTimeSummaryForDate(contextId: String, dayToLog: Calendar) =
-      contextTimeTrackingRepository.logContextTimeSummaryForDate(contextId, dayToLog)
-
-  suspend fun recalculateAndLogContextTime(contextId: String) =
-      contextTimeTrackingRepository.recalculateAndLogContextTime(contextId)
-
-  suspend fun calculateContextTimeMetrics(contextId: String) =
-      contextTimeTrackingRepository.calculateContextTimeMetrics(contextId)
-
-  suspend fun cleanupDanglingListItems() {
-    val allListItems = listItemRepository.getAll()
-    val itemsToDelete =
-        allListItems
-            .filter { item ->
-              when (item.itemType) {
-                BacklogItemTypeValues.GOAL -> goalRepository.getGoalById(item.entityId) == null
-                BacklogItemTypeValues.SUBLIST -> contextDao.getContextById(item.entityId) == null
-                BacklogItemTypeValues.NOTE_DOCUMENT ->
-                    noteDocumentRepository.getDocumentById(item.entityId) == null
-                BacklogItemTypeValues.CHECKLIST ->
-                    checklistRepository.getChecklistById(item.entityId) == null
-                else -> false
-              }
+    suspend fun ensureChildContextListItemsExist(contextId: String) {
+        val children = contextDao.getContextsByParentId(contextId)
+        children.forEach { child ->
+            if (!listItemRepository.doesLinkExist(child.id, contextId)) {
+                listItemRepository.addContextLinkToContext(child.id, contextId)
             }
-            .map { it.id }
-    if (itemsToDelete.isNotEmpty()) listItemRepository.deleteListItems(itemsToDelete)
-  }
+        }
+    }
 
-  fun getContextArtifactStream(contextId: String) =
-      contextArtifactRepository.getContextArtifactStream(contextId)
+    // --- Artifacts & Time Metrics ---
+    fun getContextArtifactStream(id: String) = contextArtifactRepository.getContextArtifactStream(id)
+    suspend fun updateContextArtifact(a: ContextArtifact) = contextArtifactRepository.updateContextArtifact(a)
+    suspend fun createContextArtifact(a: ContextArtifact) = contextArtifactRepository.createContextArtifact(a)
+    suspend fun calculateContextTimeMetrics(id: String) = contextTimeTrackingRepository.calculateContextTimeMetrics(id)
+    suspend fun recalculateAndLogContextTime(id: String) = contextTimeTrackingRepository.recalculateAndLogContextTime(id)
 
-  suspend fun updateContextArtifact(artifact: ContextArtifact) =
-      contextArtifactRepository.updateContextArtifact(artifact)
+// Усередині класу ContextRepository додайте ці пропущені методи:
 
-  suspend fun createContextArtifact(artifact: ContextArtifact) =
-      contextArtifactRepository.createContextArtifact(artifact)
+    suspend fun toggleContextManagement(id: String, enabled: Boolean) =
+        contextLogRepository.addToggleContextManagementLog(id, enabled).also {
+            val context = getContextById(id) ?: return@also
+            updateContext(context.copy(isContextManagementEnabled = enabled))
+        }
 
-  suspend fun updateContextViewMode(contextId: String, viewMode: ContextViewMode) {
-    contextDao.updateViewMode(contextId, viewMode.name)
-  }
+    suspend fun updateContextStatus(id: String, status: String, text: String?) {
+        val context = getContextById(id) ?: return
+        updateContext(context.copy(contextStatus = status, contextStatusText = text))
+        contextLogRepository.addUpdateContextStatusLog(id, status, text)
+    }
 
-  suspend fun addContextComment(contextId: String, comment: String) {
-    contextLogRepository.addContextComment(contextId, comment)
-  }
+    suspend fun updateContext(context: Context) {
+        val now = System.currentTimeMillis()
+        // bumpSync повертає копію об'єкта з новою версією та скинутим syncedAt
+        val bumped = context.bumpSync(now)
 
-  suspend fun findContextIdsByTag(tag: String): List<String> = contextDao.getContextIdsByTag(tag)
+        contextDao.update(bumped)
 
-  suspend fun doesLinkToContextExist(entityId: String, contextId: String) =
-      listItemRepository.doesLinkExist(entityId, contextId)
-
-  suspend fun deleteLinkByEntityIdAndContextId(entityId: String, contextId: String) =
-      listItemRepository.deleteLinkByEntityIdAndContextId(entityId, contextId)
+        // Оновлюємо відображення в списку нещодавніх проектів
+        recentItemsRepository.updateRecentItemDisplayName(context.id, context.name)
+    }
 
     /**
-     * Створює новий контекст із заданим ID.
-     * Винесено в окремий метод, бо використовується і в UI, і в системних пресетах.
+     * Пакетне оновлення списку контекстів.
+     * Використовується при масових змінах або сортуванні.
      */
+    suspend fun updateContexts(contexts: List<Context>): Int {
+        if (contexts.isEmpty()) return 0
+        val now = System.currentTimeMillis()
+        val bumpedList = contexts.map { it.bumpSync(now) }
+        return contextDao.update(bumpedList)
+    }
+
+    suspend fun addContextComment(id: String, text: String) =
+        contextLogRepository.addContextComment(id, text)
+
+    suspend fun updateContextViewMode(id: String, mode: ContextViewMode) =
+        contextDao.updateViewMode(id, mode.name)
+
+    suspend fun deleteContextsAndSubContexts(contexts: List<Context>) {
+        val ids = contexts.map { it.id }
+        listItemRepository.deleteItemsForContexts(ids)
+        val now = System.currentTimeMillis()
+        contexts.forEach { contextDao.insert(it.softDelete(now)) }
+    }
+
+    suspend fun addLinkItemToContextFromLink(contextId: String, link: RelatedLink): String =
+        attachmentRepository.createLinkAttachment(contextId, link)
+
+    suspend fun deleteAttachmentEverywhere(attachmentId: String) {
+        val attachment = attachmentRepository.getAttachmentById(attachmentId) ?: return
+        when (attachment.attachmentType) {
+            BacklogItemTypeValues.NOTE_DOCUMENT -> noteDocumentRepository.deleteDocument(attachment.entityId)
+            BacklogItemTypeValues.CHECKLIST -> checklistRepository.deleteChecklist(attachment.entityId)
+            else -> attachmentRepository.deleteAttachment(attachmentId)
+        }
+    }
+    suspend fun updateAttachmentOrders(contextId: String, updates: List<Pair<String, Long>>) {
+        attachmentRepository.updateAttachmentOrders(contextId, updates.toMap())
+    }
+
+    /**
+     * Гарантує, що вкладення (наприклад, перенесена нотатка) прив'язане до цільового контексту.
+     */
+// У файлі ContextRepository.kt змініть метод на такий:
+
+    suspend fun ensureAttachmentLinkedToContext(
+        attachmentType: String,
+        entityId: String,
+        targetContextId: String,
+        ownerContextId: String?,
+        createdAt: Long = System.currentTimeMillis(),
+        roleCode: String? = null,
+        isSystem: Boolean = false,
+    ): String { // Змінюємо Unit на String
+        attachmentRepository.ensureAttachmentLinkedToContext(
+            attachmentType,
+            entityId,
+            targetContextId,
+            ownerContextId,
+            createdAt,
+            roleCode,
+            isSystem
+        )
+        return entityId // Повертаємо ID для UI-логіки (підсвічування/скролу)
+    }
+
+    /**
+     * Видаляє записи в списках (ListItem), для яких фізично більше не існує сутностей (Goal, Note тощо).
+     */
+    suspend fun cleanupDanglingListItems() {
+        val allListItems = listItemRepository.getAll()
+        val itemsToDelete = allListItems.filter { item ->
+            when (item.itemType) {
+                BacklogItemTypeValues.GOAL -> goalRepository.getGoalById(item.entityId) == null
+                BacklogItemTypeValues.SUBLIST -> contextDao.getContextById(item.entityId) == null
+                BacklogItemTypeValues.NOTE_DOCUMENT -> noteDocumentRepository.getDocumentById(item.entityId) == null
+                BacklogItemTypeValues.CHECKLIST -> checklistRepository.getChecklistById(item.entityId) == null
+                else -> false
+            }
+        }.map { it.id }
+
+        if (itemsToDelete.isNotEmpty()) {
+            listItemRepository.deleteListItems(itemsToDelete)
+        }
+    }
+
+    fun getContextLogsStream(contextId: String): Flow<List<ContextLog>> =
+        contextLogRepository.getContextLogsStream(contextId)
+
     suspend fun createContextWithId(
         id: String,
         name: String,
@@ -356,34 +331,112 @@ constructor(
         )
         contextDao.insert(newContext)
 
-        // Якщо є батьківський контекст, створюємо логічний зв'язок у списку
+        // Якщо є батько — створюємо зв'язок у списку відображення
         if (parentId != null) {
             listItemRepository.addContextLinkToContext(id, parentId)
         }
     }
 
     /**
-     * Перевіряє наявність підконтексту за роллю. Якщо немає — створює його.
+     * Переміщує проєкт в іншу папку.
+     * allowSystemMoves дозволяє або забороняє переміщення системних папок (як-от Inbox).
+     */
+    @androidx.room.Transaction
+    suspend fun moveContext(
+        contextToMove: Context,
+        newParentId: String?,
+        allowSystemMoves: Boolean = false // Додано цей параметр
+    ) {
+        // 1. Перевірка на системність (якщо не дозволено — ігноруємо)
+        val isSystem = com.romankozak.forwardappmobile.core.context.SystemContexts.isSystem(
+            com.romankozak.forwardappmobile.core.context.ContextId(contextToMove.id)
+        )
+        if (isSystem && !allowSystemMoves) return
+
+        val oldParentId = contextToMove.parentId
+        if (oldParentId == newParentId) return
+
+        // 2. Оновлюємо лінки в ListItemRepository
+        if (oldParentId != null) {
+            listItemRepository.deleteLinkByEntityIdAndContextId(contextToMove.id, oldParentId)
+        }
+        if (newParentId != null) {
+            listItemRepository.addContextLinkToContext(contextToMove.id, newParentId)
+        }
+
+        // 3. Оновлюємо запис самого контексту в базі
+        val updatedContext = contextToMove.copy(
+            parentId = newParentId,
+            updatedAt = System.currentTimeMillis(),
+            version = contextToMove.version + 1,
+            syncedAt = null // Скидаємо для синхронізації
+        )
+        contextDao.update(updatedContext)
+    }
+
+    // Додайте в ContextRepository.kt
+
+    /**
+     * Логування підсумків часу для контексту (використовується в MainActivity)
+     */
+    suspend fun logContextTimeSummaryForDate(contextId: String, dayToLog: java.util.Calendar) =
+        contextTimeTrackingRepository.logContextTimeSummaryForDate(contextId, dayToLog)
+
+    /**
+     * Глобальний пошук по всьому додатку
+     */
+    suspend fun searchGlobal(query: String) =
+        searchRepository.searchGlobal(query)
+
+    /**
+     * Створення підконтексту за роллю (потрібно для пресетів структури)
      */
     suspend fun ensureSubcontextByRole(
         parentContextId: String,
         roleCode: String,
-        title: String,
+        title: String
     ): Context {
-        // 1. Шукаємо в базі
         val existing = contextDao.findChildByRole(parentContextId, roleCode)
         if (existing != null) return existing
 
-        // 2. Якщо не знайшли — створюємо новий
-        val newId = UUID.randomUUID().toString()
-        createContextWithId(
-            id = newId,
-            name = title,
-            parentId = parentContextId,
-            roleCode = roleCode
-        )
-
-        // 3. Повертаємо щойно створений об'єкт
+        val newId = java.util.UUID.randomUUID().toString()
+        createContextWithId(id = newId, name = title, parentId = parentContextId, roleCode = roleCode)
         return contextDao.getContextById(newId) ?: throw IllegalStateException("Failed to create context")
+    }
+
+    /**
+     * Відв'язування вкладення від конкретного контексту
+     */
+    suspend fun unlinkAttachmentFromContext(contextId: String, attachmentId: String) {
+        attachmentRepository.unlinkAttachmentFromContext(attachmentId, contextId)
+    }
+
+    /**
+     * Масове видалення елементів із беклогу контексту.
+     * Якщо елемент є вкладенням (нотатка/чекліст), видаляється сама сутність або лінк.
+     */
+    suspend fun deleteListItemsFromContext(contextId: String, itemIds: List<String>) {
+        if (itemIds.isEmpty()) return
+        val backlogIds = mutableListOf<String>()
+
+        for (itemId in itemIds) {
+            val attachment = attachmentRepository.getAttachmentById(itemId)
+            if (attachment != null) {
+                when (attachment.attachmentType) {
+                    BacklogItemTypeValues.NOTE_DOCUMENT ->
+                        noteDocumentRepository.deleteDocument(attachment.entityId)
+                    BacklogItemTypeValues.CHECKLIST ->
+                        checklistRepository.deleteChecklist(attachment.entityId)
+                    else ->
+                        attachmentRepository.unlinkAttachmentFromContext(attachment.id, contextId)
+                }
+            } else {
+                backlogIds += itemId
+            }
+        }
+
+        if (backlogIds.isNotEmpty()) {
+            listItemRepository.deleteListItems(backlogIds)
+        }
     }
 }
