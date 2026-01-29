@@ -15,7 +15,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
+import com.romankozak.forwardappmobile.core.data.models.Reminder
 import com.romankozak.forwardappmobile.ui.components.AdaptiveSegmentedControl
 import com.romankozak.forwardappmobile.ui.components.SegmentedTab
 import java.util.Calendar

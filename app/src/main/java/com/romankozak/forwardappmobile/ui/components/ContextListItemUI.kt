@@ -27,7 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.features.contexts.data.models.Context
+import com.romankozak.forwardappmobile.core.data.models.Context
 
 @Composable
 fun ProjectRow(

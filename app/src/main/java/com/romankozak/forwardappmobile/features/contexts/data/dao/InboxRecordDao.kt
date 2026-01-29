@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.features.contexts.data.dao
 
 import androidx.room.*
-import com.romankozak.forwardappmobile.features.contexts.data.models.InboxRecord
+import com.romankozak.forwardappmobile.core.data.models.InboxRecord
 import kotlinx.coroutines.flow.Flow
 
 @Dao

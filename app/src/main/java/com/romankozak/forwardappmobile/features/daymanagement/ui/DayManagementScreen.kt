@@ -24,14 +24,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.features.activitytracker.ActivityTrackerScreen
-import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask
+import com.romankozak.forwardappmobile.core.data.models.day_management.DayTask
 
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayanalitics.DayAnalyticsScreen
 import com.romankozak.forwardappmobile.features.daymanagement.ui.daydashboard.DayDashboardScreen
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanScreen
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
-import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.components.DayManagementBottomNav
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable

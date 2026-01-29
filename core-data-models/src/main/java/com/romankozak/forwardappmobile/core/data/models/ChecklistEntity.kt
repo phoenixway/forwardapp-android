@@ -1,0 +1,54 @@
+package com.romankozak.forwardappmobile.core.data.models
+
+import androidx.room.ColumnInfo
+import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Index
+import androidx.room.PrimaryKey
+import java.util.UUID
+
+@Entity(
+    tableName = "checklists",
+    foreignKeys = [
+        ForeignKey(
+            entity = Context::class,
+            parentColumns = ["id"],
+            childColumns = ["contextId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index(value = ["contextId"], name = "index_checklists_contextId")],
+)
+data class ChecklistEntity(
+    @PrimaryKey val id: String = UUID.randomUUID().toString(),
+    val contextId: String,
+    var name: String,
+    val updatedAt: Long? = null,
+    val syncedAt: Long? = null,
+    val isDeleted: Boolean = false,
+    val version: Long = 0,
+)
+
+@Entity(
+    tableName = "checklist_items",
+    foreignKeys = [
+        ForeignKey(
+            entity = ChecklistEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["checklistId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index(value = ["checklistId"], name = "index_checklist_items_checklistId")],
+)
+data class ChecklistItemEntity(
+    @PrimaryKey val id: String = UUID.randomUUID().toString(),
+    val checklistId: String,
+    var content: String,
+    @ColumnInfo(defaultValue = "0") var isChecked: Boolean = false,
+    var itemOrder: Long = 0,
+    val updatedAt: Long? = null,
+    val syncedAt: Long? = null,
+    val isDeleted: Boolean = false,
+    val version: Long = 0,
+)

@@ -496,3 +496,138 @@ Database Initializer: Онови RoomDatabase.Callback, щоб при чисті
 
   Я представлю цей план користувачеві. Мій негайний наступний крок – зібрати проєкт для підтвердження виправлення systemKey.
 
+***
+
+> я виділяю синхронізацію в окремий модуль. для цього прийшлось виділити ще 2 окремі модуля
+data-core-models/interfaces . зараз проблема з attachmentrepository. він надто залежить від app. зокрема від
+appdatabase. як тут бути?
+> 
+> ***
+
+
+Вітаю! Ви на правильному шляху. Розділення на модулі — це ключова практика для чистої архітектури.
+
+Проблема, з якою ви зіткнулися — класична. AttachmentRepository залежить від конкретної реалізації AppDatabase в
+модулі app. Це створює жорстку зв'язаність і заважає модульній структурі.
+
+Рішення: Застосувати Принцип інверсії залежностей (Dependency Inversion Principle).
+
+Ми "інвертуємо" залежність: репозиторій залежатиме від абстракції (інтерфейсу), а не від конкретної бази даних.
+Модуль app надаватиме реалізацію цього інтерфейсу.
+
+План дій:
+
+1. Створити інтерфейс DAO в `core-data-interfaces`:
+    * Ми визначимо інтерфейс, наприклад, AttachmentDao, у вашому новому модулі core-data-interfaces. Цей
+      інтерфейс опише всі методи для роботи з базою даних, які потрібні для AttachmentRepository (наприклад,
+      insert, getById, delete).
+
+2. Перемістити `AttachmentRepository` в модуль `sync`:
+    * Фізично перемістимо файл з репозиторієм у відповідну директорію модуля sync.
+
+3. Змусити `AttachmentRepository` залежати від нового інтерфейсу:
+    * Ми змінимо конструктор AttachmentRepository, щоб він приймав AttachmentDao (інтерфейс), а не AppDatabase чи
+      конкретний DAO з неї.
+
+4. Реалізувати цей інтерфейс в модулі `app`:
+    * Клас AppDatabase в модулі app (або його існуючий DAO) реалізує наш новий інтерфейс AttachmentDao.
+      5. Оновити Dependency Injection (Hilt/Dagger/Koin):
+    * У модулі app ми налаштуємо DI так, щоб при запиті на AttachmentRepository він отримував конкретну                   реалізацію AttachmentDao з AppDatabase.                                                                                                                                                                                          Таким чином, модуль sync не знатиме нічого про AppDatabase з app. Він залежатиме лише від core-data-interfaces, як
+      і має бути.
+
+Цей план вам підходить? Якщо так, я почну з першого кроку: знайду AttachmentRepository і проаналізую його поточні
+залежності, щоб створити правильний інтерфейс.
+
+***
+
+Так, це класична проблема при модуляризації. Коли ви виносили sync в окремий модуль, AttachmentRepository потягнув
+за собою залежність від AppDatabase, яка, скоріш за все, визначена у модулі :app.
+
+Правильний підхід тут — інвертувати залежність (Dependency Inversion).
+
+Ось покроковий план, як це зробити:
+
+1. Створіть інтерфейс в `core-data-interfaces`:
+   У модулі, який не має залежностей від Android-специфічних класів (як AppDatabase), створіть інтерфейс, який
+   описує тільки ті методи, що потрібні AttachmentRepository для роботи з базою даних.
+
+   Наприклад, це може бути AttachmentLocalDataSource або AttachmentDao.
+
+    * Приклад (`core-data-interfaces/src/main/java/com/example/AttachmentLocalDataSource.kt`):
+
+1         interface AttachmentLocalDataSource {
+2             suspend fun getAttachment(id: String): Attachment
+3             suspend fun insertAttachment(attachment: Attachment)
+4             // та інші методи, які потрібні...
+5         }
+
+2. Змініть `AttachmentRepository`:
+   Тепер AttachmentRepository у модулі sync повинен залежати не від конкретної реалізації (AppDatabase), а від
+   цього нового інтерфейсу.
+
+    * Приклад (`sync/src/main/java/com/example/AttachmentRepository.kt`):
+      1         class AttachmentRepository(
+      2             private val remoteApi: AttachmentRemoteApi,                                                           3             private val localDataSource: AttachmentLocalDataSource // <-- Залежність від інтерфейсу               4         ) {                                                                                                       5             // ... логіка репозиторію
+      6         }
+
+3. Створіть реалізацію інтерфейсу в модулі `:app`:
+   У модулі :app, де у вас є доступ до AppDatabase, створіть клас, який реалізує AttachmentLocalDataSource і       використовує DAO з вашої AppDatabase.
+    * Приклад (`app/src/main/java/com/example/data/AttachmentLocalDataSourceImpl.kt`):                                                                                                                                                   1         class AttachmentLocalDataSourceImpl(
+      2             private val database: AppDatabase // або напряму AttachmentDao
+      3         ) : AttachmentLocalDataSource {
+      4                                                                                                                   5             private val attachmentDao = database.attachmentDao()
+      6                                                                                                                   7             override suspend fun getAttachment(id: String): Attachment {
+      8                 return attachmentDao.getById(id)
+      9             }
+      10
+      11             override suspend fun insertAttachment(attachment: Attachment) {                                      12                 attachmentDao.insert(attachment)
+      13             }
+      14             // ... реалізація інших методів
+      15         }
+      4. Налаштуйте Dependency Injection (Hilt/Koin):
+      У модулі :app навчіть ваш DI-фреймворк, яку реалізацію надавати, коли хтось просить інтерфейс                   AttachmentLocalDataSource.
+    * Приклад для Hilt (`app/src/main/java/com/example/di/DataModule.kt`):
+
+    1         @Module
+    2         @InstallIn(SingletonComponent::class)                                                                     3         abstract class DataSourceModule {                                                                         4
+    5             @Binds                                                                                                6             @Singleton
+    7             abstract fun bindAttachmentLocalDataSource(                                                           8                 impl: AttachmentLocalDataSourceImpl
+    9             ): AttachmentLocalDataSource
+10         }
+Чому цей підхід правильний:
+* Розриваються залежності: Модуль sync більше не знає про існування AppDatabase чи будь-яких деталей реалізації       зберігання даних. Він залежить тільки від "контракту" (інтерфейсу).
+* Чітка архітектура: Ви дотримуєтесь принципів чистої архітектури, де вищі рівні (логіка синхронізації) не
+  залежать від нижчих (деталі реалізації бази даних).
+* Тестованість: Ви можете легко "підмінити" реалізацію AttachmentLocalDataSource на фейкову в юніт-тестах для
+  AttachmentRepository.
+
+По суті, ви "просите" модуль :app надати вам реалізацію для роботи з локальними даними, не знаючи, як саме він це
+зробить.
+
+Хочете, щоб я допоміг знайти файли AttachmentRepository та AppDatabase і підготував конкретні зміни?
+
+***
+Добре, я проаналізував файли.                                                                                                                                                                                                           Ось суть проблеми:
+AttachmentsRepository у вашому новому sync модулі напряму залежить від AppDatabase та купи DAO з модуля :app. Це
+повністю нівелює ідею модуляризації.
+
+План рефакторингу:                                                                                                  Я виконаю чотири кроки, щоб розірвати цю залежність за допомогою патерну "інверсія залежностей".
+
+1. Створити інтерфейс `AttachmentsLocalDataSource`. В модулі core-data-interfaces я створю новий інтерфейс, який
+   опише, які дані потрібні для бекапу та як їх зберегти. Це буде "контракт".                                       2. Оновити `AttachmentsRepository`. Репозиторій в sync модулі буде залежати тільки від цього нового, чистого
+   інтерфейсу, а не від AppDatabase.                                                                                3. Створити реалізацію `AttachmentsLocalDataSourceImpl`. В модулі :app я створю клас, який реалізує цей
+   інтерфейс, використовуючи вашу AppDatabase та DAO.
+4. Оновити Hilt (Dependency Injection). Я навчу Hilt, що коли хтось просить AttachmentsLocalDataSource, треба
+   надавати AttachmentsLocalDataSourceImpl.
+   Перш ніж я почну, мені потрібно знайти визначення класу AttachmentsBackup, який використовується для
+   експорту/імпорту, щоб правильно визначити методи в інтерфейсі.
+   ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+   │ ✓  SearchText 'class AttachmentsBackup' within ./                                                                ││                                                                                                                  │
+   │ Found 2 matches                                                                                                  │╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+   ✦ Знайшов AttachmentsBackup. Він існує і в sync, і в app модулі. Я буду використовувати версію з sync як основну.
+
+Тепер я готовий розпочати рефакторинг.
+Крок 1: Створення інтерфейсу `AttachmentsLocalDataSource`
+
+Спочатку я прочитаю вміст AttachmentsBackup.kt, щоб зрозуміти структуру даних, а потім створю новий файл
+AttachmentsLocalDataSource.kt у модулі core-data-interfaces з усіма необхідними методами.

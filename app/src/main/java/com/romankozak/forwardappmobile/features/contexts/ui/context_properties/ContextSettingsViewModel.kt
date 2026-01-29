@@ -4,13 +4,13 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.romankozak.forwardappmobile.core.data.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.domain.structure.StructurePresetService
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
-import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.EvaluationTabActions
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.RemindersTabActions
 import dagger.hilt.android.lifecycle.HiltViewModel

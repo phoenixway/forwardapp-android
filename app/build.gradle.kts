@@ -217,6 +217,8 @@ dependencies {
     implementation(libs.google.gson)
     implementation(libs.compose.dnd)
     implementation(libs.androidx.work.runtime)
+    implementation(project(":core-data-models"))
+    implementation(project(":core-data-interfaces"))
 
     // Testing
     testImplementation(libs.junit)
@@ -272,4 +274,7 @@ dependencies {
     implementation("com.google.android.gms:play-services-fido:20.1.0")
 
     implementation("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
+
+    implementation(project(":sync"))
+    implementation(project(":core-data-interfaces"))
 }

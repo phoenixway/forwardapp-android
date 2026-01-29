@@ -11,6 +11,9 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
+            <option value="$PROJECT_DIR$/core-data-interfaces" />
+            <option value="$PROJECT_DIR$/core-data-models" />
+            <option value="$PROJECT_DIR$/sync" />
           </set>
         </option>
       </GradleProjectSettings>

@@ -12,11 +12,11 @@ import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.features.attachments.ui.context.AttachmentType
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
-import com.romankozak.forwardappmobile.features.contexts.data.models.Context
-import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
-import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
-import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
+import com.romankozak.forwardappmobile.core.data.models.BacklogItemContent
+import com.romankozak.forwardappmobile.core.data.models.Context
+import com.romankozak.forwardappmobile.core.data.models.LinkType
+import com.romankozak.forwardappmobile.core.data.models.RelatedLink
+import com.romankozak.forwardappmobile.core.data.models.ScoringStatusValues
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel

@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.domain.usecases
 
-import com.romankozak.forwardappmobile.features.activitytracker.data.models.ActivityRecord
+import com.romankozak.forwardappmobile.core.data.models.ActivityRecord
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.MainScreenUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import javax.inject.Inject

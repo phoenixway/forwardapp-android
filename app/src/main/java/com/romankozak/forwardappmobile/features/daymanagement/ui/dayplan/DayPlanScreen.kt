@@ -36,8 +36,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
-import com.romankozak.forwardappmobile.features.contexts.data.models.TaskPriority
-import com.romankozak.forwardappmobile.features.daymanagement.data.models.DayTask
+import com.romankozak.forwardappmobile.core.data.models.TaskPriority
+import com.romankozak.forwardappmobile.core.data.models.day_management.DayTask
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.tasklist.AddTaskDialog
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.tasklist.TaskList
 import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog

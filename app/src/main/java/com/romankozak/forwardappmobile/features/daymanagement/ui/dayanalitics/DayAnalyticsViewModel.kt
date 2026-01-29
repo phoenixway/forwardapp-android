@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.features.daymanagement.ui.dayanalitics
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
-import com.romankozak.forwardappmobile.features.ai.data.models.WeeklyInsights
+import com.romankozak.forwardappmobile.core.data.models.ai.WeeklyInsights
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

@@ -1,12 +1,12 @@
 package com.romankozak.forwardappmobile.data.repository
 
-import com.romankozak.forwardappmobile.data.sync.bumpSync
-import com.romankozak.forwardappmobile.data.sync.softDelete
-import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
-import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistItemEntity
+import com.romankozak.forwardappmobile.core.data.models.BacklogItemTypeValues
+import com.romankozak.forwardappmobile.core.data.models.ChecklistEntity
+import com.romankozak.forwardappmobile.core.data.models.ChecklistItemEntity
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
+import com.romankozak.forwardappmobile.sync.AttachmentsRepository
+import com.romankozak.forwardappmobile.core.data.models.sync.bumpSync
+import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -16,7 +16,7 @@ class ChecklistRepository
     @Inject
     constructor(
         private val checklistDao: ChecklistDao,
-        private val attachmentRepository: AttachmentRepository,
+        private val attachmentRepository: AttachmentsRepository,
         private val recentItemsRepository: RecentItemsRepository,
     ) {
         fun getChecklistsForContext(contextId: String): Flow<List<ChecklistEntity>> =
@@ -137,3 +137,7 @@ class ChecklistRepository
 
         suspend fun getAllItems(): List<ChecklistItemEntity> = checklistDao.getAllChecklistItems()
     }
+
+private fun ChecklistEntity.bumpSync() {
+    TODO("Not yet implemented")
+}

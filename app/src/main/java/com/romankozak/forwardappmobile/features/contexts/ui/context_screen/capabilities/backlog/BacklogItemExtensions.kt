@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog
 
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
+import com.romankozak.forwardappmobile.core.data.models.BacklogItemContent
 
 fun BacklogItemContent.isCompleted(): Boolean =
     when (this) {

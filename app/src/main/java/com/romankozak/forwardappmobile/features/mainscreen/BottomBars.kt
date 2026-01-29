@@ -51,8 +51,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
-import com.romankozak.forwardappmobile.features.recent.data.models.RecentItem
-import com.romankozak.forwardappmobile.features.mainscreen.StrategicArcViewModel
+import com.romankozak.forwardappmobile.core.data.models.RecentItem
 import com.romankozak.forwardappmobile.ui.components.NewRecentListsSheet
 import kotlinx.coroutines.launch
 

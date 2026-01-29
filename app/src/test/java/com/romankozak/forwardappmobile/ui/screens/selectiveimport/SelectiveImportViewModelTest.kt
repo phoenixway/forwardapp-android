@@ -9,10 +9,10 @@ import com.romankozak.forwardappmobile.data.sync.DatabaseContent
 import com.romankozak.forwardappmobile.data.sync.DiffResult
 import com.romankozak.forwardappmobile.data.sync.FullAppBackup
 import com.romankozak.forwardappmobile.data.sync.RecentProjectEntry
-import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.ContextAttachmentCrossRef
-import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.Context
+import com.romankozak.forwardappmobile.core.data.models.AttachmentEntity
+import com.romankozak.forwardappmobile.core.data.models.ContextAttachmentCrossRef
+import com.romankozak.forwardappmobile.core.data.models.ScriptEntity
+import com.romankozak.forwardappmobile.core.data.models.Context
 import com.romankozak.forwardappmobile.features.sync.selectiveimport.SelectiveImportViewModel
 import io.mockk.coEvery
 import io.mockk.mockk

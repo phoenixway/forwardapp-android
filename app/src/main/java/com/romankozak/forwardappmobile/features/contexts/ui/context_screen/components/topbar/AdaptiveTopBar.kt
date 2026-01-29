@@ -7,8 +7,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.romankozak.forwardappmobile.features.contexts.data.models.Context
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextViewMode
+import com.romankozak.forwardappmobile.core.data.models.Context
+import com.romankozak.forwardappmobile.core.data.models.ContextViewMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.GoalActionType
 
 @Composable

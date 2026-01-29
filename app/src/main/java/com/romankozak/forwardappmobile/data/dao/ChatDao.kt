@@ -6,9 +6,9 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
-import com.romankozak.forwardappmobile.features.ai.data.models.ChatMessageEntity
-import com.romankozak.forwardappmobile.features.ai.data.models.ConversationEntity
-import com.romankozak.forwardappmobile.features.ai.data.models.ConversationWithLastMessage
+import com.romankozak.forwardappmobile.core.data.models.ai.ChatMessageEntity
+import com.romankozak.forwardappmobile.core.data.models.ai.ConversationEntity
+import com.romankozak.forwardappmobile.core.data.models.ai.ConversationWithLastMessage
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -100,4 +100,10 @@ interface ChatDao {
 
     @Query("DELETE FROM chat_messages")
     suspend fun deleteAllMessages()
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertConversations(conversations: List<ConversationEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertMessages(messages: List<ChatMessageEntity>)
 }

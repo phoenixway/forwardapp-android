@@ -5,7 +5,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
-import com.romankozak.forwardappmobile.features.contexts.data.models.GlobalSearchResultItem
+import com.romankozak.forwardappmobile.core.data.models.GlobalSearchResultItem
 import javax.inject.Inject
 import javax.inject.Singleton
 

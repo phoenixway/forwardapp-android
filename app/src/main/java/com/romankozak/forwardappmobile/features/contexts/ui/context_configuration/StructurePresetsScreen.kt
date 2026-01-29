@@ -41,7 +41,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfile
+import com.romankozak.forwardappmobile.core.data.models.ContextRoleProfile
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

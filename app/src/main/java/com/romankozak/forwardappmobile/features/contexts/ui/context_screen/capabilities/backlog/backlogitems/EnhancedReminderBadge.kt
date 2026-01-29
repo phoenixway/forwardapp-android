@@ -22,7 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
+import com.romankozak.forwardappmobile.core.data.models.Reminder
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Calendar

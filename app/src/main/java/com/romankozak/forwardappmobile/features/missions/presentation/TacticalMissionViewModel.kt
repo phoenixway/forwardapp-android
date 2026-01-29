@@ -3,10 +3,10 @@ package com.romankozak.forwardappmobile.features.missions.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
-import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
+import com.romankozak.forwardappmobile.sync.AttachmentsRepository // Updated import
 import com.romankozak.forwardappmobile.features.attachments.ui.library.AttachmentLibraryQueryResult
-import com.romankozak.forwardappmobile.features.missions.data.model.TacticalMission
-import com.romankozak.forwardappmobile.features.missions.domain.model.MissionStatus // Added import
+import com.romankozak.forwardappmobile.core.data.models.tactical.TacticalMission
+import com.romankozak.forwardappmobile.core.data.models.tactical.MissionStatus // Added import
 import com.romankozak.forwardappmobile.features.missions.domain.usecase.AddTacticalMissionUseCase
 import com.romankozak.forwardappmobile.features.missions.domain.usecase.DeleteTacticalMissionUseCase
 import com.romankozak.forwardappmobile.features.missions.domain.usecase.GetTacticalMissionsUseCase
@@ -30,7 +30,7 @@ class TacticalMissionViewModel
         private val deleteTacticalMissionUseCase: DeleteTacticalMissionUseCase,
         private val missionRepository: com.romankozak.forwardappmobile.features.missions.domain.repository.MissionRepository,
         contextRepository: ContextRepository,
-        attachmentRepository: AttachmentRepository,
+        attachmentRepository: com.romankozak.forwardappmobile.sync.AttachmentsRepository, // Updated type
     ) : ViewModel() {
         private val _missions = MutableStateFlow<List<TacticalMission>>(emptyList())
         val missions: StateFlow<List<TacticalMission>> = _missions.asStateFlow()

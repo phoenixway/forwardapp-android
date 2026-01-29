@@ -4,7 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextRoleProfile
+import com.romankozak.forwardappmobile.core.data.models.ContextRoleProfile
 import kotlinx.coroutines.flow.Flow
 
 @Dao

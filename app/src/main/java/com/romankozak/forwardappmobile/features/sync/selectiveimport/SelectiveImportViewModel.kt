@@ -8,8 +8,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
-import com.romankozak.forwardappmobile.data.sync.DatabaseContent
-import com.romankozak.forwardappmobile.features.sync.data.repository.SyncRepository
+import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
+import com.romankozak.forwardappmobile.sync.SyncRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -145,9 +145,10 @@ class SelectiveImportViewModel
                             // System projects already exist in DB, so they're valid
                             true
                         } else {
-                            // Regular projects must be selected and have valid parents recursively
-                            project.parentId in regularcontextIds && isProjectValidForImport(project.parentId, visited + contextId)
-                        }
+                project.parentId?.let { pid ->
+                    pid in regularcontextIds && isProjectValidForImport(pid, visited + contextId)
+                } ?: false
+            }
 
                     return isParentValid
                 }

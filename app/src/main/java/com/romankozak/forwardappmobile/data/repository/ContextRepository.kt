@@ -6,29 +6,29 @@ import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.sync.bumpSync
 import com.romankozak.forwardappmobile.data.sync.softDelete
 import com.romankozak.forwardappmobile.domain.ai.events.ProjectActivatedEvent
-import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
-import com.romankozak.forwardappmobile.features.attachments.data.models.AttachmentWithContext
-import com.romankozak.forwardappmobile.features.attachments.data.models.ChecklistEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.LegacyNoteEntity
-import com.romankozak.forwardappmobile.features.attachments.data.models.NoteDocumentEntity
+import com.romankozak.forwardappmobile.sync.AttachmentsRepository
+import com.romankozak.forwardappmobile.core.data.models.AttachmentWithContext
+import com.romankozak.forwardappmobile.core.data.models.ChecklistEntity
+import com.romankozak.forwardappmobile.core.data.models.LegacyNoteEntity
+import com.romankozak.forwardappmobile.core.data.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.features.contexts.data.dao.*
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
-import com.romankozak.forwardappmobile.features.contexts.data.models.Context
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextArtifact
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextConfiguration
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextTimeMetrics
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextViewMode
-import com.romankozak.forwardappmobile.features.contexts.data.models.GlobalSearchResultItem
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItem
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemContent
-import com.romankozak.forwardappmobile.features.contexts.data.models.Goal
-import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
-import com.romankozak.forwardappmobile.features.contexts.data.models.LinkItemEntity
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogItemTypeValues
-import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
+import com.romankozak.forwardappmobile.core.data.models.BacklogOrder
+import com.romankozak.forwardappmobile.core.data.models.Context
+import com.romankozak.forwardappmobile.core.data.models.ContextArtifact
+import com.romankozak.forwardappmobile.core.data.models.ContextLog
+import com.romankozak.forwardappmobile.core.data.models.ContextTimeMetrics
+import com.romankozak.forwardappmobile.core.data.models.GlobalSearchResultItem
+import com.romankozak.forwardappmobile.core.data.models.BacklogItem
+import com.romankozak.forwardappmobile.core.data.models.BacklogItemContent
+import com.romankozak.forwardappmobile.core.data.models.Goal
+import com.romankozak.forwardappmobile.core.data.models.Reminder
+import com.romankozak.forwardappmobile.core.data.models.LinkItemEntity
+
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.context.ContextId
+import com.romankozak.forwardappmobile.core.data.models.BacklogItemTypeValues
+import com.romankozak.forwardappmobile.core.data.models.ContextViewMode
+import com.romankozak.forwardappmobile.core.data.models.RelatedLink
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -55,7 +55,7 @@ class ContextRepository
         private val searchRepository: SearchRepository,
         private val noteDocumentRepository: NoteDocumentRepository,
         private val checklistRepository: ChecklistRepository,
-        private val attachmentRepository: AttachmentRepository,
+        private val attachmentRepository: com.romankozak.forwardappmobile.sync.AttachmentsRepository,
         private val goalRepository: GoalRepository,
         private val inboxRepository: InboxRepository,
         private val contextTimeTrackingRepository: ContextTimeTrackingRepository,

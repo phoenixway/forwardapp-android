@@ -5,7 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
+import com.romankozak.forwardappmobile.core.data.models.BacklogOrder
 
 @Dao
 interface BacklogOrderDao {

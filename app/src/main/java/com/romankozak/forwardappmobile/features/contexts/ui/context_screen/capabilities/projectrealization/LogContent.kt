@@ -34,8 +34,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLog
-import com.romankozak.forwardappmobile.features.contexts.data.models.ContextLogEntryTypeValues
+import com.romankozak.forwardappmobile.core.data.models.ContextLogEntryTypeValues
+import com.romankozak.forwardappmobile.core.data.models.ContextLog
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.abs

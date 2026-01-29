@@ -38,8 +38,7 @@ import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementSc
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
-import com.romankozak.forwardappmobile.features.recent.data.models.RecentItem
-import com.romankozak.forwardappmobile.features.mainscreen.StrategicArcViewModel
+import com.romankozak.forwardappmobile.core.data.models.RecentItem
 import com.romankozak.forwardappmobile.features.strategicmanagement.StrategicManagementScreen
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckHeaderPreset

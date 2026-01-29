@@ -48,7 +48,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.config.FeatureToggles
-import com.romankozak.forwardappmobile.features.contexts.data.models.LinkType
+import com.romankozak.forwardappmobile.core.data.models.LinkType
 import java.net.URLEncoder
 
 @OptIn(ExperimentalMaterial3Api::class)

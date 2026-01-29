@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.navigation.routes.MAIN_GRAPH_ROUTE
-import com.romankozak.forwardappmobile.features.contexts.data.models.Context
+import com.romankozak.forwardappmobile.core.data.models.Context
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ContextHierarchyScreenViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.lifestate.AnalysisContent

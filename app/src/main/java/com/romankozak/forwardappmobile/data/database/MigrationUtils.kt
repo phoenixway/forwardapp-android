@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.data.database
 
 import android.util.Log
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.romankozak.forwardappmobile.features.contexts.data.models.ReservedContextKeys
+import com.romankozak.forwardappmobile.core.data.models.ReservedContextKeys
 import java.text.Normalizer
 import java.util.UUID
 

@@ -6,7 +6,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-import com.romankozak.forwardappmobile.features.reminders.data.models.Reminder
+import com.romankozak.forwardappmobile.core.data.models.Reminder
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -38,4 +38,7 @@ interface ReminderDao {
     // --- Backup Methods ---
     @Query("SELECT * FROM reminders")
     suspend fun getAllRemindersSync(): List<Reminder>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(reminders: List<Reminder>)
 }

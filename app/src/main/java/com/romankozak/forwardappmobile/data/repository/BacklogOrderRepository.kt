@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.data.repository
 
 import android.util.Log
 import com.romankozak.forwardappmobile.features.contexts.data.dao.BacklogOrderDao
-import com.romankozak.forwardappmobile.features.contexts.data.models.BacklogOrder
+import com.romankozak.forwardappmobile.core.data.models.BacklogOrder
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton

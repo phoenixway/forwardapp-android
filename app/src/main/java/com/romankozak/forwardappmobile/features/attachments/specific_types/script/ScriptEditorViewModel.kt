@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.repository.ScriptRepository
 import com.romankozak.forwardappmobile.domain.scripts.LuaScriptRunner
-import com.romankozak.forwardappmobile.features.attachments.data.models.ScriptEntity
+import com.romankozak.forwardappmobile.core.data.models.ScriptEntity
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow

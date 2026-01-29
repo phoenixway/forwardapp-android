@@ -1,8 +1,8 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.goalproperties
 
 import androidx.compose.ui.text.input.TextFieldValue
-import com.romankozak.forwardappmobile.features.contexts.data.models.RelatedLink
-import com.romankozak.forwardappmobile.features.contexts.data.models.ScoringStatusValues
+import com.romankozak.forwardappmobile.core.data.models.RelatedLink
+import com.romankozak.forwardappmobile.core.data.models.ScoringStatusValues
 
 data class GoalSettingsUiState(
     val title: TextFieldValue = TextFieldValue(""),
