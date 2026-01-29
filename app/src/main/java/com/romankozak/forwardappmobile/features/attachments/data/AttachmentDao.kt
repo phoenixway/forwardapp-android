@@ -8,6 +8,7 @@ import androidx.room.Transaction
 import com.romankozak.forwardappmobile.core.data.models.AttachmentEntity
 import com.romankozak.forwardappmobile.core.data.models.AttachmentWithContext
 import com.romankozak.forwardappmobile.core.data.models.ContextAttachmentCrossRef
+import com.romankozak.forwardappmobile.sync.AttachmentLibraryQueryResult
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -104,4 +105,29 @@ interface AttachmentDao {
 
     @Query("DELETE FROM context_attachment_cross_ref")
     suspend fun deleteAllContextAttachmentLinks()
+
+    @Query("""
+        SELECT 
+            a.id AS id,
+            a.attachment_type AS attachmentType,
+            a.entity_id AS entityId,
+            a.owner_context_id AS ownerContextId,
+            a.updatedAt AS attachmentUpdatedAt,
+            n.name AS noteName, 
+            n.updatedAt AS noteUpdatedAt,
+            c.name AS checklistName, 
+            l.link_data AS linkDisplayName, 
+            l.createdAt AS linkCreatedAt,
+            ctx.name AS contextName, 
+            ctx.updatedAt AS contextUpdatedAt
+        FROM attachments AS a
+        LEFT JOIN note_documents AS n ON a.attachment_type = 'NOTE_DOCUMENT' AND a.entity_id = n.id
+        LEFT JOIN checklists AS c ON a.attachment_type = 'CHECKLIST' AND a.entity_id = c.id
+        LEFT JOIN link_items AS l ON a.attachment_type = 'LINK_ITEM' AND a.entity_id = l.id
+        LEFT JOIN contexts AS ctx ON a.attachment_type = 'CONTEXT' AND a.entity_id = ctx.id
+    """)
+    fun getLibraryItemsFlow(): Flow<List<AttachmentLibraryQueryResult>>
+
+    @Query("SELECT * FROM attachments WHERE owner_context_id = :contextId AND role_code = :roleCode LIMIT 1")
+    suspend fun findAttachmentByRole(contextId: String, roleCode: String): AttachmentEntity?
 }

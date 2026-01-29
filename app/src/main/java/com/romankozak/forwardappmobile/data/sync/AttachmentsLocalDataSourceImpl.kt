@@ -2,15 +2,21 @@ package com.romankozak.forwardappmobile.data.sync
 
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.AttachmentEntity
+import com.romankozak.forwardappmobile.core.data.models.AttachmentWithContext
 import com.romankozak.forwardappmobile.core.data.models.AttachmentsBackup
+import com.romankozak.forwardappmobile.core.data.models.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.ContextAttachmentCrossRef
+import com.romankozak.forwardappmobile.core.data.models.LinkItemEntity
+import com.romankozak.forwardappmobile.core.data.models.RelatedLink
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
+import com.romankozak.forwardappmobile.sync.AttachmentLibraryQueryResult
 import com.romankozak.forwardappmobile.sync.datasource.AttachmentsLocalDataSource
+import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject
 
@@ -128,5 +134,75 @@ class AttachmentsLocalDataSourceImpl @Inject constructor(
             )
             attachmentDao.insertContextAttachmentLink(link)
         }
+    }
+
+    // AttachmentsLocalDataSourceImpl.kt
+    override fun getAttachmentLibraryItems(): Flow<List<AttachmentLibraryQueryResult>> =
+        attachmentDao.getLibraryItemsFlow()
+
+    override fun getAllAttachmentLinks(): Flow<List<ContextAttachmentCrossRef>> =
+        attachmentDao.getAllContextAttachmentLinksFlow()
+
+    override suspend fun linkAttachmentToContext(attachmentId: String, contextId: String) {
+        appDatabase.withTransaction {
+            attachmentDao.insertContextAttachmentLink(
+                ContextAttachmentCrossRef(
+                    contextId = contextId,
+                    attachmentId = attachmentId
+                )
+            )
+        }
+    }
+
+    override fun getAttachmentsForContext(contextId: String): Flow<List<AttachmentWithContext>> =
+        attachmentDao.getAttachmentsForContext(contextId)
+
+    override suspend fun getAttachmentById(id: String): AttachmentEntity? =
+        attachmentDao.getAttachmentById(id)
+
+    override suspend fun unlinkAttachmentFromContext(attachmentId: String, contextId: String) {
+        attachmentDao.deleteContextAttachmentLink(contextId, attachmentId)
+    }
+
+    override suspend fun updateAttachmentOrders(contextId: String, orders: Map<String, Long>) {
+        appDatabase.withTransaction {
+            orders.forEach { (attachmentId, order) ->
+                attachmentDao.updateAttachmentOrder(contextId, attachmentId, order)
+            }
+        }
+    }
+
+    override suspend fun createLinkAttachment(
+        contextId: String,
+        link: RelatedLink,
+        roleCode: String?,
+        isSystem: Boolean // Оновлено
+    ): String {
+        return appDatabase.withTransaction {
+            val linkItemId = UUID.randomUUID().toString()
+
+            linkItemDao.insert(LinkItemEntity(
+                id = linkItemId,
+                linkData = link,
+                createdAt = System.currentTimeMillis()
+            ))
+
+            val attachment = AttachmentEntity(
+                attachmentType = BacklogItemTypeValues.LINK_ITEM,
+                entityId = linkItemId,
+                ownerContextId = contextId,
+                roleCode = roleCode,
+                isSystem = isSystem, // Використовуємо параметр
+                version = 1
+            )
+            attachmentDao.insertAttachment(attachment)
+            linkAttachmentToContext(attachment.id, contextId)
+
+            attachment.id // Повертаємо String
+        }
+    }
+
+    override suspend fun findAttachmentByRole(contextId: String, roleCode: String): AttachmentEntity? {
+        return attachmentDao.findAttachmentByRole(contextId, roleCode)
     }
 }

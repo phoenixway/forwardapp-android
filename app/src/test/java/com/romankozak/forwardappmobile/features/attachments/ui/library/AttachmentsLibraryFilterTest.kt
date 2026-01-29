@@ -1,5 +1,7 @@
 package com.romankozak.forwardappmobile.features.attachments.ui.library
 
+import com.romankozak.forwardappmobile.sync.AttachmentLibraryFilter
+import com.romankozak.forwardappmobile.sync.AttachmentLibraryType
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test

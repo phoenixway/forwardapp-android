@@ -31,7 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.romankozak.forwardappmobile.data.sync.DiffStatus
+import com.romankozak.forwardappmobile.core.data.models.sync.DiffStatus
 
 private fun hasItemsSelected(uiState: SelectiveImportState): Boolean {
     val backupContent = uiState.backupContent ?: return false

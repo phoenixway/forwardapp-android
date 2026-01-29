@@ -1,189 +1,133 @@
-
 package com.romankozak.forwardappmobile.data.logic
 
-import com.romankozak.forwardappmobile.data.repository.ContextRepository
-import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.core.data.models.Goal
+import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.data.repository.GoalRepository
+import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.ui.common.IconProvider
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Provider
 import javax.inject.Singleton
 
 @Singleton
-class ContextHandler
-    @Inject
-    constructor(
-        private val contextRepositoryProvider: Provider<ContextRepository>,
-        private val settingsRepository: SettingsRepository,
-        private val goalRepositoryProvider: Provider<com.romankozak.forwardappmobile.data.repository.GoalRepository>,
-        private val iconProvider: com.romankozak.forwardappmobile.ui.common.IconProvider,
-    ) {
-        private val contextRepository: ContextRepository by lazy { contextRepositoryProvider.get() }
-        private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository by lazy { goalRepositoryProvider.get() }
+class ContextHandler @Inject constructor(
+    private val contextRepositoryProvider: Provider<ContextRepository>,
+    private val settingsRepository: SettingsRepository,
+    private val goalRepositoryProvider: Provider<GoalRepository>,
+    private val iconProvider: IconProvider,
+) {
+    private val contextRepository: ContextRepository by lazy { contextRepositoryProvider.get() }
+    private val goalRepository: GoalRepository by lazy { goalRepositoryProvider.get() }
 
-        private val contextTagMap = mutableMapOf<String, String>()
-        private val _contextNamesFlow = MutableStateFlow<List<String>>(emptyList())
-        val contextNamesFlow: StateFlow<List<String>> = _contextNamesFlow.asStateFlow()
+    private val contextTagMap = mutableMapOf<String, String>()
+    private val contextMarkerMap = mutableMapOf<String, String>()
 
-        private val _tagToContextNameMap = MutableStateFlow<Map<String, String>>(emptyMap())
-        val tagToContextNameMap: StateFlow<Map<String, String>> = _tagToContextNameMap.asStateFlow()
+    private val _allContextsFlow = MutableStateFlow<List<UiContext>>(emptyList())
+    val allContextsFlow: StateFlow<List<UiContext>> = _allContextsFlow.asStateFlow()
 
-        private val _contextMarkerToEmojiMap = MutableStateFlow<Map<String, String>>(emptyMap())
-        val contextMarkerToEmojiMap: StateFlow<Map<String, String>> = _contextMarkerToEmojiMap.asStateFlow()
+    private val _tagToContextNameMap = MutableStateFlow<Map<String, String>>(emptyMap())
+    val tagToContextNameMap: StateFlow<Map<String, String>> = _tagToContextNameMap.asStateFlow()
 
-        private val _allContextsFlow = MutableStateFlow<List<UiContext>>(emptyList())
-        val allContextsFlow: StateFlow<List<UiContext>> = _allContextsFlow.asStateFlow()
+    fun getContextMarker(contextName: String): String? = contextMarkerMap[contextName.uppercase()]
 
-        private val contextMarkerMap = mutableMapOf<String, String>()
+    suspend fun initialize() {
+        loadContextSettings()
+    }
 
-        fun getContextMarker(contextName: String): String? = contextMarkerMap[contextName.uppercase()]
 
-        fun getContextTag(contextName: String): String? = contextTagMap[contextName.lowercase()]
+    private fun parseContextsFromText(text: String): Set<String> {
+        val regex = "@\\{?([\\w-]+)\\}?".toRegex()
+        return regex.findAll(text).map { it.groupValues[1].lowercase() }.toSet()
+    }
 
-        suspend fun initialize() {
-            loadContextSettings()
+    private suspend fun loadContextSettings() {
+        val localContextTagMap = mutableMapOf<String, String>()
+        val localContextMarkerMap = mutableMapOf<String, String>()
+        val localMarkerToEmojiMap = mutableMapOf<String, String>()
+        val contextsBeingBuilt = mutableListOf<UiContext>()
+
+        iconProvider.getIconMappings().forEach { (icon, markers) ->
+            markers.forEach { marker -> localMarkerToEmojiMap[marker] = icon }
         }
 
-        private suspend fun loadContextSettings() {
-            val localContextTagMap = mutableMapOf<String, String>()
-            val localContextMarkerMap = mutableMapOf<String, String>()
-            val localMarkerToEmojiMap = mutableMapOf<String, String>()
-            val hardcodedIconsData = iconProvider.getIconMappings()
-            hardcodedIconsData.forEach { (icon, markers) ->
-                markers.forEach { marker ->
-                    localMarkerToEmojiMap[marker] = icon
-                }
-            }
-            android.util.Log.d("ContextHandler", "Hardcoded icons added to localMarkerToEmojiMap: $localMarkerToEmojiMap")
+        // Зарезервовані
+        SettingsRepository.ContextKeys.reservedContexts.forEach { (name, keys) ->
+            val tag = settingsRepository.getContextTagFlow(keys.first).first()
+            val emojiValue = settingsRepository.getContextEmojiFlow(keys.second).first()
+            val marker = "@${name.lowercase()}"
+            localContextTagMap[name.lowercase()] = tag
+            localContextMarkerMap[name.uppercase()] = marker
+            if (emojiValue.isNotBlank()) localMarkerToEmojiMap[marker] = emojiValue
 
-            val contextsBeingBuilt = mutableListOf<UiContext>()
+            contextsBeingBuilt.add(UiContext(name = name.lowercase(), emoji = emojiValue, tag = tag, isReserved = true))
+        }
 
-            val reservedContextsInfo =
-                SettingsRepository.ContextKeys.reservedContexts.map { (name, keys) ->
-                    Triple(name, keys.first, keys.second)
-                }
-
-            reservedContextsInfo.forEach { (name, tagKey, emojiKey) ->
-                val tag = settingsRepository.getContextTagFlow(tagKey).first()
-                val emoji = settingsRepository.getContextEmojiFlow(emojiKey).first()
+        // Кастомні
+        val customNames = settingsRepository.customContextNamesFlow.first()
+        customNames.forEach { name ->
+            val tag = settingsRepository.getCustomContextTagFlow(name).first()
+            val emojiValue = settingsRepository.getCustomContextEmojiFlow(name).first()
+            if (tag.isNotBlank()) {
                 val marker = "@${name.lowercase()}"
-
                 localContextTagMap[name.lowercase()] = tag
                 localContextMarkerMap[name.uppercase()] = marker
-                if (emoji.isNotBlank()) localMarkerToEmojiMap[marker] = emoji
-
-                contextsBeingBuilt.add(
-                    UiContext(
-                        name = name.lowercase(),
-                        emoji = emoji,
-                        tag = tag,
-                        isReserved = true,
-                    ),
-                )
-            }
-
-            val customNames = settingsRepository.customContextNamesFlow.first()
-            customNames.forEach { name ->
-                val tag = settingsRepository.getCustomContextTagFlow(name).first()
-                val emoji = settingsRepository.getCustomContextEmojiFlow(name).first()
-                if (tag.isNotBlank()) {
-                    val marker = "@${name.lowercase()}"
-                    localContextTagMap[name.lowercase()] = tag
-                    localContextMarkerMap[name.uppercase()] = marker
-                    if (emoji.isNotBlank()) localMarkerToEmojiMap[marker] = emoji
-
-                    contextsBeingBuilt.add(
-                        UiContext(
-                            name = name.lowercase(),
-                            emoji = emoji,
-                            tag = tag,
-                            isReserved = false,
-                        ),
-                    )
-                }
-            }
-
-            _allContextsFlow.value = contextsBeingBuilt.sortedBy { it.name }
-
-            contextTagMap.clear()
-            contextTagMap.putAll(localContextTagMap)
-
-            contextMarkerMap.clear()
-            contextMarkerMap.putAll(localContextMarkerMap)
-
-            _contextNamesFlow.value = localContextTagMap.keys.sorted()
-            _tagToContextNameMap.value = localContextTagMap.entries.associate { (k, v) -> v to k }
-            _contextMarkerToEmojiMap.value = localMarkerToEmojiMap
-            android.util.Log.d("ContextHandler", "Final contextMarkerToEmojiMap: ${_contextMarkerToEmojiMap.value}")
-        }
-
-        private fun parseContextsFromText(text: String): Set<String> {
-            val regex = "@\\{?([\\w-]+)\\}?".toRegex()
-            return regex.findAll(text).map { it.groupValues[1].lowercase() }.toSet()
-        }
-
-        private suspend fun ensureLinksExist(
-            goal: Goal,
-            contexts: Set<String>,
-        ) = coroutineScope {
-            contexts
-                .map { contextName ->
-                    async {
-                        val tag = contextTagMap[contextName.lowercase()]
-                        if (tag != null) {
-                            val targetContextIds = contextRepository.findContextIdsByTag(tag)
-                            for (contextId in targetContextIds) {
-                                if (!contextRepository.doesLinkToContextExist(goal.id, contextId)) {
-                                    goalRepository.createGoalLinks(listOf(goal.id), contextId)
-                                }
-                            }
-                        }
-                    }
-                }.awaitAll()
-        }
-
-        suspend fun handleContextsOnCreate(goal: Goal) {
-            val contexts = parseContextsFromText(goal.text)
-            if (contexts.isNotEmpty()) {
-                ensureLinksExist(goal, contexts)
+                if (emojiValue.isNotBlank()) localMarkerToEmojiMap[marker] = emojiValue
+                contextsBeingBuilt.add(UiContext(name = name.lowercase(), emoji = emojiValue, tag = tag, isReserved = false))
             }
         }
 
-        suspend fun syncContextsOnUpdate(
-            oldGoal: Goal,
-            newGoal: Goal,
-        ) = coroutineScope {
-            val oldContexts = parseContextsFromText(oldGoal.text)
-            val newContexts = parseContextsFromText(newGoal.text)
-
-            if (oldContexts == newContexts) return@coroutineScope
-
-            val contextsToRemove = oldContexts - newContexts
-            val removalJobs =
-                contextsToRemove.map { contextName ->
-                    async {
-                        val tag = contextTagMap[contextName.lowercase()]
-                        if (tag != null) {
-                            val targetContextIds = contextRepository.findContextIdsByTag(tag)
-                            for (contextId in targetContextIds) {
-                                contextRepository.deleteLinkByEntityIdAndContextId(entityId = oldGoal.id, contextId = contextId)
-                            }
-                        }
-                    }
-                }
-
-            val contextsToAdd = newContexts - oldContexts
-            if (contextsToAdd.isNotEmpty()) {
-                ensureLinksExist(newGoal, contextsToAdd)
-            }
-
-            removalJobs.awaitAll()
-        }
+        _allContextsFlow.value = contextsBeingBuilt.sortedBy { it.name }
+        contextTagMap.apply { clear(); putAll(localContextTagMap) }
+        contextMarkerMap.apply { clear(); putAll(localContextMarkerMap) }
+        _tagToContextNameMap.value = localContextTagMap.entries.associate { it.value to it.key }
     }
+
+    private suspend fun ensureLinksExist(goal: Goal, contexts: Set<String>) = coroutineScope {
+        contexts.map { contextName ->
+            async {
+                val tag = contextTagMap[contextName.lowercase()]
+                if (tag != null) {
+                    val targetContextIds = contextRepository.findContextIdsByTag(tag)
+                    for (contextId in targetContextIds) {
+                        if (!contextRepository.doesLinkToContextExist(goal.id, contextId)) {
+                            goalRepository.createGoalLinks(listOf(goal.id), contextId)
+                        }
+                    }
+                }
+            }
+        }.awaitAll()
+    }
+
+    suspend fun handleContextsOnCreate(goal: Goal) {
+        val contexts = parseContextsFromText(goal.text)
+        if (contexts.isNotEmpty()) ensureLinksExist(goal, contexts)
+    }
+
+    suspend fun syncContextsOnUpdate(oldGoal: Goal, newGoal: Goal) = coroutineScope {
+        val oldContexts = parseContextsFromText(oldGoal.text)
+        val newContexts = parseContextsFromText(newGoal.text)
+        if (oldContexts == newContexts) return@coroutineScope
+
+        val contextsToRemove = oldContexts - newContexts
+        contextsToRemove.map { contextName ->
+            async {
+                val tag = contextTagMap[contextName.lowercase()]
+                if (tag != null) {
+                    val targetContextIds = contextRepository.findContextIdsByTag(tag)
+                    for (contextId in targetContextIds) {
+                        contextRepository.deleteLinkByEntityIdAndContextId(oldGoal.id, contextId)
+                    }
+                }
+            }
+        }.awaitAll()
+
+        val contextsToAdd = newContexts - oldContexts
+        if (contextsToAdd.isNotEmpty()) ensureLinksExist(newGoal, contextsToAdd)
+    }
+}

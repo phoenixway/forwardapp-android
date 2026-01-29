@@ -22,8 +22,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.romankozak.forwardappmobile.features.sync.data.repository.ChangeType
-import com.romankozak.forwardappmobile.features.sync.data.repository.SyncChange
+import com.romankozak.forwardappmobile.core.data.models.sync.ChangeType
+import com.romankozak.forwardappmobile.core.data.models.sync.SyncChange
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 
 private object ChangeTypeMetadata {
@@ -257,10 +257,10 @@ private fun SyncChangeItem(
                     text = change.description,
                     style = MaterialTheme.typography.bodyLarge,
                 )
-                if (change.longDescription != null) {
+                change.longDescription?.let { description ->
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = change.longDescription,
+                        text = description,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

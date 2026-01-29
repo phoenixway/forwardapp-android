@@ -1,9 +1,5 @@
 package com.romankozak.forwardappmobile.features.sync.selectiveimport
 
-import com.romankozak.forwardappmobile.data.sync.BackupDiff
-import com.romankozak.forwardappmobile.data.sync.DiffResult
-import com.romankozak.forwardappmobile.data.sync.DiffStatus
-import com.romankozak.forwardappmobile.data.sync.UpdatedItem
 import com.romankozak.forwardappmobile.core.data.models.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.AttachmentEntity
 import com.romankozak.forwardappmobile.core.data.models.ChecklistEntity
@@ -20,6 +16,10 @@ import com.romankozak.forwardappmobile.core.data.models.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.Goal
 import com.romankozak.forwardappmobile.core.data.models.InboxRecord
 import com.romankozak.forwardappmobile.core.data.models.LinkItemEntity
+import com.romankozak.forwardappmobile.core.data.models.sync.BackupDiff
+import com.romankozak.forwardappmobile.core.data.models.sync.DiffResult
+import com.romankozak.forwardappmobile.core.data.models.sync.DiffStatus
+import com.romankozak.forwardappmobile.core.data.models.sync.UpdatedItem
 
 data class SelectiveImportState(
     val isLoading: Boolean = true,

@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.attachments.ui.library
+package com.romankozak.forwardappmobile.sync
 
 import com.romankozak.forwardappmobile.core.data.models.RelatedLink
 

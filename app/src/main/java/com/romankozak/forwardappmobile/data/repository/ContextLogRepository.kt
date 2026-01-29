@@ -1,10 +1,10 @@
 package com.romankozak.forwardappmobile.data.repository
 
 import com.romankozak.forwardappmobile.core.data.models.ContextLogEntryTypeValues
-import com.romankozak.forwardappmobile.data.sync.bumpSync
-import com.romankozak.forwardappmobile.data.sync.softDelete
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
 import com.romankozak.forwardappmobile.core.data.models.ContextLog
+import com.romankozak.forwardappmobile.core.data.models.sync.bumpSync
+import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject

@@ -71,6 +71,7 @@ class SystemAppRepository
                 entityId = noteId,
                 contextId = targetcontextId,
                 ownerContextId = systemApp.contextId,
+                createdAt = System.currentTimeMillis() // Додано обов'язковий параметр
             )
         }
 

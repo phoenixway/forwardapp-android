@@ -124,4 +124,7 @@ interface ContextDao {
         contextId: String,
         viewModeName: String,
     )
+
+    @Query("SELECT * FROM contexts")
+    fun getAllContextsFlow(): Flow<List<Context>>
 }

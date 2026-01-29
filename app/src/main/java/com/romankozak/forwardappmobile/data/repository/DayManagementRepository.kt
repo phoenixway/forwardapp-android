@@ -477,12 +477,14 @@ class DayManagementRepository
                 val task = dayTaskDao.getTaskById(taskId) ?: return@withContext null
                 val now = System.currentTimeMillis()
 
-                val activityRecord =
-                    when {
-                        task.goalId != null -> activityRepository.startGoalActivity(task.goalId)
-                        task.projectId != null -> activityRepository.startContextActivity(task.projectId)
-                        else -> activityRepository.startActivity(task.title, now)
-                    }
+                val gId = task.goalId
+                val pId = task.projectId
+
+                val activityRecord = when {
+                    gId != null -> activityRepository.startGoalActivity(gId)
+                    pId != null -> activityRepository.startContextActivity(pId)
+                    else -> activityRepository.startActivity(task.title, now)
+                }
 
                 activityRecord?.let {
                     dayTaskDao.linkTaskWithActivity(taskId, it.id, now)
@@ -671,7 +673,11 @@ class DayManagementRepository
             val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
 
             if (date < recurringTask.startDate) return false
-            if (recurringTask.endDate != null && date > recurringTask.endDate) return false
+            // 1. Фіксуємо значення у локальній змінній для забезпечення Smart Cast
+            val endDate = recurringTask.endDate
+
+// 2. Додаємо дужки для чіткості логічного виразу
+            if (endDate != null && (date > endDate)) return false
 
             return when (recurringTask.recurrenceRule.frequency) {
                 RecurrenceFrequency.HOURLY -> true

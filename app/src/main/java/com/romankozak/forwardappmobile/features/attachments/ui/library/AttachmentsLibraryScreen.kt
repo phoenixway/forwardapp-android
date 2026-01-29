@@ -49,6 +49,10 @@ import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.config.FeatureToggles
 import com.romankozak.forwardappmobile.core.data.models.LinkType
+import com.romankozak.forwardappmobile.sync.AttachmentLibraryFilter
+import com.romankozak.forwardappmobile.sync.AttachmentLibraryItem
+import com.romankozak.forwardappmobile.sync.AttachmentLibraryType
+import com.romankozak.forwardappmobile.sync.AttachmentsLibraryEvent
 import java.net.URLEncoder
 
 @OptIn(ExperimentalMaterial3Api::class)
