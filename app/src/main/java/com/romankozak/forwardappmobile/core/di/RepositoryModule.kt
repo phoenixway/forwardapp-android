@@ -2,17 +2,14 @@ package com.romankozak.forwardappmobile.core.di
 
 import com.romankozak.forwardappmobile.data.dao.*
 import com.romankozak.forwardappmobile.data.repository.*
-import com.romankozak.forwardappmobile.data.sync.FullBackupLocalDataSourceImpl
-import com.romankozak.forwardappmobile.data.sync.SyncLocalDataSourceImpl
-import com.romankozak.forwardappmobile.data.sync.SyncSettingsSourceImpl
+import com.romankozak.forwardappmobile.data.sync.*
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.ai.data.repository.AiInsightRepository
 import com.romankozak.forwardappmobile.features.contexts.data.dao.*
-import com.romankozak.forwardappmobile.sync.* import com.romankozak.forwardappmobile.sync.datasource.AttachmentsLocalDataSource
-import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
-import com.romankozak.forwardappmobile.sync.datasource.SyncLocalDataSource
-import com.romankozak.forwardappmobile.sync.datasource.SyncSettingsSource
+import com.romankozak.forwardappmobile.sync.*
+import com.romankozak.forwardappmobile.sync.datasource.*
+import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -22,116 +19,124 @@ import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-object RepositoryModule {
+abstract class RepositoryModule {
 
-    @Provides
-    @Singleton
-    fun provideFullBackupLocalDataSource(
-        impl: FullBackupLocalDataSourceImpl
-    ): FullBackupLocalDataSource = impl
+    // ========================================================================
+    // BINDS (Інтерфейси -> Реалізації)
+    // Використовуємо @Binds, бо це ефективніше за @Provides
+    // ========================================================================
 
-    @Provides
+    @Binds
     @Singleton
-    fun provideAttachmentsRepository(
-        localDataSource: AttachmentsLocalDataSource,
-        syncFileService: SyncFileService,
-        logicHelper: SyncLogicHelper
-    ): AttachmentsRepository = AttachmentsRepositoryImpl(
-        localDataSource,
-        syncFileService,
-        logicHelper
-    )
+    abstract fun bindFullBackupLocalDataSource(impl: FullBackupLocalDataSourceImpl): FullBackupLocalDataSource
 
-    @Provides
+    @Binds
     @Singleton
-    fun provideNoteDocumentRepository(
-        noteDocumentDao: NoteDocumentDao,
-        attachmentsRepository: AttachmentsRepository,
-        recentItemsRepository: RecentItemsRepository,
-        aiEventRepository: AiEventRepository,
-    ): NoteDocumentRepository = NoteDocumentRepository(
-        noteDocumentDao,
-        attachmentsRepository,
-        recentItemsRepository,
-        aiEventRepository
-    )
+    abstract fun bindAttachmentsLocalDataSource(impl: AttachmentsLocalDataSourceImpl): AttachmentsLocalDataSource
 
-    @Provides
+    @Binds
     @Singleton
-    fun provideChecklistRepository(
-        checklistDao: ChecklistDao,
-        attachmentsRepository: AttachmentsRepository,
-        recentItemsRepository: RecentItemsRepository,
-    ): ChecklistRepository = ChecklistRepository(
-        checklistDao,
-        attachmentsRepository,
-        recentItemsRepository
-    )
+    abstract fun bindMergeLocalDataSource(impl: MergeLocalDataSourceImpl): MergeLocalDataSource
 
-    @Provides
+    @Binds
     @Singleton
-    fun provideSystemAppRepository(
-        systemAppDao: SystemAppDao,
-        contextDao: ContextDao,
-        noteDocumentDao: NoteDocumentDao,
-        attachmentsRepository: AttachmentsRepository,
-    ): SystemAppRepository = SystemAppRepository(
-        systemAppDao,
-        contextDao,
-        noteDocumentDao,
-        attachmentsRepository
-    )
+    abstract fun bindSyncLocalDataSource(impl: SyncLocalDataSourceImpl): SyncLocalDataSource
 
-    @Provides
+    @Binds
     @Singleton
-    fun provideReminderRepository(
-        reminderDao: ReminderDao,
-        alarmScheduler: AlarmScheduler,
-        dayManagementRepository: DayManagementRepository,
-        @IoDispatcher ioDispatcher: CoroutineDispatcher,
-    ): ReminderRepository = ReminderRepository(
-        reminderDao,
-        alarmScheduler,
-        dayManagementRepository,
-        ioDispatcher
-    )
+    abstract fun bindSyncApi(impl: SyncRepository): SyncApi
 
-    @Provides
-    @Singleton
-    fun provideAiInsightRepository(aiInsightDao: AiInsightDao): AiInsightRepository =
-        AiInsightRepository(aiInsightDao)
+    // ========================================================================
+    // PROVIDES (Логіка створення та складні репозиторії)
+    // ========================================================================
 
-    @Provides
-    @Singleton
-    fun provideRecentItemsRepository(recentItemDao: RecentItemDao): RecentItemsRepository =
-        RecentItemsRepository(recentItemDao)
+    companion object {
 
-    @Provides
-    @Singleton
-    fun provideActivityRecordRepository(activityRecordDao: ActivityRecordDao): ActivityRecordRepository =
-        ActivityRecordRepository(activityRecordDao)
+        @Provides
+        @Singleton
+        fun provideSyncSettingsSource(
+            settingsRepository: SettingsRepository
+        ): SyncSettingsSource = SyncSettingsSourceImpl(settingsRepository)
 
-    @Provides
-    @Singleton
-    fun provideMergeLocalDataSource(
-        // Hilt автоматично створить MergeLocalDataSourceImpl,
-        // оскільки в його конструкторі є анотація @Inject
-        impl: com.romankozak.forwardappmobile.data.sync.MergeLocalDataSourceImpl
-    ): com.romankozak.forwardappmobile.sync.datasource.MergeLocalDataSource = impl
+        @Provides
+        @Singleton
+        fun provideAttachmentsRepository(
+            localDataSource: AttachmentsLocalDataSource,
+            syncFileService: SyncFileService,
+            logicHelper: SyncLogicHelper
+        ): AttachmentsRepository = AttachmentsRepositoryImpl(
+            localDataSource,
+            syncFileService,
+            logicHelper
+        )
 
-    @Provides
-    @Singleton
-    fun provideSyncSettingsSource(
-        impl: FullBackupLocalDataSourceImpl // Використовуємо реалізацію, яку Hilt вже вміє створювати через @Inject
-    ): SyncSettingsSource = SyncSettingsSourceImpl(impl.settingsRepository)
+        @Provides
+        @Singleton
+        fun provideNoteDocumentRepository(
+            noteDocumentDao: NoteDocumentDao,
+            attachmentsRepository: AttachmentsRepository,
+            recentItemsRepository: RecentItemsRepository,
+            aiEventRepository: AiEventRepository,
+        ): NoteDocumentRepository = NoteDocumentRepository(
+            noteDocumentDao,
+            attachmentsRepository,
+            recentItemsRepository,
+            aiEventRepository
+        )
 
-    @Provides
-    @Singleton
-    fun provideSyncApi(repository: SyncRepository): SyncApi = repository
+        @Provides
+        @Singleton
+        fun provideChecklistRepository(
+            checklistDao: ChecklistDao,
+            attachmentsRepository: AttachmentsRepository,
+            recentItemsRepository: RecentItemsRepository,
+        ): ChecklistRepository = ChecklistRepository(
+            checklistDao,
+            attachmentsRepository,
+            recentItemsRepository
+        )
 
-    @Provides
-    @Singleton
-    fun provideSyncLocalDataSource(
-        impl: SyncLocalDataSourceImpl
-    ): SyncLocalDataSource = impl
+        @Provides
+        @Singleton
+        fun provideSystemAppRepository(
+            systemAppDao: SystemAppDao,
+            contextDao: ContextDao,
+            noteDocumentDao: NoteDocumentDao,
+            attachmentsRepository: AttachmentsRepository,
+        ): SystemAppRepository = SystemAppRepository(
+            systemAppDao,
+            contextDao,
+            noteDocumentDao,
+            attachmentsRepository
+        )
+
+        @Provides
+        @Singleton
+        fun provideReminderRepository(
+            reminderDao: ReminderDao,
+            alarmScheduler: AlarmScheduler,
+            dayManagementRepository: DayManagementRepository,
+            @IoDispatcher ioDispatcher: CoroutineDispatcher,
+        ): ReminderRepository = ReminderRepository(
+            reminderDao,
+            alarmScheduler,
+            dayManagementRepository,
+            ioDispatcher
+        )
+
+        @Provides
+        @Singleton
+        fun provideAiInsightRepository(aiInsightDao: AiInsightDao): AiInsightRepository =
+            AiInsightRepository(aiInsightDao)
+
+        @Provides
+        @Singleton
+        fun provideRecentItemsRepository(recentItemDao: RecentItemDao): RecentItemsRepository =
+            RecentItemsRepository(recentItemDao)
+
+        @Provides
+        @Singleton
+        fun provideActivityRecordRepository(activityRecordDao: ActivityRecordDao): ActivityRecordRepository =
+            ActivityRecordRepository(activityRecordDao)
+    }
 }

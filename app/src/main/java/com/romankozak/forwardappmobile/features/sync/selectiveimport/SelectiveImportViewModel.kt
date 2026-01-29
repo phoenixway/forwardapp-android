@@ -8,7 +8,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
-import com.romankozak.forwardappmobile.data.sync.DatabaseContent
+import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
+import com.romankozak.forwardappmobile.sync.SyncRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow

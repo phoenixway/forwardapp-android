@@ -276,4 +276,5 @@ dependencies {
     implementation("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
 
     implementation(project(":sync"))
+    implementation(project(":core-data-interfaces"))
 }

@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.sync
+package com.romankozak.forwardappmobile.core.data.models.sync
 
 import com.romankozak.forwardappmobile.core.data.models.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.AttachmentEntity

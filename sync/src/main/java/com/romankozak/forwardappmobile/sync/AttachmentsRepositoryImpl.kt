@@ -58,4 +58,25 @@ class AttachmentsRepositoryImpl @Inject constructor(
         Log.e(TAG, "Import error", e)
         Result.failure(e)
     }
+
+    override suspend fun ensureAttachmentLinkedToContext(
+        attachmentType: String,
+        entityId: String,
+        contextId: String,
+        ownerContextId: String?,
+        createdAt: Long,
+        roleCode: String?,
+        isSystem: Boolean
+    ) {
+        localDataSource.ensureAttachmentLinkedToContext(
+            attachmentType, entityId, contextId, ownerContextId, createdAt, roleCode, isSystem
+        )
+    }
+
+    override suspend fun findAttachmentByEntity(attachmentType: String, entityId: String) =
+        localDataSource.findAttachmentByEntity(attachmentType, entityId)
+
+    override suspend fun deleteAttachment(attachmentId: String) {
+        localDataSource.deleteAttachment(attachmentId)
+    }
 }

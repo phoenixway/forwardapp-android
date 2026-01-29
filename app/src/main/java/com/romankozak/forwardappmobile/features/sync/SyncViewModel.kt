@@ -3,8 +3,9 @@ package com.romankozak.forwardappmobile.features.sync
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.features.sync.data.repository.ChangeType
-import com.romankozak.forwardappmobile.features.sync.data.repository.SyncReport
+import com.romankozak.forwardappmobile.core.data.models.sync.ChangeType
+import com.romankozak.forwardappmobile.core.data.models.sync.SyncReport
+import com.romankozak.forwardappmobile.sync.SyncRepository
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
