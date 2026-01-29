@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.sync
 
 import android.net.Uri
 import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
-import com.romankozak.forwardappmobile.sync.SyncLocalService
+import com.romankozak.forwardappmobile.sync.datasource.SyncLocalDataSource
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -13,7 +13,7 @@ import javax.inject.Singleton
 @Singleton
 class BackupRepository @Inject constructor(
     private val syncFileService: SyncFileService,
-    private val syncLocalService: SyncLocalService,
+    private val syncLocalService: SyncLocalDataSource,
 ) {
     /**
      * Exports full backup to a file in Downloads folder

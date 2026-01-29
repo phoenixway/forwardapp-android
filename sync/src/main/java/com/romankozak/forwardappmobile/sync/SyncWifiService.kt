@@ -1,10 +1,10 @@
-// sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncWifiService.kt
 package com.romankozak.forwardappmobile.sync
 
 import android.util.Log
 import androidx.core.net.toUri
 import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
+import com.romankozak.forwardappmobile.sync.datasource.SyncLocalDataSource
 import com.romankozak.forwardappmobile.sync.datasource.SyncSettingsSource
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -18,13 +18,12 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
-import android.content.Context as AndroidContext
 
 @Singleton
 class SyncWifiService @Inject constructor(
-    private val syncLocalService: SyncLocalService,
+    private val localDataSource: SyncLocalDataSource,
     private val settingsSource: SyncSettingsSource,
-    private val logicHelper: SyncLogicHelper, // Використовується в createDeltaBackupJsonString
+    private val logicHelper: SyncLogicHelper
 ) {
     private val WIFI_LOG = "FWD_SYNC_WIFI"
 
@@ -51,21 +50,18 @@ class SyncWifiService @Inject constructor(
 
     suspend fun pushUnsyncedToWifi(address: String): Result<Unit> = withContext(Dispatchers.IO) {
         try {
-            val unsynced = syncLocalService.getUnsyncedChanges()
-
+            val unsynced = localDataSource.getUnsyncedChanges()
             if (isEmptyDatabaseContent(unsynced)) {
                 Result.success(Unit)
             } else {
                 val fullUrl = buildWifiUrl(address, "/import")
                 val backupWrapper = FullAppBackup(database = unsynced)
-
                 val response = client.post(fullUrl) {
                     contentType(ContentType.Application.Json)
                     setBody(backupWrapper)
                 }
-
                 if (response.status.isSuccess()) {
-                    syncLocalService.markSyncedNow(unsynced)
+                    localDataSource.markSyncedNow(unsynced)
                     Result.success(Unit)
                 } else {
                     Result.failure(Exception("Сервер повернув помилку: ${response.status.value}"))
@@ -77,25 +73,17 @@ class SyncWifiService @Inject constructor(
         }
     }
 
-    /**
-     * Створює JSON-рядок дельта-бекапу (тільки зміни з певного часу)
-     */
     suspend fun createDeltaBackupJsonString(deltaSince: Long): String {
-        val changes = syncLocalService.getChangesSince(deltaSince)
-
+        val changes = localDataSource.getChangesSince(deltaSince)
         val enrichedCrossRefs = logicHelper.synthesizeMissingCrossRefs(
             attachments = changes.attachments,
             existingCrossRefs = changes.contextAttachmentCrossRefs,
         )
-
         val deltaBackup = FullAppBackup(
             database = changes.copy(contextAttachmentCrossRefs = enrichedCrossRefs)
         )
-        // Використовуємо внутрішній серіалізатор Ktor або окремий Gson за потреби
-        return io.ktor.serialization.gson.GsonConverter().let {
-            // У вашому проекті краще мати один Gson instance для всіх сервісів
-            com.google.gson.GsonBuilder().create().toJson(deltaBackup)
-        }
+        // Використовуємо Gson для ручної серіалізації в рядок
+        return com.google.gson.GsonBuilder().create().toJson(deltaBackup)
     }
 
     private suspend fun buildWifiUrl(address: String, path: String): String {

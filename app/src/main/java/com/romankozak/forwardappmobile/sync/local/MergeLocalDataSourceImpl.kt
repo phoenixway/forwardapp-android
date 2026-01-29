@@ -13,7 +13,6 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.sync.ChangeType
 import com.romankozak.forwardappmobile.sync.DatabaseContent
 import com.romankozak.forwardappmobile.sync.SyncChange
-import com.romankozak.forwardappmobile.sync.SyncLocalService
 import com.romankozak.forwardappmobile.sync.datasource.MergeLocalDataSource
 import javax.inject.Inject
 

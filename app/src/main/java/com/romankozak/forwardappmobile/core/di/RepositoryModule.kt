@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.core.di
 import com.romankozak.forwardappmobile.data.dao.*
 import com.romankozak.forwardappmobile.data.repository.*
 import com.romankozak.forwardappmobile.data.sync.FullBackupLocalDataSourceImpl
+import com.romankozak.forwardappmobile.data.sync.SyncLocalDataSourceImpl
 import com.romankozak.forwardappmobile.data.sync.SyncSettingsSourceImpl
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
@@ -10,6 +11,7 @@ import com.romankozak.forwardappmobile.features.ai.data.repository.AiInsightRepo
 import com.romankozak.forwardappmobile.features.contexts.data.dao.*
 import com.romankozak.forwardappmobile.sync.* import com.romankozak.forwardappmobile.sync.datasource.AttachmentsLocalDataSource
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
+import com.romankozak.forwardappmobile.sync.datasource.SyncLocalDataSource
 import com.romankozak.forwardappmobile.sync.datasource.SyncSettingsSource
 import dagger.Module
 import dagger.Provides
@@ -126,4 +128,10 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideSyncApi(repository: SyncRepository): SyncApi = repository
+
+    @Provides
+    @Singleton
+    fun provideSyncLocalDataSource(
+        impl: SyncLocalDataSourceImpl
+    ): SyncLocalDataSource = impl
 }

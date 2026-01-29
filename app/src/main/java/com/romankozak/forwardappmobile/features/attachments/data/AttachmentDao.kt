@@ -98,4 +98,10 @@ interface AttachmentDao {
 
     @Query("SELECT * FROM context_attachment_cross_ref")
     suspend fun getAllContextAttachmentCrossRefs(): List<ContextAttachmentCrossRef>
+
+    @Query("DELETE FROM attachments")
+    suspend fun deleteAll()
+
+    @Query("DELETE FROM context_attachment_cross_ref")
+    suspend fun deleteAllContextAttachmentLinks()
 }
