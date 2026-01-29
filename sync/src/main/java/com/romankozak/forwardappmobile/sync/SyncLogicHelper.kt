@@ -1,3 +1,4 @@
+//sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncLogicHelper.kt
 package com.romankozak.forwardappmobile.sync
 
 import com.romankozak.forwardappmobile.core.data.models.AttachmentEntity
@@ -5,9 +6,8 @@ import com.romankozak.forwardappmobile.core.data.models.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.BacklogOrder
 import com.romankozak.forwardappmobile.core.data.models.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.sync.SyncMapper.updatedTs
-import com.romankozak.forwardappmobile.sync.BacklogOrderUtils
-import com.romankozak.forwardappmobile.sync.DiffResult
-import com.romankozak.forwardappmobile.sync.UpdatedItem
+import com.romankozak.forwardappmobile.core.data.models.sync.DiffResult
+import com.romankozak.forwardappmobile.core.data.models.sync.UpdatedItem
 import javax.inject.Inject
 import javax.inject.Singleton
 

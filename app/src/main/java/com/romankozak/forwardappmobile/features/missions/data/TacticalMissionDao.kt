@@ -58,4 +58,7 @@ interface TacticalMissionDao {
 
     @Query("DELETE FROM tactical_mission_attachment_cross_ref")
     suspend fun deleteAllMissionAttachmentCrossRefs()
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertMissions(missions: List<TacticalMission>)
 }

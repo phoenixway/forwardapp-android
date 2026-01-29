@@ -100,4 +100,10 @@ interface ChatDao {
 
     @Query("DELETE FROM chat_messages")
     suspend fun deleteAllMessages()
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertConversations(conversations: List<ConversationEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertMessages(messages: List<ChatMessageEntity>)
 }

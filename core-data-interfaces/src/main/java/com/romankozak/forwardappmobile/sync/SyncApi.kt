@@ -1,9 +1,7 @@
 package com.romankozak.forwardappmobile.sync
 
 import android.net.Uri
-import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
-import com.romankozak.forwardappmobile.core.data.models.sync.SyncChange
-import com.romankozak.forwardappmobile.core.data.models.sync.SyncReport
+import com.romankozak.forwardappmobile.core.data.models.sync.*
 
 interface SyncApi {
     suspend fun exportFullBackupToFile(): Result<String>
@@ -11,6 +9,7 @@ interface SyncApi {
     suspend fun importFullBackupFromFile(uri: Uri): Result<String>
     suspend fun parseBackupFile(uri: Uri): Result<FullAppBackup>
 
+    // Дефолтне значення вказуємо ТУТ
     suspend fun fetchBackupFromWifi(address: String, deltaSince: Long? = null): Result<String>
     suspend fun pushUnsyncedToWifi(address: String): Result<Unit>
     suspend fun createDeltaBackupJsonString(deltaSince: Long): String

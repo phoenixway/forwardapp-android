@@ -1,8 +1,6 @@
-package com.romankozak.forwardappmobile.sync
+package com.romankozak.forwardappmobile.core.data.models.sync
 
 import com.google.gson.annotations.SerializedName
-import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
-import com.romankozak.forwardappmobile.core.data.models.sync.SettingsContent
 
 data class FullAppBackup(
     @SerializedName(value = "backupSchemaVersion", alternate = ["a"])
@@ -14,5 +12,3 @@ data class FullAppBackup(
     @SerializedName(value = "settings", alternate = ["d"])
     val settings: SettingsContent? = null,
 )
-
-

@@ -274,4 +274,6 @@ dependencies {
     implementation("com.google.android.gms:play-services-fido:20.1.0")
 
     implementation("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
+
+    implementation(project(":sync"))
 }

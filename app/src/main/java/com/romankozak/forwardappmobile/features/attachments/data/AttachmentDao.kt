@@ -92,4 +92,10 @@ interface AttachmentDao {
 
     @Query("SELECT * FROM context_attachment_cross_ref")
     fun getAllContextAttachmentLinksFlow(): Flow<List<ContextAttachmentCrossRef>>
+
+    @Query("SELECT * FROM attachments")
+    suspend fun getAll(): List<AttachmentEntity>
+
+    @Query("SELECT * FROM context_attachment_cross_ref")
+    suspend fun getAllContextAttachmentCrossRefs(): List<ContextAttachmentCrossRef>
 }

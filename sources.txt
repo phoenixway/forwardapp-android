@@ -1,241 +1,577 @@
 TABLE OF CONTENTS
 ================================================================================
 
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/core/capability/CapabilityRegistry.kt](##<<FILE_1>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/core/capability/CoreEntities.kt](##<<FILE_2>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/core/context/ContextController.kt](##<<FILE_3>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/core/context/ContextRoleProfile.kt](##<<FILE_4>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/core/context/CoreEntities.kt](##<<FILE_5>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/core/di/LogicModule.kt](##<<FILE_6>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/core/navigation/ViewResolver.kt](##<<FILE_7>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/core/di/RepositoryModule.kt](##<<FILE_1>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/sync/data/repository/NoOpSyncRepository](##<<FILE_2>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/sync/local/AttachmentsLocalDataSourceImpl.kt](##<<FILE_3>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/core-data-interfaces/src/main/java/com/romankozak/forwardappmobile/sync/datasource/AttachmentsLocalDataSource.kt](##<<FILE_4>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/sync/build.gradle.kts](##<<FILE_5>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/sync/src/main/java/com/romankozak/forwardappmobile/sync/AttachmentsRepository.kt](##<<FILE_6>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/sync/src/syncOff/java/com/romankozak/forwardappmobile/sync/AttachmentsRepository.kt](##<<FILE_7>>)
 
 ================================================================================
 
 ## <<FILE_1>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/core/capability/CapabilityRegistry.kt (ID: FILE_1)
-================================================================================
-
-package com.romankozak.forwardappmobile.core.capability
-
-interface CapabilityRegistry {
-    fun all(): Set<CapabilityDescriptor>
-    fun get(id: CapabilityId): CapabilityDescriptor?
-}
-
-class InMemoryCapabilityRegistry(
-    features: Set<CapabilityDescriptor>
-) : CapabilityRegistry {
-
-    private val map = features.associateBy { it.id }
-
-    override fun all() = map.values.toSet()
-    override fun get(id: CapabilityId) = map[id]
-}
-
-
-================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/core/capability/CapabilityRegistry.kt
-================================================================================
-
-## <<FILE_2>>
-================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/core/capability/CoreEntities.kt (ID: FILE_2)
-================================================================================
-
-package com.romankozak.forwardappmobile.core.capability
-
-
-@JvmInline
-value class CapabilityId(val raw: String)
-
-data class CapabilitySet(
-    val active: Set<CapabilityId>
-)
-
-interface CapabilityDescriptor {
-    val id: CapabilityId
-}
-
-
-
-================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/core/capability/CoreEntities.kt
-================================================================================
-
-## <<FILE_3>>
-================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/core/context/ContextController.kt (ID: FILE_3)
-================================================================================
-
-package com.romankozak.forwardappmobile.core.context
-
-interface ContextController {
-    fun current(): ContextState
-    fun update(block: (ContextState) -> ContextState)
-}
-
-class DefaultContextController(
-    initial: ContextState
-) : ContextController {
-
-    private var state = initial
-
-    override fun current() = state
-
-    override fun update(block: (ContextState) -> ContextState) {
-        state = block(state)
-    }
-}
-
-
-
-================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/core/context/ContextController.kt
-================================================================================
-
-## <<FILE_4>>
-================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/core/context/ContextRoleProfile.kt (ID: FILE_4)
-================================================================================
-
-package com.romankozak.forwardappmobile.core.context
-
-import com.romankozak.forwardappmobile.core.capability.CapabilityId
-import com.romankozak.forwardappmobile.core.capability.CapabilitySet
-
-data class ContextRoleProfile(
-    val code: String,
-    val defaultFeatures: Set<CapabilityId>,
-    val defaultViews: Set<ViewId>,
-    val startView: ViewId
-)
-
-fun ContextRoleProfile.instantiate(
-    contextId: ContextId
-): ContextState = object : ContextState {
-    override val id = contextId
-    override val features = CapabilitySet(defaultFeatures)
-    override val views = ViewSet(defaultViews, startView)
-}
-
-
-================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/core/context/ContextRoleProfile.kt
-================================================================================
-
-## <<FILE_5>>
-================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/core/context/CoreEntities.kt (ID: FILE_5)
-================================================================================
-
-package com.romankozak.forwardappmobile.core.context
-
-import com.romankozak.forwardappmobile.core.capability.CapabilitySet
-
-@JvmInline
-value class ContextId(val raw: String)
-
-
-
-@JvmInline
-value class ViewId(val raw: String)
-
-
-data class ViewSet(
-    val available: Set<ViewId>,
-    val start: ViewId
-)
-
-interface ContextState {
-    val id: ContextId
-    val features: CapabilitySet
-    val views: ViewSet
-}
-
-
-================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/core/context/CoreEntities.kt
-================================================================================
-
-## <<FILE_6>>
-================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/core/di/LogicModule.kt (ID: FILE_6)
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/core/di/RepositoryModule.kt (ID: FILE_1)
 ================================================================================
 
 package com.romankozak.forwardappmobile.core.di
 
-import com.romankozak.forwardappmobile.data.logic.GoalScoringManager
-import com.romankozak.forwardappmobile.domain.lifecontext.DefaultLifeContextProcessor
-import com.romankozak.forwardappmobile.domain.lifecontext.LifeContextProcessor
-import com.romankozak.forwardappmobile.domain.lifecontext.LifeContextRule
-import com.romankozak.forwardappmobile.core.capability.CapabilityRegistry
-import com.romankozak.forwardappmobile.core.capability.InMemoryCapabilityRegistry
-import com.romankozak.forwardappmobile.features.contexts.data.models.capabilities.notes.NotesCapability
+import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
+import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
+import com.romankozak.forwardappmobile.data.dao.RecentItemDao
+import com.romankozak.forwardappmobile.data.dao.ReminderDao
+import com.romankozak.forwardappmobile.data.dao.SystemAppDao
+import com.romankozak.forwardappmobile.data.repository.ActivityRecordRepository
+import com.romankozak.forwardappmobile.data.repository.AiEventRepository
+import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
+import com.romankozak.forwardappmobile.data.repository.ContextLogRepository
+import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
+import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
+import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
+import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
+import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
+import com.romankozak.forwardappmobile.data.repository.ReminderRepository
+import com.romankozak.forwardappmobile.data.repository.SystemAppRepository
+import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
+import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
+import com.romankozak.forwardappmobile.features.ai.data.repository.AiInsightRepository
+import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineDispatcher
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-object LogicModule {
+object RepositoryModule {
+    @Provides
+    @Singleton
+    fun provideReminderRepository(
+        reminderDao: ReminderDao,
+        alarmScheduler: AlarmScheduler,
+        dayManagementRepository: DayManagementRepository,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+    ): ReminderRepository = ReminderRepository(reminderDao, alarmScheduler, dayManagementRepository, ioDispatcher)
 
     @Provides
     @Singleton
-    fun provideGoalScoringManager(): GoalScoringManager = GoalScoringManager
+    fun provideProjectLogRepository(contextManagementDao: ContextManagementDao): ContextLogRepository {
+        return ContextLogRepository(contextManagementDao)
+    }
 
     @Provides
     @Singleton
-    fun provideLifeContextRules(): List<LifeContextRule> = emptyList()
+    fun provideRecentItemsRepository(recentItemDao: RecentItemDao): RecentItemsRepository {
+        return RecentItemsRepository(recentItemDao)
+    }
 
     @Provides
     @Singleton
-    fun provideLifeContextProcessor(
-        rules: @JvmSuppressWildcards List<LifeContextRule>
-    ): LifeContextProcessor = DefaultLifeContextProcessor(rules)
+    fun provideLegacyNoteRepository(
+        noteDao: LegacyNoteDao,
+        listItemDao: ListItemDao,
+        recentItemsRepository: RecentItemsRepository,
+    ): LegacyNoteRepository = LegacyNoteRepository(noteDao, listItemDao, recentItemsRepository)
+
+package com.romankozak.forwardappmobile.core.di
+
+import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
+import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
+import com.romankozak.forwardappmobile.data.dao.RecentItemDao
+import com.romankozak.forwardappmobile.data.dao.ReminderDao
+import com.romankozak.forwardappmobile.data.dao.SystemAppDao
+import com.romankozak.forwardappmobile.data.repository.ActivityRecordRepository
+import com.romankozak.forwardappmobile.data.repository.AiEventRepository
+import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
+import com.romankozak.forwardappmobile.data.repository.ContextLogRepository
+import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
+import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
+import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
+import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
+import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
+import com.romankozak.forwardappmobile.data.repository.ReminderRepository
+import com.romankozak.forwardappmobile.data.repository.SystemAppRepository
+import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
+import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
+import com.romankozak.forwardappmobile.features.ai.data.repository.AiInsightRepository
+import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineDispatcher
+import javax.inject.Singleton
+
+@Module
+@InstallIn(SingletonComponent::class)
+object RepositoryModule {
+    @Provides
+    @Singleton
+    fun provideReminderRepository(
+        reminderDao: ReminderDao,
+        alarmScheduler: AlarmScheduler,
+        dayManagementRepository: DayManagementRepository,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+    ): ReminderRepository = ReminderRepository(reminderDao, alarmScheduler, dayManagementRepository, ioDispatcher)
 
     @Provides
     @Singleton
-    fun provideFeatureRegistry(): CapabilityRegistry {
-        return InMemoryCapabilityRegistry(
-            setOf(NotesCapability)
+    fun provideProjectLogRepository(contextManagementDao: ContextManagementDao): ContextLogRepository {
+        return ContextLogRepository(contextManagementDao)
+    }
+
+    @Provides
+    @Singleton
+    fun provideRecentItemsRepository(recentItemDao: RecentItemDao): RecentItemsRepository {
+        return RecentItemsRepository(recentItemDao)
+    }
+
+    @Provides
+    @Singleton
+    fun provideLegacyNoteRepository(
+        noteDao: LegacyNoteDao,
+        listItemDao: ListItemDao,
+        recentItemsRepository: RecentItemsRepository,
+    ): LegacyNoteRepository = LegacyNoteRepository(noteDao, listItemDao, recentItemsRepository)
+
+    @Provides
+    @Singleton
+    fun provideAiInsightRepository(aiInsightDao: AiInsightDao): AiInsightRepository = AiInsightRepository(aiInsightDao)
+
+    @Provides
+    @Singleton
+    fun provideNoteDocumentRepository(
+        noteDocumentDao: NoteDocumentDao,
+        attachmentRepository: com.romankozak.forwardappmobile.sync.AttachmentsRepository, // Use the new AttachmentsRepository
+        recentItemsRepository: RecentItemsRepository,
+        aiEventRepository: AiEventRepository,
+    ): NoteDocumentRepository = NoteDocumentRepository(noteDocumentDao, attachmentRepository, recentItemsRepository, aiEventRepository)
+
+    @Provides
+    @Singleton
+    fun provideChecklistRepository(
+        checklistDao: ChecklistDao,
+        attachmentRepository: com.romankozak.forwardappmobile.sync.AttachmentsRepository, // Use the new AttachmentsRepository
+        recentItemsRepository: RecentItemsRepository,
+    ): ChecklistRepository = ChecklistRepository(checklistDao, attachmentRepository, recentItemsRepository)
+
+    @Provides
+    @Singleton
+    fun provideActivityRecordRepository(activityRecordDao: ActivityRecordDao): ActivityRecordRepository =
+        ActivityRecordRepository(activityRecordDao)
+
+    @Provides
+    @Singleton
+    fun provideSystemAppRepository(
+        systemAppDao: SystemAppDao,
+        contextDao: ContextDao,
+        noteDocumentDao: NoteDocumentDao,
+        attachmentRepository: com.romankozak.forwardappmobile.sync.AttachmentsRepository, // Use the new AttachmentsRepository
+    ): SystemAppRepository = SystemAppRepository(systemAppDao, contextDao, noteDocumentDao, attachmentRepository)
+
+    @Provides
+    @Singleton
+    fun provideProjectStructureRepository(
+        contextStructureDao: ContextStructureDao,
+        structurePresetDao: StructurePresetDao,
+        structurePresetItemDao: StructurePresetItemDao,
+    ): ContextStructureRepository = ContextStructureRepository(contextStructureDao, structurePresetDao, structurePresetItemDao)
+}
+
+
+    @Provides
+    @Singleton
+    fun provideAiInsightRepository(aiInsightDao: AiInsightDao): AiInsightRepository = AiInsightRepository(aiInsightDao)
+
+    @Provides
+    @Singleton
+    fun provideNoteDocumentRepository(
+        noteDocumentDao: NoteDocumentDao,
+        attachmentRepository: AttachmentRepository,
+        recentItemsRepository: RecentItemsRepository,
+        aiEventRepository: AiEventRepository,
+    ): NoteDocumentRepository = NoteDocumentRepository(noteDocumentDao, attachmentRepository, recentItemsRepository, aiEventRepository)
+
+    @Provides
+    @Singleton
+    fun provideChecklistRepository(
+        checklistDao: ChecklistDao,
+        attachmentRepository: AttachmentRepository,
+        recentItemsRepository: RecentItemsRepository,
+    ): ChecklistRepository = ChecklistRepository(checklistDao, attachmentRepository, recentItemsRepository)
+
+    @Provides
+    @Singleton
+    fun provideActivityRecordRepository(activityRecordDao: ActivityRecordDao): ActivityRecordRepository =
+        ActivityRecordRepository(activityRecordDao)
+
+    @Provides
+    @Singleton
+    fun provideSystemAppRepository(
+        systemAppDao: SystemAppDao,
+        contextDao: ContextDao,
+        noteDocumentDao: NoteDocumentDao,
+        attachmentRepository: AttachmentRepository,
+    ): SystemAppRepository = SystemAppRepository(systemAppDao, contextDao, noteDocumentDao, attachmentRepository)
+
+    @Provides
+    @Singleton
+    fun provideProjectStructureRepository(
+        contextStructureDao: ContextStructureDao,
+        structurePresetDao: StructurePresetDao,
+        structurePresetItemDao: StructurePresetItemDao,
+    ): ContextStructureRepository = ContextStructureRepository(contextStructureDao, structurePresetDao, structurePresetItemDao)
+}
+
+
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/core/di/RepositoryModule.kt
+================================================================================
+
+## <<FILE_2>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/sync/data/repository/NoOpSyncRepository (ID: FILE_2)
+================================================================================
+
+[Помилка читання файлу /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/sync/data/repository/NoOpSyncRepository: [Errno 2] No such file or directory: '/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/sync/data/repository/NoOpSyncRepository']
+
+
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/sync/data/repository/NoOpSyncRepository
+================================================================================
+
+## <<FILE_3>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/sync/local/AttachmentsLocalDataSourceImpl.kt (ID: FILE_3)
+================================================================================
+
+package com.romankozak.forwardappmobile.sync.local
+
+import com.romankozak.forwardappmobile.database.AppDatabase
+import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
+import com.romankozak.forwardappmobile.sync.AttachmentsBackup
+import com.romankozak.forwardappmobile.sync.datasource.AttachmentsLocalDataSource
+import javax.inject.Inject
+
+class AttachmentsLocalDataSourceImpl @Inject constructor(
+    private val appDatabase: AppDatabase,
+    private val contextDao: ContextDao,
+    private val noteDocumentDao: NoteDocumentDao,
+    private val checklistDao: ChecklistDao,
+    private val linkItemDao: LinkItemDao,
+    private val attachmentDao: AttachmentDao,
+) : AttachmentsLocalDataSource {
+
+    override suspend fun getAttachmentsBackup(): AttachmentsBackup {
+        return AttachmentsBackup(
+            documents = noteDocumentDao.getAllDocuments(),
+            documentItems = noteDocumentDao.getAllDocumentItems(),
+            checklists = checklistDao.getAllChecklists(),
+            checklistItems = checklistDao.getAllChecklistItems(),
+            linkItemEntities = linkItemDao.getAllEntities(),
+            attachments = attachmentDao.getAll(),
+            contextAttachmentCrossRefs = attachmentDao.getAllContextAttachmentCrossRefs(),
         )
+    }
+
+    override suspend fun importAttachments(backup: AttachmentsBackup): Int {
+        val existingContextIds = getAllContextIds()
+
+        appDatabase.withTransaction {
+            // Import documents
+            val validDocs = backup.documents.filter { it.contextId in existingContextIds }
+            noteDocumentDao.insertAllDocuments(validDocs)
+            val validDocIds = validDocs.map { it.id }.toSet()
+            noteDocumentDao.insertAllDocumentItems(
+                backup.documentItems.filter { it.listId in validDocIds }
+            )
+
+            // Import checklists
+            val validChecklists = backup.checklists.filter { it.contextId in existingContextIds }
+            checklistDao.insertChecklists(validChecklists)
+            val validChecklistIds = validChecklists.map { it.id }.toSet()
+            checklistDao.insertItems(
+                backup.checklistItems.filter { it.checklistId in validChecklistIds }
+            )
+
+            // Import links
+            linkItemDao.insertAll(backup.linkItemEntities)
+
+            // Import attachments with validation
+            val processedAttachments = backup.attachments.map { att ->
+                if (att.ownerContextId != null && att.ownerContextId !in existingContextIds) {
+                    att.copy(ownerContextId = null)
+                } else {
+                    att
+                }
+            }
+            attachmentDao.insertAttachments(processedAttachments)
+
+            // Import cross-references
+            val attachmentIds = processedAttachments.map { it.id }.toSet()
+            val validCrossRefs = backup.contextAttachmentCrossRefs.filter {
+                it.contextId in existingContextIds && it.attachmentId in attachmentIds
+            }
+            attachmentDao.insertContextAttachmentLinks(validCrossRefs)
+        }
+
+        return backup.attachments.count { it.ownerContextId != null && it.ownerContextId !in existingContextIds }
+    }
+
+    override suspend fun getAllContextIds(): Set<String> {
+        return contextDao.getAll().map { it.id }.toSet()
     }
 }
 
 
 ================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/core/di/LogicModule.kt
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/sync/local/AttachmentsLocalDataSourceImpl.kt
+================================================================================
+
+## <<FILE_4>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/core-data-interfaces/src/main/java/com/romankozak/forwardappmobile/sync/datasource/AttachmentsLocalDataSource.kt (ID: FILE_4)
+================================================================================
+
+package com.romankozak.forwardappmobile.sync.datasource
+
+import com.romankozak.forwardappmobile.core.data.models.AttachmentsBackup
+import com.romankozak.forwardappmobile.core.data.models.Context
+
+interface AttachmentsLocalDataSource {
+
+    /**
+     * Retrieves all data needed for an attachments backup from the local database.
+     */
+    suspend fun getAttachmentsBackup(): AttachmentsBackup
+
+    /**
+     * Imports attachments data from a backup object into the local database.
+     * This method should handle the entire transaction.
+     *
+     * @param backup The [AttachmentsBackup] object containing the data to import.
+     * @return The number of attachments that were orphaned (not linked to any existing context).
+     */
+    suspend fun importAttachments(backup: AttachmentsBackup): Int
+
+    /**
+     * Retrieves a set of all existing context IDs.
+     */
+    suspend fun getAllContextIds(): Set<String>
+}
+
+
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/core-data-interfaces/src/main/java/com/romankozak/forwardappmobile/sync/datasource/AttachmentsLocalDataSource.kt
+================================================================================
+
+## <<FILE_5>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/sync/build.gradle.kts (ID: FILE_5)
+================================================================================
+
+plugins {
+    id("com.android.library")
+    id("org.jetbrains.kotlin.android")
+    id("kotlin-kapt")
+    alias(libs.plugins.hilt.android)
+}
+
+android {
+    namespace = "com.romankozak.forwardappmobile.sync"
+    compileSdk = 34
+
+    defaultConfig {
+        minSdk = 26
+        missingDimensionStrategy("env", "prod")
+        missingDimensionStrategy("sync", "syncOn")
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+
+    sourceSets {
+        val syncEnabled = project.properties["SYNC_ENABLED"]?.toString()?.toBoolean() ?: true
+        if (syncEnabled) {
+            getByName("main") {
+                java.srcDirs("src/main/java", "src/syncOn/java")
+            }
+        } else {
+            getByName("main") {
+                java.srcDirs("src/main/java", "src/syncOff/java")
+            }
+        }
+    }
+}
+
+dependencies {
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.compiler)
+    implementation(project(":core-data-interfaces"))
+    implementation(project(":core-data-models"))
+
+    // Add other sync-specific dependencies here
+    // For example:
+    // implementation("androidx.room:room-runtime:2.6.1")
+    // implementation("androidx.room:room-ktx:2.6.1")
+    // kapt("androidx.room:room-compiler:2.6.1")
+    // implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    // implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+}
+
+
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/sync/build.gradle.kts
+================================================================================
+
+## <<FILE_6>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/sync/src/main/java/com/romankozak/forwardappmobile/sync/AttachmentsRepository.kt (ID: FILE_6)
+================================================================================
+
+package com.romankozak.forwardappmobile.sync
+
+import android.net.Uri
+import android.util.Log
+import com.google.gson.GsonBuilder
+import com.romankozak.forwardappmobile.core.data.models.AttachmentsBackup
+import com.romankozak.forwardappmobile.sync.datasource.AttachmentsLocalDataSource
+import java.text.SimpleDateFormat
+import java.util.*
+import javax.inject.Inject
+import javax.inject.Singleton
+
+/**
+ * Repository responsible for exporting and importing attachments
+ * (documents, checklists, links) with their cross-references.
+ * This repository is now decoupled from the database implementation.
+ */
+@Singleton
+class AttachmentsRepository @Inject constructor(
+    private val localDataSource: AttachmentsLocalDataSource,
+    private val syncFileService: SyncFileService,
+    private val logicHelper: SyncLogicHelper,
+) {
+    private val TAG = "AttachmentsRepository"
+
+    private val gson = GsonBuilder()
+        .registerTypeAdapter(Long::class.java, LongDeserializer())
+        .create()
+
+    /**
+     * Exports all attachments to a JSON file in Downloads folder
+     * @return Result with success message or error
+     */
+    suspend fun exportAttachmentsToFile(): Result<String> = try {
+        val backupJson = createAttachmentsBackupJsonString()
+        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val fileName = "forward_attachments_$timestamp.json"
+        syncFileService.saveFileToDownloads(fileName, backupJson)
+        Result.success("Вкладення успішно збережено до Downloads/ForwardApp")
+    } catch (e: Exception) {
+        Log.e(TAG, "Error exporting attachments", e)
+        Result.failure(e)
+    }
+
+    /**
+     * Creates JSON string with all attachments data
+     * Includes documents, checklists, links, and cross-references
+     * @return JSON string with attachments backup
+     */
+    suspend fun createAttachmentsBackupJsonString(): String {
+        Log.d(TAG, "=== СТАРТ ЕКСПОРТУ ВКЛАДЕНЬ ===")
+        val backup = localDataSource.getAttachmentsBackup()
+
+        // Synthesize missing cross-references if needed
+        val synthesizedCrossRefs = logicHelper.synthesizeMissingCrossRefs(
+            attachments = backup.attachments,
+            existingCrossRefs = backup.contextAttachmentCrossRefs,
+        )
+
+        val finalBackup = backup.copy(contextAttachmentCrossRefs = synthesizedCrossRefs)
+
+        return gson.toJson(finalBackup)
+    }
+
+    /**
+     * Imports attachments from JSON file
+     * Validates context IDs and filters orphaned attachments via the data source.
+     * @param uri URI of the backup file
+     * @return Result with import summary or error
+     */
+    suspend fun importAttachmentsFromFile(uri: Uri): Result<String> {
+        val IMPORT_TAG = "AttachmentsRepo_Import"
+        try {
+            val jsonString = syncFileService.readTextFromUri(uri) ?: throw Exception("File is empty")
+            val backupData = gson.fromJson(jsonString, AttachmentsBackup::class.java)
+
+            val orphanCount = localDataSource.importAttachments(backupData)
+
+            return Result.success("Імпорт завершено. Знайдено $orphanCount вкладень без прив'язки до проектів.")
+        } catch (e: Exception) {
+            Log.e(IMPORT_TAG, "Critical error during attachments import", e)
+            return Result.failure(e)
+        }
+    }
+}
+
+================================================================================
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/sync/src/main/java/com/romankozak/forwardappmobile/sync/AttachmentsRepository.kt
 ================================================================================
 
 ## <<FILE_7>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/core/navigation/ViewResolver.kt (ID: FILE_7)
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/sync/src/syncOff/java/com/romankozak/forwardappmobile/sync/AttachmentsRepository.kt (ID: FILE_7)
 ================================================================================
 
-package com.romankozak.forwardappmobile.core.navigation
+package com.romankozak.forwardappmobile.sync
 
-import com.romankozak.forwardappmobile.core.context.ViewId
+import android.net.Uri
+import javax.inject.Inject
+import javax.inject.Singleton
 
-@JvmInline
-value class ScreenId(val raw: String)
-
-interface ViewResolver {
-    fun resolve(viewId: ViewId): ScreenId
-}
-
-class StaticViewResolver(
-    private val map: Map<ViewId, ScreenId>
-) : ViewResolver {
-
-    override fun resolve(viewId: ViewId) =
-        map[viewId] ?: error("Unknown view")
+@Singleton
+class AttachmentsRepository @Inject constructor() {
+    suspend fun exportAttachmentsToFile(): Result<String> = Result.success("Sync disabled")
+    suspend fun createAttachmentsBackupJsonString(): String = "Sync disabled"
+    suspend fun importAttachmentsFromFile(uri: Uri): Result<String> = Result.failure(UnsupportedOperationException("Sync disabled"))
 }
 
 
 ================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/core/navigation/ViewResolver.kt
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/sync/src/syncOff/java/com/romankozak/forwardappmobile/sync/AttachmentsRepository.kt
 ================================================================================
 

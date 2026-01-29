@@ -10,17 +10,67 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="dec4991f-6ae0-4b6d-adb7-135ff1c91165" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/sync/FullBackupLocalDataSourceImpl.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/sync/MergeLocalDataSourceImpl.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/sync/SyncSettingsSourceImpl.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core-data-interfaces/src/main/java/com/romankozak/forwardappmobile/sync/AttachmentsRepository.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core-data-interfaces/src/main/java/com/romankozak/forwardappmobile/sync/SyncApi.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core-data-interfaces/src/main/java/com/romankozak/forwardappmobile/sync/datasource/FullBackupLocalDataSource.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core-data-interfaces/src/main/java/com/romankozak/forwardappmobile/sync/datasource/SyncSettingsSource.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/AttachmentsRepositoryImpl.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/SyncScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/SyncScreen.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/app/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/di/RepositoryModule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/di/RepositoryModule.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/dao/ChatDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/dao/ChatDao.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/dao/DailyMetricDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/dao/DailyMetricDao.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/dao/ReminderDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/dao/ReminderDao.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/sync/AttachmentActionQueue.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/sync/AttachmentsBackup.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/sync/BacklogOrderUtils.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/sync/BackupDiff.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/sync/DataConverter.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/sync/DateDeserializer.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/sync/FullAppBackup.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/sync/GoalDeserializer.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/sync/LongDeserializer.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/sync/SyncBump.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/sync/SyncModel.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/attachments/data/AttachmentDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/attachments/data/AttachmentDao.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/usecases/ContextActionsUseCase.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/usecases/ContextActionsUseCase.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/usecases/SyncUseCase.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/usecases/SyncUseCase.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/missions/data/TacticalMissionDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/missions/data/TacticalMissionDao.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/SyncViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/SyncViewModel.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/WifiSyncManager.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/WifiSyncManager.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/WifiSyncServer.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/WifiSyncServer.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/data/repository/AttachmentsRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/data/repository/AttachmentsRepository.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/data/repository/BackupRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/data/repository/BackupRepository.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/data/repository/MergeRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/data/repository/MergeRepository.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/data/repository/SyncModels.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/data/repository/SyncModels.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/data/repository/SyncRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/data/repository/SyncRepository.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/data/repository/SyncBackupService.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/data/repository/SyncFileService.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/data/repository/SyncLocalService.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/data/repository/SyncLogicHelper.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/data/repository/SyncMapper.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/data/repository/SyncModels.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/data/repository/SyncRepository.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/data/repository/SyncWifiService.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/data/repository/WifiSyncRepository.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/selectiveimport/SelectiveImportViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/selectiveimport/SelectiveImportViewModel.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/shared/SyncDataViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/shared/SyncDataViewModel.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/core-data-interfaces/src/main/java/com/romankozak/forwardappmobile/sync/datasource/MergeLocalDataSource.kt" beforeDir="false" afterPath="$PROJECT_DIR$/core-data-interfaces/src/main/java/com/romankozak/forwardappmobile/sync/datasource/MergeLocalDataSource.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gradle/libs.versions.toml" beforeDir="false" afterPath="$PROJECT_DIR$/gradle/libs.versions.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/path.txt" beforeDir="false" afterPath="$PROJECT_DIR$/path.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sources.txt" beforeDir="false" afterPath="$PROJECT_DIR$/sources.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/sync/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/AttachmentsRepository.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/BackupDiff.kt" beforeDir="false" afterPath="$PROJECT_DIR$/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/sync/BackupDiff.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/MergeRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/MergeRepository.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncApi.kt" beforeDir="false" afterPath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncApi.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncModels.kt" beforeDir="false" afterPath="$PROJECT_DIR$/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/sync/SyncModels.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncApi.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncBackupService.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncFileService.kt" beforeDir="false" afterPath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncFileService.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncLogicHelper.kt" beforeDir="false" afterPath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncLogicHelper.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncRepository.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncWifiService.kt" beforeDir="false" afterPath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncWifiService.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -96,11 +146,11 @@
 }</component>
   <component name="RecentsManager">
     <key name="K2MoveDeclarationsDialog.RECENT_PACKAGE_KEY">
-      <recent name="com.romankozak.forwardappmobile.core.data.models.sync" />
       <recent name="com.romankozak.forwardappmobile.sync" />
+      <recent name="com.romankozak.forwardappmobile.core.data.models.sync" />
+      <recent name="com.romankozak.forwardappmobile.sync.datasource" />
       <recent name="com.romankozak.forwardappmobile.core.data.models" />
       <recent name="com.romankozak.forwardappmobile.core.data.models.tactical" />
-      <recent name="com.romankozak.forwardappmobile.core.data.models.ai" />
     </key>
   </component>
   <component name="RunManager" selected="Android App.app">

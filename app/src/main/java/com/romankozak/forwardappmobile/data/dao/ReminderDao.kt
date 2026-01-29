@@ -38,4 +38,7 @@ interface ReminderDao {
     // --- Backup Methods ---
     @Query("SELECT * FROM reminders")
     suspend fun getAllRemindersSync(): List<Reminder>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(reminders: List<Reminder>)
 }

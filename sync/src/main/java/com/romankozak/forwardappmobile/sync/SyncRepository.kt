@@ -1,135 +1,56 @@
 package com.romankozak.forwardappmobile.sync
 
 import android.net.Uri
-import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
-import com.romankozak.forwardappmobile.core.data.models.sync.SyncChange
-import com.romankozak.forwardappmobile.core.data.models.sync.SyncReport
+import com.romankozak.forwardappmobile.core.data.models.sync.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * Main synchronization repository that coordinates sync operations
- * by delegating to specialized repositories.
- *
- * This repository acts as a facade, providing a unified interface
- * for all sync-related operations while maintaining separation of concerns.
- */
 @Singleton
 class SyncRepository @Inject constructor(
-    private val backupRepository: BackupRepository,
-    private val wifiSyncRepository: WifiSyncRepository,
+    private val fileService: SyncFileService,
+    private val wifiSyncService: SyncWifiService,
     private val mergeRepository: MergeRepository,
     private val attachmentsRepository: AttachmentsRepository,
 ) : SyncApi {
-    // ============================================
-    // FILE BACKUP/RESTORE OPERATIONS
-    // ============================================
 
-    /**
-     * Exports full backup to Downloads folder
-     */
-    override suspend fun exportFullBackupToFile(): Result<String> =
-        backupRepository.exportFullBackupToFile()
+    // FILE OPERATIONS
+    override suspend fun exportFullBackupToFile() = fileService.exportFullBackupToFile()
+    override suspend fun createFullBackupJsonString() = fileService.createFullBackupJsonString()
+    override suspend fun importFullBackupFromFile(uri: Uri) = fileService.importFullBackupFromFile(uri)
 
-    /**
-     * Creates JSON string with complete backup
-     */
-    override suspend fun createFullBackupJsonString(): String =
-        backupRepository.createFullBackupJsonString()
+    // Тут важливо вказати тип явно, щоб не було помилок subtype
+    override suspend fun parseBackupFile(uri: Uri): Result<FullAppBackup> = fileService.parseBackupFile(uri)
 
-    /**
-     * Imports full backup from file URI
-     */
-    override suspend fun importFullBackupFromFile(uri: Uri): Result<String> =
-        backupRepository.importFullBackupFromFile(uri)
+    // WI-FI OPERATIONS
+    override suspend fun fetchBackupFromWifi(address: String, deltaSince: Long?) =
+        wifiSyncService.fetchBackupFromWifi(address, deltaSince)
 
-    /**
-     * Parses backup file without importing
-     */
-    override suspend fun parseBackupFile(uri: Uri): Result<FullAppBackup> =
-        backupRepository.parseBackupFile(uri)
+    override suspend fun pushUnsyncedToWifi(address: String) =
+        wifiSyncService.pushUnsyncedToWifi(address)
 
-    // ============================================
-    // WI-FI SYNC OPERATIONS
-    // ============================================
+    override suspend fun createDeltaBackupJsonString(deltaSince: Long) =
+        wifiSyncService.createDeltaBackupJsonString(deltaSince)
 
-    /**
-     * Fetches backup from Wi-Fi server
-     */
-    override suspend fun fetchBackupFromWifi(address: String, deltaSince: Long? = null): Result<String> =
-        wifiSyncRepository.fetchBackupFromWifi(address, deltaSince)
+    // MERGE & REPORTING
+    override suspend fun getLastSyncTime(): Long? = null
 
-    /**
-     * Pushes unsynced changes to Wi-Fi server
-     */
-    override suspend fun pushUnsyncedToWifi(address: String): Result<Unit> =
-        wifiSyncRepository.pushUnsyncedToWifi(address)
+    override suspend fun createSyncReport(jsonString: String) = mergeRepository.createSyncReport(jsonString)
 
-    /**
-     * Creates delta backup JSON since timestamp
-     */
-    override suspend fun createDeltaBackupJsonString(deltaSince: Long): String =
-        wifiSyncRepository.createDeltaBackupJsonString(deltaSince)
-
-    // ============================================
-    // SYNC OPERATIONS
-    // ============================================
-
-    /**
-     * Gets timestamp of last successful sync
-     */
-    override suspend fun getLastSyncTime(): Long? =
-        backupRepository.getLastSyncTime()
-
-    /**
-     * Creates sync report by comparing backup with local data
-     */
-    override suspend fun createSyncReport(jsonString: String): SyncReport =
-        mergeRepository.createSyncReport(jsonString)
-
-    /**
-     * Applies approved changes to database
-     */
+    // Тепер ці методи знайдуться в mergeRepository
     override suspend fun applyChanges(approvedChanges: List<SyncChange>) =
         mergeRepository.applyChanges(approvedChanges)
 
-    /**
-     * Applies server changes with merging and conflict resolution
-     */
-    override suspend fun applyServerChanges(changes: DatabaseContent): Result<Unit> =
+    override suspend fun applyServerChanges(changes: DatabaseContent) =
         mergeRepository.applyServerChanges(changes)
 
-    /**
-     * Creates diff between incoming and local data
-     */
-    override suspend fun createBackupDiff(incoming: DatabaseContent): BackupDiff =
+    override suspend fun createBackupDiff(incoming: DatabaseContent) =
         mergeRepository.createBackupDiff(incoming)
 
-    /**
-     * Imports only selected data from backup
-     */
-    override suspend fun importSelectedData(selectedData: DatabaseContent): Result<String> =
+    override suspend fun importSelectedData(selectedData: DatabaseContent) =
         mergeRepository.importSelectedData(selectedData)
 
-    // ============================================
-    // ATTACHMENTS BACKUP/RESTORE
-    // ============================================
-
-    /**
-     * Exports attachments to Downloads folder
-     */
-    override suspend fun exportAttachmentsToFile(): Result<String> =
-        attachmentsRepository.exportAttachmentsToFile()
-
-    /**
-     * Creates JSON string with all attachments
-     */
-    override suspend fun createAttachmentsBackupJsonString(): String =
-        attachmentsRepository.createAttachmentsBackupJsonString()
-
-    /**
-     * Imports attachments from file URI
-     */
-    override suspend fun importAttachmentsFromFile(uri: Uri): Result<String> =
-        attachmentsRepository.importAttachmentsFromFile(uri)
+    // ATTACHMENTS
+    override suspend fun exportAttachmentsToFile() = attachmentsRepository.exportAttachmentsToFile()
+    override suspend fun createAttachmentsBackupJsonString() = attachmentsRepository.createAttachmentsBackupJsonString()
+    override suspend fun importAttachmentsFromFile(uri: Uri) = attachmentsRepository.importAttachmentsFromFile(uri)
 }

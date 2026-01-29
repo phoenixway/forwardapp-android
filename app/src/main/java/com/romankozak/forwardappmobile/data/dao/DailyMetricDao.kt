@@ -60,4 +60,7 @@ interface DailyMetricDao {
 
     @Query("DELETE FROM daily_metrics")
     suspend fun deleteAllMetrics()
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(metrics: List<DailyMetric>)
 }

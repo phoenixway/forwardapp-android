@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.sync
 
 import android.net.Uri
-import com.romankozak.forwardappmobile.sync.FullAppBackup
+import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
 import com.romankozak.forwardappmobile.sync.SyncLocalService
 import javax.inject.Inject
 import javax.inject.Singleton

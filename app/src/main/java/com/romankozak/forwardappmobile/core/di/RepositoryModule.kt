@@ -1,34 +1,16 @@
 package com.romankozak.forwardappmobile.core.di
 
-import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
-import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
-import com.romankozak.forwardappmobile.data.dao.RecentItemDao
-import com.romankozak.forwardappmobile.data.dao.ReminderDao
-import com.romankozak.forwardappmobile.data.dao.SystemAppDao
-import com.romankozak.forwardappmobile.data.repository.ActivityRecordRepository
-import com.romankozak.forwardappmobile.data.repository.AiEventRepository
-import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
-import com.romankozak.forwardappmobile.data.repository.ContextLogRepository
-import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
-import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
-import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
-import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
-import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
-import com.romankozak.forwardappmobile.data.repository.ReminderRepository
-import com.romankozak.forwardappmobile.data.repository.SystemAppRepository
+import com.romankozak.forwardappmobile.data.dao.*
+import com.romankozak.forwardappmobile.data.repository.*
+import com.romankozak.forwardappmobile.data.sync.FullBackupLocalDataSourceImpl
+import com.romankozak.forwardappmobile.data.sync.SyncSettingsSourceImpl
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.ai.data.repository.AiInsightRepository
-import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.*
+import com.romankozak.forwardappmobile.sync.* import com.romankozak.forwardappmobile.sync.datasource.AttachmentsLocalDataSource
+import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
+import com.romankozak.forwardappmobile.sync.datasource.SyncSettingsSource
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -39,125 +21,88 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object RepositoryModule {
-    @Provides
-    @Singleton
-    fun provideReminderRepository(
-        reminderDao: ReminderDao,
-        alarmScheduler: AlarmScheduler,
-        dayManagementRepository: DayManagementRepository,
-        @IoDispatcher ioDispatcher: CoroutineDispatcher,
-    ): ReminderRepository = ReminderRepository(reminderDao, alarmScheduler, dayManagementRepository, ioDispatcher)
 
     @Provides
     @Singleton
-    fun provideProjectLogRepository(contextManagementDao: ContextManagementDao): ContextLogRepository {
-        return ContextLogRepository(contextManagementDao)
-    }
+    fun provideFullBackupLocalDataSource(
+        impl: FullBackupLocalDataSourceImpl
+    ): FullBackupLocalDataSource = impl
 
     @Provides
     @Singleton
-    fun provideRecentItemsRepository(recentItemDao: RecentItemDao): RecentItemsRepository {
-        return RecentItemsRepository(recentItemDao)
-    }
-
-    @Provides
-    @Singleton
-    fun provideLegacyNoteRepository(
-        noteDao: LegacyNoteDao,
-        listItemDao: ListItemDao,
-        recentItemsRepository: RecentItemsRepository,
-    ): LegacyNoteRepository = LegacyNoteRepository(noteDao, listItemDao, recentItemsRepository)
-
-package com.romankozak.forwardappmobile.core.di
-
-import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
-import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
-import com.romankozak.forwardappmobile.data.dao.RecentItemDao
-import com.romankozak.forwardappmobile.data.dao.ReminderDao
-import com.romankozak.forwardappmobile.data.dao.SystemAppDao
-import com.romankozak.forwardappmobile.data.repository.ActivityRecordRepository
-import com.romankozak.forwardappmobile.data.repository.AiEventRepository
-import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
-import com.romankozak.forwardappmobile.data.repository.ContextLogRepository
-import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
-import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
-import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
-import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
-import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
-import com.romankozak.forwardappmobile.data.repository.ReminderRepository
-import com.romankozak.forwardappmobile.data.repository.SystemAppRepository
-import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
-import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
-import com.romankozak.forwardappmobile.features.ai.data.repository.AiInsightRepository
-import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
-import dagger.Module
-import dagger.Provides
-import dagger.hilt.InstallIn
-import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.CoroutineDispatcher
-import javax.inject.Singleton
-
-@Module
-@InstallIn(SingletonComponent::class)
-object RepositoryModule {
-    @Provides
-    @Singleton
-    fun provideReminderRepository(
-        reminderDao: ReminderDao,
-        alarmScheduler: AlarmScheduler,
-        dayManagementRepository: DayManagementRepository,
-        @IoDispatcher ioDispatcher: CoroutineDispatcher,
-    ): ReminderRepository = ReminderRepository(reminderDao, alarmScheduler, dayManagementRepository, ioDispatcher)
-
-    @Provides
-    @Singleton
-    fun provideProjectLogRepository(contextManagementDao: ContextManagementDao): ContextLogRepository {
-        return ContextLogRepository(contextManagementDao)
-    }
-
-    @Provides
-    @Singleton
-    fun provideRecentItemsRepository(recentItemDao: RecentItemDao): RecentItemsRepository {
-        return RecentItemsRepository(recentItemDao)
-    }
-
-    @Provides
-    @Singleton
-    fun provideLegacyNoteRepository(
-        noteDao: LegacyNoteDao,
-        listItemDao: ListItemDao,
-        recentItemsRepository: RecentItemsRepository,
-    ): LegacyNoteRepository = LegacyNoteRepository(noteDao, listItemDao, recentItemsRepository)
-
-    @Provides
-    @Singleton
-    fun provideAiInsightRepository(aiInsightDao: AiInsightDao): AiInsightRepository = AiInsightRepository(aiInsightDao)
+    fun provideAttachmentsRepository(
+        localDataSource: AttachmentsLocalDataSource,
+        syncFileService: SyncFileService,
+        logicHelper: SyncLogicHelper
+    ): AttachmentsRepository = AttachmentsRepositoryImpl(
+        localDataSource,
+        syncFileService,
+        logicHelper
+    )
 
     @Provides
     @Singleton
     fun provideNoteDocumentRepository(
         noteDocumentDao: NoteDocumentDao,
-        attachmentRepository: com.romankozak.forwardappmobile.sync.AttachmentsRepository, // Use the new AttachmentsRepository
+        attachmentsRepository: AttachmentsRepository,
         recentItemsRepository: RecentItemsRepository,
         aiEventRepository: AiEventRepository,
-    ): NoteDocumentRepository = NoteDocumentRepository(noteDocumentDao, attachmentRepository, recentItemsRepository, aiEventRepository)
+    ): NoteDocumentRepository = NoteDocumentRepository(
+        noteDocumentDao,
+        attachmentsRepository,
+        recentItemsRepository,
+        aiEventRepository
+    )
 
     @Provides
     @Singleton
     fun provideChecklistRepository(
         checklistDao: ChecklistDao,
-        attachmentRepository: com.romankozak.forwardappmobile.sync.AttachmentsRepository, // Use the new AttachmentsRepository
+        attachmentsRepository: AttachmentsRepository,
         recentItemsRepository: RecentItemsRepository,
-    ): ChecklistRepository = ChecklistRepository(checklistDao, attachmentRepository, recentItemsRepository)
+    ): ChecklistRepository = ChecklistRepository(
+        checklistDao,
+        attachmentsRepository,
+        recentItemsRepository
+    )
+
+    @Provides
+    @Singleton
+    fun provideSystemAppRepository(
+        systemAppDao: SystemAppDao,
+        contextDao: ContextDao,
+        noteDocumentDao: NoteDocumentDao,
+        attachmentsRepository: AttachmentsRepository,
+    ): SystemAppRepository = SystemAppRepository(
+        systemAppDao,
+        contextDao,
+        noteDocumentDao,
+        attachmentsRepository
+    )
+
+    @Provides
+    @Singleton
+    fun provideReminderRepository(
+        reminderDao: ReminderDao,
+        alarmScheduler: AlarmScheduler,
+        dayManagementRepository: DayManagementRepository,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+    ): ReminderRepository = ReminderRepository(
+        reminderDao,
+        alarmScheduler,
+        dayManagementRepository,
+        ioDispatcher
+    )
+
+    @Provides
+    @Singleton
+    fun provideAiInsightRepository(aiInsightDao: AiInsightDao): AiInsightRepository =
+        AiInsightRepository(aiInsightDao)
+
+    @Provides
+    @Singleton
+    fun provideRecentItemsRepository(recentItemDao: RecentItemDao): RecentItemsRepository =
+        RecentItemsRepository(recentItemDao)
 
     @Provides
     @Singleton
@@ -166,63 +111,19 @@ object RepositoryModule {
 
     @Provides
     @Singleton
-    fun provideSystemAppRepository(
-        systemAppDao: SystemAppDao,
-        contextDao: ContextDao,
-        noteDocumentDao: NoteDocumentDao,
-        attachmentRepository: com.romankozak.forwardappmobile.sync.AttachmentsRepository, // Use the new AttachmentsRepository
-    ): SystemAppRepository = SystemAppRepository(systemAppDao, contextDao, noteDocumentDao, attachmentRepository)
+    fun provideMergeLocalDataSource(
+        // Hilt автоматично створить MergeLocalDataSourceImpl,
+        // оскільки в його конструкторі є анотація @Inject
+        impl: com.romankozak.forwardappmobile.data.sync.MergeLocalDataSourceImpl
+    ): com.romankozak.forwardappmobile.sync.datasource.MergeLocalDataSource = impl
 
     @Provides
     @Singleton
-    fun provideProjectStructureRepository(
-        contextStructureDao: ContextStructureDao,
-        structurePresetDao: StructurePresetDao,
-        structurePresetItemDao: StructurePresetItemDao,
-    ): ContextStructureRepository = ContextStructureRepository(contextStructureDao, structurePresetDao, structurePresetItemDao)
-}
-
+    fun provideSyncSettingsSource(
+        impl: FullBackupLocalDataSourceImpl // Використовуємо реалізацію, яку Hilt вже вміє створювати через @Inject
+    ): SyncSettingsSource = SyncSettingsSourceImpl(impl.settingsRepository)
 
     @Provides
     @Singleton
-    fun provideAiInsightRepository(aiInsightDao: AiInsightDao): AiInsightRepository = AiInsightRepository(aiInsightDao)
-
-    @Provides
-    @Singleton
-    fun provideNoteDocumentRepository(
-        noteDocumentDao: NoteDocumentDao,
-        attachmentRepository: AttachmentRepository,
-        recentItemsRepository: RecentItemsRepository,
-        aiEventRepository: AiEventRepository,
-    ): NoteDocumentRepository = NoteDocumentRepository(noteDocumentDao, attachmentRepository, recentItemsRepository, aiEventRepository)
-
-    @Provides
-    @Singleton
-    fun provideChecklistRepository(
-        checklistDao: ChecklistDao,
-        attachmentRepository: AttachmentRepository,
-        recentItemsRepository: RecentItemsRepository,
-    ): ChecklistRepository = ChecklistRepository(checklistDao, attachmentRepository, recentItemsRepository)
-
-    @Provides
-    @Singleton
-    fun provideActivityRecordRepository(activityRecordDao: ActivityRecordDao): ActivityRecordRepository =
-        ActivityRecordRepository(activityRecordDao)
-
-    @Provides
-    @Singleton
-    fun provideSystemAppRepository(
-        systemAppDao: SystemAppDao,
-        contextDao: ContextDao,
-        noteDocumentDao: NoteDocumentDao,
-        attachmentRepository: AttachmentRepository,
-    ): SystemAppRepository = SystemAppRepository(systemAppDao, contextDao, noteDocumentDao, attachmentRepository)
-
-    @Provides
-    @Singleton
-    fun provideProjectStructureRepository(
-        contextStructureDao: ContextStructureDao,
-        structurePresetDao: StructurePresetDao,
-        structurePresetItemDao: StructurePresetItemDao,
-    ): ContextStructureRepository = ContextStructureRepository(contextStructureDao, structurePresetDao, structurePresetItemDao)
+    fun provideSyncApi(repository: SyncRepository): SyncApi = repository
 }
