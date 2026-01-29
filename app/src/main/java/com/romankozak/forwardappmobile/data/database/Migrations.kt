@@ -1350,3 +1350,76 @@ val MIGRATION_94_95 = object : Migration(94, 95) {
         }
     }
 }
+val MIGRATION_95_96 = object : Migration(95, 96) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // 1. Створюємо нову таблицю з ТОЧНОЮ структурою (Expected зі стектрейсу)
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `contexts_new` (
+                `id` TEXT NOT NULL, 
+                `name` TEXT NOT NULL, 
+                `description` TEXT, 
+                `parentId` TEXT, 
+                `createdAt` INTEGER NOT NULL, 
+                `updatedAt` INTEGER, 
+                `synced_at` INTEGER, 
+                `is_deleted` INTEGER NOT NULL DEFAULT 0, 
+                `version` INTEGER NOT NULL DEFAULT 0, 
+                `tags` TEXT, 
+                `relatedLinks` TEXT, 
+                `is_expanded` INTEGER NOT NULL DEFAULT 1, 
+                `goal_order` INTEGER NOT NULL DEFAULT 0, 
+                `is_attachments_expanded` INTEGER NOT NULL DEFAULT 0, 
+                `default_view_mode` TEXT, 
+                `is_completed` INTEGER NOT NULL DEFAULT 0, 
+                `is_context_management_enabled` INTEGER, 
+                `context_status` TEXT, 
+                `context_status_text` TEXT, 
+                `context_log_level` TEXT, 
+                `total_time_spent_minutes` INTEGER, 
+                `valueImportance` REAL NOT NULL DEFAULT 0.0, 
+                `valueImpact` REAL NOT NULL DEFAULT 0.0, 
+                `effort` REAL NOT NULL DEFAULT 0.0, 
+                `cost` REAL NOT NULL DEFAULT 0.0, 
+                `risk` REAL NOT NULL DEFAULT 0.0, 
+                `weightEffort` REAL NOT NULL DEFAULT 1.0, 
+                `weightCost` REAL NOT NULL DEFAULT 1.0, 
+                `weightRisk` REAL NOT NULL DEFAULT 1.0, 
+                `rawScore` REAL NOT NULL DEFAULT 0.0, 
+                `displayScore` INTEGER NOT NULL DEFAULT 0, 
+                `scoring_status` TEXT NOT NULL DEFAULT 'NOT_ASSESSED', 
+                `show_checkboxes` INTEGER NOT NULL DEFAULT 0, 
+                `role_code` TEXT, 
+                PRIMARY KEY(`id`)
+            )
+        """.trimIndent())
+
+        // 2. Копіюємо дані зі старої таблиці
+        // Використовуємо COALESCE для NOT NULL полів, яких могло не бути
+        db.execSQL("""
+            INSERT INTO contexts_new (
+                id, name, description, parentId, createdAt, updatedAt, synced_at, 
+                is_deleted, version, tags, relatedLinks, is_expanded, goal_order, 
+                is_attachments_expanded, is_completed, is_context_management_enabled, 
+                context_status, context_status_text, context_log_level, total_time_spent_minutes,
+                valueImportance, valueImpact, effort, cost, risk, weightEffort, 
+                weightCost, weightRisk, rawScore, displayScore, scoring_status, 
+                show_checkboxes, role_code
+            )
+            SELECT 
+                id, name, description, parentId, createdAt, updatedAt, synced_at, 
+                is_deleted, version, tags, relatedLinks, is_expanded, goal_order, 
+                is_attachments_expanded, is_completed, is_context_management_enabled, 
+                context_status, context_status_text, context_log_level, total_time_spent_minutes,
+                COALESCE(valueImportance, 0.0), COALESCE(valueImpact, 0.0), COALESCE(effort, 0.0), 
+                COALESCE(cost, 0.0), COALESCE(risk, 0.0), COALESCE(weightEffort, 1.0), 
+                COALESCE(weightCost, 1.0), COALESCE(weightRisk, 1.0), COALESCE(rawScore, 0.0), 
+                COALESCE(displayScore, 0), COALESCE(scoring_status, 'NOT_ASSESSED'), 
+                show_checkboxes, role_code
+            FROM contexts
+        """.trimIndent())
+
+        // 3. Видаляємо стару таблицю та перейменовуємо нову
+        db.execSQL("DROP TABLE contexts")
+        db.execSQL("ALTER TABLE contexts_new RENAME TO contexts")
+    }
+}
