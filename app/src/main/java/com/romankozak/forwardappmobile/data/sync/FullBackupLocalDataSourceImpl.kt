@@ -34,14 +34,45 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
 ) : FullBackupLocalDataSource {
 
     override suspend fun loadFullDatabaseContent(): DatabaseContent {
+        // Step 1: Load primary entities and create sets of their valid IDs
+        val allProjects = contextDao.getAll()
+        val allGoals = goalDao.getAll()
+        val allDocuments = noteDocumentDao.getAllDocuments()
+        val allAttachments = attachmentDao.getAll()
+        
+        val validProjectIds = allProjects.map { it.id }.toSet()
+        val validGoalIds = allGoals.map { it.id }.toSet()
+        val validDocumentIds = allDocuments.map { it.id }.toSet()
+        val validAttachmentIds = allAttachments.map { it.id }.toSet()
+
+        // Step 2: Load and filter dependent entities
+        val allBacklogItems = listItemDao.getAll()
+        val validBacklogItems = allBacklogItems.filter {
+            validProjectIds.contains(it.contextId) &&
+            when(it.itemType) {
+                "GOAL" -> it.entityId != null && validGoalIds.contains(it.entityId)
+                "SUBLIST" -> it.entityId != null && validProjectIds.contains(it.entityId)
+                "NOTE_DOCUMENT" -> it.entityId != null && validDocumentIds.contains(it.entityId)
+                 else -> true // Allow other types that don't have FK constraints to entity tables
+            }
+        }
+        
+        val allCrossRefs = attachmentDao.getAllContextAttachmentCrossRefs()
+        val validCrossRefs = allCrossRefs.filter {
+            validProjectIds.contains(it.contextId) && validAttachmentIds.contains(it.attachmentId)
+        }
+
+        // Step 3: Return a DatabaseContent object with only the valid, filtered data
         return DatabaseContent(
-            // Використовуємо методи getAll(), які повертають List замість Flow
-            projects = contextDao.getAll(), //
-            goals = goalDao.getAll(), //
-            backlogItems = listItemDao.getAll(), //
-            documents = noteDocumentDao.getAllDocuments(),
-            attachments = attachmentDao.getAll(),
-            contextAttachmentCrossRefs = attachmentDao.getAllContextAttachmentCrossRefs(),
+            projects = allProjects,
+            goals = allGoals,
+            documents = allDocuments,
+            attachments = allAttachments,
+            backlogItems = validBacklogItems,
+            contextAttachmentCrossRefs = validCrossRefs,
+            // Keep other entities as they are, assuming they have fewer complex dependencies
+            // or that their dependencies are handled by Room's CASCADE deletes.
+            // This can be expanded if other orphaned data is found.
             recentProjectEntries = recentItemDao.getAll().map {
                 RecentProjectEntry(contextId = it.target, timestamp = it.lastAccessed)
             },
