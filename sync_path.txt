@@ -1,0 +1,11 @@
+docs/sync/SYNC_ARCHITECTURE_OVERVIEW.md
+sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncRepository.kt
+sync/src/main/java/com/romankozak/forwardappmobile/sync/MergeRepository.kt
+sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncFileService.kt
+app/src/main/java/com/romankozak/forwardappmobile/features/sync/WifiSyncServer.kt
+sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncWifiService.kt
+sync/src/main/java/com/romankozak/forwardappmobile/sync/WifiSyncRepository.kt
+core-data-interfaces/src/main/java/com/romankozak/forwardappmobile/sync/datasource/FullBackupLocalDataSource.kt
+app/src/main/java/com/romankozak/forwardappmobile/data/sync/FullBackupLocalDataSourceImpl.kt
+sync/src/main/java/com/romankozak/forwardappmobile/sync/BackupRepository.kt
+core-data-interfaces/src/main/java/com/romankozak/forwardappmobile/sync/AttachmentsRepository.kt

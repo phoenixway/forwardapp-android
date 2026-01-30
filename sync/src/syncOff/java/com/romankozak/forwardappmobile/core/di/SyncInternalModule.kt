@@ -1,9 +1,9 @@
 package com.romankozak.forwardappmobile.core.di
 
 import com.romankozak.forwardappmobile.sync.AttachmentsRepository
-import com.romankozak.forwardappmobile.sync.AttachmentsRepositoryImpl
 import com.romankozak.forwardappmobile.sync.SyncApi
-import com.romankozak.forwardappmobile.sync.SyncRepository
+import com.romankozak.forwardappmobile.sync.NoOpAttachmentsRepository
+import com.romankozak.forwardappmobile.sync.NoOpSyncApiImpl
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -12,12 +12,12 @@ import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-object SyncInternalModule {
-    @Provides
+abstract class SyncInternalModule {
+    @Binds
     @Singleton
-    fun provideAttachmentsRepository(): AttachmentsRepository = NoOpAttachmentsRepository()
+    abstract fun bindAttachmentsRepository(impl: NoOpAttachmentsRepository): AttachmentsRepository
 
-    @Provides
+    @Binds
     @Singleton
-    fun provideSyncApi(): SyncApi = NoOpSyncRepository()
+    abstract fun bindSyncApi(impl: NoOpSyncApiImpl): SyncApi
 }

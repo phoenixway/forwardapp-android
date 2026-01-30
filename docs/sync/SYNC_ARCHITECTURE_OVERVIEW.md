@@ -9,9 +9,10 @@
 Механізм спроєктований як модульна система, керована центральним фасадом.
 
 - **`SyncRepository`**: Фасад і єдина точка входу для UI та інших частин програми. Він не містить власної логіки, а делегує завдання спеціалізованим компонентам.
-- **`MergeRepository`**: Має відповідати за основну логіку злиття даних та вирішення конфліктів. На даний момент його реалізація не завершена.
+- **`MergeRepository`**: Відповідає за основну логіку злиття даних та вирішення конфліктів. На даний момент його реалізація не завершена.
 - **`SyncFileService`**: Відповідає за функціонал імпорту/експорту даних у JSON-файли.
 - **`WifiSyncService` / `WifiSyncServer`**: Реалізує peer-to-peer (P2P) синхронізацію між двома пристроями в одній Wi-Fi мережі.
+- **`AttachmentsRepository`**: Керує операціями, пов'язаними з вкладеннями (експорт, імпорт).
 - **`FullBackupLocalDataSource`**: Шар доступу до даних, що надає знімок бази даних для бекапу та виконує повне перезаписування БД при відновленні.
 
 Стратегія вирішення конфліктів, закладена в дизайні — **Last-Write-Wins (LWW)**, де новіший запис (за полем `updatedAt`) перемагає.
@@ -41,16 +42,101 @@
 
 ---
 
-## 3. Застарілий код та рекомендації до рефакторингу
+## 3. Файли системи синхронізації
+
+Нижче наведено детальний опис ключових файлів, що беруть участь у процесі синхронізації.
+
+### 3.1. Основні компоненти
+
+- **`sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncRepository.kt`**:
+  - **Роль**: Фасад, що надає єдину точку входу для всіх операцій синхронізації.
+  - **Функції**: Делегує виклики до `SyncFileService`, `SyncWifiService`, `MergeRepository` та `AttachmentsRepository`. Не містить власної бізнес-логіки.
+
+- **`sync/src/main/java/com/romankozak/forwardappmobile/sync/MergeRepository.kt`**:
+  - **Роль**: Центральний компонент для логіки злиття даних.
+  - **Функції**:
+    - `createSyncReport`: Створює звіт про зміни для попереднього перегляду.
+    - `applyServerChanges`: Реалізує основну логіку злиття даних за стратегією "Last-Write-Wins".
+    - `createBackupDiff`: Створює детальний диференціал між локальними та вхідними даними.
+  - **Стан**: Частково реалізований.
+
+### 3.2. Синхронізація через файли
+
+- **`sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncFileService.kt`**:
+  - **Роль**: Керує імпортом та експортом даних у JSON-файли.
+  - **Функції**:
+    - `exportFullBackupToFile`: Експортує повний бекап у файл.
+    - `importFullBackupFromFile`: Виконує **деструктивний** імпорт, повністю перезаписуючи локальну базу даних.
+  - **Залежності**: `FullBackupLocalDataSource`.
+
+- **`core-data-interfaces/src/main/java/com/romankozak/forwardappmobile/sync/datasource/FullBackupLocalDataSource.kt`** (інтерфейс) та **`app/src/main/java/com/romankozak/forwardappmobile/data/sync/FullBackupLocalDataSourceImpl.kt`** (реалізація):
+  - **Роль**: Забезпечує прямий доступ до бази даних для операцій повного бекапу та відновлення.
+  - **Функції**:
+    - `loadFullDatabaseContent`: Завантажує всі дані з бази.
+    - `restoreDatabaseFromBackup`: **Очищує всі таблиці** та вставляє нові дані.
+
+### 3.3. Peer-to-Peer синхронізація (Wi-Fi)
+
+- **`app/src/main/java/com/romankozak/forwardappmobile/features/sync/WifiSyncServer.kt`**:
+  - **Роль**: Реалізація Ktor-сервера для P2P-синхронізації.
+  - **Функції**: Надає ендпоїнти `/export` (для віддачі даних) та `/import` (для прийому даних).
+
+- **`sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncWifiService.kt`**:
+  - **Роль**: Клієнтська частина P2P-синхронізації.
+  - **Функції**: Використовує Ktor-клієнт для взаємодії з `WifiSyncServer` (завантаження та відправка даних).
+
+- **`sync/src/main/java/com/romankozak/forwardappmobile/sync/WifiSyncRepository.kt`**:
+  - **Роль**: Простий репозиторій, що делегує логіку Wi-Fi синхронізації до `SyncWifiService`.
+
+---
+
+## 4. Механізми вмикання/вимикання (Feature Toggles) синхронізації
+
+У проекті існує два незалежні механізми керування функцією синхронізації:
+
+### 4.1. Перемикач на рівні збірки (Build-Level Toggle)
+
+Цей механізм контролює, чи буде включено реальну реалізацію синхронізації, чи її "no-op" (порожню) версію. Він працює на етапі компіляції.
+
+-   **Керування:** За допомогою властивості `syncEnabled` у файлі `gradle.properties` (у корені проекту).
+    *   `syncEnabled=true`: Включає реальну логіку синхронізації. Модуль `sync` використовуватиме файли з `sync/src/main/java` та `sync/src/syncOn/java`.
+    *   `syncEnabled=false`: Включає "no-op" логіку синхронізації. Модуль `sync` використовуватиме файли з `sync/src/main/java` та `sync/src/syncOff/java`, які надають порожні реалізації Hilt-модулів (`SyncInternalModule.kt` з `NoOpAttachmentsRepository` та `NoOpSyncRepository`).
+-   **Реалізація:**
+    *   **`gradle.properties`**: Додано властивість `syncEnabled`.
+    *   **`sync/build.gradle.kts`**: Зчитує властивість `syncEnabled` і відповідно вибирає `sourceSets` (`src/syncOn/java` або `src/syncOff/java`).
+    *   **`app/build.gradle.kts`**: Також зчитує властивість `syncEnabled` і встановлює булеве поле `BuildConfig.SYNC_ENABLED` у коді програми для забезпечення узгодженості.
+
+### 4.2. Перемикач на рівні UI (UI-Level Toggle)
+
+Цей механізм контролює видимість елементів інтерфейсу, пов'язаних із синхронізацією.
+
+-   **Керування:** За допомогою поля `BuildConfig.IS_EXPERIMENTAL_BUILD`, яке встановлюється на основі Gradle product flavor.
+    *   `exp` flavor: Встановлює `IS_EXPERIMENTAL_BUILD` в `true`, що дозволяє `FeatureToggles.kt` відображати UI синхронізації (наприклад, `SyncStatusIndicator`).
+    *   `prod` flavor: Встановлює `IS_EXPERIMENTAL_BUILD` в `false`, що приховує UI синхронізації.
+-   **Реалізація:**
+    *   **`app/build.gradle.kts`**: Встановлює `BuildConfig.IS_EXPERIMENTAL_BUILD` у секції `productFlavors`.
+    *   **`app/src/main/java/com/romankozak/forwardappmobile/core/config/FeatureToggles.kt`**: Використовує `BuildConfig.IS_EXPERIMENTAL_BUILD` для перевизначення стану `FeatureFlag.WifiSync`.
+    *   **UI компоненти (наприклад, `MainScreenTopAppBar.kt`)**: Перевіряють стан `FeatureFlag.WifiSync` через `FeatureToggles.isEnabled()` для умовного відображення елементів.
+
+---
+
+## 5. Застарілий код та рекомендації до рефакторингу
 
 Під час аналізу було виявлено застарілий компонент:
 
-- **`BackupRepository.kt`**: Цей клас є надлишковим. Він майже повністю дублює функціонал `SyncFileService` і не використовується основним фасадом `SyncRepository`.
+- **`sync/src/main/java/com/romankozak/forwardappmobile/sync/BackupRepository.kt`**:
+  - **Проблема**: Цей клас є надлишковим. Він майже повністю дублює функціонал `SyncFileService` і не використовується основним фасадом `SyncRepository`.
   - **Рекомендація**: **Видалити `BackupRepository.kt`**. Єдиний унікальний метод `getLastSyncTime()` слід перенести в `MergeRepository`, оскільки він логічно належить до процесу злиття даних.
 
 ---
 
-## 4. Загальний висновок та наступні кроки
+## 6. Перейменування "Проектів" в "Контексти"
+
+Важливо зазначити, що в коді часто зустрічається термін `Project` (проект), який насправді відповідає сутності "Контекст". Це пов'язано з незавершеним рефакторингом. При аналізі коду слід пам'ятати про цю невідповідність.
+
+---
+
+## 7. Загальний висновок та наступні кроки
 
 Механізм синхронізації перебуває в стані активного рефакторингу. На даний момент **не існує повноцінної, безпечної хмарної синхронізації**.
 
@@ -63,3 +149,4 @@
 2.  **Покращити безпеку імпорту**: Додати в процес імпорту з файлу чіткі попередження для користувача та обов'язкову перевірку версії схеми бекапу.
 3.  **Видалити застарілий код**: Прибрати `BackupRepository.kt`, щоб спростити кодову базу.
 4.  **Реалізувати фонову синхронізацію**: Інтегрувати `WorkManager` для автоматичної синхронізації з сервером у фоновому режимі.
+5.  **Завершити рефакторинг `Project` -> `Context`**: Уніфікувати іменування в усій кодовій базі для усунення плутанини.
