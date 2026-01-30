@@ -58,25 +58,79 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
 
     override suspend fun restoreDatabaseFromBackup(content: DatabaseContent) {
         db.withTransaction {
+            android.util.Log.d("FullBackupImport", "--- STARTING DATABASE RESTORE ---")
             clearAllTables()
 
-            // Вставляємо дані, використовуючи точні назви методів з ваших DAO
-            goalDao.insertGoals(content.goals) //
-            contextDao.insertContexts(content.projects) //
-            listItemDao.insertItems(content.backlogItems) //
+            // Step 1: Filter and insert independent "parent" entities and collect their valid IDs.
+            val validGoals = content.goals.filter { !it.id.isNullOrBlank() && !it.text.isNullOrBlank() }
+            val validGoalIds = validGoals.map { it.id }.toSet()
+            if (content.goals.size > validGoals.size) android.util.Log.w("FullBackupImport", "Goals: Ignored ${content.goals.size - validGoals.size} of ${content.goals.size}.")
+            goalDao.insertGoals(validGoals)
 
-            noteDocumentDao.insertAllDocuments(content.documents)
-            attachmentDao.insertAttachments(content.attachments)
-            attachmentDao.insertContextAttachmentLinks(content.contextAttachmentCrossRefs)
+            val validContexts = content.projects.filter { !it.id.isNullOrBlank() && !it.name.isNullOrBlank() }
+            val validContextIds = validContexts.map { it.id }.toSet()
+            if (content.projects.size > validContexts.size) android.util.Log.w("FullBackupImport", "Contexts: Ignored ${content.projects.size - validContexts.size} of ${content.projects.size}.")
+            contextDao.insertContexts(validContexts)
+            android.util.Log.d("FullBackupImport", "DIAGNOSTIC: First 5 valid context IDs: [${validContextIds.take(5).joinToString()}]")
 
-            dayPlanDao.insertAll(content.dayPlans)
-            dayTaskDao.insertAll(content.dayTasks)
-            dailyMetricDao.insertAll(content.dailyMetrics)
-            chatDao.insertConversations(content.conversations)
-            chatDao.insertMessages(content.chatMessages)
-            reminderDao.insertAll(content.reminders)
-            tacticalMissionDao.insertMissions(content.tacticalMissions)
-            aiInsightDao.upsertAll(content.aiInsights)
+
+            val validAttachments = content.attachments.filter { !it.id.isNullOrBlank() && !it.attachmentType.isNullOrBlank() && !it.entityId.isNullOrBlank() }
+            val validAttachmentIds = validAttachments.map { it.id }.toSet()
+            if (content.attachments.size > validAttachments.size) android.util.Log.w("FullBackupImport", "Attachments: Ignored ${content.attachments.size - validAttachments.size} of ${content.attachments.size}.")
+            attachmentDao.insertAttachments(validAttachments)
+            
+            val validDocuments = content.documents.filter {
+                val isValid = !it.id.isNullOrBlank() && !it.name.isNullOrBlank() && validContextIds.contains(it.contextId)
+                if (!isValid && !it.id.isNullOrBlank()) {
+                     android.util.Log.w("FullBackupImport", "DIAGNOSTIC: NoteDocument with id ${it.id} is being ignored due to unknown contextId: ${it.contextId}")
+                }
+                isValid
+            }
+            val validDocumentIds = validDocuments.map { it.id }.toSet()
+            if (content.documents.size > validDocuments.size) android.util.Log.w("FullBackupImport", "NoteDocuments: Ignored ${content.documents.size - validDocuments.size} of ${content.documents.size}.")
+            noteDocumentDao.insertAllDocuments(validDocuments)
+
+            // Step 2: Filter dependent entities against the sets of valid parent IDs.
+
+            val validBacklogItems = content.backlogItems.filter {
+                val entityId = it.entityId
+                val itemType = it.itemType
+                val contextId = it.contextId
+                val id = it.id
+
+                val isValid = !id.isNullOrBlank() &&
+                        !contextId.isNullOrBlank() &&
+                        validContextIds.contains(contextId) &&
+                        entityId != null &&
+                        itemType != null &&
+                        when (itemType) {
+                            "GOAL" -> validGoalIds.contains(entityId)
+                            "SUBLIST" -> validContextIds.contains(entityId)
+                            "NOTE_DOCUMENT" -> validDocumentIds.contains(entityId)
+                            else -> false
+                        }
+                if (!isValid) {
+                    android.util.Log.w("FullBackupImport", "DIAGNOSTIC: BacklogItem ignored: id=${id}, itemType=${itemType}, contextId=${contextId}, entityId=${entityId}")
+                }
+                isValid
+            }
+            if (content.backlogItems.size > validBacklogItems.size) android.util.Log.w("FullBackupImport", "BacklogItems: Ignored ${content.backlogItems.size - validBacklogItems.size} of ${content.backlogItems.size}.")
+            listItemDao.insertItems(validBacklogItems)
+
+
+            val validCrossRefs = content.contextAttachmentCrossRefs.filter {
+                val contextOk = validContextIds.contains(it.contextId)
+                val attachmentOk = validAttachmentIds.contains(it.attachmentId)
+                val isValid = !it.contextId.isNullOrBlank() && !it.attachmentId.isNullOrBlank() && contextOk && attachmentOk
+                if (!isValid) {
+                     android.util.Log.w("FullBackupImport", "DIAGNOSTIC: CrossRef ignored: contextId=${it.contextId} (exists: $contextOk), attachmentId=${it.attachmentId} (exists: $attachmentOk)")
+                }
+                isValid
+            }
+            if (content.contextAttachmentCrossRefs.size > validCrossRefs.size) android.util.Log.w("FullBackupImport", "CrossRefs: Ignored ${content.contextAttachmentCrossRefs.size - validCrossRefs.size} of ${content.contextAttachmentCrossRefs.size}.")
+            attachmentDao.insertContextAttachmentLinks(validCrossRefs)
+
+            android.util.Log.d("FullBackupImport", "--- DATABASE RESTORE FINISHED ---")
         }
     }
 

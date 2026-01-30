@@ -1154,10 +1154,20 @@ class BacklogViewModel
                     return@launch
                 }
 
+                val itemType = attachment.backlogItem.itemType
+                val entityId = attachment.backlogItem.entityId
+
+                if (itemType == null || entityId == null) {
+                    withContext(Dispatchers.Main) {
+                        showSnackbar("Cannot share corrupt attachment", null)
+                    }
+                    return@launch
+                }
+
                 val attachmentId = try {
                     contextRepository.ensureAttachmentLinkedToContext(
-                        attachmentType = attachment.backlogItem.itemType,
-                        entityId = attachment.backlogItem.entityId,
+                        attachmentType = itemType,
+                        entityId = entityId,
                         targetContextId = targetcontextId,
                         ownerContextId = attachment.backlogItem.contextId.takeIf { it.isNotBlank() } ?: contextIdFlow.value,
                     )

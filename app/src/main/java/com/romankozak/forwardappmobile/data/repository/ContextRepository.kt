@@ -295,12 +295,19 @@ class ContextRepository @Inject constructor(
     suspend fun cleanupDanglingListItems() {
         val allListItems = listItemRepository.getAll()
         val itemsToDelete = allListItems.filter { item ->
-            when (item.itemType) {
-                BacklogItemTypeValues.GOAL -> goalRepository.getGoalById(item.entityId) == null
-                BacklogItemTypeValues.SUBLIST -> contextDao.getContextById(item.entityId) == null
-                BacklogItemTypeValues.NOTE_DOCUMENT -> noteDocumentRepository.getDocumentById(item.entityId) == null
-                BacklogItemTypeValues.CHECKLIST -> checklistRepository.getChecklistById(item.entityId) == null
-                else -> false
+            val entityId = item.entityId
+            val itemType = item.itemType
+
+            if (entityId == null || itemType == null) {
+                true // If entityId or itemType is null, the item is corrupt and should be deleted.
+            } else {
+                when (itemType) {
+                    BacklogItemTypeValues.GOAL -> goalRepository.getGoalById(entityId) == null
+                    BacklogItemTypeValues.SUBLIST -> contextDao.getContextById(entityId) == null
+                    BacklogItemTypeValues.NOTE_DOCUMENT -> noteDocumentRepository.getDocumentById(entityId) == null
+                    BacklogItemTypeValues.CHECKLIST -> checklistRepository.getChecklistById(entityId) == null
+                    else -> false
+                }
             }
         }.map { it.id }
 

@@ -88,7 +88,7 @@ import com.romankozak.forwardappmobile.data.database.MIGRATION_90_91
 import com.romankozak.forwardappmobile.data.database.MIGRATION_91_92
 import com.romankozak.forwardappmobile.data.database.MIGRATION_92_93
 import com.romankozak.forwardappmobile.data.database.MIGRATION_94_95
-import com.romankozak.forwardappmobile.data.database.MIGRATION_95_96
+
 import com.romankozak.forwardappmobile.data.database.migrateSpecialProjects
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
@@ -157,7 +157,7 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             "forward_app_database",
-        ).fallbackToDestructiveMigration(false).addMigrations(
+        ).fallbackToDestructiveMigration().addMigrations(
             MIGRATION_8_9,
             MIGRATION_10_11,
             MIGRATION_11_12,
@@ -240,7 +240,6 @@ object DatabaseModule {
             MIGRATION_92_93,
             MIGRATION_93_94,
             MIGRATION_94_95,
-            MIGRATION_95_96,
         ).build()
     }
 

@@ -140,7 +140,7 @@ data class InboxRecord(
 )
 data class BacklogItem(
     @PrimaryKey val id: String,
-    @SerializedName(value = "contextId", alternate = ["listId"])
+    @SerializedName(value = "contextId", alternate = ["listId", "projectId"])
     @ColumnInfo(name = "context_id", index = true)
     val contextId: String,
     val itemType: String,

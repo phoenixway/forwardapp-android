@@ -47,8 +47,9 @@ object BacklogOrderUtils {
                     )
             }
 
-    fun listItemToBacklogOrder(
+    private fun listItemToBacklogOrder(
         backlogItem: BacklogItem,
+        entityId: String,
         now: Long = System.currentTimeMillis(),
     ): BacklogOrder {
         val updated = backlogItem.updatedAt ?: backlogItem.version ?: now
@@ -56,7 +57,7 @@ object BacklogOrderUtils {
         return BacklogOrder(
             id = backlogItem.id,
             listId = backlogItem.contextId,
-            itemId = backlogItem.entityId,
+            itemId = entityId,
             order = backlogItem.order,
             orderVersion = orderVersion,
             updatedAt = updated,
@@ -75,7 +76,10 @@ object BacklogOrderUtils {
         if (backlogOrders.isEmpty()) return backlogItems
         val map = buildOrderMap(backlogOrders)
         return backlogItems.map { li ->
-            val override = map[li.id] ?: map["${li.contextId}:${li.entityId}"] ?: return@map li
+            val entityId = li.entityId
+            if (entityId == null) return@map li // Don't process items with null entityId
+
+            val override = map[li.id] ?: map["${li.contextId}:$entityId"] ?: return@map li
             val updated = maxOf(li.updatedAt.orZero(), override.updatedAt.orZero(), override.orderVersion.orZero())
             val version = maxOf(li.version.orZero(), override.orderVersion.orZero(), li.updatedAt.orZero(), override.updatedAt.orZero())
             li.copy(
@@ -96,9 +100,12 @@ object BacklogOrderUtils {
         val dedupedOrders = dedupBacklogOrders(backlogOrders)
         val orderMap = buildOrderMap(dedupedOrders).toMutableMap()
         backlogItems.forEach { li ->
-            val key = orderKey(li.contextId, li.entityId, li.id)
-            if (!orderMap.containsKey(key)) {
-                orderMap[key] = listItemToBacklogOrder(li, now)
+            val entityId = li.entityId
+            if (entityId != null) {
+                val key = orderKey(li.contextId, entityId, li.id)
+                if (!orderMap.containsKey(key)) {
+                    orderMap[key] = listItemToBacklogOrder(li, entityId, now)
+                }
             }
         }
         val seededOrders = orderMap.values.toList()
@@ -106,7 +113,10 @@ object BacklogOrderUtils {
         // regenerate orders from applied listItems to keep freshness aligned
         val normalizedOrders =
             dedupBacklogOrders(
-                seededOrders + listWithOrders.map { listItemToBacklogOrder(it, now) },
+                seededOrders + listWithOrders.mapNotNull {
+                    val entityId = it.entityId
+                    if (entityId != null) listItemToBacklogOrder(it, entityId, now) else null
+                },
             )
         val appliedList = applyBacklogOrders(listWithOrders, normalizedOrders)
         return NormalizedBacklogOrderResult(

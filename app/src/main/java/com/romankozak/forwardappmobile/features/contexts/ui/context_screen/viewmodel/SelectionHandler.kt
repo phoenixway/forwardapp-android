@@ -104,7 +104,7 @@ class SelectionHandler(
         val sourceGoalIds =
             listContentFlow.value
                 .filter { it.backlogItem.id in selectedIds && it is BacklogItemContent.GoalItem }
-                .map { it.backlogItem.entityId }
+                .mapNotNull { it.backlogItem.entityId }
                 .toSet()
 
         resultListener.setPendingAction(actionType, selectedIds, sourceGoalIds)
