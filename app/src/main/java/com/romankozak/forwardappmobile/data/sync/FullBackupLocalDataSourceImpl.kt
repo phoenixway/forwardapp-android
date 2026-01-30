@@ -81,8 +81,8 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
             
             val validDocuments = content.documents.filter {
                 val isValid = !it.id.isNullOrBlank() && !it.name.isNullOrBlank() && validContextIds.contains(it.contextId)
-                if (!isValid && !it.id.isNullOrBlank()) {
-                     android.util.Log.w("FullBackupImport", "DIAGNOSTIC: NoteDocument with id ${it.id} is being ignored due to unknown contextId: ${it.contextId}")
+                if (!isValid) {
+                     android.util.Log.w("FullBackupImport", "DIAGNOSTIC: NoteDocument ignored: id=${it.id}, name=${it.name}, contextId=${it.contextId} (context exists: ${validContextIds.contains(it.contextId)})")
                 }
                 isValid
             }
@@ -98,19 +98,20 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
                 val contextId = it.contextId
                 val id = it.id
 
+                val contextExists = validContextIds.contains(contextId)
+                val entityIdValidForType = when (itemType) {
+                    "GOAL" -> entityId != null && validGoalIds.contains(entityId)
+                    "SUBLIST" -> entityId != null && validContextIds.contains(entityId)
+                    "NOTE_DOCUMENT" -> entityId != null && validDocumentIds.contains(entityId)
+                    else -> false
+                }
+                
                 val isValid = !id.isNullOrBlank() &&
                         !contextId.isNullOrBlank() &&
-                        validContextIds.contains(contextId) &&
-                        entityId != null &&
-                        itemType != null &&
-                        when (itemType) {
-                            "GOAL" -> validGoalIds.contains(entityId)
-                            "SUBLIST" -> validContextIds.contains(entityId)
-                            "NOTE_DOCUMENT" -> validDocumentIds.contains(entityId)
-                            else -> false
-                        }
+                        contextExists &&
+                        entityIdValidForType
                 if (!isValid) {
-                    android.util.Log.w("FullBackupImport", "DIAGNOSTIC: BacklogItem ignored: id=${id}, itemType=${itemType}, contextId=${contextId}, entityId=${entityId}")
+                    android.util.Log.w("FullBackupImport", "DIAGNOSTIC: BacklogItem ignored: id=${id}, itemType=${itemType}, contextId=${contextId} (context exists: $contextExists), entityId=${entityId} (entity valid: $entityIdValidForType)")
                 }
                 isValid
             }
@@ -119,16 +120,14 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
 
 
             val validCrossRefs = content.contextAttachmentCrossRefs.filter {
-                val contextOk = validContextIds.contains(it.contextId)
-                val attachmentOk = validAttachmentIds.contains(it.attachmentId)
-                val isValid = !it.contextId.isNullOrBlank() && !it.attachmentId.isNullOrBlank() && contextOk && attachmentOk
+                val contextExists = validContextIds.contains(it.contextId)
+                val attachmentExists = validAttachmentIds.contains(it.attachmentId)
+                val isValid = !it.contextId.isNullOrBlank() && !it.attachmentId.isNullOrBlank() && contextExists && attachmentExists
                 if (!isValid) {
-                     android.util.Log.w("FullBackupImport", "DIAGNOSTIC: CrossRef ignored: contextId=${it.contextId} (exists: $contextOk), attachmentId=${it.attachmentId} (exists: $attachmentOk)")
+                     android.util.Log.w("FullBackupImport", "DIAGNOSTIC: CrossRef ignored: contextId=${it.contextId} (context exists: $contextExists), attachmentId=${it.attachmentId} (attachment exists: $attachmentExists)")
                 }
                 isValid
             }
-            if (content.contextAttachmentCrossRefs.size > validCrossRefs.size) android.util.Log.w("FullBackupImport", "CrossRefs: Ignored ${content.contextAttachmentCrossRefs.size - validCrossRefs.size} of ${content.contextAttachmentCrossRefs.size}.")
-            attachmentDao.insertContextAttachmentLinks(validCrossRefs)
 
             android.util.Log.d("FullBackupImport", "--- DATABASE RESTORE FINISHED ---")
         }

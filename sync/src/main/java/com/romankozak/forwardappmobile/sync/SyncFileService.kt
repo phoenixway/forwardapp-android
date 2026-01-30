@@ -77,12 +77,9 @@ class SyncFileService @Inject constructor(
         Log.d(TAG, "Attempting to import full backup from URI: $uri")
         try {
             val backupResult = parseBackupFile(uri)
-            
             if (backupResult.isFailure) {
-                // The error is already logged in parseBackupFile, just re-throw
                 throw backupResult.exceptionOrNull() ?: Exception("Unknown parsing error")
             }
-            
             val backupData = backupResult.getOrThrow()
 
             localDataSource.restoreDatabaseFromBackup(backupData.database)
@@ -107,44 +104,9 @@ class SyncFileService @Inject constructor(
                 Log.w(TAG, "Parse failed: Backup file is empty or blank.")
                 return@withContext Result.failure(Exception("Backup file is empty"))
             }
-
-            // Parse to a generic JsonObject to manually clean the data
-            val rootObject = gson.fromJson(jsonString, JsonObject::class.java)
-            val databaseObject = rootObject.getAsJsonObject("database")
-            
-            var wasCleaned = false
-
-            rootObject.getAsJsonObject("database")?.let { dbObject ->
-                val keyToUse = if (dbObject.has("listItems")) "listItems" else "backlogItems"
-                
-                dbObject.getAsJsonArray(keyToUse)?.let { backlogItemsArray ->
-                    val originalSize = backlogItemsArray.size()
-                    
-                    val cleanedBacklogItems = backlogItemsArray.filter {
-                        val item = if (it.isJsonObject) it.asJsonObject else null
-                        item != null &&
-                            item.has("itemType") && !item.get("itemType").isJsonNull &&
-                            item.has("entityId") && !item.get("entityId").isJsonNull
-                    }
-
-                    if (originalSize > cleanedBacklogItems.size) {
-                        wasCleaned = true
-                        val ignoredCount = originalSize - cleanedBacklogItems.size
-                        Log.w(TAG, "Ignored $ignoredCount corrupt BacklogItems with null itemType or entityId.")
-                        
-                        // Replace the old array with the cleaned one
-                        dbObject.remove(keyToUse)
-                        dbObject.add(keyToUse, gson.toJsonTree(cleanedBacklogItems))
-                    }
-                }
-            }
-            
-            val finalJson = rootObject.toString()
-            val backupData = gson.fromJson(finalJson, FullAppBackup::class.java)
-
-            Log.d(TAG, "Successfully parsed backup file. Was data cleaned: $wasCleaned")
+            val backupData = gson.fromJson(jsonString, FullAppBackup::class.java)
+            Log.d(TAG, "Successfully parsed backup file object.")
             Result.success(backupData)
-
         } catch (e: Exception) {
             Log.e(TAG, "Failed to parse backup file", e)
             Result.failure(e)
