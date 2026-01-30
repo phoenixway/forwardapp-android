@@ -22,6 +22,7 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
     private val goalDao: GoalDao,
     private val listItemDao: ListItemDao,
     private val noteDocumentDao: NoteDocumentDao,
+    private val checklistDao: ChecklistDao,
     private val attachmentDao: AttachmentDao,
     private val recentItemDao: RecentItemDao,
     private val dayPlanDao: DayPlanDao,
@@ -121,6 +122,13 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
             if (content.documents.size > validDocuments.size) android.util.Log.w("FullBackupImport", "NoteDocuments: Ignored ${content.documents.size - validDocuments.size} of ${content.documents.size}.")
             noteDocumentDao.insertAllDocuments(validDocuments)
 
+            val validChecklists = content.checklists.filter {
+                !it.id.isNullOrBlank() && !it.name.isNullOrBlank() && validContextIds.contains(it.contextId)
+            }
+            val validChecklistIds = validChecklists.map { it.id }.toSet()
+            checklistDao.insertChecklists(validChecklists)
+
+
             // Step 2: Filter dependent entities against the sets of valid parent IDs.
 
             val validBacklogItems = content.backlogItems.filter {
@@ -132,7 +140,7 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
                 val contextExists = validContextIds.contains(contextId)
                 val entityIdValidForType = when (itemType) {
                     "GOAL" -> entityId != null && validGoalIds.contains(entityId)
-                    "SUBLIST" -> entityId != null && validContextIds.contains(entityId)
+                    "SUBLIST" -> entityId != null && validChecklistIds.contains(entityId)
                     "NOTE_DOCUMENT" -> entityId != null && validDocumentIds.contains(entityId)
                     else -> false
                 }
@@ -148,6 +156,11 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
             }
             if (content.backlogItems.size > validBacklogItems.size) android.util.Log.w("FullBackupImport", "BacklogItems: Ignored ${content.backlogItems.size - validBacklogItems.size} of ${content.backlogItems.size}.")
             listItemDao.insertItems(validBacklogItems)
+
+            val validChecklistItems = content.checklistItems.filter {
+                !it.id.isNullOrBlank() && validChecklistIds.contains(it.checklistId)
+            }
+            checklistDao.insertItems(validChecklistItems)
 
 
             val validCrossRefs = content.contextAttachmentCrossRefs.filter {

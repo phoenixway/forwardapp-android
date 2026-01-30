@@ -5,6 +5,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.google.gson.annotations.SerializedName
 import java.util.UUID
 
 @Entity(
@@ -21,7 +22,9 @@ import java.util.UUID
 )
 data class ChecklistEntity(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
+    @SerializedName("contextId", alternate = ["projectId"])
     val contextId: String,
+    @SerializedName("name", alternate = ["title"])
     var name: String,
     val updatedAt: Long? = null,
     val syncedAt: Long? = null,
@@ -43,7 +46,9 @@ data class ChecklistEntity(
 )
 data class ChecklistItemEntity(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
+    @SerializedName("checklistId")
     val checklistId: String,
+    @SerializedName("content", alternate = ["text"])
     var content: String,
     @ColumnInfo(defaultValue = "0") var isChecked: Boolean = false,
     var itemOrder: Long = 0,
