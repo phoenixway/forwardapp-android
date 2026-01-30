@@ -114,29 +114,27 @@ class SyncFileService @Inject constructor(
             
             var wasCleaned = false
 
-            if (databaseObject != null && databaseObject.has("backlogItems")) {
-                val backlogItemsArray = databaseObject.getAsJsonArray("backlogItems")
-                if (backlogItemsArray != null) {
+            rootObject.getAsJsonObject("database")?.let { dbObject ->
+                val keyToUse = if (dbObject.has("listItems")) "listItems" else "backlogItems"
+                
+                dbObject.getAsJsonArray(keyToUse)?.let { backlogItemsArray ->
                     val originalSize = backlogItemsArray.size()
+                    
                     val cleanedBacklogItems = backlogItemsArray.filter {
                         val item = if (it.isJsonObject) it.asJsonObject else null
                         item != null &&
-                            (item.has("itemType") && !item.get("itemType").isJsonNull) &&
-                            (item.has("entityId") && !item.get("entityId").isJsonNull)
+                            item.has("itemType") && !item.get("itemType").isJsonNull &&
+                            item.has("entityId") && !item.get("entityId").isJsonNull
                     }
 
                     if (originalSize > cleanedBacklogItems.size) {
-                        val ignoredCount = originalSize - cleanedBacklogItems.size
-                        Log.w(TAG, "Ignored $ignoredCount corrupt BacklogItems with null itemType or entityId during backup parsing.")
-                        
-                        // Reconstruct the database object with the cleaned array
-                        val cleanedDatabaseObject = databaseObject.deepCopy()
-                        cleanedDatabaseObject.remove("backlogItems") // remove old
-                        cleanedDatabaseObject.add("backlogItems", gson.toJsonTree(cleanedBacklogItems)) // add new
-                        
-                        rootObject.remove("database") // remove old
-                        rootObject.add("database", cleanedDatabaseObject) // add new
                         wasCleaned = true
+                        val ignoredCount = originalSize - cleanedBacklogItems.size
+                        Log.w(TAG, "Ignored $ignoredCount corrupt BacklogItems with null itemType or entityId.")
+                        
+                        // Replace the old array with the cleaned one
+                        dbObject.remove(keyToUse)
+                        dbObject.add(keyToUse, gson.toJsonTree(cleanedBacklogItems))
                     }
                 }
             }

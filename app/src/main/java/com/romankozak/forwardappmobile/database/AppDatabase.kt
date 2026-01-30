@@ -121,7 +121,7 @@ import com.romankozak.forwardappmobile.core.data.models.Reminder
         LegacyNoteFts::class,
         RecurringTaskFts::class,
     ],
-    version = 99,
+    version = 100,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
