@@ -37,7 +37,7 @@ interface ScriptDao {
     suspend fun getAllRaw(): List<ScriptEntity>
 
     @Query("SELECT * FROM scripts")
-    suspend fun getAllFlow(): Flow<List<ScriptEntity>>
+    fun getAllFlow(): Flow<List<ScriptEntity>>
 
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

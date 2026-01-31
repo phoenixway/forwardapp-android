@@ -255,7 +255,7 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
             db.recurringTaskDao().insertAll(bundle.recurringTasks.map { it.toEntity() })
             db.tacticalMissionDao().insertMissions(bundle.tacticalMissions.map { it.toEntity() })
 
-            db.backlogItemDao().insertItems(bundle.backlogItems.map { it.toEntity() })
+            db.listItemDao().insertItems(bundle.backlogItems.map { it.toEntity() })
             db.backlogOrderDao().insertAll(bundle.backlogOrders.map { it.toEntity() })
             db.legacyNoteDao().insertAll(bundle.notes.map { it.toEntity() })
             db.noteDocumentDao().insertAllItems(bundle.documentItems.map { it.toEntity() })

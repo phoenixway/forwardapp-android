@@ -321,6 +321,11 @@ fun RecentProjectEntrySnapshot.toEntity(): RecentItem = RecentItem(
     isPinned = false
 )
 
+fun RecentItem.toSnapshot(): RecentProjectEntrySnapshot = RecentProjectEntrySnapshot(
+    contextId = this.target,
+    timestamp = this.lastAccessed
+)
+
 fun Reminder.toSnapshot(): ReminderSnapshot = ReminderSnapshot(id, entityId, entityType, reminderTime, status, creationTime, snoozeUntil, updatedAt ?: creationTime, isDeleted, version)
 fun ReminderSnapshot.toEntity(): Reminder = Reminder(id, entityId, entityType, reminderTime, status, creationTime, snoozeUntil, updatedAt, isDeleted = isDeleted, version = version)
 
