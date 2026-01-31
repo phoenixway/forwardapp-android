@@ -36,4 +36,7 @@ interface LegacyNoteDao {
 
     @Query("DELETE FROM notes WHERE id = :noteId")
     suspend fun deleteNoteById(noteId: String)
+
+    @Query("SELECT * FROM notes")
+    suspend fun getAllRaw(): List<LegacyNoteEntity>
 }

@@ -25,4 +25,10 @@ interface ContextArtifactDao {
 
     @Query("DELETE FROM context_artifacts")
     suspend fun deleteAll()
+
+    @Query("SELECT * FROM context_artifacts")
+    suspend fun getAllRaw(): List<ContextArtifact>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(artifacts: List<ContextArtifact>)
 }

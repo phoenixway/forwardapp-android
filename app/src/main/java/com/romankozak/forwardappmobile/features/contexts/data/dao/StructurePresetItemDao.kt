@@ -36,8 +36,11 @@ interface StructurePresetItemDao {
 
     // --- Backup Methods ---
     @Query("SELECT * FROM structure_preset_items")
-    suspend fun getAllItems(): List<ContextRoleProfileItem>
+    suspend fun getAllSync(): List<ContextRoleProfileItem>
 
     @Query("DELETE FROM structure_preset_items")
     suspend fun deleteAllItems()
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(items: List<ContextRoleProfileItem>)
 }

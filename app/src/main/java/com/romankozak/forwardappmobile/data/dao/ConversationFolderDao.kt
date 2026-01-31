@@ -17,8 +17,11 @@ interface ConversationFolderDao {
 
     // --- Backup Methods ---
     @Query("SELECT * FROM conversation_folders")
-    suspend fun getAllFoldersSync(): List<ConversationFolderEntity>
+    suspend fun getAllSync(): List<ConversationFolderEntity>
 
     @Query("DELETE FROM conversation_folders")
     suspend fun deleteAllFolders()
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(folders: List<ConversationFolderEntity>)
 }

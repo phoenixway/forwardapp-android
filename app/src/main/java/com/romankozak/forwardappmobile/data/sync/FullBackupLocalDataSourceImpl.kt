@@ -10,6 +10,7 @@ import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.core.data.interfaces.SystemContextEnsurer
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.toEntity
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.toSnapshot
 import com.romankozak.forwardappmobile.features.contexts.data.dao.*
 import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
@@ -276,7 +277,7 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
             db.reminderDao().insertAll(bundle.reminders.map { it.toEntity() })
             db.tacticalMissionDao().insertMissionAttachments(bundle.tacticalMissionAttachments.map { it.toEntity() })
             db.aiEventDao().insertAll(bundle.aiEvents.map { it.toEntity() })
-            db.aiInsightDao().insertAll(bundle.aiInsights.map { it.toEntity() })
+            db.aiInsightDao().upsertAll(bundle.aiInsights.map { it.toEntity() })
             db.lifeSystemStateDao().insertAll(bundle.lifeSystemStates.map { it.toEntity() })
             db.structurePresetDao().insertAll(bundle.contextRoleProfiles.map { it.toEntity() })
             db.structurePresetItemDao().insertAll(bundle.contextRoleProfileItems.map { it.toEntity() })

@@ -87,4 +87,13 @@ interface NoteDocumentDao {
 
     @Query("DELETE FROM note_document_items WHERE id IN (:itemIds)")
     suspend fun deleteListItemsByIds(itemIds: List<String>)
+
+    @Query("SELECT * FROM note_documents")
+    suspend fun getAllDocumentsRaw(): List<NoteDocumentEntity>
+
+    @Query("SELECT * FROM note_document_items")
+    suspend fun getAllDocumentItemsRaw(): List<NoteDocumentItemEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAllItems(items: List<NoteDocumentItemEntity>)
 }

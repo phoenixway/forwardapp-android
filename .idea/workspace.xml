@@ -10,38 +10,35 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="dec4991f-6ae0-4b6d-adb7-135ff1c91165" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/dao/ActivityRecordDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/dao/ActivityRecordDao.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/dao/ConversationFolderDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/dao/ConversationFolderDao.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/dao/DailyMetricDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/dao/DailyMetricDao.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/dao/DayPlanDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/dao/DayPlanDao.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/dao/DayTaskDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/dao/DayTaskDao.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/dao/LegacyNoteDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/dao/LegacyNoteDao.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/dao/LifeSystemStateDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/dao/LifeSystemStateDao.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/dao/RecentItemDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/dao/RecentItemDao.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/dao/RecurringTaskDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/dao/RecurringTaskDao.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/dao/ScriptDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/dao/ScriptDao.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/dao/SystemAppDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/dao/SystemAppDao.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/repository/ScriptRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/repository/ScriptRepository.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/sync/FullBackupLocalDataSourceImpl.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/sync/FullBackupLocalDataSourceImpl.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core-data-interfaces/src/main/java/com/romankozak/forwardappmobile/sync/datasource/FullBackupLocalDataSource.kt" beforeDir="false" afterPath="$PROJECT_DIR$/core-data-interfaces/src/main/java/com/romankozak/forwardappmobile/sync/datasource/FullBackupLocalDataSource.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/ChecklistEntity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/ChecklistEntity.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/ContextConfiguration.kt" beforeDir="false" afterPath="$PROJECT_DIR$/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/ContextConfiguration.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/ContextRoleProfile.kt" beforeDir="false" afterPath="$PROJECT_DIR$/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/ContextRoleProfile.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/ContextRoleProfileItem.kt" beforeDir="false" afterPath="$PROJECT_DIR$/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/ContextRoleProfileItem.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/SystemAppEntity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/SystemAppEntity.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/attachments/AttachmentSnapshot.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/attachments/ChecklistItemSnapshot.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/attachments/ChecklistSnapshot.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/attachments/ContextAttachmentCrossRefSnapshot.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/attachments/LegacyNoteSnapshot.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/attachments/NoteDocumentItemSnapshot.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/attachments/NoteDocumentSnapshot.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/attachments/ScriptSnapshot.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/context/BacklogItemSnapshot.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/context/BacklogOrderSnapshot.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/context/ContextArtifactSnapshot.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/context/ContextConfigurationSnapshot.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/context/ContextLogSnapshot.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/context/ContextRoleProfileItemSnapshot.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/context/ContextRoleProfileSnapshot.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/context/ContextSnapshot.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/context/ContextStructureItemSnapshot.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/context/GoalSnapshot.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/context/InboxRecordSnapshot.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/context/LinkItemSnapshot.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/context/RelatedLinkSnapshot.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/context/SystemAppSnapshot" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/context/SystemAppSnapshot.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/ai/data/dao/AiEventDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/ai/data/dao/AiEventDao.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/attachments/data/AttachmentDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/attachments/data/AttachmentDao.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/dao/BacklogOrderDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/dao/BacklogOrderDao.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/dao/ChecklistDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/dao/ChecklistDao.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/dao/ContextArtifactDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/dao/ContextArtifactDao.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/dao/ContextDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/dao/ContextDao.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/dao/ContextManagementDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/dao/ContextManagementDao.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/dao/ContextStructureDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/dao/ContextStructureDao.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/dao/GoalDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/dao/GoalDao.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/dao/InboxRecordDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/dao/InboxRecordDao.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/dao/LinkItemDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/dao/LinkItemDao.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/dao/ListItemDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/dao/ListItemDao.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/dao/NoteDocumentDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/dao/NoteDocumentDao.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/dao/StructurePresetItemDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/dao/StructurePresetItemDao.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/missions/data/TacticalMissionDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/missions/data/TacticalMissionDao.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -51,7 +48,7 @@
   <component name="ClangdSettings">
     <option name="formatViaClangd" value="false" />
   </component>
-  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[DeviceId(pluginId=PhysicalDevice, isTemplate=false, identifier=serial=e57073c4)]" />
+  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[DeviceId(pluginId=LocalEmulator, isTemplate=false, identifier=path=/home/romankozak/.android/avd/Medium_Phone.avd)]" />
   <component name="ExternalProjectsData">
     <projectState path="$PROJECT_DIR$">
       <ProjectState />

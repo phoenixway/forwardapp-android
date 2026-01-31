@@ -100,4 +100,7 @@ interface ActivityRecordDao {
         fromTimestamp: Long,
         toTimestamp: Long,
     ): List<ActivityRecord>
+
+    @Query("SELECT * FROM activity_records")
+    suspend fun getAllRaw(): List<ActivityRecord>
 }

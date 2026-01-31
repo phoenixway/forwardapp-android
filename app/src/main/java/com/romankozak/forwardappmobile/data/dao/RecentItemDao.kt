@@ -26,4 +26,10 @@ interface RecentItemDao {
 
     @Query("DELETE FROM recent_items")
     suspend fun deleteAll()
+
+    @Query("SELECT * FROM recent_items")
+    suspend fun getAllSync(): List<RecentItem>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAllSync(items: List<RecentItem>)
 }

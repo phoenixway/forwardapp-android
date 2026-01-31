@@ -169,4 +169,7 @@ interface DayTaskDao {
 
     @Query("DELETE FROM day_tasks")
     suspend fun deleteAllTasks()
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTasks(tasks: List<DayTask>)
 }

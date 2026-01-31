@@ -61,4 +61,10 @@ interface TacticalMissionDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMissions(missions: List<TacticalMission>)
+
+    @Query("SELECT * FROM tactical_mission_attachment_cross_ref")
+    suspend fun getAllMissionAttachmentsSync(): List<TacticalMissionAttachmentCrossRef>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertMissionAttachments(attachments: List<TacticalMissionAttachmentCrossRef>)
 }

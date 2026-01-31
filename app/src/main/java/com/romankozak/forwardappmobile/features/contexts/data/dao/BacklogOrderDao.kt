@@ -26,4 +26,10 @@ interface BacklogOrderDao {
 
     @Query("DELETE FROM backlog_orders WHERE id IN (:ids)")
     suspend fun deleteOrders(ids: List<String>)
+
+    @Query("SELECT * FROM backlog_orders")
+    suspend fun getAllRaw(): List<BacklogOrder>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(orders: List<BacklogOrder>)
 }

@@ -31,4 +31,10 @@ interface ContextManagementDao {
 
     @Query("DELETE FROM context_execution_logs")
     suspend fun deleteAllLogs()
+
+    @Query("SELECT * FROM context_execution_logs")
+    suspend fun getAllLogsRaw(): List<ContextLog>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertLogs(logs: List<ContextLog>)
 }

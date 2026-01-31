@@ -65,14 +65,20 @@ interface ContextStructureDao {
 
     // --- Backup Methods ---
     @Query("SELECT * FROM context_structures")
-    suspend fun getAllStructures(): List<ContextConfiguration>
+    suspend fun getAllSync(): List<ContextConfiguration>
 
     @Query("SELECT * FROM context_structure_items")
-    suspend fun getAllItems(): List<ContextStructureItem>
+    suspend fun getAllItemsSync(): List<ContextStructureItem>
 
     @Query("DELETE FROM context_structures")
     suspend fun deleteAllStructures()
 
     @Query("DELETE FROM context_structure_items")
     suspend fun deleteAllItems()
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(structures: List<ContextConfiguration>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAllItems(items: List<ContextStructureItem>)
 }

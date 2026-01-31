@@ -81,4 +81,7 @@ interface DayPlanDao {
 
     @Query("DELETE FROM day_plans")
     suspend fun deleteAllPlans()
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertPlans(plans: List<DayPlan>)
 }

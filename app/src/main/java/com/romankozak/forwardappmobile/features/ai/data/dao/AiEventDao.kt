@@ -16,8 +16,11 @@ interface AiEventDao {
 
     // --- Backup Methods ---
     @Query("SELECT * FROM ai_events")
-    suspend fun getAll(): List<AiEventEntity>
+    suspend fun getAllSync(): List<AiEventEntity>
 
     @Query("DELETE FROM ai_events")
     suspend fun deleteAll()
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(events: List<AiEventEntity>)
 }

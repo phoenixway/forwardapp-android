@@ -127,4 +127,10 @@ interface ContextDao {
 
     @Query("SELECT * FROM contexts")
     fun getAllContextsFlow(): Flow<List<Context>>
+
+    @Query("SELECT * FROM contexts")
+    suspend fun getAllRaw(): List<Context>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(contexts: List<Context>)
 }

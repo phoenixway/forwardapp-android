@@ -20,4 +20,10 @@ interface SystemAppDao {
     // --- Backup Methods ---
     @Query("DELETE FROM system_apps")
     suspend fun deleteAll()
+
+    @Query("SELECT * FROM system_apps")
+    suspend fun getAllRaw(): List<SystemAppEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(apps: List<SystemAppEntity>)
 }

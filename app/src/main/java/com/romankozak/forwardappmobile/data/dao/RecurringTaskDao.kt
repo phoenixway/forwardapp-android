@@ -27,4 +27,10 @@ interface RecurringTaskDao {
     // --- Backup Methods ---
     @Query("DELETE FROM recurring_tasks")
     suspend fun deleteAll()
+
+    @Query("SELECT * FROM recurring_tasks")
+    suspend fun getAllSync(): List<RecurringTask>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(tasks: List<RecurringTask>)
 }

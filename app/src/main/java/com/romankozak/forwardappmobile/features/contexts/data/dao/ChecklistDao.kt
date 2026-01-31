@@ -87,4 +87,10 @@ interface ChecklistDao {
 
     @Query("SELECT * FROM checklist_items")
     suspend fun getAllChecklistItems(): List<ChecklistItemEntity>
+
+    @Query("SELECT * FROM checklists")
+    suspend fun getAllChecklistsRaw(): List<ChecklistEntity>
+
+    @Query("SELECT * FROM checklist_items")
+    suspend fun getAllChecklistItemsRaw(): List<ChecklistItemEntity>
 }

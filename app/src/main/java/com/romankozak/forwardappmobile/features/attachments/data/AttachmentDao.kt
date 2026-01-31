@@ -130,4 +130,13 @@ interface AttachmentDao {
 
     @Query("SELECT * FROM attachments WHERE owner_context_id = :contextId AND role_code = :roleCode LIMIT 1")
     suspend fun findAttachmentByRole(contextId: String, roleCode: String): AttachmentEntity?
+
+    @Query("SELECT * FROM attachments")
+    suspend fun getAllRaw(): List<AttachmentEntity>
+
+    @Query("SELECT * FROM context_attachment_cross_ref")
+    suspend fun getAllContextAttachmentCrossRefsRaw(): List<ContextAttachmentCrossRef>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertContextAttachmentCrossRefs(links: List<ContextAttachmentCrossRef>)
 }

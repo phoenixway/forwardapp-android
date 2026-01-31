@@ -32,4 +32,7 @@ interface InboxRecordDao {
 
     @Query("DELETE FROM inbox_records")
     suspend fun deleteAll()
+
+    @Query("SELECT * FROM inbox_records")
+    suspend fun getAllRaw(): List<InboxRecord>
 }

@@ -76,4 +76,10 @@ interface ListItemDao {
      */
     @Query("SELECT context_id FROM list_items WHERE entityId = :goalId LIMIT 1")
     suspend fun findContextIdForGoal(goalId: String): String?
+
+    @Query("SELECT * FROM list_items")
+    suspend fun getAllRaw(): List<BacklogItem>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(items: List<BacklogItem>)
 }

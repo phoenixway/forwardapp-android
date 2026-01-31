@@ -312,7 +312,14 @@ fun RelatedLink.toSnapshot(): RelatedLinkSnapshot = RelatedLinkSnapshot(type?.na
 fun RelatedLinkSnapshot.toEntity(): RelatedLink = RelatedLink(type?.let { enumValueOf<LinkType>(it) }, target, displayName)
 
 fun RecentProjectEntry.toSnapshot(): RecentProjectEntrySnapshot = RecentProjectEntrySnapshot(contextId, timestamp)
-fun RecentProjectEntrySnapshot.toEntity(): RecentProjectEntry = RecentProjectEntry(contextId, timestamp)
+fun RecentProjectEntrySnapshot.toEntity(): RecentItem = RecentItem(
+    id = this.contextId,
+    type = RecentItemType.PROJECT,
+    lastAccessed = this.timestamp,
+    displayName = "", // displayName is not available in the old snapshot
+    target = this.contextId,
+    isPinned = false
+)
 
 fun Reminder.toSnapshot(): ReminderSnapshot = ReminderSnapshot(id, entityId, entityType, reminderTime, status, creationTime, snoozeUntil, updatedAt ?: creationTime, isDeleted, version)
 fun ReminderSnapshot.toEntity(): Reminder = Reminder(id, entityId, entityType, reminderTime, status, creationTime, snoozeUntil, updatedAt, isDeleted = isDeleted, version = version)

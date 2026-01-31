@@ -81,4 +81,10 @@ WHERE (g.text LIKE :query OR g.description LIKE :query) AND g.is_deleted = 0
 
     @Query("DELETE FROM goals")
     suspend fun deleteAll()
+
+    @Query("SELECT * FROM goals")
+    suspend fun getAllRaw(): List<Goal>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(goals: List<Goal>)
 }

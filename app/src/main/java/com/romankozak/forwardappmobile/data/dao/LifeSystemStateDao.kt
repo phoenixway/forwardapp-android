@@ -16,8 +16,11 @@ interface LifeSystemStateDao {
 
     // --- Backup Methods ---
     @Query("SELECT * FROM life_system_state")
-    suspend fun getAll(): List<LifeSystemStateEntity>
+    suspend fun getAllSync(): List<LifeSystemStateEntity>
 
     @Query("DELETE FROM life_system_state")
     suspend fun deleteAll()
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(states: List<LifeSystemStateEntity>)
 }
