@@ -26,7 +26,9 @@ data class ChecklistEntity(
     val contextId: String,
     @SerializedName("name", alternate = ["title"])
     var name: String,
-    val updatedAt: Long? = null,
+    // Додаємо відсутнє поле:
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis(),
     val syncedAt: Long? = null,
     val isDeleted: Boolean = false,
     val version: Long = 0,

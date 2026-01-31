@@ -29,6 +29,7 @@ import java.util.UUID
         Index(value = ["note_document_id"]),
     ],
 )
+// File: SystemAppEntity.kt
 data class SystemAppEntity(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
     @ColumnInfo(name = "system_key") val systemKey: String,
@@ -37,8 +38,10 @@ data class SystemAppEntity(
     @ColumnInfo(name = "note_document_id") val noteDocumentId: String? = null,
     @ColumnInfo(name = "createdAt") val createdAt: Long = System.currentTimeMillis(),
     @ColumnInfo(name = "updatedAt") val updatedAt: Long = System.currentTimeMillis(),
+    // Додаємо ці поля, щоб вони відповідали Snapshot:
+    val version: Long = 0,
+    val isDeleted: Boolean = false
 )
-
 enum class SystemAppType {
     NOTE_DOCUMENT,
 }

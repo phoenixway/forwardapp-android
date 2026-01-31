@@ -29,4 +29,9 @@ data class ContextRoleProfileItem(
     val containerType: String?,
     val title: String,
     @ColumnInfo(defaultValue = "0") val mandatory: Boolean,
+    // Додаємо технічні поля для відповідності Snapshot:
+    val itemOrder: Long = 0, // Ви намагалися передати 'order'
+    val version: Long = 0,
+    val updatedAt: Long = System.currentTimeMillis(),
+    val isDeleted: Boolean = false
 )

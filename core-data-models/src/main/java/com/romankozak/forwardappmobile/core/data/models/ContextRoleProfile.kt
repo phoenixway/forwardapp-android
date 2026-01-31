@@ -22,4 +22,9 @@ data class ContextRoleProfile(
     @ColumnInfo(name = "enable_backlog") val enableBacklog: Boolean? = null,
     @ColumnInfo(name = "enable_attachments") val enableAttachments: Boolean? = null,
     @ColumnInfo(name = "enable_auto_link_subprojects") val enableAutoLinkSubprojects: Boolean? = null,
+    // Додаємо відсутні поля:
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis(),
+    val version: Long = 0,
+    val isDeleted: Boolean = false
 )

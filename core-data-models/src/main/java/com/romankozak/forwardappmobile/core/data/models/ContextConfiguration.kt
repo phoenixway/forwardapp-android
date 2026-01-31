@@ -10,6 +10,7 @@ import androidx.room.PrimaryKey
     tableName = "context_structures",
     indices = [Index(value = ["contextId"], unique = true)],
 )
+// File: ContextConfiguration.kt
 data class ContextConfiguration(
     @PrimaryKey val id: String,
     val contextId: String,
@@ -23,6 +24,10 @@ data class ContextConfiguration(
     @ColumnInfo(name = "enable_backlog") val enableBacklog: Boolean? = null,
     @ColumnInfo(name = "enable_attachments") val enableAttachments: Boolean? = null,
     @ColumnInfo(name = "enable_auto_link_subprojects") val enableAutoLinkSubprojects: Boolean? = null,
+    // Додаємо відсутні поля:
+    val updatedAt: Long = System.currentTimeMillis(),
+    val version: Long = 0,
+    val isDeleted: Boolean = false
 )
 
 @Entity(
@@ -40,6 +45,7 @@ data class ContextConfiguration(
         Index(value = ["contextStructureId", "roleCode"], unique = true),
     ],
 )
+// File: ContextConfiguration.kt
 data class ContextStructureItem(
     @PrimaryKey val id: String,
     val contextStructureId: String,
@@ -49,4 +55,9 @@ data class ContextStructureItem(
     val title: String,
     @ColumnInfo(defaultValue = "0") val mandatory: Boolean = false,
     @ColumnInfo(name = "is_enabled", defaultValue = "1") val isEnabled: Boolean = true,
+    // Додаємо поля для синхронізації:
+    val itemOrder: Long = 0,
+    val updatedAt: Long = System.currentTimeMillis(),
+    val version: Long = 0,
+    val isDeleted: Boolean = false
 )

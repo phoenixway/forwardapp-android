@@ -10,7 +10,38 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="dec4991f-6ae0-4b6d-adb7-135ff1c91165" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/database/Migrations.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/database/Migrations.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/sync/FullBackupLocalDataSourceImpl.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/sync/FullBackupLocalDataSourceImpl.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core-data-interfaces/src/main/java/com/romankozak/forwardappmobile/sync/datasource/FullBackupLocalDataSource.kt" beforeDir="false" afterPath="$PROJECT_DIR$/core-data-interfaces/src/main/java/com/romankozak/forwardappmobile/sync/datasource/FullBackupLocalDataSource.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/ChecklistEntity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/ChecklistEntity.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/ContextConfiguration.kt" beforeDir="false" afterPath="$PROJECT_DIR$/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/ContextConfiguration.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/ContextRoleProfile.kt" beforeDir="false" afterPath="$PROJECT_DIR$/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/ContextRoleProfile.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/ContextRoleProfileItem.kt" beforeDir="false" afterPath="$PROJECT_DIR$/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/ContextRoleProfileItem.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/SystemAppEntity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/SystemAppEntity.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/attachments/AttachmentSnapshot.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/attachments/ChecklistItemSnapshot.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/attachments/ChecklistSnapshot.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/attachments/ContextAttachmentCrossRefSnapshot.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/attachments/LegacyNoteSnapshot.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/attachments/NoteDocumentItemSnapshot.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/attachments/NoteDocumentSnapshot.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/attachments/ScriptSnapshot.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/context/BacklogItemSnapshot.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/context/BacklogOrderSnapshot.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/context/ContextArtifactSnapshot.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/context/ContextConfigurationSnapshot.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/context/ContextLogSnapshot.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/context/ContextRoleProfileItemSnapshot.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/context/ContextRoleProfileSnapshot.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/context/ContextSnapshot.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/context/ContextStructureItemSnapshot.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/context/GoalSnapshot.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/context/InboxRecordSnapshot.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/context/LinkItemSnapshot.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/context/RelatedLinkSnapshot.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/context/SystemAppSnapshot" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/main/java/com/romankozak/forwardappmobile/sync/snapshot/entities/context/SystemAppSnapshot.kt" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -86,11 +117,11 @@
 }</component>
   <component name="RecentsManager">
     <key name="K2MoveDeclarationsDialog.RECENT_PACKAGE_KEY">
+      <recent name="com.romankozak.forwardappmobile.core.data.models.sync.snapshot" />
       <recent name="com.romankozak.forwardappmobile.sync" />
       <recent name="com.romankozak.forwardappmobile.core.data.models.sync" />
       <recent name="com.romankozak.forwardappmobile.data.sync" />
       <recent name="com.romankozak.forwardappmobile.sync.datasource" />
-      <recent name="com.romankozak.forwardappmobile.core.data.models" />
     </key>
   </component>
   <component name="RunManager" selected="Android App.app">
