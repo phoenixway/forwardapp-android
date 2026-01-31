@@ -242,10 +242,14 @@ class ContextRepository @Inject constructor(
         contextDao.updateViewMode(id, mode.name)
 
     suspend fun deleteContextsAndSubContexts(contexts: List<Context>) {
-        val ids = contexts.map { it.id }
+        // Відфільтровуємо системні контексти, щоб їх не можна було видалити
+        val contextsToDelete = contexts.filterNot { SystemContexts.isSystem(ContextId(it.id)) }
+        if (contextsToDelete.isEmpty()) return
+
+        val ids = contextsToDelete.map { it.id }
         listItemRepository.deleteItemsForContexts(ids)
         val now = System.currentTimeMillis()
-        contexts.forEach { contextDao.insert(it.softDelete(now)) }
+        contextsToDelete.forEach { contextDao.insert(it.softDelete(now)) }
     }
 
     suspend fun addLinkItemToContextFromLink(contextId: String, link: RelatedLink): String =

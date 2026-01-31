@@ -8,6 +8,7 @@ import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
+import com.romankozak.forwardappmobile.core.data.interfaces.SystemContextEnsurer
 import com.romankozak.forwardappmobile.features.contexts.data.dao.*
 import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
@@ -31,7 +32,8 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
     private val chatDao: ChatDao,
     private val reminderDao: ReminderDao,
     private val tacticalMissionDao: TacticalMissionDao,
-    private val aiInsightDao: AiInsightDao
+    private val aiInsightDao: AiInsightDao,
+    private val systemContextEnsurer: SystemContextEnsurer
 ) : FullBackupLocalDataSource {
 
     override suspend fun loadFullDatabaseContent(): DatabaseContent {
@@ -172,6 +174,8 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
                 }
                 isValid
             }
+
+            systemContextEnsurer.ensureAllSystemContextsExist()
 
             android.util.Log.d("FullBackupImport", "--- DATABASE RESTORE FINISHED ---")
         }

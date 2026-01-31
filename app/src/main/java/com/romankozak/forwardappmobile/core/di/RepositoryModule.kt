@@ -46,6 +46,11 @@ abstract class RepositoryModule {
     @Singleton
     abstract fun bindSyncApi(impl: SyncRepository): SyncApi
 
+    @Binds
+    @Singleton
+    abstract fun bindSystemContextEnsurer(impl: com.romankozak.forwardappmobile.features.contexts.data.DatabaseInitializer): com.romankozak.forwardappmobile.core.data.interfaces.SystemContextEnsurer
+
+
     // ========================================================================
     // PROVIDES (Логіка створення та складні репозиторії)
     // ========================================================================

@@ -1,11 +1,9 @@
 package com.romankozak.forwardappmobile.features.contexts.data
 
-import com.romankozak.forwardappmobile.data.repository.SystemAppRepository
+import com.romankozak.forwardappmobile.core.data.interfaces.SystemContextEnsurer
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.core.data.models.Context
-import com.romankozak.forwardappmobile.core.data.models.ReservedContextKeys
-import com.romankozak.forwardappmobile.core.data.models.ReservedSystemAppKeys
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -14,11 +12,11 @@ class DatabaseInitializer
     @Inject
     constructor(
         private val contextDao: ContextDao,
-        private val systemAppRepository: SystemAppRepository,
-    ) {
-        suspend fun prePopulate() {
+        // private val systemAppRepository: SystemAppRepository, // Removed to break cycle
+    ) : SystemContextEnsurer { // Implement SystemContextEnsurer
+        override suspend fun ensureAllSystemContextsExist() { // Renamed from prePopulate
             prePopulateProjects(contextDao)
-            prePopulateSystemApps()
+            // prePopulateSystemApps() // Removed to break cycle
         }
 
         private suspend fun prePopulateProjects(contextDao: ContextDao) {
@@ -133,18 +131,5 @@ class DatabaseInitializer
                 )
             contextDao.insert(newProject)
             return newProject.id
-        }
-
-        private suspend fun prePopulateSystemApps() {
-            val lifeStateApp =
-                systemAppRepository.ensureNoteApp(
-                    systemKey = ReservedSystemAppKeys.MY_LIFE_CURRENT_STATE,
-                    projectSystemKey = ReservedContextKeys.STRATEGIC,
-                    documentName = "my-life-current-state",
-                )
-            systemAppRepository.linkSystemNoteToProject(
-                systemKey = ReservedSystemAppKeys.MY_LIFE_CURRENT_STATE,
-                targetProjectSystemKey = ReservedContextKeys.TODAY,
-            )
         }
     }

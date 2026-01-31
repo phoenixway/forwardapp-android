@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.sync
 
 import android.net.Uri
 import com.romankozak.forwardappmobile.core.data.models.sync.*
+import com.romankozak.forwardappmobile.core.data.interfaces.SystemContextEnsurer // Added import
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -11,6 +12,7 @@ class SyncRepository @Inject constructor(
     private val wifiSyncService: SyncWifiService,
     private val mergeRepository: MergeRepository,
     private val attachmentsRepository: AttachmentsRepository,
+    private val systemContextEnsurer: SystemContextEnsurer, // Injected interface
 ) : SyncApi {
 
     // FILE OPERATIONS
@@ -40,14 +42,20 @@ class SyncRepository @Inject constructor(
     override suspend fun applyChanges(approvedChanges: List<SyncChange>) =
         mergeRepository.applyChanges(approvedChanges)
 
-    override suspend fun applyServerChanges(changes: DatabaseContent) =
-        mergeRepository.applyServerChanges(changes)
+    override suspend fun applyServerChanges(changes: DatabaseContent): Result<Unit> {
+        val result = mergeRepository.applyServerChanges(changes)
+        systemContextEnsurer.ensureAllSystemContextsExist()
+        return result
+    }
 
     override suspend fun createBackupDiff(incoming: DatabaseContent) =
         mergeRepository.createBackupDiff(incoming)
 
-    override suspend fun importSelectedData(selectedData: DatabaseContent) =
-        mergeRepository.importSelectedData(selectedData)
+    override suspend fun importSelectedData(selectedData: DatabaseContent): Result<String> {
+        val result = mergeRepository.importSelectedData(selectedData)
+        systemContextEnsurer.ensureAllSystemContextsExist()
+        return result
+    }
 
     // ATTACHMENTS
     override suspend fun exportAttachmentsToFile() = attachmentsRepository.exportAttachmentsToFile()

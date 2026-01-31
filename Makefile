@@ -273,7 +273,7 @@ run-server:
 # Запустити повний набір тестів (unit + instrumentation)
 test:
 	@echo "🧪  Запускаю unit-тести..."
-	@if ./gradlew :app:testDebugUnitTest ; then \
+	@if ./gradlew :app:testExpDebugUnitTest ; then \
 		echo "✅  Unit-тести пройдено успішно."; \
 	else \
 		echo "❌  Unit-тести впали. Перевір лог вище."; \
@@ -287,7 +287,7 @@ test:
 		exit 1; \
 	fi
 	@echo "🤖  Запускаю instrumentation-тести на $(DEVICE_ID)..."
-	@if ANDROID_SERIAL=$(DEVICE_ID) ./gradlew :app:connectedDebugAndroidTest ; then \
+	@if ANDROID_SERIAL=$(DEVICE_ID) ./gradlew :app:connectedExpDebugAndroidTest ; then \
 		echo "✅  Instrumentation-тести пройдено успішно."; \
 	else \
 		echo "❌  Instrumentation-тести впали. Перевір лог вище."; \
