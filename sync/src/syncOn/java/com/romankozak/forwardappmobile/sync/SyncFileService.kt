@@ -28,13 +28,17 @@ import com.google.gson.JsonObject
 @Singleton
 class SyncFileService @Inject constructor(
     @param:ApplicationContext private val context: AndroidContext,
-    private val localDataSource: FullBackupLocalDataSource
+    private val localDataSource: FullBackupLocalDataSource,
+    private val legacyMigrationMapper: LegacyMigrationMapper,
+    private val mergeRepository: MergeRepository
 ) {
     private val TAG = "SyncFileService"
 
     private val gson = GsonBuilder()
         .registerTypeAdapter(Long::class.java, LongDeserializer())
         .create()
+
+    // === Legacy Methods ===
 
     /**
      * Експортує повний бекап у папку "Downloads/ForwardApp"
@@ -82,7 +86,7 @@ class SyncFileService @Inject constructor(
             }
             val backupData = backupResult.getOrThrow()
 
-            localDataSource.restoreDatabaseFromBackup(backupData.database)
+            backupData.database?.let { localDataSource.restoreDatabaseFromBackup(it) }
 
             backupData.settings?.settings?.let {
                 localDataSource.restoreSettings(it)
@@ -109,6 +113,76 @@ class SyncFileService @Inject constructor(
             Result.success(backupData)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to parse backup file", e)
+            Result.failure(e)
+        }
+    }
+
+    // === New Snapshot-based Methods ===
+
+    suspend fun exportFullBackupToFileV2(): Result<String> = withContext(Dispatchers.IO) {
+        Log.d(TAG, "Attempting to export snapshot backup to file.")
+        try {
+            val json = createFullSnapshotJsonString()
+            val ts = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+            val name = "forward_snapshot_backup_$ts.json"
+            saveFileToDownloads(name, json)
+            Log.i(TAG, "Full backup successfully exported to file: $name")
+            Result.success("Файл бекапу (V2) успішно збережено")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error exporting snapshot backup", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun createFullSnapshotJsonString(): String {
+        val snapshotBundle = localDataSource.loadFullSnapshotBundle()
+        val settingsMap = localDataSource.getSettingsSnapshot()
+
+        val fullBackup = FullAppBackup(
+            backupSchemaVersion = 2, // New version
+            database = null, // Old field is null
+            settings = SettingsContent(settingsMap),
+            snapshotBundle = snapshotBundle // New field with all the data
+        )
+
+        return gson.toJson(fullBackup)
+    }
+
+    suspend fun importFullBackupFromFileV2(uri: Uri): Result<String> = withContext(Dispatchers.IO) {
+        Log.d(TAG, "Attempting to import smart backup (V2) from URI: $uri")
+        try {
+            val jsonString = readTextFromUri(uri) ?: throw IOException("Failed to read file from URI.")
+
+            // Try parsing as new format first
+            val backupData = gson.fromJson(jsonString, FullAppBackup::class.java)
+
+            val snapshotBundleToApply = if (backupData.snapshotBundle != null) {
+                Log.d(TAG, "Successfully parsed as new SnapshotBundle format.")
+                backupData.snapshotBundle!!
+            } else if (backupData.database != null) {
+                // It's the old format, migrate it
+                Log.d(TAG, "Parsed as legacy FullAppBackup format. Migrating to SnapshotBundle...")
+                legacyMigrationMapper.toSnapshotBundle(backupData.database!!)
+            } else {
+                // Could be an even older format, just a raw DatabaseContent
+                Log.d(TAG, "Could not parse as FullAppBackup, trying as raw DatabaseContent.")
+                val databaseContent = gson.fromJson(jsonString, com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent::class.java)
+                legacyMigrationMapper.toSnapshotBundle(databaseContent)
+            }
+
+            // At this point, we have a SnapshotBundle, one way or another.
+            // Now, we use the non-destructive merge logic.
+            mergeRepository.applyServerChanges(snapshotBundleToApply)
+
+            // Restore settings separately
+            backupData.settings?.settings?.let {
+                localDataSource.restoreSettings(it)
+            }
+
+            Log.i(TAG, "Smart backup successfully imported and merged from URI: $uri")
+            Result.success("Дані успішно імпортовано та об'єднано (V2)")
+        } catch (e: Exception) {
+            Log.e(TAG, "A critical error occurred during the smart import process.", e)
             Result.failure(e)
         }
     }

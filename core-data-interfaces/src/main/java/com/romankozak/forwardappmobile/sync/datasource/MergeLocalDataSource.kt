@@ -28,4 +28,5 @@ interface MergeLocalDataSource {
         attachments: List<AttachmentEntity>,
         crossRefs: List<ContextAttachmentCrossRef>
     )
+    suspend fun applySnapshotBundle(bundle: com.romankozak.forwardappmobile.core.data.models.sync.snapshot.SnapshotBundle)
 }

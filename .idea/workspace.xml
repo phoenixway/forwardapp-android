@@ -10,8 +10,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="dec4991f-6ae0-4b6d-adb7-135ff1c91165" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/repository/ScriptRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/repository/ScriptRepository.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/sync/SyncLocalDataSourceImpl.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/sync/SyncLocalDataSourceImpl.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/sync/MergeLocalDataSourceImpl.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/sync/MergeLocalDataSourceImpl.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/test/java/com/romankozak/forwardappmobile/sync/LegacyMigrationMapperTest.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/test/java/com/romankozak/forwardappmobile/sync/LegacyMigrationMapperTest.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core-data-interfaces/src/main/java/com/romankozak/forwardappmobile/sync/datasource/MergeLocalDataSource.kt" beforeDir="false" afterPath="$PROJECT_DIR$/core-data-interfaces/src/main/java/com/romankozak/forwardappmobile/sync/datasource/MergeLocalDataSource.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/sync/FullAppBackup.kt" beforeDir="false" afterPath="$PROJECT_DIR$/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/sync/FullAppBackup.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/syncOn/java/com/romankozak/forwardappmobile/sync/MergeRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/sync/src/syncOn/java/com/romankozak/forwardappmobile/sync/MergeRepository.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/syncOn/java/com/romankozak/forwardappmobile/sync/SyncFileService.kt" beforeDir="false" afterPath="$PROJECT_DIR$/sync/src/syncOn/java/com/romankozak/forwardappmobile/sync/SyncFileService.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

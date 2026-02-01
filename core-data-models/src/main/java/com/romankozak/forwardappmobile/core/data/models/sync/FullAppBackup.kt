@@ -8,7 +8,9 @@ data class FullAppBackup(
     @SerializedName(value = "exportedAt", alternate = ["b"])
     val exportedAt: Long = System.currentTimeMillis(),
     @SerializedName(value = "database", alternate = ["c"])
-    val database: DatabaseContent,
+    val database: DatabaseContent?,
     @SerializedName(value = "settings", alternate = ["d"])
     val settings: SettingsContent? = null,
+    @SerializedName(value = "snapshotBundle", alternate = ["e"])
+    val snapshotBundle: com.romankozak.forwardappmobile.core.data.models.sync.snapshot.SnapshotBundle? = null
 )

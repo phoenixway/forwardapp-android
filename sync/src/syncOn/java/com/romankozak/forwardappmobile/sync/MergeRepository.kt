@@ -22,7 +22,7 @@ class MergeRepository @Inject constructor(
 
     suspend fun createSyncReport(jsonString: String): SyncReport {
         val backup = gson.fromJson(jsonString, FullAppBackup::class.java)
-        val incomingDb = backup.database
+        val incomingDb = backup.database ?: return SyncReport(emptyList())
 
         val localProjects = localDataSource.getContexts().associateBy { it.id }
         val localGoals = localDataSource.getGoals().associateBy { it.id }
@@ -147,6 +147,17 @@ class MergeRepository @Inject constructor(
             Result.success("Вибрані дані успішно імпортовано")
         } catch (e: Exception) {
             Log.e(TAG, "Selective import failed", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun applyServerChanges(bundle: com.romankozak.forwardappmobile.core.data.models.sync.snapshot.SnapshotBundle): Result<Unit> {
+        val ts = System.currentTimeMillis()
+        return try {
+            localDataSource.applySnapshotBundle(bundle)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to apply server changes from snapshot", e)
             Result.failure(e)
         }
     }

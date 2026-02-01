@@ -55,6 +55,7 @@ class SelectiveImportViewModel
 
                 syncRepository.parseBackupFile(fileUri)
                     .onSuccess { fullAppBackup ->
+                        val dbContent = fullAppBackup.database ?: return@onSuccess
                         val version = (fullAppBackup.backupSchemaVersion.takeIf { it != 0 } ?: 1)
                         if (version !in listOf(1, 2)) {
                             val msg = "Unsupported backup version: $version. Expected 1 or 2."
@@ -62,13 +63,13 @@ class SelectiveImportViewModel
                             _uiState.update { it.copy(isLoading = false, error = msg) }
                             return@onSuccess
                         }
-                        Log.d("IMPORT_SELECTIVE", "Database projects: ${fullAppBackup.database.projects.size}")
-                        Log.d("IMPORT_SELECTIVE", "Database attachments: ${fullAppBackup.database.attachments.size}")
+                        Log.d("IMPORT_SELECTIVE", "Database projects: ${dbContent.projects.size}")
+                        Log.d("IMPORT_SELECTIVE", "Database attachments: ${dbContent.attachments.size}")
                         Log.d(
                             "IMPORT_SELECTIVE",
-                            "Database contextAttachmentCrossRefs: ${fullAppBackup.database.contextAttachmentCrossRefs.size}",
+                            "Database contextAttachmentCrossRefs: ${dbContent.contextAttachmentCrossRefs.size}",
                         )
-                        val diff = syncRepository.createBackupDiff(fullAppBackup.database)
+                        val diff = syncRepository.createBackupDiff(dbContent)
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
