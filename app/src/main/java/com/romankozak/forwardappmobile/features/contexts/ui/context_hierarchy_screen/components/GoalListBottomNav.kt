@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.UnfoldLess
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.MoreVert
@@ -289,8 +290,8 @@ internal fun ExpandingProjectHierarchyBottomNav(
                 horizontalArrangement = Arrangement.SpaceAround,
             ) {
                 ModernBottomNavButton(text = "Search", icon = Icons.Outlined.Search, isSelected = false, onClick = { onToggleSearch(true) })
+                ModernBottomNavButton(text = "Згорнути", icon = Icons.Filled.UnfoldLess, onClick = onHomeClick)
                 CommandDeckNavButton(onClick = onShowCommandDeck)
-                ModernBottomNavButton(text = "Home", icon = Icons.Outlined.Home, onClick = onHomeClick)
                 ModernBottomNavButton(text = "Recent", icon = Icons.Outlined.History, onClick = onRecentsClick)
                 MoreActionsBottomNavButton(
                     onInsightsClick = onInsightsClick,
