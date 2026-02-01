@@ -96,11 +96,11 @@ This phase connects the new snapshot system to the file service and exposes the 
 
 This phase ensures that the new system works as expected and that no regressions have been introduced.
 
-1.  **[TODO] Create Unit Tests**:
+1.  **[DONE] Create Unit Tests**:
     -   [x] Write a test for `LegacyMigrationMapper` (`app/src/test/java/com/romankozak/forwardappmobile/sync/LegacyMigrationMapperTest.kt`).
-    -   [x] Write tests for the new `MergeRepository` methods to verify the merge logic with snapshots (especially `createBackupDiff` and `createSyncReport`). (`app/src/test/java/com/romankozak/forwardappmobile/sync/MergeRepositorySnapshotTest.kt`)
-    -   [ ] Write tests for the `SyncFileService.importFullBackupFromFileV2` to verify it handles both new and legacy backup files.
-2.  **[TODO] Run Build & Tests**: After each major step, run `make test` (or an equivalent command) to ensure the project compiles and all tests pass. This includes the `SystemContextsIntegrityTest` and the new tests created in this phase.
+    -   [x] Write tests for the new `MergeRepository` methods to verify the merge logic with snapshots (especially `createBackupDiff` and `createSyncReport`). (`app/src/test/java/com.romankozak/forwardappmobile/sync/MergeRepositorySnapshotTest.kt`)
+    -   [x] Write tests for the `SyncFileService.importFullBackupFromFileV2` to verify it handles both new and legacy backup files.
+2.  **[DONE] Run Build & Tests**: After each major step, run `make test` (or an equivalent command) to ensure the project compiles and all tests pass. This includes the `SystemContextsIntegrityTest` and the new tests created in this phase.
 3.  **[TODO] Manual Verification**: After the UI hooks are in place (outside the scope of this refactoring), perform manual testing of the new "Import V2" and "Export V2" features.
 
 ---

@@ -442,6 +442,19 @@ class ContextHierarchyScreenViewModel
                         )
                     }
                 }
+                is ContextHierarchyScreenEvent.FullImportConfirmV2 -> {
+                    viewModelScope.launch {
+                        val result = contextActionsUseCase.onFullImportConfirmedV2(event.uri)
+                        dialogUseCase.dismissDialog()
+                        _uiEventChannel.send(
+                            if (result.isSuccess) {
+                                ProjectUiEvent.ShowToast(result.getOrNull() ?: "Import V2 successful")
+                            } else {
+                                ProjectUiEvent.ShowToast("Import V2 error: ${result.exceptionOrNull()?.message}")
+                            },
+                        )
+                    }
+                }
                 is ContextHierarchyScreenEvent.ShowAboutDialog -> dialogUseCase.onShowAboutDialog()
                 is ContextHierarchyScreenEvent.ImportFromFileRequest ->
                     dialogUseCase.onImportFromFileRequested(event.uri)
@@ -523,6 +536,17 @@ class ContextHierarchyScreenViewModel
                                 ProjectUiEvent.ShowToast(result.getOrNull() ?: "Export successful")
                             } else {
                                 ProjectUiEvent.ShowToast("Export error: ${result.exceptionOrNull()?.message}")
+                            },
+                        )
+                    }
+                is ContextHierarchyScreenEvent.ExportToFileV2 ->
+                    viewModelScope.launch {
+                        val result = contextActionsUseCase.exportToFileV2()
+                        _uiEventChannel.send(
+                            if (result.isSuccess) {
+                                ProjectUiEvent.ShowToast(result.getOrNull() ?: "Export V2 successful")
+                            } else {
+                                ProjectUiEvent.ShowToast("Export V2 error: ${result.exceptionOrNull()?.message}")
                             },
                         )
                     }

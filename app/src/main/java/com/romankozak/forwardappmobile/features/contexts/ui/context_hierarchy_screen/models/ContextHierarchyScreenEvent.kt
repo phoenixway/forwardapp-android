@@ -52,6 +52,8 @@ sealed interface ContextHierarchyScreenEvent {
 
     data class FullImportConfirm(val uri: Uri) : ContextHierarchyScreenEvent
 
+    data class FullImportConfirmV2(val uri: Uri) : ContextHierarchyScreenEvent
+
     data object ShowAboutDialog : ContextHierarchyScreenEvent
 
     data class ImportFromFileRequest(val uri: Uri) : ContextHierarchyScreenEvent
@@ -105,6 +107,8 @@ sealed interface ContextHierarchyScreenEvent {
     data class WifiPush(val address: String) : ContextHierarchyScreenEvent
 
     data object ExportToFile : ContextHierarchyScreenEvent
+
+    data object ExportToFileV2 : ContextHierarchyScreenEvent
 
     data object ExportAttachments : ContextHierarchyScreenEvent
 

@@ -112,8 +112,10 @@ open class NoOpSyncFileService @Inject constructor(
     localDataSource: FullBackupLocalDataSource
 ) {
     open suspend fun exportFullBackupToFile(): Result<String> = Result.failure(Exception("Disabled"))
+    open suspend fun exportFullBackupToFileV2(): Result<String> = Result.failure(Exception("Disabled"))
     open suspend fun createFullBackupJsonString(): String = ""
     open suspend fun importFullBackupFromFile(uri: Uri): Result<String> = Result.failure(Exception("Disabled"))
+    open suspend fun importFullBackupFromFileV2(uri: Uri): Result<String> = Result.failure(Exception("Disabled"))
     open suspend fun parseBackupFile(uri: Uri): Result<FullAppBackup> =
         Result.failure(Exception("Disabled"))
 }
@@ -136,7 +138,7 @@ open class NoOpMergeRepository @Inject constructor(
 ) {
     open suspend fun createSyncReport(jsonString: String): SyncReport = SyncReport(emptyList())
     open suspend fun applyServerChanges(changes: DatabaseContent): Result<Unit> = Result.failure(Exception("Disabled"))
-    open suspend fun createBackupDiff(incoming: DatabaseContent): BackupDiff = BackupDiff(emptyList())
+    open suspend fun createBackupDiff(incoming: DatabaseContent): LegacyBackupDiff = LegacyBackupDiff()
     open suspend fun applyChanges(approvedChanges: List<SyncChange>) {
         Log.d("NoOpSync", "NoOpMergeRepository: applyChanges called")
     }
@@ -198,8 +200,10 @@ open class NoOpSyncApi @Inject constructor(
     private val attachmentsRepository: NoOpAttachmentsRepository,
 ) : SyncApi {
     override suspend fun exportFullBackupToFile(): Result<String> = fileService.exportFullBackupToFile()
+    override suspend fun exportFullBackupToFileV2(): Result<String> = fileService.exportFullBackupToFileV2()
     override suspend fun createFullBackupJsonString(): String = fileService.createFullBackupJsonString()
     override suspend fun importFullBackupFromFile(uri: Uri): Result<String> = fileService.importFullBackupFromFile(uri)
+    override suspend fun importFullBackupFromFileV2(uri: Uri): Result<String> = fileService.importFullBackupFromFileV2(uri)
     override suspend fun parseBackupFile(uri: Uri): Result<FullAppBackup> = fileService.parseBackupFile(uri)
 
     override suspend fun fetchBackupFromWifi(address: String, deltaSince: Long?): Result<String> = wifiSyncService.fetchBackupFromWifi(address, deltaSince)

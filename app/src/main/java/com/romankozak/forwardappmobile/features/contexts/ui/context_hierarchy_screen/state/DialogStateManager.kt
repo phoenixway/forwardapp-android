@@ -37,7 +37,7 @@ class DialogStateManager
         }
 
         fun onImportFromFileRequested(uri: Uri) {
-            _dialogState.value = DialogState.ConfirmImport(uri)
+            _dialogState.value = DialogState.ImportChoiceDialog(uri)
         }
 
         fun dismissDialog() {

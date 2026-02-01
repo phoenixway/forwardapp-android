@@ -26,10 +26,14 @@ class SyncRepository @Inject constructor(
     override suspend fun importFullBackupFromFile(uri: Uri): Result<String> =
         fileService.importFullBackupFromFile(uri.toString())
 
+    override suspend fun exportFullBackupToFileV2(): Result<String> =
+        fileService.exportFullBackupToFileV2()
+
     override suspend fun parseBackupFile(uri: Uri): Result<FullAppBackup> =
         fileService.parseBackupFile(uri.toString())
 
     /**
+     *
      * Новий метод для Snapshot-бекапів (V2).
      * Якщо його ще немає в SyncApi — додайте його туди.
      */

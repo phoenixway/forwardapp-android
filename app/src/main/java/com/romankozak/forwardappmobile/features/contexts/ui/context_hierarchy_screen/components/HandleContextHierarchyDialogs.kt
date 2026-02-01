@@ -1,5 +1,11 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components
 
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -83,6 +89,26 @@ fun HandleProjectHierarchyDialogs(
                         onClick = { onEvent(ContextHierarchyScreenEvent.FullImportConfirm(state.uri)) },
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                     ) { Text("Delete and Restore") }
+                },
+                dismissButton = { TextButton(onClick = { onEvent(ContextHierarchyScreenEvent.DismissDialog) }) { Text("Cancel") } },
+            )
+        }
+
+        is DialogState.ImportChoiceDialog -> {
+            AlertDialog(
+                onDismissRequest = { onEvent(ContextHierarchyScreenEvent.DismissDialog) },
+                title = { Text("Choose Import Version") },
+                text = { Text("Would you like to import a V1 (legacy) or V2 (snapshot) backup file?") },
+                confirmButton = {
+                    Row(horizontalArrangement = Arrangement.SpaceBetween) {
+                        Button(onClick = { onEvent(ContextHierarchyScreenEvent.FullImportConfirm(state.uri)) }) {
+                            Text("Import V1")
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Button(onClick = { onEvent(ContextHierarchyScreenEvent.FullImportConfirmV2(state.uri)) }) {
+                            Text("Import V2")
+                        }
+                    }
                 },
                 dismissButton = { TextButton(onClick = { onEvent(ContextHierarchyScreenEvent.DismissDialog) }) { Text("Cancel") } },
             )

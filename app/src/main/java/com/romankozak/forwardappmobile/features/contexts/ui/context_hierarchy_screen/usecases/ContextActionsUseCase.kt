@@ -190,6 +190,8 @@ class ContextActionsUseCase
 
         suspend fun exportToFile() = withContext(ioDispatcher) { syncRepository.exportFullBackupToFile() }
 
+        suspend fun exportToFileV2() = withContext(ioDispatcher) { syncRepository.exportFullBackupToFileV2() }
+
         suspend fun exportAttachments(): Result<String> {
             return withContext(ioDispatcher) { syncRepository.exportAttachmentsToFile() }
         }
@@ -197,6 +199,11 @@ class ContextActionsUseCase
         suspend fun onFullImportConfirmed(uri: Uri): Result<String> {
             Log.e("GEMINI_DEBUG", "ProjectActionsUseCase.onFullImportConfirmed is called")
             return withContext(ioDispatcher) { syncRepository.importFullBackupFromFile(uri) }
+        }
+
+        suspend fun onFullImportConfirmedV2(uri: Uri): Result<String> {
+            Log.e("GEMINI_DEBUG", "ProjectActionsUseCase.onFullImportConfirmedV2 is called")
+            return withContext(ioDispatcher) { syncRepository.importFullBackupFromFileV2(uri) }
         }
 
         suspend fun importAttachments(uri: Uri): Result<String> {
