@@ -8,6 +8,7 @@ import com.romankozak.forwardappmobile.data.dao.*
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
+import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.core.data.interfaces.SystemContextEnsurer
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.SnapshotBundle
@@ -37,7 +38,24 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
     private val reminderDao: ReminderDao,
     private val tacticalMissionDao: TacticalMissionDao,
     private val aiInsightDao: AiInsightDao,
-    private val systemContextEnsurer: SystemContextEnsurer
+    private val systemContextEnsurer: SystemContextEnsurer,
+    // Newly Injected DAOs
+    private val legacyNoteDao: LegacyNoteDao,
+    private val backlogOrderDao: BacklogOrderDao,
+    private val contextArtifactDao: ContextArtifactDao,
+    private val scriptDao: ScriptDao,
+    private val inboxRecordDao: InboxRecordDao,
+    private val contextManagementDao: ContextManagementDao,
+    private val systemAppDao: SystemAppDao,
+    private val activityRecordDao: ActivityRecordDao,
+    private val linkItemDao: LinkItemDao,
+    private val conversationFolderDao: ConversationFolderDao,
+    private val recurringTaskDao: RecurringTaskDao,
+    private val aiEventDao: AiEventDao,
+    private val lifeSystemStateDao: LifeSystemStateDao,
+    private val structurePresetDao: StructurePresetDao,
+    private val structurePresetItemDao: StructurePresetItemDao,
+    private val contextStructureDao: ContextStructureDao
 ) : FullBackupLocalDataSource {
 
     override suspend fun loadFullDatabaseContent(): DatabaseContent {
@@ -202,89 +220,100 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
     // === New Snapshot-based Methods Implementation ===
 
     override suspend fun loadFullSnapshotBundle(): SnapshotBundle {
+        val notes = legacyNoteDao.getAllRaw().map { it.toSnapshot() }
+        val documents = noteDocumentDao.getAllDocumentsRaw().map { it.toSnapshot() }
+        val checklists = checklistDao.getAllChecklistsRaw().map { it.toSnapshot() }
+        val scripts = scriptDao.getAllRaw().map { it.toSnapshot() }
+
+        Log.d("BackupExport", "Exporting Snapshot: notes=${notes.size}, docs=${documents.size}, checklists=${checklists.size}, scripts=${scripts.size}")
+
         return SnapshotBundle(
-            version = 1,
+            version = 2,
             exportedAt = System.currentTimeMillis(),
             contexts = contextDao.getAllRaw().map { it.toSnapshot() },
-            goals = db.goalDao().getAllRaw().map { it.toSnapshot() },
-            backlogItems = db.listItemDao().getAllRaw().map { it.toSnapshot() },
-            backlogOrders = db.backlogOrderDao().getAllRaw().map { it.toSnapshot() },
-            notes = db.legacyNoteDao().getAllRaw().map { it.toSnapshot() },
-            documents = db.noteDocumentDao().getAllDocumentsRaw().map { it.toSnapshot() },
-            documentItems = db.noteDocumentDao().getAllDocumentItemsRaw().map { it.toSnapshot() },
-            checklists = db.checklistDao().getAllChecklistsRaw().map { it.toSnapshot() },
-            checklistItems = db.checklistDao().getAllChecklistItemsRaw().map { it.toSnapshot() },
-            artifacts = db.contextArtifactDao().getAllRaw().map { it.toSnapshot() },
-            scripts = db.scriptDao().getAllRaw().map { it.toSnapshot() },
-            attachments = db.attachmentDao().getAllRaw().map { it.toSnapshot() },
-            crossRefs = db.attachmentDao().getAllContextAttachmentCrossRefsRaw().map { it.toSnapshot() },
-            inbox = db.inboxRecordDao().getAllRaw().map { it.toSnapshot() },
-            logs = db.contextManagementDao().getAllLogsRaw().map { it.toSnapshot() },
-            systemApps = db.systemAppDao().getAllRaw().map { it.toSnapshot() },
-            activityRecords = db.activityRecordDao().getAllRaw().map { it.toSnapshot() },
-            recentProjectEntries = db.recentItemDao().getAllSync().map { it.toSnapshot() },
-            linkItemEntities = db.linkItemDao().getAllRaw().map { it.toSnapshot() },
-            dayPlans = db.dayPlanDao().getAllPlansSync().map { it.toSnapshot() },
-            dayTasks = db.dayTaskDao().getAllTasksSync().map { it.toSnapshot() },
-            dailyMetrics = db.dailyMetricDao().getAllMetricsSync().map { it.toSnapshot() },
-            conversations = db.chatDao().getAllConversationsSync().map { it.toSnapshot() },
-            chatMessages = db.chatDao().getAllMessagesSync().map { it.toSnapshot() },
-            conversationFolders = db.conversationFolderDao().getAllSync().map { it.toSnapshot() },
-            reminders = db.reminderDao().getAllRemindersSync().map { it.toSnapshot() },
-            recurringTasks = db.recurringTaskDao().getAllSync().map { it.toSnapshot() },
-            tacticalMissions = db.tacticalMissionDao().getAllMissionsSync().map { it.toSnapshot() },
-            tacticalMissionAttachments = db.tacticalMissionDao().getAllMissionAttachmentsSync().map { it.toSnapshot() },
-            aiEvents = db.aiEventDao().getAllSync().map { it.toSnapshot() },
-            aiInsights = db.aiInsightDao().getAllSync().map { it.toSnapshot() },
-            lifeSystemStates = db.lifeSystemStateDao().getAllSync().map { it.toSnapshot() },
-            contextRoleProfiles = db.structurePresetDao().getAllSync().map { it.toSnapshot() },
-            contextRoleProfileItems = db.structurePresetItemDao().getAllSync().map { it.toSnapshot() },
-            contextConfigurations = db.contextStructureDao().getAllSync().map { it.toSnapshot() },
-            projectStructureItems = db.contextStructureDao().getAllItemsSync().map { it.toSnapshot() }
+            goals = goalDao.getAllRaw().map { it.toSnapshot() },
+            backlogItems = listItemDao.getAllRaw().map { it.toSnapshot() },
+            backlogOrders = backlogOrderDao.getAllRaw().map { it.toSnapshot() },
+            notes = notes,
+            documents = documents,
+            // @Deprecated("Content is now part of NoteDocumentEntity, NoteDocumentItem is obsolete")
+            documentItems = emptyList(),
+            checklists = checklists,
+            checklistItems = checklistDao.getAllChecklistItemsRaw().map { it.toSnapshot() },
+            artifacts = contextArtifactDao.getAllRaw().map { it.toSnapshot() },
+            scripts = scripts,
+            attachments = attachmentDao.getAllRaw().map { it.toSnapshot() },
+            crossRefs = attachmentDao.getAllContextAttachmentCrossRefsRaw().map { it.toSnapshot() },
+            inbox = inboxRecordDao.getAllRaw().map { it.toSnapshot() },
+            logs = contextManagementDao.getAllLogsRaw().map { it.toSnapshot() },
+            systemApps = systemAppDao.getAllRaw().map { it.toSnapshot() },
+            activityRecords = activityRecordDao.getAllRaw().map { it.toSnapshot() },
+            recentProjectEntries = recentItemDao.getAllSync().map { it.toSnapshot() },
+            linkItemEntities = linkItemDao.getAllRaw().map { it.toSnapshot() },
+            dayPlans = dayPlanDao.getAllPlansSync().map { it.toSnapshot() },
+            dayTasks = dayTaskDao.getAllTasksSync().map { it.toSnapshot() },
+            dailyMetrics = dailyMetricDao.getAllMetricsSync().map { it.toSnapshot() },
+            conversations = chatDao.getAllConversationsSync().map { it.toSnapshot() },
+            chatMessages = chatDao.getAllMessagesSync().map { it.toSnapshot() },
+            conversationFolders = conversationFolderDao.getAllSync().map { it.toSnapshot() },
+            reminders = reminderDao.getAllRemindersSync().map { it.toSnapshot() },
+            recurringTasks = recurringTaskDao.getAllSync().map { it.toSnapshot() },
+            tacticalMissions = tacticalMissionDao.getAllMissionsSync().map { it.toSnapshot() },
+            tacticalMissionAttachments = tacticalMissionDao.getAllMissionAttachmentsSync().map { it.toSnapshot() },
+            aiEvents = aiEventDao.getAllSync().map { it.toSnapshot() },
+            aiInsights = aiInsightDao.getAllSync().map { it.toSnapshot() },
+            lifeSystemStates = lifeSystemStateDao.getAllSync().map { it.toSnapshot() },
+            contextRoleProfiles = structurePresetDao.getAllSync().map { it.toSnapshot() },
+            contextRoleProfileItems = structurePresetItemDao.getAllSync().map { it.toSnapshot() },
+            contextConfigurations = contextStructureDao.getAllSync().map { it.toSnapshot() },
+            projectStructureItems = contextStructureDao.getAllItemsSync().map { it.toSnapshot() }
         )
     }
 
     override suspend fun applySnapshotBundle(bundle: SnapshotBundle) {
+        Log.d("BackupImport", "Applying Snapshot V${bundle.version}: notes=${bundle.notes.size}, docs=${bundle.documents.size}, checklists=${bundle.checklists.size}, scripts=${bundle.scripts.size}")
+
         db.withTransaction {
             // This is a non-destructive operation.
             // The actual merge logic (insert vs update) will be handled by the DAOs' insert methods with OnConflictStrategy.REPLACE
-            db.contextDao().insertAll(bundle.contexts.map { it.toEntity() })
-            db.goalDao().insertAll(bundle.goals.map { it.toEntity() })
-            db.noteDocumentDao().insertAllDocuments(bundle.documents.map { it.toEntity() })
-            db.checklistDao().insertChecklists(bundle.checklists.map { it.toEntity() })
-            db.conversationFolderDao().insertAll(bundle.conversationFolders.map { it.toEntity() })
-            db.dayPlanDao().insertPlans(bundle.dayPlans.map { it.toEntity() })
-            db.recurringTaskDao().insertAll(bundle.recurringTasks.map { it.toEntity() })
-            db.tacticalMissionDao().insertMissions(bundle.tacticalMissions.map { it.toEntity() })
+            contextDao.insertAll(bundle.contexts.map { it.toEntity() })
+            goalDao.insertAll(bundle.goals.map { it.toEntity() })
+            noteDocumentDao.insertAllDocuments(bundle.documents.map { it.toEntity() })
+            checklistDao.insertChecklists(bundle.checklists.map { it.toEntity() })
+            conversationFolderDao.insertAll(bundle.conversationFolders.map { it.toEntity() })
+            dayPlanDao.insertPlans(bundle.dayPlans.map { it.toEntity() })
+            recurringTaskDao.insertAll(bundle.recurringTasks.map { it.toEntity() })
+            tacticalMissionDao.insertMissions(bundle.tacticalMissions.map { it.toEntity() })
 
-            db.listItemDao().insertItems(bundle.backlogItems.map { it.toEntity() })
-            db.backlogOrderDao().insertAll(bundle.backlogOrders.map { it.toEntity() })
-            db.legacyNoteDao().insertAll(bundle.notes.map { it.toEntity() })
-            db.noteDocumentDao().insertAllItems(bundle.documentItems.map { it.toEntity() })
-            db.checklistDao().insertItems(bundle.checklistItems.map { it.toEntity() })
-            db.contextArtifactDao().insertAll(bundle.artifacts.map { it.toEntity() })
-            db.scriptDao().insertAll(bundle.scripts.map { it.toEntity() })
-            db.attachmentDao().insertAttachments(bundle.attachments.map { it.toEntity() })
-            db.attachmentDao().insertContextAttachmentCrossRefs(bundle.crossRefs.map { it.toEntity() })
-            db.inboxRecordDao().insertAll(bundle.inbox.map { it.toEntity() })
-            db.contextManagementDao().insertLogs(bundle.logs.map { it.toEntity() })
-            db.systemAppDao().insertAll(bundle.systemApps.map { it.toEntity() })
-            db.activityRecordDao().insertAll(bundle.activityRecords.map { it.toEntity() })
-            db.recentItemDao().insertAllSync(bundle.recentProjectEntries.map { it.toEntity() })
-            db.linkItemDao().insertAll(bundle.linkItemEntities.map { it.toEntity() })
-            db.dayTaskDao().insertTasks(bundle.dayTasks.map { it.toEntity() })
-            db.dailyMetricDao().insertMetrics(bundle.dailyMetrics.map { it.toEntity() })
-            db.chatDao().insertConversations(bundle.conversations.map { it.toEntity() })
-            db.chatDao().insertMessages(bundle.chatMessages.map { it.toEntity() })
-            db.reminderDao().insertAll(bundle.reminders.map { it.toEntity() })
-            db.tacticalMissionDao().insertMissionAttachments(bundle.tacticalMissionAttachments.map { it.toEntity() })
-            db.aiEventDao().insertAll(bundle.aiEvents.map { it.toEntity() })
-            db.aiInsightDao().upsertAll(bundle.aiInsights.map { it.toEntity() })
-            db.lifeSystemStateDao().insertAll(bundle.lifeSystemStates.map { it.toEntity() })
-            db.structurePresetDao().insertAll(bundle.contextRoleProfiles.map { it.toEntity() })
-            db.structurePresetItemDao().insertAll(bundle.contextRoleProfileItems.map { it.toEntity() })
-            db.contextStructureDao().insertAll(bundle.contextConfigurations.map { it.toEntity() })
-            db.contextStructureDao().insertAllItems(bundle.projectStructureItems.map { it.toEntity() })
+            listItemDao.insertItems(bundle.backlogItems.map { it.toEntity() })
+            backlogOrderDao.insertAll(bundle.backlogOrders.map { it.toEntity() })
+            legacyNoteDao.insertAll(bundle.notes.map { it.toEntity() })
+            // @Deprecated("Content is now part of NoteDocumentEntity, NoteDocumentItem is obsolete")
+            // noteDocumentDao.insertAllItems(bundle.documentItems.map { it.toEntity() })
+            checklistDao.insertItems(bundle.checklistItems.map { it.toEntity() })
+            contextArtifactDao.insertAll(bundle.artifacts.map { it.toEntity() })
+            scriptDao.insertAll(bundle.scripts.map { it.toEntity() })
+            attachmentDao.insertAttachments(bundle.attachments.map { it.toEntity() })
+            attachmentDao.insertContextAttachmentCrossRefs(bundle.crossRefs.map { it.toEntity() })
+            inboxRecordDao.insertAll(bundle.inbox.map { it.toEntity() })
+            contextManagementDao.insertLogs(bundle.logs.map { it.toEntity() })
+            systemAppDao.insertAll(bundle.systemApps.map { it.toEntity() })
+            activityRecordDao.insertAll(bundle.activityRecords.map { it.toEntity() })
+            recentItemDao.insertAllSync(bundle.recentProjectEntries.map { it.toEntity() })
+            linkItemDao.insertAll(bundle.linkItemEntities.map { it.toEntity() })
+            dayTaskDao.insertTasks(bundle.dayTasks.map { it.toEntity() })
+            dailyMetricDao.insertMetrics(bundle.dailyMetrics.map { it.toEntity() })
+            chatDao.insertConversations(bundle.conversations.map { it.toEntity() })
+            chatDao.insertMessages(bundle.chatMessages.map { it.toEntity() })
+            reminderDao.insertAll(bundle.reminders.map { it.toEntity() })
+            tacticalMissionDao.insertMissionAttachments(bundle.tacticalMissionAttachments.map { it.toEntity() })
+            aiEventDao.insertAll(bundle.aiEvents.map { it.toEntity() })
+            aiInsightDao.upsertAll(bundle.aiInsights.map { it.toEntity() })
+            lifeSystemStateDao.insertAll(bundle.lifeSystemStates.map { it.toEntity() })
+            structurePresetDao.insertAll(bundle.contextRoleProfiles.map { it.toEntity() })
+            structurePresetItemDao.insertAll(bundle.contextRoleProfileItems.map { it.toEntity() })
+            contextStructureDao.insertAll(bundle.contextConfigurations.map { it.toEntity() })
+            contextStructureDao.insertAllItems(bundle.projectStructureItems.map { it.toEntity() })
         }
         systemContextEnsurer.ensureAllSystemContextsExist()
     }
