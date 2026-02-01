@@ -237,6 +237,8 @@ dependencies {
     androidTestImplementation("org.mockito.kotlin:mockito-kotlin:4.0.0")
     testImplementation("io.mockk:mockk:1.13.10")
     androidTestImplementation("io.mockk:mockk-android:1.13.10")
+    testImplementation("com.google.truth:truth:1.1.3")
+
 
     // Additional libraries
     implementation(libs.accompanist.flowlayout)

@@ -10,21 +10,23 @@ import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
 import org.junit.Test
+import com.google.common.truth.Truth
 import com.google.common.truth.Truth.assertThat
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.context.ContextSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.context.GoalSnapshot
 import com.romankozak.forwardappmobile.core.data.models.Goal
+import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
 
 
 class MergeRepositorySnapshotTest {
 
     private lateinit var mergeRepository: MergeRepository
-    private val mockLocalDataSource: MergeLocalDataSource = mockk()
+    private val mockLocalDataSource: FullBackupLocalDataSource = mockk()
     private val syncLogicHelper: SyncLogicHelper = SyncLogicHelper()
 
     @Before
     fun setup() {
-        mergeRepository = MergeRepository(mockLocalDataSource, syncLogicHelper)
+        mergeRepository = MergeRepository(mockLocalDataSource as MergeLocalDataSource, syncLogicHelper)
     }
 
     @Test

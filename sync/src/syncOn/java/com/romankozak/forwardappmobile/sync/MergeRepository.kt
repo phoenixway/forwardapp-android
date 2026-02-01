@@ -5,14 +5,14 @@ import android.util.Log
 import com.google.gson.GsonBuilder
 import com.romankozak.forwardappmobile.core.data.models.*
 import com.romankozak.forwardappmobile.core.data.models.sync.*
-import com.romankozak.forwardappmobile.sync.datasource.MergeLocalDataSource
+import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
 import com.romankozak.forwardappmobile.sync.SyncMapper.updatedTs // ВАЖЛИВО: імпорт extension-функції
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class MergeRepository @Inject constructor(
-    private val localDataSource: MergeLocalDataSource,
+    private val localDataSource: FullBackupLocalDataSource,
     private val logicHelper: SyncLogicHelper,
 ) {
     private val TAG = "MergeRepository"
@@ -149,6 +149,40 @@ class MergeRepository @Inject constructor(
             Log.e(TAG, "Selective import failed", e)
             Result.failure(e)
         }
+    }
+
+suspend fun createBackupDiff(incoming: com.romankozak.forwardappmobile.core.data.models.sync.snapshot.SnapshotBundle): BackupDiff {
+        val local = localDataSource.loadFullSnapshotBundle()
+        return BackupDiff(
+            projects = logicHelper.diffEntities(incoming.contexts, local.contexts, { it.id }, { it.version }, { it.updatedAt }),
+            goals = logicHelper.diffEntities(incoming.goals, local.goals, { it.id }, { it.version }, { it.updatedAt }),
+            backlogItems = logicHelper.diffEntities(incoming.backlogItems, local.backlogItems, { it.id }, { it.version }, { it.updatedAt }),
+            documents = logicHelper.diffEntities(incoming.documents, local.documents, { it.id }, { it.version }, { it.updatedAt }),
+            attachments = logicHelper.diffEntities(incoming.attachments, local.attachments, { it.id }, { it.version }, { it.updatedAt }),
+            contextAttachmentCrossRefs = logicHelper.diffEntities(incoming.crossRefs, local.crossRefs, { "${it.contextId}-${it.attachmentId}" }, { 0L }, { it.updatedAt })
+        )
+    }
+
+suspend fun createSyncReport(bundle: com.romankozak.forwardappmobile.core.data.models.sync.snapshot.SnapshotBundle): SyncReport {
+        val localBundle = localDataSource.loadFullSnapshotBundle()
+        val changes = mutableListOf<SyncChange>()
+
+        // Helper function to add changes
+        fun <T> addChanges(incomingList: List<T>, localMap: Map<String, T>, idSelector: (T) -> String, nameSelector: (T) -> String, typeName: String, versionSelector: (T) -> Long, updatedSelector: (T) -> Long) {
+            incomingList.forEach { incoming ->
+                val local = localMap[idSelector(incoming)]
+                if (local == null) {
+                    changes.add(SyncChange(ChangeType.Add, typeName, idSelector(incoming), "Новий $typeName: ${nameSelector(incoming)}", entity = incoming as Any))
+                } else if (versionSelector(incoming) > versionSelector(local) || (versionSelector(incoming) == versionSelector(local) && updatedSelector(incoming) > updatedSelector(local))) {
+                    changes.add(SyncChange(ChangeType.Update, typeName, idSelector(incoming), "Оновлено $typeName: ${nameSelector(incoming)}", entity = incoming as Any))
+                }
+            }
+        }
+
+        addChanges(bundle.contexts, localBundle.contexts.associateBy { it.id }, { it.id }, { it.name }, "Список", { it.version }, { it.updatedAt })
+        addChanges(bundle.goals, localBundle.goals.associateBy { it.id }, { it.id }, { it.text }, "Ціль", { it.version }, { it.updatedAt })
+
+        return SyncReport(changes)
     }
 
     suspend fun applyServerChanges(bundle: com.romankozak.forwardappmobile.core.data.models.sync.snapshot.SnapshotBundle): Result<Unit> {

@@ -36,7 +36,7 @@ class LegacyMigrationMapperTest {
             defaultViewModeName = null,
             isCompleted = false,
             isContextManagementEnabled = null,
-            contextStatus = null,
+            contextStatus = "NO_PLAN",
             contextStatusText = null,
             contextLogLevel = null,
             totalTimeSpentMinutes = null,
@@ -50,11 +50,37 @@ class LegacyMigrationMapperTest {
             weightRisk = 1f,
             rawScore = 0f,
             displayScore = 0,
-            scoringStatus = null,
+            scoringStatus = "NOT_ASSESSED",
             showCheckboxes = false,
             roleCode = null
         )
-        val goal1 = Goal(id = "g1", text = "Goal 1", createdAt = 2L, completed = false, updatedAt = 2L)
+        val goal1 = Goal(
+            id = "g1",
+            text = "Goal 1",
+            description = null,
+            completed = false,
+            createdAt = 2L,
+            updatedAt = 2L,
+            isDeleted = false,
+            version = 0,
+            tags = null,
+            relatedLinks = null,
+            valueImportance = 0f,
+            valueImpact = 0f,
+            effort = 0f,
+            cost = 0f,
+            risk = 0f,
+            weightEffort = 1f,
+            weightCost = 1f,
+            weightRisk = 1f,
+            rawScore = 0f,
+            displayScore = 0,
+            scoringStatus = "NOT_ASSESSED",
+            parentValueImportance = null,
+            impactOnParentGoal = null,
+            timeCost = null,
+            financialCost = null
+        )
 
         val databaseContent = DatabaseContent(
             projects = listOf(context1),
