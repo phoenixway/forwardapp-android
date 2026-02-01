@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.core.navigation.routes
 
-import CommandDeckViewModel
+import com.romankozak.forwardappmobile.features.mainscreen.CommandDeckViewModel
 import android.util.Log
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
@@ -61,6 +61,7 @@ import com.romankozak.forwardappmobile.features.missions.presentation.TacticalMa
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.core.data.models.RecentItem
 import com.romankozak.forwardappmobile.core.data.models.RecentItemType
+import com.romankozak.forwardappmobile.features.mainscreen.CommandDeckEvent
 import com.romankozak.forwardappmobile.features.reminders.list.RemindersScreen
 import com.romankozak.forwardappmobile.features.settings.ManageContextsScreen
 import com.romankozak.forwardappmobile.features.settings.settings.SettingsScreen

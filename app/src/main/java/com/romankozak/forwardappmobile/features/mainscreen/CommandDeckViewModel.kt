@@ -1,3 +1,5 @@
+package com.romankozak.forwardappmobile.features.mainscreen
+
 import android.app.Application
 import android.content.Context
 import android.net.Uri
