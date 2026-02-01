@@ -154,6 +154,15 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
             val validChecklistIds = validChecklists.map { it.id }.toSet()
             checklistDao.insertChecklists(validChecklists)
 
+            // Activity Records
+            Log.d("FullBackupImport", "Activity records in backup: ${content.activityRecords.size}")
+            val validActivityRecords = content.activityRecords.filter {
+                !it.id.isNullOrBlank() && !it.text.isNullOrBlank()
+            }
+            Log.d("FullBackupImport", "Valid activity records after filtering: ${validActivityRecords.size}")
+            activityRecordDao.insertAll(validActivityRecords)
+            Log.d("FullBackupImport", "Imported ${validActivityRecords.size} activity records from V1 backup.")
+
             // --- Consolidate and auto-link attachments and cross-refs ---
 
             val finalAttachments = content.attachments.filter { 
@@ -279,8 +288,9 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
         val documents = noteDocumentDao.getAllDocumentsRaw().map { it.toSnapshot() }
         val checklists = checklistDao.getAllChecklistsRaw().map { it.toSnapshot() }
         val scripts = scriptDao.getAllRaw().map { it.toSnapshot() }
+        val activityRecords = activityRecordDao.getAllRaw().map { it.toSnapshot() }
 
-        Log.d("BackupExport", "Exporting Snapshot: notes=${notes.size}, docs=${documents.size}, checklists=${checklists.size}, scripts=${scripts.size}")
+        Log.d("BackupExport", "Exporting Snapshot: notes=${notes.size}, docs=${documents.size}, checklists=${checklists.size}, scripts=${scripts.size}, activityRecords=${activityRecords.size}")
 
         return SnapshotBundle(
             version = 2,
@@ -300,7 +310,7 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
             inbox = inboxRecordDao.getAllRaw().map { it.toSnapshot() },
             logs = contextManagementDao.getAllLogsRaw().map { it.toSnapshot() },
             systemApps = systemAppDao.getAllRaw().map { it.toSnapshot() },
-            activityRecords = activityRecordDao.getAllRaw().map { it.toSnapshot() },
+            activityRecords = activityRecords,
             recentProjectEntries = recentItemDao.getAllSync().map { it.toSnapshot() },
             linkItemEntities = linkItemDao.getAllRaw().map { it.toSnapshot() },
             dayPlans = dayPlanDao.getAllPlansSync().map { it.toSnapshot() },
