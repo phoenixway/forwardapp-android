@@ -57,7 +57,7 @@ class SyncLocalDataSourceImpl @Inject constructor(
         val recentProjectEntries = recentItemDao.getAll().map {
             RecentProjectEntry(contextId = it.target, timestamp = it.lastAccessed)
         }
-        val scripts = scriptDao.getAll().first()
+        val scripts = scriptDao.getAll()
         val listItems = listItemDao.getAll()
         val backlogOrders = logicHelper.dedupBacklogOrders(backlogOrderDao.getAll())
 

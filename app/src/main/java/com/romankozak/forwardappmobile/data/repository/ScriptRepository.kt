@@ -16,7 +16,7 @@ class ScriptRepository
         private val scriptDao: ScriptDao,
         private val attachmentRepository: com.romankozak.forwardappmobile.sync.AttachmentsRepository, // Updated type
     ) {
-        suspend fun getAllScripts(): Flow<List<ScriptEntity>> = scriptDao.getAllFlow()
+        fun getAllScripts(): Flow<List<ScriptEntity>> = scriptDao.getAllFlow()
 
         fun getScriptsForContext(contextId: String): Flow<List<ScriptEntity>> = scriptDao.getForContext(contextId)
 

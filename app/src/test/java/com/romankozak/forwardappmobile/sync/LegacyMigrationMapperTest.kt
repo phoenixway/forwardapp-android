@@ -19,7 +19,14 @@ class LegacyMigrationMapperTest {
     @Test
     fun `toSnapshotBundle converts DatabaseContent to SnapshotBundle correctly`() {
         // Given a DatabaseContent object
-        val context1 = Context(id = "c1", name = "Context 1", createdAt = 1L)
+        val context1 = Context(
+            id = "c1",
+            name = "Context 1",
+            parentId = null,
+            description = null,
+            createdAt = 1L,
+            updatedAt = 1L // Ensure updatedAt is provided
+        )
         val goal1 = Goal(id = "g1", text = "Goal 1", createdAt = 2L, completed = false, updatedAt = 2L)
 
         val databaseContent = DatabaseContent(

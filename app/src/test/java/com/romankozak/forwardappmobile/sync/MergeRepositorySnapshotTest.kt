@@ -11,7 +11,10 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Before
 import org.junit.Test
 import com.google.common.truth.Truth.assertThat
-import com.romankozak.forwardappmobile.sync.snapshot.entities.context.ContextSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.context.ContextSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.context.GoalSnapshot
+import com.romankozak.forwardappmobile.core.data.models.Goal
+
 
 class MergeRepositorySnapshotTest {
 
@@ -27,8 +30,76 @@ class MergeRepositorySnapshotTest {
     @Test
     fun `createBackupDiff with new entity in incoming`() = runBlocking {
         // Given
-        val localContext = Context(id = "c1", name = "Local Context", createdAt = 100L)
-        val incomingContext = ContextSnapshot(id = "c2", name = "New Context", createdAt = 200L, updatedAt = 200L)
+        val localContext = Context(
+            id = "c1",
+            name = "Local Context",
+            parentId = null,
+            description = null,
+            createdAt = 100L,
+            updatedAt = 100L,
+            isExpanded = true,
+            isDeleted = false,
+            version = 1,
+            tags = emptyList(),
+            relatedLinks = emptyList(),
+            order = 0L,
+            isAttachmentsExpanded = false,
+            defaultViewModeName = null,
+            isCompleted = false,
+            isContextManagementEnabled = false,
+            contextStatus = "NO_PLAN",
+            contextStatusText = null,
+            contextLogLevel = null,
+            totalTimeSpentMinutes = null,
+            valueImportance = 0f,
+            valueImpact = 0f,
+            effort = 0f,
+            cost = 0f,
+            risk = 0f,
+            weightEffort = 1f,
+            weightCost = 1f,
+            weightRisk = 1f,
+            rawScore = 0f,
+            displayScore = 0,
+            scoringStatus = "NOT_ASSESSED",
+            showCheckboxes = false,
+            roleCode = null
+        )
+        val incomingContext = ContextSnapshot(
+            id = "c2",
+            name = "New Context",
+            parentId = null,
+            description = null,
+            createdAt = 200L,
+            updatedAt = 200L,
+            isExpanded = true,
+            isDeleted = false,
+            version = 1,
+            tags = emptyList(),
+            relatedLinks = emptyList(),
+            order = 0L,
+            isAttachmentsExpanded = false,
+            defaultViewModeName = null,
+            isCompleted = false,
+            isContextManagementEnabled = false,
+            contextStatus = "NO_PLAN",
+            contextStatusText = null,
+            contextLogLevel = null,
+            totalTimeSpentMinutes = null,
+            valueImportance = 0f,
+            valueImpact = 0f,
+            effort = 0f,
+            cost = 0f,
+            risk = 0f,
+            weightEffort = 1f,
+            weightCost = 1f,
+            weightRisk = 1f,
+            rawScore = 0f,
+            displayScore = 0,
+            scoringStatus = "NOT_ASSESSED",
+            showCheckboxes = false,
+            roleCode = null
+        )
 
         coEvery { mockLocalDataSource.loadFullSnapshotBundle() } returns SnapshotBundle(
             contexts = listOf(localContext.toSnapshot())
@@ -47,8 +118,76 @@ class MergeRepositorySnapshotTest {
     @Test
     fun `createBackupDiff with updated entity in incoming`() = runBlocking {
         // Given
-        val localContext = Context(id = "c1", name = "Local Context", createdAt = 100L, updatedAt = 100L, version = 1)
-        val incomingContext = ContextSnapshot(id = "c1", name = "Updated Context", createdAt = 100L, updatedAt = 200L, version = 2)
+        val localContext = Context(
+            id = "c1",
+            name = "Local Context",
+            parentId = null,
+            description = null,
+            createdAt = 100L,
+            updatedAt = 100L,
+            isExpanded = true,
+            isDeleted = false,
+            version = 1,
+            tags = emptyList(),
+            relatedLinks = emptyList(),
+            order = 0L,
+            isAttachmentsExpanded = false,
+            defaultViewModeName = null,
+            isCompleted = false,
+            isContextManagementEnabled = false,
+            contextStatus = "NO_PLAN",
+            contextStatusText = null,
+            contextLogLevel = null,
+            totalTimeSpentMinutes = null,
+            valueImportance = 0f,
+            valueImpact = 0f,
+            effort = 0f,
+            cost = 0f,
+            risk = 0f,
+            weightEffort = 1f,
+            weightCost = 1f,
+            weightRisk = 1f,
+            rawScore = 0f,
+            displayScore = 0,
+            scoringStatus = "NOT_ASSESSED",
+            showCheckboxes = false,
+            roleCode = null
+        )
+        val incomingContext = ContextSnapshot(
+            id = "c1",
+            name = "Updated Context",
+            parentId = null,
+            description = null,
+            createdAt = 100L,
+            updatedAt = 200L,
+            isExpanded = true,
+            isDeleted = false,
+            version = 2,
+            tags = emptyList(),
+            relatedLinks = emptyList(),
+            order = 0L,
+            isAttachmentsExpanded = false,
+            defaultViewModeName = null,
+            isCompleted = false,
+            isContextManagementEnabled = false,
+            contextStatus = "NO_PLAN",
+            contextStatusText = null,
+            contextLogLevel = null,
+            totalTimeSpentMinutes = null,
+            valueImportance = 0f,
+            valueImpact = 0f,
+            effort = 0f,
+            cost = 0f,
+            risk = 0f,
+            weightEffort = 1f,
+            weightCost = 1f,
+            weightRisk = 1f,
+            rawScore = 0f,
+            displayScore = 0,
+            scoringStatus = "NOT_ASSESSED",
+            showCheckboxes = false,
+            roleCode = null
+        )
 
         coEvery { mockLocalDataSource.loadFullSnapshotBundle() } returns SnapshotBundle(
             contexts = listOf(localContext.toSnapshot())
@@ -69,8 +208,76 @@ class MergeRepositorySnapshotTest {
     @Test
     fun `createSyncReport with new entity in incoming`() = runBlocking {
         // Given
-        val localContext = Context(id = "c1", name = "Local Context", createdAt = 100L)
-        val incomingContext = ContextSnapshot(id = "c2", name = "New Context", createdAt = 200L, updatedAt = 200L)
+        val localContext = Context(
+            id = "c1",
+            name = "Local Context",
+            parentId = null,
+            description = null,
+            createdAt = 100L,
+            updatedAt = 100L,
+            isExpanded = true,
+            isDeleted = false,
+            version = 1,
+            tags = emptyList(),
+            relatedLinks = emptyList(),
+            order = 0L,
+            isAttachmentsExpanded = false,
+            defaultViewModeName = null,
+            isCompleted = false,
+            isContextManagementEnabled = false,
+            contextStatus = "NO_PLAN",
+            contextStatusText = null,
+            contextLogLevel = null,
+            totalTimeSpentMinutes = null,
+            valueImportance = 0f,
+            valueImpact = 0f,
+            effort = 0f,
+            cost = 0f,
+            risk = 0f,
+            weightEffort = 1f,
+            weightCost = 1f,
+            weightRisk = 1f,
+            rawScore = 0f,
+            displayScore = 0,
+            scoringStatus = "NOT_ASSESSED",
+            showCheckboxes = false,
+            roleCode = null
+        )
+        val incomingContext = ContextSnapshot(
+            id = "c2",
+            name = "New Context",
+            parentId = null,
+            description = null,
+            createdAt = 200L,
+            updatedAt = 200L,
+            isExpanded = true,
+            isDeleted = false,
+            version = 1,
+            tags = emptyList(),
+            relatedLinks = emptyList(),
+            order = 0L,
+            isAttachmentsExpanded = false,
+            defaultViewModeName = null,
+            isCompleted = false,
+            isContextManagementEnabled = false,
+            contextStatus = "NO_PLAN",
+            contextStatusText = null,
+            contextLogLevel = null,
+            totalTimeSpentMinutes = null,
+            valueImportance = 0f,
+            valueImpact = 0f,
+            effort = 0f,
+            cost = 0f,
+            risk = 0f,
+            weightEffort = 1f,
+            weightCost = 1f,
+            weightRisk = 1f,
+            rawScore = 0f,
+            displayScore = 0,
+            scoringStatus = "NOT_ASSESSED",
+            showCheckboxes = false,
+            roleCode = null
+        )
 
         coEvery { mockLocalDataSource.loadFullSnapshotBundle() } returns SnapshotBundle(
             contexts = listOf(localContext.toSnapshot())
@@ -90,8 +297,76 @@ class MergeRepositorySnapshotTest {
     @Test
     fun `createSyncReport with updated entity in incoming`() = runBlocking {
         // Given
-        val localContext = Context(id = "c1", name = "Local Context", createdAt = 100L, updatedAt = 100L, version = 1)
-        val incomingContext = ContextSnapshot(id = "c1", name = "Updated Context", createdAt = 100L, updatedAt = 200L, version = 2)
+        val localContext = Context(
+            id = "c1",
+            name = "Local Context",
+            parentId = null,
+            description = null,
+            createdAt = 100L,
+            updatedAt = 100L,
+            isExpanded = true,
+            isDeleted = false,
+            version = 1,
+            tags = emptyList(),
+            relatedLinks = emptyList(),
+            order = 0L,
+            isAttachmentsExpanded = false,
+            defaultViewModeName = null,
+            isCompleted = false,
+            isContextManagementEnabled = false,
+            contextStatus = "NO_PLAN",
+            contextStatusText = null,
+            contextLogLevel = null,
+            totalTimeSpentMinutes = null,
+            valueImportance = 0f,
+            valueImpact = 0f,
+            effort = 0f,
+            cost = 0f,
+            risk = 0f,
+            weightEffort = 1f,
+            weightCost = 1f,
+            weightRisk = 1f,
+            rawScore = 0f,
+            displayScore = 0,
+            scoringStatus = "NOT_ASSESSED",
+            showCheckboxes = false,
+            roleCode = null
+        )
+        val incomingContext = ContextSnapshot(
+            id = "c1",
+            name = "Updated Context",
+            parentId = null,
+            description = null,
+            createdAt = 100L,
+            updatedAt = 200L,
+            isExpanded = true,
+            isDeleted = false,
+            version = 2,
+            tags = emptyList(),
+            relatedLinks = emptyList(),
+            order = 0L,
+            isAttachmentsExpanded = false,
+            defaultViewModeName = null,
+            isCompleted = false,
+            isContextManagementEnabled = false,
+            contextStatus = "NO_PLAN",
+            contextStatusText = null,
+            contextLogLevel = null,
+            totalTimeSpentMinutes = null,
+            valueImportance = 0f,
+            valueImpact = 0f,
+            effort = 0f,
+            cost = 0f,
+            risk = 0f,
+            weightEffort = 1f,
+            weightCost = 1f,
+            weightRisk = 1f,
+            rawScore = 0f,
+            displayScore = 0,
+            scoringStatus = "NOT_ASSESSED",
+            showCheckboxes = false,
+            roleCode = null
+        )
 
         coEvery { mockLocalDataSource.loadFullSnapshotBundle() } returns SnapshotBundle(
             contexts = listOf(localContext.toSnapshot())

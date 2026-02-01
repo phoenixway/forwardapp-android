@@ -3,16 +3,20 @@ package com.romankozak.forwardappmobile.sync
 import android.content.Context
 import android.net.Uri
 import com.google.common.truth.Truth.assertThat
+import com.google.gson.JsonSyntaxException
 import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
 import com.romankozak.forwardappmobile.core.data.models.sync.SettingsContent
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.context.ContextSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.toSnapshot
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
 import io.mockk.*
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
 import org.junit.Test
 import java.io.ByteArrayInputStream
+import java.io.IOException
 import java.io.InputStream
 
 class SyncFileServiceSnapshotTest {
@@ -52,11 +56,12 @@ class SyncFileServiceSnapshotTest {
     private fun createNewFormatJson(): String {
         val snapshot = SnapshotBundle(
             version = 2,
-            contexts = listOf(com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.context.ContextSnapshot(
+            contexts = listOf(ContextSnapshot(
                 id = "new_c1", name = "New Context", createdAt = 100L, updatedAt = 100L,
                 isExpanded = false, isDeleted = false, version = 1, contextStatus = "NO_PLAN",
-                contextLogLevel = null, contextType = null, isContextManagementEnabled = false,
-                parentId = null, description = null, contextStatusText = null, viewMode = null
+                contextLogLevel = null, isContextManagementEnabled = false,
+                parentId = null, description = null, contextStatusText = null,
+                tags = emptyList(), relatedLinks = emptyList(), order = 0L, isAttachmentsExpanded = false, defaultViewModeName = null, isCompleted = false, totalTimeSpentMinutes = null, valueImportance = 0f, valueImpact = 0f, effort = 0f, cost = 0f, risk = 0f, weightEffort = 1f, weightCost = 1f, weightRisk = 1f, rawScore = 0f, displayScore = 0, scoringStatus = "NOT_ASSESSED", showCheckboxes = false, roleCode = null
             ))
         )
         val backup = FullAppBackup(
@@ -71,7 +76,9 @@ class SyncFileServiceSnapshotTest {
     private fun createLegacyFormatJson(): String {
         val dbContent = DatabaseContent(
             projects = listOf(com.romankozak.forwardappmobile.core.data.models.Context(
-                id = "legacy_c1", name = "Legacy Context", createdAt = 50L
+                id = "legacy_c1", name = "Legacy Context", createdAt = 50L, updatedAt = 50L,
+                parentId = null, description = null, isExpanded = false, isDeleted = false, version = 0,
+                tags = emptyList(), relatedLinks = emptyList(), order = 0L, isAttachmentsExpanded = false, defaultViewModeName = null, isCompleted = false, isContextManagementEnabled = false, contextStatus = "NO_PLAN", contextStatusText = null, contextLogLevel = null, totalTimeSpentMinutes = null, valueImportance = 0f, valueImpact = 0f, effort = 0f, cost = 0f, risk = 0f, weightEffort = 1f, weightCost = 1f, weightRisk = 1f, rawScore = 0f, displayScore = 0, scoringStatus = "NOT_ASSESSED", showCheckboxes = false, roleCode = null
             ))
         )
         val backup = FullAppBackup(
@@ -86,7 +93,9 @@ class SyncFileServiceSnapshotTest {
     private fun createOldDatabaseContentJson(): String {
         val dbContent = DatabaseContent(
             projects = listOf(com.romankozak.forwardappmobile.core.data.models.Context(
-                id = "raw_c1", name = "Raw DB Content", createdAt = 20L
+                id = "raw_c1", name = "Raw DB Content", createdAt = 20L, updatedAt = 20L,
+                parentId = null, description = null, isExpanded = false, isDeleted = false, version = 0,
+                tags = emptyList(), relatedLinks = emptyList(), order = 0L, isAttachmentsExpanded = false, defaultViewModeName = null, isCompleted = false, isContextManagementEnabled = false, contextStatus = "NO_PLAN", contextStatusText = null, contextLogLevel = null, totalTimeSpentMinutes = null, valueImportance = 0f, valueImpact = 0f, effort = 0f, cost = 0f, risk = 0f, weightEffort = 1f, weightCost = 1f, weightRisk = 1f, rawScore = 0f, displayScore = 0, scoringStatus = "NOT_ASSESSED", showCheckboxes = false, roleCode = null
             ))
         )
         return gson.toJson(dbContent) // This simulates a file that is just DatabaseContent
@@ -98,11 +107,12 @@ class SyncFileServiceSnapshotTest {
         val uri = Uri.parse("content://test/new_format")
         val expectedSnapshot = SnapshotBundle(
             version = 2,
-            contexts = listOf(com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.context.ContextSnapshot(
+            contexts = listOf(ContextSnapshot(
                 id = "new_c1", name = "New Context", createdAt = 100L, updatedAt = 100L,
                 isExpanded = false, isDeleted = false, version = 1, contextStatus = "NO_PLAN",
-                contextLogLevel = null, contextType = null, isContextManagementEnabled = false,
-                parentId = null, description = null, contextStatusText = null, viewMode = null
+                contextLogLevel = null, isContextManagementEnabled = false,
+                parentId = null, description = null, contextStatusText = null,
+                tags = emptyList(), relatedLinks = emptyList(), order = 0L, isAttachmentsExpanded = false, defaultViewModeName = null, isCompleted = false, totalTimeSpentMinutes = null, valueImportance = 0f, valueImpact = 0f, effort = 0f, cost = 0f, risk = 0f, weightEffort = 1f, weightCost = 1f, weightRisk = 1f, rawScore = 0f, displayScore = 0, scoringStatus = "NOT_ASSESSED", showCheckboxes = false, roleCode = null
             ))
         )
 
@@ -123,11 +133,12 @@ class SyncFileServiceSnapshotTest {
         val uri = Uri.parse("content://test/legacy_format")
         val migratedSnapshot = SnapshotBundle(
             version = 1,
-            contexts = listOf(com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.context.ContextSnapshot(
+            contexts = listOf(ContextSnapshot(
                 id = "legacy_c1", name = "Legacy Context", createdAt = 50L, updatedAt = 50L,
                 isExpanded = false, isDeleted = false, version = 0, contextStatus = "NO_PLAN",
-                contextLogLevel = null, contextType = null, isContextManagementEnabled = false,
-                parentId = null, description = null, contextStatusText = null, viewMode = null
+                contextLogLevel = null, isContextManagementEnabled = false,
+                parentId = null, description = null, contextStatusText = null,
+                tags = emptyList(), relatedLinks = emptyList(), order = 0L, isAttachmentsExpanded = false, defaultViewModeName = null, isCompleted = false, totalTimeSpentMinutes = null, valueImportance = 0f, valueImpact = 0f, effort = 0f, cost = 0f, risk = 0f, weightEffort = 1f, weightCost = 1f, weightRisk = 1f, rawScore = 0f, displayScore = 0, scoringStatus = "NOT_ASSESSED", showCheckboxes = false, roleCode = null
             ))
         )
 
@@ -149,11 +160,12 @@ class SyncFileServiceSnapshotTest {
         val uri = Uri.parse("content://test/old_dbcontent_format")
         val migratedSnapshot = SnapshotBundle(
             version = 1,
-            contexts = listOf(com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.context.ContextSnapshot(
+            contexts = listOf(ContextSnapshot(
                 id = "raw_c1", name = "Raw DB Content", createdAt = 20L, updatedAt = 20L,
                 isExpanded = false, isDeleted = false, version = 0, contextStatus = "NO_PLAN",
-                contextLogLevel = null, contextType = null, isContextManagementEnabled = false,
-                parentId = null, description = null, contextStatusText = null, viewMode = null
+                contextLogLevel = null, isContextManagementEnabled = false,
+                parentId = null, description = null, contextStatusText = null,
+                tags = emptyList(), relatedLinks = emptyList(), order = 0L, isAttachmentsExpanded = false, defaultViewModeName = null, isCompleted = false, totalTimeSpentMinutes = null, valueImportance = 0f, valueImpact = 0f, effort = 0f, cost = 0f, risk = 0f, weightEffort = 1f, weightCost = 1f, weightRisk = 1f, rawScore = 0f, displayScore = 0, scoringStatus = "NOT_ASSESSED", showCheckboxes = false, roleCode = null
             ))
         )
 
