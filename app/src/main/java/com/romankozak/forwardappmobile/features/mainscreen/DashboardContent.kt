@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.features.mainscreen
 
+import CommandDeckViewModel
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background

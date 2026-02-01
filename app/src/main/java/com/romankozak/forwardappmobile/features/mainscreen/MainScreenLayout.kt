@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.features.mainscreen
 
+import CommandDeckViewModel
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -329,7 +330,7 @@ fun MainScreenLayout(
                             onNavigateToAiChat = onNavigateToAiChat,
                             onNavigateToAiInsights = onNavigateToAiInsights,
                             onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
-                            onNavigateToImportExport = onNavigateToImportExport,
+                            onNavigateToImportExport = {/*TODO: replace with real code*/},
                             onNavigateToAttachments = onNavigateToAttachments,
                             onNavigateToScripts = onNavigateToScripts,
                         )

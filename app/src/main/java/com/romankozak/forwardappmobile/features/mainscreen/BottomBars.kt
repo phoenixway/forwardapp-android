@@ -1,5 +1,7 @@
 package com.romankozak.forwardappmobile.features.mainscreen
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,9 +16,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AlternateEmail
 import androidx.compose.material.icons.outlined.AutoAwesome
@@ -29,6 +37,7 @@ import androidx.compose.material.icons.outlined.Radar
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.SwapVert
+import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme

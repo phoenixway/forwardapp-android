@@ -40,7 +40,7 @@ class SelectiveImportViewModel
             loadBackupFile(uri)
         }
 
-        fun loadBackupFile(fileUriString: String?) {
+        internal fun loadBackupFile(fileUriString: String?) {
             viewModelScope.launch {
                 Log.d("IMPORT_SELECTIVE", "loadBackupFile called with: $fileUriString")
                 _uiState.update { it.copy(isLoading = true) }

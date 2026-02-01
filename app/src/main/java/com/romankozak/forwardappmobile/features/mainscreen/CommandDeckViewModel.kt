@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.domain.lifecontext.StartContextTrackingUseCase
 import com.romankozak.forwardappmobile.domain.lifecontext.SubmitContextInputUseCase
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.DialogUseCase
 import com.romankozak.forwardappmobile.sync.SyncRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +22,7 @@ class CommandDeckViewModel
         private val application: Application,
         private val submitContextInputUseCase: SubmitContextInputUseCase,
         private val startContextTrackingUseCase: StartContextTrackingUseCase,
+        private val dialogUseCase: DialogUseCase,
         private val syncRepository: SyncRepository,
     ) : ViewModel() {
         private val sharedPreferences = application.getSharedPreferences("command_deck_prefs", Context.MODE_PRIVATE)
@@ -87,16 +90,13 @@ class CommandDeckViewModel
             when (event) {
                 CommandDeckEvent.ExportToFile -> {
                     viewModelScope.launch {
-                        syncRepository.exportDatabaseToFile().onFailure {
-                            // TODO: Show error message
-                        }
+                        dialogUseCase.onExportToFileRequested()
+
                     }
                 }
                 is CommandDeckEvent.ImportFromFileRequest -> {
                     viewModelScope.launch {
-                        syncRepository.importDatabaseFromFile(Uri.parse(event.fileUri)).onFailure {
-                            // TODO: Show error message
-                        }
+                        ContextHierarchyScreenEvent.ImportFromFileRequest(Uri.parse(event.fileUri))
                     }
                 }
                 CommandDeckEvent.ExportAttachments -> {
@@ -115,9 +115,7 @@ class CommandDeckViewModel
                 }
                 is CommandDeckEvent.WifiPush -> {
                     viewModelScope.launch {
-                        syncRepository.pushChangesToWifiServer(event.host).onFailure {
-                            // TODO: Show error message
-                        }
+                        //TODO: remove this action
                     }
                 }
             }
