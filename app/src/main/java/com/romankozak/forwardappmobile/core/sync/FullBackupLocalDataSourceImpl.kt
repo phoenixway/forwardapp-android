@@ -11,6 +11,9 @@ import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.core.data.interfaces.SystemContextEnsurer
+import com.romankozak.forwardappmobile.core.data.models.AttachmentEntity
+import com.romankozak.forwardappmobile.core.data.models.BacklogItemTypeValues
+import com.romankozak.forwardappmobile.core.data.models.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.toEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.toSnapshot
@@ -135,6 +138,7 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
             if (content.attachments.size > validAttachments.size) Log.w("FullBackupImport", "Attachments: Ignored ${content.attachments.size - validAttachments.size} of ${content.attachments.size}.")
             attachmentDao.insertAttachments(validAttachments)
             
+            Log.d("FullBackupImport", "Documents in backup: ${content.documents.size}")
             val validDocuments = content.documents.filter {
                 val isValid = !it.id.isNullOrBlank() && !it.name.isNullOrBlank() && validContextIds.contains(it.contextId)
                 if (!isValid) {
@@ -143,14 +147,62 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
                 isValid
             }
             val validDocumentIds = validDocuments.map { it.id }.toSet()
-            if (content.documents.size > validDocuments.size) Log.w("FullBackupImport", "NoteDocuments: Ignored ${content.documents.size - validDocuments.size} of ${content.documents.size}.")
+            Log.d("FullBackupImport", "Valid documents after filtering: ${validDocuments.size}")
             noteDocumentDao.insertAllDocuments(validDocuments)
 
+            // Auto-create attachments and cross-refs for documents from legacy backups
+            val newAttachmentsForDocuments = mutableListOf<AttachmentEntity>()
+            val newCrossRefsForDocuments = mutableListOf<ContextAttachmentCrossRef>()
+            validDocuments.forEach { doc ->
+                val attachment = AttachmentEntity(
+                    entityId = doc.id,
+                    attachmentType = BacklogItemTypeValues.NOTE_DOCUMENT,
+                    ownerContextId = doc.contextId,
+                    createdAt = doc.createdAt,
+                    updatedAt = doc.updatedAt
+                )
+                newAttachmentsForDocuments.add(attachment)
+                val crossRef = ContextAttachmentCrossRef(
+                    contextId = doc.contextId,
+                    attachmentId = attachment.id
+                )
+                newCrossRefsForDocuments.add(crossRef)
+            }
+            Log.d("FullBackupImport", "Creating ${newAttachmentsForDocuments.size} new AttachmentEntities for documents.")
+            attachmentDao.insertAttachments(newAttachmentsForDocuments)
+            Log.d("FullBackupImport", "Creating ${newCrossRefsForDocuments.size} new ContextAttachmentCrossRefs for documents.")
+            attachmentDao.insertContextAttachmentCrossRefs(newCrossRefsForDocuments)
+
+            Log.d("FullBackupImport", "Checklists in backup: ${content.checklists.size}")
             val validChecklists = content.checklists.filter {
                 !it.id.isNullOrBlank() && !it.name.isNullOrBlank() && validContextIds.contains(it.contextId)
             }
+            Log.d("FullBackupImport", "Valid checklists after filtering: ${validChecklists.size}")
             val validChecklistIds = validChecklists.map { it.id }.toSet()
             checklistDao.insertChecklists(validChecklists)
+
+            // Auto-create attachments and cross-refs for checklists from legacy backups
+            val newAttachmentsForChecklists = mutableListOf<AttachmentEntity>()
+            val newCrossRefsForChecklists = mutableListOf<ContextAttachmentCrossRef>()
+            validChecklists.forEach { checklist ->
+                val attachment = AttachmentEntity(
+                    entityId = checklist.id,
+                    attachmentType = BacklogItemTypeValues.CHECKLIST,
+                    ownerContextId = checklist.contextId,
+                    createdAt = checklist.createdAt,
+                    updatedAt = checklist.updatedAt
+                )
+                newAttachmentsForChecklists.add(attachment)
+                val crossRef = ContextAttachmentCrossRef(
+                    contextId = checklist.contextId,
+                    attachmentId = attachment.id
+                )
+                newCrossRefsForChecklists.add(crossRef)
+            }
+            Log.d("FullBackupImport", "Creating ${newAttachmentsForChecklists.size} new AttachmentEntities for checklists.")
+            attachmentDao.insertAttachments(newAttachmentsForChecklists)
+            Log.d("FullBackupImport", "Creating ${newCrossRefsForChecklists.size} new ContextAttachmentCrossRefs for checklists.")
+            attachmentDao.insertContextAttachmentCrossRefs(newCrossRefsForChecklists)
 
 
             // Step 2: Filter dependent entities against the sets of valid parent IDs.
@@ -278,6 +330,53 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
             goalDao.insertAll(bundle.goals.map { it.toEntity() })
             noteDocumentDao.insertAllDocuments(bundle.documents.map { it.toEntity() })
             checklistDao.insertChecklists(bundle.checklists.map { it.toEntity() })
+
+            val newAttachments = mutableListOf<AttachmentEntity>()
+            val newCrossRefs = mutableListOf<ContextAttachmentCrossRef>()
+
+            bundle.documents.forEach { doc ->
+                doc.contextId?.let { contextId ->
+                    val attachment = AttachmentEntity(
+                        entityId = doc.id,
+                        attachmentType = BacklogItemTypeValues.NOTE_DOCUMENT,
+                        ownerContextId = contextId,
+                        createdAt = doc.createdAt,
+                        updatedAt = doc.updatedAt
+                    )
+                    newAttachments.add(attachment)
+                    val crossRef = ContextAttachmentCrossRef(
+                        contextId = contextId,
+                        attachmentId = attachment.id
+                    )
+                    newCrossRefs.add(crossRef)
+                    Log.d("BackupImport", "Linking Attachment [${attachment.id}] to Context [${crossRef.contextId}] for NoteDocument [${doc.id}]")
+                }
+            }
+
+            bundle.checklists.forEach { checklist ->
+                checklist.contextId?.let { contextId ->
+                    val attachment = AttachmentEntity(
+                        entityId = checklist.id,
+                        attachmentType = BacklogItemTypeValues.CHECKLIST,
+                        ownerContextId = contextId,
+                        createdAt = checklist.createdAt,
+                        updatedAt = checklist.updatedAt
+                    )
+                    newAttachments.add(attachment)
+                    val crossRef = ContextAttachmentCrossRef(
+                        contextId = contextId,
+                        attachmentId = attachment.id
+                    )
+                    newCrossRefs.add(crossRef)
+                    Log.d("BackupImport", "Linking Attachment [${attachment.id}] to Context [${crossRef.contextId}] for Checklist [${checklist.id}]")
+                }
+            }
+
+            Log.d("BackupImport", "Creating ${newAttachments.size} new AttachmentEntities.")
+            attachmentDao.insertAttachments(newAttachments)
+            Log.d("BackupImport", "Creating ${newCrossRefs.size} new ContextAttachmentCrossRefs.")
+            attachmentDao.insertContextAttachmentCrossRefs(newCrossRefs)
+            
             conversationFolderDao.insertAll(bundle.conversationFolders.map { it.toEntity() })
             dayPlanDao.insertPlans(bundle.dayPlans.map { it.toEntity() })
             recurringTaskDao.insertAll(bundle.recurringTasks.map { it.toEntity() })

@@ -63,7 +63,9 @@ class AttachmentsLibraryViewModel @Inject constructor(
 
             val ownerContext = result.ownerContextId?.let { contextRefs[it] }
 
-            mapToLibraryItem(result, type, associatedContexts, ownerContext)
+            val allContexts = (associatedContexts + listOfNotNull(ownerContext)).distinctBy { it.id }
+
+            mapToLibraryItem(result, type, allContexts, ownerContext)
         }
 
         val filteredItems = items.filter { item ->
