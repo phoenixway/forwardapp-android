@@ -1,5 +1,7 @@
 package com.romankozak.forwardappmobile.features.sync.selectiveimport
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -67,6 +69,20 @@ fun SelectiveImportScreen(
     onNavigateBack: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    val importLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) {
+            viewModel.loadBackupFile(uri.toString())
+        } else {
+            onNavigateBack()
+        }
+    }
+
+    LaunchedEffect(uiState.isLoading) {
+        if (uiState.backupContent == null && !uiState.isLoading && uiState.error == null) {
+            importLauncher.launch("application/json")
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.eventFlow.collect { event ->

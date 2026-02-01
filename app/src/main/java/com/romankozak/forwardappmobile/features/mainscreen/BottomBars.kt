@@ -77,6 +77,7 @@ fun DashboardBottomBar(
         )
     var showMoreBottomSheet by remember { mutableStateOf(false) }
     var showRecentSheet by remember { mutableStateOf(false) }
+    var showImportExportSheet by remember { mutableStateOf(false) }
 
     val recentItems by recentViewModel.recentItems.collectAsStateWithLifecycle()
 
@@ -119,12 +120,12 @@ fun DashboardBottomBar(
                         onNavigateToAiInsights()
                     }
                 },
-                onNavigateToImportExport = {
+                onShowImportExportSheet = {
                     coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
                         if (!modalSheetState.isVisible) {
                             showMoreBottomSheet = false
                         }
-                        onNavigateToImportExport()
+                        showImportExportSheet = true
                     }
                 },
                 onNavigateToSettings = {
@@ -195,7 +196,7 @@ private fun MoreBottomSheetContent(
     onNavigateToProjectSearch: () -> Unit,
     onNavigateToPresets: () -> Unit,
     onNavigateToAiInsights: () -> Unit,
-    onNavigateToImportExport: () -> Unit,
+    onShowImportExportSheet: () -> Unit,
     onNavigateToSettings: () -> Unit,
 ) {
     Box(
@@ -260,7 +261,7 @@ private fun MoreBottomSheetContent(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .clickable(onClick = onNavigateToImportExport)
+                        .clickable(onClick = onShowImportExportSheet)
                         .padding(vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -375,7 +376,5 @@ private fun BarButton(
         ) {
             Icon(icon, contentDescription = label, tint = primary.copy(alpha = 0.9f))
         }
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(text = label, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface))
     }
 }

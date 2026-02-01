@@ -77,7 +77,7 @@ const val CHARACTER_SCREEN_ROUTE = "character_screen"
 const val GOAL_LISTS_ROUTE = "goal_lists_screen"
 const val AI_INSIGHTS_ROUTE = "ai_insights_screen"
 const val LIFE_STATE_ROUTE = "life_state_screen"
-const val SELECTIVE_IMPORT_ROUTE = "selective_import_screen/{fileUri}"
+const val SELECTIVE_IMPORT_ROUTE = "selective_import_screen?fileUri={fileUri}"
 const val CONTEXT_LAB_ROUTE = "context_lab_screen"
 const val PLACEHOLDER_ROUTE = "placeholder_screen/{viewId}/{screenId}"
 const val KANBAN_ROUTE = "kanban_screen"
@@ -591,5 +591,6 @@ private fun NavGraphBuilder.mainGraph(
         PlaceholderScreen(viewId = viewId, screenId = screenId)
     }
 }
+
 
 fun mapTargetToRoute(target: NavTarget): String = NavTargetRouter.routeOf(target)

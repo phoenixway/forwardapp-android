@@ -165,12 +165,6 @@ fun CommandDeckTabItem(
 
         if (isSelected) {
             Spacer(Modifier.width(6.dp))
-            Text(
-                text = tab.title,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.primary,
-            )
         }
     }
 }
