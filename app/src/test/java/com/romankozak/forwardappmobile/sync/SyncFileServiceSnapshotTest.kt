@@ -105,7 +105,7 @@ class SyncFileServiceSnapshotTest {
     fun `importFullBackupFromFileV2 imports new snapshot format correctly`() = runBlocking {
         // Given
         val uri = Uri.parse("content://test/new_format")
-        val expectedSnapshot = SnapshotBundle(
+        val snapshot = SnapshotBundle(
             version = 2,
             contexts = listOf(ContextSnapshot(
                 id = "new_c1", name = "New Context", createdAt = 100L, updatedAt = 100L,
@@ -115,15 +115,23 @@ class SyncFileServiceSnapshotTest {
                 tags = emptyList(), relatedLinks = emptyList(), order = 0L, isAttachmentsExpanded = false, defaultViewModeName = null, isCompleted = false, totalTimeSpentMinutes = null, valueImportance = 0f, valueImpact = 0f, effort = 0f, cost = 0f, risk = 0f, weightEffort = 1f, weightCost = 1f, weightRisk = 1f, rawScore = 0f, displayScore = 0, scoringStatus = "NOT_ASSESSED", showCheckboxes = false, roleCode = null
             ))
         )
-
-        coEvery { mockMergeRepository.applyServerChanges(any()) } returns Result.success(Unit)
+        val backup = FullAppBackup(
+            backupSchemaVersion = 2,
+            snapshotBundle = snapshot,
+            database = null,
+            settings = null
+        )
+        val jsonString = gson.toJson(backup)
+        val inputStream = ByteArrayInputStream(jsonString.toByteArray())
+        coEvery { mockContext.contentResolver.openInputStream(uri) } returns inputStream
+        coEvery { mockMergeRepository.applyServerChanges(snapshot) } returns Result.success(Unit)
 
         // When
         val result = syncFileService.importFullBackupFromFileV2(uri)
 
         // Then
         assertThat(result.isSuccess).isTrue()
-        coVerify(exactly = 1) { mockMergeRepository.applyServerChanges(match { it.contexts.first().id == "new_c1" }) }
+        coVerify(exactly = 1) { mockMergeRepository.applyServerChanges(snapshot) }
         coVerify(exactly = 0) { mockLegacyMigrationMapper.toSnapshotBundle(any()) } // Should not call mapper for new format
     }
 
@@ -142,16 +150,16 @@ class SyncFileServiceSnapshotTest {
             ))
         )
 
-        coEvery { mockLegacyMigrationMapper.toSnapshotBundle(any()) } returns migratedSnapshot
-        coEvery { mockMergeRepository.applyServerChanges(any()) } returns Result.success(Unit)
+        coEvery { mockLegacyMigrationMapper.toSnapshotBundle(any<DatabaseContent>()) } returns migratedSnapshot
+        coEvery { mockMergeRepository.applyServerChanges(any<SnapshotBundle>()) } returns Result.success(Unit)
 
         // When
         val result = syncFileService.importFullBackupFromFileV2(uri)
 
         // Then
         assertThat(result.isSuccess).isTrue()
-        coVerify(exactly = 1) { mockLegacyMigrationMapper.toSnapshotBundle(match { it.projects.first().id == "legacy_c1" }) }
-        coVerify(exactly = 1) { mockMergeRepository.applyServerChanges(match { it.contexts.first().id == "legacy_c1" }) }
+        coVerify(exactly = 1) { mockLegacyMigrationMapper.toSnapshotBundle(match<DatabaseContent> { it.projects.first().id == "legacy_c1" }) }
+        coVerify(exactly = 1) { mockMergeRepository.applyServerChanges(match<SnapshotBundle> { it.contexts.first().id == "legacy_c1" }) }
     }
 
     @Test
@@ -169,16 +177,16 @@ class SyncFileServiceSnapshotTest {
             ))
         )
 
-        coEvery { mockLegacyMigrationMapper.toSnapshotBundle(any()) } returns migratedSnapshot
-        coEvery { mockMergeRepository.applyServerChanges(any()) } returns Result.success(Unit)
+        coEvery { mockLegacyMigrationMapper.toSnapshotBundle(any<DatabaseContent>()) } returns migratedSnapshot
+        coEvery { mockMergeRepository.applyServerChanges(any<SnapshotBundle>()) } returns Result.success(Unit)
 
         // When
         val result = syncFileService.importFullBackupFromFileV2(uri)
 
         // Then
         assertThat(result.isSuccess).isTrue()
-        coVerify(exactly = 1) { mockLegacyMigrationMapper.toSnapshotBundle(match { it.projects.first().id == "raw_c1" }) }
-        coVerify(exactly = 1) { mockMergeRepository.applyServerChanges(match { it.contexts.first().id == "raw_c1" }) }
+        coVerify(exactly = 1) { mockLegacyMigrationMapper.toSnapshotBundle(match<DatabaseContent> { it.projects.first().id == "raw_c1" }) }
+        coVerify(exactly = 1) { mockMergeRepository.applyServerChanges(match<SnapshotBundle> { it.contexts.first().id == "raw_c1" }) }
     }
 
     @Test

@@ -26,7 +26,8 @@ class MergeRepositorySnapshotTest {
 
     @Before
     fun setup() {
-        mergeRepository = MergeRepository(mockLocalDataSource as MergeLocalDataSource, syncLogicHelper)
+        val mockMergeLocalDataSource: MergeLocalDataSource = mockk()
+        mergeRepository = MergeRepository(mockMergeLocalDataSource, mockLocalDataSource, syncLogicHelper)
     }
 
     @Test
