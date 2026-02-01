@@ -152,51 +152,55 @@ class MergeLocalDataSourceImpl @Inject constructor(
             noteDocumentDao.insertAllDocuments(bundle.documents.map { it.toEntity() })
             checklistDao.insertChecklists(bundle.checklists.map { it.toEntity() })
 
-            val newAttachments = mutableListOf<AttachmentEntity>()
-            val newCrossRefs = mutableListOf<ContextAttachmentCrossRef>()
+            // --- Consolidate and auto-link attachments and cross-refs ---
+            val finalAttachments = bundle.attachments.map { it.toEntity() }.toMutableList()
+            val finalCrossRefs = bundle.crossRefs.map { it.toEntity() }.toMutableList()
+            val existingAttachmentEntityIds = finalAttachments.mapNotNull { it.entityId }.toSet()
 
             bundle.documents.forEach { doc ->
                 doc.contextId?.let { contextId ->
-                    val attachment = AttachmentEntity(
-                        entityId = doc.id,
-                        attachmentType = BacklogItemTypeValues.NOTE_DOCUMENT,
-                        ownerContextId = contextId,
-                        createdAt = doc.createdAt,
-                        updatedAt = doc.updatedAt
-                    )
-                    newAttachments.add(attachment)
-                    val crossRef = ContextAttachmentCrossRef(
-                        contextId = contextId,
-                        attachmentId = attachment.id
-                    )
-                    newCrossRefs.add(crossRef)
-                    Log.d("BackupImport", "Linking Attachment [${attachment.id}] to Context [${crossRef.contextId}] for NoteDocument [${doc.id}]")
+                    if (doc.id !in existingAttachmentEntityIds) {
+                        val attachment = AttachmentEntity(
+                            entityId = doc.id,
+                            attachmentType = BacklogItemTypeValues.NOTE_DOCUMENT,
+                            ownerContextId = contextId,
+                            createdAt = doc.createdAt,
+                            updatedAt = doc.updatedAt
+                        )
+                        finalAttachments.add(attachment)
+                        val crossRef = ContextAttachmentCrossRef(
+                            contextId = contextId,
+                            attachmentId = attachment.id
+                        )
+                        finalCrossRefs.add(crossRef)
+                    }
                 }
             }
 
             bundle.checklists.forEach { checklist ->
                 checklist.contextId?.let { contextId ->
-                    val attachment = AttachmentEntity(
-                        entityId = checklist.id,
-                        attachmentType = BacklogItemTypeValues.CHECKLIST,
-                        ownerContextId = contextId,
-                        createdAt = checklist.createdAt,
-                        updatedAt = checklist.updatedAt
-                    )
-                    newAttachments.add(attachment)
-                    val crossRef = ContextAttachmentCrossRef(
-                        contextId = contextId,
-                        attachmentId = attachment.id
-                    )
-                    newCrossRefs.add(crossRef)
-                    Log.d("BackupImport", "Linking Attachment [${attachment.id}] to Context [${crossRef.contextId}] for Checklist [${checklist.id}]")
+                    if (checklist.id !in existingAttachmentEntityIds) {
+                        val attachment = AttachmentEntity(
+                            entityId = checklist.id,
+                            attachmentType = BacklogItemTypeValues.CHECKLIST,
+                            ownerContextId = contextId,
+                            createdAt = checklist.createdAt,
+                            updatedAt = checklist.updatedAt
+                        )
+                        finalAttachments.add(attachment)
+                        val crossRef = ContextAttachmentCrossRef(
+                            contextId = contextId,
+                            attachmentId = attachment.id
+                        )
+                        finalCrossRefs.add(crossRef)
+                    }
                 }
             }
             
-            Log.d("BackupImport", "Creating ${newAttachments.size} new AttachmentEntities in MergeLocalDataSource.")
-            attachmentDao.insertAttachments(newAttachments)
-            Log.d("BackupImport", "Creating ${newCrossRefs.size} new ContextAttachmentCrossRefs in MergeLocalDataSource.")
-            attachmentDao.insertContextAttachmentCrossRefs(newCrossRefs)
+            Log.d("BackupImport", "Total attachments to insert: ${finalAttachments.size}")
+            attachmentDao.insertAttachments(finalAttachments)
+            Log.d("BackupImport", "Total cross-refs to insert: ${finalCrossRefs.size}")
+            attachmentDao.insertContextAttachmentCrossRefs(finalCrossRefs)
 
             conversationFolderDao.insertAll(bundle.conversationFolders.map { it.toEntity() })
             dayPlanDao.insertPlans(bundle.dayPlans.map { it.toEntity() })
@@ -209,8 +213,6 @@ class MergeLocalDataSourceImpl @Inject constructor(
             checklistDao.insertItems(bundle.checklistItems.map { it.toEntity() })
             contextArtifactDao.insertAll(bundle.artifacts.map { it.toEntity() })
             scriptDao.insertAll(bundle.scripts.map { it.toEntity() })
-            attachmentDao.insertAttachments(bundle.attachments.map { it.toEntity() })
-            attachmentDao.insertContextAttachmentCrossRefs(bundle.crossRefs.map { it.toEntity() })
             inboxRecordDao.insertAll(bundle.inbox.map { it.toEntity() })
             contextManagementDao.insertLogs(bundle.logs.map { it.toEntity() })
             systemAppDao.insertAll(bundle.systemApps.map { it.toEntity() })

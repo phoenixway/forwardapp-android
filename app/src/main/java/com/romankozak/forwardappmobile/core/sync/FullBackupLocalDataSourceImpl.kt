@@ -132,12 +132,7 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
             contextDao.insertContexts(validContexts)
             Log.d("FullBackupImport", "DIAGNOSTIC: First 5 valid context IDs: [${validContextIds.take(5).joinToString()}]")
 
-
-            val validAttachments = content.attachments.filter { !it.id.isNullOrBlank() && !it.attachmentType.isNullOrBlank() && !it.entityId.isNullOrBlank() }
-            val validAttachmentIds = validAttachments.map { it.id }.toSet()
-            if (content.attachments.size > validAttachments.size) Log.w("FullBackupImport", "Attachments: Ignored ${content.attachments.size - validAttachments.size} of ${content.attachments.size}.")
-            attachmentDao.insertAttachments(validAttachments)
-            
+            // Documents
             Log.d("FullBackupImport", "Documents in backup: ${content.documents.size}")
             val validDocuments = content.documents.filter {
                 val isValid = !it.id.isNullOrBlank() && !it.name.isNullOrBlank() && validContextIds.contains(it.contextId)
@@ -150,29 +145,7 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
             Log.d("FullBackupImport", "Valid documents after filtering: ${validDocuments.size}")
             noteDocumentDao.insertAllDocuments(validDocuments)
 
-            // Auto-create attachments and cross-refs for documents from legacy backups
-            val newAttachmentsForDocuments = mutableListOf<AttachmentEntity>()
-            val newCrossRefsForDocuments = mutableListOf<ContextAttachmentCrossRef>()
-            validDocuments.forEach { doc ->
-                val attachment = AttachmentEntity(
-                    entityId = doc.id,
-                    attachmentType = BacklogItemTypeValues.NOTE_DOCUMENT,
-                    ownerContextId = doc.contextId,
-                    createdAt = doc.createdAt,
-                    updatedAt = doc.updatedAt
-                )
-                newAttachmentsForDocuments.add(attachment)
-                val crossRef = ContextAttachmentCrossRef(
-                    contextId = doc.contextId,
-                    attachmentId = attachment.id
-                )
-                newCrossRefsForDocuments.add(crossRef)
-            }
-            Log.d("FullBackupImport", "Creating ${newAttachmentsForDocuments.size} new AttachmentEntities for documents.")
-            attachmentDao.insertAttachments(newAttachmentsForDocuments)
-            Log.d("FullBackupImport", "Creating ${newCrossRefsForDocuments.size} new ContextAttachmentCrossRefs for documents.")
-            attachmentDao.insertContextAttachmentCrossRefs(newCrossRefsForDocuments)
-
+            // Checklists
             Log.d("FullBackupImport", "Checklists in backup: ${content.checklists.size}")
             val validChecklists = content.checklists.filter {
                 !it.id.isNullOrBlank() && !it.name.isNullOrBlank() && validContextIds.contains(it.contextId)
@@ -181,28 +154,58 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
             val validChecklistIds = validChecklists.map { it.id }.toSet()
             checklistDao.insertChecklists(validChecklists)
 
-            // Auto-create attachments and cross-refs for checklists from legacy backups
-            val newAttachmentsForChecklists = mutableListOf<AttachmentEntity>()
-            val newCrossRefsForChecklists = mutableListOf<ContextAttachmentCrossRef>()
-            validChecklists.forEach { checklist ->
-                val attachment = AttachmentEntity(
-                    entityId = checklist.id,
-                    attachmentType = BacklogItemTypeValues.CHECKLIST,
-                    ownerContextId = checklist.contextId,
-                    createdAt = checklist.createdAt,
-                    updatedAt = checklist.updatedAt
-                )
-                newAttachmentsForChecklists.add(attachment)
-                val crossRef = ContextAttachmentCrossRef(
-                    contextId = checklist.contextId,
-                    attachmentId = attachment.id
-                )
-                newCrossRefsForChecklists.add(crossRef)
+            // --- Consolidate and auto-link attachments and cross-refs ---
+
+            val finalAttachments = content.attachments.filter { 
+                !it.id.isNullOrBlank() && !it.attachmentType.isNullOrBlank() && !it.entityId.isNullOrBlank() 
+            }.toMutableList()
+            val finalCrossRefs = content.contextAttachmentCrossRefs.toMutableList()
+            
+            val existingAttachmentEntityIds = finalAttachments.mapNotNull { it.entityId }.toSet()
+
+            validDocuments.forEach { doc ->
+                if (doc.id !in existingAttachmentEntityIds) {
+                    val attachment = AttachmentEntity(
+                        entityId = doc.id,
+                        attachmentType = BacklogItemTypeValues.NOTE_DOCUMENT,
+                        ownerContextId = doc.contextId,
+                        createdAt = doc.createdAt,
+                        updatedAt = doc.updatedAt
+                    )
+                    finalAttachments.add(attachment)
+                    val crossRef = ContextAttachmentCrossRef(
+                        contextId = doc.contextId,
+                        attachmentId = attachment.id
+                    )
+                    finalCrossRefs.add(crossRef)
+                }
             }
-            Log.d("FullBackupImport", "Creating ${newAttachmentsForChecklists.size} new AttachmentEntities for checklists.")
-            attachmentDao.insertAttachments(newAttachmentsForChecklists)
-            Log.d("FullBackupImport", "Creating ${newCrossRefsForChecklists.size} new ContextAttachmentCrossRefs for checklists.")
-            attachmentDao.insertContextAttachmentCrossRefs(newCrossRefsForChecklists)
+
+            validChecklists.forEach { checklist ->
+                 if (checklist.id !in existingAttachmentEntityIds) {
+                    val attachment = AttachmentEntity(
+                        entityId = checklist.id,
+                        attachmentType = BacklogItemTypeValues.CHECKLIST,
+                        ownerContextId = checklist.contextId,
+                        createdAt = checklist.createdAt,
+                        updatedAt = checklist.updatedAt
+                    )
+                    finalAttachments.add(attachment)
+                    val crossRef = ContextAttachmentCrossRef(
+                        contextId = checklist.contextId,
+                        attachmentId = attachment.id
+                    )
+                    finalCrossRefs.add(crossRef)
+                }
+            }
+
+            Log.d("FullBackupImport", "Total attachments to insert: ${finalAttachments.size}")
+            attachmentDao.insertAttachments(finalAttachments)
+            
+            val validAttachmentIds = finalAttachments.map { it.id }.toSet()
+            val validFinalCrossRefs = finalCrossRefs.filter { it.contextId in validContextIds && it.attachmentId in validAttachmentIds }
+            Log.d("FullBackupImport", "Total cross-refs to insert: ${validFinalCrossRefs.size}")
+            attachmentDao.insertContextAttachmentCrossRefs(validFinalCrossRefs)
 
 
             // Step 2: Filter dependent entities against the sets of valid parent IDs.
