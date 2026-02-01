@@ -21,6 +21,8 @@ interface SyncApi {
     suspend fun createBackupDiff(incoming: DatabaseContent): LegacyBackupDiff
     suspend fun importSelectedData(selectedData: DatabaseContent): Result<String>
 
+    suspend fun importFullBackupFromFileV2(uri: Uri): Result<String>
+
     suspend fun exportAttachmentsToFile(): Result<String>
     suspend fun createAttachmentsBackupJsonString(): String
     suspend fun importAttachmentsFromFile(uri: Uri): Result<String>

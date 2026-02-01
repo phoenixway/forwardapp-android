@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.core.di
 
+import com.romankozak.forwardappmobile.core.data.interfaces.sync.IContentProvider
 import com.romankozak.forwardappmobile.sync.AttachmentsRepository
 import com.romankozak.forwardappmobile.sync.AttachmentsRepositoryImpl
 import com.romankozak.forwardappmobile.sync.SyncApi
@@ -21,3 +22,4 @@ abstract class SyncInternalModule {
     @Singleton
     abstract fun bindSyncApi(impl: SyncRepository): SyncApi
 }
+

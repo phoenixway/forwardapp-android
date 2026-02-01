@@ -1,66 +1,54 @@
 package com.romankozak.forwardappmobile.sync
 
-import android.content.ContentValues
-import android.net.Uri
-import android.os.Build
-import android.provider.MediaStore
 import android.util.Log
 import com.google.gson.GsonBuilder
-import com.google.gson.JsonSyntaxException
+import com.romankozak.forwardappmobile.core.data.interfaces.sync.IContentProvider
+import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
 import com.romankozak.forwardappmobile.core.data.models.sync.SettingsContent
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
-import android.content.Context as AndroidContext
-import com.google.gson.JsonObject
 
-/**
- * Сервіс для обробки операцій резервного копіювання та відновлення на основі файлів.
- * Керує експортом/імпортом повних бекапів бази даних.
- */
 @Singleton
 class SyncFileService @Inject constructor(
-    @param:ApplicationContext private val context: AndroidContext,
+    private val contentProvider: IContentProvider,
     private val localDataSource: FullBackupLocalDataSource,
     private val legacyMigrationMapper: LegacyMigrationMapper,
-    private val mergeRepository: MergeRepository
+    private val mergeRepository: MergeRepository,
 ) {
-    private val TAG = "SyncFileService"
+    private val tag = "SyncFileService"
 
     private val gson = GsonBuilder()
         .registerTypeAdapter(Long::class.java, LongDeserializer())
         .create()
 
-    // === Legacy Methods ===
+    // === Legacy Methods (V1) ===
 
-    /**
-     * Експортує повний бекап у папку "Downloads/ForwardApp"
-     */
     suspend fun exportFullBackupToFile(): Result<String> = withContext(Dispatchers.IO) {
-        Log.d(TAG, "Attempting to export full backup to file.")
+        Log.d(tag, "Attempting to export full backup to file.")
         try {
             val json = createFullBackupJsonString()
             val ts = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
             val name = "forward_full_backup_$ts.json"
-            saveFileToDownloads(name, json)
-            Log.i(TAG, "Full backup successfully exported to file: $name")
-            Result.success("Файл бекапу успішно збережено")
+
+            contentProvider.saveFile(name, json).fold(
+                onSuccess = {
+                    Log.i(tag, "Full backup successfully exported to file: $name")
+                    Result.success("Файл бекапу успішно збережено")
+                },
+                onFailure = { Result.failure(it) }
+            )
         } catch (e: Exception) {
-            Log.e(TAG, "Error exporting full backup", e)
+            Log.e(tag, "Error exporting full backup", e)
             Result.failure(e)
         }
     }
 
-    /**
-     * Створює JSON-рядок із повним бекапом даних та налаштувань
-     */
     suspend fun createFullBackupJsonString(): String {
         val databaseContent = localDataSource.loadFullDatabaseContent()
         val settingsMap = localDataSource.getSettingsSnapshot()
@@ -68,68 +56,69 @@ class SyncFileService @Inject constructor(
         val fullBackup = FullAppBackup(
             backupSchemaVersion = 1,
             database = databaseContent,
-            settings = SettingsContent(settingsMap)
+            settings = SettingsContent(settingsMap),
+            snapshotBundle = null,
         )
-
         return gson.toJson(fullBackup)
     }
 
-    /**
-     * Імпортує повний бекап із файлу.
-     */
-    suspend fun importFullBackupFromFile(uri: Uri): Result<String> = withContext(Dispatchers.IO) {
-        Log.d(TAG, "Attempting to import full backup from URI: $uri")
+    suspend fun importFullBackupFromFile(uriString: String): Result<String> = withContext(Dispatchers.IO) {
+        Log.d(tag, "Attempting to import full backup from URI: $uriString")
         try {
-            val backupResult = parseBackupFile(uri)
+            val backupResult = parseBackupFile(uriString)
             if (backupResult.isFailure) {
                 throw backupResult.exceptionOrNull() ?: Exception("Unknown parsing error")
             }
             val backupData = backupResult.getOrThrow()
 
             backupData.database?.let { localDataSource.restoreDatabaseFromBackup(it) }
+            backupData.settings?.settings?.let { localDataSource.restoreSettings(it) }
 
-            backupData.settings?.settings?.let {
-                localDataSource.restoreSettings(it)
-            }
-
-            Log.i(TAG, "Full backup successfully imported from URI: $uri")
+            Log.i(tag, "Full backup successfully imported from URI: $uriString")
             Result.success("Дані успішно відновлено")
         } catch (e: Exception) {
-            Log.e(TAG, "A critical error occurred during the import process.", e)
+            Log.e(tag, "A critical error occurred during the import process.", e)
             Result.failure(e)
         }
     }
 
-    suspend fun parseBackupFile(uri: Uri): Result<FullAppBackup> = withContext(Dispatchers.IO) {
-        Log.d(TAG, "Parsing backup file from URI: $uri")
+    suspend fun parseBackupFile(uriString: String): Result<FullAppBackup> = withContext(Dispatchers.IO) {
+        Log.d(tag, "Parsing backup file from URI: $uriString")
         try {
-            val jsonString = readTextFromUri(uri)
-            if (jsonString.isNullOrBlank()) {
-                Log.w(TAG, "Parse failed: Backup file is empty or blank.")
+            val jsonResult = contentProvider.readText(uriString)
+            val jsonString = jsonResult.getOrThrow()
+
+            if (jsonString.isBlank()) {
+                Log.w(tag, "Parse failed: Backup file is empty or blank.")
                 return@withContext Result.failure(Exception("Backup file is empty"))
             }
             val backupData = gson.fromJson(jsonString, FullAppBackup::class.java)
-            Log.d(TAG, "Successfully parsed backup file object.")
+            Log.d(tag, "Successfully parsed backup file object.")
             Result.success(backupData)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to parse backup file", e)
+            Log.e(tag, "Failed to parse backup file", e)
             Result.failure(e)
         }
     }
 
-    // === New Snapshot-based Methods ===
+    // === New Snapshot-based Methods (V2) ===
 
     suspend fun exportFullBackupToFileV2(): Result<String> = withContext(Dispatchers.IO) {
-        Log.d(TAG, "Attempting to export snapshot backup to file.")
+        Log.d(tag, "Attempting to export snapshot backup to file.")
         try {
             val json = createFullSnapshotJsonString()
             val ts = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
             val name = "forward_snapshot_backup_$ts.json"
-            saveFileToDownloads(name, json)
-            Log.i(TAG, "Full backup successfully exported to file: $name")
-            Result.success("Файл бекапу (V2) успішно збережено")
+
+            contentProvider.saveFile(name, json).fold(
+                onSuccess = {
+                    Log.i(tag, "Full backup successfully exported to file: $name")
+                    Result.success("Файл бекапу (V2) успішно збережено")
+                },
+                onFailure = { Result.failure(it) }
+            )
         } catch (e: Exception) {
-            Log.e(TAG, "Error exporting snapshot backup", e)
+            Log.e(tag, "Error exporting snapshot backup", e)
             Result.failure(e)
         }
     }
@@ -139,77 +128,48 @@ class SyncFileService @Inject constructor(
         val settingsMap = localDataSource.getSettingsSnapshot()
 
         val fullBackup = FullAppBackup(
-            backupSchemaVersion = 2, // New version
-            database = null, // Old field is null
+            backupSchemaVersion = 2,
+            database = null,
             settings = SettingsContent(settingsMap),
-            snapshotBundle = snapshotBundle // New field with all the data
+            snapshotBundle = snapshotBundle,
         )
-
         return gson.toJson(fullBackup)
     }
 
-    suspend fun importFullBackupFromFileV2(uri: Uri): Result<String> = withContext(Dispatchers.IO) {
-        Log.d(TAG, "Attempting to import smart backup (V2) from URI: $uri")
+    suspend fun importFullBackupFromFileV2(uriString: String): Result<String> = withContext(Dispatchers.IO) {
+        Log.d(tag, "Attempting to import smart backup (V2) from URI: $uriString")
         try {
-            val jsonString = readTextFromUri(uri) ?: throw IOException("Failed to read file from URI.")
+            val jsonResult = contentProvider.readText(uriString)
+            val jsonString = jsonResult.getOrThrow()
 
-            // Try parsing as new format first
+            // Спроба розпарсити як новий формат (FullAppBackup)
             val backupData = gson.fromJson(jsonString, FullAppBackup::class.java)
 
             val snapshotBundleToApply = if (backupData.snapshotBundle != null) {
-                Log.d(TAG, "Successfully parsed as new SnapshotBundle format.")
+                Log.d(tag, "Successfully parsed as new SnapshotBundle format.")
                 backupData.snapshotBundle!!
             } else if (backupData.database != null) {
-                // It's the old format, migrate it
-                Log.d(TAG, "Parsed as legacy FullAppBackup format. Migrating to SnapshotBundle...")
+                Log.d(tag, "Parsed as legacy FullAppBackup format. Migrating to SnapshotBundle...")
                 legacyMigrationMapper.toSnapshotBundle(backupData.database!!)
             } else {
-                // Could be an even older format, just a raw DatabaseContent
-                Log.d(TAG, "Could not parse as FullAppBackup, trying as raw DatabaseContent.")
-                val databaseContent = gson.fromJson(jsonString, com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent::class.java)
+                Log.d(tag, "Could not parse as FullAppBackup, trying as raw DatabaseContent.")
+                val databaseContent = gson.fromJson(jsonString, DatabaseContent::class.java)
                 legacyMigrationMapper.toSnapshotBundle(databaseContent)
             }
 
-            // At this point, we have a SnapshotBundle, one way or another.
-            // Now, we use the non-destructive merge logic.
+            // Використання логіки об'єднання
             mergeRepository.applyServerChanges(snapshotBundleToApply)
 
-            // Restore settings separately
+            // Відновлення налаштувань
             backupData.settings?.settings?.let {
                 localDataSource.restoreSettings(it)
             }
 
-            Log.i(TAG, "Smart backup successfully imported and merged from URI: $uri")
+            Log.i(tag, "Smart backup successfully imported and merged from URI: $uriString")
             Result.success("Дані успішно імпортовано та об'єднано (V2)")
         } catch (e: Exception) {
-            Log.e(TAG, "A critical error occurred during the smart import process.", e)
+            Log.e(tag, "A critical error occurred during the smart import process.", e)
             Result.failure(e)
-        }
-    }
-
-    fun readTextFromUri(uri: Uri): String? =
-        context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
-
-    fun saveFileToDownloads(name: String, json: String) {
-        val values = ContentValues().apply {
-            put(MediaStore.MediaColumns.DISPLAY_NAME, name)
-            put(MediaStore.MediaColumns.MIME_TYPE, "application/json")
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                put(MediaStore.MediaColumns.RELATIVE_PATH, "Download/ForwardApp")
-            }
-        }
-
-        val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            MediaStore.Downloads.EXTERNAL_CONTENT_URI
-        } else {
-            MediaStore.Files.getContentUri("external")
-        }
-
-        val uri = context.contentResolver.insert(collection, values)
-        uri?.let {
-            context.contentResolver.openOutputStream(it)?.use { os ->
-                os.write(json.toByteArray())
-            }
         }
     }
 }

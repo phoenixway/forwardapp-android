@@ -5,9 +5,8 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.romankozak.forwardappmobile.core.context.SystemContexts
-import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.database.AppDatabase
-import com.romankozak.forwardappmobile.data.sync.FullBackupLocalDataSourceImpl
+import com.romankozak.forwardappmobile.core.sync.FullBackupLocalDataSourceImpl
 import com.romankozak.forwardappmobile.features.contexts.data.DatabaseInitializer
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import kotlinx.coroutines.flow.first
@@ -17,7 +16,6 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import com.google.common.truth.Truth.assertThat
-import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import io.mockk.mockk
 
 @RunWith(AndroidJUnit4::class)

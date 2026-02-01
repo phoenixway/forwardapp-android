@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.data.sync
+package com.romankozak.forwardappmobile.core.sync
 
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.AttachmentEntity

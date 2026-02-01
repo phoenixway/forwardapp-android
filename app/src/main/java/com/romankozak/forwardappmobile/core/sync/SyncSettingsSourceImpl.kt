@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.data.sync
+package com.romankozak.forwardappmobile.core.sync
 
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.sync.datasource.SyncSettingsSource

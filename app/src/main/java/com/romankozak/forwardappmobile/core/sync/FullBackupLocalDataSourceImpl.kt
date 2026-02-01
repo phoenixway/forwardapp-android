@@ -1,5 +1,6 @@
-package com.romankozak.forwardappmobile.data.sync
+package com.romankozak.forwardappmobile.core.sync
 
+import android.util.Log
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.core.data.models.sync.RecentProjectEntry
@@ -9,6 +10,7 @@ import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.core.data.interfaces.SystemContextEnsurer
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.toEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.toSnapshot
 import com.romankozak.forwardappmobile.features.contexts.data.dao.*
@@ -94,36 +96,36 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
 
     override suspend fun restoreDatabaseFromBackup(content: DatabaseContent) {
         db.withTransaction {
-            android.util.Log.d("FullBackupImport", "--- STARTING DATABASE RESTORE ---")
+            Log.d("FullBackupImport", "--- STARTING DATABASE RESTORE ---")
             clearAllTables()
 
             // Step 1: Filter and insert independent "parent" entities and collect their valid IDs.
             val validGoals = content.goals.filter { !it.id.isNullOrBlank() && !it.text.isNullOrBlank() }
             val validGoalIds = validGoals.map { it.id }.toSet()
-            if (content.goals.size > validGoals.size) android.util.Log.w("FullBackupImport", "Goals: Ignored ${content.goals.size - validGoals.size} of ${content.goals.size}.")
+            if (content.goals.size > validGoals.size) Log.w("FullBackupImport", "Goals: Ignored ${content.goals.size - validGoals.size} of ${content.goals.size}.")
             goalDao.insertGoals(validGoals)
 
             val validContexts = content.projects.filter { !it.id.isNullOrBlank() && !it.name.isNullOrBlank() }
             val validContextIds = validContexts.map { it.id }.toSet()
-            if (content.projects.size > validContexts.size) android.util.Log.w("FullBackupImport", "Contexts: Ignored ${content.projects.size - validContexts.size} of ${content.projects.size}.")
+            if (content.projects.size > validContexts.size) Log.w("FullBackupImport", "Contexts: Ignored ${content.projects.size - validContexts.size} of ${content.projects.size}.")
             contextDao.insertContexts(validContexts)
-            android.util.Log.d("FullBackupImport", "DIAGNOSTIC: First 5 valid context IDs: [${validContextIds.take(5).joinToString()}]")
+            Log.d("FullBackupImport", "DIAGNOSTIC: First 5 valid context IDs: [${validContextIds.take(5).joinToString()}]")
 
 
             val validAttachments = content.attachments.filter { !it.id.isNullOrBlank() && !it.attachmentType.isNullOrBlank() && !it.entityId.isNullOrBlank() }
             val validAttachmentIds = validAttachments.map { it.id }.toSet()
-            if (content.attachments.size > validAttachments.size) android.util.Log.w("FullBackupImport", "Attachments: Ignored ${content.attachments.size - validAttachments.size} of ${content.attachments.size}.")
+            if (content.attachments.size > validAttachments.size) Log.w("FullBackupImport", "Attachments: Ignored ${content.attachments.size - validAttachments.size} of ${content.attachments.size}.")
             attachmentDao.insertAttachments(validAttachments)
             
             val validDocuments = content.documents.filter {
                 val isValid = !it.id.isNullOrBlank() && !it.name.isNullOrBlank() && validContextIds.contains(it.contextId)
                 if (!isValid) {
-                     android.util.Log.w("FullBackupImport", "DIAGNOSTIC: NoteDocument ignored: id=${it.id}, name=${it.name}, contextId=${it.contextId} (context exists: ${validContextIds.contains(it.contextId)})")
+                     Log.w("FullBackupImport", "DIAGNOSTIC: NoteDocument ignored: id=${it.id}, name=${it.name}, contextId=${it.contextId} (context exists: ${validContextIds.contains(it.contextId)})")
                 }
                 isValid
             }
             val validDocumentIds = validDocuments.map { it.id }.toSet()
-            if (content.documents.size > validDocuments.size) android.util.Log.w("FullBackupImport", "NoteDocuments: Ignored ${content.documents.size - validDocuments.size} of ${content.documents.size}.")
+            if (content.documents.size > validDocuments.size) Log.w("FullBackupImport", "NoteDocuments: Ignored ${content.documents.size - validDocuments.size} of ${content.documents.size}.")
             noteDocumentDao.insertAllDocuments(validDocuments)
 
             val validChecklists = content.checklists.filter {
@@ -154,11 +156,11 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
                         contextExists &&
                         entityIdValidForType
                 if (!isValid) {
-                    android.util.Log.w("FullBackupImport", "DIAGNOSTIC: BacklogItem ignored: id=${id}, itemType=${itemType}, contextId=${contextId} (context exists: $contextExists), entityId=${entityId} (entity valid: $entityIdValidForType)")
+                    Log.w("FullBackupImport", "DIAGNOSTIC: BacklogItem ignored: id=${id}, itemType=${itemType}, contextId=${contextId} (context exists: $contextExists), entityId=${entityId} (entity valid: $entityIdValidForType)")
                 }
                 isValid
             }
-            if (content.backlogItems.size > validBacklogItems.size) android.util.Log.w("FullBackupImport", "BacklogItems: Ignored ${content.backlogItems.size - validBacklogItems.size} of ${content.backlogItems.size}.")
+            if (content.backlogItems.size > validBacklogItems.size) Log.w("FullBackupImport", "BacklogItems: Ignored ${content.backlogItems.size - validBacklogItems.size} of ${content.backlogItems.size}.")
             listItemDao.insertItems(validBacklogItems)
 
             val validChecklistItems = content.checklistItems.filter {
@@ -172,14 +174,14 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
                 val attachmentExists = validAttachmentIds.contains(it.attachmentId)
                 val isValid = !it.contextId.isNullOrBlank() && !it.attachmentId.isNullOrBlank() && contextExists && attachmentExists
                 if (!isValid) {
-                     android.util.Log.w("FullBackupImport", "DIAGNOSTIC: CrossRef ignored: contextId=${it.contextId} (context exists: $contextExists), attachmentId=${it.attachmentId} (attachment exists: $attachmentExists)")
+                     Log.w("FullBackupImport", "DIAGNOSTIC: CrossRef ignored: contextId=${it.contextId} (context exists: $contextExists), attachmentId=${it.attachmentId} (attachment exists: $attachmentExists)")
                 }
                 isValid
             }
 
             systemContextEnsurer.ensureAllSystemContextsExist()
 
-            android.util.Log.d("FullBackupImport", "--- DATABASE RESTORE FINISHED ---")
+            Log.d("FullBackupImport", "--- DATABASE RESTORE FINISHED ---")
         }
     }
 
@@ -199,8 +201,8 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
 
     // === New Snapshot-based Methods Implementation ===
 
-    override suspend fun loadFullSnapshotBundle(): com.romankozak.forwardappmobile.core.data.models.sync.snapshot.SnapshotBundle {
-        return com.romankozak.forwardappmobile.core.data.models.sync.snapshot.SnapshotBundle(
+    override suspend fun loadFullSnapshotBundle(): SnapshotBundle {
+        return SnapshotBundle(
             version = 1,
             exportedAt = System.currentTimeMillis(),
             contexts = contextDao.getAllRaw().map { it.toSnapshot() },
@@ -242,7 +244,7 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
         )
     }
 
-    override suspend fun applySnapshotBundle(bundle: com.romankozak.forwardappmobile.core.data.models.sync.snapshot.SnapshotBundle) {
+    override suspend fun applySnapshotBundle(bundle: SnapshotBundle) {
         db.withTransaction {
             // This is a non-destructive operation.
             // The actual merge logic (insert vs update) will be handled by the DAOs' insert methods with OnConflictStrategy.REPLACE

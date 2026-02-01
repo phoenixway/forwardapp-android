@@ -10,7 +10,21 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="dec4991f-6ae0-4b6d-adb7-135ff1c91165" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/sync/AndroidContentProvider.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/sync/di/SyncAndroidModule.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core-data-interfaces/src/main/java/com/romankozak/forwardappmobile/core/data/interfaces/sync/IContentProvider.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/androidTest/java/com/romankozak/forwardappmobile/data/SystemContextsIntegrityTest.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/androidTest/java/com/romankozak/forwardappmobile/data/SystemContextsIntegrityTest.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/di/RepositoryModule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/di/RepositoryModule.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/sync/AttachmentsLocalDataSourceImpl.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/sync/AttachmentsLocalDataSourceImpl.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/sync/FullBackupLocalDataSourceImpl.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/sync/FullBackupLocalDataSourceImpl.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/sync/MergeLocalDataSourceImpl.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/sync/MergeLocalDataSourceImpl.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/sync/SyncLocalDataSourceImpl.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/sync/SyncLocalDataSourceImpl.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/sync/SyncSettingsSourceImpl.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/sync/SyncSettingsSourceImpl.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/test/java/com/romankozak/forwardappmobile/sync/SyncFileServiceSnapshotTest.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/test/java/com/romankozak/forwardappmobile/sync/SyncFileServiceSnapshotTest.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/syncOn/java/com/romankozak/forwardappmobile/core/di/SyncInternalModule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/sync/src/syncOn/java/com/romankozak/forwardappmobile/core/di/SyncInternalModule.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/syncOn/java/com/romankozak/forwardappmobile/sync/SyncFileService.kt" beforeDir="false" afterPath="$PROJECT_DIR$/sync/src/syncOn/java/com/romankozak/forwardappmobile/sync/SyncFileService.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sync/src/syncOn/java/com/romankozak/forwardappmobile/sync/SyncRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/sync/src/syncOn/java/com/romankozak/forwardappmobile/sync/SyncRepository.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -86,11 +100,11 @@
 }</component>
   <component name="RecentsManager">
     <key name="K2MoveDeclarationsDialog.RECENT_PACKAGE_KEY">
+      <recent name="com.romankozak.forwardappmobile.core.data.interfaces.sync" />
       <recent name="com.romankozak.forwardappmobile.core.data.models.sync.snapshot" />
       <recent name="com.romankozak.forwardappmobile.sync" />
       <recent name="com.romankozak.forwardappmobile.core.data.models.sync" />
       <recent name="com.romankozak.forwardappmobile.data.sync" />
-      <recent name="com.romankozak.forwardappmobile.sync.datasource" />
     </key>
   </component>
   <component name="RunManager" selected="Android App.app">

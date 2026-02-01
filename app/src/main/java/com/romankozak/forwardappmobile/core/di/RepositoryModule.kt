@@ -1,8 +1,12 @@
 package com.romankozak.forwardappmobile.core.di
 
+import com.romankozak.forwardappmobile.core.sync.AttachmentsLocalDataSourceImpl
+import com.romankozak.forwardappmobile.core.sync.FullBackupLocalDataSourceImpl
+import com.romankozak.forwardappmobile.core.sync.MergeLocalDataSourceImpl
+import com.romankozak.forwardappmobile.core.sync.SyncLocalDataSourceImpl
+import com.romankozak.forwardappmobile.core.sync.SyncSettingsSourceImpl
 import com.romankozak.forwardappmobile.data.dao.*
 import com.romankozak.forwardappmobile.data.repository.*
-import com.romankozak.forwardappmobile.data.sync.*
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.ai.data.repository.AiInsightRepository

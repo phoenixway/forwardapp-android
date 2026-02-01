@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.data.sync
+package com.romankozak.forwardappmobile.core.sync
 
 import android.util.Log
 import androidx.room.withTransaction
@@ -6,6 +6,7 @@ import com.romankozak.forwardappmobile.core.data.models.*
 import com.romankozak.forwardappmobile.core.data.models.sync.ChangeType
 import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.core.data.models.sync.SyncChange
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.SnapshotBundle
 import com.romankozak.forwardappmobile.data.dao.*
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
@@ -119,7 +120,7 @@ class MergeLocalDataSourceImpl @Inject constructor(
         }
     }
 
-    override suspend fun applySnapshotBundle(bundle: com.romankozak.forwardappmobile.core.data.models.sync.snapshot.SnapshotBundle) {
+    override suspend fun applySnapshotBundle(bundle: SnapshotBundle) {
         db.withTransaction {
             db.contextDao().insertAll(bundle.contexts.map { it.toEntity() })
             db.goalDao().insertAll(bundle.goals.map { it.toEntity() })
