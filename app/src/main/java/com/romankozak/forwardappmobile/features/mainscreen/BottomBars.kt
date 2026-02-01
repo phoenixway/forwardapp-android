@@ -66,8 +66,14 @@ fun DashboardBottomBar(
     onNavigateToPresets: () -> Unit,
     onNavigateToAiInsights: () -> Unit,
     onNavigateToSettings: () -> Unit,
-    onNavigateToImportExport: () -> Unit,
     onNavigateToRecentItem: (RecentItem) -> Unit,
+    // New lambdas for Import/Export actions
+    onExportToFile: () -> Unit,
+    onImportFromFileRequest: () -> Unit,
+    onSelectiveImportFromFileRequest: () -> Unit,
+    onExportAttachments: () -> Unit,
+    onImportAttachmentsFromFileRequest: () -> Unit,
+    onWifiPush: (String) -> Unit,
     recentViewModel: RecentViewModel = hiltViewModel(),
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -80,6 +86,18 @@ fun DashboardBottomBar(
     var showImportExportSheet by remember { mutableStateOf(false) }
 
     val recentItems by recentViewModel.recentItems.collectAsStateWithLifecycle()
+
+    val importLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
+        uri?.let { onImportFromFileRequest() }
+    }
+
+    val selectiveImportLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
+        uri?.let { onSelectiveImportFromFileRequest() }
+    }
+
+    val importAttachmentsLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
+        uri?.let { onImportAttachmentsFromFileRequest() }
+    }
 
     if (showMoreBottomSheet) {
         ModalBottomSheet(
@@ -137,6 +155,92 @@ fun DashboardBottomBar(
                     }
                 },
             )
+        }
+    }
+
+    if (showImportExportSheet) {
+        ModalBottomSheet(onDismissRequest = { showImportExportSheet = false }) {
+            Column(modifier = Modifier.padding(bottom = 24.dp)) {
+                Text(
+                    text = "Імпорт / Експорт",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(160.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                ) {
+                    item {
+                        ImportExportTile(
+                            icon = Icons.Default.CloudUpload,
+                            title = "Експорт бекапу",
+                            subtitle = "Зберегти JSON у файлі",
+                            onClick = {
+                                showImportExportSheet = false
+                                onExportToFile()
+                            },
+                        )
+                    }
+                    item {
+                        ImportExportTile(
+                            icon = Icons.Default.CloudDownload,
+                            title = "Повний імпорт",
+                            subtitle = "Замінити поточні дані",
+                            onClick = {
+                                showImportExportSheet = false
+                                importLauncher.launch("application/json")
+                            },
+                        )
+                    }
+                    item {
+                        ImportExportTile(
+                            icon = Icons.Default.FolderOpen,
+                            title = "Вибірковий імпорт",
+                            subtitle = "Обрати сутності",
+                            onClick = {
+                                showImportExportSheet = false
+                                selectiveImportLauncher.launch("application/json")
+                            },
+                        )
+                    }
+                    item {
+                        ImportExportTile(
+                            icon = Icons.Default.Description,
+                            title = "Експорт вкладень",
+                            subtitle = "JSON вкладень",
+                            onClick = {
+                                showImportExportSheet = false
+                                onExportAttachments()
+                            },
+                        )
+                    }
+                    item {
+                        ImportExportTile(
+                            icon = Icons.Default.FolderOpen,
+                            title = "Імпорт вкладень",
+                            subtitle = "Додати вкладення",
+                            onClick = {
+                                showImportExportSheet = false
+                                importAttachmentsLauncher.launch("application/json")
+                            },
+                        )
+                    }
+                    item {
+                        ImportExportTile(
+                            icon = Icons.Default.CloudUpload,
+                            title = "Push змін по Wi‑Fi",
+                            subtitle = "Надіслати несинхронізоване",
+                            onClick = {
+                                showImportExportSheet = false
+                                onWifiPush("localhost:8080")
+                            },
+                        )
+                    }
+                }
+            }
         }
     }
 
@@ -375,6 +479,33 @@ private fun BarButton(
             contentAlignment = Alignment.Center,
         ) {
             Icon(icon, contentDescription = label, tint = primary.copy(alpha = 0.9f))
+        }
+    }
+}
+
+@Composable
+private fun ImportExportTile(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+) {
+    Card(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+        onClick = onClick,
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = title, style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

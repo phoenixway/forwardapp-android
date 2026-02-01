@@ -145,7 +145,8 @@ private fun NavGraphBuilder.mainGraph(
 ) {
     composable(COMMAND_DECK_ROUTE) { backStackEntry ->
         val parentEntry = remember(backStackEntry) { navController.getBackStackEntry(MAIN_GRAPH_ROUTE) }
-        val viewModel: ContextHierarchyScreenViewModel = hiltViewModel(parentEntry)
+        val goalListViewModel: ContextHierarchyScreenViewModel = hiltViewModel(parentEntry)
+        val commandDeckViewModel: CommandDeckViewModel = hiltViewModel(parentEntry)
         val scope = rememberCoroutineScope()
 
         MainScreenLayout(
@@ -159,7 +160,7 @@ private fun NavGraphBuilder.mainGraph(
             onNavigateToSettings = { navController.navigate("settings_screen") },
             onNavigateToInbox = {
                 scope.launch {
-                    val inboxId = viewModel.getInboxProjectId()
+                    val inboxId = goalListViewModel.getInboxProjectId()
                     if (inboxId != null) {
                         navController.navigate("goal_detail_screen/$inboxId?initialViewMode=INBOX")
                     }
@@ -170,9 +171,12 @@ private fun NavGraphBuilder.mainGraph(
             onNavigateToAiChat = { navController.navigate(CHAT_ROUTE) },
             onNavigateToAiInsights = { navController.navigate(AI_INSIGHTS_ROUTE) },
             onNavigateToAiLifeManagement = { navController.navigate(LIFE_STATE_ROUTE) },
-            onNavigateToImportExport = {
-                navController.navigate("selective_import_screen")
-            },
+            onExportToFile = { commandDeckViewModel.onEvent(CommandDeckEvent.ExportToFile) },
+            onImportFromFileRequest = { commandDeckViewModel.onEvent(CommandDeckEvent.ImportFromFileRequest("")) }, // File picker will handle URI
+            onSelectiveImportFromFileRequest = { navController.navigate(SELECTIVE_IMPORT_ROUTE) }, // This still navigates
+            onExportAttachments = { commandDeckViewModel.onEvent(CommandDeckEvent.ExportAttachments) },
+            onImportAttachmentsFromFileRequest = { commandDeckViewModel.onEvent(CommandDeckEvent.ImportAttachmentsFromFile("")) }, // File picker will handle URI
+            onWifiPush = { host -> commandDeckViewModel.onEvent(CommandDeckEvent.WifiPush(host)) },
             onNavigateToAttachments = { navController.navigate("attachments_library_screen") },
             onNavigateToScripts = { navController.navigate("scripts_library_screen") },
             onNavigateToRecentItem = { item: RecentItem ->

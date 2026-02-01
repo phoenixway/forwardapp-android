@@ -1,11 +1,11 @@
-package com.romankozak.forwardappmobile.features.mainscreen
-
 import android.app.Application
 import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.domain.lifecontext.StartContextTrackingUseCase
 import com.romankozak.forwardappmobile.domain.lifecontext.SubmitContextInputUseCase
+import com.romankozak.forwardappmobile.sync.SyncRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,6 +20,7 @@ class CommandDeckViewModel
         private val application: Application,
         private val submitContextInputUseCase: SubmitContextInputUseCase,
         private val startContextTrackingUseCase: StartContextTrackingUseCase,
+        private val syncRepository: SyncRepository,
     ) : ViewModel() {
         private val sharedPreferences = application.getSharedPreferences("command_deck_prefs", Context.MODE_PRIVATE)
 
@@ -81,4 +82,52 @@ class CommandDeckViewModel
                 closeContextInput()
             }
         }
+
+        fun onEvent(event: CommandDeckEvent) {
+            when (event) {
+                CommandDeckEvent.ExportToFile -> {
+                    viewModelScope.launch {
+                        syncRepository.exportDatabaseToFile().onFailure {
+                            // TODO: Show error message
+                        }
+                    }
+                }
+                is CommandDeckEvent.ImportFromFileRequest -> {
+                    viewModelScope.launch {
+                        syncRepository.importDatabaseFromFile(Uri.parse(event.fileUri)).onFailure {
+                            // TODO: Show error message
+                        }
+                    }
+                }
+                CommandDeckEvent.ExportAttachments -> {
+                    viewModelScope.launch {
+                        syncRepository.exportAttachmentsToFile().onFailure {
+                            // TODO: Show error message
+                        }
+                    }
+                }
+                is CommandDeckEvent.ImportAttachmentsFromFile -> {
+                    viewModelScope.launch {
+                        syncRepository.importAttachmentsFromFile(Uri.parse(event.fileUri)).onFailure {
+                            // TODO: Show error message
+                        }
+                    }
+                }
+                is CommandDeckEvent.WifiPush -> {
+                    viewModelScope.launch {
+                        syncRepository.pushChangesToWifiServer(event.host).onFailure {
+                            // TODO: Show error message
+                        }
+                    }
+                }
+            }
+        }
     }
+
+sealed interface CommandDeckEvent {
+    object ExportToFile : CommandDeckEvent
+    data class ImportFromFileRequest(val fileUri: String) : CommandDeckEvent
+    object ExportAttachments : CommandDeckEvent
+    data class ImportAttachmentsFromFile(val fileUri: String) : CommandDeckEvent
+    data class WifiPush(val host: String) : CommandDeckEvent
+}
