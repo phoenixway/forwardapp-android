@@ -41,16 +41,6 @@ class SyncFileServiceSnapshotTest {
         // Mocking contentResolver for readTextFromUri
         val mockContentResolver = mockk<android.content.ContentResolver>()
         coEvery { mockContext.contentResolver } returns mockContentResolver
-        coEvery { mockContentResolver.openInputStream(any()) } answers {
-            val uri = firstArg<Uri>()
-            val jsonString = when (uri.toString()) {
-                "content://test/new_format" -> createNewFormatJson()
-                "content://test/legacy_format" -> createLegacyFormatJson()
-                "content://test/old_dbcontent_format" -> createOldDatabaseContentJson()
-                else -> throw IllegalArgumentException("Unknown URI: $uri")
-            }
-            ByteArrayInputStream(jsonString.toByteArray())
-        }
     }
 
     private fun createNewFormatJson(): String {
@@ -115,23 +105,17 @@ class SyncFileServiceSnapshotTest {
                 tags = emptyList(), relatedLinks = emptyList(), order = 0L, isAttachmentsExpanded = false, defaultViewModeName = null, isCompleted = false, totalTimeSpentMinutes = null, valueImportance = 0f, valueImpact = 0f, effort = 0f, cost = 0f, risk = 0f, weightEffort = 1f, weightCost = 1f, weightRisk = 1f, rawScore = 0f, displayScore = 0, scoringStatus = "NOT_ASSESSED", showCheckboxes = false, roleCode = null
             ))
         )
-        val backup = FullAppBackup(
-            backupSchemaVersion = 2,
-            snapshotBundle = snapshot,
-            database = null,
-            settings = null
-        )
-        val jsonString = gson.toJson(backup)
+        val jsonString = createNewFormatJson()
         val inputStream = ByteArrayInputStream(jsonString.toByteArray())
         coEvery { mockContext.contentResolver.openInputStream(uri) } returns inputStream
-        coEvery { mockMergeRepository.applyServerChanges(snapshot) } returns Result.success(Unit)
+        coEvery { mockMergeRepository.applyServerChanges(any<SnapshotBundle>()) } returns Result.success(Unit)
 
         // When
         val result = syncFileService.importFullBackupFromFileV2(uri)
 
         // Then
         assertThat(result.isSuccess).isTrue()
-        coVerify(exactly = 1) { mockMergeRepository.applyServerChanges(snapshot) }
+        coVerify(exactly = 1) { mockMergeRepository.applyServerChanges(match<SnapshotBundle> { it.contexts.first().id == "new_c1" }) }
         coVerify(exactly = 0) { mockLegacyMigrationMapper.toSnapshotBundle(any()) } // Should not call mapper for new format
     }
 
@@ -139,6 +123,15 @@ class SyncFileServiceSnapshotTest {
     fun `importFullBackupFromFileV2 imports legacy FullAppBackup format correctly`() = runBlocking {
         // Given
         val uri = Uri.parse("content://test/legacy_format")
+        val dbContent = DatabaseContent(
+            projects = listOf(com.romankozak.forwardappmobile.core.data.models.Context(
+                id = "legacy_c1", name = "Legacy Context", createdAt = 50L, updatedAt = 50L,
+                parentId = null, description = null, isExpanded = false, isDeleted = false, version = 0,
+                tags = emptyList(), relatedLinks = emptyList(), order = 0L, isAttachmentsExpanded = false, defaultViewModeName = null, isCompleted = false, isContextManagementEnabled = false, contextStatus = "NO_PLAN", contextStatusText = null, contextLogLevel = null, totalTimeSpentMinutes = null, valueImportance = 0f, valueImpact = 0f, effort = 0f, cost = 0f, risk = 0f, weightEffort = 1f, weightCost = 1f, weightRisk = 1f, rawScore = 0f, displayScore = 0, scoringStatus = "NOT_ASSESSED", showCheckboxes = false, roleCode = null
+            ))
+        )
+        val jsonString = createLegacyFormatJson()
+        val inputStream = ByteArrayInputStream(jsonString.toByteArray())
         val migratedSnapshot = SnapshotBundle(
             version = 1,
             contexts = listOf(ContextSnapshot(
@@ -149,23 +142,32 @@ class SyncFileServiceSnapshotTest {
                 tags = emptyList(), relatedLinks = emptyList(), order = 0L, isAttachmentsExpanded = false, defaultViewModeName = null, isCompleted = false, totalTimeSpentMinutes = null, valueImportance = 0f, valueImpact = 0f, effort = 0f, cost = 0f, risk = 0f, weightEffort = 1f, weightCost = 1f, weightRisk = 1f, rawScore = 0f, displayScore = 0, scoringStatus = "NOT_ASSESSED", showCheckboxes = false, roleCode = null
             ))
         )
-
-        coEvery { mockLegacyMigrationMapper.toSnapshotBundle(any<DatabaseContent>()) } returns migratedSnapshot
-        coEvery { mockMergeRepository.applyServerChanges(any<SnapshotBundle>()) } returns Result.success(Unit)
+        coEvery { mockContext.contentResolver.openInputStream(uri) } returns inputStream
+        coEvery { mockLegacyMigrationMapper.toSnapshotBundle(any()) } returns migratedSnapshot
+        coEvery { mockMergeRepository.applyServerChanges(any()) } returns Result.success(Unit)
 
         // When
         val result = syncFileService.importFullBackupFromFileV2(uri)
 
         // Then
         assertThat(result.isSuccess).isTrue()
-        coVerify(exactly = 1) { mockLegacyMigrationMapper.toSnapshotBundle(match<DatabaseContent> { it.projects.first().id == "legacy_c1" }) }
-        coVerify(exactly = 1) { mockMergeRepository.applyServerChanges(match<SnapshotBundle> { it.contexts.first().id == "legacy_c1" }) }
+        coVerify(exactly = 1) { mockLegacyMigrationMapper.toSnapshotBundle(dbContent) }
+        coVerify(exactly = 1) { mockMergeRepository.applyServerChanges(migratedSnapshot) }
     }
 
     @Test
     fun `importFullBackupFromFileV2 imports raw DatabaseContent format correctly`() = runBlocking {
         // Given
         val uri = Uri.parse("content://test/old_dbcontent_format")
+        val dbContent = DatabaseContent(
+            projects = listOf(com.romankozak.forwardappmobile.core.data.models.Context(
+                id = "raw_c1", name = "Raw DB Content", createdAt = 20L, updatedAt = 20L,
+                parentId = null, description = null, isExpanded = false, isDeleted = false, version = 0,
+                tags = emptyList(), relatedLinks = emptyList(), order = 0L, isAttachmentsExpanded = false, defaultViewModeName = null, isCompleted = false, isContextManagementEnabled = false, contextStatus = "NO_PLAN", contextStatusText = null, contextLogLevel = null, totalTimeSpentMinutes = null, valueImportance = 0f, valueImpact = 0f, effort = 0f, cost = 0f, risk = 0f, weightEffort = 1f, weightCost = 1f, weightRisk = 1f, rawScore = 0f, displayScore = 0, scoringStatus = "NOT_ASSESSED", showCheckboxes = false, roleCode = null
+            ))
+        )
+        val jsonString = createOldDatabaseContentJson()
+        val inputStream = ByteArrayInputStream(jsonString.toByteArray())
         val migratedSnapshot = SnapshotBundle(
             version = 1,
             contexts = listOf(ContextSnapshot(
@@ -176,24 +178,25 @@ class SyncFileServiceSnapshotTest {
                 tags = emptyList(), relatedLinks = emptyList(), order = 0L, isAttachmentsExpanded = false, defaultViewModeName = null, isCompleted = false, totalTimeSpentMinutes = null, valueImportance = 0f, valueImpact = 0f, effort = 0f, cost = 0f, risk = 0f, weightEffort = 1f, weightCost = 1f, weightRisk = 1f, rawScore = 0f, displayScore = 0, scoringStatus = "NOT_ASSESSED", showCheckboxes = false, roleCode = null
             ))
         )
+        coEvery { mockContext.contentResolver.openInputStream(uri) } returns inputStream
+        coEvery { mockLegacyMigrationMapper.toSnapshotBundle(any()) } returns migratedSnapshot
+        coEvery { mockMergeRepository.applyServerChanges(any()) } returns Result.success(Unit)
 
-        coEvery { mockLegacyMigrationMapper.toSnapshotBundle(any<DatabaseContent>()) } returns migratedSnapshot
-        coEvery { mockMergeRepository.applyServerChanges(any<SnapshotBundle>()) } returns Result.success(Unit)
 
         // When
         val result = syncFileService.importFullBackupFromFileV2(uri)
 
         // Then
         assertThat(result.isSuccess).isTrue()
-        coVerify(exactly = 1) { mockLegacyMigrationMapper.toSnapshotBundle(match<DatabaseContent> { it.projects.first().id == "raw_c1" }) }
-        coVerify(exactly = 1) { mockMergeRepository.applyServerChanges(match<SnapshotBundle> { it.contexts.first().id == "raw_c1" }) }
+        coVerify(exactly = 1) { mockLegacyMigrationMapper.toSnapshotBundle(dbContent) }
+        coVerify(exactly = 1) { mockMergeRepository.applyServerChanges(migratedSnapshot) }
     }
 
     @Test
     fun `importFullBackupFromFileV2 returns failure on IOException`() = runBlocking {
         // Given
         val uri = Uri.parse("content://test/non_existent_file")
-        coEvery { mockContext.contentResolver.openInputStream(any()) } returns null
+        coEvery { mockContext.contentResolver.openInputStream(uri) } returns null
 
         // When
         val result = syncFileService.importFullBackupFromFileV2(uri)
@@ -206,8 +209,8 @@ class SyncFileServiceSnapshotTest {
     @Test
     fun `importFullBackupFromFileV2 returns failure on invalid JsonSyntaxException`() = runBlocking {
         // Given
-        val uri = Uri.parse("content://test/new_format") // Use an existing URI
-        coEvery { mockContext.contentResolver.openInputStream(any()) } returns ByteArrayInputStream("invalid json".toByteArray())
+        val uri = Uri.parse("content://test/invalid_json")
+        coEvery { mockContext.contentResolver.openInputStream(uri) } returns ByteArrayInputStream("invalid json".toByteArray())
 
         // When
         val result = syncFileService.importFullBackupFromFileV2(uri)
