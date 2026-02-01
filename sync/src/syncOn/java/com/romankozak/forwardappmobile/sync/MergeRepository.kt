@@ -12,7 +12,8 @@ import javax.inject.Singleton
 
 @Singleton
 class MergeRepository @Inject constructor(
-    private val localDataSource: FullBackupLocalDataSource,
+    private val mergeLocalDataSource: com.romankozak.forwardappmobile.sync.datasource.MergeLocalDataSource,
+    private val fullBackupLocalDataSource: FullBackupLocalDataSource,
     private val logicHelper: SyncLogicHelper,
 ) {
     private val TAG = "MergeRepository"
@@ -24,8 +25,8 @@ class MergeRepository @Inject constructor(
         val backup = gson.fromJson(jsonString, FullAppBackup::class.java)
         val incomingDb = backup.database ?: return SyncReport(emptyList())
 
-        val localProjects = localDataSource.getContexts().associateBy { it.id }
-        val localGoals = localDataSource.getGoals().associateBy { it.id }
+        val localProjects = mergeLocalDataSource.getContexts().associateBy { it.id }
+        val localGoals = mergeLocalDataSource.getGoals().associateBy { it.id }
         val changes = mutableListOf<SyncChange>()
 
         incomingDb.goals.forEach { incomingRaw ->
@@ -56,7 +57,7 @@ class MergeRepository @Inject constructor(
     suspend fun applyServerChanges(changes: DatabaseContent): Result<Unit> {
         val ts = System.currentTimeMillis()
         return try {
-            val local = localDataSource.getLocalDatabaseContent()
+            val local = mergeLocalDataSource.getLocalDatabaseContent()
             val allProjectIds = local.projects.map { it.id }.toSet()
 
             // Мапінг для системних проектів (Inbox, Archive тощо), щоб не дублювати їх
@@ -72,7 +73,7 @@ class MergeRepository @Inject constructor(
                 syncedAt = ts,
                 isDeletedSelector = { it.isDeleted }
             )
-            if (mergedContexts.isNotEmpty()) localDataSource.insertContexts(mergedContexts)
+            if (mergedContexts.isNotEmpty()) mergeLocalDataSource.insertContexts(mergedContexts)
 
             val mergedGoals = logicHelper.mergeAndMark(
                 incoming = changes.goals.map { SyncMapper.normalizeGoal(it) },
@@ -84,7 +85,7 @@ class MergeRepository @Inject constructor(
                 syncedAt = ts,
                 isDeletedSelector = { it.isDeleted }
             )
-            if (mergedGoals.isNotEmpty()) localDataSource.insertGoals(mergedGoals)
+            if (mergedGoals.isNotEmpty()) mergeLocalDataSource.insertGoals(mergedGoals)
 
             // Обробка вкладень
             val incomingAttachments = logicHelper.mergeAndMark(
@@ -96,14 +97,14 @@ class MergeRepository @Inject constructor(
                 markSynced = { at, s -> at.copy(syncedAt = s) },
                 syncedAt = ts
             )
-            localDataSource.insertAttachments(incomingAttachments)
+            mergeLocalDataSource.insertAttachments(incomingAttachments)
 
             // Обробка зв'язків
             val synthesizedRefs = logicHelper.synthesizeMissingCrossRefs(changes.attachments, changes.contextAttachmentCrossRefs)
-            localDataSource.insertContextAttachmentLinks(synthesizedRefs.map { it.copy(syncedAt = ts) })
+            mergeLocalDataSource.insertContextAttachmentLinks(synthesizedRefs.map { it.copy(syncedAt = ts) })
 
             // Обробка елементів списків (дедуплікація)
-            localDataSource.insertListItems(logicHelper.dedupListItems(changes.backlogItems))
+            mergeLocalDataSource.insertListItems(logicHelper.dedupListItems(changes.backlogItems))
 
             Result.success(Unit)
         } catch (e: Exception) {
@@ -112,15 +113,15 @@ class MergeRepository @Inject constructor(
         }
     }
 
-    suspend fun createBackupDiff(incoming: DatabaseContent): BackupDiff {
-        val local = localDataSource.getLocalDatabaseContent()
-        return BackupDiff(
-            projects = logicHelper.diffEntities(incoming.projects.map { SyncMapper.normalizeProject(it) }, local.projects, { it.id }, { it.version }, { it.updatedTs() }),
-            goals = logicHelper.diffEntities(incoming.goals.map { SyncMapper.normalizeGoal(it) }, local.goals, { it.id }, { it.version }, { it.updatedTs() }),
-            backlogItems = logicHelper.diffEntities(incoming.backlogItems, local.backlogItems, { it.id }, { it.version }, { it.updatedTs() }),
-            documents = logicHelper.diffEntities(incoming.documents, local.documents, { it.id }, { it.version }, { it.updatedTs() }),
-            attachments = logicHelper.diffEntities(incoming.attachments, local.attachments, { it.id }, { it.version }, { it.updatedTs() }),
-            contextAttachmentCrossRefs = logicHelper.diffEntities(incoming.contextAttachmentCrossRefs, local.contextAttachmentCrossRefs, { "${it.contextId}-${it.attachmentId}" }, { it.version }, { it.updatedTs() })
+    suspend fun createBackupDiff(incoming: DatabaseContent): LegacyBackupDiff {
+        val local = mergeLocalDataSource.getLocalDatabaseContent()
+        return LegacyBackupDiff(
+            projects = logicHelper.diffEntities(incoming.projects.map { SyncMapper.normalizeProject(it) }, local.projects, { it.id }, { it.version }, { it.updatedAt ?: 0L }),
+            goals = logicHelper.diffEntities(incoming.goals.map { SyncMapper.normalizeGoal(it) }, local.goals, { it.id }, { it.version }, { it.updatedAt ?: 0L }),
+            backlogItems = logicHelper.diffEntities(incoming.backlogItems, local.backlogItems, { it.id }, { it.version }, { it.updatedAt ?: 0L }),
+            documents = logicHelper.diffEntities(incoming.documents, local.documents, { it.id }, { it.version }, { it.updatedAt }),
+            attachments = logicHelper.diffEntities(incoming.attachments, local.attachments, { it.id }, { it.version }, { it.updatedAt }),
+            contextAttachmentCrossRefs = logicHelper.diffEntities(incoming.contextAttachmentCrossRefs, local.contextAttachmentCrossRefs, { "${it.contextId}-${it.attachmentId}" }, { 0L }, { it.updatedAt ?: 0L })
         )
     }
     // У MergeRepository.kt додайте ці "проксі" методи:
@@ -129,7 +130,7 @@ class MergeRepository @Inject constructor(
      * Застосовує схвалені зміни до локальної бази даних.
      */
     suspend fun applyChanges(approvedChanges: List<SyncChange>) {
-        localDataSource.applyChanges(approvedChanges)
+        mergeLocalDataSource.applyChanges(approvedChanges)
     }
 
     /**
@@ -137,7 +138,7 @@ class MergeRepository @Inject constructor(
      */
     suspend fun importSelectedData(selectedData: DatabaseContent): Result<String> {
         return try {
-            localDataSource.importSelectedData(
+            mergeLocalDataSource.importSelectedData(
                 projects = selectedData.projects,
                 goals = selectedData.goals,
                 listItems = selectedData.backlogItems,
@@ -152,19 +153,19 @@ class MergeRepository @Inject constructor(
     }
 
 suspend fun createBackupDiff(incoming: com.romankozak.forwardappmobile.core.data.models.sync.snapshot.SnapshotBundle): BackupDiff {
-        val local = localDataSource.loadFullSnapshotBundle()
+        val local = fullBackupLocalDataSource.loadFullSnapshotBundle()
         return BackupDiff(
-            projects = logicHelper.diffEntities(incoming.contexts, local.contexts, { it.id }, { it.version }, { it.updatedAt }),
-            goals = logicHelper.diffEntities(incoming.goals, local.goals, { it.id }, { it.version }, { it.updatedAt }),
-            backlogItems = logicHelper.diffEntities(incoming.backlogItems, local.backlogItems, { it.id }, { it.version }, { it.updatedAt }),
-            documents = logicHelper.diffEntities(incoming.documents, local.documents, { it.id }, { it.version }, { it.updatedAt }),
-            attachments = logicHelper.diffEntities(incoming.attachments, local.attachments, { it.id }, { it.version }, { it.updatedAt }),
-            contextAttachmentCrossRefs = logicHelper.diffEntities(incoming.crossRefs, local.crossRefs, { "${it.contextId}-${it.attachmentId}" }, { 0L }, { it.updatedAt })
+            projects = logicHelper.diffEntities(incoming.contexts, local.contexts, { project -> project.id }, { project -> project.version }, { project -> project.updatedAt }),
+            goals = logicHelper.diffEntities(incoming.goals, local.goals, { goal -> goal.id }, { goal -> goal.version }, { goal -> goal.updatedAt }),
+            backlogItems = logicHelper.diffEntities(incoming.backlogItems, local.backlogItems, { item -> item.id }, { item -> item.version }, { item -> item.updatedAt }),
+            documents = logicHelper.diffEntities(incoming.documents, local.documents, { doc -> doc.id }, { doc -> doc.version }, { doc -> doc.updatedAt }),
+            attachments = logicHelper.diffEntities(incoming.attachments, local.attachments, { attachment -> attachment.id }, { attachment -> attachment.version }, { attachment -> attachment.updatedAt }),
+            contextAttachmentCrossRefs = logicHelper.diffEntities(incoming.crossRefs, local.crossRefs, { crossRef -> "${crossRef.contextId}-${crossRef.attachmentId}" }, { 0L }, { crossRef -> crossRef.updatedAt })
         )
     }
 
 suspend fun createSyncReport(bundle: com.romankozak.forwardappmobile.core.data.models.sync.snapshot.SnapshotBundle): SyncReport {
-        val localBundle = localDataSource.loadFullSnapshotBundle()
+        val localBundle = fullBackupLocalDataSource.loadFullSnapshotBundle()
         val changes = mutableListOf<SyncChange>()
 
         // Helper function to add changes
@@ -179,8 +180,8 @@ suspend fun createSyncReport(bundle: com.romankozak.forwardappmobile.core.data.m
             }
         }
 
-        addChanges(bundle.contexts, localBundle.contexts.associateBy { it.id }, { it.id }, { it.name }, "Список", { it.version }, { it.updatedAt })
-        addChanges(bundle.goals, localBundle.goals.associateBy { it.id }, { it.id }, { it.text }, "Ціль", { it.version }, { it.updatedAt })
+        addChanges(bundle.contexts, localBundle.contexts.associateBy { context -> context.id }, { context -> context.id }, { context -> context.name }, "Список", { context -> context.version }, { context -> context.updatedAt })
+        addChanges(bundle.goals, localBundle.goals.associateBy { goal -> goal.id }, { goal -> goal.id }, { goal -> goal.text }, "Ціль", { goal -> goal.version }, { goal -> goal.updatedAt })
 
         return SyncReport(changes)
     }
@@ -188,7 +189,7 @@ suspend fun createSyncReport(bundle: com.romankozak.forwardappmobile.core.data.m
     suspend fun applyServerChanges(bundle: com.romankozak.forwardappmobile.core.data.models.sync.snapshot.SnapshotBundle): Result<Unit> {
         val ts = System.currentTimeMillis()
         return try {
-            localDataSource.applySnapshotBundle(bundle)
+            mergeLocalDataSource.applySnapshotBundle(bundle)
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to apply server changes from snapshot", e)

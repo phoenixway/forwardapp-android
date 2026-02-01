@@ -1,21 +1,18 @@
 package com.romankozak.forwardappmobile.core.data.models.sync
 
-import com.romankozak.forwardappmobile.core.data.models.ActivityRecord
-import com.romankozak.forwardappmobile.core.data.models.AttachmentEntity
-import com.romankozak.forwardappmobile.core.data.models.BacklogItem
-import com.romankozak.forwardappmobile.core.data.models.BacklogOrder
-import com.romankozak.forwardappmobile.core.data.models.ChecklistEntity
-import com.romankozak.forwardappmobile.core.data.models.ChecklistItemEntity
-import com.romankozak.forwardappmobile.core.data.models.Context
-import com.romankozak.forwardappmobile.core.data.models.ContextAttachmentCrossRef
-import com.romankozak.forwardappmobile.core.data.models.ContextLog
-import com.romankozak.forwardappmobile.core.data.models.Goal
-import com.romankozak.forwardappmobile.core.data.models.InboxRecord
-import com.romankozak.forwardappmobile.core.data.models.LegacyNoteEntity
-import com.romankozak.forwardappmobile.core.data.models.LinkItemEntity
-import com.romankozak.forwardappmobile.core.data.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.core.data.models.NoteDocumentItemEntity
-import com.romankozak.forwardappmobile.core.data.models.ScriptEntity
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.activity.ActivityRecordSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.attachments.*
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.context.*
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.day_management.DailyMetricSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.day_management.DayPlanSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.day_management.DayTaskSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.day_management.RecurringTaskSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.misc.*
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.reminders.ReminderSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.tactical.TacticalMissionAttachmentCrossRefSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.tactical.TacticalMissionSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.ai.AiEventSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.ai.AiInsightSnapshot
 
 enum class DiffStatus { NEW, UPDATED, DELETED }
 
@@ -28,20 +25,34 @@ data class DiffResult<T>(
 )
 
 data class BackupDiff(
-    val projects: DiffResult<Context> = DiffResult(),
-    val goals: DiffResult<Goal> = DiffResult(),
-    val backlogItems: DiffResult<BacklogItem> = DiffResult(),
-    val backlogOrders: DiffResult<BacklogOrder> = DiffResult(),
-    val legacyNotes: DiffResult<LegacyNoteEntity> = DiffResult(),
-    val activityRecords: DiffResult<ActivityRecord> = DiffResult(),
-    val documents: DiffResult<NoteDocumentEntity> = DiffResult(),
-    val documentItems: DiffResult<NoteDocumentItemEntity> = DiffResult(),
-    val checklists: DiffResult<ChecklistEntity> = DiffResult(),
-    val checklistItems: DiffResult<ChecklistItemEntity> = DiffResult(),
-    val linkItems: DiffResult<LinkItemEntity> = DiffResult(),
-    val inboxRecords: DiffResult<InboxRecord> = DiffResult(),
-    val contextLogs: DiffResult<ContextLog> = DiffResult(),
-    val scripts: DiffResult<ScriptEntity> = DiffResult(),
-    val attachments: DiffResult<AttachmentEntity> = DiffResult(),
-    val contextAttachmentCrossRefs: DiffResult<ContextAttachmentCrossRef> = DiffResult(),
+    val projects: DiffResult<ContextSnapshot> = DiffResult(),
+    val goals: DiffResult<GoalSnapshot> = DiffResult(),
+    val backlogItems: DiffResult<BacklogItemSnapshot> = DiffResult(),
+    val backlogOrders: DiffResult<BacklogOrderSnapshot> = DiffResult(),
+    val legacyNotes: DiffResult<LegacyNoteSnapshot> = DiffResult(),
+    val activityRecords: DiffResult<ActivityRecordSnapshot> = DiffResult(),
+    val documents: DiffResult<NoteDocumentSnapshot> = DiffResult(),
+    val documentItems: DiffResult<NoteDocumentItemSnapshot> = DiffResult(),
+    val checklists: DiffResult<ChecklistSnapshot> = DiffResult(),
+    val checklistItems: DiffResult<ChecklistItemSnapshot> = DiffResult(),
+    val linkItems: DiffResult<LinkItemEntitySnapshot> = DiffResult(),
+    val inboxRecords: DiffResult<InboxRecordSnapshot> = DiffResult(),
+    val contextLogs: DiffResult<ContextLogSnapshot> = DiffResult(),
+    val scripts: DiffResult<ScriptSnapshot> = DiffResult(),
+    val attachments: DiffResult<AttachmentSnapshot> = DiffResult(),
+    val contextAttachmentCrossRefs: DiffResult<ContextAttachmentCrossRefSnapshot> = DiffResult(),
+    val dayPlans: DiffResult<DayPlanSnapshot> = DiffResult(),
+    val dayTasks: DiffResult<DayTaskSnapshot> = DiffResult(),
+    val dailyMetrics: DiffResult<DailyMetricSnapshot> = DiffResult(),
+    val reminders: DiffResult<ReminderSnapshot> = DiffResult(),
+    val recurringTasks: DiffResult<RecurringTaskSnapshot> = DiffResult(),
+    val tacticalMissions: DiffResult<TacticalMissionSnapshot> = DiffResult(),
+    val tacticalMissionAttachments: DiffResult<TacticalMissionAttachmentCrossRefSnapshot> = DiffResult(),
+    val aiEvents: DiffResult<AiEventSnapshot> = DiffResult(),
+    val aiInsights: DiffResult<AiInsightSnapshot> = DiffResult(),
+    val lifeSystemStates: DiffResult<LifeSystemStateSnapshot> = DiffResult(),
+    val contextRoleProfiles: DiffResult<ContextRoleProfileSnapshot> = DiffResult(),
+    val contextRoleProfileItems: DiffResult<ContextRoleProfileItemSnapshot> = DiffResult(),
+    val contextConfigurations: DiffResult<ContextConfigurationSnapshot> = DiffResult(),
+    val projectStructureItems: DiffResult<ContextStructureItemSnapshot> = DiffResult(),
 )

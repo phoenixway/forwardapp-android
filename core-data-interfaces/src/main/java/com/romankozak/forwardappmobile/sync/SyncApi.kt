@@ -18,7 +18,7 @@ interface SyncApi {
     suspend fun createSyncReport(jsonString: String): SyncReport
     suspend fun applyChanges(approvedChanges: List<SyncChange>)
     suspend fun applyServerChanges(changes: DatabaseContent): Result<Unit>
-    suspend fun createBackupDiff(incoming: DatabaseContent): BackupDiff
+    suspend fun createBackupDiff(incoming: DatabaseContent): LegacyBackupDiff
     suspend fun importSelectedData(selectedData: DatabaseContent): Result<String>
 
     suspend fun exportAttachmentsToFile(): Result<String>

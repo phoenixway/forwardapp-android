@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
+import com.romankozak.forwardappmobile.core.data.models.sync.LegacyBackupDiff
 import com.romankozak.forwardappmobile.sync.SyncRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -69,7 +70,7 @@ class SelectiveImportViewModel
                             "IMPORT_SELECTIVE",
                             "Database contextAttachmentCrossRefs: ${dbContent.contextAttachmentCrossRefs.size}",
                         )
-                        val diff = syncRepository.createBackupDiff(dbContent)
+                        val diff = syncRepository.createBackupDiff(dbContent) as LegacyBackupDiff
                         _uiState.update {
                             it.copy(
                                 isLoading = false,

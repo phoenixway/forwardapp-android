@@ -11,9 +11,8 @@
   <component name="ChangeListManager">
     <list default="true" id="dec4991f-6ae0-4b6d-adb7-135ff1c91165" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/app/build.gradle.kts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/test/java/com/romankozak/forwardappmobile/sync/LegacyMigrationMapperTest.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/test/java/com/romankozak/forwardappmobile/sync/LegacyMigrationMapperTest.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/test/java/com/romankozak/forwardappmobile/sync/MergeRepositorySnapshotTest.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/test/java/com/romankozak/forwardappmobile/sync/MergeRepositorySnapshotTest.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/selectiveimport/SelectiveImportViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/sync/selectiveimport/SelectiveImportViewModel.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/sync/BackupDiff.kt" beforeDir="false" afterPath="$PROJECT_DIR$/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/sync/BackupDiff.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/sync/src/syncOn/java/com/romankozak/forwardappmobile/sync/MergeRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/sync/src/syncOn/java/com/romankozak/forwardappmobile/sync/MergeRepository.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
