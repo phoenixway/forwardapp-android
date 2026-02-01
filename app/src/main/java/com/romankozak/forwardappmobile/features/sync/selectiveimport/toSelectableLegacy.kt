@@ -53,7 +53,6 @@ fun LegacyBackupDiff.toSelectable(): SelectableDatabaseContent {
         activityRecords = mapDiff(this.activityRecords),
         backlogItems = mapListItemDiff(this.backlogItems),
         documents = mapDiff(this.documents),
-        documentItems = mapDiff(this.documentItems),
         checklists = mapDiff(this.checklists),
         checklistItems = mapDiff(this.checklistItems),
         linkItems = mapDiff(this.linkItems),

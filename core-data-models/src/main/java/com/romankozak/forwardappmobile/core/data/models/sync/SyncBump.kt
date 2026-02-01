@@ -13,7 +13,6 @@ import com.romankozak.forwardappmobile.core.data.models.InboxRecord
 import com.romankozak.forwardappmobile.core.data.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.LinkItemEntity
 import com.romankozak.forwardappmobile.core.data.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.core.data.models.NoteDocumentItemEntity
 import com.romankozak.forwardappmobile.core.data.models.Reminder
 import com.romankozak.forwardappmobile.core.data.models.ScriptEntity
 import com.romankozak.forwardappmobile.core.data.models.day_management.DailyMetric
@@ -61,12 +60,6 @@ fun NoteDocumentEntity.bumpSync(now: Long = System.currentTimeMillis()) =
     copy(updatedAt = now, syncedAt = null, version = bumpVersion(version))
 
 fun NoteDocumentEntity.softDelete(now: Long = System.currentTimeMillis()) =
-    copy(isDeleted = true, updatedAt = now, syncedAt = null, version = bumpVersion(version))
-
-fun NoteDocumentItemEntity.bumpSync(now: Long = System.currentTimeMillis()) =
-    copy(updatedAt = now, syncedAt = null, version = bumpVersion(version))
-
-fun NoteDocumentItemEntity.softDelete(now: Long = System.currentTimeMillis()) =
     copy(isDeleted = true, updatedAt = now, syncedAt = null, version = bumpVersion(version))
 
 fun InboxRecord.bumpSync(now: Long = System.currentTimeMillis()) = copy(updatedAt = now, syncedAt = null, version = bumpVersion(version))

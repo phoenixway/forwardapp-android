@@ -33,7 +33,6 @@ import com.romankozak.forwardappmobile.core.data.models.ContextAttachmentCrossRe
 import com.romankozak.forwardappmobile.core.data.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.LegacyNoteFts
 import com.romankozak.forwardappmobile.core.data.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.core.data.models.NoteDocumentItemEntity
 import com.romankozak.forwardappmobile.core.data.models.ScriptEntity
 import com.romankozak.forwardappmobile.features.contexts.data.dao.BacklogOrderDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
@@ -95,7 +94,6 @@ import com.romankozak.forwardappmobile.core.data.models.Reminder
         DailyMetric::class,
         LegacyNoteEntity::class,
         NoteDocumentEntity::class,
-        NoteDocumentItemEntity::class,
         ChecklistEntity::class,
         ChecklistItemEntity::class,
         ScriptEntity::class,

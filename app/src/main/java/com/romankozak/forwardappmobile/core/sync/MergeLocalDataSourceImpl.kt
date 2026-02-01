@@ -134,7 +134,6 @@ class MergeLocalDataSourceImpl @Inject constructor(
             db.listItemDao().insertItems(bundle.backlogItems.map { it.toEntity() })
             db.backlogOrderDao().insertAll(bundle.backlogOrders.map { it.toEntity() })
             db.legacyNoteDao().insertAll(bundle.notes.map { it.toEntity() })
-            db.noteDocumentDao().insertAllItems(bundle.documentItems.map { it.toEntity() })
             db.checklistDao().insertItems(bundle.checklistItems.map { it.toEntity() })
             db.contextArtifactDao().insertAll(bundle.artifacts.map { it.toEntity() })
             db.scriptDao().insertAll(bundle.scripts.map { it.toEntity() })

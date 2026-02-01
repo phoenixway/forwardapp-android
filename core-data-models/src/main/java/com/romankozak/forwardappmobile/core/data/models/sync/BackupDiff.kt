@@ -32,7 +32,6 @@ data class BackupDiff(
     val legacyNotes: DiffResult<LegacyNoteSnapshot> = DiffResult(),
     val activityRecords: DiffResult<ActivityRecordSnapshot> = DiffResult(),
     val documents: DiffResult<NoteDocumentSnapshot> = DiffResult(),
-    val documentItems: DiffResult<NoteDocumentItemSnapshot> = DiffResult(),
     val checklists: DiffResult<ChecklistSnapshot> = DiffResult(),
     val checklistItems: DiffResult<ChecklistItemSnapshot> = DiffResult(),
     val linkItems: DiffResult<LinkItemEntitySnapshot> = DiffResult(),

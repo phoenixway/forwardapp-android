@@ -159,33 +159,6 @@ fun NoteDocumentSnapshot.toEntity(): NoteDocumentEntity = NoteDocumentEntity(
     version = version,
     isDeleted = isDeleted
 )
-// Note: NoteDocumentItemSnapshot toEntity mapping might be lossy if entity has more fields
-fun NoteDocumentItemEntity.toSnapshot(): NoteDocumentItemSnapshot = NoteDocumentItemSnapshot(
-    id = id,
-    documentId = listId, // Entity: listId -> Snapshot: documentId
-    content = content,
-    order = itemOrder,   // Entity: itemOrder -> Snapshot: order
-    type = "note",       // У Entity немає поля type, передаємо константу або додаємо поле
-    createdAt = createdAt,
-    updatedAt = updatedAt,
-    isDeleted = isDeleted,
-    version = version
-)
-
-// File: SnapshotMapper.kt
-
-fun NoteDocumentItemSnapshot.toEntity(): NoteDocumentItemEntity = NoteDocumentItemEntity(
-    id = id,
-    listId = documentId,      // Snapshot: documentId -> Entity: listId
-    content = content,
-    itemOrder = order,        // Snapshot: order -> Entity: itemOrder
-    isCompleted = false,      // У вашій Entity є isCompleted, але в Snapshot його немає
-    createdAt = createdAt,
-    updatedAt = updatedAt,
-    version = version,
-    isDeleted = isDeleted
-    // Поле 'type' зі Snapshot просто ігнорується, бо в Entity його немає
-)
 fun ChecklistEntity.toSnapshot(): ChecklistSnapshot = ChecklistSnapshot(
     id = id,
     name = name,

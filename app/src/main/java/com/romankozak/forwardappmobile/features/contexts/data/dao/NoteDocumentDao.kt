@@ -6,7 +6,6 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import com.romankozak.forwardappmobile.core.data.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.core.data.models.NoteDocumentItemEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -41,37 +40,10 @@ interface NoteDocumentDao {
     suspend fun deleteDocumentById(documentId: String)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertListItem(item: NoteDocumentItemEntity)
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertListItems(items: List<NoteDocumentItemEntity>)
-
-    @Update
-    suspend fun updateListItem(item: NoteDocumentItemEntity)
-
-    @Update
-    suspend fun updateListItems(items: List<NoteDocumentItemEntity>)
-
-    @Query("SELECT * FROM note_document_items WHERE id = :itemId")
-    suspend fun getListItemById(itemId: String): NoteDocumentItemEntity?
-
-    @Query("SELECT * FROM note_document_items WHERE listId = :documentId ORDER BY itemOrder ASC")
-    fun getItemsForDocument(documentId: String): Flow<List<NoteDocumentItemEntity>>
-
-    @Query("DELETE FROM note_document_items WHERE id = :itemId")
-    suspend fun deleteListItemById(itemId: String)
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAllDocuments(items: List<NoteDocumentEntity>)
 
     @Query("DELETE FROM note_documents")
     suspend fun deleteAllDocuments()
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAllDocumentItems(items: List<NoteDocumentItemEntity>)
-
-    @Query("DELETE FROM note_document_items")
-    suspend fun deleteAllDocumentItems()
 
     @Query("SELECT * FROM note_documents")
     suspend fun getAllDocuments(): List<NoteDocumentEntity>
@@ -82,18 +54,6 @@ interface NoteDocumentDao {
     @Query("SELECT * FROM note_documents WHERE LOWER(name) = LOWER(:name) LIMIT 1")
     suspend fun findByName(name: String): NoteDocumentEntity?
 
-    @Query("SELECT * FROM note_document_items")
-    suspend fun getAllDocumentItems(): List<NoteDocumentItemEntity>
-
-    @Query("DELETE FROM note_document_items WHERE id IN (:itemIds)")
-    suspend fun deleteListItemsByIds(itemIds: List<String>)
-
     @Query("SELECT * FROM note_documents")
     suspend fun getAllDocumentsRaw(): List<NoteDocumentEntity>
-
-    @Query("SELECT * FROM note_document_items")
-    suspend fun getAllDocumentItemsRaw(): List<NoteDocumentItemEntity>
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAllItems(items: List<NoteDocumentItemEntity>)
 }

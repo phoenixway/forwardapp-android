@@ -15,7 +15,6 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.t
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.tactical.TacticalMissionSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.context.ContextArtifactSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.attachments.ContextAttachmentCrossRefSnapshot
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.attachments.NoteDocumentItemSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.attachments.NoteDocumentSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.attachments.ScriptSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.context.ContextConfigurationSnapshot
@@ -39,7 +38,6 @@ data class SnapshotBundle(
     val backlogOrders: List<BacklogOrderSnapshot> = emptyList(),
     val notes: List<LegacyNoteSnapshot> = emptyList(),
     val documents: List<NoteDocumentSnapshot> = emptyList(),
-    val documentItems: List<NoteDocumentItemSnapshot> = emptyList(),
     val checklists: List<ChecklistSnapshot> = emptyList(),
     val checklistItems: List<ChecklistItemSnapshot> = emptyList(),
     val artifacts: List<ContextArtifactSnapshot> = emptyList(),

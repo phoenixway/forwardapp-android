@@ -68,7 +68,6 @@ class SyncLocalDataSourceImpl @Inject constructor(
             backlogOrders = backlogOrders,
             legacyNotes = legacyNoteDao.getAll(),
             documents = noteDocumentDao.getAllDocuments(),
-            documentItems = noteDocumentDao.getAllDocumentItems(),
             checklists = checklistDao.getAllChecklists(),
             checklistItems = checklistDao.getAllChecklistItems(),
             activityRecords = activityRecordDao.getAllRecordsStream().first(),
@@ -92,7 +91,6 @@ class SyncLocalDataSourceImpl @Inject constructor(
             backlogOrders = local.backlogOrders.filter { logicHelper.isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
             legacyNotes = local.legacyNotes.filter { logicHelper.isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
             documents = local.documents.filter { logicHelper.isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
-            documentItems = local.documentItems.filter { logicHelper.isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
             checklists = local.checklists.filter { logicHelper.isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
             checklistItems = local.checklistItems.filter { logicHelper.isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
             activityRecords = local.activityRecords.filter { logicHelper.isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
@@ -131,7 +129,6 @@ class SyncLocalDataSourceImpl @Inject constructor(
 
             legacyNoteDao.insertAll(content.legacyNotes.map { it.copy(syncedAt = ts) })
             noteDocumentDao.insertAllDocuments(content.documents.map { it.copy(syncedAt = ts) })
-            noteDocumentDao.insertAllDocumentItems(content.documentItems.map { it.copy(syncedAt = ts) })
 
             checklistDao.insertChecklists(content.checklists.map { it.copy(syncedAt = ts) })
             checklistDao.insertItems(content.checklistItems.map { it.copy(syncedAt = ts) })
@@ -154,7 +151,6 @@ class SyncLocalDataSourceImpl @Inject constructor(
             linkItemDao.deleteAll()
             activityRecordDao.clearAll()
             listItemDao.deleteAll()
-            noteDocumentDao.deleteAllDocumentItems()
             noteDocumentDao.deleteAllDocuments()
             checklistDao.deleteAllChecklistItems()
             checklistDao.deleteAllChecklists()

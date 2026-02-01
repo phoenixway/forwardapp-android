@@ -6,7 +6,6 @@ import com.google.gson.GsonBuilder
 import com.romankozak.forwardappmobile.core.data.models.*
 import com.romankozak.forwardappmobile.core.data.models.sync.*
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
-import com.romankozak.forwardappmobile.sync.SyncMapper.updatedTs // ВАЖЛИВО: імпорт extension-функції
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -35,7 +34,7 @@ class MergeRepository @Inject constructor(
 
             if (local == null) {
                 changes.add(SyncChange(ChangeType.Add, "Ціль", incoming.id, "Нова ціль: ${incoming.text}", entity = incoming))
-            } else if (incoming.updatedTs() > local.updatedTs()) {
+            } else if ((incoming.updatedAt ?: incoming.createdAt) > (local.updatedAt ?: local.createdAt)) {
                 changes.add(SyncChange(ChangeType.Update, "Ціль", incoming.id, "Оновлено ціль: ${incoming.text}", entity = incoming))
             }
         }
@@ -46,7 +45,7 @@ class MergeRepository @Inject constructor(
 
             if (local == null) {
                 changes.add(SyncChange(ChangeType.Add, "Список", incoming.id, "Новий список: ${incoming.name}", entity = incoming))
-            } else if (incoming.updatedTs() > local.updatedTs()) {
+            } else if ((incoming.updatedAt ?: incoming.createdAt) > (local.updatedAt ?: local.createdAt)) {
                 changes.add(SyncChange(ChangeType.Update, "Список", incoming.id, "Оновлено список: ${incoming.name}", entity = incoming))
             }
         }
@@ -68,7 +67,7 @@ class MergeRepository @Inject constructor(
                 localMap = local.projects.associateBy { it.id },
                 idSelector = { it.id },
                 versionSelector = { it.version },
-                updatedSelector = { it.updatedTs() },
+                updatedSelector = { it.updatedAt ?: it.createdAt },
                 markSynced = { p, s -> p.copy(syncedAt = s) },
                 syncedAt = ts,
                 isDeletedSelector = { it.isDeleted }
@@ -80,7 +79,7 @@ class MergeRepository @Inject constructor(
                 localMap = local.goals.associateBy { it.id },
                 idSelector = { it.id },
                 versionSelector = { it.version },
-                updatedSelector = { it.updatedTs() },
+                updatedSelector = { it.updatedAt ?: it.createdAt },
                 markSynced = { g, s -> g.copy(syncedAt = s) },
                 syncedAt = ts,
                 isDeletedSelector = { it.isDeleted }
@@ -93,7 +92,7 @@ class MergeRepository @Inject constructor(
                 localMap = local.attachments.associateBy { it.id },
                 idSelector = { it.id },
                 versionSelector = { it.version },
-                updatedSelector = { it.updatedTs() },
+                updatedSelector = { it.updatedAt },
                 markSynced = { at, s -> at.copy(syncedAt = s) },
                 syncedAt = ts
             )

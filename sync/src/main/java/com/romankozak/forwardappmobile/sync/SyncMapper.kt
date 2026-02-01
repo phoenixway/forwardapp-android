@@ -16,7 +16,6 @@ import com.romankozak.forwardappmobile.core.data.models.InboxRecord
 import com.romankozak.forwardappmobile.core.data.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.LinkItemEntity
 import com.romankozak.forwardappmobile.core.data.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.core.data.models.NoteDocumentItemEntity
 import com.romankozak.forwardappmobile.core.data.models.Reminder
 import com.romankozak.forwardappmobile.core.data.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.core.data.models.ScriptEntity
@@ -70,8 +69,6 @@ object SyncMapper {
     fun Goal.updatedTs(): Long = this.updatedAt ?: this.createdAt
 
     fun NoteDocumentEntity.updatedTs(): Long = this.updatedAt
-
-    fun NoteDocumentItemEntity.updatedTs(): Long = this.updatedAt
 
     fun LegacyNoteEntity.updatedTs(): Long = this.updatedAt
 

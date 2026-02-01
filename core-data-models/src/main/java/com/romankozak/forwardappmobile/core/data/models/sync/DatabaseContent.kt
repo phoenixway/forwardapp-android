@@ -21,7 +21,6 @@ import com.romankozak.forwardappmobile.core.data.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.LifeSystemStateEntity
 import com.romankozak.forwardappmobile.core.data.models.LinkItemEntity
 import com.romankozak.forwardappmobile.core.data.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.core.data.models.NoteDocumentItemEntity
 import com.romankozak.forwardappmobile.core.data.models.Reminder
 import com.romankozak.forwardappmobile.core.data.models.ScriptEntity
 import com.romankozak.forwardappmobile.core.data.models.SystemAppEntity
@@ -50,8 +49,6 @@ data class DatabaseContent(
     val legacyNotes: List<LegacyNoteEntity> = emptyList(),
     @SerializedName(value = "documents", alternate = ["customLists"])
     val documents: List<NoteDocumentEntity> = emptyList(),
-    @SerializedName(value = "documentItems", alternate = ["customListItems"])
-    val documentItems: List<NoteDocumentItemEntity> = emptyList(),
     @SerializedName(value = "checklists", alternate = ["g"])
     val checklists: List<ChecklistEntity> = emptyList(),
     @SerializedName(value = "checklistItems", alternate = ["h"])

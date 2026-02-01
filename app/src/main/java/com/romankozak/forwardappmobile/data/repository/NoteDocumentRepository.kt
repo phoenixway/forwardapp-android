@@ -7,7 +7,6 @@ import com.romankozak.forwardappmobile.data.legacy.toNoteDocument
 import com.romankozak.forwardappmobile.domain.ai.events.SystemNoteUpdatedEvent
 import com.romankozak.forwardappmobile.core.data.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.core.data.models.NoteDocumentItemEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.bumpSync
 import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
 import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
@@ -77,43 +76,6 @@ class NoteDocumentRepository
             }
         }
 
-        fun getDocumentItems(documentId: String): Flow<List<NoteDocumentItemEntity>> = noteDocumentDao.getItemsForDocument(documentId)
-
-        suspend fun saveDocumentItem(item: NoteDocumentItemEntity) {
-            val existingItem = noteDocumentDao.getListItemById(item.id)
-            if (existingItem == null) {
-                val now = System.currentTimeMillis()
-                noteDocumentDao.insertListItem(
-                    item.copy(
-                        updatedAt = now,
-                        syncedAt = null,
-                        version = item.version + 1,
-                    ),
-                )
-            } else {
-                val now = System.currentTimeMillis()
-                noteDocumentDao.updateListItem(
-                    item.copy(
-                        updatedAt = now,
-                        syncedAt = null,
-                        version = existingItem.version + 1,
-                    ),
-                )
-            }
-        }
-
-        suspend fun deleteDocumentItem(itemId: String) {
-            val now = System.currentTimeMillis()
-            val existing = noteDocumentDao.getListItemById(itemId)
-            if (existing != null) {
-                noteDocumentDao.insertListItem(
-                    existing.softDelete(now),
-                )
-            } else {
-                noteDocumentDao.deleteListItemById(itemId)
-            }
-        }
-
         suspend fun importFromLegacy(note: LegacyNoteEntity) {
             val document = note.toNoteDocument()
             noteDocumentDao.insertDocument(document)
@@ -125,13 +87,6 @@ class NoteDocumentRepository
                 createdAt = document.createdAt,
             )
             recentItemsRepository.logNoteDocumentAccess(document)
-        }
-
-        suspend fun updateDocumentItems(items: List<NoteDocumentItemEntity>) {
-            val now = System.currentTimeMillis()
-            noteDocumentDao.updateListItems(
-                items.map { it.bumpSync(now) },
-            )
         }
 
         suspend fun getDocumentById(id: String): NoteDocumentEntity? {

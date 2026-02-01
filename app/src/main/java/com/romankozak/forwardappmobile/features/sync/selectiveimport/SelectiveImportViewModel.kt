@@ -187,10 +187,6 @@ class SelectiveImportViewModel
                             listItem.entityId in selectedInboxRecordIds
                     }
 
-                // Filter document items to only those linked to selected documents
-                val allDocumentItems = currentState.backupContent?.documentItems?.map { it.item } ?: emptyList()
-                val filteredDocumentItems = allDocumentItems.filter { it.listId in selectedDocumentIds }
-
                 // Filter checklist items to only those linked to selected checklists
                 val allChecklistItems = currentState.backupContent?.checklistItems?.map { it.item } ?: emptyList()
                 val filteredChecklistItems = allChecklistItems.filter { it.checklistId in selectedChecklistIds }
@@ -217,7 +213,6 @@ class SelectiveImportViewModel
                         backlogItems = filteredListItems,
                         backlogOrders = selectedBacklogOrdersFiltered,
                         documents = selectedDocuments,
-                        documentItems = filteredDocumentItems,
                         checklists = selectedChecklists,
                         checklistItems = filteredChecklistItems,
                         linkItemEntities = selectedLinkItems,

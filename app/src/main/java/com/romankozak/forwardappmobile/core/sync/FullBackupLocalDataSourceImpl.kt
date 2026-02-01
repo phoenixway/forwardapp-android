@@ -236,8 +236,6 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
             backlogOrders = backlogOrderDao.getAllRaw().map { it.toSnapshot() },
             notes = notes,
             documents = documents,
-            // @Deprecated("Content is now part of NoteDocumentEntity, NoteDocumentItem is obsolete")
-            documentItems = emptyList(),
             checklists = checklists,
             checklistItems = checklistDao.getAllChecklistItemsRaw().map { it.toSnapshot() },
             artifacts = contextArtifactDao.getAllRaw().map { it.toSnapshot() },
@@ -288,8 +286,6 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
             listItemDao.insertItems(bundle.backlogItems.map { it.toEntity() })
             backlogOrderDao.insertAll(bundle.backlogOrders.map { it.toEntity() })
             legacyNoteDao.insertAll(bundle.notes.map { it.toEntity() })
-            // @Deprecated("Content is now part of NoteDocumentEntity, NoteDocumentItem is obsolete")
-            // noteDocumentDao.insertAllItems(bundle.documentItems.map { it.toEntity() })
             checklistDao.insertItems(bundle.checklistItems.map { it.toEntity() })
             contextArtifactDao.insertAll(bundle.artifacts.map { it.toEntity() })
             scriptDao.insertAll(bundle.scripts.map { it.toEntity() })

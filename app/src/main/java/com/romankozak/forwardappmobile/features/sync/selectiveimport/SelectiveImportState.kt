@@ -7,7 +7,6 @@ import com.romankozak.forwardappmobile.core.data.models.ChecklistItemEntity
 import com.romankozak.forwardappmobile.core.data.models.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.core.data.models.NoteDocumentItemEntity
 import com.romankozak.forwardappmobile.core.data.models.ScriptEntity
 import com.romankozak.forwardappmobile.core.data.models.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.BacklogOrder
@@ -36,7 +35,6 @@ data class SelectableDatabaseContent(
     val backlogItems: List<SelectableDiffItem<BacklogItem>> = emptyList(),
     val backlogOrders: List<SelectableDiffItem<BacklogOrder>> = emptyList(),
     val documents: List<SelectableDiffItem<NoteDocumentEntity>> = emptyList(),
-    val documentItems: List<SelectableDiffItem<NoteDocumentItemEntity>> = emptyList(), // Dependent, not directly selectable
     val checklists: List<SelectableDiffItem<ChecklistEntity>> = emptyList(),
     val checklistItems: List<SelectableDiffItem<ChecklistItemEntity>> = emptyList(), // Dependent, not directly selectable
     val linkItems: List<SelectableDiffItem<LinkItemEntity>> = emptyList(),
@@ -103,7 +101,6 @@ fun BackupDiff.toSelectable(): SelectableDatabaseContent {
         activityRecords = mapDiff(this.activityRecords, { it.toEntity() }),
         backlogItems = mapListItemDiff(this.backlogItems),
         documents = mapDiff(this.documents, { it.toEntity() }),
-        documentItems = mapDiff(this.documentItems, { it.toEntity() }),
         checklists = mapDiff(this.checklists, { it.toEntity() }),
         checklistItems = mapDiff(this.checklistItems, { it.toEntity() }),
         linkItems = mapDiff(this.linkItems, { it.toEntity() }),

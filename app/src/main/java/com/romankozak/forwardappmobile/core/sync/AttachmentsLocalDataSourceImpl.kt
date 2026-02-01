@@ -32,7 +32,6 @@ class AttachmentsLocalDataSourceImpl @Inject constructor(
     override suspend fun getAttachmentsBackup(): AttachmentsBackup {
         return AttachmentsBackup(
             documents = noteDocumentDao.getAllDocuments(),
-            documentItems = noteDocumentDao.getAllDocumentItems(),
             checklists = checklistDao.getAllChecklists(),
             checklistItems = checklistDao.getAllChecklistItems(),
             linkItemEntities = linkItemDao.getAllEntities(),
@@ -49,9 +48,6 @@ class AttachmentsLocalDataSourceImpl @Inject constructor(
             val validDocs = backup.documents.filter { it.contextId in existingContextIds }
             noteDocumentDao.insertAllDocuments(validDocs)
             val validDocIds = validDocs.map { it.id }.toSet()
-            noteDocumentDao.insertAllDocumentItems(
-                backup.documentItems.filter { it.listId in validDocIds }
-            )
 
             // Імпорт чеклистів
             val validChecklists = backup.checklists.filter { it.contextId in existingContextIds }
