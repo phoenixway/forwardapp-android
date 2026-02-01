@@ -27,8 +27,9 @@ import com.google.gson.annotations.SerializedName
 )
 data class BacklogOrder(
     @PrimaryKey val id: String,
+    @SerializedName(value = "listId", alternate = ["contextId", "projectId"])
     @ColumnInfo(name = "list_id")
-    val listId: String,
+    val listId: String = "",
     @ColumnInfo(name = "item_id")
     val itemId: String,
     @ColumnInfo(name = "item_order") val order: Long,
@@ -93,7 +94,8 @@ data class Goal(
 )
 data class ContextLog(
     @PrimaryKey val id: String,
-    @ColumnInfo(index = true) val contextId: String,
+    @SerializedName(value = "contextId", alternate = ["projectId"])
+    @ColumnInfo(index = true) val contextId: String = "",
     val timestamp: Long,
     @ColumnInfo(name = "type") val type: String,
     val description: String,
@@ -117,6 +119,7 @@ data class ContextLog(
 )
 data class InboxRecord(
     @PrimaryKey val id: String,
+    @SerializedName(value = "contextId", alternate = ["projectId"])
     @ColumnInfo(index = true) val contextId: String,
     val text: String,
     val createdAt: Long,
@@ -142,7 +145,7 @@ data class BacklogItem(
     @PrimaryKey val id: String,
     @SerializedName(value = "contextId", alternate = ["listId", "projectId"])
     @ColumnInfo(name = "context_id", index = true)
-    val contextId: String,
+    val contextId: String = "",
     val itemType: String,
     val entityId: String,
     @ColumnInfo(name = "item_order") val order: Long,

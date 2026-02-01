@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.google.gson.annotations.SerializedName
 import java.util.UUID
 
 @Entity(
@@ -20,7 +21,8 @@ import java.util.UUID
 )
 data class LegacyNoteEntity(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
-    val contextId: String,
+    @SerializedName(value = "contextId", alternate = ["projectId"])
+    val contextId: String = "",
     var title: String,
     var content: String,
     val createdAt: Long = System.currentTimeMillis(),

@@ -23,7 +23,7 @@ import java.util.UUID
 data class ChecklistEntity(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
     @SerializedName("contextId", alternate = ["projectId"])
-    val contextId: String,
+    val contextId: String = "",
     @SerializedName("name", alternate = ["title"])
     var name: String,
     // Додаємо відсутнє поле:

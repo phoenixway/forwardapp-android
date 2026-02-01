@@ -54,7 +54,7 @@ data class AttachmentEntity(
     ],
 )
 data class ContextAttachmentCrossRef(
-    @ColumnInfo(name = "context_id") @SerializedName(value = "contextId", alternate = ["a", "projectId"]) val contextId: String,
+    @ColumnInfo(name = "context_id") @SerializedName(value = "contextId", alternate = ["a", "projectId"]) val contextId: String = "",
     @ColumnInfo(name = "attachment_id") @SerializedName(value = "attachmentId", alternate = ["b"]) val attachmentId: String,
     @ColumnInfo(
         name = "attachment_order",

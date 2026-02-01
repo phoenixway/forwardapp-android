@@ -23,7 +23,7 @@ import java.util.UUID
 data class NoteDocumentEntity(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
     @SerializedName(value = "contextId", alternate = ["projectId"])
-    val contextId: String,
+    val contextId: String = "",
     var name: String,
     val createdAt: Long = System.currentTimeMillis(),
     var updatedAt: Long = System.currentTimeMillis(),

@@ -6,6 +6,7 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverters
+import com.google.gson.annotations.SerializedName
 import com.romankozak.forwardappmobile.core.data.models.AttachmentEntity
 import com.romankozak.forwardappmobile.core.data.models.Context
 import com.romankozak.forwardappmobile.core.data.models.Converters
@@ -32,7 +33,7 @@ data class TacticalMission(
     val deadline: Long,
     val status: MissionStatus = MissionStatus.PENDING,
     val priority: MissionPriority = MissionPriority.MEDIUM,
-    val projectId: String?,
+    @SerializedName(value = "projectId", alternate = ["contextId"]) val projectId: String?,
     val linkedProjectIds: List<String>? = emptyList(),
     val linkedAttachmentIds: List<String>? = emptyList(),
 )

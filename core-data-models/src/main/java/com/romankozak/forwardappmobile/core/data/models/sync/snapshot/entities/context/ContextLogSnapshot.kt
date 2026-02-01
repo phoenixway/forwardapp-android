@@ -4,7 +4,7 @@ import com.google.gson.annotations.SerializedName
 
 data class ContextLogSnapshot(
     @SerializedName("id") val id: String,
-    @SerializedName("contextId") val contextId: String,
+    @SerializedName(value = "contextId", alternate = ["projectId"]) val contextId: String = "",
     @SerializedName("timestamp") val timestamp: Long,
     @SerializedName("type") val type: String,
     @SerializedName("description") val description: String,

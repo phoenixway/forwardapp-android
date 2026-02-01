@@ -1,27 +1,22 @@
 TABLE OF CONTENTS
 ================================================================================
 
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/data/sync/FullBackupLocalDataSourceImpl.kt](##<<FILE_1>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/sync/WifiSyncServer.kt](##<<FILE_2>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/core-data-interfaces/src/main/java/com/romankozak/forwardappmobile/sync/AttachmentsRepository.kt](##<<FILE_3>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/core-data-interfaces/src/main/java/com/romankozak/forwardappmobile/sync/datasource/FullBackupLocalDataSource.kt](##<<FILE_4>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/docs/sync/SYNC_ARCHITECTURE_OVERVIEW.md](##<<FILE_5>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/sync/src/main/java/com/romankozak/forwardappmobile/sync/BackupRepository.kt](##<<FILE_6>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/sync/src/main/java/com/romankozak/forwardappmobile/sync/MergeRepository.kt](##<<FILE_7>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncFileService.kt](##<<FILE_8>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncRepository.kt](##<<FILE_9>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncWifiService.kt](##<<FILE_10>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/sync/src/main/java/com/romankozak/forwardappmobile/sync/WifiSyncRepository.kt](##<<FILE_11>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/core/sync/FullBackupLocalDataSourceImpl.kt](##<<FILE_1>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/core/sync/MergeLocalDataSourceImpl.kt](##<<FILE_2>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/ContextEntities.kt](##<<FILE_3>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/sync/DatabaseContent.kt](##<<FILE_4>>)
+- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/sync/snapshot/SnapshotBundle.kt](##<<FILE_5>>)
 
 ================================================================================
 
 ## <<FILE_1>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/data/sync/FullBackupLocalDataSourceImpl.kt (ID: FILE_1)
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/core/sync/FullBackupLocalDataSourceImpl.kt (ID: FILE_1)
 ================================================================================
 
-package com.romankozak.forwardappmobile.data.sync
+package com.romankozak.forwardappmobile.core.sync
 
+import android.util.Log
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.core.data.models.sync.RecentProjectEntry
@@ -29,7 +24,15 @@ import com.romankozak.forwardappmobile.data.dao.*
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
+import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
+import com.romankozak.forwardappmobile.core.data.interfaces.SystemContextEnsurer
+import com.romankozak.forwardappmobile.core.data.models.AttachmentEntity
+import com.romankozak.forwardappmobile.core.data.models.BacklogItemTypeValues
+import com.romankozak.forwardappmobile.core.data.models.ContextAttachmentCrossRef
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.toEntity
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.toSnapshot
 import com.romankozak.forwardappmobile.features.contexts.data.dao.*
 import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
@@ -44,6 +47,7 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
     private val goalDao: GoalDao,
     private val listItemDao: ListItemDao,
     private val noteDocumentDao: NoteDocumentDao,
+    private val checklistDao: ChecklistDao,
     private val attachmentDao: AttachmentDao,
     private val recentItemDao: RecentItemDao,
     private val dayPlanDao: DayPlanDao,
@@ -52,7 +56,25 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
     private val chatDao: ChatDao,
     private val reminderDao: ReminderDao,
     private val tacticalMissionDao: TacticalMissionDao,
-    private val aiInsightDao: AiInsightDao
+    private val aiInsightDao: AiInsightDao,
+    private val systemContextEnsurer: SystemContextEnsurer,
+    // Newly Injected DAOs
+    private val legacyNoteDao: LegacyNoteDao,
+    private val backlogOrderDao: BacklogOrderDao,
+    private val contextArtifactDao: ContextArtifactDao,
+    private val scriptDao: ScriptDao,
+    private val inboxRecordDao: InboxRecordDao,
+    private val contextManagementDao: ContextManagementDao,
+    private val systemAppDao: SystemAppDao,
+    private val activityRecordDao: ActivityRecordDao,
+    private val linkItemDao: LinkItemDao,
+    private val conversationFolderDao: ConversationFolderDao,
+    private val recurringTaskDao: RecurringTaskDao,
+    private val aiEventDao: AiEventDao,
+    private val lifeSystemStateDao: LifeSystemStateDao,
+    private val structurePresetDao: StructurePresetDao,
+    private val structurePresetItemDao: StructurePresetItemDao,
+    private val contextStructureDao: ContextStructureDao
 ) : FullBackupLocalDataSource {
 
     override suspend fun loadFullDatabaseContent(): DatabaseContent {
@@ -111,37 +133,114 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
 
     override suspend fun restoreDatabaseFromBackup(content: DatabaseContent) {
         db.withTransaction {
-            android.util.Log.d("FullBackupImport", "--- STARTING DATABASE RESTORE ---")
+            Log.d("FullBackupImport", "--- STARTING DATABASE RESTORE ---")
             clearAllTables()
 
             // Step 1: Filter and insert independent "parent" entities and collect their valid IDs.
             val validGoals = content.goals.filter { !it.id.isNullOrBlank() && !it.text.isNullOrBlank() }
             val validGoalIds = validGoals.map { it.id }.toSet()
-            if (content.goals.size > validGoals.size) android.util.Log.w("FullBackupImport", "Goals: Ignored ${content.goals.size - validGoals.size} of ${content.goals.size}.")
+            if (content.goals.size > validGoals.size) Log.w("FullBackupImport", "Goals: Ignored ${content.goals.size - validGoals.size} of ${content.goals.size}.")
             goalDao.insertGoals(validGoals)
 
             val validContexts = content.projects.filter { !it.id.isNullOrBlank() && !it.name.isNullOrBlank() }
             val validContextIds = validContexts.map { it.id }.toSet()
-            if (content.projects.size > validContexts.size) android.util.Log.w("FullBackupImport", "Contexts: Ignored ${content.projects.size - validContexts.size} of ${content.projects.size}.")
+            if (content.projects.size > validContexts.size) Log.w("FullBackupImport", "Contexts: Ignored ${content.projects.size - validContexts.size} of ${content.projects.size}.")
             contextDao.insertContexts(validContexts)
-            android.util.Log.d("FullBackupImport", "DIAGNOSTIC: First 5 valid context IDs: [${validContextIds.take(5).joinToString()}]")
+            Log.d("FullBackupImport", "DIAGNOSTIC: First 5 valid context IDs: [${validContextIds.take(5).joinToString()}]")
 
-
-            val validAttachments = content.attachments.filter { !it.id.isNullOrBlank() && !it.attachmentType.isNullOrBlank() && !it.entityId.isNullOrBlank() }
-            val validAttachmentIds = validAttachments.map { it.id }.toSet()
-            if (content.attachments.size > validAttachments.size) android.util.Log.w("FullBackupImport", "Attachments: Ignored ${content.attachments.size - validAttachments.size} of ${content.attachments.size}.")
-            attachmentDao.insertAttachments(validAttachments)
-            
+            // Documents
+            Log.d("FullBackupImport", "Documents in backup: ${content.documents.size}")
             val validDocuments = content.documents.filter {
                 val isValid = !it.id.isNullOrBlank() && !it.name.isNullOrBlank() && validContextIds.contains(it.contextId)
                 if (!isValid) {
-                     android.util.Log.w("FullBackupImport", "DIAGNOSTIC: NoteDocument ignored: id=${it.id}, name=${it.name}, contextId=${it.contextId} (context exists: ${validContextIds.contains(it.contextId)})")
+                     Log.w("FullBackupImport", "DIAGNOSTIC: NoteDocument ignored: id=${it.id}, name=${it.name}, contextId=${it.contextId} (context exists: ${validContextIds.contains(it.contextId)})")
                 }
                 isValid
             }
             val validDocumentIds = validDocuments.map { it.id }.toSet()
-            if (content.documents.size > validDocuments.size) android.util.Log.w("FullBackupImport", "NoteDocuments: Ignored ${content.documents.size - validDocuments.size} of ${content.documents.size}.")
+            Log.d("FullBackupImport", "Valid documents after filtering: ${validDocuments.size}")
             noteDocumentDao.insertAllDocuments(validDocuments)
+
+            // Checklists
+            Log.d("FullBackupImport", "Checklists in backup: ${content.checklists.size}")
+            val validChecklists = content.checklists.filter {
+                !it.id.isNullOrBlank() && !it.name.isNullOrBlank() && validContextIds.contains(it.contextId)
+            }
+            Log.d("FullBackupImport", "Valid checklists after filtering: ${validChecklists.size}")
+            val validChecklistIds = validChecklists.map { it.id }.toSet()
+            checklistDao.insertChecklists(validChecklists)
+
+            // Activity Records
+            Log.d("FullBackupImport", "Activity records in backup: ${content.activityRecords.size}")
+            val validActivityRecords = content.activityRecords.filter {
+                !it.id.isNullOrBlank() && !it.text.isNullOrBlank()
+            }
+            Log.d("FullBackupImport", "Valid activity records after filtering: ${validActivityRecords.size}")
+            activityRecordDao.insertAll(validActivityRecords)
+            Log.d("FullBackupImport", "Imported ${validActivityRecords.size} activity records from V1 backup.")
+
+            // Inbox Records
+            Log.d("FullBackupImport", "Inbox records in backup: ${content.inboxRecords.size}")
+            val validInboxRecords = content.inboxRecords.filter {
+                !it.id.isNullOrBlank() && !it.text.isNullOrBlank() && validContextIds.contains(it.contextId)
+            }
+            Log.d("FullBackupImport", "Valid inbox records after filtering: ${validInboxRecords.size}")
+            inboxRecordDao.insertAll(validInboxRecords)
+            Log.d("FullBackupImport", "Legacy Import: ${validInboxRecords.size} inbox records processed.")
+
+            // --- Consolidate and auto-link attachments and cross-refs ---
+
+            val finalAttachments = content.attachments.filter { 
+                !it.id.isNullOrBlank() && !it.attachmentType.isNullOrBlank() && !it.entityId.isNullOrBlank() 
+            }.toMutableList()
+            val finalCrossRefs = content.contextAttachmentCrossRefs.toMutableList()
+            
+            val existingAttachmentEntityIds = finalAttachments.mapNotNull { it.entityId }.toSet()
+
+            validDocuments.forEach { doc ->
+                if (doc.id !in existingAttachmentEntityIds) {
+                    val attachment = AttachmentEntity(
+                        entityId = doc.id,
+                        attachmentType = BacklogItemTypeValues.NOTE_DOCUMENT,
+                        ownerContextId = doc.contextId,
+                        createdAt = doc.createdAt,
+                        updatedAt = doc.updatedAt
+                    )
+                    finalAttachments.add(attachment)
+                    val crossRef = ContextAttachmentCrossRef(
+                        contextId = doc.contextId,
+                        attachmentId = attachment.id
+                    )
+                    finalCrossRefs.add(crossRef)
+                }
+            }
+
+            validChecklists.forEach { checklist ->
+                 if (checklist.id !in existingAttachmentEntityIds) {
+                    val attachment = AttachmentEntity(
+                        entityId = checklist.id,
+                        attachmentType = BacklogItemTypeValues.CHECKLIST,
+                        ownerContextId = checklist.contextId,
+                        createdAt = checklist.createdAt,
+                        updatedAt = checklist.updatedAt
+                    )
+                    finalAttachments.add(attachment)
+                    val crossRef = ContextAttachmentCrossRef(
+                        contextId = checklist.contextId,
+                        attachmentId = attachment.id
+                    )
+                    finalCrossRefs.add(crossRef)
+                }
+            }
+
+            Log.d("FullBackupImport", "Total attachments to insert: ${finalAttachments.size}")
+            attachmentDao.insertAttachments(finalAttachments)
+            
+            val validAttachmentIds = finalAttachments.map { it.id }.toSet()
+            val validFinalCrossRefs = finalCrossRefs.filter { it.contextId in validContextIds && it.attachmentId in validAttachmentIds }
+            Log.d("FullBackupImport", "Total cross-refs to insert: ${validFinalCrossRefs.size}")
+            attachmentDao.insertContextAttachmentCrossRefs(validFinalCrossRefs)
+
 
             // Step 2: Filter dependent entities against the sets of valid parent IDs.
 
@@ -154,7 +253,7 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
                 val contextExists = validContextIds.contains(contextId)
                 val entityIdValidForType = when (itemType) {
                     "GOAL" -> entityId != null && validGoalIds.contains(entityId)
-                    "SUBLIST" -> entityId != null && validContextIds.contains(entityId)
+                    "SUBLIST" -> entityId != null && validChecklistIds.contains(entityId)
                     "NOTE_DOCUMENT" -> entityId != null && validDocumentIds.contains(entityId)
                     else -> false
                 }
@@ -164,12 +263,17 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
                         contextExists &&
                         entityIdValidForType
                 if (!isValid) {
-                    android.util.Log.w("FullBackupImport", "DIAGNOSTIC: BacklogItem ignored: id=${id}, itemType=${itemType}, contextId=${contextId} (context exists: $contextExists), entityId=${entityId} (entity valid: $entityIdValidForType)")
+                    Log.w("FullBackupImport", "DIAGNOSTIC: BacklogItem ignored: id=${id}, itemType=${itemType}, contextId=${contextId} (context exists: $contextExists), entityId=${entityId} (entity valid: $entityIdValidForType)")
                 }
                 isValid
             }
-            if (content.backlogItems.size > validBacklogItems.size) android.util.Log.w("FullBackupImport", "BacklogItems: Ignored ${content.backlogItems.size - validBacklogItems.size} of ${content.backlogItems.size}.")
+            if (content.backlogItems.size > validBacklogItems.size) Log.w("FullBackupImport", "BacklogItems: Ignored ${content.backlogItems.size - validBacklogItems.size} of ${content.backlogItems.size}.")
             listItemDao.insertItems(validBacklogItems)
+
+            val validChecklistItems = content.checklistItems.filter {
+                !it.id.isNullOrBlank() && validChecklistIds.contains(it.checklistId)
+            }
+            checklistDao.insertItems(validChecklistItems)
 
 
             val validCrossRefs = content.contextAttachmentCrossRefs.filter {
@@ -177,12 +281,14 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
                 val attachmentExists = validAttachmentIds.contains(it.attachmentId)
                 val isValid = !it.contextId.isNullOrBlank() && !it.attachmentId.isNullOrBlank() && contextExists && attachmentExists
                 if (!isValid) {
-                     android.util.Log.w("FullBackupImport", "DIAGNOSTIC: CrossRef ignored: contextId=${it.contextId} (context exists: $contextExists), attachmentId=${it.attachmentId} (attachment exists: $attachmentExists)")
+                     Log.w("FullBackupImport", "DIAGNOSTIC: CrossRef ignored: contextId=${it.contextId} (context exists: $contextExists), attachmentId=${it.attachmentId} (attachment exists: $attachmentExists)")
                 }
                 isValid
             }
 
-            android.util.Log.d("FullBackupImport", "--- DATABASE RESTORE FINISHED ---")
+            systemContextEnsurer.ensureAllSystemContextsExist()
+
+            Log.d("FullBackupImport", "--- DATABASE RESTORE FINISHED ---")
         }
     }
 
@@ -199,1173 +305,861 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
     override suspend fun restoreSettings(settings: Map<String, String>) {
         settingsRepository.restoreFromMap(settings)
     }
+
+    // === New Snapshot-based Methods Implementation ===
+
+    override suspend fun loadFullSnapshotBundle(): SnapshotBundle {
+        val notes = legacyNoteDao.getAllRaw().map { it.toSnapshot() }
+        val documents = noteDocumentDao.getAllDocumentsRaw().map { it.toSnapshot() }
+        val checklists = checklistDao.getAllChecklistsRaw().map { it.toSnapshot() }
+        val scripts = scriptDao.getAllRaw().map { it.toSnapshot() }
+        val activityRecords = activityRecordDao.getAllRaw().map { it.toSnapshot() }
+        val inbox = inboxRecordDao.getAllRaw().map { it.toSnapshot() }
+
+        Log.d("BackupExport", "Exporting Snapshot: notes=${notes.size}, docs=${documents.size}, checklists=${checklists.size}, scripts=${scripts.size}, activityRecords=${activityRecords.size}, inbox=${inbox.size}")
+
+        return SnapshotBundle(
+            version = 2,
+            exportedAt = System.currentTimeMillis(),
+            contexts = contextDao.getAllRaw().map { it.toSnapshot() },
+            goals = goalDao.getAllRaw().map { it.toSnapshot() },
+            backlogItems = listItemDao.getAllRaw().map { it.toSnapshot() },
+            backlogOrders = backlogOrderDao.getAllRaw().map { it.toSnapshot() },
+            notes = notes,
+            documents = documents,
+            checklists = checklists,
+            checklistItems = checklistDao.getAllChecklistItemsRaw().map { it.toSnapshot() },
+            artifacts = contextArtifactDao.getAllRaw().map { it.toSnapshot() },
+            scripts = scripts,
+            attachments = attachmentDao.getAllRaw().map { it.toSnapshot() },
+            crossRefs = attachmentDao.getAllContextAttachmentCrossRefsRaw().map { it.toSnapshot() },
+            inbox = inbox,
+            logs = contextManagementDao.getAllLogsRaw().map { it.toSnapshot() },
+            systemApps = systemAppDao.getAllRaw().map { it.toSnapshot() },
+            activityRecords = activityRecords,
+            recentProjectEntries = recentItemDao.getAllSync().map { it.toSnapshot() },
+            linkItemEntities = linkItemDao.getAllRaw().map { it.toSnapshot() },
+            dayPlans = dayPlanDao.getAllPlansSync().map { it.toSnapshot() },
+            dayTasks = dayTaskDao.getAllTasksSync().map { it.toSnapshot() },
+            dailyMetrics = dailyMetricDao.getAllMetricsSync().map { it.toSnapshot() },
+            conversations = chatDao.getAllConversationsSync().map { it.toSnapshot() },
+            chatMessages = chatDao.getAllMessagesSync().map { it.toSnapshot() },
+            conversationFolders = conversationFolderDao.getAllSync().map { it.toSnapshot() },
+            reminders = reminderDao.getAllRemindersSync().map { it.toSnapshot() },
+            recurringTasks = recurringTaskDao.getAllSync().map { it.toSnapshot() },
+            tacticalMissions = tacticalMissionDao.getAllMissionsSync().map { it.toSnapshot() },
+            tacticalMissionAttachments = tacticalMissionDao.getAllMissionAttachmentsSync().map { it.toSnapshot() },
+            aiEvents = aiEventDao.getAllSync().map { it.toSnapshot() },
+            aiInsights = aiInsightDao.getAllSync().map { it.toSnapshot() },
+            lifeSystemStates = lifeSystemStateDao.getAllSync().map { it.toSnapshot() },
+            contextRoleProfiles = structurePresetDao.getAllSync().map { it.toSnapshot() },
+            contextRoleProfileItems = structurePresetItemDao.getAllSync().map { it.toSnapshot() },
+            contextConfigurations = contextStructureDao.getAllSync().map { it.toSnapshot() },
+            projectStructureItems = contextStructureDao.getAllItemsSync().map { it.toSnapshot() }
+        )
+    }
+
+    override suspend fun applySnapshotBundle(bundle: SnapshotBundle) {
+        Log.d("BackupImport", "Applying Snapshot V${bundle.version}: notes=${bundle.notes.size}, docs=${bundle.documents.size}, checklists=${bundle.checklists.size}, scripts=${bundle.scripts.size}")
+
+        db.withTransaction {
+            // This is a non-destructive operation.
+            // The actual merge logic (insert vs update) will be handled by the DAOs' insert methods with OnConflictStrategy.REPLACE
+            contextDao.insertAll(bundle.contexts.map { it.toEntity() })
+            goalDao.insertAll(bundle.goals.map { it.toEntity() })
+            noteDocumentDao.insertAllDocuments(bundle.documents.map { it.toEntity() })
+            checklistDao.insertChecklists(bundle.checklists.map { it.toEntity() })
+
+            val newAttachments = mutableListOf<AttachmentEntity>()
+            val newCrossRefs = mutableListOf<ContextAttachmentCrossRef>()
+
+            bundle.documents.forEach { doc ->
+                doc.contextId?.let { contextId ->
+                    val attachment = AttachmentEntity(
+                        entityId = doc.id,
+                        attachmentType = BacklogItemTypeValues.NOTE_DOCUMENT,
+                        ownerContextId = contextId,
+                        createdAt = doc.createdAt,
+                        updatedAt = doc.updatedAt
+                    )
+                    newAttachments.add(attachment)
+                    val crossRef = ContextAttachmentCrossRef(
+                        contextId = contextId,
+                        attachmentId = attachment.id
+                    )
+                    newCrossRefs.add(crossRef)
+                    Log.d("BackupImport", "Linking Attachment [${attachment.id}] to Context [${crossRef.contextId}] for NoteDocument [${doc.id}]")
+                }
+            }
+
+            bundle.checklists.forEach { checklist ->
+                checklist.contextId?.let { contextId ->
+                    val attachment = AttachmentEntity(
+                        entityId = checklist.id,
+                        attachmentType = BacklogItemTypeValues.CHECKLIST,
+                        ownerContextId = contextId,
+                        createdAt = checklist.createdAt,
+                        updatedAt = checklist.updatedAt
+                    )
+                    newAttachments.add(attachment)
+                    val crossRef = ContextAttachmentCrossRef(
+                        contextId = contextId,
+                        attachmentId = attachment.id
+                    )
+                    newCrossRefs.add(crossRef)
+                    Log.d("BackupImport", "Linking Attachment [${attachment.id}] to Context [${crossRef.contextId}] for Checklist [${checklist.id}]")
+                }
+            }
+
+            Log.d("BackupImport", "Creating ${newAttachments.size} new AttachmentEntities.")
+            attachmentDao.insertAttachments(newAttachments)
+            Log.d("BackupImport", "Creating ${newCrossRefs.size} new ContextAttachmentCrossRefs.")
+            attachmentDao.insertContextAttachmentCrossRefs(newCrossRefs)
+            
+            conversationFolderDao.insertAll(bundle.conversationFolders.map { it.toEntity() })
+            dayPlanDao.insertPlans(bundle.dayPlans.map { it.toEntity() })
+            recurringTaskDao.insertAll(bundle.recurringTasks.map { it.toEntity() })
+            tacticalMissionDao.insertMissions(bundle.tacticalMissions.map { it.toEntity() })
+
+            listItemDao.insertItems(bundle.backlogItems.map { it.toEntity() })
+            backlogOrderDao.insertAll(bundle.backlogOrders.map { it.toEntity() })
+            legacyNoteDao.insertAll(bundle.notes.map { it.toEntity() })
+            checklistDao.insertItems(bundle.checklistItems.map { it.toEntity() })
+            contextArtifactDao.insertAll(bundle.artifacts.map { it.toEntity() })
+            scriptDao.insertAll(bundle.scripts.map { it.toEntity() })
+            attachmentDao.insertAttachments(bundle.attachments.map { it.toEntity() })
+            attachmentDao.insertContextAttachmentCrossRefs(bundle.crossRefs.map { it.toEntity() })
+            inboxRecordDao.insertAll(bundle.inbox.map { it.toEntity() })
+            contextManagementDao.insertLogs(bundle.logs.map { it.toEntity() })
+            systemAppDao.insertAll(bundle.systemApps.map { it.toEntity() })
+            activityRecordDao.insertAll(bundle.activityRecords.map { it.toEntity() })
+            recentItemDao.insertAllSync(bundle.recentProjectEntries.map { it.toEntity() })
+            linkItemDao.insertAll(bundle.linkItemEntities.map { it.toEntity() })
+            dayTaskDao.insertTasks(bundle.dayTasks.map { it.toEntity() })
+            dailyMetricDao.insertMetrics(bundle.dailyMetrics.map { it.toEntity() })
+            chatDao.insertConversations(bundle.conversations.map { it.toEntity() })
+            chatDao.insertMessages(bundle.chatMessages.map { it.toEntity() })
+            reminderDao.insertAll(bundle.reminders.map { it.toEntity() })
+            tacticalMissionDao.insertMissionAttachments(bundle.tacticalMissionAttachments.map { it.toEntity() })
+            aiEventDao.insertAll(bundle.aiEvents.map { it.toEntity() })
+            aiInsightDao.upsertAll(bundle.aiInsights.map { it.toEntity() })
+            lifeSystemStateDao.insertAll(bundle.lifeSystemStates.map { it.toEntity() })
+            structurePresetDao.insertAll(bundle.contextRoleProfiles.map { it.toEntity() })
+            structurePresetItemDao.insertAll(bundle.contextRoleProfileItems.map { it.toEntity() })
+            contextStructureDao.insertAll(bundle.contextConfigurations.map { it.toEntity() })
+            contextStructureDao.insertAllItems(bundle.projectStructureItems.map { it.toEntity() })
+        }
+        systemContextEnsurer.ensureAllSystemContextsExist()
+    }
 }
 
+
 ================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/data/sync/FullBackupLocalDataSourceImpl.kt
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/core/sync/FullBackupLocalDataSourceImpl.kt
 ================================================================================
 
 ## <<FILE_2>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/sync/WifiSyncServer.kt (ID: FILE_2)
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/core/sync/MergeLocalDataSourceImpl.kt (ID: FILE_2)
 ================================================================================
 
-package com.romankozak.forwardappmobile.features.sync
+package com.romankozak.forwardappmobile.core.sync
 
-import android.content.Context
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
-import android.net.wifi.WifiManager
-import android.os.Build
 import android.util.Log
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
-import com.google.gson.JsonDeserializationContext
-import com.google.gson.JsonDeserializer
-import com.google.gson.JsonElement
-import com.google.gson.JsonParseException
-import com.google.gson.JsonPrimitive
-import com.google.gson.JsonSerializationContext
-import com.google.gson.JsonSerializer
-import com.romankozak.forwardappmobile.core.context.ContextId
-import com.romankozak.forwardappmobile.core.context.SystemContexts
-import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
-import com.romankozak.forwardappmobile.sync.SyncRepository
-import io.ktor.http.ContentType
-import io.ktor.http.HttpStatusCode
-import io.ktor.serialization.gson.gson
-import io.ktor.server.application.call
-import io.ktor.server.application.install
-import io.ktor.server.cio.CIO
-import io.ktor.server.engine.ApplicationEngine
-import io.ktor.server.engine.embeddedServer
-import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.server.request.receiveText
-import io.ktor.server.response.respond
-import io.ktor.server.response.respondText
-import io.ktor.server.routing.get
-import io.ktor.server.routing.post
-import io.ktor.server.routing.routing
-import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.withContext
-import java.io.File
-import java.lang.reflect.Type
-import java.net.BindException
-import java.net.Inet4Address
-import java.net.InetSocketAddress
-import java.net.ServerSocket
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import androidx.room.withTransaction
+import com.romankozak.forwardappmobile.core.data.models.*
+import com.romankozak.forwardappmobile.core.data.models.sync.ChangeType
+import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
+import com.romankozak.forwardappmobile.core.data.models.sync.SyncChange
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.SnapshotBundle
+import com.romankozak.forwardappmobile.data.dao.*
+import com.romankozak.forwardappmobile.database.AppDatabase
+import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao
+import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
+import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.*
+import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
+import com.romankozak.forwardappmobile.sync.datasource.MergeLocalDataSource
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.toEntity
+import com.romankozak.forwardappmobile.core.data.models.AttachmentEntity
+import com.romankozak.forwardappmobile.core.data.models.BacklogItemTypeValues
+import com.romankozak.forwardappmobile.core.data.models.ContextAttachmentCrossRef
+import java.util.UUID
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class WifiSyncServer(
-    private val syncRepository: SyncRepository,
-    private val context: Context,
-) {
-    private val TAG = "WifiSyncServer"
-    private val DEBUG_TAG = "FWD_SYNC_TEST"
-    private var server: ApplicationEngine? = null
+@Singleton
+class MergeLocalDataSourceImpl @Inject constructor(
+    private val db: AppDatabase,
+    private val contextDao: ContextDao,
+    private val goalDao: GoalDao,
+    private val listItemDao: ListItemDao,
+    private val attachmentDao: AttachmentDao,
+    private val noteDocumentDao: NoteDocumentDao,
+    private val chatDao: ChatDao,
+    private val dayPlanDao: DayPlanDao,
+    private val dayTaskDao: DayTaskDao,
+    private val dailyMetricDao: DailyMetricDao,
+    private val reminderDao: ReminderDao,
+    private val tacticalMissionDao: TacticalMissionDao,
+    private val aiInsightDao: AiInsightDao,
+    private val checklistDao: ChecklistDao,
+    private val conversationFolderDao: ConversationFolderDao,
+    private val recurringTaskDao: RecurringTaskDao,
+    private val backlogOrderDao: BacklogOrderDao,
+    private val legacyNoteDao: LegacyNoteDao,
+    private val contextArtifactDao: ContextArtifactDao,
+    private val scriptDao: ScriptDao,
+    private val inboxRecordDao: InboxRecordDao,
+    private val contextManagementDao: ContextManagementDao,
+    private val systemAppDao: SystemAppDao,
+    private val activityRecordDao: ActivityRecordDao,
+    private val recentItemDao: RecentItemDao,
+    private val linkItemDao: LinkItemDao,
+    private val aiEventDao: AiEventDao,
+    private val lifeSystemStateDao: LifeSystemStateDao,
+    private val structurePresetDao: StructurePresetDao,
+    private val structurePresetItemDao: StructurePresetItemDao,
+    private val contextStructureDao: ContextStructureDao
+) : MergeLocalDataSource {
 
-    private val gson: Gson by lazy {
-        GsonBuilder()
-            .setPrettyPrinting()
-            .create()
+    override suspend fun getContexts(): List<Context> = contextDao.getAll()
+
+    override suspend fun getGoals(): List<Goal> = goalDao.getAll()
+
+    override suspend fun getLocalDatabaseContent(): DatabaseContent {
+        return DatabaseContent(
+            projects = contextDao.getAll(),
+            goals = goalDao.getAll(),
+            backlogItems = listItemDao.getAll(),
+            documents = noteDocumentDao.getAllDocuments(),
+            attachments = attachmentDao.getAll(),
+            contextAttachmentCrossRefs = attachmentDao.getAllContextAttachmentCrossRefs(),
+            dayPlans = dayPlanDao.getAllPlansSync(),
+            dayTasks = dayTaskDao.getAllTasksSync(),
+            dailyMetrics = dailyMetricDao.getAllMetricsSync(),
+            conversations = chatDao.getAllConversationsSync(),
+            chatMessages = chatDao.getAllMessagesSync(),
+            reminders = reminderDao.getAllRemindersSync(),
+            tacticalMissions = tacticalMissionDao.getAllMissionsSync(),
+            aiInsights = aiInsightDao.getAllSync()
+        )
     }
 
-    fun start(port: Int): Result<String> {
-        stop()
+    override suspend fun insertContexts(contexts: List<Context>) = contextDao.insertContexts(contexts)
 
-        return try {
-            val ipAddress = getWifiIpAddress()
-            if (ipAddress == null) {
-                val errorMessage = "Не вдалося отримати IP-адресу. Перевірте з'єднання з Wi-Fi."
-                Log.e(TAG, "Server Start: FAILURE. $errorMessage")
-                Log.e(DEBUG_TAG, "[WifiSyncServer] Start failed: $errorMessage")
-                return Result.failure(Exception(errorMessage))
-            }
+    override suspend fun insertGoals(goals: List<Goal>) = goalDao.insertGoals(goals)
 
-            Log.d(TAG, "Server Start: IP address determined as: $ipAddress")
-            Log.d(DEBUG_TAG, "[WifiSyncServer] Starting on $ipAddress:$port")
+    override suspend fun insertAttachments(attachments: List<AttachmentEntity>) =
+        attachmentDao.insertAttachments(attachments)
 
-            Log.d(TAG, "Server Start: Attempting to start Ktor server on $ipAddress:$port")
+    override suspend fun insertContextAttachmentLinks(links: List<ContextAttachmentCrossRef>) =
+        attachmentDao.insertContextAttachmentLinks(links)
 
-            if (!isPortFree(port)) {
-                val msg = "Port $port is already in use. Stop other sync server or pick another port."
-                val exception = BindException(msg)
-                Log.e(DEBUG_TAG, "[WifiSyncServer] Port check failed: $msg", exception)
-                return Result.failure(exception)
-            }
+    override suspend fun insertListItems(items: List<BacklogItem>) = listItemDao.insertItems(items)
 
-            val engine =
-                embeddedServer(CIO, port = port, host = "0.0.0.0") {
-                    install(ContentNegotiation) {
-                        gson {
-                            setPrettyPrinting()
-                        }
-                    }
-                    routing {
-                        fun dumpToFile(
-                            prefix: String,
-                            content: String,
-                        ) {
-                            runCatching {
-                                // Використовуємо File для сумісності з API 29
-                                val dir = File(context.filesDir, "sync-dumps")
-
-                                if (!dir.exists()) {
-                                    dir.mkdirs() // Створюємо папку, якщо її немає
-                                }
-
-                                val timestamp =
-                                    SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(
-                                        Date(),
-                                    )
-                                val fileName = "${prefix}_$timestamp.json"
-                                val file = File(dir, fileName)
-
-                                file.writeText(content)
-                                Log.d("WifiSyncServer", "Dump saved: ${file.absolutePath}")
-                            }.onFailure { e ->
-                                Log.e("WifiSyncServer", "Failed to dump sync data", e)
-                            }
-                        }
-
-                        get("/status") {
-                            val remote = call.request.local.remoteHost
-                            Log.d(DEBUG_TAG, "[WifiSyncServer] /status from $remote")
-                            call.respondText("ForwardApp Mobile Server is running!")
-                        }
-                        get("/export") {
-                            Log.d("WifiSyncServer", "Запит на /export отримано.")
-                            val remote = call.request.local.remoteHost
-                            Log.d(DEBUG_TAG, "[WifiSyncServer] /export from $remote")
-                            try {
-                                val deltaSinceParam =
-                                    call.request.queryParameters["deltaSince"]
-                                        ?: call.request.queryParameters["since"]
-                                Log.d(
-                                    DEBUG_TAG,
-                                    "[WifiSyncServer] /export deltaSinceParam=$deltaSinceParam",
-                                )
-                                val systemKeyStats =
-                                    runCatching {
-                                        val projects =
-                                            syncRepository.createFullBackupJsonString().let { json ->
-                                                gson.fromJson(
-                                                    json,
-                                                    FullAppBackup::class.java,
-                                                ).database?.projects ?: emptyList()
-                                            }
-                                        val missing = projects.count { !SystemContexts.isSystem(ContextId(it.id)) }
-                                        val total = projects.size
-                                        "systemKeys=${total - missing}/$total"
-                                    }.getOrElse { "systemKeys=error:${it.message}" }
-                                val backupJson =
-                                    if (deltaSinceParam != null) {
-                                        val since = deltaSinceParam.toLongOrNull()
-                                        if (since != null) {
-                                            Log.d(
-                                                DEBUG_TAG,
-                                                "[WifiSyncServer] Serving DELTA since=$since $systemKeyStats",
-                                            )
-                                            val deltaJson =
-                                                syncRepository.createDeltaBackupJsonString(since)
-                                            Log.d(
-                                                DEBUG_TAG,
-                                                "[WifiSyncServer] Delta JSON size=${deltaJson.length}",
-                                            )
-                                            deltaJson
-                                        } else {
-                                            Log.w(
-                                                DEBUG_TAG,
-                                                "[WifiSyncServer] Invalid deltaSince param: $deltaSinceParam, falling back to full export",
-                                            )
-                                            syncRepository.createFullBackupJsonString()
-                                        }
-                                    } else {
-                                        Log.d(
-                                            DEBUG_TAG,
-                                            "[WifiSyncServer] No deltaSince param, serving FULL export $systemKeyStats",
-                                        )
-                                        syncRepository.createFullBackupJsonString()
-                                    }
-
-                                // ========== DEFECT #2 DEBUG: Log attachments in export ==========
-                                try {
-                                    val backup = gson.fromJson(backupJson, FullAppBackup::class.java)
-                                    val attachmentsCount = backup.database?.attachments?.size ?: 0
-                                    val crossRefsCount =
-                                        backup.database?.contextAttachmentCrossRefs?.size ?: 0
-                                    Log.d(
-                                        DEBUG_TAG,
-                                        "[WifiSyncServer] /export CONTENT CHECK: attachments=$attachmentsCount, crossRefs=$crossRefsCount",
-                                    )
-                                    if (attachmentsCount == 0) {
-                                        Log.w(
-                                            DEBUG_TAG,
-                                            "[WifiSyncServer] WARNING: Exporting 0 attachments to desktop!",
-                                        )
-                                    }
-                                } catch (e: Exception) {
-                                    Log.e(
-                                        DEBUG_TAG,
-                                        "[WifiSyncServer] Failed to analyze export content",
-                                        e,
-                                    )
-                                }
-
-                                Log.d(
-                                    DEBUG_TAG,
-                                    "[WifiSyncServer] DEBUG_MARK_EXPORT_READY len=${backupJson.length}",
-                                )
-                                dumpToFile("export", backupJson)
-                                Log.d(
-                                    DEBUG_TAG,
-                                    "[WifiSyncServer] /export dump head=${backupJson.take(400)}",
-                                )
-                                Log.d(
-                                    DEBUG_TAG,
-                                    "[WifiSyncServer] /export COMPLETE, JSON size=${backupJson.length} bytes",
-                                )
-                                call.respondText(backupJson, ContentType.Application.Json)
-                            } catch (e: Exception) {
-                                Log.e("WifiSyncServer", "Помилка при створенні бекапу", e)
-                                Log.e(DEBUG_TAG, "[WifiSyncServer] /export error ${e.message}", e)
-                                call.respondText("Помилка сервера: ${e.message}")
-                            }
-                        }
-                        post("/import") {
-                            Log.d("WifiSyncServer", "Запит на /import отримано.")
-                            val remote = call.request.local.remoteHost
-                            Log.d(DEBUG_TAG, "[WifiSyncServer] /import from $remote")
-                            try {
-                                val body = call.receiveText()
-                                Log.d(
-                                    DEBUG_TAG,
-                                    "[WifiSyncServer] DEBUG_MARK_RECEIVED_IMPORT len=${body.length}",
-                                )
-                                dumpToFile("import", body)
-                                Log.d(DEBUG_TAG, "[WifiSyncServer] /import dump head=${body.take(400)}")
-                                val backup = gson.fromJson(body, FullAppBackup::class.java)
-                                val db =
-                                    backup.database ?: return@post call.respond(
-                                        HttpStatusCode.Companion.BadRequest,
-                                        "Database section is missing",
-                                    )
-
-                                withContext(NonCancellable) {
-                                    syncRepository.applyServerChanges(db)
-                                }
-                                call.respond(HttpStatusCode.Companion.OK, "Import applied")
-                            } catch (e: Exception) {
-                                Log.e("WifiSyncServer", "Помилка при імпорті", e)
-                                Log.e(DEBUG_TAG, "[WifiSyncServer] /import error ${e.message}", e)
-                                call.respond(
-                                    HttpStatusCode.Companion.InternalServerError,
-                                    "Помилка сервера: ${e.message}",
-                                )
-                            }
-                        }
+    override suspend fun applyChanges(changes: List<SyncChange>) {
+        db.withTransaction {
+            changes.forEach { change ->
+                when (change.type) {
+                    ChangeType.Add, ChangeType.Update -> applyUpsert(change)
+                    ChangeType.Delete -> applyDelete(change)
+                    ChangeType.Move -> {
+                        // Логіка переміщення, якщо вона буде потрібна в майбутньому
+                        Log.d("MergeDataSource", "Move operation not implemented for ${change.id}")
                     }
                 }
+            }
+        }
+    }
 
-            runCatching { engine.start(wait = false) }.getOrElse { bindEx ->
-                if (bindEx is BindException) {
-                    val msg = "Port $port busy. Stop other sync server or change port."
-                    Log.e(DEBUG_TAG, "[WifiSyncServer] Bind failed: $msg", bindEx)
-                    return Result.failure(bindEx)
-                } else {
-                    throw bindEx
+    private suspend fun applyUpsert(change: SyncChange) {
+        // У SyncChange.entity тип Any, він не може бути null, тому прибираємо Elvis оператор
+        when (val entity = change.entity) {
+            is Goal -> goalDao.insertGoal(entity)
+            is Context -> contextDao.insert(entity)
+            is AttachmentEntity -> attachmentDao.insertAttachment(entity)
+            is BacklogItem -> listItemDao.insertItem(entity)
+        }
+    }
+
+    private suspend fun applyDelete(change: SyncChange) {
+        // Використовуємо правильні назви полів: entityType та id
+        when (change.entityType) {
+            "Ціль" -> goalDao.deleteGoalById(change.id)
+            "Список" -> contextDao.delete(change.id)
+            "Вкладення" -> attachmentDao.deleteAttachment(change.id)
+        }
+    }
+
+    override suspend fun importSelectedData(
+        projects: List<Context>,
+        goals: List<Goal>,
+        listItems: List<BacklogItem>,
+        attachments: List<AttachmentEntity>,
+        crossRefs: List<ContextAttachmentCrossRef>
+    ) {
+        db.withTransaction {
+            if (projects.isNotEmpty()) contextDao.insertContexts(projects)
+            if (goals.isNotEmpty()) goalDao.insertGoals(goals)
+            if (listItems.isNotEmpty()) listItemDao.insertItems(listItems)
+            if (attachments.isNotEmpty()) attachmentDao.insertAttachments(attachments)
+            if (crossRefs.isNotEmpty()) attachmentDao.insertContextAttachmentLinks(crossRefs)
+        }
+    }
+
+    override suspend fun applySnapshotBundle(bundle: SnapshotBundle) {
+        Log.d("BackupImport", "Applying Snapshot V${bundle.version} in MergeLocalDataSource: notes=${bundle.notes.size}, docs=${bundle.documents.size}, checklists=${bundle.checklists.size}, scripts=${bundle.scripts.size}")
+
+        db.withTransaction {
+            contextDao.insertAll(bundle.contexts.map { it.toEntity() })
+            goalDao.insertAll(bundle.goals.map { it.toEntity() })
+            noteDocumentDao.insertAllDocuments(bundle.documents.map { it.toEntity() })
+            checklistDao.insertChecklists(bundle.checklists.map { it.toEntity() })
+
+            // --- Consolidate and auto-link attachments and cross-refs ---
+            val finalAttachments = bundle.attachments.map { it.toEntity() }.toMutableList()
+            val finalCrossRefs = bundle.crossRefs.map { it.toEntity() }.toMutableList()
+            val existingAttachmentEntityIds = finalAttachments.mapNotNull { it.entityId }.toSet()
+
+            bundle.documents.forEach { doc ->
+                doc.contextId?.let { contextId ->
+                    if (doc.id !in existingAttachmentEntityIds) {
+                        val attachment = AttachmentEntity(
+                            entityId = doc.id,
+                            attachmentType = BacklogItemTypeValues.NOTE_DOCUMENT,
+                            ownerContextId = contextId,
+                            createdAt = doc.createdAt,
+                            updatedAt = doc.updatedAt
+                        )
+                        finalAttachments.add(attachment)
+                        val crossRef = ContextAttachmentCrossRef(
+                            contextId = contextId,
+                            attachmentId = attachment.id
+                        )
+                        finalCrossRefs.add(crossRef)
+                    }
                 }
             }
-            server = engine
 
-            Log.i(TAG, "Server started successfully on $ipAddress:$port")
-            Log.d(DEBUG_TAG, "[WifiSyncServer] Started at $ipAddress:$port")
-            Result.success("$ipAddress:$port")
-        } catch (e: Exception) {
-            Log.e(TAG, "Server Start: A critical error occurred", e)
-            Log.e(DEBUG_TAG, "[WifiSyncServer] Critical error ${e.message}", e)
-            Result.failure(e)
-        }
-    }
-
-    fun stop() {
-        if (server != null) {
-            Log.d(TAG, "Server Stop: Stopping Ktor server.")
-            Log.d(DEBUG_TAG, "[WifiSyncServer] Stopping server")
-            server?.stop(1000, 2000)
-            server = null
-            Log.d(TAG, "Server stopped.")
-            Log.d(DEBUG_TAG, "[WifiSyncServer] Server stopped")
-        }
-    }
-
-    private fun getWifiIpAddress(): String? {
-        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val network = connectivityManager.activeNetwork ?: return null
-            val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return null
-            if (!capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
-                return null
-            }
-
-            val linkProperties = connectivityManager.getLinkProperties(network) ?: return null
-            for (linkAddress in linkProperties.linkAddresses) {
-                val address = linkAddress.address
-                if (address is Inet4Address) {
-                    return address.hostAddress
+            bundle.checklists.forEach { checklist ->
+                checklist.contextId?.let { contextId ->
+                    if (checklist.id !in existingAttachmentEntityIds) {
+                        val attachment = AttachmentEntity(
+                            entityId = checklist.id,
+                            attachmentType = BacklogItemTypeValues.CHECKLIST,
+                            ownerContextId = contextId,
+                            createdAt = checklist.createdAt,
+                            updatedAt = checklist.updatedAt
+                        )
+                        finalAttachments.add(attachment)
+                        val crossRef = ContextAttachmentCrossRef(
+                            contextId = contextId,
+                            attachmentId = attachment.id
+                        )
+                        finalCrossRefs.add(crossRef)
+                    }
                 }
             }
-        } else {
-            @Suppress("DEPRECATION")
-            val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+            
+            Log.d("BackupImport", "Total attachments to insert: ${finalAttachments.size}")
+            attachmentDao.insertAttachments(finalAttachments)
+            Log.d("BackupImport", "Total cross-refs to insert: ${finalCrossRefs.size}")
+            attachmentDao.insertContextAttachmentCrossRefs(finalCrossRefs)
 
-            @Suppress("DEPRECATION")
-            val ipAddressInt = wifiManager.connectionInfo.ipAddress
-            if (ipAddressInt == 0) return null
-            return String.Companion.format(
-                Locale.US,
-                "%d.%d.%d.%d",
-                ipAddressInt and 0xff,
-                ipAddressInt shr 8 and 0xff,
-                ipAddressInt shr 16 and 0xff,
-                ipAddressInt shr 24 and 0xff,
-            )
-        }
-        return null
-    }
+            conversationFolderDao.insertAll(bundle.conversationFolders.map { it.toEntity() })
+            dayPlanDao.insertPlans(bundle.dayPlans.map { it.toEntity() })
+            recurringTaskDao.insertAll(bundle.recurringTasks.map { it.toEntity() })
+            tacticalMissionDao.insertMissions(bundle.tacticalMissions.map { it.toEntity() })
 
-    private fun isPortFree(port: Int): Boolean {
-        return runCatching {
-            ServerSocket().use { socket ->
-                socket.reuseAddress = true
-                socket.bind(InetSocketAddress("0.0.0.0", port))
-                true
-            }
-        }.getOrElse { throwable ->
-            Log.w(DEBUG_TAG, "[WifiSyncServer] Port $port busy: ${throwable.message}")
-            false
+            listItemDao.insertItems(bundle.backlogItems.map { it.toEntity() })
+            backlogOrderDao.insertAll(bundle.backlogOrders.map { it.toEntity() })
+            legacyNoteDao.insertAll(bundle.notes.map { it.toEntity() })
+            checklistDao.insertItems(bundle.checklistItems.map { it.toEntity() })
+            contextArtifactDao.insertAll(bundle.artifacts.map { it.toEntity() })
+            scriptDao.insertAll(bundle.scripts.map { it.toEntity() })
+            inboxRecordDao.insertAll(bundle.inbox.map { it.toEntity() })
+            contextManagementDao.insertLogs(bundle.logs.map { it.toEntity() })
+            systemAppDao.insertAll(bundle.systemApps.map { it.toEntity() })
+            activityRecordDao.insertAll(bundle.activityRecords.map { it.toEntity() })
+            recentItemDao.insertAllSync(bundle.recentProjectEntries.map { it.toEntity() })
+            linkItemDao.insertAll(bundle.linkItemEntities.map { it.toEntity() })
+            dayTaskDao.insertTasks(bundle.dayTasks.map { it.toEntity() })
+            dailyMetricDao.insertMetrics(bundle.dailyMetrics.map { it.toEntity() })
+            chatDao.insertConversations(bundle.conversations.map { it.toEntity() })
+            chatDao.insertMessages(bundle.chatMessages.map { it.toEntity() })
+            reminderDao.insertAll(bundle.reminders.map { it.toEntity() })
+            tacticalMissionDao.insertMissionAttachments(bundle.tacticalMissionAttachments.map { it.toEntity() })
+            aiEventDao.insertAll(bundle.aiEvents.map { it.toEntity() })
+            aiInsightDao.upsertAll(bundle.aiInsights.map { it.toEntity() })
+            lifeSystemStateDao.insertAll(bundle.lifeSystemStates.map { it.toEntity() })
+            structurePresetDao.insertAll(bundle.contextRoleProfiles.map { it.toEntity() })
+            structurePresetItemDao.insertAll(bundle.contextRoleProfileItems.map { it.toEntity() })
+            contextStructureDao.insertAll(bundle.contextConfigurations.map { it.toEntity() })
+            contextStructureDao.insertAllItems(bundle.projectStructureItems.map { it.toEntity() })
         }
     }
 }
 
-
 ================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/sync/WifiSyncServer.kt
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/core/sync/MergeLocalDataSourceImpl.kt
 ================================================================================
 
 ## <<FILE_3>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/core-data-interfaces/src/main/java/com/romankozak/forwardappmobile/sync/AttachmentsRepository.kt (ID: FILE_3)
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/ContextEntities.kt (ID: FILE_3)
 ================================================================================
 
-// core-data-interfaces/.../sync/AttachmentsRepository.kt
-package com.romankozak.forwardappmobile.sync
+package com.romankozak.forwardappmobile.core.data.models
 
-import android.net.Uri
-import com.romankozak.forwardappmobile.core.data.models.AttachmentEntity
-import com.romankozak.forwardappmobile.core.data.models.AttachmentWithContext
-import com.romankozak.forwardappmobile.core.data.models.ContextAttachmentCrossRef
-import com.romankozak.forwardappmobile.core.data.models.RelatedLink
-import kotlinx.coroutines.flow.Flow
+import androidx.room.ColumnInfo
+import androidx.room.Embedded
+import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Fts4
+import androidx.room.Index
+import androidx.room.PrimaryKey
+import androidx.room.TypeConverters
+import com.google.gson.annotations.SerializedName
 
-interface AttachmentsRepository {
-    // --- Методи синхронізації ---
-    suspend fun exportAttachmentsToFile(): Result<String>
-    suspend fun createAttachmentsBackupJsonString(): String
-    suspend fun importAttachmentsFromFile(uri: Uri): Result<String>
+@Entity(
+    tableName = "backlog_orders",
+    indices = [
+        Index("list_id"),
+        Index(value = ["list_id", "item_id"], unique = true),
+    ],
+    foreignKeys = [
+        ForeignKey(
+            entity = Context::class,
+            parentColumns = ["id"],
+            childColumns = ["list_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+)
+data class BacklogOrder(
+    @PrimaryKey val id: String,
+    @ColumnInfo(name = "list_id")
+    val listId: String,
+    @ColumnInfo(name = "item_id")
+    val itemId: String,
+    @ColumnInfo(name = "item_order") val order: Long,
+    @ColumnInfo(name = "order_version", defaultValue = "0") val orderVersion: Long = 0,
+    val updatedAt: Long? = null,
+    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
+)
 
-    // --- Методи бізнес-логіки (Додаємо ці методи!) ---
-    suspend fun ensureAttachmentLinkedToContext(
-        attachmentType: String,
-        entityId: String,
-        contextId: String,
-        ownerContextId: String?,
-        createdAt: Long,
-        roleCode: String? = null,
-        isSystem: Boolean = false
-    )
-    suspend fun findAttachmentByEntity(attachmentType: String, entityId: String): AttachmentEntity?
-    suspend fun deleteAttachment(attachmentId: String)
-    fun getAttachmentLibraryItems(): Flow<List<AttachmentLibraryQueryResult>>
-    fun getAllAttachmentLinks(): Flow<List<ContextAttachmentCrossRef>> // ДОДАЙ ЦЕ
-    suspend fun linkAttachmentToContext(attachmentId: String, contextId: String) // І ЦЕ
+@Entity(tableName = "link_items")
+data class LinkItemEntity(
+    @PrimaryKey val id: String,
+    @ColumnInfo(name = "link_data")
+    val linkData: RelatedLink,
+    val createdAt: Long,
+    val updatedAt: Long? = null,
+    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
+    @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0,
+)
 
-    fun getAttachmentsForContext(contextId: String): Flow<List<AttachmentWithContext>>
-    suspend fun getAttachmentById(id: String): AttachmentEntity?
-    suspend fun unlinkAttachmentFromContext(attachmentId: String, contextId: String)
-    suspend fun updateAttachmentOrders(contextId: String, orders: Map<String, Long>)
-    suspend fun createLinkAttachment(
-        contextId: String,
-        link: RelatedLink,
-        roleCode: String? = null,
-        isSystem: Boolean = false // Додано параметр
-    ): String    suspend fun findAttachmentByRole(contextId: String, roleCode: String): AttachmentEntity?
+@Entity(tableName = "goals")
+data class Goal(
+    @PrimaryKey val id: String,
+    val text: String,
+    val description: String? = null,
+    val completed: Boolean,
+    val createdAt: Long,
+    val updatedAt: Long?,
+    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
+    @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0,
+    val tags: List<String>? = null,
+    val relatedLinks: List<RelatedLink>? = null,
+    @ColumnInfo(defaultValue = "0.0") val valueImportance: Float = 0f,
+    @ColumnInfo(defaultValue = "0.0") val valueImpact: Float = 0f,
+    @ColumnInfo(defaultValue = "0.0") val effort: Float = 0f,
+    @ColumnInfo(defaultValue = "0.0") val cost: Float = 0f,
+    @ColumnInfo(defaultValue = "0.0") val risk: Float = 0f,
+    @ColumnInfo(defaultValue = "1.0") val weightEffort: Float = 1f,
+    @ColumnInfo(defaultValue = "1.0") val weightCost: Float = 1f,
+    @ColumnInfo(defaultValue = "1.0") val weightRisk: Float = 1f,
+    @ColumnInfo(defaultValue = "0.0") val rawScore: Float = 0f,
+    @ColumnInfo(defaultValue = "0") val displayScore: Int = 0,
+    @ColumnInfo(name = "scoring_status") val scoringStatus: String = ScoringStatusValues.NOT_ASSESSED,
+    @ColumnInfo(defaultValue = "0.0") val parentValueImportance: Float? = null,
+    @ColumnInfo(defaultValue = "0.0") val impactOnParentGoal: Float? = null,
+    @ColumnInfo(defaultValue = "0.0") val timeCost: Float? = null,
+    @ColumnInfo(defaultValue = "0.0") val financialCost: Float? = null,
+)
+
+@Entity(
+    tableName = "context_execution_logs",
+    foreignKeys = [
+        ForeignKey(
+            entity = Context::class,
+            parentColumns = ["id"],
+            childColumns = ["contextId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+)
+data class ContextLog(
+    @PrimaryKey val id: String,
+    @ColumnInfo(index = true) val contextId: String,
+    val timestamp: Long,
+    @ColumnInfo(name = "type") val type: String,
+    val description: String,
+    val details: String? = null,
+    val updatedAt: Long? = null,
+    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
+    @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0,
+)
+
+@Entity(
+    tableName = "inbox_records",
+    foreignKeys = [
+        ForeignKey(
+            entity = Context::class,
+            parentColumns = ["id"],
+            childColumns = ["contextId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+)
+data class InboxRecord(
+    @PrimaryKey val id: String,
+    @ColumnInfo(index = true) val contextId: String,
+    val text: String,
+    val createdAt: Long,
+    @ColumnInfo(name = "item_order") val order: Long,
+    val updatedAt: Long? = null,
+    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
+    @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0,
+)
+
+@Entity(
+    tableName = "list_items",
+    foreignKeys = [
+        ForeignKey(
+            entity = Context::class,
+            parentColumns = ["id"],
+            childColumns = ["context_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+)
+data class BacklogItem(
+    @PrimaryKey val id: String,
+    @SerializedName(value = "contextId", alternate = ["listId", "projectId"])
+    @ColumnInfo(name = "context_id", index = true)
+    val contextId: String,
+    val itemType: String,
+    val entityId: String,
+    @ColumnInfo(name = "item_order") val order: Long,
+    val updatedAt: Long? = null,
+    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
+    @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0,
+)
+
+@Fts4(contentEntity = Goal::class)
+@Entity(tableName = "goals_fts")
+data class GoalFts(
+    val text: String,
+    val description: String?,
+)
+
+@Fts4(contentEntity = Context::class)
+@Entity(tableName = "contexts_fts")
+data class ContextsFts(
+    val name: String,
+    val description: String?,
+)
+
+data class GlobalGoalSearchResult(
+    @Embedded
+    val goal: Goal,
+    val contextId: String,
+    val contextName: String,
+    @TypeConverters(PathSegmentsConverter::class)
+    val pathSegments: List<String>,
+)
+
+data class GlobalLinkSearchResult(
+    @Embedded
+    val link: LinkItemEntity,
+    val contextId: String,
+    val contextName: String,
+    val listItemId: String,
+    @TypeConverters(PathSegmentsConverter::class)
+    val pathSegments: List<String>,
+)
+
+data class GlobalSubcontextSearchResult(
+    @Embedded
+    val subcontext: Context,
+    val parentContextId: String,
+    val parentContextName: String,
+    @TypeConverters(PathSegmentsConverter::class)
+    val pathSegments: List<String>,
+)
+
+data class GlobalContextSearchResult(
+    @Embedded
+    val context: Context,
+    @TypeConverters(PathSegmentsConverter::class)
+    val pathSegments: List<String>,
+)
+
+sealed class GlobalSearchResultItem {
+    abstract val timestamp: Long
+    abstract val uniqueId: String
+
+    data class GoalItem(
+        val goal: Goal,
+        val backlogItem: BacklogItem,
+        val projectName: String,
+        val pathSegments: List<String>,
+    ) : GlobalSearchResultItem() {
+        override val timestamp: Long get() = goal.updatedAt ?: goal.createdAt
+        override val uniqueId: String get() = "goal_${goal.id}_${backlogItem.contextId}"
+    }
+
+    data class LinkItem(val searchResult: GlobalLinkSearchResult) : GlobalSearchResultItem() {
+        override val timestamp: Long get() = searchResult.link.createdAt
+        override val uniqueId: String get() = "link_${searchResult.link.id}_${searchResult.contextId}"
+    }
+
+    data class SubcontextItem(val searchResult: GlobalSubcontextSearchResult) : GlobalSearchResultItem() {
+        override val timestamp: Long get() = searchResult.subcontext.updatedAt ?: searchResult.subcontext.createdAt
+        override val uniqueId: String get() = "sublist_${searchResult.subcontext.id}_${searchResult.parentContextId}"
+    }
+
+    data class ContextItem(
+        val searchResult: GlobalContextSearchResult,
+    ) : GlobalSearchResultItem() {
+        override val timestamp: Long get() = searchResult.context.updatedAt ?: searchResult.context.createdAt
+        override val uniqueId: String get() = "context_${searchResult.context.id}"
+    }
+
+    data class ActivityItem(val record: ActivityRecord) : GlobalSearchResultItem() {
+        override val timestamp: Long get() = record.startTime ?: record.createdAt
+        override val uniqueId: String get() = "activity_${record.id}"
+    }
+
+    data class InboxItem(val record: InboxRecord) : GlobalSearchResultItem() {
+        override val timestamp: Long get() = record.createdAt
+        override val uniqueId: String get() = "inbox_${record.id}"
+    }
 }
 
+
 ================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/core-data-interfaces/src/main/java/com/romankozak/forwardappmobile/sync/AttachmentsRepository.kt
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/ContextEntities.kt
 ================================================================================
 
 ## <<FILE_4>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/core-data-interfaces/src/main/java/com/romankozak/forwardappmobile/sync/datasource/FullBackupLocalDataSource.kt (ID: FILE_4)
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/sync/DatabaseContent.kt (ID: FILE_4)
 ================================================================================
 
-package com.romankozak.forwardappmobile.sync.datasource
+package com.romankozak.forwardappmobile.core.data.models.sync
 
-import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
+import com.google.gson.annotations.SerializedName
+import com.romankozak.forwardappmobile.core.data.models.ActivityRecord
+import com.romankozak.forwardappmobile.core.data.models.AttachmentEntity
+import com.romankozak.forwardappmobile.core.data.models.BacklogItem
+import com.romankozak.forwardappmobile.core.data.models.BacklogOrder
+import com.romankozak.forwardappmobile.core.data.models.ChecklistEntity
+import com.romankozak.forwardappmobile.core.data.models.ChecklistItemEntity
+import com.romankozak.forwardappmobile.core.data.models.Context
+import com.romankozak.forwardappmobile.core.data.models.ContextArtifact
+import com.romankozak.forwardappmobile.core.data.models.ContextAttachmentCrossRef
+import com.romankozak.forwardappmobile.core.data.models.ContextConfiguration
+import com.romankozak.forwardappmobile.core.data.models.ContextLog
+import com.romankozak.forwardappmobile.core.data.models.ContextRoleProfile
+import com.romankozak.forwardappmobile.core.data.models.ContextRoleProfileItem
+import com.romankozak.forwardappmobile.core.data.models.ContextStructureItem
+import com.romankozak.forwardappmobile.core.data.models.Goal
+import com.romankozak.forwardappmobile.core.data.models.InboxRecord
+import com.romankozak.forwardappmobile.core.data.models.LegacyNoteEntity
+import com.romankozak.forwardappmobile.core.data.models.LifeSystemStateEntity
+import com.romankozak.forwardappmobile.core.data.models.LinkItemEntity
+import com.romankozak.forwardappmobile.core.data.models.NoteDocumentEntity
+import com.romankozak.forwardappmobile.core.data.models.Reminder
+import com.romankozak.forwardappmobile.core.data.models.ScriptEntity
+import com.romankozak.forwardappmobile.core.data.models.SystemAppEntity
+import com.romankozak.forwardappmobile.core.data.models.ai.AiEventEntity
+import com.romankozak.forwardappmobile.core.data.models.ai.AiInsightEntity
+import com.romankozak.forwardappmobile.core.data.models.ai.ChatMessageEntity
+import com.romankozak.forwardappmobile.core.data.models.ai.ConversationEntity
+import com.romankozak.forwardappmobile.core.data.models.ai.ConversationFolderEntity
+import com.romankozak.forwardappmobile.core.data.models.day_management.DailyMetric
+import com.romankozak.forwardappmobile.core.data.models.day_management.DayPlan
+import com.romankozak.forwardappmobile.core.data.models.day_management.DayTask
+import com.romankozak.forwardappmobile.core.data.models.day_management.RecurringTask
+import com.romankozak.forwardappmobile.core.data.models.tactical.TacticalMission
+import com.romankozak.forwardappmobile.core.data.models.tactical.TacticalMissionAttachmentCrossRef
 
-interface FullBackupLocalDataSource {
-    // Завантаження всіх даних для експорту
-    suspend fun loadFullDatabaseContent(): DatabaseContent
-
-    // Очищення та відновлення даних
-    suspend fun restoreDatabaseFromBackup(content: DatabaseContent)
-
-    // Очищення всіх таблиць
-    suspend fun clearAllTables()
-
-    // Отримання налаштувань (як Map)
-    suspend fun getSettingsSnapshot(): Map<String, String>
-
-    // Відновлення налаштувань
-    suspend fun restoreSettings(settings: Map<String, String>)
-}
+data class DatabaseContent(
+    @SerializedName(value = "goals", alternate = ["a"])
+    val goals: List<Goal> = emptyList(),
+    @SerializedName(value = "projects", alternate = ["goalLists"])
+    val projects: List<Context> = emptyList(),
+    @SerializedName(value = "listItems", alternate = ["c"])
+    val backlogItems: List<BacklogItem> = emptyList(),
+    @SerializedName(value = "backlogOrders", alternate = ["order"])
+    val backlogOrders: List<BacklogOrder> = emptyList(),
+    @SerializedName(value = "legacyNotes", alternate = ["notes"])
+    val legacyNotes: List<LegacyNoteEntity> = emptyList(),
+    @SerializedName(value = "documents", alternate = ["customLists"])
+    val documents: List<NoteDocumentEntity> = emptyList(),
+    @SerializedName(value = "checklists", alternate = ["g"])
+    val checklists: List<ChecklistEntity> = emptyList(),
+    @SerializedName(value = "checklistItems", alternate = ["h"])
+    val checklistItems: List<ChecklistItemEntity> = emptyList(),
+    @SerializedName(value = "activityRecords", alternate = ["i"])
+    val activityRecords: List<ActivityRecord> = emptyList(),
+    @SerializedName(value = "scripts")
+    val scripts: List<ScriptEntity> = emptyList(),
+    @SerializedName(value = "recentProjectEntries", alternate = ["recentListEntries"])
+    val recentProjectEntries: List<RecentProjectEntry> = emptyList(),
+    @SerializedName(value = "linkItemEntities", alternate = ["k"])
+    val linkItemEntities: List<LinkItemEntity> = emptyList(),
+    @SerializedName(value = "inboxRecords", alternate = ["l"])
+    val inboxRecords: List<InboxRecord> = emptyList(),
+    @SerializedName(value = "projectExecutionLogs", alternate = ["m"])
+    val contextLogs: List<ContextLog> = emptyList(),
+    @SerializedName(value = "attachments", alternate = ["attachment_items"])
+    val attachments: List<AttachmentEntity> = emptyList(),
+    @SerializedName(value = "contextAttachmentCrossRefs", alternate = ["project_attachment_links", "projectAttachmentCrossRefs"])
+    val contextAttachmentCrossRefs: List<ContextAttachmentCrossRef> =
+        emptyList(),
+    // --- Extended Entities ---
+    @SerializedName("dayPlans")
+    val dayPlans: List<DayPlan> = emptyList(),
+    @SerializedName("dayTasks")
+    val dayTasks: List<DayTask> = emptyList(),
+    @SerializedName("dailyMetrics")
+    val dailyMetrics: List<DailyMetric> = emptyList(),
+    @SerializedName("conversations")
+    val conversations: List<ConversationEntity> = emptyList(),
+    @SerializedName("chatMessages")
+    val chatMessages: List<ChatMessageEntity> = emptyList(),
+    @SerializedName("conversationFolders")
+    val conversationFolders: List<ConversationFolderEntity> = emptyList(),
+    @SerializedName("reminders")
+    val reminders: List<Reminder> = emptyList(),
+    @SerializedName("recurringTasks")
+    val recurringTasks: List<RecurringTask> = emptyList(),
+    @SerializedName("systemApps")
+    val systemApps: List<SystemAppEntity> = emptyList(),
+    @SerializedName("projectArtifacts")
+    val contextArtifacts: List<ContextArtifact> = emptyList(),
+    @SerializedName("tacticalMissions")
+    val tacticalMissions: List<TacticalMission> = emptyList(),
+    @SerializedName("tacticalMissionAttachments")
+    val tacticalMissionAttachments: List<TacticalMissionAttachmentCrossRef> =
+        emptyList(),
+    @SerializedName("aiEvents")
+    val aiEvents: List<AiEventEntity> = emptyList(),
+    @SerializedName("aiInsights")
+    val aiInsights: List<AiInsightEntity> = emptyList(),
+    @SerializedName("lifeSystemStates")
+    val lifeSystemStates: List<LifeSystemStateEntity> = emptyList(),
+    @SerializedName("structurePresets")
+    val contextRoleProfiles: List<ContextRoleProfile> = emptyList(),
+    @SerializedName("structurePresetItems")
+    val contextRoleProfileItems: List<ContextRoleProfileItem> = emptyList(),
+    @SerializedName("projectStructures")
+    val contextConfigurations: List<ContextConfiguration> = emptyList(),
+    @SerializedName("projectStructureItems")
+    val projectStructureItems: List<ContextStructureItem> = emptyList(),
+)
 
 ================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/core-data-interfaces/src/main/java/com/romankozak/forwardappmobile/sync/datasource/FullBackupLocalDataSource.kt
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/sync/DatabaseContent.kt
 ================================================================================
 
 ## <<FILE_5>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/docs/sync/SYNC_ARCHITECTURE_OVERVIEW.md (ID: FILE_5)
+BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/sync/snapshot/SnapshotBundle.kt (ID: FILE_5)
 ================================================================================
 
-# Огляд архітектури та поточного стану синхронізації
+package com.romankozak.forwardappmobile.core.data.models.sync.snapshot
+
+import com.google.gson.annotations.SerializedName
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.activity.ActivityRecordSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.ai.*
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.attachments.AttachmentSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.attachments.ChecklistItemSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.attachments.ChecklistSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.attachments.LegacyNoteSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.context.*
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.day_management.*
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.misc.*
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.reminders.ReminderSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.tactical.TacticalMissionAttachmentCrossRefSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.tactical.TacticalMissionSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.context.ContextArtifactSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.attachments.ContextAttachmentCrossRefSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.attachments.NoteDocumentSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.attachments.ScriptSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.context.ContextConfigurationSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.context.ContextRoleProfileItemSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.context.ContextRoleProfileSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.context.ContextStructureItemSnapshot
 
-Дата: 30 січня 2026
-
-Цей документ описує архітектуру, поточний стан реалізації та відомі проблеми механізму синхронізації даних (кодова назва "Synapse") в додатку ForwardApp.
-
-## 1. Високорівнева архітектура
-
-Механізм спроєктований як модульна система, керована центральним фасадом.
-
-- **`SyncRepository`**: Фасад і єдина точка входу для UI та інших частин програми. Він не містить власної логіки, а делегує завдання спеціалізованим компонентам.
-- **`MergeRepository`**: Відповідає за основну логіку злиття даних та вирішення конфліктів. На даний момент його реалізація не завершена.
-- **`SyncFileService`**: Відповідає за функціонал імпорту/експорту даних у JSON-файли.
-- **`WifiSyncService` / `WifiSyncServer`**: Реалізує peer-to-peer (P2P) синхронізацію між двома пристроями в одній Wi-Fi мережі.
-- **`AttachmentsRepository`**: Керує операціями, пов'язаними з вкладеннями (експорт, імпорт).
-- **`FullBackupLocalDataSource`**: Шар доступу до даних, що надає знімок бази даних для бекапу та виконує повне перезаписування БД при відновленні.
-
-Стратегія вирішення конфліктів, закладена в дизайні — **Last-Write-Wins (LWW)**, де новіший запис (за полем `updatedAt`) перемагає.
-
----
-
-## 2. Поточний стан реалізованих функцій
-
-На практиці реалізовано та працює два незалежних механізми:
-
-### 2.1. Імпорт/експорт повного бекапу в JSON
-
-Це повністю реалізований, але ризикований функціонал.
-
-**Як працює:**
-- **Експорт**: `SyncFileService` збирає абсолютно всі дані з локальної бази даних та налаштунки, упаковує їх в один JSON-файл і зберігає в папку `Downloads/ForwardApp`.
-- **Імпорт**: `SyncFileService` читає JSON-файл, **повністю стирає** всі поточні дані в додатку і записує на їхнє місце дані з файлу.
-
-**Виявлені проблеми:**
-1.  **Деструктивний імпорт**: Процес відновлення безповоротно знищує всі локальні дані, що були створені після моменту створення бекапу. **Це головний ризик для користувача.**
-2.  **Відсутність перевірки версії схеми**: Система не перевіряє версію бекапу (`backupSchemaVersion`). Імпорт файлу з несумісної версії програми може призвести до збоїв або пошкодження даних.
-3.  **Поверхнева обробка помилок**: Повідомлення про помилки неінформативні для користувача.
-
-### 2.2. Peer-to-Peer синхронізація через Wi-Fi
-
-Цей механізм дозволяє двом пристроям в одній локальній мережі синхронізувати дані напряму, без участі центрального сервера. Це може бути корисно для швидкого обміну даними між власними пристроями.
-
----
-
-## 3. Файли системи синхронізації
-
-Нижче наведено детальний опис ключових файлів, що беруть участь у процесі синхронізації.
-
-### 3.1. Основні компоненти
-
-- **`sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncRepository.kt`**:
-  - **Роль**: Фасад, що надає єдину точку входу для всіх операцій синхронізації.
-  - **Функції**: Делегує виклики до `SyncFileService`, `SyncWifiService`, `MergeRepository` та `AttachmentsRepository`. Не містить власної бізнес-логіки.
-
-- **`sync/src/main/java/com/romankozak/forwardappmobile/sync/MergeRepository.kt`**:
-  - **Роль**: Центральний компонент для логіки злиття даних.
-  - **Функції**:
-    - `createSyncReport`: Створює звіт про зміни для попереднього перегляду.
-    - `applyServerChanges`: Реалізує основну логіку злиття даних за стратегією "Last-Write-Wins".
-    - `createBackupDiff`: Створює детальний диференціал між локальними та вхідними даними.
-  - **Стан**: Частково реалізований.
-
-### 3.2. Синхронізація через файли
-
-- **`sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncFileService.kt`**:
-  - **Роль**: Керує імпортом та експортом даних у JSON-файли.
-  - **Функції**:
-    - `exportFullBackupToFile`: Експортує повний бекап у файл.
-    - `importFullBackupFromFile`: Виконує **деструктивний** імпорт, повністю перезаписуючи локальну базу даних.
-  - **Залежності**: `FullBackupLocalDataSource`.
-
-- **`core-data-interfaces/src/main/java/com/romankozak/forwardappmobile/sync/datasource/FullBackupLocalDataSource.kt`** (інтерфейс) та **`app/src/main/java/com/romankozak/forwardappmobile/data/sync/FullBackupLocalDataSourceImpl.kt`** (реалізація):
-  - **Роль**: Забезпечує прямий доступ до бази даних для операцій повного бекапу та відновлення.
-  - **Функції**:
-    - `loadFullDatabaseContent`: Завантажує всі дані з бази.
-    - `restoreDatabaseFromBackup`: **Очищує всі таблиці** та вставляє нові дані.
-
-### 3.3. Peer-to-Peer синхронізація (Wi-Fi)
-
-- **`app/src/main/java/com/romankozak/forwardappmobile/features/sync/WifiSyncServer.kt`**:
-  - **Роль**: Реалізація Ktor-сервера для P2P-синхронізації.
-  - **Функції**: Надає ендпоїнти `/export` (для віддачі даних) та `/import` (для прийому даних).
-
-- **`sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncWifiService.kt`**:
-  - **Роль**: Клієнтська частина P2P-синхронізації.
-  - **Функції**: Використовує Ktor-клієнт для взаємодії з `WifiSyncServer` (завантаження та відправка даних).
-
-- **`sync/src/main/java/com/romankozak/forwardappmobile/sync/WifiSyncRepository.kt`**:
-  - **Роль**: Простий репозиторій, що делегує логіку Wi-Fi синхронізації до `SyncWifiService`.
-
----
-
-## 4. Механізми вмикання/вимикання (Feature Toggles) синхронізації
-
-У проекті існує два незалежні механізми керування функцією синхронізації:
-
-### 4.1. Перемикач на рівні збірки (Build-Level Toggle)
-
-Цей механізм контролює, чи буде включено реальну реалізацію синхронізації, чи її "no-op" (порожню) версію. Він працює на етапі компіляції.
-
--   **Керування:** За допомогою властивості `syncEnabled` у файлі `gradle.properties` (у корені проекту).
-    *   `syncEnabled=true`: Включає реальну логіку синхронізації. Модуль `sync` використовуватиме файли з `sync/src/main/java` та `sync/src/syncOn/java`.
-    *   `syncEnabled=false`: Включає "no-op" логіку синхронізації. Модуль `sync` використовуватиме файли з `sync/src/main/java` та `sync/src/syncOff/java`, які надають порожні реалізації Hilt-модулів (`SyncInternalModule.kt` з `NoOpAttachmentsRepository` та `NoOpSyncRepository`).
--   **Реалізація:**
-    *   **`gradle.properties`**: Додано властивість `syncEnabled`.
-    *   **`sync/build.gradle.kts`**: Зчитує властивість `syncEnabled` і відповідно вибирає `sourceSets` (`src/syncOn/java` або `src/syncOff/java`).
-    *   **`app/build.gradle.kts`**: Також зчитує властивість `syncEnabled` і встановлює булеве поле `BuildConfig.SYNC_ENABLED` у коді програми для забезпечення узгодженості.
-
-### 4.2. Перемикач на рівні UI (UI-Level Toggle)
-
-Цей механізм контролює видимість елементів інтерфейсу, пов'язаних із синхронізацією.
-
--   **Керування:** За допомогою поля `BuildConfig.IS_EXPERIMENTAL_BUILD`, яке встановлюється на основі Gradle product flavor.
-    *   `exp` flavor: Встановлює `IS_EXPERIMENTAL_BUILD` в `true`, що дозволяє `FeatureToggles.kt` відображати UI синхронізації (наприклад, `SyncStatusIndicator`).
-    *   `prod` flavor: Встановлює `IS_EXPERIMENTAL_BUILD` в `false`, що приховує UI синхронізації.
--   **Реалізація:**
-    *   **`app/build.gradle.kts`**: Встановлює `BuildConfig.IS_EXPERIMENTAL_BUILD` у секції `productFlavors`.
-    *   **`app/src/main/java/com/romankozak/forwardappmobile/core/config/FeatureToggles.kt`**: Використовує `BuildConfig.IS_EXPERIMENTAL_BUILD` для перевизначення стану `FeatureFlag.WifiSync`.
-    *   **UI компоненти (наприклад, `MainScreenTopAppBar.kt`)**: Перевіряють стан `FeatureFlag.WifiSync` через `FeatureToggles.isEnabled()` для умовного відображення елементів.
-
----
-
-## 5. Застарілий код та рекомендації до рефакторингу
-
-Під час аналізу було виявлено застарілий компонент:
-
-- **`sync/src/main/java/com/romankozak/forwardappmobile/sync/BackupRepository.kt`**:
-  - **Проблема**: Цей клас є надлишковим. Він майже повністю дублює функціонал `SyncFileService` і не використовується основним фасадом `SyncRepository`.
-  - **Рекомендація**: **Видалити `BackupRepository.kt`**. Єдиний унікальний метод `getLastSyncTime()` слід перенести в `MergeRepository`, оскільки він логічно належить до процесу злиття даних.
-
----
-
-## 6. Перейменування "Проектів" в "Контексти"
-
-Важливо зазначити, що в коді часто зустрічається термін `Project` (проект), який насправді відповідає сутності "Контекст". Це пов'язано з незавершеним рефакторингом. При аналізі коду слід пам'ятати про цю невідповідність.
-
----
-
-## 7. Загальний висновок та наступні кроки
-
-Механізм синхронізації перебуває в стані активного рефакторингу. На даний момент **не існує повноцінної, безпечної хмарної синхронізації**.
-
-**Поточний стан:**
-- **Реалізовано**: Ручний імпорт/експорт через JSON та P2P-синхронізація через Wi-Fi.
-- **В процесі**: Основна логіка злиття даних (`MergeRepository`) та інтеграція з центральним сервером.
-
-**Ключові наступні кроки:**
-1.  **Завершити `MergeRepository`**: Реалізувати надійний механізм злиття даних, можливо, розглянувши альтернативи простому LWW для уникнення втрати даних.
-2.  **Покращити безпеку імпорту**: Додати в процес імпорту з файлу чіткі попередження для користувача та обов'язкову перевірку версії схеми бекапу.
-3.  **Видалити застарілий код**: Прибрати `BackupRepository.kt`, щоб спростити кодову базу.
-4.  **Реалізувати фонову синхронізацію**: Інтегрувати `WorkManager` для автоматичної синхронізації з сервером у фоновому режимі.
-5.  **Завершити рефакторинг `Project` -> `Context`**: Уніфікувати іменування в усій кодовій базі для усунення плутанини.
-
-================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/docs/sync/SYNC_ARCHITECTURE_OVERVIEW.md
-================================================================================
-
-## <<FILE_6>>
-================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/sync/src/main/java/com/romankozak/forwardappmobile/sync/BackupRepository.kt (ID: FILE_6)
-================================================================================
-
-package com.romankozak.forwardappmobile.sync
-
-import android.net.Uri
-import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
-import javax.inject.Inject
-import javax.inject.Singleton
-
-@Singleton
-open class BackupRepository @Inject constructor() {
-    open suspend fun exportFullBackupToFile(): Result<String> = Result.success("")
-    open suspend fun createFullBackupJsonString(): String = "{}"
-    open suspend fun importFullBackupFromFile(uri: Uri): Result<String> = Result.success("")
-    open suspend fun parseBackupFile(uri: Uri): Result<FullAppBackup> = Result.success(FullAppBackup())
-    open suspend fun getLastSyncTime(): Long? = null
-}
-
-
-================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/sync/src/main/java/com/romankozak/forwardappmobile/sync/BackupRepository.kt
-================================================================================
-
-## <<FILE_7>>
-================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/sync/src/main/java/com/romankozak/forwardappmobile/sync/MergeRepository.kt (ID: FILE_7)
-================================================================================
-
-// sync/src/main/java/com/romankozak/forwardappmobile/sync/MergeRepository.kt
-package com.romankozak.forwardappmobile.sync
-
-import android.util.Log
-import com.google.gson.GsonBuilder
-import com.romankozak.forwardappmobile.core.data.models.*
-import com.romankozak.forwardappmobile.core.data.models.sync.*
-import com.romankozak.forwardappmobile.sync.datasource.MergeLocalDataSource
-import com.romankozak.forwardappmobile.sync.SyncMapper.updatedTs // ВАЖЛИВО: імпорт extension-функції
-import javax.inject.Inject
-import javax.inject.Singleton
-
-@Singleton
-class MergeRepository @Inject constructor(
-    private val localDataSource: MergeLocalDataSource,
-    private val logicHelper: SyncLogicHelper,
-) {
-    private val TAG = "MergeRepository"
-    private val gson = GsonBuilder()
-        .registerTypeAdapter(Long::class.java, LongDeserializer())
-        .create()
-
-    suspend fun createSyncReport(jsonString: String): SyncReport {
-        val backup = gson.fromJson(jsonString, FullAppBackup::class.java)
-        val incomingDb = backup.database
-
-        val localProjects = localDataSource.getContexts().associateBy { it.id }
-        val localGoals = localDataSource.getGoals().associateBy { it.id }
-        val changes = mutableListOf<SyncChange>()
-
-        incomingDb.goals.forEach { incomingRaw ->
-            val incoming = SyncMapper.normalizeGoal(incomingRaw)
-            val local = localGoals[incoming.id]?.let { SyncMapper.normalizeGoal(it) }
-
-            if (local == null) {
-                changes.add(SyncChange(ChangeType.Add, "Ціль", incoming.id, "Нова ціль: ${incoming.text}", entity = incoming))
-            } else if (incoming.updatedTs() > local.updatedTs()) {
-                changes.add(SyncChange(ChangeType.Update, "Ціль", incoming.id, "Оновлено ціль: ${incoming.text}", entity = incoming))
-            }
-        }
-
-        incomingDb.projects.forEach { incomingRaw ->
-            val incoming = SyncMapper.normalizeProject(incomingRaw)
-            val local = localProjects[incoming.id]?.let { SyncMapper.normalizeProject(it) }
-
-            if (local == null) {
-                changes.add(SyncChange(ChangeType.Add, "Список", incoming.id, "Новий список: ${incoming.name}", entity = incoming))
-            } else if (incoming.updatedTs() > local.updatedTs()) {
-                changes.add(SyncChange(ChangeType.Update, "Список", incoming.id, "Оновлено список: ${incoming.name}", entity = incoming))
-            }
-        }
-
-        return SyncReport(changes)
-    }
-
-    suspend fun applyServerChanges(changes: DatabaseContent): Result<Unit> {
-        val ts = System.currentTimeMillis()
-        return try {
-            val local = localDataSource.getLocalDatabaseContent()
-            val allProjectIds = local.projects.map { it.id }.toSet()
-
-            // Мапінг для системних проектів (Inbox, Archive тощо), щоб не дублювати їх
-            val idRedirects = mutableMapOf<String, String>()
-
-            val mergedContexts = logicHelper.mergeAndMark(
-                incoming = changes.projects.map { SyncMapper.normalizeProject(it) },
-                localMap = local.projects.associateBy { it.id },
-                idSelector = { it.id },
-                versionSelector = { it.version },
-                updatedSelector = { it.updatedTs() },
-                markSynced = { p, s -> p.copy(syncedAt = s) },
-                syncedAt = ts,
-                isDeletedSelector = { it.isDeleted }
-            )
-            if (mergedContexts.isNotEmpty()) localDataSource.insertContexts(mergedContexts)
-
-            val mergedGoals = logicHelper.mergeAndMark(
-                incoming = changes.goals.map { SyncMapper.normalizeGoal(it) },
-                localMap = local.goals.associateBy { it.id },
-                idSelector = { it.id },
-                versionSelector = { it.version },
-                updatedSelector = { it.updatedTs() },
-                markSynced = { g, s -> g.copy(syncedAt = s) },
-                syncedAt = ts,
-                isDeletedSelector = { it.isDeleted }
-            )
-            if (mergedGoals.isNotEmpty()) localDataSource.insertGoals(mergedGoals)
-
-            // Обробка вкладень
-            val incomingAttachments = logicHelper.mergeAndMark(
-                incoming = changes.attachments,
-                localMap = local.attachments.associateBy { it.id },
-                idSelector = { it.id },
-                versionSelector = { it.version },
-                updatedSelector = { it.updatedTs() },
-                markSynced = { at, s -> at.copy(syncedAt = s) },
-                syncedAt = ts
-            )
-            localDataSource.insertAttachments(incomingAttachments)
-
-            // Обробка зв'язків
-            val synthesizedRefs = logicHelper.synthesizeMissingCrossRefs(changes.attachments, changes.contextAttachmentCrossRefs)
-            localDataSource.insertContextAttachmentLinks(synthesizedRefs.map { it.copy(syncedAt = ts) })
-
-            // Обробка елементів списків (дедуплікація)
-            localDataSource.insertListItems(logicHelper.dedupListItems(changes.backlogItems))
-
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to apply server changes", e)
-            Result.failure(e)
-        }
-    }
-
-    suspend fun createBackupDiff(incoming: DatabaseContent): BackupDiff {
-        val local = localDataSource.getLocalDatabaseContent()
-        return BackupDiff(
-            projects = logicHelper.diffEntities(incoming.projects.map { SyncMapper.normalizeProject(it) }, local.projects, { it.id }, { it.version }, { it.updatedTs() }),
-            goals = logicHelper.diffEntities(incoming.goals.map { SyncMapper.normalizeGoal(it) }, local.goals, { it.id }, { it.version }, { it.updatedTs() }),
-            backlogItems = logicHelper.diffEntities(incoming.backlogItems, local.backlogItems, { it.id }, { it.version }, { it.updatedTs() }),
-            documents = logicHelper.diffEntities(incoming.documents, local.documents, { it.id }, { it.version }, { it.updatedTs() }),
-            attachments = logicHelper.diffEntities(incoming.attachments, local.attachments, { it.id }, { it.version }, { it.updatedTs() }),
-            contextAttachmentCrossRefs = logicHelper.diffEntities(incoming.contextAttachmentCrossRefs, local.contextAttachmentCrossRefs, { "${it.contextId}-${it.attachmentId}" }, { it.version }, { it.updatedTs() })
-        )
-    }
-    // У MergeRepository.kt додайте ці "проксі" методи:
-
-    /**
-     * Застосовує схвалені зміни до локальної бази даних.
-     */
-    suspend fun applyChanges(approvedChanges: List<SyncChange>) {
-        localDataSource.applyChanges(approvedChanges)
-    }
-
-    /**
-     * Імпортує лише вибрані дані (наприклад, тільки певні проекти).
-     */
-    suspend fun importSelectedData(selectedData: DatabaseContent): Result<String> {
-        return try {
-            localDataSource.importSelectedData(
-                projects = selectedData.projects,
-                goals = selectedData.goals,
-                listItems = selectedData.backlogItems,
-                attachments = selectedData.attachments,
-                crossRefs = selectedData.contextAttachmentCrossRefs
-            )
-            Result.success("Вибрані дані успішно імпортовано")
-        } catch (e: Exception) {
-            Log.e(TAG, "Selective import failed", e)
-            Result.failure(e)
-        }
-    }
-}
-
-================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/sync/src/main/java/com/romankozak/forwardappmobile/sync/MergeRepository.kt
-================================================================================
-
-## <<FILE_8>>
-================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncFileService.kt (ID: FILE_8)
-================================================================================
-
-package com.romankozak.forwardappmobile.sync
-
-import android.content.ContentValues
-import android.net.Uri
-import android.os.Build
-import android.provider.MediaStore
-import android.util.Log
-import com.google.gson.GsonBuilder
-import com.google.gson.JsonSyntaxException
-import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
-import com.romankozak.forwardappmobile.core.data.models.sync.SettingsContent
-import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
-import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import java.io.IOException
-import java.text.SimpleDateFormat
-import java.util.*
-import javax.inject.Inject
-import javax.inject.Singleton
-import android.content.Context as AndroidContext
-import com.google.gson.JsonObject
 
 /**
- * Сервіс для обробки операцій резервного копіювання та відновлення на основі файлів.
- * Керує експортом/імпортом повних бекапів бази даних.
+ * The single, versioned contract for data export, import, and synchronization.
+ * It aggregates all feature-specific snapshots into one bundle.
  */
-@Singleton
-class SyncFileService @Inject constructor(
-    @param:ApplicationContext private val context: AndroidContext,
-    private val localDataSource: FullBackupLocalDataSource
-) {
-    private val TAG = "SyncFileService"
-
-    private val gson = GsonBuilder()
-        .registerTypeAdapter(Long::class.java, LongDeserializer())
-        .create()
-
-    /**
-     * Експортує повний бекап у папку "Downloads/ForwardApp"
-     */
-    suspend fun exportFullBackupToFile(): Result<String> = withContext(Dispatchers.IO) {
-        Log.d(TAG, "Attempting to export full backup to file.")
-        try {
-            val json = createFullBackupJsonString()
-            val ts = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-            val name = "forward_full_backup_$ts.json"
-            saveFileToDownloads(name, json)
-            Log.i(TAG, "Full backup successfully exported to file: $name")
-            Result.success("Файл бекапу успішно збережено")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error exporting full backup", e)
-            Result.failure(e)
-        }
-    }
-
-    /**
-     * Створює JSON-рядок із повним бекапом даних та налаштувань
-     */
-    suspend fun createFullBackupJsonString(): String {
-        val databaseContent = localDataSource.loadFullDatabaseContent()
-        val settingsMap = localDataSource.getSettingsSnapshot()
-
-        val fullBackup = FullAppBackup(
-            backupSchemaVersion = 1,
-            database = databaseContent,
-            settings = SettingsContent(settingsMap)
-        )
-
-        return gson.toJson(fullBackup)
-    }
-
-    /**
-     * Імпортує повний бекап із файлу.
-     */
-    suspend fun importFullBackupFromFile(uri: Uri): Result<String> = withContext(Dispatchers.IO) {
-        Log.d(TAG, "Attempting to import full backup from URI: $uri")
-        try {
-            val backupResult = parseBackupFile(uri)
-            if (backupResult.isFailure) {
-                throw backupResult.exceptionOrNull() ?: Exception("Unknown parsing error")
-            }
-            val backupData = backupResult.getOrThrow()
-
-            localDataSource.restoreDatabaseFromBackup(backupData.database)
-
-            backupData.settings?.settings?.let {
-                localDataSource.restoreSettings(it)
-            }
-
-            Log.i(TAG, "Full backup successfully imported from URI: $uri")
-            Result.success("Дані успішно відновлено")
-        } catch (e: Exception) {
-            Log.e(TAG, "A critical error occurred during the import process.", e)
-            Result.failure(e)
-        }
-    }
-
-    suspend fun parseBackupFile(uri: Uri): Result<FullAppBackup> = withContext(Dispatchers.IO) {
-        Log.d(TAG, "Parsing backup file from URI: $uri")
-        try {
-            val jsonString = readTextFromUri(uri)
-            if (jsonString.isNullOrBlank()) {
-                Log.w(TAG, "Parse failed: Backup file is empty or blank.")
-                return@withContext Result.failure(Exception("Backup file is empty"))
-            }
-            val backupData = gson.fromJson(jsonString, FullAppBackup::class.java)
-            Log.d(TAG, "Successfully parsed backup file object.")
-            Result.success(backupData)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to parse backup file", e)
-            Result.failure(e)
-        }
-    }
-
-    fun readTextFromUri(uri: Uri): String? =
-        context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
-
-    fun saveFileToDownloads(name: String, json: String) {
-        val values = ContentValues().apply {
-            put(MediaStore.MediaColumns.DISPLAY_NAME, name)
-            put(MediaStore.MediaColumns.MIME_TYPE, "application/json")
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                put(MediaStore.MediaColumns.RELATIVE_PATH, "Download/ForwardApp")
-            }
-        }
-
-        val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            MediaStore.Downloads.EXTERNAL_CONTENT_URI
-        } else {
-            MediaStore.Files.getContentUri("external")
-        }
-
-        val uri = context.contentResolver.insert(collection, values)
-        uri?.let {
-            context.contentResolver.openOutputStream(it)?.use { os ->
-                os.write(json.toByteArray())
-            }
-        }
-    }
-}
+data class SnapshotBundle(
+    @SerializedName("snapshotVersion")
+    val version: Int = 1,
+    @SerializedName("exportedAt")
+    val exportedAt: Long = System.currentTimeMillis(),
+    val contexts: List<ContextSnapshot> = emptyList(),
+    val goals: List<GoalSnapshot> = emptyList(),
+    val backlogItems: List<BacklogItemSnapshot> = emptyList(),
+    val backlogOrders: List<BacklogOrderSnapshot> = emptyList(),
+    val notes: List<LegacyNoteSnapshot> = emptyList(),
+    val documents: List<NoteDocumentSnapshot> = emptyList(),
+    val checklists: List<ChecklistSnapshot> = emptyList(),
+    val checklistItems: List<ChecklistItemSnapshot> = emptyList(),
+    val artifacts: List<ContextArtifactSnapshot> = emptyList(),
+    val scripts: List<ScriptSnapshot> = emptyList(),
+    val attachments: List<AttachmentSnapshot> = emptyList(),
+    val crossRefs: List<ContextAttachmentCrossRefSnapshot> = emptyList(),
+    val inbox: List<InboxRecordSnapshot> = emptyList(),
+    val logs: List<ContextLogSnapshot> = emptyList(),
+    val systemApps: List<SystemAppSnapshot> = emptyList(),
+    val activityRecords: List<ActivityRecordSnapshot> = emptyList(),
+    val recentProjectEntries: List<RecentProjectEntrySnapshot> = emptyList(),
+    val linkItemEntities: List<LinkItemEntitySnapshot> = emptyList(),
+    val dayPlans: List<DayPlanSnapshot> = emptyList(),
+    val dayTasks: List<DayTaskSnapshot> = emptyList(),
+    val dailyMetrics: List<DailyMetricSnapshot> = emptyList(),
+    val conversations: List<ConversationSnapshot> = emptyList(),
+    val chatMessages: List<ChatMessageSnapshot> = emptyList(),
+    val conversationFolders: List<ConversationFolderSnapshot> = emptyList(),
+    val reminders: List<ReminderSnapshot> = emptyList(),
+    val recurringTasks: List<RecurringTaskSnapshot> = emptyList(),
+    val tacticalMissions: List<TacticalMissionSnapshot> = emptyList(),
+    val tacticalMissionAttachments: List<TacticalMissionAttachmentCrossRefSnapshot> = emptyList(),
+    val aiEvents: List<AiEventSnapshot> = emptyList(),
+    val aiInsights: List<AiInsightSnapshot> = emptyList(),
+    val lifeSystemStates: List<LifeSystemStateSnapshot> = emptyList(),
+    val contextRoleProfiles: List<ContextRoleProfileSnapshot> = emptyList(),
+    val contextRoleProfileItems: List<ContextRoleProfileItemSnapshot> = emptyList(),
+    val contextConfigurations: List<ContextConfigurationSnapshot> = emptyList(),
+    val projectStructureItems: List<ContextStructureItemSnapshot> = emptyList()
+)
 
 ================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncFileService.kt
-================================================================================
-
-## <<FILE_9>>
-================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncRepository.kt (ID: FILE_9)
-================================================================================
-
-package com.romankozak.forwardappmobile.sync
-
-import android.net.Uri
-import com.romankozak.forwardappmobile.core.data.models.sync.*
-import javax.inject.Inject
-import javax.inject.Singleton
-
-@Singleton
-class SyncRepository @Inject constructor(
-    private val fileService: SyncFileService,
-    private val wifiSyncService: SyncWifiService,
-    private val mergeRepository: MergeRepository,
-    private val attachmentsRepository: AttachmentsRepository,
-) : SyncApi {
-
-    // FILE OPERATIONS
-    override suspend fun exportFullBackupToFile() = fileService.exportFullBackupToFile()
-    override suspend fun createFullBackupJsonString() = fileService.createFullBackupJsonString()
-    override suspend fun importFullBackupFromFile(uri: Uri) = fileService.importFullBackupFromFile(uri)
-
-    // Тут важливо вказати тип явно, щоб не було помилок subtype
-    override suspend fun parseBackupFile(uri: Uri): Result<FullAppBackup> = fileService.parseBackupFile(uri)
-
-    // WI-FI OPERATIONS
-    override suspend fun fetchBackupFromWifi(address: String, deltaSince: Long?) =
-        wifiSyncService.fetchBackupFromWifi(address, deltaSince)
-
-    override suspend fun pushUnsyncedToWifi(address: String) =
-        wifiSyncService.pushUnsyncedToWifi(address)
-
-    override suspend fun createDeltaBackupJsonString(deltaSince: Long) =
-        wifiSyncService.createDeltaBackupJsonString(deltaSince)
-
-    // MERGE & REPORTING
-    override suspend fun getLastSyncTime(): Long? = null
-
-    override suspend fun createSyncReport(jsonString: String) = mergeRepository.createSyncReport(jsonString)
-
-    // Тепер ці методи знайдуться в mergeRepository
-    override suspend fun applyChanges(approvedChanges: List<SyncChange>) =
-        mergeRepository.applyChanges(approvedChanges)
-
-    override suspend fun applyServerChanges(changes: DatabaseContent) =
-        mergeRepository.applyServerChanges(changes)
-
-    override suspend fun createBackupDiff(incoming: DatabaseContent) =
-        mergeRepository.createBackupDiff(incoming)
-
-    override suspend fun importSelectedData(selectedData: DatabaseContent) =
-        mergeRepository.importSelectedData(selectedData)
-
-    // ATTACHMENTS
-    override suspend fun exportAttachmentsToFile() = attachmentsRepository.exportAttachmentsToFile()
-    override suspend fun createAttachmentsBackupJsonString() = attachmentsRepository.createAttachmentsBackupJsonString()
-    override suspend fun importAttachmentsFromFile(uri: Uri) = attachmentsRepository.importAttachmentsFromFile(uri)
-}
-
-================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncRepository.kt
-================================================================================
-
-## <<FILE_10>>
-================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncWifiService.kt (ID: FILE_10)
-================================================================================
-
-package com.romankozak.forwardappmobile.sync
-
-import android.util.Log
-import androidx.core.net.toUri
-import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
-import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
-import com.romankozak.forwardappmobile.sync.datasource.SyncLocalDataSource
-import com.romankozak.forwardappmobile.sync.datasource.SyncSettingsSource
-import io.ktor.client.*
-import io.ktor.client.call.*
-import io.ktor.client.engine.cio.*
-import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.request.*
-import io.ktor.http.*
-import io.ktor.serialization.gson.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.withContext
-import javax.inject.Inject
-import javax.inject.Singleton
-
-@Singleton
-class SyncWifiService @Inject constructor(
-    private val localDataSource: SyncLocalDataSource,
-    private val settingsSource: SyncSettingsSource,
-    private val logicHelper: SyncLogicHelper
-) {
-    private val WIFI_LOG = "FWD_SYNC_WIFI"
-
-    private val client = HttpClient(CIO) {
-        install(ContentNegotiation) {
-            gson {
-                registerTypeAdapter(Long::class.java, LongDeserializer())
-            }
-        }
-    }
-
-    suspend fun fetchBackupFromWifi(address: String, deltaSince: Long? = null): Result<String> = withContext(Dispatchers.IO) {
-        try {
-            val fullUrl = buildWifiUrl(address, "/export").let { base ->
-                if (deltaSince != null) "$base?deltaSince=$deltaSince" else base
-            }
-            val response: String = client.get(fullUrl).body()
-            Result.success(response)
-        } catch (e: Exception) {
-            Log.e(WIFI_LOG, "Error fetching from Wi‑Fi", e)
-            Result.failure(e)
-        }
-    }
-
-    suspend fun pushUnsyncedToWifi(address: String): Result<Unit> = withContext(Dispatchers.IO) {
-        try {
-            val unsynced = localDataSource.getUnsyncedChanges()
-            if (isEmptyDatabaseContent(unsynced)) {
-                Result.success(Unit)
-            } else {
-                val fullUrl = buildWifiUrl(address, "/import")
-                val backupWrapper = FullAppBackup(database = unsynced)
-                val response = client.post(fullUrl) {
-                    contentType(ContentType.Application.Json)
-                    setBody(backupWrapper)
-                }
-                if (response.status.isSuccess()) {
-                    localDataSource.markSyncedNow(unsynced)
-                    Result.success(Unit)
-                } else {
-                    Result.failure(Exception("Сервер повернув помилку: ${response.status.value}"))
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(WIFI_LOG, "Push error", e)
-            Result.failure(e)
-        }
-    }
-
-    suspend fun createDeltaBackupJsonString(deltaSince: Long): String {
-        val changes = localDataSource.getChangesSince(deltaSince)
-        val enrichedCrossRefs = logicHelper.synthesizeMissingCrossRefs(
-            attachments = changes.attachments,
-            existingCrossRefs = changes.contextAttachmentCrossRefs,
-        )
-        val deltaBackup = FullAppBackup(
-            database = changes.copy(contextAttachmentCrossRefs = enrichedCrossRefs)
-        )
-        // Використовуємо Gson для ручної серіалізації в рядок
-        return com.google.gson.GsonBuilder().create().toJson(deltaBackup)
-    }
-
-    private suspend fun buildWifiUrl(address: String, path: String): String {
-        val cleanAddress = address.trim().let { if (it.startsWith("http")) it else "http://$it" }
-        val uri = cleanAddress.toUri()
-        val port = if (uri.port != -1) uri.port else settingsSource.wifiSyncPortFlow.first()
-        return "http://${uri.host}:$port$path"
-    }
-
-    private fun isEmptyDatabaseContent(content: DatabaseContent): Boolean {
-        return content.projects.isEmpty() &&
-                content.goals.isEmpty() &&
-                content.backlogItems.isEmpty() &&
-                content.attachments.isEmpty() &&
-                content.documents.isEmpty()
-    }
-}
-
-================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncWifiService.kt
-================================================================================
-
-## <<FILE_11>>
-================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/sync/src/main/java/com/romankozak/forwardappmobile/sync/WifiSyncRepository.kt (ID: FILE_11)
-================================================================================
-
-package com.romankozak.forwardappmobile.sync
-
-import com.romankozak.forwardappmobile.sync.SyncWifiService
-import javax.inject.Inject
-import javax.inject.Singleton
-
-/**
- * Repository responsible for Wi-Fi synchronization operations.
- * Delegates all Wi-Fi sync logic to SyncWifiService.
- */
-@Singleton
-class WifiSyncRepository @Inject constructor(
-    private val syncWifiService: SyncWifiService,
-) {
-    /**
-     * Fetches backup data from Wi-Fi server
-     * @param address Server address (with or without http://)
-     * @param deltaSince Optional timestamp to fetch only changes since that time
-     * @return Result with JSON backup string or error
-     */
-    suspend fun fetchBackupFromWifi(address: String, deltaSince: Long? = null): Result<String> =
-        syncWifiService.fetchBackupFromWifi(address, deltaSince)
-
-    /**
-     * Pushes unsynced local changes to Wi-Fi server
-     * @param address Server address
-     * @return Result with Unit on success or error
-     */
-    suspend fun pushUnsyncedToWifi(address: String): Result<Unit> =
-        syncWifiService.pushUnsyncedToWifi(address)
-
-    /**
-     * Creates delta backup JSON with changes since specified timestamp
-     * @param deltaSince Timestamp to get changes since
-     * @return JSON string with delta backup
-     */
-    suspend fun createDeltaBackupJsonString(deltaSince: Long): String =
-        syncWifiService.createDeltaBackupJsonString(deltaSince)
-}
-
-================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/sync/src/main/java/com/romankozak/forwardappmobile/sync/WifiSyncRepository.kt
+END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/sync/snapshot/SnapshotBundle.kt
 ================================================================================
 

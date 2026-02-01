@@ -5,6 +5,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.google.gson.annotations.SerializedName
 
 @Entity(
     tableName = "context_structures",
@@ -13,7 +14,8 @@ import androidx.room.PrimaryKey
 // File: ContextConfiguration.kt
 data class ContextConfiguration(
     @PrimaryKey val id: String,
-    val contextId: String,
+    @SerializedName(value = "contextId", alternate = ["projectId"])
+    val contextId: String = "",
     @ColumnInfo(name = "base_preset_code") val basePresetCode: String? = null,
     @ColumnInfo(name = "apply_mode") val applyMode: String = "ADDITIVE",
     @ColumnInfo(name = "enable_inbox") val enableInbox: Boolean? = null,
@@ -48,7 +50,8 @@ data class ContextConfiguration(
 // File: ContextConfiguration.kt
 data class ContextStructureItem(
     @PrimaryKey val id: String,
-    val contextStructureId: String,
+    @SerializedName(value = "contextStructureId", alternate = ["projectId", "contextId"])
+    val contextStructureId: String = "",
     val entityType: String,
     val roleCode: String,
     val containerType: String?,

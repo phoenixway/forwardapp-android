@@ -7,6 +7,7 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverter
 import com.google.gson.Gson
+import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
 import com.romankozak.forwardappmobile.core.data.models.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.Context
@@ -100,7 +101,7 @@ data class DayTask(
     val title: String,
     val description: String? = null,
     val goalId: String? = null,
-    val projectId: String? = null,
+    @SerializedName(value = "projectId", alternate = ["contextId"]) val projectId: String? = null,
     val activityRecordId: String? = null,
     val recurringTaskId: String? = null,
     val taskType: String? = null,

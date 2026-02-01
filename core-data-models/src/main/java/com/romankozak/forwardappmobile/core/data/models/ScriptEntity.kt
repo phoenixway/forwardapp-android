@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.google.gson.annotations.SerializedName
 import java.util.UUID
 
 @Entity(
@@ -23,6 +24,7 @@ import java.util.UUID
 )
 data class ScriptEntity(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
+    @SerializedName(value = "contextId", alternate = ["projectId"])
     val contextId: String? = null,
     val name: String,
     val description: String? = null,

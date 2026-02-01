@@ -5,6 +5,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.google.gson.annotations.SerializedName
 import java.util.UUID
 
 @Entity(
@@ -34,7 +35,8 @@ data class SystemAppEntity(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
     @ColumnInfo(name = "system_key") val systemKey: String,
     @ColumnInfo(name = "app_type") val appType: String = SystemAppType.NOTE_DOCUMENT.name,
-    @ColumnInfo(name = "context_id") val contextId: String,
+    @SerializedName(value = "contextId", alternate = ["projectId"])
+    @ColumnInfo(name = "context_id") val contextId: String = "",
     @ColumnInfo(name = "note_document_id") val noteDocumentId: String? = null,
     @ColumnInfo(name = "createdAt") val createdAt: Long = System.currentTimeMillis(),
     @ColumnInfo(name = "updatedAt") val updatedAt: Long = System.currentTimeMillis(),
