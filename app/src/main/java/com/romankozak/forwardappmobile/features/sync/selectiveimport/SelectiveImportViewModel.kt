@@ -101,13 +101,13 @@ class SelectiveImportViewModel
                 val selectedActivityRecords = contentToImport.activityRecords.filter { it.isSelected && it.isSelectable }.map { it.item }
                 val selectedListItems = contentToImport.backlogItems.filter { it.isSelected && it.isSelectable }.map { it.item }
                 val selectedBacklogOrders = contentToImport.backlogOrders.filter { it.isSelected && it.isSelectable }.map { it.item }
-                val selectedDocuments = contentToImport.documents.filter { it.isSelected && it.isSelectable }.map { it.item }
-                val selectedChecklists = contentToImport.checklists.filter { it.isSelected && it.isSelectable }.map { it.item }
-                val selectedLinkItems = contentToImport.linkItems.filter { it.isSelected && it.isSelectable }.map { it.item }
-                val selectedInboxRecords = contentToImport.inboxRecords.filter { it.isSelected && it.isSelectable }.map { it.item }
-                val selectedProjectExecutionLogs = contentToImport.contextLogs.filter { it.isSelected && it.isSelectable }.map { it.item }
-                val selectedScripts = contentToImport.scripts.filter { it.isSelected && it.isSelectable }.map { it.item }
-                val selectedAttachments = contentToImport.attachments.filter { it.isSelected && it.isSelectable }.map { it.item }
+                val selectedDocuments = contentToImport.documents.filter { it.isSelected && it.isSelectable }.map { it.item.toEntity() }
+                val selectedChecklists = contentToImport.checklists.filter { it.isSelected && it.isSelectable }.map { it.item.toEntity() }
+                val selectedLinkItems = contentToImport.linkItems.filter { it.isSelected && it.isSelectable }.map { it.item.toEntity() }
+                val selectedInboxRecords = contentToImport.inboxRecords.filter { it.isSelected && it.isSelectable }.map { it.item.toEntity() }
+                val selectedProjectExecutionLogs = contentToImport.contextLogs.filter { it.isSelected && it.isSelectable }.map { it.item.toEntity() }
+                val selectedScripts = contentToImport.scripts.filter { it.isSelected && it.isSelectable }.map { it.item.toEntity() }
+                val selectedAttachments = contentToImport.attachments.filter { it.isSelected && it.isSelectable }.map { it.item.toEntity() }
 
                 Log.d("IMPORT_DEBUG", "Total projects selected: ${selectedProjects.size}")
                 Log.d("IMPORT_DEBUG", "Projects with parents: ${selectedProjects.filter { it.parentId != null }.size}")
@@ -119,7 +119,7 @@ class SelectiveImportViewModel
                 Log.d("IMPORT_DEBUG", "Regular (non-system) projects: ${regularProjects.size}, System projects: $systemProjectsCount")
 
                 // Get all available projects from backup to check for parent references
-                val allBackupProjects = contentToImport.projects.map { it.item }
+                val allBackupProjects = contentToImport.projects.map { it.item.toEntity() }
                 val regularcontextIds = regularProjects.map { it.id }.toSet()
 
                 // Build map of all projects by ID to check their system status
@@ -175,7 +175,7 @@ class SelectiveImportViewModel
                     }
 
                 // Filter list items to only those linked to selected projects, goals, documents, checklists, legacy notes, scripts, inbox records
-                val allListItems = currentState.backupContent?.backlogItems?.map { it.item } ?: emptyList()
+                val allListItems = currentState.backupContent?.backlogItems?.map { it.item.toEntity() } ?: emptyList()
                 val filteredListItems =
                     allListItems.filter { listItem ->
                         listItem.contextId in selectedcontextIds ||
@@ -188,15 +188,15 @@ class SelectiveImportViewModel
                     }
 
                 // Filter document items to only those linked to selected documents
-                val allDocumentItems = currentState.backupContent?.documentItems ?: emptyList()
-                val filteredDocumentItems = allDocumentItems.map { it.item }.filter { it.listId in selectedDocumentIds }
+                val allDocumentItems = currentState.backupContent?.documentItems?.map { it.item.toEntity() } ?: emptyList()
+                val filteredDocumentItems = allDocumentItems.filter { it.listId in selectedDocumentIds }
 
                 // Filter checklist items to only those linked to selected checklists
-                val allChecklistItems = currentState.backupContent?.checklistItems ?: emptyList()
-                val filteredChecklistItems = allChecklistItems.map { it.item }.filter { it.checklistId in selectedChecklistIds }
+                val allChecklistItems = currentState.backupContent?.checklistItems?.map { it.item.toEntity() } ?: emptyList()
+                val filteredChecklistItems = allChecklistItems.filter { it.checklistId in selectedChecklistIds }
 
                 // Filter project attachment cross-refs to only those linked to selected projects and selected attachments
-                val allContextAttachmentCrossRefs = currentState.backupContent?.allContextAttachmentCrossRefs ?: emptyList()
+                val allContextAttachmentCrossRefs = currentState.backupContent?.allContextAttachmentCrossRefs?.map { it.toEntity() } ?: emptyList()
                 val filteredCrossRefs =
                     allContextAttachmentCrossRefs.filter { crossRef ->
                         crossRef.contextId in selectedcontextIds && crossRef.attachmentId in selectedAttachmentIds

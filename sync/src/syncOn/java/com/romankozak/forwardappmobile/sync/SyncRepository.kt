@@ -48,7 +48,7 @@ class SyncRepository @Inject constructor(
         return result
     }
 
-    override suspend fun createBackupDiff(incoming: DatabaseContent) =
+    override suspend fun createBackupDiff(incoming: DatabaseContent): LegacyBackupDiff =
         mergeRepository.createBackupDiff(incoming)
 
     override suspend fun importSelectedData(selectedData: DatabaseContent): Result<String> {
