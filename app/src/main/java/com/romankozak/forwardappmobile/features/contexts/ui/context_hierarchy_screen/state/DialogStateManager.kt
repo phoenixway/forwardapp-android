@@ -40,6 +40,10 @@ class DialogStateManager
             _dialogState.value = DialogState.ImportChoiceDialog(uri)
         }
 
+        fun onExportToFileRequested() {
+            _dialogState.value = DialogState.ExportChoiceDialog
+        }
+
         fun dismissDialog() {
             _dialogState.value = DialogState.Hidden
         }

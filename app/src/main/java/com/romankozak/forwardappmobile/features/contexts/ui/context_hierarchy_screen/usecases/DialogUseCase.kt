@@ -54,6 +54,10 @@ class DialogUseCase
             dialogStateManager.onImportFromFileRequested(uri)
         }
 
+        fun onExportToFileRequested() {
+            dialogStateManager.onExportToFileRequested()
+        }
+
         fun dismissDialog() {
             dialogStateManager.dismissDialog()
         }

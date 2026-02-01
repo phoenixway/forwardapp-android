@@ -529,16 +529,7 @@ class ContextHierarchyScreenViewModel
                     }
                 }
                 is ContextHierarchyScreenEvent.ExportToFile ->
-                    viewModelScope.launch {
-                        val result = contextActionsUseCase.exportToFile()
-                        _uiEventChannel.send(
-                            if (result.isSuccess) {
-                                ProjectUiEvent.ShowToast(result.getOrNull() ?: "Export successful")
-                            } else {
-                                ProjectUiEvent.ShowToast("Export error: ${result.exceptionOrNull()?.message}")
-                            },
-                        )
-                    }
+                    dialogUseCase.onExportToFileRequested()
                 is ContextHierarchyScreenEvent.ExportToFileV2 ->
                     viewModelScope.launch {
                         val result = contextActionsUseCase.exportToFileV2()

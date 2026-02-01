@@ -114,6 +114,26 @@ fun HandleProjectHierarchyDialogs(
             )
         }
 
+        is DialogState.ExportChoiceDialog -> {
+            AlertDialog(
+                onDismissRequest = { onEvent(ContextHierarchyScreenEvent.DismissDialog) },
+                title = { Text("Choose Export Version") },
+                text = { Text("Would you like to export a V1 (legacy) or V2 (snapshot) backup file?") },
+                confirmButton = {
+                    Row(horizontalArrangement = Arrangement.SpaceBetween) {
+                        Button(onClick = { onEvent(ContextHierarchyScreenEvent.ExportToFile) }) {
+                            Text("Export V1")
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Button(onClick = { onEvent(ContextHierarchyScreenEvent.ExportToFileV2) }) {
+                            Text("Export V2")
+                        }
+                    }
+                },
+                dismissButton = { TextButton(onClick = { onEvent(ContextHierarchyScreenEvent.DismissDialog) }) { Text("Cancel") } },
+            )
+        }
+
         is DialogState.EditProject -> {
             onEvent(ContextHierarchyScreenEvent.DismissDialog)
         }

@@ -45,6 +45,7 @@ sealed class DialogState {
     data class WifiServer(val serverState: String) : DialogState()
 
     data class WifiImport(val currentAddress: String) : DialogState()
+    data object ExportChoiceDialog : DialogState()
 }
 
 typealias ProjectHierarchyScreenDialogState = DialogState
