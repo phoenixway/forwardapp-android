@@ -70,11 +70,11 @@ class SelectiveImportViewModel
                             "IMPORT_SELECTIVE",
                             "Database contextAttachmentCrossRefs: ${dbContent.contextAttachmentCrossRefs.size}",
                         )
-                        val diff = syncRepository.createBackupDiff(dbContent) as LegacyBackupDiff
+                        val diff = syncRepository.createBackupDiff(dbContent)
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
-                                backupContent = diff.toSelectable(),
+                                backupContent = (diff as LegacyBackupDiff).toSelectable(),
                             )
                         }
                     }

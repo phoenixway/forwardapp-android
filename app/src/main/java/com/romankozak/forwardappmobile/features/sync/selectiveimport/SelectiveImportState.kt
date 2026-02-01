@@ -20,6 +20,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.BackupDiff
 import com.romankozak.forwardappmobile.core.data.models.sync.DiffResult
 import com.romankozak.forwardappmobile.core.data.models.sync.DiffStatus
 import com.romankozak.forwardappmobile.core.data.models.sync.UpdatedItem
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.toEntity
 
 data class SelectiveImportState(
     val isLoading: Boolean = true,
@@ -55,18 +56,19 @@ data class SelectableDiffItem<T>(
 )
 
 fun BackupDiff.toSelectable(): SelectableDatabaseContent {
-    fun <T> mapDiff(
+    fun <T, R> mapDiff(
         diff: DiffResult<T>,
+        toEntity: (T) -> R,
         updatedInfo: (UpdatedItem<T>) -> String? = { null },
-    ): List<SelectableDiffItem<T>> {
+    ): List<SelectableDiffItem<R>> {
         val newItems =
             diff.added.map {
-                SelectableDiffItem(item = it, status = DiffStatus.NEW, isSelected = true, isSelectable = true)
+                SelectableDiffItem(item = toEntity(it), status = DiffStatus.NEW, isSelected = true, isSelectable = true)
             }
         val updatedItems =
             diff.updated.map {
                 SelectableDiffItem(
-                    item = it.incoming,
+                    item = toEntity(it.incoming),
                     status = DiffStatus.UPDATED,
                     isSelected = true,
                     isSelectable = true,
@@ -75,13 +77,13 @@ fun BackupDiff.toSelectable(): SelectableDatabaseContent {
             }
         val deletedItems =
             diff.deleted.map {
-                SelectableDiffItem(item = it, status = DiffStatus.DELETED, isSelected = false, isSelectable = false)
+                SelectableDiffItem(item = toEntity(it), status = DiffStatus.DELETED, isSelected = false, isSelectable = false)
             }
         return newItems + updatedItems + deletedItems
     }
 
-    fun mapListItemDiff(diff: DiffResult<BacklogItem>): List<SelectableDiffItem<BacklogItem>> {
-        return mapDiff(diff) { updated ->
+    fun mapListItemDiff(diff: DiffResult<com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.context.BacklogItemSnapshot>): List<SelectableDiffItem<BacklogItem>> {
+        return mapDiff(diff, { it.toEntity() }) { updated ->
             val oldOrder = updated.local.order
             val newOrder = updated.incoming.order
             val orderChanged = oldOrder != newOrder
@@ -95,21 +97,21 @@ fun BackupDiff.toSelectable(): SelectableDatabaseContent {
     }
 
     return SelectableDatabaseContent(
-        projects = mapDiff(this.projects),
-        goals = mapDiff(this.goals),
-        legacyNotes = mapDiff(this.legacyNotes),
-        activityRecords = mapDiff(this.activityRecords),
+        projects = mapDiff(this.projects, { it.toEntity() }),
+        goals = mapDiff(this.goals, { it.toEntity() }),
+        legacyNotes = mapDiff(this.legacyNotes, { it.toEntity() }),
+        activityRecords = mapDiff(this.activityRecords, { it.toEntity() }),
         backlogItems = mapListItemDiff(this.backlogItems),
-        documents = mapDiff(this.documents),
-        documentItems = mapDiff(this.documentItems),
-        checklists = mapDiff(this.checklists),
-        checklistItems = mapDiff(this.checklistItems),
-        linkItems = mapDiff(this.linkItems),
-        inboxRecords = mapDiff(this.inboxRecords),
-        contextLogs = mapDiff(this.contextLogs),
-        scripts = mapDiff(this.scripts),
-        attachments = mapDiff(this.attachments),
-        backlogOrders = mapDiff(this.backlogOrders),
-        allContextAttachmentCrossRefs = this.contextAttachmentCrossRefs.added + this.contextAttachmentCrossRefs.updated.map { it.incoming },
+        documents = mapDiff(this.documents, { it.toEntity() }),
+        documentItems = mapDiff(this.documentItems, { it.toEntity() }),
+        checklists = mapDiff(this.checklists, { it.toEntity() }),
+        checklistItems = mapDiff(this.checklistItems, { it.toEntity() }),
+        linkItems = mapDiff(this.linkItems, { it.toEntity() }),
+        inboxRecords = mapDiff(this.inboxRecords, { it.toEntity() }),
+        contextLogs = mapDiff(this.contextLogs, { it.toEntity() }),
+        scripts = mapDiff(this.scripts, { it.toEntity() }),
+        attachments = mapDiff(this.attachments, { it.toEntity() }),
+        backlogOrders = mapDiff(this.backlogOrders, { it.toEntity() }),
+        allContextAttachmentCrossRefs = this.contextAttachmentCrossRefs.added.map { it.toEntity() } + this.contextAttachmentCrossRefs.updated.map { it.incoming.toEntity() },
     )
 }
