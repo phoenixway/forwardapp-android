@@ -144,7 +144,7 @@ class SyncFileServiceSnapshotTest {
         )
         coEvery { mockContext.contentResolver.openInputStream(uri) } returns inputStream
         coEvery { mockLegacyMigrationMapper.toSnapshotBundle(any()) } returns migratedSnapshot
-        coEvery { mockMergeRepository.applyServerChanges(any()) } returns Result.success(Unit)
+        coEvery { mockMergeRepository.applyServerChanges(any<DatabaseContent>()) } returns Result.success(Unit)
 
         // When
         val result = syncFileService.importFullBackupFromFileV2(uri)
@@ -180,7 +180,7 @@ class SyncFileServiceSnapshotTest {
         )
         coEvery { mockContext.contentResolver.openInputStream(uri) } returns inputStream
         coEvery { mockLegacyMigrationMapper.toSnapshotBundle(any()) } returns migratedSnapshot
-        coEvery { mockMergeRepository.applyServerChanges(any()) } returns Result.success(Unit)
+        coEvery { mockMergeRepository.applyServerChanges(any<SnapshotBundle>()) } returns Result.success(Unit)
 
 
         // When
