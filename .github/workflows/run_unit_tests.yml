@@ -1,0 +1,45 @@
+name: Run Unit Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch: # Дозволяє запускати тести вручну через 'gh workflow run'
+
+jobs:
+  test:
+    name: Run JVM Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Run Unit Tests
+        run: |
+          echo "Running local unit tests (JVM)..."
+          ./gradlew testExpDebugUnitTest --stacktrace
+
+      - name: Test Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-report
+          path: app/build/reports/tests/testExpDebugUnitTest/
+          retention-days: 7
+
+      - name: Hint for Failed Tests
+        if: failure()
+        run: |
+          echo "Unit tests failed. You can check the detailed HTML report in the artifacts."
+          echo "Use 'gh run view --log-failed ${{ github.run_id }}' to see why it failed."

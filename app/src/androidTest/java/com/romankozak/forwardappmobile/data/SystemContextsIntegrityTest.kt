@@ -9,13 +9,14 @@ import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.core.sync.FullBackupLocalDataSourceImpl
 import com.romankozak.forwardappmobile.features.contexts.data.DatabaseInitializer
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
+import com.romankozak.forwardappmobile.core.data.models.ContextId
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import com.google.common.truth.Truth.assertThat
 import io.mockk.mockk
 
 @RunWith(AndroidJUnit4::class)
@@ -33,9 +34,11 @@ class SystemContextsIntegrityTest {
             .allowMainThreadQueries()
             .build()
         contextDao = db.contextDao()
-        // DatabaseInitializer needs a ContextDao
-        databaseInitializer = DatabaseInitializer(contextDao, mockk(relaxed = true)) // Mock SystemAppRepository
-        // FullBackupLocalDataSourceImpl needs many DAOs and SystemContextEnsurer
+        
+        // DatabaseInitializer тепер приймає тільки ContextDao згідно з вашою помилкою
+        databaseInitializer = DatabaseInitializer(contextDao) 
+        
+        // Наповнюємо DataSource всіма необхідними DAO
         fullBackupLocalDataSource = FullBackupLocalDataSourceImpl(
             db = db,
             settingsRepository = mockk(relaxed = true),
@@ -53,7 +56,24 @@ class SystemContextsIntegrityTest {
             reminderDao = db.reminderDao(),
             tacticalMissionDao = db.tacticalMissionDao(),
             aiInsightDao = db.aiInsightDao(),
-            systemContextEnsurer = databaseInitializer // Provide the initializer as the ensurer
+            systemContextEnsurer = databaseInitializer,
+            // Додаємо нові DAO, яких не вистачало
+            legacyNoteDao = db.legacyNoteDao(),
+            backlogOrderDao = db.backlogOrderDao(),
+            contextArtifactDao = db.contextArtifactDao(),
+            scriptDao = db.scriptDao(),
+            inboxRecordDao = db.inboxRecordDao(),
+            contextManagementDao = db.contextManagementDao(),
+            systemAppDao = db.systemAppDao(),
+            activityRecordDao = db.activityRecordDao(),
+            linkItemDao = db.linkItemDao(),
+            conversationFolderDao = db.conversationFolderDao(),
+            recurringTaskDao = db.recurringTaskDao(),
+            aiEventDao = db.aiEventDao(),
+            lifeSystemStateDao = db.lifeSystemStateDao(),
+            structurePresetDao = db.structurePresetDao(),
+            structurePresetItemDao = db.structurePresetItemDao(),
+            contextStructureDao = db.contextStructureDao()
         )
     }
 
@@ -64,30 +84,40 @@ class SystemContextsIntegrityTest {
 
     @Test
     fun systemContextsAreEnsuredAfterFullRestore() = runBlocking {
-        // 1. Initial state: System contexts exist
+        // 1. Початковий стан
         databaseInitializer.ensureAllSystemContextsExist()
-        var initialContexts = contextDao.getAllContextsFlow().first()
-        assertThat(initialContexts.size).isAtLeast(SystemContexts.ALL.size)
+        val initialContexts = contextDao.getAllContextsFlow().first()
+        
+        assertTrue("Size should be at least system contexts size", 
+            initialContexts.size >= SystemContexts.ALL.size)
+            
         SystemContexts.ALL.forEach { systemContext ->
-            assertThat(initialContexts.any { it.id == systemContext.id.value }).isTrue()
+            assertTrue("System context ${systemContext.id} missing",
+                initialContexts.any { it.id == systemContext.id.value })
         }
 
-        // 2. Simulate a backup that *lacks* system contexts
+        // 2. Симуляція бекапу без системних контекстів
         val contentBeforeRestore = fullBackupLocalDataSource.loadFullDatabaseContent()
         val contentWithoutSystemContexts = contentBeforeRestore.copy(
-            projects = contentBeforeRestore.projects.filterNot { SystemContexts.isSystem(it.id) }
+            projects = contentBeforeRestore.projects.filterNot { 
+                SystemContexts.isSystem(ContextId(it.id)) // Обгортаємо String в ContextId
+            }
         )
-        // Verify that the simulated backup indeed lacks system contexts
-        assertThat(contentWithoutSystemContexts.projects.any { SystemContexts.isSystem(it.id) }).isFalse()
+        
+        assertTrue("Backup should not contain system contexts",
+            contentWithoutSystemContexts.projects.none { SystemContexts.isSystem(ContextId(it.id)) })
 
-        // 3. Perform the restore
+        // 3. Відновлення (тут спрацює ваша логіка ensureAllSystemContextsExist)
         fullBackupLocalDataSource.restoreDatabaseFromBackup(contentWithoutSystemContexts)
 
-        // 4. Verify system contexts are present after restore
+        // 4. Перевірка результату
         val contextsAfterRestore = contextDao.getAllContextsFlow().first()
-        assertThat(contextsAfterRestore.size).isAtLeast(SystemContexts.ALL.size)
+        assertTrue("System contexts should be restored after process", 
+            contextsAfterRestore.size >= SystemContexts.ALL.size)
+            
         SystemContexts.ALL.forEach { systemContext ->
-            assertThat(contextsAfterRestore.any { it.id == systemContext.id.value }).isTrue()
+            assertTrue("System context ${systemContext.id} must be present after restore",
+                contextsAfterRestore.any { it.id == systemContext.id.value })
         }
     }
 }
