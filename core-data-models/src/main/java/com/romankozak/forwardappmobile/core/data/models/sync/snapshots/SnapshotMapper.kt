@@ -171,15 +171,8 @@ fun ContextAttachmentCrossRefSnapshot.toEntity(): ContextAttachmentCrossRef =
 
 
 
-// AI Mappings
-/*fun ConversationFolderEntity.toSnapshot(): ConversationFolderSnapshot =
-    ConversationFolderSnapshot(id, name)
-fun ConversationFolderSnapshot.toEntity(): ConversationFolderEntity =
-    ConversationFolderEntity(id, name)
 
-fun AiEventEntity.toSnapshot(): AiEventSnapshot = AiEventSnapshot(id, type, timestamp, payload)
-fun AiEventSnapshot.toEntity(): AiEventEntity = AiEventEntity(id, type, timestamp, payload)
-*/
+
 
 
 fun LinkItemEntity.toSnapshot(): LinkItemEntitySnapshot = LinkItemEntitySnapshot(

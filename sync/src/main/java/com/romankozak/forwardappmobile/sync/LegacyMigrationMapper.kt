@@ -19,7 +19,6 @@ class LegacyMigrationMapper @Inject constructor() {
             goals = databaseContent.goals.map { it.toSnapshot() },
             backlogItems = databaseContent.backlogItems.map { it.toSnapshot() },
             backlogOrders = databaseContent.backlogOrders.map { it.toSnapshot() },
-            notes = databaseContent.legacyNotes.map { it.toSnapshot() },
             documents = databaseContent.documents.map { it.toSnapshot() },
             checklists = databaseContent.checklists.map { it.toSnapshot() },
             checklistItems = databaseContent.checklistItems.map { it.toSnapshot() },
