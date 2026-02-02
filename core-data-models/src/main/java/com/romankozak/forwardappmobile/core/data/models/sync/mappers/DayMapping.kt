@@ -1,200 +1,204 @@
 package com.romankozak.forwardappmobile.core.data.models.sync.mappers
 
-import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DailyMetric
-import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayPlan
-import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
-import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceFrequency
-import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceRule
-import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurringTask
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DailyMetricSnapshot
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayPlanSnapshot
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayTaskSnapshot
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.RecurrenceRuleSnapshot
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.RecurringTaskSnapshot
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.*
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.*
 import java.time.DayOfWeek
 
-// Day Management Mappings
+// --- DayPlan Mappings ---
 fun DayPlan.toSnapshot(): DayPlanSnapshot = DayPlanSnapshot(
-    id,
-    date,
-    name,
-    status.name,
-    reflection,
-    energyLevel,
-    mood,
-    weatherConditions,
-    totalPlannedMinutes,
-    totalCompletedMinutes,
-    completionPercentage,
-    createdAt,
-    updatedAt ?: createdAt,
-    isDeleted,
-    version
-)
-fun DayPlanSnapshot.toEntity(): DayPlan = DayPlan(
-    id,
-    date,
-    name,
-    enumValueOf(status),
-    reflection,
-    energyLevel,
-    mood,
-    weatherConditions,
-    totalPlannedMinutes,
-    totalCompletedMinutes,
-    completionPercentage,
-    createdAt,
-    updatedAt,
+    id = id,
+    date = date,
+    name = name,
+    status = status.name,
+    reflection = reflection,
+    energyLevel = energyLevel,
+    mood = mood,
+    weatherConditions = weatherConditions,
+    totalPlannedMinutes = totalPlannedMinutes,
+    totalCompletedMinutes = totalCompletedMinutes,
+    completionPercentage = completionPercentage,
+    createdAt = createdAt,
+    // Використовуємо логіку updatedAt ?: createdAt для надійної синхронізації
+    updatedAt = updatedAt ?: createdAt,
     isDeleted = isDeleted,
-    version = version
+    version = version,
 )
 
-fun DayTask.toSnapshot(): DayTaskSnapshot = DayTaskSnapshot(
-    id,
-    dayPlanId,
-    title,
-    description,
-    goalId,
-    projectId,
-    activityRecordId,
-    recurringTaskId,
-    taskType,
-    entityId,
-    order,
-    priority.name,
-    status.name,
-    completed,
-    scheduledTime,
-    estimatedDurationMinutes,
-    actualDurationMinutes,
-    dueTime,
-    valueImportance,
-    valueImpact,
-    effort,
-    cost,
-    risk,
-    location,
-    tags,
-    notes,
-    createdAt,
-    updatedAt ?: createdAt,
-    isDeleted,
-    version,
-    completedAt,
-    nextOccurrenceTime,
-    points
+fun DayPlanSnapshot.toEntity(): DayPlan = DayPlan(
+    id = id,
+    date = date,
+    name = name,
+    status = enumValueOf(status),
+    reflection = reflection,
+    energyLevel = energyLevel,
+    mood = mood,
+    weatherConditions = weatherConditions,
+    totalPlannedMinutes = totalPlannedMinutes,
+    totalCompletedMinutes = totalCompletedMinutes,
+    completionPercentage = completionPercentage,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    isDeleted = isDeleted,
+    version = version,
 )
-fun DayTaskSnapshot.toEntity(): DayTask = DayTask(
-    id,
-    dayPlanId,
-    title,
-    description,
-    goalId,
-    projectId,
-    activityRecordId,
-    recurringTaskId,
-    taskType,
-    entityId,
-    order,
-    enumValueOf(priority),
-    enumValueOf(status),
-    completed,
-    scheduledTime,
-    estimatedDurationMinutes,
-    actualDurationMinutes,
-    dueTime,
-    valueImportance,
-    valueImpact,
-    effort,
-    cost,
-    risk,
-    location,
-    tags,
-    notes,
-    createdAt,
-    updatedAt,
+
+// --- DayTask Mappings ---
+fun DayTask.toSnapshot(): DayTaskSnapshot = DayTaskSnapshot(
+    id = id,
+    dayPlanId = dayPlanId,
+    title = title,
+    description = description,
+    goalId = goalId,
+    projectId = projectId,
+    activityRecordId = activityRecordId,
+    recurringTaskId = recurringTaskId,
+    taskType = taskType,
+    entityId = entityId,
+    order = order,
+    priority = priority.name,
+    status = status.name,
+    completed = completed,
+    scheduledTime = scheduledTime,
+    estimatedDurationMinutes = estimatedDurationMinutes,
+    actualDurationMinutes = actualDurationMinutes,
+    dueTime = dueTime,
+    valueImportance = valueImportance,
+    valueImpact = valueImpact,
+    effort = effort,
+    cost = cost,
+    risk = risk,
+    location = location,
+    tags = tags,
+    notes = notes,
+    createdAt = createdAt,
+    updatedAt = updatedAt ?: createdAt,
     isDeleted = isDeleted,
     version = version,
     completedAt = completedAt,
     nextOccurrenceTime = nextOccurrenceTime,
-    points = points
+    points = points,
 )
 
-fun DailyMetric.toSnapshot(): DailyMetricSnapshot = DailyMetricSnapshot(
-    id,
-    dayPlanId,
-    date,
-    tasksPlanned,
-    tasksCompleted,
-    completionRate,
-    totalPlannedTime,
-    totalActiveTime,
-    completedPoints,
-    totalBreakTime,
-    morningEnergyLevel,
-    eveningEnergyLevel,
-    overallMood,
-    stressLevel,
-    customMetrics,
-    createdAt,
-    updatedAt ?: createdAt,
-    isDeleted,
-    version
-)
-fun DailyMetricSnapshot.toEntity(): DailyMetric = DailyMetric(
-    id,
-    dayPlanId,
-    date,
-    tasksPlanned,
-    tasksCompleted,
-    completionRate,
-    totalPlannedTime,
-    totalActiveTime,
-    completedPoints,
-    totalBreakTime,
-    morningEnergyLevel,
-    eveningEnergyLevel,
-    overallMood,
-    stressLevel,
-    customMetrics,
-    createdAt,
-    updatedAt,
+fun DayTaskSnapshot.toEntity(): DayTask = DayTask(
+    id = id,
+    dayPlanId = dayPlanId,
+    title = title,
+    description = description,
+    goalId = goalId,
+    projectId = projectId,
+    activityRecordId = activityRecordId,
+    recurringTaskId = recurringTaskId,
+    taskType = taskType,
+    entityId = entityId,
+    order = order,
+    priority = enumValueOf(priority),
+    status = enumValueOf(status),
+    completed = completed,
+    scheduledTime = scheduledTime,
+    estimatedDurationMinutes = estimatedDurationMinutes,
+    actualDurationMinutes = actualDurationMinutes,
+    dueTime = dueTime,
+    valueImportance = valueImportance,
+    valueImpact = valueImpact,
+    effort = effort,
+    cost = cost,
+    risk = risk,
+    location = location,
+    tags = tags,
+    notes = notes,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
     isDeleted = isDeleted,
-    version = version
+    version = version,
+    completedAt = completedAt,
+    nextOccurrenceTime = nextOccurrenceTime,
+    points = points,
 )
 
-fun RecurrenceRule.toSnapshot(): RecurrenceRuleSnapshot =
-    RecurrenceRuleSnapshot(frequency.name, interval, daysOfWeek?.map { it.name })
-// Безпечний мапінг
+// --- DailyMetric Mappings ---
+fun DailyMetric.toSnapshot(): DailyMetricSnapshot = DailyMetricSnapshot(
+    id = id,
+    dayPlanId = dayPlanId,
+    date = date,
+    tasksPlanned = tasksPlanned,
+    tasksCompleted = tasksCompleted,
+    completionRate = completionRate,
+    totalPlannedTime = totalPlannedTime,
+    totalActiveTime = totalActiveTime,
+    completedPoints = completedPoints,
+    totalBreakTime = totalBreakTime,
+    morningEnergyLevel = morningEnergyLevel,
+    eveningEnergyLevel = eveningEnergyLevel,
+    overallMood = overallMood,
+    stressLevel = stressLevel,
+    customMetrics = customMetrics,
+    createdAt = createdAt,
+    updatedAt = updatedAt ?: createdAt,
+    isDeleted = isDeleted,
+    version = version,
+)
+
+fun DailyMetricSnapshot.toEntity(): DailyMetric = DailyMetric(
+    id = id,
+    dayPlanId = dayPlanId,
+    date = date,
+    tasksPlanned = tasksPlanned,
+    tasksCompleted = tasksCompleted,
+    completionRate = completionRate,
+    totalPlannedTime = totalPlannedTime,
+    totalActiveTime = totalActiveTime,
+    completedPoints = completedPoints,
+    totalBreakTime = totalBreakTime,
+    morningEnergyLevel = morningEnergyLevel,
+    eveningEnergyLevel = eveningEnergyLevel,
+    overallMood = overallMood,
+    stressLevel = stressLevel,
+    customMetrics = customMetrics,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    isDeleted = isDeleted,
+    version = version,
+)
+
+// --- RecurrenceRule Mapping (Виправлено values() -> entries) ---
+fun RecurrenceRule.toSnapshot(): RecurrenceRuleSnapshot = RecurrenceRuleSnapshot(
+    frequency = frequency.name,
+    interval = interval,
+    daysOfWeek = daysOfWeek?.map { it.name },
+)
+
 fun RecurrenceRuleSnapshot.toEntity(): RecurrenceRule = RecurrenceRule(
-    frequency = RecurrenceFrequency.values().find { it.name == frequency }
+    frequency = RecurrenceFrequency.entries.find { it.name == frequency }
         ?: RecurrenceFrequency.DAILY,
     interval = interval,
     daysOfWeek = daysOfWeek?.mapNotNull { dayString ->
-        DayOfWeek.values().find { it.name == dayString }
-    }
+        DayOfWeek.entries.find { it.name == dayString }
+    },
 )
+
+// --- RecurringTask Mappings ---
 fun RecurringTask.toSnapshot(): RecurringTaskSnapshot = RecurringTaskSnapshot(
-    id,
-    title,
-    description,
-    goalId,
-    duration,
-    priority.name,
-    points,
-    recurrenceRule.toSnapshot(),
-    startDate,
-    endDate
+    id = id,
+    title = title,
+    description = description,
+    goalId = goalId,
+    duration = duration,
+    priority = priority.name,
+    points = points,
+    recurrenceRule = recurrenceRule.toSnapshot(),
+    startDate = startDate,
+    endDate = endDate,
 )
+
 fun RecurringTaskSnapshot.toEntity(): RecurringTask = RecurringTask(
-    id,
-    title,
-    description,
-    goalId,
-    duration,
-    enumValueOf(priority),
-    points,
-    recurrenceRule.toEntity(),
-    startDate,
-    endDate
+    id = id,
+    title = title,
+    description = description,
+    goalId = goalId,
+    duration = duration,
+    priority = enumValueOf(priority),
+    points = points,
+    recurrenceRule = recurrenceRule.toEntity(),
+    startDate = startDate,
+    endDate = endDate,
 )

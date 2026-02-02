@@ -1,7 +1,6 @@
 package com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management
 
 import com.google.gson.annotations.SerializedName
-
 data class DailyMetricSnapshot(
     @SerializedName("id") val id: String,
     @SerializedName("dayPlanId") val dayPlanId: String,
@@ -21,5 +20,5 @@ data class DailyMetricSnapshot(
     @SerializedName("createdAt") val createdAt: Long,
     @SerializedName("updatedAt") val updatedAt: Long,
     @SerializedName("isDeleted") val isDeleted: Boolean,
-    @SerializedName("version") val version: Long
+    @SerializedName("version") val version: Long,
 )

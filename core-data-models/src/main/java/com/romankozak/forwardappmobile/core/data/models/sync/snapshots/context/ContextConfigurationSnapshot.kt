@@ -1,23 +1,24 @@
 package com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context
 
+import com.google.gson.annotations.SerializedName
+
 /**
  * Снапшот конфігурації функцій конкретного контексту.
  */
 data class ContextConfigurationSnapshot(
-    val id: String,
-    val contextId: String,
-    val basePresetCode: String?,
-    val applyMode: String, // "ADDITIVE" тощо
-    // Прапорці увімкнення модулів
-    val enableInbox: Boolean?,
-    val enableLog: Boolean?,
-    val enableArtifact: Boolean?,
-    val enableAdvanced: Boolean?,
-    val enableDashboard: Boolean?,
-    val enableBacklog: Boolean?,
-    val enableAttachments: Boolean?,
-    val enableAutoLinkSubprojects: Boolean?,
-    val version: Long,
-    val updatedAt: Long,
-    val isDeleted: Boolean
+    @SerializedName("id") val id: String,
+    @SerializedName("contextId") val contextId: String,
+    @SerializedName("basePresetCode") val basePresetCode: String,
+    @SerializedName("applyMode") val applyMode: String,
+    @SerializedName("enableInbox") val enableInbox: Boolean,
+    @SerializedName("enableLog") val enableLog: Boolean,
+    @SerializedName("enableArtifact") val enableArtifact: Boolean,
+    @SerializedName("enableAdvanced") val enableAdvanced: Boolean,
+    @SerializedName("enableDashboard") val enableDashboard: Boolean,
+    @SerializedName("enableBacklog") val enableBacklog: Boolean,
+    @SerializedName("enableAttachments") val enableAttachments: Boolean,
+    @SerializedName("enableAutoLinkSubprojects") val enableAutoLinkSubprojects: Boolean,
+    @SerializedName("version") val version: Long,
+    @SerializedName("updatedAt") val updatedAt: Long,
+    @SerializedName("isDeleted") val isDeleted: Boolean,
 )

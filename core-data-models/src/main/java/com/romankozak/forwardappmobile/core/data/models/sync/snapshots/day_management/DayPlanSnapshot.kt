@@ -17,5 +17,5 @@ data class DayPlanSnapshot(
     @SerializedName("createdAt") val createdAt: Long,
     @SerializedName("updatedAt") val updatedAt: Long,
     @SerializedName("isDeleted") val isDeleted: Boolean,
-    @SerializedName("version") val version: Long
+    @SerializedName("version") val version: Long,
 )

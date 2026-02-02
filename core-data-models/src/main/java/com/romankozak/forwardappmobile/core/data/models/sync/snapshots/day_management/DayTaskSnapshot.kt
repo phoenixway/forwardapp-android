@@ -13,7 +13,7 @@ data class DayTaskSnapshot(
     @SerializedName("recurringTaskId") val recurringTaskId: String?,
     @SerializedName("taskType") val taskType: String?,
     @SerializedName("entityId") val entityId: String?,
-    @SerializedName("order") val order: Long,
+    @SerializedName("order") val order: Long, // Entity: Long
     @SerializedName("priority") val priority: String,
     @SerializedName("status") val status: String,
     @SerializedName("completed") val completed: Boolean,
@@ -35,5 +35,5 @@ data class DayTaskSnapshot(
     @SerializedName("version") val version: Long,
     @SerializedName("completedAt") val completedAt: Long?,
     @SerializedName("nextOccurrenceTime") val nextOccurrenceTime: Long?,
-    @SerializedName("points") val points: Int
+    @SerializedName("points") val points: Int,
 )
