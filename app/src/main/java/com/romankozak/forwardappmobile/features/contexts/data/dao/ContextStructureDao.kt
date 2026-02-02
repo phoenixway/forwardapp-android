@@ -6,8 +6,8 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
-import com.romankozak.forwardappmobile.core.data.models.ContextConfiguration
-import com.romankozak.forwardappmobile.core.data.models.ContextStructureItem
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextStructureItem
 import kotlinx.coroutines.flow.Flow
 
 data class ContextStructureWithItems(

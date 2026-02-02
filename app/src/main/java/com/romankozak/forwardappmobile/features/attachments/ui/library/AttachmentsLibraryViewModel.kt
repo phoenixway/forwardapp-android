@@ -1,14 +1,13 @@
 package com.romankozak.forwardappmobile.features.attachments.ui.library
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.config.FeatureToggles
-import com.romankozak.forwardappmobile.core.data.models.BacklogItemTypeValues
-import com.romankozak.forwardappmobile.core.data.models.Context
-import com.romankozak.forwardappmobile.core.data.models.ContextAttachmentCrossRef
-import com.romankozak.forwardappmobile.core.data.models.RelatedLink
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextAttachmentCrossRef
+import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.sync.*
 import dagger.hilt.android.lifecycle.HiltViewModel

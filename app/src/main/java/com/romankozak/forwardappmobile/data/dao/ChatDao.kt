@@ -6,9 +6,9 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
-import com.romankozak.forwardappmobile.core.data.models.ai.ChatMessageEntity
-import com.romankozak.forwardappmobile.core.data.models.ai.ConversationEntity
-import com.romankozak.forwardappmobile.core.data.models.ai.ConversationWithLastMessage
+import com.romankozak.forwardappmobile.core.data.models.entities.ai.ChatMessageEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.ai.ConversationEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.ai.ConversationWithLastMessage
 import kotlinx.coroutines.flow.Flow
 
 @Dao

@@ -1,13 +1,12 @@
 package com.romankozak.forwardappmobile.data.repository
 
-import android.util.Log
-import com.romankozak.forwardappmobile.core.data.models.BacklogItemTypeValues
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
-import com.romankozak.forwardappmobile.core.data.models.BacklogItem
-import com.romankozak.forwardappmobile.core.data.models.Goal
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
+import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.sync.bumpSync
 import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
 import kotlinx.coroutines.flow.Flow

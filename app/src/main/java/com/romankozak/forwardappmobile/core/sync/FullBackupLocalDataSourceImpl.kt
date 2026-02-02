@@ -4,9 +4,9 @@ import android.util.Log
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.interfaces.SystemContextEnsurer
 import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.SnapshotBundle
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.toEntity
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.toSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.toEntity
+import com.romankozak.forwardappmobile.core.data.models.sync.toSnapshot
 import com.romankozak.forwardappmobile.data.dao.*
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.database.AppDatabase

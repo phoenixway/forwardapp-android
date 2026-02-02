@@ -62,7 +62,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.core.data.models.tactical.TacticalMission
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import java.text.SimpleDateFormat
 import java.util.*
 

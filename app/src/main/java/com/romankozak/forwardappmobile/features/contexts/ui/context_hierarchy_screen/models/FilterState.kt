@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models
 
-import com.romankozak.forwardappmobile.core.data.models.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
 
 data class FilterState(
     val flatList: List<Context>,

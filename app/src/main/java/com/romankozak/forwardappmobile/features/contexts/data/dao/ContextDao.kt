@@ -6,9 +6,9 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
-import com.romankozak.forwardappmobile.core.data.models.Context
-import com.romankozak.forwardappmobile.core.data.models.GlobalContextSearchResult
-import com.romankozak.forwardappmobile.core.data.models.GlobalSubcontextSearchResult
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.GlobalContextSearchResult
+import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSubcontextSearchResult
 import kotlinx.coroutines.flow.Flow
 
 @Dao

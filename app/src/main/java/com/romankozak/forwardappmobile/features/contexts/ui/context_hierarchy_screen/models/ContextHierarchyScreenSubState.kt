@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 
 import android.net.Uri
 import android.os.Parcelable
-import com.romankozak.forwardappmobile.core.data.models.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import kotlinx.parcelize.Parcelize
 
 @Parcelize

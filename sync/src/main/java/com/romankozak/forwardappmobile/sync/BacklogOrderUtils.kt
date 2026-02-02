@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.sync
 
-import com.romankozak.forwardappmobile.core.data.models.BacklogItem
-import com.romankozak.forwardappmobile.core.data.models.BacklogOrder
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogOrder
 
 object BacklogOrderUtils {
     private fun orderKey(order: BacklogOrder): String = order.id ?: "${order.listId}:${order.itemId}"

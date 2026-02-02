@@ -55,4 +55,6 @@ app/src/main/java/com/romankozak/forwardappmobile/features/ai/chat/Mappers.kt
 
 ## Stages
 
-### 1.Stage 1. Provide snapshots data classes based on enteties data model.
+### 1.Stage 1: Provide snapshots data classes based on enteties data model.
+Done.
+### 2. Stage: provide mappers

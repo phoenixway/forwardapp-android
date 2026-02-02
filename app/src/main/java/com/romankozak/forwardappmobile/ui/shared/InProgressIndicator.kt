@@ -32,7 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.core.data.models.ActivityRecord
+import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 
 @Composable
 fun InProgressIndicator(

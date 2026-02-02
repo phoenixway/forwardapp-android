@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.features.missions.domain.usecase
 
-import com.romankozak.forwardappmobile.core.data.models.tactical.TacticalMission
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionRepository
 import javax.inject.Inject
 

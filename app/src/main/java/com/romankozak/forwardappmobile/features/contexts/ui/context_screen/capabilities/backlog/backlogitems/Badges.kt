@@ -34,7 +34,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.romankozak.forwardappmobile.core.data.models.ScoringStatusValues
+import com.romankozak.forwardappmobile.core.data.models.entities.ScoringStatusValues
 
 @Composable
 fun EnhancedScoreStatusBadge(

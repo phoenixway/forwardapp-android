@@ -13,7 +13,7 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.romankozak.forwardappmobile.BuildConfig
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
-import com.romankozak.forwardappmobile.core.data.models.Reminder
+import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.text.SimpleDateFormat
 import java.util.Date

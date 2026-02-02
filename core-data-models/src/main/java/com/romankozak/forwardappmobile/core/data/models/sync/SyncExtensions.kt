@@ -1,7 +1,7 @@
 // core-data-models/.../models/SyncExtensions.kt
 /*package com.romankozak.forwardappmobile.core.data.models.sync
 
-import com.romankozak.forwardappmobile.core.data.models.NoteDocumentEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity
 import com.romankozak.forwardappmobile.core.data.models.NoteDocumentItemEntity
 
 fun NoteDocumentEntity.softDelete(now: Long) = this.copy(

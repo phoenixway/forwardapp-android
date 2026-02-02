@@ -38,8 +38,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
-import com.romankozak.forwardappmobile.core.data.models.ActivityRecord
-import com.romankozak.forwardappmobile.core.data.models.ai.AiInsightEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
+import com.romankozak.forwardappmobile.core.data.models.entities.ai.AiInsightEntity
 import com.romankozak.forwardappmobile.features.ai.data.repository.AiInsightRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted

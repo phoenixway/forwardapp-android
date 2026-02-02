@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.core.utils
 
-import com.romankozak.forwardappmobile.core.data.models.Context
-import com.romankozak.forwardappmobile.core.data.models.ContextHierarchyData
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextHierarchyData
 
 object HierarchyFilter {
     fun filter(

@@ -1,9 +1,9 @@
 package com.romankozak.forwardappmobile.data
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.romankozak.forwardappmobile.core.data.models.ActivityRecord
-import com.romankozak.forwardappmobile.core.data.models.ChecklistEntity
-import com.romankozak.forwardappmobile.core.data.models.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
+import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.sync.SyncMapper
 import org.junit.Assert.*

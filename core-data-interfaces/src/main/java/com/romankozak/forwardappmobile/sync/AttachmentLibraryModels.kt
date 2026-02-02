@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.sync
 
-import com.romankozak.forwardappmobile.core.data.models.RelatedLink
+import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 
 
 enum class AttachmentLibraryType {

@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.features.sync.selectiveimport
 
-import com.romankozak.forwardappmobile.core.data.models.BacklogItem
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.sync.DiffResult
 import com.romankozak.forwardappmobile.core.data.models.sync.DiffStatus
 import com.romankozak.forwardappmobile.core.data.models.sync.LegacyBackupDiff

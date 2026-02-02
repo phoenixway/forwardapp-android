@@ -59,8 +59,8 @@ import com.romankozak.forwardappmobile.features.mainscreen.CharacterScreen
 import com.romankozak.forwardappmobile.features.mainscreen.MainScreenLayout
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
-import com.romankozak.forwardappmobile.core.data.models.RecentItem
-import com.romankozak.forwardappmobile.core.data.models.RecentItemType
+import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
+import com.romankozak.forwardappmobile.core.data.models.entities.RecentItemType
 import com.romankozak.forwardappmobile.features.mainscreen.CommandDeckEvent
 import com.romankozak.forwardappmobile.features.reminders.list.RemindersScreen
 import com.romankozak.forwardappmobile.features.settings.ManageContextsScreen

@@ -1,23 +1,23 @@
 package com.romankozak.forwardappmobile.core.data.models.sync
 
-import com.romankozak.forwardappmobile.core.data.models.ActivityRecord
-import com.romankozak.forwardappmobile.core.data.models.AttachmentEntity
-import com.romankozak.forwardappmobile.core.data.models.BacklogItem
-import com.romankozak.forwardappmobile.core.data.models.ChecklistEntity
-import com.romankozak.forwardappmobile.core.data.models.ChecklistItemEntity
-import com.romankozak.forwardappmobile.core.data.models.Context
-import com.romankozak.forwardappmobile.core.data.models.ContextAttachmentCrossRef
-import com.romankozak.forwardappmobile.core.data.models.ContextLog
-import com.romankozak.forwardappmobile.core.data.models.Goal
-import com.romankozak.forwardappmobile.core.data.models.InboxRecord
-import com.romankozak.forwardappmobile.core.data.models.LegacyNoteEntity
-import com.romankozak.forwardappmobile.core.data.models.LinkItemEntity
-import com.romankozak.forwardappmobile.core.data.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.core.data.models.Reminder
-import com.romankozak.forwardappmobile.core.data.models.ScriptEntity
-import com.romankozak.forwardappmobile.core.data.models.day_management.DailyMetric
-import com.romankozak.forwardappmobile.core.data.models.day_management.DayPlan
-import com.romankozak.forwardappmobile.core.data.models.day_management.DayTask
+import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
+import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
+import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistItemEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextAttachmentCrossRef
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
+import com.romankozak.forwardappmobile.core.data.models.entities.Goal
+import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecord
+import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.LinkItemEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
+import com.romankozak.forwardappmobile.core.data.models.entities.ScriptEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DailyMetric
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayPlan
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
 
 private inline fun bumpVersion(version: Long) = if (version == Long.MAX_VALUE) version else version + 1
 

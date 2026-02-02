@@ -28,9 +28,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.core.data.models.Context
-import com.romankozak.forwardappmobile.core.data.models.ContextStatusValues
-import com.romankozak.forwardappmobile.core.data.models.ContextViewMode
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextStatusValues
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 
 import kotlinx.coroutines.delay
 

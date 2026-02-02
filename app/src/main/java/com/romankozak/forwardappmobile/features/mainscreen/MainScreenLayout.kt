@@ -1,6 +1,5 @@
 package com.romankozak.forwardappmobile.features.mainscreen
 
-import com.romankozak.forwardappmobile.features.mainscreen.CommandDeckViewModel
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -39,7 +38,7 @@ import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementSc
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
-import com.romankozak.forwardappmobile.core.data.models.RecentItem
+import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.features.strategicmanagement.StrategicManagementScreen
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckHeaderPreset

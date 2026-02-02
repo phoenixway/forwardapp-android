@@ -1,12 +1,13 @@
 // Модуль :core-data-interfaces
 package com.romankozak.forwardappmobile.sync.datasource
 
-import com.romankozak.forwardappmobile.core.data.models.Context
-import com.romankozak.forwardappmobile.core.data.models.Goal
-import com.romankozak.forwardappmobile.core.data.models.AttachmentEntity
-import com.romankozak.forwardappmobile.core.data.models.BacklogItem
-import com.romankozak.forwardappmobile.core.data.models.ContextAttachmentCrossRef
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.Goal
+import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
+import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.SyncChange
 
 interface MergeLocalDataSource {
@@ -28,5 +29,5 @@ interface MergeLocalDataSource {
         attachments: List<AttachmentEntity>,
         crossRefs: List<ContextAttachmentCrossRef>
     )
-    suspend fun applySnapshotBundle(bundle: com.romankozak.forwardappmobile.core.data.models.sync.snapshot.SnapshotBundle)
+    suspend fun applySnapshotBundle(bundle: SnapshotBundle)
 }

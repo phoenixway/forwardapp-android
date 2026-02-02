@@ -1,9 +1,9 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel
 
-import com.romankozak.forwardappmobile.core.data.models.BacklogItemContent
-import com.romankozak.forwardappmobile.core.data.models.Context
-import com.romankozak.forwardappmobile.core.data.models.ContextStatusValues
-import com.romankozak.forwardappmobile.core.data.models.ContextLog
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextStatusValues
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.BacklogMarkdownHandlerResultListener
 import java.text.SimpleDateFormat
 import java.util.Date

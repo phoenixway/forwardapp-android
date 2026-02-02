@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.sync
 
-import com.romankozak.forwardappmobile.core.data.models.Context
-import com.romankozak.forwardappmobile.core.data.models.Goal
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import org.junit.Before
 import org.junit.Test

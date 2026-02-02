@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.data.repository
 
 import com.romankozak.forwardappmobile.domain.ai.events.AiEvent
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao
-import com.romankozak.forwardappmobile.core.data.models.ai.AiEventEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.ai.AiEventEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json

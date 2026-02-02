@@ -48,8 +48,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.core.data.models.ContextRoleProfile
-import com.romankozak.forwardappmobile.core.data.models.ContextStructureItem
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextStructureItem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

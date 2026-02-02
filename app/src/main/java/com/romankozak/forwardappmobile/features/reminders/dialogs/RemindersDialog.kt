@@ -22,8 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import com.romankozak.forwardappmobile.core.data.models.BacklogItemContent
-import com.romankozak.forwardappmobile.core.data.models.Reminder
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
+import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.features.reminders.util.ReminderTextUtil
 import com.romankozak.forwardappmobile.features.reminders.viewmodel.ReminderViewModel
 

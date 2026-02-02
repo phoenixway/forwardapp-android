@@ -3,9 +3,9 @@ package com.romankozak.forwardappmobile.features.daymanagement.ui.daydashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
-import com.romankozak.forwardappmobile.core.data.models.day_management.DailyMetric
-import com.romankozak.forwardappmobile.core.data.models.day_management.DayPlan
-import com.romankozak.forwardappmobile.core.data.models.day_management.DayTask
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DailyMetric
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayPlan
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch

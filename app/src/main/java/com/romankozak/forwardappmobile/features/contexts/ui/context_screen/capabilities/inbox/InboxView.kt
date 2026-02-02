@@ -5,7 +5,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
-import com.romankozak.forwardappmobile.core.data.models.InboxRecord
+import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecord
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.BacklogViewModel
 
 @Composable

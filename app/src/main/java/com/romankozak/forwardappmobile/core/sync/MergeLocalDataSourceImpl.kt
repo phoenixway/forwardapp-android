@@ -2,11 +2,10 @@ package com.romankozak.forwardappmobile.core.sync
 
 import android.util.Log
 import androidx.room.withTransaction
-import com.romankozak.forwardappmobile.core.data.models.*
 import com.romankozak.forwardappmobile.core.data.models.sync.ChangeType
 import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.core.data.models.sync.SyncChange
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.data.dao.*
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao
@@ -15,11 +14,13 @@ import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.*
 import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
 import com.romankozak.forwardappmobile.sync.datasource.MergeLocalDataSource
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.toEntity
-import com.romankozak.forwardappmobile.core.data.models.AttachmentEntity
-import com.romankozak.forwardappmobile.core.data.models.BacklogItemTypeValues
-import com.romankozak.forwardappmobile.core.data.models.ContextAttachmentCrossRef
-import java.util.UUID
+import com.romankozak.forwardappmobile.core.data.models.sync.toEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextAttachmentCrossRef
+import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import javax.inject.Inject
 import javax.inject.Singleton
 

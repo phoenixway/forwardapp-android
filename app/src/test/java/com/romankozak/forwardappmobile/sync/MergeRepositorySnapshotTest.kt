@@ -1,20 +1,17 @@
 package com.romankozak.forwardappmobile.sync
 
-import com.romankozak.forwardappmobile.core.data.models.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.sync.ChangeType
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.SnapshotBundle
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.toSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.toSnapshot
 import com.romankozak.forwardappmobile.sync.datasource.MergeLocalDataSource
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
 import org.junit.Test
-import com.google.common.truth.Truth
 import com.google.common.truth.Truth.assertThat
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.context.ContextSnapshot
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.context.GoalSnapshot
-import com.romankozak.forwardappmobile.core.data.models.Goal
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextSnapshot
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
 
 

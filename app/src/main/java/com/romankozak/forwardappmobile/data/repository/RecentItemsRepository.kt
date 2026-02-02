@@ -2,13 +2,13 @@ package com.romankozak.forwardappmobile.data.repository
 
 import android.util.Log
 import com.romankozak.forwardappmobile.data.dao.RecentItemDao
-import com.romankozak.forwardappmobile.core.data.models.ChecklistEntity
-import com.romankozak.forwardappmobile.core.data.models.LegacyNoteEntity
-import com.romankozak.forwardappmobile.core.data.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.core.data.models.Context
-import com.romankozak.forwardappmobile.core.data.models.RelatedLink
-import com.romankozak.forwardappmobile.core.data.models.RecentItem
-import com.romankozak.forwardappmobile.core.data.models.RecentItemType
+import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
+import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
+import com.romankozak.forwardappmobile.core.data.models.entities.RecentItemType
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton

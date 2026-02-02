@@ -1,10 +1,10 @@
 package com.romankozak.forwardappmobile.sync.datasource
 
-import com.romankozak.forwardappmobile.core.data.models.AttachmentEntity
-import com.romankozak.forwardappmobile.core.data.models.AttachmentWithContext
-import com.romankozak.forwardappmobile.core.data.models.AttachmentsBackup
-import com.romankozak.forwardappmobile.core.data.models.ContextAttachmentCrossRef
-import com.romankozak.forwardappmobile.core.data.models.RelatedLink
+import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentWithContext
+import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentsBackup
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextAttachmentCrossRef
+import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.sync.AttachmentLibraryQueryResult
 import kotlinx.coroutines.flow.Flow
 

@@ -1,9 +1,8 @@
 package com.romankozak.forwardappmobile.data.repository
 
-import com.romankozak.forwardappmobile.core.data.models.BacklogItemTypeValues
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.data.dao.ScriptDao
-import com.romankozak.forwardappmobile.sync.AttachmentsRepository // Updated import
-import com.romankozak.forwardappmobile.core.data.models.ScriptEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.ScriptEntity
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject

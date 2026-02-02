@@ -56,7 +56,7 @@ import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.config.FeatureToggles
-import com.romankozak.forwardappmobile.core.data.models.ContextViewMode
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import com.romankozak.forwardappmobile.core.theme.LocalInputPanelColors
 import com.romankozak.forwardappmobile.domain.ner.ReminderParseResult
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Button

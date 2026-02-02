@@ -4,9 +4,9 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructu
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureWithItems
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
-import com.romankozak.forwardappmobile.core.data.models.ContextConfiguration
-import com.romankozak.forwardappmobile.core.data.models.ContextRoleProfileItem
-import com.romankozak.forwardappmobile.core.data.models.ContextStructureItem
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfileItem
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextStructureItem
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import java.util.UUID

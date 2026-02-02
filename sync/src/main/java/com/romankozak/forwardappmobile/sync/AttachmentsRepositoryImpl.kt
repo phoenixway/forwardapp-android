@@ -4,11 +4,11 @@ import android.net.Uri
 import android.util.Log
 import com.google.gson.GsonBuilder
 import com.romankozak.forwardappmobile.core.data.interfaces.sync.IContentProvider
-import com.romankozak.forwardappmobile.core.data.models.AttachmentEntity
-import com.romankozak.forwardappmobile.core.data.models.AttachmentWithContext
-import com.romankozak.forwardappmobile.core.data.models.AttachmentsBackup
-import com.romankozak.forwardappmobile.core.data.models.ContextAttachmentCrossRef
-import com.romankozak.forwardappmobile.core.data.models.RelatedLink
+import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentWithContext
+import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentsBackup
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextAttachmentCrossRef
+import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.sync.datasource.AttachmentsLocalDataSource
 import java.text.SimpleDateFormat
 import java.util.*

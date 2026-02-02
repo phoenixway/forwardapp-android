@@ -4,7 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import com.romankozak.forwardappmobile.core.data.models.RecentItem
+import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import kotlinx.coroutines.flow.Flow
 
 @Dao

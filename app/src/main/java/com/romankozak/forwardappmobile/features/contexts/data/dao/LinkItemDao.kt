@@ -5,9 +5,9 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
-import com.romankozak.forwardappmobile.core.data.models.BacklogItem
-import com.romankozak.forwardappmobile.core.data.models.GlobalLinkSearchResult
-import com.romankozak.forwardappmobile.core.data.models.LinkItemEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
+import com.romankozak.forwardappmobile.core.data.models.entities.GlobalLinkSearchResult
+import com.romankozak.forwardappmobile.core.data.models.entities.LinkItemEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao

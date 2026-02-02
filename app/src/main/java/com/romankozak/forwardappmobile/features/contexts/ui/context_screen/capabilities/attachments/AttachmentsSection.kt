@@ -23,7 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.core.data.models.BacklogItemContent
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
 
 enum class AttachmentType {
     NOTES,

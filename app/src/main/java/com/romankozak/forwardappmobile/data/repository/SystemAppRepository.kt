@@ -1,13 +1,12 @@
 package com.romankozak.forwardappmobile.data.repository
 
-import com.romankozak.forwardappmobile.core.data.models.BacklogItemTypeValues
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.data.dao.SystemAppDao
-import com.romankozak.forwardappmobile.sync.AttachmentsRepository // Updated import
-import com.romankozak.forwardappmobile.core.data.models.NoteDocumentEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
-import com.romankozak.forwardappmobile.core.data.models.SystemAppEntity
-import com.romankozak.forwardappmobile.core.data.models.SystemAppType
+import com.romankozak.forwardappmobile.core.data.models.entities.SystemAppEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.SystemAppType
 import javax.inject.Inject
 import javax.inject.Singleton
 

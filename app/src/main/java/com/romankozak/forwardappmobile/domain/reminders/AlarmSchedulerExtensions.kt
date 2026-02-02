@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.domain.reminders
 
-import com.romankozak.forwardappmobile.core.data.models.ActivityRecord
+import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale

@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.sync
 
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import javax.inject.Inject
 import javax.inject.Singleton
 

@@ -58,7 +58,7 @@ import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.core.data.models.ContextViewMode
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import com.romankozak.forwardappmobile.ui.common.components.ShareDialog
 import com.romankozak.forwardappmobile.ui.common.editor.components.ExperimentalEnhancedListToolbar
 import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEditorEvent

@@ -2,9 +2,9 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 
 import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
-import com.romankozak.forwardappmobile.core.data.models.ActivityRecord
-import com.romankozak.forwardappmobile.core.data.models.ContextHierarchyData
-import com.romankozak.forwardappmobile.core.data.models.RecentItem
+import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextHierarchyData
+import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.features.sync.WifiSyncStatus
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 

@@ -26,8 +26,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.romankozak.forwardappmobile.core.data.models.tactical.TacticalMission
-import com.romankozak.forwardappmobile.core.data.models.tactical.MissionStatus
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
 import java.text.SimpleDateFormat
 import java.util.*
 

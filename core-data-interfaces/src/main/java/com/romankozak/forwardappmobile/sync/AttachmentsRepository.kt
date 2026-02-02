@@ -2,10 +2,10 @@
 package com.romankozak.forwardappmobile.sync
 
 import android.net.Uri
-import com.romankozak.forwardappmobile.core.data.models.AttachmentEntity
-import com.romankozak.forwardappmobile.core.data.models.AttachmentWithContext
-import com.romankozak.forwardappmobile.core.data.models.ContextAttachmentCrossRef
-import com.romankozak.forwardappmobile.core.data.models.RelatedLink
+import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentWithContext
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextAttachmentCrossRef
+import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import kotlinx.coroutines.flow.Flow
 
 interface AttachmentsRepository {

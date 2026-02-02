@@ -10,7 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.core.data.models.ContextLog
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
 
 @Composable
 fun EditLogEntryDialog(

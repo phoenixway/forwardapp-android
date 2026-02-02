@@ -1,18 +1,34 @@
 package com.romankozak.forwardappmobile.core.data.models.sync
 
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.activity.ActivityRecordSnapshot
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.attachments.*
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.context.*
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.day_management.DailyMetricSnapshot
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.day_management.DayPlanSnapshot
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.day_management.DayTaskSnapshot
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.day_management.RecurringTaskSnapshot
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.misc.*
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.reminders.ReminderSnapshot
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.tactical.TacticalMissionAttachmentCrossRefSnapshot
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.tactical.TacticalMissionSnapshot
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.ai.AiEventSnapshot
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.ai.AiInsightSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.activity.ActivityRecordSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DailyMetricSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayPlanSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayTaskSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.RecurringTaskSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.reminders.ReminderSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.tactical.tactical.TacticalMissionAttachmentCrossRefSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.tactical.tactical.TacticalMissionSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.ai.AiEventSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.ai.AiInsightSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.AttachmentSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.ChecklistItemSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.ChecklistSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.ContextAttachmentCrossRefSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.LegacyNoteSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.NoteDocumentSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.ScriptSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.BacklogItemSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.BacklogOrderSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextConfigurationSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextLogSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextRoleProfileItemSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextRoleProfileSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextStructureItemSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.GoalSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.InboxRecordSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.LinkItemEntitySnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.LifeSystemStateSnapshot
 
 enum class DiffStatus { NEW, UPDATED, DELETED }
 

@@ -43,10 +43,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.core.data.models.Context
-import com.romankozak.forwardappmobile.core.data.models.LinkType
-import com.romankozak.forwardappmobile.core.data.models.RelatedLink
-import com.romankozak.forwardappmobile.core.data.models.ScoringStatusValues
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
+import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
+import com.romankozak.forwardappmobile.core.data.models.entities.ScoringStatusValues
 
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.AnimatedContextEmoji
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.EnhancedReminderBadge
@@ -54,7 +54,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.compo
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.ModernTagChip
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.NoteIndicatorBadge
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.TagType
-import com.romankozak.forwardappmobile.core.data.models.Reminder
+import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import kotlinx.coroutines.delay
 

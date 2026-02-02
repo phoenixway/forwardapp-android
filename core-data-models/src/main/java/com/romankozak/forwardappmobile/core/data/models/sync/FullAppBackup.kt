@@ -12,5 +12,5 @@ data class FullAppBackup(
     @SerializedName(value = "settings", alternate = ["d"])
     val settings: SettingsContent? = null,
     @SerializedName(value = "snapshotBundle", alternate = ["e"])
-    val snapshotBundle: com.romankozak.forwardappmobile.core.data.models.sync.snapshot.SnapshotBundle? = null
+    val snapshotBundle: SnapshotBundle? = null
 )

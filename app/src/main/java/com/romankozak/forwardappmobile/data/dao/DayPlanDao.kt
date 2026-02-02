@@ -2,8 +2,8 @@
 package com.romankozak.forwardappmobile.data.dao
 
 import androidx.room.*
-import com.romankozak.forwardappmobile.core.data.models.DayStatus
-import com.romankozak.forwardappmobile.core.data.models.day_management.DayPlan
+import com.romankozak.forwardappmobile.core.data.models.entities.DayStatus
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayPlan
 import kotlinx.coroutines.flow.Flow
 
 @Dao

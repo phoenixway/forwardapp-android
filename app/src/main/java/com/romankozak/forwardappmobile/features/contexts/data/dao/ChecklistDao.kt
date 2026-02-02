@@ -5,8 +5,8 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-import com.romankozak.forwardappmobile.core.data.models.ChecklistEntity
-import com.romankozak.forwardappmobile.core.data.models.ChecklistItemEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistItemEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao

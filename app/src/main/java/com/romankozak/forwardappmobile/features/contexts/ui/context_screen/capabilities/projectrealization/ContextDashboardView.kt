@@ -5,10 +5,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import com.romankozak.forwardappmobile.core.data.models.Context
-import com.romankozak.forwardappmobile.core.data.models.ContextArtifact
-import com.romankozak.forwardappmobile.core.data.models.ContextLog
-import com.romankozak.forwardappmobile.core.data.models.ContextTimeMetrics
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextArtifact
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextTimeMetrics
 
 @Composable
 fun ProjectDashboardView(

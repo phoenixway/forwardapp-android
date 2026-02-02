@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.sync.datasource
 
 import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 
 interface FullBackupLocalDataSource {
     // === Legacy Methods ===

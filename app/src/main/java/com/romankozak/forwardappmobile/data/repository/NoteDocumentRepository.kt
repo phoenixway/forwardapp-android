@@ -2,11 +2,11 @@ package com.romankozak.forwardappmobile.data.repository
 
 import android.util.Log
 import androidx.room.Transaction
-import com.romankozak.forwardappmobile.core.data.models.BacklogItemTypeValues
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.data.legacy.toNoteDocument
 import com.romankozak.forwardappmobile.domain.ai.events.SystemNoteUpdatedEvent
-import com.romankozak.forwardappmobile.core.data.models.LegacyNoteEntity
-import com.romankozak.forwardappmobile.core.data.models.NoteDocumentEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.bumpSync
 import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
 import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao

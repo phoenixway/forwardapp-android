@@ -5,7 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-import com.romankozak.forwardappmobile.core.data.models.LegacyNoteEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao

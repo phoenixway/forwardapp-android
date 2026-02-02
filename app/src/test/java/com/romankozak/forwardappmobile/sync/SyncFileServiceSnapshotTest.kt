@@ -4,10 +4,11 @@ import com.google.common.truth.Truth.assertThat
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonSyntaxException
 import com.romankozak.forwardappmobile.core.data.interfaces.sync.IContentProvider
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.SnapshotBundle
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.context.ContextSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextSnapshot
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
 import io.mockk.*
 import kotlinx.coroutines.runBlocking
@@ -68,16 +69,40 @@ class SyncFileServiceSnapshotTest {
     private fun createLegacyFormatJson(): String {
         val dbContent = DatabaseContent(
             projects = listOf(
-                com.romankozak.forwardappmobile.core.data.models.Context(
-                    id = "legacy_c1", name = "Legacy Context", createdAt = 50L, updatedAt = 50L,
-                    parentId = null, description = null, isExpanded = false, isDeleted = false, version = 0,
-                    tags = emptyList(), relatedLinks = emptyList(), order = 0L, isAttachmentsExpanded = false,
-                    defaultViewModeName = null, isCompleted = false, isContextManagementEnabled = false,
-                    contextStatus = "NO_PLAN", contextStatusText = null, contextLogLevel = null,
-                    totalTimeSpentMinutes = null, valueImportance = 0f, valueImpact = 0f, effort = 0f,
-                    cost = 0f, risk = 0f, weightEffort = 1f, weightCost = 1f, weightRisk = 1f,
-                    rawScore = 0f, displayScore = 0, scoringStatus = "NOT_ASSESSED",
-                    showCheckboxes = false, roleCode = null
+                Context(
+                    id = "legacy_c1",
+                    name = "Legacy Context",
+                    createdAt = 50L,
+                    updatedAt = 50L,
+                    parentId = null,
+                    description = null,
+                    isExpanded = false,
+                    isDeleted = false,
+                    version = 0,
+                    tags = emptyList(),
+                    relatedLinks = emptyList(),
+                    order = 0L,
+                    isAttachmentsExpanded = false,
+                    defaultViewModeName = null,
+                    isCompleted = false,
+                    isContextManagementEnabled = false,
+                    contextStatus = "NO_PLAN",
+                    contextStatusText = null,
+                    contextLogLevel = null,
+                    totalTimeSpentMinutes = null,
+                    valueImportance = 0f,
+                    valueImpact = 0f,
+                    effort = 0f,
+                    cost = 0f,
+                    risk = 0f,
+                    weightEffort = 1f,
+                    weightCost = 1f,
+                    weightRisk = 1f,
+                    rawScore = 0f,
+                    displayScore = 0,
+                    scoringStatus = "NOT_ASSESSED",
+                    showCheckboxes = false,
+                    roleCode = null
                 )
             )
         )
@@ -93,16 +118,40 @@ class SyncFileServiceSnapshotTest {
     private fun createOldDatabaseContentJson(): String {
         val dbContent = DatabaseContent(
             projects = listOf(
-                com.romankozak.forwardappmobile.core.data.models.Context(
-                    id = "raw_c1", name = "Raw DB Content", createdAt = 20L, updatedAt = 20L,
-                    parentId = null, description = null, isExpanded = false, isDeleted = false, version = 0,
-                    tags = emptyList(), relatedLinks = emptyList(), order = 0L, isAttachmentsExpanded = false,
-                    defaultViewModeName = null, isCompleted = false, isContextManagementEnabled = false,
-                    contextStatus = "NO_PLAN", contextStatusText = null, contextLogLevel = null,
-                    totalTimeSpentMinutes = null, valueImportance = 0f, valueImpact = 0f, effort = 0f,
-                    cost = 0f, risk = 0f, weightEffort = 1f, weightCost = 1f, weightRisk = 1f,
-                    rawScore = 0f, displayScore = 0, scoringStatus = "NOT_ASSESSED",
-                    showCheckboxes = false, roleCode = null
+                Context(
+                    id = "raw_c1",
+                    name = "Raw DB Content",
+                    createdAt = 20L,
+                    updatedAt = 20L,
+                    parentId = null,
+                    description = null,
+                    isExpanded = false,
+                    isDeleted = false,
+                    version = 0,
+                    tags = emptyList(),
+                    relatedLinks = emptyList(),
+                    order = 0L,
+                    isAttachmentsExpanded = false,
+                    defaultViewModeName = null,
+                    isCompleted = false,
+                    isContextManagementEnabled = false,
+                    contextStatus = "NO_PLAN",
+                    contextStatusText = null,
+                    contextLogLevel = null,
+                    totalTimeSpentMinutes = null,
+                    valueImportance = 0f,
+                    valueImpact = 0f,
+                    effort = 0f,
+                    cost = 0f,
+                    risk = 0f,
+                    weightEffort = 1f,
+                    weightCost = 1f,
+                    weightRisk = 1f,
+                    rawScore = 0f,
+                    displayScore = 0,
+                    scoringStatus = "NOT_ASSESSED",
+                    showCheckboxes = false,
+                    roleCode = null
                 )
             )
         )

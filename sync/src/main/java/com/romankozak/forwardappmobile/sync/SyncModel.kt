@@ -1,7 +1,10 @@
 package com.romankozak.forwardappmobile.sync
 
 import com.google.gson.annotations.SerializedName
-import com.romankozak.forwardappmobile.core.data.models.ScoringStatusValues
+import com.romankozak.forwardappmobile.core.data.models.entities.ScoringStatusValues
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 
 data class DesktopGoal(
     val id: String,
@@ -73,9 +76,9 @@ data class DesktopBackupFile(
 )
 
 data class BackupData(
-    val goalLists: List<com.romankozak.forwardappmobile.core.data.models.Context>,
-    val goals: List<com.romankozak.forwardappmobile.core.data.models.Goal>,
-    val backlogItems: List<com.romankozak.forwardappmobile.core.data.models.BacklogItem>,
+    val goalLists: List<Context>,
+    val goals: List<Goal>,
+    val backlogItems: List<BacklogItem>,
 )
 
 data class BackupFile(

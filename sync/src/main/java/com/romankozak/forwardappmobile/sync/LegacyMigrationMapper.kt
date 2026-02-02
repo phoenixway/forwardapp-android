@@ -1,16 +1,8 @@
 package com.romankozak.forwardappmobile.sync
 
 import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.SnapshotBundle
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.activity.*
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.ai.*
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.attachments.*
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.context.*
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.day_management.*
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.misc.*
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.reminders.*
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.entities.tactical.*
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshot.toSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.toSnapshot
 import javax.inject.Inject
 import javax.inject.Singleton
 

@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.view
 
 import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
-import com.romankozak.forwardappmobile.core.data.models.InboxRecord
+import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecord
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*

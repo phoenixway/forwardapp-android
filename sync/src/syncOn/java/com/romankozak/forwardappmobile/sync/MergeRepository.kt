@@ -3,7 +3,6 @@ package com.romankozak.forwardappmobile.sync
 
 import android.util.Log
 import com.google.gson.GsonBuilder
-import com.romankozak.forwardappmobile.core.data.models.*
 import com.romankozak.forwardappmobile.core.data.models.sync.*
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
 import javax.inject.Inject
@@ -151,7 +150,7 @@ class MergeRepository @Inject constructor(
         }
     }
 
-suspend fun createBackupDiff(incoming: com.romankozak.forwardappmobile.core.data.models.sync.snapshot.SnapshotBundle): BackupDiff {
+suspend fun createBackupDiff(incoming: SnapshotBundle): BackupDiff {
         val local = fullBackupLocalDataSource.loadFullSnapshotBundle()
         return BackupDiff(
             projects = logicHelper.diffEntities(incoming.contexts, local.contexts, { project -> project.id }, { project -> project.version }, { project -> project.updatedAt }),
@@ -163,7 +162,7 @@ suspend fun createBackupDiff(incoming: com.romankozak.forwardappmobile.core.data
         )
     }
 
-suspend fun createSyncReport(bundle: com.romankozak.forwardappmobile.core.data.models.sync.snapshot.SnapshotBundle): SyncReport {
+suspend fun createSyncReport(bundle: SnapshotBundle): SyncReport {
         val localBundle = fullBackupLocalDataSource.loadFullSnapshotBundle()
         val changes = mutableListOf<SyncChange>()
 
@@ -185,7 +184,7 @@ suspend fun createSyncReport(bundle: com.romankozak.forwardappmobile.core.data.m
         return SyncReport(changes)
     }
 
-    suspend fun applyServerChanges(bundle: com.romankozak.forwardappmobile.core.data.models.sync.snapshot.SnapshotBundle): Result<Unit> {
+    suspend fun applyServerChanges(bundle: SnapshotBundle): Result<Unit> {
         val ts = System.currentTimeMillis()
         return try {
             mergeLocalDataSource.applySnapshotBundle(bundle)
