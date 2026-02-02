@@ -58,37 +58,54 @@ fun ContextRoleProfileItem.toSnapshot(): ContextRoleProfileItemSnapshot = Contex
     isDeleted = isDeleted,
 )
 
+// File: StructureMapping.kt
+
 fun ContextRoleProfileItemSnapshot.toEntity(): ContextRoleProfileItem = ContextRoleProfileItem(
     id = id,
     presetId = presetId,
     entityType = entityType,
-    roleCode = roleCode,
+    // ВИПРАВЛЕНО: Додаємо fallback, бо Snapshot дає String?, а Entity хоче String
+    roleCode = roleCode ?: "",
+
+    // Тут помилки не буде: Snapshot дає String, що легко "вкладається" в String? сутності
     containerType = containerType,
+
     title = title,
     mandatory = mandatory,
-    itemOrder = 0, // Fallback order
+    itemOrder = 0, // Fallback order, як ви і вказали
     version = version,
     updatedAt = updatedAt,
     isDeleted = isDeleted,
 )
 
 // --- ContextConfiguration Mappings ---
+// File: StructureMapping.kt
+
 fun ContextConfiguration.toSnapshot(): ContextConfigurationSnapshot = ContextConfigurationSnapshot(
-    id = id,
-    contextId = contextId,
-    basePresetCode = basePresetCode,
-    applyMode = applyMode ?: "DEFAULT", // String? -> String
-    enableInbox = enableInbox ?: false,
-    enableLog = enableLog ?: false,
-    enableArtifact = enableArtifact ?: false,
-    enableAdvanced = enableAdvanced ?: false,
-    enableDashboard = enableDashboard ?: false,
-    enableBacklog = enableBacklog ?: false,
-    enableAttachments = enableAttachments ?: false,
-    enableAutoLinkSubprojects = enableAutoLinkSubprojects ?: false,
-    version = version,
-    updatedAt = updatedAt,
-    isDeleted = isDeleted,
+    id = this.id,
+    contextId = this.contextId,
+    // ВИПРАВЛЕНО: Entity має String?, а Snapshot очікує String.
+    // Додаємо значення за замовчуванням (fallback).
+    basePresetCode = this.basePresetCode ?: "DEFAULT",
+
+    // ВИПРАВЛЕНО: IDE каже, що applyMode в Entity вже є non-nullable String.
+    // Тому оператор ?: "DEFAULT" тут зайвий (Redundant).
+    applyMode = this.applyMode,
+
+    // Якщо ці поля в Entity є nullable (Boolean?), залишаємо ?: false.
+    // Якщо вони non-nullable, можна прибрати ?: false, як у випадку з applyMode.
+    enableInbox = this.enableInbox ?: false,
+    enableLog = this.enableLog ?: false,
+    enableArtifact = this.enableArtifact ?: false,
+    enableAdvanced = this.enableAdvanced ?: false,
+    enableDashboard = this.enableDashboard ?: false,
+    enableBacklog = this.enableBacklog ?: false,
+    enableAttachments = this.enableAttachments ?: false,
+    enableAutoLinkSubprojects = this.enableAutoLinkSubprojects ?: false,
+
+    version = this.version,
+    updatedAt = this.updatedAt,
+    isDeleted = this.isDeleted
 )
 
 fun ContextConfigurationSnapshot.toEntity(): ContextConfiguration = ContextConfiguration(
