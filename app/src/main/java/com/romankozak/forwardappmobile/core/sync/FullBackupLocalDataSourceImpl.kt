@@ -88,15 +88,16 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
             activityRecords = activityRecordDao.getAllRaw().map { it.toSnapshot() },
             dayPlans = dayPlanDao.getAllPlansSync().map { it.toSnapshot() },
             dayTasks = dayTaskDao.getAllTasksSync().map { it.toSnapshot() },
-            dailyMetrics = dailyMetricDao.getAllRaw().map { it.toSnapshot() },
-            recurringTasks = recurringTaskDao.getAllRaw().map { it.toSnapshot() },
+            // У loadFullSnapshotBundle()
+            dailyMetrics = dailyMetricDao.getAll().map { it.toSnapshot() }, // Змінено getAllRaw -> getAll
+            recurringTasks = recurringTaskDao.getAll().map { it.toSnapshot() }, // Ймовірно, там теж getAll()
 
             // AI Domain
             conversations = chatDao.getAllConversationsSync().map { it.toSnapshot() },
             chatMessages = chatDao.getAllMessagesSync().map { it.toSnapshot() },
-            conversationFolders = conversationFolderDao.getAllRaw().map { it.toSnapshot() },
-            aiInsights = aiInsightDao.getAllRaw().map { it.toSnapshot() },
-            aiEvents = aiEventDao.getAllRaw().map { it.toSnapshot() },
+            conversationFolders = conversationFolderDao.getAllSync().map { it.toSnapshot() },
+            aiInsights = aiInsightDao.getAllSync().map { it.toSnapshot() },
+            aiEvents = aiEventDao.getAllSync().map { it.toSnapshot() },
 
             // System & Tactical
             tacticalMissions = tacticalMissionDao.getAllMissionsSync().map { it.toSnapshot() },
