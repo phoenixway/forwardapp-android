@@ -13,6 +13,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.SyncChange
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toEntity
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.toEntity
 import com.romankozak.forwardappmobile.data.dao.*
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao
@@ -74,7 +75,7 @@ class MergeLocalDataSourceImpl
                 contextAttachmentCrossRefs = attachmentDao.getAllContextAttachmentCrossRefs(),
                 dayPlans = dayPlanDao.getAllPlansSync(),
                 dayTasks = dayTaskDao.getAllTasksSync(),
-                dailyMetrics = dailyMetricDao.getAllMetricsSync(),
+                dailyMetrics = dailyMetricDao.getAll(),
                 conversations = chatDao.getAllConversationsSync(),
                 chatMessages = chatDao.getAllMessagesSync(),
                 reminders = reminderDao.getAllRemindersSync(),
@@ -222,7 +223,6 @@ class MergeLocalDataSourceImpl
 
                 listItemDao.insertItems(bundle.backlogItems.map { it.toEntity() })
                 backlogOrderDao.insertAll(bundle.backlogOrders.map { it.toEntity() })
-                legacyNoteDao.insertAll(bundle.notes.map { it.toEntity() })
                 checklistDao.insertItems(bundle.checklistItems.map { it.toEntity() })
                 contextArtifactDao.insertAll(bundle.artifacts.map { it.toEntity() })
                 scriptDao.insertAll(bundle.scripts.map { it.toEntity() })

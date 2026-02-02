@@ -56,7 +56,7 @@ interface DailyMetricDao {
 
     // --- Backup Methods ---
     @Query("SELECT * FROM daily_metrics")
-    suspend fun getAllMetricsSync(): List<DailyMetric>
+    suspend fun getAll(): List<DailyMetric>
 
     @Query("DELETE FROM daily_metrics")
     suspend fun deleteAllMetrics()

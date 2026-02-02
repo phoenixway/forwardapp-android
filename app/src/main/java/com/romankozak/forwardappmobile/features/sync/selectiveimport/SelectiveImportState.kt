@@ -21,6 +21,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.DiffStatus
 import com.romankozak.forwardappmobile.core.data.models.sync.UpdatedItem
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.BacklogItemSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.toEntity
 
 data class SelectiveImportState(
     val isLoading: Boolean = true,
@@ -98,7 +99,6 @@ fun BackupDiff.toSelectable(): SelectableDatabaseContent {
     return SelectableDatabaseContent(
         projects = mapDiff(this.projects, { it.toEntity() }),
         goals = mapDiff(this.goals, { it.toEntity() }),
-        legacyNotes = mapDiff(this.legacyNotes, { it.toEntity() }),
         activityRecords = mapDiff(this.activityRecords, { it.toEntity() }),
         backlogItems = mapListItemDiff(this.backlogItems),
         documents = mapDiff(this.documents, { it.toEntity() }),

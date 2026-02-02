@@ -5,8 +5,8 @@ import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.interfaces.SystemContextEnsurer
 import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
-import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toEntity
-import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.mappers.*
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.toSnapshot
 import com.romankozak.forwardappmobile.data.dao.*
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.database.AppDatabase
@@ -21,150 +21,206 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class FullBackupLocalDataSourceImpl
-    @Inject
-    constructor(
-        private val db: AppDatabase,
-        val settingsRepository: SettingsRepository,
-        private val contextDao: ContextDao,
-        private val goalDao: GoalDao,
-        private val listItemDao: ListItemDao,
-        private val noteDocumentDao: NoteDocumentDao,
-        private val checklistDao: ChecklistDao,
-        private val attachmentDao: AttachmentDao,
-        private val recentItemDao: RecentItemDao,
-        private val dayPlanDao: DayPlanDao,
-        private val dayTaskDao: DayTaskDao,
-        private val dailyMetricDao: DailyMetricDao,
-        private val chatDao: ChatDao,
-        private val reminderDao: ReminderDao,
-        private val tacticalMissionDao: TacticalMissionDao,
-        private val aiInsightDao: AiInsightDao,
-        private val systemContextEnsurer: SystemContextEnsurer,
-        private val legacyNoteDao: LegacyNoteDao,
-        private val backlogOrderDao: BacklogOrderDao,
-        private val contextArtifactDao: ContextArtifactDao,
-        private val scriptDao: ScriptDao,
-        private val inboxRecordDao: InboxRecordDao,
-        private val contextManagementDao: ContextManagementDao,
-        private val systemAppDao: SystemAppDao,
-        private val activityRecordDao: ActivityRecordDao,
-        private val linkItemDao: LinkItemDao,
-        private val conversationFolderDao: ConversationFolderDao,
-        private val recurringTaskDao: RecurringTaskDao,
-        private val aiEventDao: AiEventDao,
-        private val lifeSystemStateDao: LifeSystemStateDao,
-        private val structurePresetDao: StructurePresetDao,
-        private val structurePresetItemDao: StructurePresetItemDao,
-        private val contextStructureDao: ContextStructureDao,
-    ) : FullBackupLocalDataSource {
-        // --- Legacy V1 Support ---
+class FullBackupLocalDataSourceImpl @Inject constructor(
+    private val db: AppDatabase,
+    val settingsRepository: SettingsRepository,
+    private val contextDao: ContextDao,
+    private val goalDao: GoalDao,
+    private val listItemDao: ListItemDao,
+    private val noteDocumentDao: NoteDocumentDao,
+    private val checklistDao: ChecklistDao,
+    private val attachmentDao: AttachmentDao,
+    private val recentItemDao: RecentItemDao,
+    private val dayPlanDao: DayPlanDao,
+    private val dayTaskDao: DayTaskDao,
+    private val dailyMetricDao: DailyMetricDao,
+    private val chatDao: ChatDao,
+    private val reminderDao: ReminderDao,
+    private val tacticalMissionDao: TacticalMissionDao,
+    private val aiInsightDao: AiInsightDao,
+    private val systemContextEnsurer: SystemContextEnsurer,
+    private val legacyNoteDao: LegacyNoteDao,
+    private val backlogOrderDao: BacklogOrderDao,
+    private val backlogItemDao: ListItemDao,
+    private val contextArtifactDao: ContextArtifactDao,
+    private val contextLogDao: ContextManagementDao,
+    private val scriptDao: ScriptDao,
+    private val inboxRecordDao: InboxRecordDao,
+    private val contextManagementDao: ContextManagementDao,
+    private val systemAppDao: SystemAppDao,
+    private val activityRecordDao: ActivityRecordDao,
+    private val linkItemDao: LinkItemDao,
+    private val conversationFolderDao: ConversationFolderDao,
+    private val recurringTaskDao: RecurringTaskDao,
+    private val aiEventDao: AiEventDao,
+    private val lifeSystemStateDao: LifeSystemStateDao,
+    private val structurePresetDao: StructurePresetDao,
+    private val structurePresetItemDao: StructurePresetItemDao,
+    private val contextStructureDao: ContextStructureDao,
+) : FullBackupLocalDataSource {
 
-// --- Legacy V1 Support ---
+    // --- Snapshot V2 Support ---
 
-        override suspend fun loadFullDatabaseContent(): DatabaseContent {
-            return DatabaseContent(
-                projects = contextDao.getAll(),
-                goals = goalDao.getAll(),
-                documents = noteDocumentDao.getAllDocuments(),
-                // Виправлено згідно з вашим ChecklistDao
-                checklists = checklistDao.getAllChecklistsRaw(),
-                checklistItems = checklistDao.getAllChecklistItemsRaw(),
-                // Виправлено назви методів для інших DAO
-                activityRecords = activityRecordDao.getAllRaw(),
-                inboxRecords = inboxRecordDao.getAllRaw(),
-                tacticalMissions = tacticalMissionDao.getAllMissionsSync(),
-            )
-        }
+    override suspend fun loadFullSnapshotBundle(): SnapshotBundle {
+        Log.d("SyncV2", "Starting export to SnapshotBundle V2")
+        return SnapshotBundle(
+            version = 2,
+            exportedAt = System.currentTimeMillis(),
 
-        // ... решта методів (restoreDatabaseFromBackup, applySnapshotBundle) залишаються без змін ...
+            // Core & Structure
+            contexts = contextDao.getAllRaw().map { it.toSnapshot() },
+            goals = goalDao.getAllRaw().map { it.toSnapshot() },
+            backlogItems = backlogItemDao.getAllRaw().map { it.toSnapshot() },
+            backlogOrders = backlogOrderDao.getAllRaw().map { it.toSnapshot() },
+            inbox = inboxRecordDao.getAllRaw().map { it.toSnapshot() },
+            logs = contextLogDao.getAllLogs().map { it.toSnapshot() },
+            artifacts = contextArtifactDao.getAllRaw().map { it.toSnapshot() },
 
-        // --- Snapshot V2 Support ---
+            // Knowledge Base
+            documents = noteDocumentDao.getAllDocumentsRaw().map { it.toSnapshot() },
+            checklists = checklistDao.getAllChecklistsRaw().map { it.toSnapshot() },
+            checklistItems = checklistDao.getAllChecklistItemsRaw().map { it.toSnapshot() },
+            scripts = scriptDao.getAllRaw().map { it.toSnapshot() },
+            attachments = attachmentDao.getAllRaw().map { it.toSnapshot() },
+            crossRefs = attachmentDao.getAllContextAttachmentCrossRefsRaw().map { it.toSnapshot() },
 
-        override suspend fun loadFullSnapshotBundle(): SnapshotBundle {
-            return SnapshotBundle(
-                version = 2,
-                exportedAt = System.currentTimeMillis(),
-                contexts = contextDao.getAllRaw().map { it.toSnapshot() },
-                goals = goalDao.getAllRaw().map { it.toSnapshot() },
-                documents = noteDocumentDao.getAllDocumentsRaw().map { it.toSnapshot() },
-                // Використовуємо методи з вашого ChecklistDao
-                checklists = checklistDao.getAllChecklistsRaw().map { it.toSnapshot() },
-                checklistItems = checklistDao.getAllChecklistItemsRaw().map { it.toSnapshot() },
-                activityRecords = activityRecordDao.getAllRaw().map { it.toSnapshot() },
-                tacticalMissions = tacticalMissionDao.getAllMissionsSync().map { it.toSnapshot() },
-                attachments = attachmentDao.getAllRaw().map { it.toSnapshot() },
-                crossRefs = attachmentDao.getAllContextAttachmentCrossRefsRaw().map { it.toSnapshot() },
-                inbox = inboxRecordDao.getAllRaw().map { it.toSnapshot() },
-                // Для сутностей AI та Day Management викликайте відповідні методи Sync
-                dayPlans = dayPlanDao.getAllPlansSync().map { it.toSnapshot() },
-                dayTasks = dayTaskDao.getAllTasksSync().map { it.toSnapshot() },
-            )
-        }
+            // Activity & RPG
+            activityRecords = activityRecordDao.getAllRaw().map { it.toSnapshot() },
+            dayPlans = dayPlanDao.getAllPlansSync().map { it.toSnapshot() },
+            dayTasks = dayTaskDao.getAllTasksSync().map { it.toSnapshot() },
+            dailyMetrics = dailyMetricDao.getAllRaw().map { it.toSnapshot() },
+            recurringTasks = recurringTaskDao.getAllRaw().map { it.toSnapshot() },
 
-        override suspend fun restoreDatabaseFromBackup(content: DatabaseContent) {
-            // ЦЕ СЕРЦЕ РЕФАКТОРИНГУ:
-            // Ми перетворюємо старий формат у новий Snapshot за допомогою нашого "двигуна"
-            val snapshotBundle = SyncMapper.migrateV1ToV2(content)
+            // AI Domain
+            conversations = chatDao.getAllConversationsSync().map { it.toSnapshot() },
+            chatMessages = chatDao.getAllMessagesSync().map { it.toSnapshot() },
+            conversationFolders = conversationFolderDao.getAllRaw().map { it.toSnapshot() },
+            aiInsights = aiInsightDao.getAllRaw().map { it.toSnapshot() },
+            aiEvents = aiEventDao.getAllRaw().map { it.toSnapshot() },
 
-            db.withTransaction {
-                Log.d("FullBackupRestore", "--- CLEARING DATABASE AND RESTORING FROM V1 ---")
-                clearAllTables()
+            // System & Tactical
+            tacticalMissions = tacticalMissionDao.getAllMissionsSync().map { it.toSnapshot() },
+            tacticalMissionAttachments = tacticalMissionDao.getAllMissionAttachmentCrossRefsSync().map { it.toSnapshot() },
+            reminders = reminderDao.getAllRaw().map { it.toSnapshot() },
+            systemApps = systemAppDao.getAllRaw().map { it.toSnapshot() },
+            lifeSystemStates = lifeSystemStateDao.getAllRaw().map { it.toSnapshot() },
+            recentProjectEntries = recentItemDao.getAllRaw().map { it.toSnapshot() },
+            linkItemEntities = linkItemDao.getAllRaw().map { it.toSnapshot() },
 
-                // Тепер використовуємо уніфікований метод вставки
-                insertBundleData(snapshotBundle)
-            }
-        }
+            // Configuration
+            contextRoleProfiles = structurePresetDao.getAllRaw().map { it.toSnapshot() },
+            contextRoleProfileItems = structurePresetItemDao.getAllRaw().map { it.toSnapshot() },
+            contextConfigurations = contextManagementDao.getAllConfigsRaw().map { it.toSnapshot() },
+            projectStructureItems = contextStructureDao.getAllRaw().map { it.toSnapshot() }
+        )
+    }
 
-        override suspend fun applySnapshotBundle(bundle: SnapshotBundle) {
-            db.withTransaction {
-                Log.d("FullBackupRestore", "--- APPLYING SNAPSHOT V${bundle.version} (MERGE MODE) ---")
-                insertBundleData(bundle)
-            }
-        }
-
-        /**
-         * Уніфікований метод для вставки даних у базу.
-         * Не містить логіки зшивання — він просто довіряє бандлу.
-         */
-        private suspend fun insertBundleData(bundle: SnapshotBundle) {
-            // Порядок вставки важливий через Foreign Keys (Parents -> Children)
-            contextDao.insertAll(bundle.contexts.map { it.toEntity() })
-            goalDao.insertAll(bundle.goals.map { it.toEntity() })
-
-            noteDocumentDao.insertAllDocuments(bundle.documents.map { it.toEntity() })
-            checklistDao.insertChecklists(bundle.checklists.map { it.toEntity() })
-            checklistDao.insertItems(bundle.checklistItems.map { it.toEntity() })
-
-            // Вкладення тепер просто вставляються, бо SyncMapper вже їх згенерував
-            attachmentDao.insertAttachments(bundle.attachments.map { it.toEntity() })
-            attachmentDao.insertContextAttachmentCrossRefs(bundle.crossRefs.map { it.toEntity() })
-
-            activityRecordDao.insertAll(bundle.activityRecords.map { it.toEntity() })
-            inboxRecordDao.insertAll(bundle.inbox.map { it.toEntity() })
-            tacticalMissionDao.insertMissions(bundle.tacticalMissions.map { it.toEntity() })
-
-            // Плани на день
-            dayPlanDao.insertPlans(bundle.dayPlans.map { it.toEntity() })
-            dayTaskDao.insertTasks(bundle.dayTasks.map { it.toEntity() })
-
-            systemContextEnsurer.ensureAllSystemContextsExist()
-            Log.d("FullBackupRestore", "Successfully inserted bundle data.")
-        }
-
-        // --- System Methods ---
-
-        override suspend fun clearAllTables() {
-            db.clearAllTables()
-        }
-
-        override suspend fun getSettingsSnapshot(): Map<String, String> {
-            return settingsRepository.getPreferencesSnapshot().asMap()
-                .mapKeys { it.key.name }
-                .mapValues { it.value.toString() }
-        }
-
-        override suspend fun restoreSettings(settings: Map<String, String>) {
-            settingsRepository.restoreFromMap(settings)
+    override suspend fun applySnapshotBundle(bundle: SnapshotBundle) {
+        db.withTransaction {
+            Log.d("SyncV2", "Applying bundle V${bundle.version} in Merge Mode")
+            insertBundleData(bundle)
         }
     }
+
+    private suspend fun insertBundleData(bundle: SnapshotBundle) {
+        // ПОРЯДОК ВАЖЛИВИЙ: від батьків до дітей
+
+        // 1. Глобальні налаштування та Ролі
+        structurePresetDao.insertAll(bundle.contextRoleProfiles.map { it.toEntity() })
+        systemAppDao.insertAll(bundle.systemApps.map { it.toEntity() })
+        conversationFolderDao.insertAll(bundle.conversationFolders.map { it.toEntity() })
+
+        // 2. Контексти та Цілі
+        contextDao.insertAll(bundle.contexts.map { it.toEntity() })
+        goalDao.insertAll(bundle.goals.map { it.toEntity() })
+        structurePresetItemDao.insertAll(bundle.contextRoleProfileItems.map { it.toEntity() })
+
+        // 3. Конфігурації та Плани
+        contextManagementDao.insertAllConfigs(bundle.contextConfigurations.map { it.toEntity() })
+        contextStructureDao.insertAll(bundle.projectStructureItems.map { it.toEntity() })
+        dayPlanDao.insertPlans(bundle.dayPlans.map { it.toEntity() })
+        checklistDao.insertChecklists(bundle.checklists.map { it.toEntity() })
+
+        // 4. Завдання, Повідомлення та Нотатки
+        dayTaskDao.insertTasks(bundle.dayTasks.map { it.toEntity() })
+        checklistDao.insertItems(bundle.checklistItems.map { it.toEntity() })
+        chatDao.insertConversations(bundle.conversations.map { it.toEntity() })
+        chatDao.insertMessages(bundle.chatMessages.map { it.toEntity() })
+
+        noteDocumentDao.insertAllDocuments(bundle.documents.map { it.toEntity() })
+        legacyNoteDao.insertAll(bundle.notes.map { it.toEntity() })
+        scriptDao.insertAll(bundle.scripts.map { it.toEntity() })
+
+        // 5. Логи та Атомарні дані
+        activityRecordDao.insertAll(bundle.activityRecords.map { it.toEntity() })
+        inboxRecordDao.insertAll(bundle.inbox.map { it.toEntity() })
+        contextLogDao.insertAll(bundle.logs.map { it.toEntity() })
+        contextArtifactDao.insertAll(bundle.artifacts.map { it.toEntity() })
+
+        // 6. Метрики та RPG
+        dailyMetricDao.insertAll(bundle.dailyMetrics.map { it.toEntity() })
+        recurringTaskDao.insertAll(bundle.recurringTasks.map { it.toEntity() })
+        lifeSystemStateDao.insertAll(bundle.lifeSystemStates.map { it.toEntity() })
+
+        // 7. Вкладення та Cross-references
+        attachmentDao.insertAttachments(bundle.attachments.map { it.toEntity() })
+        attachmentDao.insertContextAttachmentCrossRefs(bundle.crossRefs.map { it.toEntity() })
+
+        // 8. Tactical Domain
+        tacticalMissionDao.insertMissions(bundle.tacticalMissions.map { it.toEntity() })
+        tacticalMissionDao.insertMissionAttachmentCrossRefs(bundle.tacticalMissionAttachments.map { it.toEntity() })
+
+        // 9. Misc
+        reminderDao.insertAll(bundle.reminders.map { it.toEntity() })
+        backlogItemDao.insertAll(bundle.backlogItems.map { it.toEntity() })
+        backlogOrderDao.insertAll(bundle.backlogOrders.map { it.toEntity() })
+        recentItemDao.insertAll(bundle.recentProjectEntries.map { it.toEntity() })
+        linkItemDao.insertAll(bundle.linkItemEntities.map { it.toEntity() })
+        aiInsightDao.insertAll(bundle.aiInsights.map { it.toEntity() })
+        aiEventDao.insertAll(bundle.aiEvents.map { it.toEntity() })
+
+        systemContextEnsurer.ensureAllSystemContextsExist()
+        Log.d("SyncV2", "Successfully restored ${bundle.contexts.size} contexts and all related data.")
+    }
+
+    // --- Legacy V1 Support ---
+
+    override suspend fun loadFullDatabaseContent(): DatabaseContent {
+        return DatabaseContent(
+            projects = contextDao.getAll(),
+            goals = goalDao.getAll(),
+            documents = noteDocumentDao.getAllDocuments(),
+            checklists = checklistDao.getAllChecklistsRaw(),
+            checklistItems = checklistDao.getAllChecklistItemsRaw(),
+            activityRecords = activityRecordDao.getAllRaw(),
+            inboxRecords = inboxRecordDao.getAllRaw(),
+            tacticalMissions = tacticalMissionDao.getAllMissionsSync(),
+        )
+    }
+
+    override suspend fun restoreDatabaseFromBackup(content: DatabaseContent) {
+        val snapshotBundle = SyncMapper.migrateV1ToV2(content)
+        db.withTransaction {
+            Log.d("SyncV1", "Migrating Legacy V1 to Snapshot V2")
+            clearAllTables()
+            insertBundleData(snapshotBundle)
+        }
+    }
+
+    // --- System Methods ---
+
+    override suspend fun clearAllTables() {
+        Log.w("Sync", "Clearing all database tables!")
+        db.clearAllTables()
+    }
+
+    override suspend fun getSettingsSnapshot(): Map<String, String> {
+        return settingsRepository.getPreferencesSnapshot().asMap()
+            .mapKeys { it.key.name }
+            .mapValues { it.value.toString() }
+    }
+
+    override suspend fun restoreSettings(settings: Map<String, String>) {
+        settingsRepository.restoreFromMap(settings)
+    }
+}
