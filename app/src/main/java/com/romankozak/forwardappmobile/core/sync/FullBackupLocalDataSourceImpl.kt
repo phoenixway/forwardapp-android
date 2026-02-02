@@ -90,6 +90,9 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
             validProjectIds.contains(it.contextId) && validAttachmentIds.contains(it.attachmentId)
         }
 
+        val tacticalMissions = tacticalMissionDao.getAllMissionsSync()
+        Log.d("FullBackupExport", "Tactical Missions: [${tacticalMissions.size}] records processed during [Export].")
+
         // Step 3: Return a DatabaseContent object with only the valid, filtered data
         return DatabaseContent(
             projects = allProjects,
@@ -110,7 +113,7 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
             conversations = chatDao.getAllConversationsSync(),
             chatMessages = chatDao.getAllMessagesSync(),
             reminders = reminderDao.getAllRemindersSync(),
-            tacticalMissions = tacticalMissionDao.getAllMissionsSync(),
+            tacticalMissions = tacticalMissions,
             aiInsights = aiInsightDao.getAllSync()
         )
     }
@@ -275,6 +278,17 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
                 isValid
             }
 
+            // Tactical Missions
+            val missions = content.tacticalMissions
+            if (missions.isNotEmpty()) {
+                tacticalMissionDao.insertMissions(missions)
+                Log.d("FullBackupImport", "Tactical Missions: ${missions.size} records processed during Import.")
+            }
+            val missionAttachments = content.tacticalMissionAttachments
+            if (missionAttachments.isNotEmpty()) {
+                tacticalMissionDao.insertMissionAttachments(missionAttachments)
+            }
+
             systemContextEnsurer.ensureAllSystemContextsExist()
 
             Log.d("FullBackupImport", "--- DATABASE RESTORE FINISHED ---")
@@ -307,6 +321,9 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
 
         Log.d("BackupExport", "Exporting Snapshot: notes=${notes.size}, docs=${documents.size}, checklists=${checklists.size}, scripts=${scripts.size}, activityRecords=${activityRecords.size}, inbox=${inbox.size}")
 
+        val tacticalMissions = tacticalMissionDao.getAllMissionsSync().map { it.toSnapshot() }
+        Log.d("BackupExport", "Tactical Missions: [${tacticalMissions.size}] records processed during [Export].")
+
         return SnapshotBundle(
             version = 2,
             exportedAt = System.currentTimeMillis(),
@@ -336,7 +353,7 @@ class FullBackupLocalDataSourceImpl @Inject constructor(
             conversationFolders = conversationFolderDao.getAllSync().map { it.toSnapshot() },
             reminders = reminderDao.getAllRemindersSync().map { it.toSnapshot() },
             recurringTasks = recurringTaskDao.getAllSync().map { it.toSnapshot() },
-            tacticalMissions = tacticalMissionDao.getAllMissionsSync().map { it.toSnapshot() },
+            tacticalMissions = tacticalMissions,
             tacticalMissionAttachments = tacticalMissionDao.getAllMissionAttachmentsSync().map { it.toSnapshot() },
             aiEvents = aiEventDao.getAllSync().map { it.toSnapshot() },
             aiInsights = aiInsightDao.getAllSync().map { it.toSnapshot() },

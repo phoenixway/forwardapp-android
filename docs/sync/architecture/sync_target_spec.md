@@ -1,5 +1,8 @@
 # ForwardApp Sync — Цільова Специфікація (Android ⇄ Desktop)
 
+CAN BE DEPRECATED
+
+
 ## 1. Модель даних (Room/KMP ціль)
 - **Обовʼязкові sync-поля для всіх синхронізованих сутностей**: `id` (String, UUID), `version` (Long, інкремент), `updatedAt` (Long, мс UTC), `syncedAt` (Long?, мс), `isDeleted` (Boolean, soft-delete).
 - **LWW правило**: вища `version` виграє; якщо рівні — більший `updatedAt`; при рівності береться вхідна версія сервера/джерела.

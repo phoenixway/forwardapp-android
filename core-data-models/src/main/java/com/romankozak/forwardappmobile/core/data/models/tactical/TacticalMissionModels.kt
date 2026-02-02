@@ -26,14 +26,21 @@ import com.romankozak.forwardappmobile.core.data.models.Converters
 @TypeConverters(Converters::class)
 data class TacticalMission(
     @PrimaryKey(autoGenerate = true)
+    @SerializedName("a")
     val id: Long = 0,
+    @SerializedName("b")
     val title: String,
     val description: String?,
     val startTime: Long? = null,
+    @SerializedName("e")
     val deadline: Long,
+    @SerializedName("f")
     val status: MissionStatus = MissionStatus.PENDING,
+    @SerializedName("g")
     val priority: MissionPriority = MissionPriority.MEDIUM,
-    @SerializedName(value = "projectId", alternate = ["contextId"]) val projectId: String?,
+    @SerializedName(value = "projectId", alternate = ["contextId", "c"])
+    val projectId: String?,
+    @SerializedName(value = "linkedProjectIds", alternate = ["i", "j"])
     val linkedProjectIds: List<String>? = emptyList(),
     val linkedAttachmentIds: List<String>? = emptyList(),
 )

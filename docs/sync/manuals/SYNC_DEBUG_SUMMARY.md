@@ -1,5 +1,8 @@
 # Attachment Sync Debug - Summary
 
+CAN BE DEPRECATED
+
+
 ## Problem Statement
 
 Your attachment synchronization system has a critical issue:

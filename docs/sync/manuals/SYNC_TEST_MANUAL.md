@@ -1,5 +1,8 @@
 # Посібник з ручного тестування синхронізації (Android ⇄ Desktop)
 
+CAN BE DEPRECATED
+
+
 ## 1. Дампи синхронізації
 
 - **Android → /tmp**  

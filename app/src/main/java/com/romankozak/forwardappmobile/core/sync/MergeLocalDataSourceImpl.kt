@@ -205,7 +205,12 @@ class MergeLocalDataSourceImpl @Inject constructor(
             conversationFolderDao.insertAll(bundle.conversationFolders.map { it.toEntity() })
             dayPlanDao.insertPlans(bundle.dayPlans.map { it.toEntity() })
             recurringTaskDao.insertAll(bundle.recurringTasks.map { it.toEntity() })
-            tacticalMissionDao.insertMissions(bundle.tacticalMissions.map { it.toEntity() })
+
+            val missions = bundle.tacticalMissions.map { it.toEntity() }
+            if (missions.isNotEmpty()) {
+                tacticalMissionDao.insertMissions(missions)
+                Log.d("MergeImport", "Tactical Missions: ${missions.size} records processed during Import.")
+            }
 
             listItemDao.insertItems(bundle.backlogItems.map { it.toEntity() })
             backlogOrderDao.insertAll(bundle.backlogOrders.map { it.toEntity() })

@@ -1,5 +1,7 @@
 # Attachment Sync Debug Guide
 
+CAN BE DEPRECATED
+
 ## Проблеми у синхронізації вкладень
 
 ### Прояви проблеми:

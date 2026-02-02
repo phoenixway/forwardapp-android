@@ -1,5 +1,8 @@
 # Мережевий обмін файлами між десктопом і Android
 
+CAN BE DEPRECATED
+
+
 ## Бекенд (десктоп)
 - HTTP API для файлів: `PUT/GET/DELETE /attachments/:id`
 - Сховище файлів: `~/.forwardapp/attachments/remote` (можна змінити `FORWARDAPP_ATTACHMENT_DIR`)

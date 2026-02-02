@@ -1,5 +1,7 @@
 # Attachment Sync - All 3 Defects Fixed ✅
 
+CAN BE DEPRECATED
+
 ## Executive Summary
 
 Fixed all three critical defects that were causing massive attachment data loss (88.7% loss, 106 → 12) during Android-Desktop sync.
