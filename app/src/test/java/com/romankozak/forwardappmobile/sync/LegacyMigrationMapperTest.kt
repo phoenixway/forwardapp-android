@@ -1,14 +1,13 @@
 package com.romankozak.forwardappmobile.sync
 
+import com.google.common.truth.Truth.assertThat
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import org.junit.Before
 import org.junit.Test
-import com.google.common.truth.Truth.assertThat
 
 class LegacyMigrationMapperTest {
-
     private lateinit var mapper: LegacyMigrationMapper
 
     @Before
@@ -19,74 +18,77 @@ class LegacyMigrationMapperTest {
     @Test
     fun `toSnapshotBundle converts DatabaseContent to SnapshotBundle correctly`() {
         // Given a DatabaseContent object
-        val context1 = Context(
-            id = "c1",
-            name = "Context 1",
-            parentId = null,
-            description = null,
-            createdAt = 1L,
-            updatedAt = 1L,
-            isExpanded = true,
-            isDeleted = false,
-            version = 0,
-            tags = null,
-            relatedLinks = null,
-            order = 0L,
-            isAttachmentsExpanded = false,
-            defaultViewModeName = null,
-            isCompleted = false,
-            isContextManagementEnabled = null,
-            contextStatus = "NO_PLAN",
-            contextStatusText = null,
-            contextLogLevel = null,
-            totalTimeSpentMinutes = null,
-            valueImportance = 0f,
-            valueImpact = 0f,
-            effort = 0f,
-            cost = 0f,
-            risk = 0f,
-            weightEffort = 1f,
-            weightCost = 1f,
-            weightRisk = 1f,
-            rawScore = 0f,
-            displayScore = 0,
-            scoringStatus = "NOT_ASSESSED",
-            showCheckboxes = false,
-            roleCode = null
-        )
-        val goal1 = Goal(
-            id = "g1",
-            text = "Goal 1",
-            description = null,
-            completed = false,
-            createdAt = 2L,
-            updatedAt = 2L,
-            isDeleted = false,
-            version = 0,
-            tags = null,
-            relatedLinks = null,
-            valueImportance = 0f,
-            valueImpact = 0f,
-            effort = 0f,
-            cost = 0f,
-            risk = 0f,
-            weightEffort = 1f,
-            weightCost = 1f,
-            weightRisk = 1f,
-            rawScore = 0f,
-            displayScore = 0,
-            scoringStatus = "NOT_ASSESSED",
-            parentValueImportance = null,
-            impactOnParentGoal = null,
-            timeCost = null,
-            financialCost = null
-        )
+        val context1 =
+            Context(
+                id = "c1",
+                name = "Context 1",
+                parentId = null,
+                description = null,
+                createdAt = 1L,
+                updatedAt = 1L,
+                isExpanded = true,
+                isDeleted = false,
+                version = 0,
+                tags = null,
+                relatedLinks = null,
+                order = 0L,
+                isAttachmentsExpanded = false,
+                defaultViewModeName = null,
+                isCompleted = false,
+                isContextManagementEnabled = null,
+                contextStatus = "NO_PLAN",
+                contextStatusText = null,
+                contextLogLevel = null,
+                totalTimeSpentMinutes = null,
+                valueImportance = 0f,
+                valueImpact = 0f,
+                effort = 0f,
+                cost = 0f,
+                risk = 0f,
+                weightEffort = 1f,
+                weightCost = 1f,
+                weightRisk = 1f,
+                rawScore = 0f,
+                displayScore = 0,
+                scoringStatus = "NOT_ASSESSED",
+                showCheckboxes = false,
+                roleCode = null,
+            )
+        val goal1 =
+            Goal(
+                id = "g1",
+                text = "Goal 1",
+                description = null,
+                completed = false,
+                createdAt = 2L,
+                updatedAt = 2L,
+                isDeleted = false,
+                version = 0,
+                tags = null,
+                relatedLinks = null,
+                valueImportance = 0f,
+                valueImpact = 0f,
+                effort = 0f,
+                cost = 0f,
+                risk = 0f,
+                weightEffort = 1f,
+                weightCost = 1f,
+                weightRisk = 1f,
+                rawScore = 0f,
+                displayScore = 0,
+                scoringStatus = "NOT_ASSESSED",
+                parentValueImportance = null,
+                impactOnParentGoal = null,
+                timeCost = null,
+                financialCost = null,
+            )
 
-        val databaseContent = DatabaseContent(
-            projects = listOf(context1),
-            goals = listOf(goal1)
-            // Add other entities as needed for a comprehensive test
-        )
+        val databaseContent =
+            DatabaseContent(
+                projects = listOf(context1),
+                goals = listOf(goal1),
+                // Add other entities as needed for a comprehensive test
+            )
 
         // When converting to SnapshotBundle
         val snapshotBundle = mapper.toSnapshotBundle(databaseContent)

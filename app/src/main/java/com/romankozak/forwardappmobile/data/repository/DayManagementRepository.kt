@@ -2,21 +2,15 @@
 package com.romankozak.forwardappmobile.data.repository
 
 import androidx.room.Transaction
-import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
-import com.romankozak.forwardappmobile.core.di.IoDispatcher
-import com.romankozak.forwardappmobile.data.dao.*
-import com.romankozak.forwardappmobile.domain.ai.events.TaskCompletedEvent
-import com.romankozak.forwardappmobile.domain.ai.events.TaskCreatedEvent
-import com.romankozak.forwardappmobile.domain.ai.events.TaskDeferredEvent
-import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
-import com.romankozak.forwardappmobile.core.data.models.entities.ai.DailyAnalytics
-import com.romankozak.forwardappmobile.core.data.models.entities.ai.WeeklyInsights
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.DayStatus
+import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskStatus
-import com.romankozak.forwardappmobile.core.data.models.entities.Goal
+import com.romankozak.forwardappmobile.core.data.models.entities.ai.DailyAnalytics
+import com.romankozak.forwardappmobile.core.data.models.entities.ai.WeeklyInsights
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DailyMetric
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayPlan
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
@@ -24,6 +18,12 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceFrequency
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceRule
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurringTask
+import com.romankozak.forwardappmobile.core.di.IoDispatcher
+import com.romankozak.forwardappmobile.data.dao.*
+import com.romankozak.forwardappmobile.domain.ai.events.TaskCompletedEvent
+import com.romankozak.forwardappmobile.domain.ai.events.TaskCreatedEvent
+import com.romankozak.forwardappmobile.domain.ai.events.TaskDeferredEvent
+import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -480,11 +480,12 @@ class DayManagementRepository
                 val gId = task.goalId
                 val pId = task.projectId
 
-                val activityRecord = when {
-                    gId != null -> activityRepository.startGoalActivity(gId)
-                    pId != null -> activityRepository.startContextActivity(pId)
-                    else -> activityRepository.startActivity(task.title, now)
-                }
+                val activityRecord =
+                    when {
+                        gId != null -> activityRepository.startGoalActivity(gId)
+                        pId != null -> activityRepository.startContextActivity(pId)
+                        else -> activityRepository.startActivity(task.title, now)
+                    }
 
                 activityRecord?.let {
                     dayTaskDao.linkTaskWithActivity(taskId, it.id, now)

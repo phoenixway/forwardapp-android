@@ -2,7 +2,6 @@ package com.romankozak.forwardappmobile.core.di
 
 import android.content.Context
 import androidx.room.Room
-import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
@@ -88,8 +87,6 @@ import com.romankozak.forwardappmobile.data.database.MIGRATION_90_91
 import com.romankozak.forwardappmobile.data.database.MIGRATION_91_92
 import com.romankozak.forwardappmobile.data.database.MIGRATION_92_93
 import com.romankozak.forwardappmobile.data.database.MIGRATION_94_95
-
-import com.romankozak.forwardappmobile.data.database.migrateSpecialProjects
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
@@ -113,8 +110,6 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import javax.inject.Singleton
 
 val MIGRATION_93_94 =

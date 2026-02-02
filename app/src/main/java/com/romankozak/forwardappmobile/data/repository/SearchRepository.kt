@@ -1,11 +1,11 @@
 package com.romankozak.forwardappmobile.data.repository
 
+import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSearchResultItem
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
-import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSearchResultItem
 import javax.inject.Inject
 import javax.inject.Singleton
 

@@ -2,7 +2,9 @@ package com.romankozak.forwardappmobile.sync
 
 import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
-import com.romankozak.forwardappmobile.core.data.models.sync.toSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.toSnapshot
+
 import javax.inject.Inject
 import javax.inject.Singleton
 

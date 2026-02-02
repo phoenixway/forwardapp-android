@@ -241,7 +241,6 @@ dependencies {
     androidTestImplementation("io.mockk:mockk-android:1.13.10")
     testImplementation("com.google.truth:truth:1.1.3")
 
-
     // Additional libraries
     implementation(libs.accompanist.flowlayout)
     implementation(libs.reorderable)

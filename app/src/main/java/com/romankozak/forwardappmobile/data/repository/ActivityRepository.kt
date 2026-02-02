@@ -1,10 +1,10 @@
 package com.romankozak.forwardappmobile.data.repository
 
+import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
+import com.romankozak.forwardappmobile.core.data.models.sync.bumpSync
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 import com.romankozak.forwardappmobile.domain.ai.events.ActivityFinishedEvent
 import com.romankozak.forwardappmobile.domain.ai.events.ActivityLoggedEvent
-import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
-import com.romankozak.forwardappmobile.core.data.models.sync.bumpSync
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import kotlinx.coroutines.flow.Flow

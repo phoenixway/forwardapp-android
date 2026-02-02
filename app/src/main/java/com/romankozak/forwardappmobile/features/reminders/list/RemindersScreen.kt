@@ -44,7 +44,6 @@ import com.romankozak.forwardappmobile.features.reminders.viewmodel.ReminderList
 import com.romankozak.forwardappmobile.features.reminders.viewmodel.ReminderViewModel
 import com.romankozak.forwardappmobile.features.reminders.viewmodel.RemindersUiEvent
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RemindersScreen(

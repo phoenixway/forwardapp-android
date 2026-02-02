@@ -45,6 +45,7 @@ core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/
 core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/entities/tactical/MissionEnums.kt
 core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/entities/tactical/TacticalMissionModels.kt
 
+core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/sync/snapshots/SnapshotMapper.kt
 core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/sync/snapshots/activity/ActivityRecordSnapshot.kt
 core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/sync/snapshots/ai/AiEventSnapshot.kt
 core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/sync/snapshots/ai/AiInsightSnapshot.kt
@@ -52,7 +53,6 @@ core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/
 core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/sync/snapshots/ai/ConversationFolderSnapshot.kt
 core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/sync/snapshots/ai/ConversationSnapshot.kt
 core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/sync/snapshots/attachments/AttachmentSnapshot.kt
-core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/sync/snapshots/attachments/ChecklistItemSnapshot.kt
 core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/sync/snapshots/attachments/ChecklistSnapshot.kt
 core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/sync/snapshots/attachments/ContextAttachmentCrossRefSnapshot.kt
 core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/sync/snapshots/attachments/LegacyNoteSnapshot.kt

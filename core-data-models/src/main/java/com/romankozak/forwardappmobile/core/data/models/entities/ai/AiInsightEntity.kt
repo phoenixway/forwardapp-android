@@ -11,4 +11,6 @@ data class AiInsightEntity(
     val timestamp: Long,
     val isRead: Boolean = false,
     val isFavorite: Boolean = false,
+    val version: Long = 0L,
+    val isDeleted: Boolean = false
 )

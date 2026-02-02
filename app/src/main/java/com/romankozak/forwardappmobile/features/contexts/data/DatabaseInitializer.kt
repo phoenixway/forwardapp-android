@@ -1,9 +1,9 @@
 package com.romankozak.forwardappmobile.features.contexts.data
 
-import com.romankozak.forwardappmobile.core.data.interfaces.SystemContextEnsurer
 import com.romankozak.forwardappmobile.core.context.SystemContexts
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
+import com.romankozak.forwardappmobile.core.data.interfaces.SystemContextEnsurer
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -104,7 +104,6 @@ class DatabaseInitializer
                 strategicGroupId,
             )
             ensureProjectExists(contextDao, SystemContexts.INBOX.raw, "inbox", todayProjectId)
-
         }
 
         private suspend fun ensureProjectExists(

@@ -12,6 +12,7 @@ import com.google.mlkit.common.model.DownloadConditions
 import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.TranslatorOptions
+import com.romankozak.forwardappmobile.core.data.models.entities.ai.ConversationEntity
 import com.romankozak.forwardappmobile.data.repository.ChatRepository
 import com.romankozak.forwardappmobile.data.repository.RolesRepository
 import com.romankozak.forwardappmobile.data.repository.ScriptRepository
@@ -21,7 +22,6 @@ import com.romankozak.forwardappmobile.domain.aichat.Message
 import com.romankozak.forwardappmobile.domain.aichat.OllamaService
 import com.romankozak.forwardappmobile.domain.aichat.RoleItem
 import com.romankozak.forwardappmobile.domain.scripts.LuaScriptRunner
-import com.romankozak.forwardappmobile.core.data.models.entities.ai.ConversationEntity
 import com.romankozak.forwardappmobile.ui.ModelsState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext

@@ -26,7 +26,8 @@ import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.AttachmentSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.ContextAttachmentCrossRefSnapshot
-import com.romankozak.forwardappmobile.core.data.models.sync.toSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.toSnapshot
 import java.util.UUID
 
 /**

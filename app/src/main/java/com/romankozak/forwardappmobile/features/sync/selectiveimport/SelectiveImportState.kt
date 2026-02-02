@@ -2,25 +2,25 @@ package com.romankozak.forwardappmobile.features.sync.selectiveimport
 
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistItemEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextAttachmentCrossRef
-import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.ScriptEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogOrder
+import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistItemEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecord
+import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkItemEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.ScriptEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.BackupDiff
 import com.romankozak.forwardappmobile.core.data.models.sync.DiffResult
 import com.romankozak.forwardappmobile.core.data.models.sync.DiffStatus
 import com.romankozak.forwardappmobile.core.data.models.sync.UpdatedItem
+import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.BacklogItemSnapshot
-import com.romankozak.forwardappmobile.core.data.models.sync.toEntity
 
 data class SelectiveImportState(
     val isLoading: Boolean = true,
@@ -110,6 +110,9 @@ fun BackupDiff.toSelectable(): SelectableDatabaseContent {
         scripts = mapDiff(this.scripts, { it.toEntity() }),
         attachments = mapDiff(this.attachments, { it.toEntity() }),
         backlogOrders = mapDiff(this.backlogOrders, { it.toEntity() }),
-        allContextAttachmentCrossRefs = this.contextAttachmentCrossRefs.added.map { it.toEntity() } + this.contextAttachmentCrossRefs.updated.map { it.incoming.toEntity() },
+        allContextAttachmentCrossRefs =
+            this.contextAttachmentCrossRefs.added.map {
+                it.toEntity()
+            } + this.contextAttachmentCrossRefs.updated.map { it.incoming.toEntity() },
     )
 }

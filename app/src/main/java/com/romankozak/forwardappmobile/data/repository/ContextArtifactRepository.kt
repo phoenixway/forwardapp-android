@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.data.repository
 
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextArtifactDao
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextArtifact
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextArtifactDao
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton

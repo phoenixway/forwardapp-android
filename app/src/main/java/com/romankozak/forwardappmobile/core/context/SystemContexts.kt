@@ -16,22 +16,23 @@ object SystemContexts {
     val MAIN_BEACONS = ContextId("sys_main-beacons")
     val TODAY = ContextId("sys_today")
 
-    private val RESERVED = setOf(
-        PERSONAL_MANAGEMENT,
-        STRATEGIC,
-        STRATEGIC_BEACONS,
-        MISSION,
-        LONG_TERM_STRATEGY,
-        STRATEGIC_PROGRAMS,
-        MEDIUM_TERM_STRATEGY,
-        ACTIVE_QUESTS,
-        WEEK,
-        INBOX,
-        STRATEGIC_INBOX,
-        STRATEGIC_REVIEW,
-        MAIN_BEACONS,
-        TODAY
-    )
+    private val RESERVED =
+        setOf(
+            PERSONAL_MANAGEMENT,
+            STRATEGIC,
+            STRATEGIC_BEACONS,
+            MISSION,
+            LONG_TERM_STRATEGY,
+            STRATEGIC_PROGRAMS,
+            MEDIUM_TERM_STRATEGY,
+            ACTIVE_QUESTS,
+            WEEK,
+            INBOX,
+            STRATEGIC_INBOX,
+            STRATEGIC_REVIEW,
+            MAIN_BEACONS,
+            TODAY,
+        )
 
     fun isSystem(id: ContextId): Boolean = RESERVED.contains(id)
 }

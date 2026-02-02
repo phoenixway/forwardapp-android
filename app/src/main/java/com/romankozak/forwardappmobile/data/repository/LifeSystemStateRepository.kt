@@ -1,12 +1,12 @@
 package com.romankozak.forwardappmobile.data.repository
 
+import com.romankozak.forwardappmobile.core.data.models.entities.LifeSystemStateEntity
 import com.romankozak.forwardappmobile.data.dao.LifeSystemStateDao
 import com.romankozak.forwardappmobile.domain.ai.state.EntropyLevel
 import com.romankozak.forwardappmobile.domain.ai.state.ExecutionMode
 import com.romankozak.forwardappmobile.domain.ai.state.LifeSystemState
 import com.romankozak.forwardappmobile.domain.ai.state.LoadLevel
 import com.romankozak.forwardappmobile.domain.ai.state.StabilityLevel
-import com.romankozak.forwardappmobile.core.data.models.entities.LifeSystemStateEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.Instant

@@ -8,5 +8,7 @@ data class AiInsightSnapshot(
     @SerializedName("type") val type: String,
     @SerializedName("timestamp") val timestamp: Long,
     @SerializedName("isRead") val isRead: Boolean,
-    @SerializedName("isFavorite") val isFavorite: Boolean
+    @SerializedName("isFavorite") val isFavorite: Boolean,
+    @SerializedName("version") val version: Long,
+    @SerializedName("isDeleted") val isDeleted: Boolean
 )

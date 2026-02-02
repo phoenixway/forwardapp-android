@@ -3,13 +3,13 @@ package com.romankozak.forwardappmobile.features.reminders.viewmodel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.Goal
+import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.data.models.entities.Goal
-import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
@@ -127,23 +127,23 @@ class ReminderViewModel
             _showPropertiesDialog.value = true
         }
 
-    fun showItemInProject(item: ReminderListItem) {
-        viewModelScope.launch {
-            when (item) {
-                is ReminderListItem.GoalReminder -> {
-                    // Виправляємо goalId на item.goal.id
-                    val contextId = contextRepository.findContextIdForGoal(item.goal.id) ?: return@launch
+        fun showItemInProject(item: ReminderListItem) {
+            viewModelScope.launch {
+                when (item) {
+                    is ReminderListItem.GoalReminder -> {
+                        // Виправляємо goalId на item.goal.id
+                        val contextId = contextRepository.findContextIdForGoal(item.goal.id) ?: return@launch
 
-                    // if (contextId != null) більше не потрібен, бо є перевірка вище
-                    _uiEvent.send(
-                        RemindersUiEvent.Navigate(
-                            NavTarget.ContextDetail(
-                                contextId = contextId,
-                                goalId = item.goal.id
-                            )
+                        // if (contextId != null) більше не потрібен, бо є перевірка вище
+                        _uiEvent.send(
+                            RemindersUiEvent.Navigate(
+                                NavTarget.ContextDetail(
+                                    contextId = contextId,
+                                    goalId = item.goal.id,
+                                ),
+                            ),
                         )
-                    )
-                }
+                    }
                     is ReminderListItem.ProjectReminder -> {
                         _uiEvent.send(
                             RemindersUiEvent.Navigate(

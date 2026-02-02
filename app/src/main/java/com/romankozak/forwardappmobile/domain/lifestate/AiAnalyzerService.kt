@@ -1,6 +1,9 @@
 package com.romankozak.forwardappmobile.domain.lifestate
 
 import android.util.Log
+import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
+import com.romankozak.forwardappmobile.core.data.models.entities.ReservedContextKeys
+import com.romankozak.forwardappmobile.core.data.models.entities.ReservedSystemAppKeys
 import com.romankozak.forwardappmobile.data.repository.ActivityRecordRepository
 import com.romankozak.forwardappmobile.data.repository.SystemAppRepository
 import com.romankozak.forwardappmobile.domain.lifestate.model.AiAnalysis
@@ -10,9 +13,6 @@ import com.romankozak.forwardappmobile.domain.lifestate.model.AiRisk
 import com.romankozak.forwardappmobile.domain.lifestate.model.AiSignals
 import com.romankozak.forwardappmobile.domain.lifestate.model.LifeStatePromptPayload
 import com.romankozak.forwardappmobile.domain.lifestate.model.LifeStateTrackerEntry
-import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
-import com.romankozak.forwardappmobile.core.data.models.entities.ReservedContextKeys
-import com.romankozak.forwardappmobile.core.data.models.entities.ReservedSystemAppKeys
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.SerializationException

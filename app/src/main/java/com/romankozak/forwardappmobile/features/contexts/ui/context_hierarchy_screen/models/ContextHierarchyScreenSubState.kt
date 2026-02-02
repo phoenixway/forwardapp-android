@@ -38,6 +38,7 @@ sealed class DialogState {
     data class EditProject(val project: Context) : DialogState()
 
     data class ConfirmImport(val uri: Uri) : DialogState()
+
     data class ImportChoiceDialog(val uri: Uri) : DialogState()
 
     data object About : DialogState()
@@ -45,6 +46,7 @@ sealed class DialogState {
     data class WifiServer(val serverState: String) : DialogState()
 
     data class WifiImport(val currentAddress: String) : DialogState()
+
     data object ExportChoiceDialog : DialogState()
 }
 

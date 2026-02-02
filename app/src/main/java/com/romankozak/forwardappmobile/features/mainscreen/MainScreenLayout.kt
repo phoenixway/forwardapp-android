@@ -31,6 +31,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.navigation.routes.GOAL_LISTS_ROUTE
 import com.romankozak.forwardappmobile.core.navigation.routes.STRATEGIC_MANAGEMENT_ROUTE
 import com.romankozak.forwardappmobile.features.activitytracker.ActivityTrackerViewModel
@@ -38,7 +39,6 @@ import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementSc
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
-import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.features.strategicmanagement.StrategicManagementScreen
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckHeaderPreset
@@ -235,35 +235,37 @@ fun MainScreenLayout(
                             .padding(horizontal = 22.dp, vertical = 12.dp),
                 ) {
                     when (currentRoute) {
-                        MAIN_SCREEN_DASHBOARD_ROUTE -> DashboardBottomBar(
-                            onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
-                            onNavigateToProjectSearch = {
-                                navController.navigate(GOAL_LISTS_ROUTE) {
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                                runCatching {
-                                    navController.getBackStackEntry(GOAL_LISTS_ROUTE)
-                                        .savedStateHandle["open_search_dialog"] = true
-                                }
-                            },
-                            onNavigateToTracker = onNavigateToTracker,
-                            onNavigateToInbox = onNavigateToInbox,
-                            onNavigateToReminders = onNavigateToReminders,
-                            onNavigateToPresets = onNavigateToPresets,
-                            onNavigateToAiInsights = onNavigateToAiInsights,
-                            onNavigateToSettings = onNavigateToSettings,
-                            onNavigateToRecentItem = onNavigateToRecentItem,
-                            onExportToFile = onExportToFile,
-                            onImportFromFileRequest = onImportFromFileRequest,
-                            onSelectiveImportFromFileRequest = onSelectiveImportFromFileRequest,
-                            onExportAttachments = onExportAttachments,
-                            onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
-                            onWifiPush = onWifiPush,
-                            recentViewModel = recentViewModel,
-                        )
+                        MAIN_SCREEN_DASHBOARD_ROUTE ->
+                            DashboardBottomBar(
+                                onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                                onNavigateToProjectSearch = {
+                                    navController.navigate(GOAL_LISTS_ROUTE) {
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                    runCatching {
+                                        navController.getBackStackEntry(GOAL_LISTS_ROUTE)
+                                            .savedStateHandle["open_search_dialog"] = true
+                                    }
+                                },
+                                onNavigateToTracker = onNavigateToTracker,
+                                onNavigateToInbox = onNavigateToInbox,
+                                onNavigateToReminders = onNavigateToReminders,
+                                onNavigateToPresets = onNavigateToPresets,
+                                onNavigateToAiInsights = onNavigateToAiInsights,
+                                onNavigateToSettings = onNavigateToSettings,
+                                onNavigateToRecentItem = onNavigateToRecentItem,
+                                onExportToFile = onExportToFile,
+                                onImportFromFileRequest = onImportFromFileRequest,
+                                onSelectiveImportFromFileRequest = onSelectiveImportFromFileRequest,
+                                onExportAttachments = onExportAttachments,
+                                onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
+                                onWifiPush = onWifiPush,
+                                recentViewModel = recentViewModel,
+                            )
                         MAIN_SCREEN_STRATEGIC_ARC_ROUTE -> {
-                            val entry = remember(navBackStackEntry) { innerNavController.getBackStackEntry(MAIN_SCREEN_STRATEGIC_ARC_ROUTE) }
+                            val entry =
+                                remember(navBackStackEntry) { innerNavController.getBackStackEntry(MAIN_SCREEN_STRATEGIC_ARC_ROUTE) }
                             val viewModel: StrategicArcViewModel = hiltViewModel(entry)
                             StrategicArcBottomBar(viewModel)
                         }
@@ -329,7 +331,7 @@ fun MainScreenLayout(
                             onNavigateToAiChat = onNavigateToAiChat,
                             onNavigateToAiInsights = onNavigateToAiInsights,
                             onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
-                            onNavigateToImportExport = {/*TODO: replace with real code*/},
+                            onNavigateToImportExport = { /*TODO: replace with real code*/ },
                             onNavigateToAttachments = onNavigateToAttachments,
                             onNavigateToScripts = onNavigateToScripts,
                         )

@@ -6,8 +6,14 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
+import com.romankozak.forwardappmobile.core.context.SystemContexts
+import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
+import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
+import com.romankozak.forwardappmobile.core.data.models.entities.RecentItemType
+import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.di.IoDispatcher
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
@@ -22,10 +28,6 @@ import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
-import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
-import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
@@ -43,8 +45,6 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.SyncUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.ThemingUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.flattenHierarchy
-import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
-import com.romankozak.forwardappmobile.core.data.models.entities.RecentItemType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job

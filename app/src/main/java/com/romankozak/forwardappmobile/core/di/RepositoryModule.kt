@@ -24,7 +24,6 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
-
     // ========================================================================
     // BINDS (Інтерфейси -> Реалізації)
     // Використовуємо @Binds, бо це ефективніше за @Provides
@@ -52,20 +51,19 @@ abstract class RepositoryModule {
 
     @Binds
     @Singleton
-    abstract fun bindSystemContextEnsurer(impl: com.romankozak.forwardappmobile.features.contexts.data.DatabaseInitializer): com.romankozak.forwardappmobile.core.data.interfaces.SystemContextEnsurer
-
+    abstract fun bindSystemContextEnsurer(
+        impl: com.romankozak.forwardappmobile.features.contexts.data.DatabaseInitializer,
+    ): com.romankozak.forwardappmobile.core.data.interfaces.SystemContextEnsurer
 
     // ========================================================================
     // PROVIDES (Логіка створення та складні репозиторії)
     // ========================================================================
 
     companion object {
-
         @Provides
         @Singleton
-        fun provideSyncSettingsSource(
-            settingsRepository: SettingsRepository
-        ): SyncSettingsSource = SyncSettingsSourceImpl(settingsRepository)
+        fun provideSyncSettingsSource(settingsRepository: SettingsRepository): SyncSettingsSource =
+            SyncSettingsSourceImpl(settingsRepository)
 
         /*@Provides
         @Singleton
@@ -86,12 +84,13 @@ abstract class RepositoryModule {
             attachmentsRepository: AttachmentsRepository,
             recentItemsRepository: RecentItemsRepository,
             aiEventRepository: AiEventRepository,
-        ): NoteDocumentRepository = NoteDocumentRepository(
-            noteDocumentDao,
-            attachmentsRepository,
-            recentItemsRepository,
-            aiEventRepository
-        )
+        ): NoteDocumentRepository =
+            NoteDocumentRepository(
+                noteDocumentDao,
+                attachmentsRepository,
+                recentItemsRepository,
+                aiEventRepository,
+            )
 
         @Provides
         @Singleton
@@ -99,11 +98,12 @@ abstract class RepositoryModule {
             checklistDao: ChecklistDao,
             attachmentsRepository: AttachmentsRepository,
             recentItemsRepository: RecentItemsRepository,
-        ): ChecklistRepository = ChecklistRepository(
-            checklistDao,
-            attachmentsRepository,
-            recentItemsRepository
-        )
+        ): ChecklistRepository =
+            ChecklistRepository(
+                checklistDao,
+                attachmentsRepository,
+                recentItemsRepository,
+            )
 
         @Provides
         @Singleton
@@ -112,12 +112,13 @@ abstract class RepositoryModule {
             contextDao: ContextDao,
             noteDocumentDao: NoteDocumentDao,
             attachmentsRepository: AttachmentsRepository,
-        ): SystemAppRepository = SystemAppRepository(
-            systemAppDao,
-            contextDao,
-            noteDocumentDao,
-            attachmentsRepository
-        )
+        ): SystemAppRepository =
+            SystemAppRepository(
+                systemAppDao,
+                contextDao,
+                noteDocumentDao,
+                attachmentsRepository,
+            )
 
         @Provides
         @Singleton
@@ -126,22 +127,21 @@ abstract class RepositoryModule {
             alarmScheduler: AlarmScheduler,
             dayManagementRepository: DayManagementRepository,
             @IoDispatcher ioDispatcher: CoroutineDispatcher,
-        ): ReminderRepository = ReminderRepository(
-            reminderDao,
-            alarmScheduler,
-            dayManagementRepository,
-            ioDispatcher
-        )
+        ): ReminderRepository =
+            ReminderRepository(
+                reminderDao,
+                alarmScheduler,
+                dayManagementRepository,
+                ioDispatcher,
+            )
 
         @Provides
         @Singleton
-        fun provideAiInsightRepository(aiInsightDao: AiInsightDao): AiInsightRepository =
-            AiInsightRepository(aiInsightDao)
+        fun provideAiInsightRepository(aiInsightDao: AiInsightDao): AiInsightRepository = AiInsightRepository(aiInsightDao)
 
         @Provides
         @Singleton
-        fun provideRecentItemsRepository(recentItemDao: RecentItemDao): RecentItemsRepository =
-            RecentItemsRepository(recentItemDao)
+        fun provideRecentItemsRepository(recentItemDao: RecentItemDao): RecentItemsRepository = RecentItemsRepository(recentItemDao)
 
         @Provides
         @Singleton

@@ -5,6 +5,11 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asFlow
 import androidx.lifecycle.viewModelScope
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
+import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
+import com.romankozak.forwardappmobile.core.data.models.entities.ScoringStatusValues
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.data.logic.GoalScoringManager
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
@@ -12,11 +17,6 @@ import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.features.attachments.ui.context.AttachmentType
-import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
-import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
-import com.romankozak.forwardappmobile.core.data.models.entities.ScoringStatusValues
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel

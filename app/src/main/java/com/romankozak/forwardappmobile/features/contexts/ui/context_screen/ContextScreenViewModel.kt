@@ -9,12 +9,23 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
+import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextArtifact
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLogEntryTypeValues
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextTimeMetrics
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
+import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
+import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
+import com.romankozak.forwardappmobile.core.data.models.entities.RecentItemType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
+import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.core.di.IoDispatcher
 import com.romankozak.forwardappmobile.core.navigation.ClearAndNavigateHomeUseCase
 import com.romankozak.forwardappmobile.core.navigation.ClearCommand
@@ -35,15 +46,7 @@ import com.romankozak.forwardappmobile.domain.ner.ReminderParser
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.domain.wifirestapi.FileDataRequest
 import com.romankozak.forwardappmobile.domain.wifirestapi.RetrofitClient
-import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
-import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity
 import com.romankozak.forwardappmobile.features.attachments.ui.context.AttachmentType
-import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextArtifact
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextTimeMetrics
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectUiEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.state.PlanningModeManager
@@ -59,9 +62,6 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewm
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.InboxMarkdownHandler
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.ItemActionHandler
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.SelectionHandler
-import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
-import com.romankozak.forwardappmobile.core.data.models.entities.RecentItemType
-import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.ui.common.editor.NoteTitleExtractor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
@@ -363,15 +363,16 @@ class BacklogViewModel
         private val _isLoading = MutableStateFlow(false)
         val isLoading = _isLoading.asStateFlow()
 
-    val projectLogs: StateFlow<List<ContextLog>> = contextIdFlow
-        .flatMapLatest { id ->
-            if (id.isNotEmpty()) {
-                contextRepository.getContextLogsStream(id)
-            } else {
-                flowOf(emptyList()) // Прибрано '->', додано правильні дужки
-            }
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        val projectLogs: StateFlow<List<ContextLog>> =
+            contextIdFlow
+                .flatMapLatest { id ->
+                    if (id.isNotEmpty()) {
+                        contextRepository.getContextLogsStream(id)
+                    } else {
+                        flowOf(emptyList()) // Прибрано '->', додано правильні дужки
+                    }
+                }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
         val contextArtifact: StateFlow<ContextArtifact?> =
             contextIdFlow
@@ -1164,19 +1165,20 @@ class BacklogViewModel
                     return@launch
                 }
 
-                val attachmentId = try {
-                    contextRepository.ensureAttachmentLinkedToContext(
-                        attachmentType = itemType,
-                        entityId = entityId,
-                        targetContextId = targetcontextId,
-                        ownerContextId = attachment.backlogItem.contextId.takeIf { it.isNotBlank() } ?: contextIdFlow.value,
-                    )
-                    // ДОДАЙТЕ ЦЕ: повертаємо entityId, щоб він зберігся в змінну attachmentId
-                    attachment.backlogItem.entityId
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed to link attachment", e)
-                    null // У разі помилки повертаємо null
-                }
+                val attachmentId =
+                    try {
+                        contextRepository.ensureAttachmentLinkedToContext(
+                            attachmentType = itemType,
+                            entityId = entityId,
+                            targetContextId = targetcontextId,
+                            ownerContextId = attachment.backlogItem.contextId.takeIf { it.isNotBlank() } ?: contextIdFlow.value,
+                        )
+                        // ДОДАЙТЕ ЦЕ: повертаємо entityId, щоб він зберігся в змінну attachmentId
+                        attachment.backlogItem.entityId
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to link attachment", e)
+                        null // У разі помилки повертаємо null
+                    }
 
 // Тепер attachmentId має тип String?, і цей блок скомпілюється:
                 withContext(Dispatchers.Main) {

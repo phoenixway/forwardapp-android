@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.data.repository
 
-import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
+import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton

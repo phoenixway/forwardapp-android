@@ -11,7 +11,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ScriptDao {
-
     @Query("SELECT * FROM scripts WHERE contextId = :contextId")
     fun getForContext(contextId: String): Flow<List<ScriptEntity>>
 
@@ -38,7 +37,6 @@ interface ScriptDao {
 
     @Query("SELECT * FROM scripts")
     fun getAllFlow(): Flow<List<ScriptEntity>>
-
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(scripts: List<ScriptEntity>)

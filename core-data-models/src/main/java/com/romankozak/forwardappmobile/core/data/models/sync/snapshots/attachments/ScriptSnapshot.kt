@@ -8,6 +8,6 @@ data class ScriptSnapshot(
     @SerializedName("content") val content: String,
     @SerializedName("createdAt") val createdAt: Long,
     @SerializedName("updatedAt") val updatedAt: Long,
+    @SerializedName("version") val version: Long,
     @SerializedName("isDeleted") val isDeleted: Boolean,
-    @SerializedName("version") val version: Long
 )

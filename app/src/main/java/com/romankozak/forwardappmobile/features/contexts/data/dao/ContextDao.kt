@@ -49,8 +49,6 @@ interface ContextDao {
     @Query("SELECT * FROM contexts WHERE id = :id")
     fun getContextByIdStream(id: String): Flow<Context?>
 
-
-
     @Query("UPDATE contexts SET goal_order = :order WHERE id = :contextId")
     suspend fun updateOrder(
         contextId: String,
@@ -71,8 +69,6 @@ interface ContextDao {
 
     @Query("SELECT * FROM contexts WHERE tags LIKE '%' || :tag || '%'")
     suspend fun getContextsByTag(tag: String): List<Context>
-
-
 
     @Query("SELECT id FROM contexts WHERE tags LIKE '%' || :tag || '%' ORDER BY goal_order ASC, createdAt ASC")
     suspend fun getContextIdsByTag(tag: String): List<String>

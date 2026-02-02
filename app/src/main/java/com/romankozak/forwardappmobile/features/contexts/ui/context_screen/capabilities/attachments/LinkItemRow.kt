@@ -16,8 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
+import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.SwipeableListItem
 
 @Composable

@@ -5,6 +5,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.entities.ScoringStatusValues
@@ -14,7 +15,6 @@ import com.romankozak.forwardappmobile.data.logic.GoalScoringManager
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
-import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.features.contexts.ui.context_properties.ContextSettingsEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.utils.TagUtils
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.EvaluationTabActions

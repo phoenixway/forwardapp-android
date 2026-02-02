@@ -21,10 +21,11 @@ fun AlarmScheduler.scheduleForActivityRecord(record: ActivityRecord) {
             message = "Пора закінчувати з ${record.text}",
             extraInfo = "Розпочато: ${
                 SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(record.startTime ?: 0))
-            }"
+            }",
         )
     }
 }
+
 fun AlarmScheduler.cancelForActivityRecord(record: ActivityRecord) {
     val requestCode = record.id.hashCode()
     cancelNotification(requestCode)

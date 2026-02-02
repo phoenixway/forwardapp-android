@@ -13,18 +13,24 @@ data class GoalSnapshot(
     @SerializedName("isDeleted") val isDeleted: Boolean,
     @SerializedName("tags") val tags: List<String>,
     @SerializedName("scoringStatus") val scoringStatus: String,
-    @SerializedName("valueImportance") val valueImportance: Float,
-    @SerializedName("valueImpact") val valueImpact: Float,
-    @SerializedName("effort") val effort: Float,
-    @SerializedName("cost") val cost: Float,
-    @SerializedName("risk") val risk: Float,
+
+    // Scoring (Цілі числа для Snapshot, як у Context)
+    @SerializedName("valueImportance") val valueImportance: Int,
+    @SerializedName("valueImpact") val valueImpact: Int,
+    @SerializedName("effort") val effort: Int,
+    @SerializedName("cost") val cost: Int,
+    @SerializedName("risk") val risk: Int,
+
+    // Weights & Calculated Scores
     @SerializedName("weightEffort") val weightEffort: Float,
     @SerializedName("weightCost") val weightCost: Float,
     @SerializedName("weightRisk") val weightRisk: Float,
-    @SerializedName("rawScore") val rawScore: Float,
-    @SerializedName("displayScore") val displayScore: Int,
+    @SerializedName("rawScore") val rawScore: Double,      // Double для точності
+    @SerializedName("displayScore") val displayScore: Double, // Double для точності
+
+    // Parent Context
     @SerializedName("parentValueImportance") val parentValueImportance: Float?,
     @SerializedName("impactOnParentGoal") val impactOnParentGoal: Float?,
     @SerializedName("timeCost") val timeCost: Float?,
-    @SerializedName("financialCost") val financialCost: Float?
+    @SerializedName("financialCost") val financialCost: Float?,
 )

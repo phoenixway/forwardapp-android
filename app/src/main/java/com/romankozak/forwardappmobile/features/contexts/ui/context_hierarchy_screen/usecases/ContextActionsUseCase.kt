@@ -2,11 +2,11 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 
 import android.net.Uri
 import android.util.Log
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.di.IoDispatcher
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.findDescendantsForDeletion
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.getDescendantIds

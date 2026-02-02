@@ -51,9 +51,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
+import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
+import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.NavigationHistoryMenu
-import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Button
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Overlay
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenuItem
@@ -65,7 +66,6 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
-import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
 import com.romankozak.forwardappmobile.ui.components.NewRecentListsSheet
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier

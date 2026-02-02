@@ -10,7 +10,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.ScoringStatusValues
 
-
 @Composable
 fun EnhancedScoreStatusBadge(
     scoringStatus: String,

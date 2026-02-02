@@ -93,7 +93,6 @@ class CommandDeckViewModel
                 CommandDeckEvent.ExportToFile -> {
                     viewModelScope.launch {
                         dialogUseCase.onExportToFileRequested()
-
                     }
                 }
                 is CommandDeckEvent.ImportFromFileRequest -> {
@@ -117,7 +116,7 @@ class CommandDeckViewModel
                 }
                 is CommandDeckEvent.WifiPush -> {
                     viewModelScope.launch {
-                        //TODO: remove this action
+                        // TODO: remove this action
                     }
                 }
             }
@@ -126,8 +125,12 @@ class CommandDeckViewModel
 
 sealed interface CommandDeckEvent {
     object ExportToFile : CommandDeckEvent
+
     data class ImportFromFileRequest(val fileUri: String) : CommandDeckEvent
+
     object ExportAttachments : CommandDeckEvent
+
     data class ImportAttachmentsFromFile(val fileUri: String) : CommandDeckEvent
+
     data class WifiPush(val host: String) : CommandDeckEvent
 }

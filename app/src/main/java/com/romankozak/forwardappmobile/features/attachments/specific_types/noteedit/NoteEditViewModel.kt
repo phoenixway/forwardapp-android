@@ -4,9 +4,9 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntity
 import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
-import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntity
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow

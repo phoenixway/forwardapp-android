@@ -57,9 +57,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
-import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.ui.components.NewRecentListsSheet
 import kotlinx.coroutines.launch
 
@@ -95,17 +95,20 @@ fun DashboardBottomBar(
 
     val recentItems by recentViewModel.recentItems.collectAsStateWithLifecycle()
 
-    val importLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { onImportFromFileRequest() }
-    }
+    val importLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
+            uri?.let { onImportFromFileRequest() }
+        }
 
-    val selectiveImportLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { onSelectiveImportFromFileRequest() }
-    }
+    val selectiveImportLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
+            uri?.let { onSelectiveImportFromFileRequest() }
+        }
 
-    val importAttachmentsLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { onImportAttachmentsFromFileRequest() }
-    }
+    val importAttachmentsLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
+            uri?.let { onImportAttachmentsFromFileRequest() }
+        }
 
     if (showMoreBottomSheet) {
         ModalBottomSheet(
@@ -452,7 +455,6 @@ fun TacticsBottomBar() {
         // TODO: Add buttons for Tactics screen
     }
 }
-
 
 @Composable
 private fun BarButton(

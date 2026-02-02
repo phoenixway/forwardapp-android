@@ -7,10 +7,11 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class SyncSettingsSourceImpl @Inject constructor(
-    private val settingsRepository: SettingsRepository
-) : SyncSettingsSource {
-
-    // Ми просто перенаправляємо потік з репозиторію налаштувань
-    override val wifiSyncPortFlow: Flow<Int> = settingsRepository.wifiSyncPortFlow
-}
+class SyncSettingsSourceImpl
+    @Inject
+    constructor(
+        private val settingsRepository: SettingsRepository,
+    ) : SyncSettingsSource {
+        // Ми просто перенаправляємо потік з репозиторію налаштувань
+        override val wifiSyncPortFlow: Flow<Int> = settingsRepository.wifiSyncPortFlow
+    }

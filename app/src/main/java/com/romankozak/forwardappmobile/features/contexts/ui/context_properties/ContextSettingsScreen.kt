@@ -54,9 +54,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
 import com.romankozak.forwardappmobile.ui.components.notesEditors.FullScreenMarkdownEditor
 import com.romankozak.forwardappmobile.ui.screens.common.SettingsScreen
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.DisplayTabContent

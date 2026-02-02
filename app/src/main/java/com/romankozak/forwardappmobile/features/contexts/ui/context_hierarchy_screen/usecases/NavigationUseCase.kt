@@ -1,11 +1,11 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases
 
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.navigation.ClearAndNavigateHomeUseCase
 import com.romankozak.forwardappmobile.core.navigation.ClearCommand
 import com.romankozak.forwardappmobile.core.navigation.ClearResult
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.createClearExecutionContext
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectUiEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel

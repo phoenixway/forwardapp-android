@@ -35,11 +35,11 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
-import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalGoalSearchResult
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSearchResultItem
+import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
+import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.features.globalsearch.components.InboxSearchResultItem
 import com.romankozak.forwardappmobile.features.globalsearch.components.LinkSearchResultItem
 import com.romankozak.forwardappmobile.features.globalsearch.components.ProjectSearchResultItem

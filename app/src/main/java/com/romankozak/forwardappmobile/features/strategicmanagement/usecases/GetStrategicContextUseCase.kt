@@ -1,8 +1,8 @@
 package com.romankozak.forwardappmobile.features.strategicmanagement.usecases
 
-import com.romankozak.forwardappmobile.data.repository.ContextRepository
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.context.SystemContexts
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import javax.inject.Inject
 
 class GetStrategicContextUseCase

@@ -23,9 +23,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.features.activitytracker.ActivityTrackerScreen
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
-
+import com.romankozak.forwardappmobile.features.activitytracker.ActivityTrackerScreen
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayanalitics.DayAnalyticsScreen
 import com.romankozak.forwardappmobile.features.daymanagement.ui.daydashboard.DayDashboardScreen
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanScreen
@@ -84,7 +83,6 @@ fun DayManagementScreen(
         containerColor = Color.Transparent,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-
         floatingActionButton = {},
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {

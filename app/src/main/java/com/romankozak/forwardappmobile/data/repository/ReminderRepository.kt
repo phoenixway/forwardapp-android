@@ -1,11 +1,11 @@
 package com.romankozak.forwardappmobile.data.repository
 
-import com.romankozak.forwardappmobile.core.di.IoDispatcher
-import com.romankozak.forwardappmobile.data.dao.ReminderDao
-import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.core.data.models.sync.bumpSync
 import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
+import com.romankozak.forwardappmobile.core.di.IoDispatcher
+import com.romankozak.forwardappmobile.data.dao.ReminderDao
+import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob

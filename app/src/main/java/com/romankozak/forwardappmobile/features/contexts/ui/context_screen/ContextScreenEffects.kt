@@ -14,9 +14,9 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
-import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.utils.handleRelatedLinkClick
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
@@ -92,9 +92,9 @@ fun GoalDetailEffects(
                 }
 
                 is UiEvent.NavigateBackAndReveal -> {
-                                        navController.previousBackStackEntry
-                                            ?.savedStateHandle
-                                            ?.set("context_to_reveal", event.contextId)
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("context_to_reveal", event.contextId)
 
                     navController.popBackStack()
                 }

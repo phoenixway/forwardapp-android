@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface AttachmentDao {
-
     @Transaction
     @Query(
         """
@@ -106,7 +105,8 @@ interface AttachmentDao {
     @Query("DELETE FROM context_attachment_cross_ref")
     suspend fun deleteAllContextAttachmentLinks()
 
-    @Query("""
+    @Query(
+        """
         SELECT 
             a.id AS id,
             a.attachment_type AS attachmentType,
@@ -128,11 +128,15 @@ interface AttachmentDao {
         LEFT JOIN context_attachment_cross_ref AS cross_ref ON a.id = cross_ref.attachment_id
         LEFT JOIN contexts AS linked_ctx ON cross_ref.context_id = linked_ctx.id
         GROUP BY a.id
-    """)
+    """,
+    )
     fun getLibraryItemsFlow(): Flow<List<AttachmentLibraryQueryResult>>
 
     @Query("SELECT * FROM attachments WHERE owner_context_id = :contextId AND role_code = :roleCode LIMIT 1")
-    suspend fun findAttachmentByRole(contextId: String, roleCode: String): AttachmentEntity?
+    suspend fun findAttachmentByRole(
+        contextId: String,
+        roleCode: String,
+    ): AttachmentEntity?
 
     @Query("SELECT * FROM attachments")
     suspend fun getAllRaw(): List<AttachmentEntity>

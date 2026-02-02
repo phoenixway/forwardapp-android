@@ -1,6 +1,5 @@
 package com.romankozak.forwardappmobile.core.navigation.routes
 
-import com.romankozak.forwardappmobile.features.mainscreen.CommandDeckViewModel
 import android.util.Log
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
@@ -20,6 +19,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
+import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
+import com.romankozak.forwardappmobile.core.data.models.entities.RecentItemType
 import com.romankozak.forwardappmobile.core.navigation.AppNavigationViewModel
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
@@ -56,12 +57,11 @@ import com.romankozak.forwardappmobile.features.globalsearch.GlobalSearchScreen
 import com.romankozak.forwardappmobile.features.globalsearch.GlobalSearchViewModel
 import com.romankozak.forwardappmobile.features.lifestate.LifeStateScreen
 import com.romankozak.forwardappmobile.features.mainscreen.CharacterScreen
+import com.romankozak.forwardappmobile.features.mainscreen.CommandDeckEvent
+import com.romankozak.forwardappmobile.features.mainscreen.CommandDeckViewModel
 import com.romankozak.forwardappmobile.features.mainscreen.MainScreenLayout
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
-import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
-import com.romankozak.forwardappmobile.core.data.models.entities.RecentItemType
-import com.romankozak.forwardappmobile.features.mainscreen.CommandDeckEvent
 import com.romankozak.forwardappmobile.features.reminders.list.RemindersScreen
 import com.romankozak.forwardappmobile.features.settings.ManageContextsScreen
 import com.romankozak.forwardappmobile.features.settings.settings.SettingsScreen
@@ -174,10 +174,16 @@ private fun NavGraphBuilder.mainGraph(
             onNavigateToAiInsights = { navController.navigate(AI_INSIGHTS_ROUTE) },
             onNavigateToAiLifeManagement = { navController.navigate(LIFE_STATE_ROUTE) },
             onExportToFile = { commandDeckViewModel.onEvent(CommandDeckEvent.ExportToFile) },
-            onImportFromFileRequest = { commandDeckViewModel.onEvent(CommandDeckEvent.ImportFromFileRequest("")) }, // File picker will handle URI
+            onImportFromFileRequest = {
+                commandDeckViewModel.onEvent(
+                    CommandDeckEvent.ImportFromFileRequest(""),
+                )
+            }, // File picker will handle URI
             onSelectiveImportFromFileRequest = { navController.navigate(SELECTIVE_IMPORT_ROUTE) }, // This still navigates
             onExportAttachments = { commandDeckViewModel.onEvent(CommandDeckEvent.ExportAttachments) },
-            onImportAttachmentsFromFileRequest = { commandDeckViewModel.onEvent(CommandDeckEvent.ImportAttachmentsFromFile("")) }, // File picker will handle URI
+            onImportAttachmentsFromFileRequest = {
+                commandDeckViewModel.onEvent(CommandDeckEvent.ImportAttachmentsFromFile(""))
+            }, // File picker will handle URI
             onWifiPush = { host -> commandDeckViewModel.onEvent(CommandDeckEvent.WifiPush(host)) },
             onNavigateToAttachments = { navController.navigate("attachments_library_screen") },
             onNavigateToScripts = { navController.navigate("scripts_library_screen") },
@@ -597,6 +603,5 @@ private fun NavGraphBuilder.mainGraph(
         PlaceholderScreen(viewId = viewId, screenId = screenId)
     }
 }
-
 
 fun mapTargetToRoute(target: NavTarget): String = NavTargetRouter.routeOf(target)

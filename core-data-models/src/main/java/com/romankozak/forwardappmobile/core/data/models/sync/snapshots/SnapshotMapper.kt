@@ -1,12 +1,9 @@
-package com.romankozak.forwardappmobile.core.data.models.sync
+package com.romankozak.forwardappmobile.core.data.models.sync.snapshots
 
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogOrder
-import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistItemEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextArtifact
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
@@ -39,6 +36,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurringTask
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMissionAttachmentCrossRef
+import com.romankozak.forwardappmobile.core.data.models.sync.RecentProjectEntry
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.activity.ActivityRecordSnapshot
 
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.ai.AiEventSnapshot
@@ -47,8 +45,6 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.ai.ChatMe
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.ai.ConversationFolderSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.ai.ConversationSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.AttachmentSnapshot
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.ChecklistItemSnapshot
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.ChecklistSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.reminders.ReminderSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.tactical.tactical.TacticalMissionAttachmentCrossRefSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.tactical.tactical.TacticalMissionSnapshot
@@ -63,7 +59,6 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.C
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextLogSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextRoleProfileItemSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextRoleProfileSnapshot
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextStructureItemSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.InboxRecordSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.LinkItemEntitySnapshot
@@ -79,98 +74,9 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.Rece
 import java.time.DayOfWeek
 
 // Context Related Mappings
-fun Context.toSnapshot(): ContextSnapshot = ContextSnapshot(
-    id = this.id,
-    name = this.name,
-    parentId = this.parentId,
-    description = this.description,
-    createdAt = this.createdAt,
-    updatedAt = this.updatedAt ?: this.createdAt,
-    isExpanded = this.isExpanded,
-    isDeleted = this.isDeleted,
-    version = this.version,
-    tags = this.tags,
-    relatedLinks = this.relatedLinks?.map { it.toSnapshot() },
-    order = this.order,
-    isAttachmentsExpanded = this.isAttachmentsExpanded,
-    defaultViewModeName = this.defaultViewModeName,
-    isCompleted = this.isCompleted,
-    isContextManagementEnabled = this.isContextManagementEnabled,
-    contextStatus = this.contextStatus,
-    contextStatusText = this.contextStatusText,
-    contextLogLevel = this.contextLogLevel,
-    totalTimeSpentMinutes = this.totalTimeSpentMinutes,
-    valueImportance = this.valueImportance,
-    valueImpact = this.valueImpact,
-    effort = this.effort,
-    cost = this.cost,
-    risk = this.risk,
-    weightEffort = this.weightEffort,
-    weightCost = this.weightCost,
-    weightRisk = this.weightRisk,
-    rawScore = this.rawScore,
-    displayScore = this.displayScore,
-    scoringStatus = this.scoringStatus,
-    showCheckboxes = this.showCheckboxes,
-    roleCode = this.roleCode
-)
+// File: SnapshotMapper.kt
 
-fun ContextSnapshot.toEntity(): Context = Context(
-    id = this.id,
-    name = this.name,
-    parentId = this.parentId,
-    description = this.description,
-    createdAt = this.createdAt,
-    updatedAt = this.updatedAt,
-    isExpanded = this.isExpanded,
-    isDeleted = this.isDeleted,
-    version = this.version,
-    tags = this.tags,
-    relatedLinks = this.relatedLinks?.map { it.toEntity() },
-    order = this.order,
-    isAttachmentsExpanded = this.isAttachmentsExpanded,
-    defaultViewModeName = this.defaultViewModeName,
-    isCompleted = this.isCompleted,
-    isContextManagementEnabled = this.isContextManagementEnabled,
-    contextStatus = this.contextStatus,
-    contextStatusText = this.contextStatusText,
-    contextLogLevel = this.contextLogLevel,
-    totalTimeSpentMinutes = this.totalTimeSpentMinutes,
-    valueImportance = this.valueImportance,
-    valueImpact = this.valueImpact,
-    effort = this.effort,
-    cost = this.cost,
-    risk = this.risk,
-    weightEffort = this.weightEffort,
-    weightCost = this.weightCost,
-    weightRisk = this.weightRisk,
-    rawScore = this.rawScore,
-    displayScore = this.displayScore,
-    scoringStatus = this.scoringStatus,
-    showCheckboxes = this.showCheckboxes,
-    roleCode = this.roleCode
-)
 
-fun BacklogItem.toSnapshot(): BacklogItemSnapshot = BacklogItemSnapshot(
-    id,
-    contextId,
-    itemType,
-    entityId,
-    order,
-    updatedAt ?: System.currentTimeMillis(),
-    version,
-    isDeleted
-)
-fun BacklogItemSnapshot.toEntity(): BacklogItem = BacklogItem(
-    id,
-    contextId,
-    itemType,
-    entityId,
-    order,
-    updatedAt,
-    version = version,
-    isDeleted = isDeleted
-)
 
 fun BacklogOrder.toSnapshot(): BacklogOrderSnapshot = BacklogOrderSnapshot(
     id,
@@ -231,117 +137,6 @@ fun InboxRecordSnapshot.toEntity(): InboxRecord = InboxRecord(
     version = version,
     isDeleted = isDeleted
 )
-
-// Attachment Related Mappings
-fun LegacyNoteEntity.toSnapshot(): LegacyNoteSnapshot = LegacyNoteSnapshot(
-    id = this.id.toString(), // Додав .toString(), якщо id у Entity — це Long
-    contextId = this.contextId,
-    title = this.title,
-    content = this.content,
-    createdAt = this.createdAt,
-    updatedAt = this.updatedAt, // Прибрали ?: бо поле не nullable
-    isDeleted = this.isDeleted,
-    version = this.version
-)
-
-// File: SnapshotMapper.kt
-
-fun LegacyNoteSnapshot.toEntity(): LegacyNoteEntity = LegacyNoteEntity(
-    id = this.id, // Тепер типи збігаються (String -> String)
-    contextId = this.contextId,
-    title = this.title,
-    content = this.content,
-    createdAt = this.createdAt,
-    updatedAt = this.updatedAt,
-    version = this.version,
-    isDeleted = this.isDeleted, // Додав кому в кінці (trailing comma) для чистоти коду
-)
-fun NoteDocumentEntity.toSnapshot(): NoteDocumentSnapshot = NoteDocumentSnapshot(
-    id = id,
-    name = name,
-    contextId = contextId,
-    content = content,
-    createdAt = createdAt,
-    updatedAt = updatedAt,
-    version = version,
-    isDeleted = isDeleted
-)
-
-fun NoteDocumentSnapshot.toEntity(): NoteDocumentEntity = NoteDocumentEntity(
-    id = id,
-    name = name,
-    contextId = contextId ?: "",
-    content = content,
-    createdAt = createdAt,
-    updatedAt = updatedAt,
-    version = version,
-    isDeleted = isDeleted
-)
-fun ChecklistEntity.toSnapshot(): ChecklistSnapshot = ChecklistSnapshot(
-    id = id,
-    name = name,
-    contextId = contextId,
-    createdAt = createdAt,
-    updatedAt = updatedAt, // Тепер поле існує і не null
-    version = version,
-    isDeleted = isDeleted
-)
-
-// File: SnapshotMapper.kt
-
-fun ChecklistSnapshot.toEntity(): ChecklistEntity = ChecklistEntity(
-    id = id,
-    name = name,
-    contextId = contextId ?: "", // Додаємо значення за замовчуванням, якщо contextId == null
-    createdAt = createdAt,
-    updatedAt = updatedAt,
-    version = version,
-    isDeleted = isDeleted, // Додано trailing comma
-)
-fun ChecklistItemEntity.toSnapshot(): ChecklistItemSnapshot = ChecklistItemSnapshot(
-    id = id,
-    checklistId = checklistId,
-    text = content,      // Entity: content -> Snapshot: text
-    isChecked = isChecked,
-    order = itemOrder,
-    createdAt = System.currentTimeMillis(), // Додаємо, бо в Entity його немає
-    updatedAt = updatedAt ?: System.currentTimeMillis(),
-    version = version,
-    isDeleted = isDeleted
-)
-
-fun ChecklistItemSnapshot.toEntity(): ChecklistItemEntity = ChecklistItemEntity(
-    id,
-    checklistId,
-    text,
-    isChecked,
-    order,
-    createdAt,
-    updatedAt,
-    version = version,
-    isDeleted = isDeleted
-)
-
-fun ScriptEntity.toSnapshot(): ScriptSnapshot = ScriptSnapshot(
-    id = id,
-    name = name,
-    content = content,
-    createdAt = createdAt,
-    updatedAt = updatedAt,
-    version = version,
-    isDeleted = isDeleted
-)
-
-fun ScriptSnapshot.toEntity(): ScriptEntity = ScriptEntity(
-    id = id,
-    name = name,
-    content = content,
-    createdAt = createdAt,
-    updatedAt = updatedAt,
-    version = version,
-    isDeleted = isDeleted,
-    contextId = null // ScriptEntity очікує contextId, якого немає в Snapshot
-)
 fun AttachmentEntity.toSnapshot(): AttachmentSnapshot = AttachmentSnapshot(
     id = id,
     entityId = entityId,
@@ -374,215 +169,18 @@ fun ContextAttachmentCrossRefSnapshot.toEntity(): ContextAttachmentCrossRef =
         isDeleted = isDeleted
     )
 
-// Day Management Mappings
-fun DayPlan.toSnapshot(): DayPlanSnapshot = DayPlanSnapshot(
-    id,
-    date,
-    name,
-    status.name,
-    reflection,
-    energyLevel,
-    mood,
-    weatherConditions,
-    totalPlannedMinutes,
-    totalCompletedMinutes,
-    completionPercentage,
-    createdAt,
-    updatedAt ?: createdAt,
-    isDeleted,
-    version
-)
-fun DayPlanSnapshot.toEntity(): DayPlan = DayPlan(
-    id,
-    date,
-    name,
-    enumValueOf(status),
-    reflection,
-    energyLevel,
-    mood,
-    weatherConditions,
-    totalPlannedMinutes,
-    totalCompletedMinutes,
-    completionPercentage,
-    createdAt,
-    updatedAt,
-    isDeleted = isDeleted,
-    version = version
-)
 
-fun DayTask.toSnapshot(): DayTaskSnapshot = DayTaskSnapshot(
-    id,
-    dayPlanId,
-    title,
-    description,
-    goalId,
-    projectId,
-    activityRecordId,
-    recurringTaskId,
-    taskType,
-    entityId,
-    order,
-    priority.name,
-    status.name,
-    completed,
-    scheduledTime,
-    estimatedDurationMinutes,
-    actualDurationMinutes,
-    dueTime,
-    valueImportance,
-    valueImpact,
-    effort,
-    cost,
-    risk,
-    location,
-    tags,
-    notes,
-    createdAt,
-    updatedAt ?: createdAt,
-    isDeleted,
-    version,
-    completedAt,
-    nextOccurrenceTime,
-    points
-)
-fun DayTaskSnapshot.toEntity(): DayTask = DayTask(
-    id,
-    dayPlanId,
-    title,
-    description,
-    goalId,
-    projectId,
-    activityRecordId,
-    recurringTaskId,
-    taskType,
-    entityId,
-    order,
-    enumValueOf(priority),
-    enumValueOf(status),
-    completed,
-    scheduledTime,
-    estimatedDurationMinutes,
-    actualDurationMinutes,
-    dueTime,
-    valueImportance,
-    valueImpact,
-    effort,
-    cost,
-    risk,
-    location,
-    tags,
-    notes,
-    createdAt,
-    updatedAt,
-    isDeleted = isDeleted,
-    version = version,
-    completedAt = completedAt,
-    nextOccurrenceTime = nextOccurrenceTime,
-    points = points
-)
-
-fun DailyMetric.toSnapshot(): DailyMetricSnapshot = DailyMetricSnapshot(
-    id,
-    dayPlanId,
-    date,
-    tasksPlanned,
-    tasksCompleted,
-    completionRate,
-    totalPlannedTime,
-    totalActiveTime,
-    completedPoints,
-    totalBreakTime,
-    morningEnergyLevel,
-    eveningEnergyLevel,
-    overallMood,
-    stressLevel,
-    customMetrics,
-    createdAt,
-    updatedAt ?: createdAt,
-    isDeleted,
-    version
-)
-fun DailyMetricSnapshot.toEntity(): DailyMetric = DailyMetric(
-    id,
-    dayPlanId,
-    date,
-    tasksPlanned,
-    tasksCompleted,
-    completionRate,
-    totalPlannedTime,
-    totalActiveTime,
-    completedPoints,
-    totalBreakTime,
-    morningEnergyLevel,
-    eveningEnergyLevel,
-    overallMood,
-    stressLevel,
-    customMetrics,
-    createdAt,
-    updatedAt,
-    isDeleted = isDeleted,
-    version = version
-)
-
-fun RecurrenceRule.toSnapshot(): RecurrenceRuleSnapshot =
-    RecurrenceRuleSnapshot(frequency.name, interval, daysOfWeek?.map { it.name })
-// Безпечний мапінг
-fun RecurrenceRuleSnapshot.toEntity(): RecurrenceRule = RecurrenceRule(
-    frequency = RecurrenceFrequency.values().find { it.name == frequency }
-        ?: RecurrenceFrequency.DAILY,
-    interval = interval,
-    daysOfWeek = daysOfWeek?.mapNotNull { dayString ->
-        DayOfWeek.values().find { it.name == dayString }
-    }
-)
-fun RecurringTask.toSnapshot(): RecurringTaskSnapshot = RecurringTaskSnapshot(
-    id,
-    title,
-    description,
-    goalId,
-    duration,
-    priority.name,
-    points,
-    recurrenceRule.toSnapshot(),
-    startDate,
-    endDate
-)
-fun RecurringTaskSnapshot.toEntity(): RecurringTask = RecurringTask(
-    id,
-    title,
-    description,
-    goalId,
-    duration,
-    enumValueOf(priority),
-    points,
-    recurrenceRule.toEntity(),
-    startDate,
-    endDate
-)
 
 // AI Mappings
-fun ConversationEntity.toSnapshot(): ConversationSnapshot =
-    ConversationSnapshot(id, title, creationTimestamp, folderId)
-fun ConversationSnapshot.toEntity(): ConversationEntity =
-    ConversationEntity(id, title, creationTimestamp, folderId)
-
-fun ChatMessageEntity.toSnapshot(): ChatMessageSnapshot =
-    ChatMessageSnapshot(id, conversationId, text, isFromUser, isError, timestamp)
-fun ChatMessageSnapshot.toEntity(): ChatMessageEntity =
-    ChatMessageEntity(id, conversationId, text, isFromUser, isError, timestamp)
-
-fun ConversationFolderEntity.toSnapshot(): ConversationFolderSnapshot =
+/*fun ConversationFolderEntity.toSnapshot(): ConversationFolderSnapshot =
     ConversationFolderSnapshot(id, name)
 fun ConversationFolderSnapshot.toEntity(): ConversationFolderEntity =
     ConversationFolderEntity(id, name)
 
 fun AiEventEntity.toSnapshot(): AiEventSnapshot = AiEventSnapshot(id, type, timestamp, payload)
 fun AiEventSnapshot.toEntity(): AiEventEntity = AiEventEntity(id, type, timestamp, payload)
+*/
 
-fun AiInsightEntity.toSnapshot(): AiInsightSnapshot =
-    AiInsightSnapshot(id, text, type, timestamp, isRead, isFavorite)
-fun AiInsightSnapshot.toEntity(): AiInsightEntity =
-    AiInsightEntity(id, text, type, timestamp, isRead, isFavorite)
 
 fun LinkItemEntity.toSnapshot(): LinkItemEntitySnapshot = LinkItemEntitySnapshot(
     id,

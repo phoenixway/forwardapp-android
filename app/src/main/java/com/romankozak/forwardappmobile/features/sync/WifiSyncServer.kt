@@ -8,13 +8,6 @@ import android.os.Build
 import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
-import com.google.gson.JsonDeserializationContext
-import com.google.gson.JsonDeserializer
-import com.google.gson.JsonElement
-import com.google.gson.JsonParseException
-import com.google.gson.JsonPrimitive
-import com.google.gson.JsonSerializationContext
-import com.google.gson.JsonSerializer
 import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
@@ -37,7 +30,6 @@ import io.ktor.server.routing.routing
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.lang.reflect.Type
 import java.net.BindException
 import java.net.Inet4Address
 import java.net.InetSocketAddress

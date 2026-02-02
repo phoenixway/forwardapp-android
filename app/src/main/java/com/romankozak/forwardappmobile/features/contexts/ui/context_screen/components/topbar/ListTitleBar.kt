@@ -31,7 +31,6 @@ import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextStatusValues
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
-
 import kotlinx.coroutines.delay
 
 // Single StatusVisuals data class

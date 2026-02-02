@@ -3,10 +3,10 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_configurati
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfileItem
+import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow

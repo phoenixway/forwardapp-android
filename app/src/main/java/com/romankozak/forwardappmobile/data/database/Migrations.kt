@@ -1243,182 +1243,198 @@ val MIGRATION_92_93 =
         }
     }
 
-val MIGRATION_94_95 = object : Migration(94, 95) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL("PRAGMA foreign_keys=off;")
-        db.beginTransaction()
-        try {
-            // 1. Define mappings from old string keys to new sys-prefixed IDs
-            val keyToNewId = mapOf(
-                "personal-management" to "sys_personal-management",
-                "strategic" to "sys_strategic",
-                "strategic-beacons" to "sys_strategic-beacons",
-                "mission" to "sys_mission",
-                "long-term-strategy" to "sys_long-term-strategy",
-                "strategic-programs" to "sys_strategic-programs",
-                "medium-term-strategy" to "sys_medium-term-strategy",
-                "active-quests" to "sys_active-quests",
-                "week" to "sys_week",
-                "inbox" to "sys_inbox",
-                "strategic-inbox" to "sys_strategic-inbox",
-                "strategic-review" to "sys_strategic-review",
-                "main-beacons" to "sys_main-beacons",
-                "today" to "sys_today"
-            )
+val MIGRATION_94_95 =
+    object : Migration(94, 95) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("PRAGMA foreign_keys=off;")
+            db.beginTransaction()
+            try {
+                // 1. Define mappings from old string keys to new sys-prefixed IDs
+                val keyToNewId =
+                    mapOf(
+                        "personal-management" to "sys_personal-management",
+                        "strategic" to "sys_strategic",
+                        "strategic-beacons" to "sys_strategic-beacons",
+                        "mission" to "sys_mission",
+                        "long-term-strategy" to "sys_long-term-strategy",
+                        "strategic-programs" to "sys_strategic-programs",
+                        "medium-term-strategy" to "sys_medium-term-strategy",
+                        "active-quests" to "sys_active-quests",
+                        "week" to "sys_week",
+                        "inbox" to "sys_inbox",
+                        "strategic-inbox" to "sys_strategic-inbox",
+                        "strategic-review" to "sys_strategic-review",
+                        "main-beacons" to "sys_main-beacons",
+                        "today" to "sys_today",
+                    )
 
-            // 2. Collect a map of old_id -> new_id for system contexts
-            val oldIdToNewId = mutableMapOf<String, String>()
-            val keysInClause = keyToNewId.keys.joinToString(",") { "'${it}'" }
-            db.query("SELECT id, system_key FROM contexts WHERE system_key IN ($keysInClause)").use { cursor ->
-                val idIndex = cursor.getColumnIndex("id")
-                val keyIndex = cursor.getColumnIndex("system_key")
-                while (cursor.moveToNext()) {
-                    val oldId = cursor.getString(idIndex)
-                    val systemKey = cursor.getString(keyIndex)
-                    keyToNewId[systemKey]?.let { newId ->
-                        oldIdToNewId[oldId] = newId
+                // 2. Collect a map of old_id -> new_id for system contexts
+                val oldIdToNewId = mutableMapOf<String, String>()
+                val keysInClause = keyToNewId.keys.joinToString(",") { "'$it'" }
+                db.query("SELECT id, system_key FROM contexts WHERE system_key IN ($keysInClause)").use { cursor ->
+                    val idIndex = cursor.getColumnIndex("id")
+                    val keyIndex = cursor.getColumnIndex("system_key")
+                    while (cursor.moveToNext()) {
+                        val oldId = cursor.getString(idIndex)
+                        val systemKey = cursor.getString(keyIndex)
+                        keyToNewId[systemKey]?.let { newId ->
+                            oldIdToNewId[oldId] = newId
+                        }
                     }
                 }
-            }
 
-            // 3. Define all tables and columns that reference contexts.id
-            val tablesToUpdate = mapOf(
-                "contexts" to "parentId", // Self-reference
-                "backlog_orders" to "list_id",
-                "context_execution_logs" to "contextId",
-                "inbox_records" to "projectId", // Legacy name from before contexts rename
-                "list_items" to "context_id",
-                "note_documents" to "projectId", // Legacy name
-                "checklists" to "projectId", // Legacy name
-                "scripts" to "projectId", // Legacy name
-                "context_artifacts" to "contextId",
-                "context_attachment_cross_ref" to "context_id",
-                "tactical_missions" to "projectId",
-                "system_apps" to "context_id",
-                "attachments" to "owner_context_id"
-            )
-            
-            // 4. Update all tables with the new IDs
-            oldIdToNewId.forEach { (oldId, newId) ->
-                // First update all foreign key columns in child tables
-                tablesToUpdate.forEach { (table, column) ->
-                    if (db.hasColumn(table, column)) {
-                        db.execSQL("UPDATE $table SET $column = ? WHERE $column = ?", arrayOf(newId, oldId))
+                // 3. Define all tables and columns that reference contexts.id
+                val tablesToUpdate =
+                    mapOf(
+                        "contexts" to "parentId", // Self-reference
+                        "backlog_orders" to "list_id",
+                        "context_execution_logs" to "contextId",
+                        "inbox_records" to "projectId", // Legacy name from before contexts rename
+                        "list_items" to "context_id",
+                        "note_documents" to "projectId", // Legacy name
+                        "checklists" to "projectId", // Legacy name
+                        "scripts" to "projectId", // Legacy name
+                        "context_artifacts" to "contextId",
+                        "context_attachment_cross_ref" to "context_id",
+                        "tactical_missions" to "projectId",
+                        "system_apps" to "context_id",
+                        "attachments" to "owner_context_id",
+                    )
+
+                // 4. Update all tables with the new IDs
+                oldIdToNewId.forEach { (oldId, newId) ->
+                    // First update all foreign key columns in child tables
+                    tablesToUpdate.forEach { (table, column) ->
+                        if (db.hasColumn(table, column)) {
+                            db.execSQL("UPDATE $table SET $column = ? WHERE $column = ?", arrayOf(newId, oldId))
+                        }
                     }
-                }
-                
-                // Then update the primary key in the parent table
-                db.execSQL("UPDATE contexts SET id = ?, system_key = ? WHERE id = ?", arrayOf(newId, newId, oldId))
 
-                // Special handling for tactical_missions.linkedProjectIds (TEXT column with JSON array of strings)
-                if (db.hasColumn("tactical_missions", "linkedProjectIds")) {
-                    db.query("SELECT id, linkedProjectIds FROM tactical_missions WHERE linkedProjectIds LIKE ?", arrayOf("%$oldId%")).use { cursor ->
-                        val idIndex = cursor.getColumnIndex("id")
-                        val jsonIndex = cursor.getColumnIndex("linkedProjectIds")
-                        while(cursor.moveToNext()){
-                            val missionId = cursor.getString(idIndex)
-                            val jsonString = cursor.getString(jsonIndex)
-                            if(!jsonString.isNullOrEmpty()){
-                                val updatedJson = jsonString.replace(oldId, newId)
-                                db.execSQL("UPDATE tactical_missions SET linkedProjectIds = ? WHERE id = ?", arrayOf(updatedJson, missionId))
+                    // Then update the primary key in the parent table
+                    db.execSQL("UPDATE contexts SET id = ?, system_key = ? WHERE id = ?", arrayOf(newId, newId, oldId))
+
+                    // Special handling for tactical_missions.linkedProjectIds (TEXT column with JSON array of strings)
+                    if (db.hasColumn("tactical_missions", "linkedProjectIds")) {
+                        db.query(
+                            "SELECT id, linkedProjectIds FROM tactical_missions WHERE linkedProjectIds LIKE ?",
+                            arrayOf("%$oldId%"),
+                        ).use {
+                                cursor ->
+                            val idIndex = cursor.getColumnIndex("id")
+                            val jsonIndex = cursor.getColumnIndex("linkedProjectIds")
+                            while (cursor.moveToNext()) {
+                                val missionId = cursor.getString(idIndex)
+                                val jsonString = cursor.getString(jsonIndex)
+                                if (!jsonString.isNullOrEmpty())
+                                    {
+                                        val updatedJson = jsonString.replace(oldId, newId)
+                                        db.execSQL(
+                                            "UPDATE tactical_missions SET linkedProjectIds = ? WHERE id = ?",
+                                            arrayOf(updatedJson, missionId),
+                                        )
+                                    }
                             }
                         }
                     }
                 }
-            }
-            
-            // 5. Drop old columns if they exist
-            if (db.hasColumn("contexts", "project_type")) {
-                db.execSQL("ALTER TABLE contexts DROP COLUMN project_type")
-            }
-             if (db.hasColumn("contexts", "context_type")) {
-                db.execSQL("ALTER TABLE contexts DROP COLUMN context_type")
-            }
-            if (db.hasColumn("contexts", "reserved_group")) {
-                db.execSQL("ALTER TABLE contexts DROP COLUMN reserved_group")
-            }
 
-            // 6. Drop old indexes if they exist
-            db.execSQL("DROP INDEX IF EXISTS index_contexts_project_type")
-            db.execSQL("DROP INDEX IF EXISTS index_contexts_reserved_group")
-            db.execSQL("DROP INDEX IF EXISTS idx_projects_systemkey_unique") // old index on system_key
+                // 5. Drop old columns if they exist
+                if (db.hasColumn("contexts", "project_type")) {
+                    db.execSQL("ALTER TABLE contexts DROP COLUMN project_type")
+                }
+                if (db.hasColumn("contexts", "context_type")) {
+                    db.execSQL("ALTER TABLE contexts DROP COLUMN context_type")
+                }
+                if (db.hasColumn("contexts", "reserved_group")) {
+                    db.execSQL("ALTER TABLE contexts DROP COLUMN reserved_group")
+                }
 
-            db.setTransactionSuccessful()
-        } finally {
-            db.endTransaction()
-            db.execSQL("PRAGMA foreign_keys=on;")
+                // 6. Drop old indexes if they exist
+                db.execSQL("DROP INDEX IF EXISTS index_contexts_project_type")
+                db.execSQL("DROP INDEX IF EXISTS index_contexts_reserved_group")
+                db.execSQL("DROP INDEX IF EXISTS idx_projects_systemkey_unique") // old index on system_key
+
+                db.setTransactionSuccessful()
+            } finally {
+                db.endTransaction()
+                db.execSQL("PRAGMA foreign_keys=on;")
+            }
         }
     }
-}
-val MIGRATION_95_96 = object : Migration(95, 96) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        // 1. Створюємо нову таблицю (Точно за схемою з логу)
-        db.execSQL("""
-            CREATE TABLE IF NOT EXISTS `contexts_new` (
-                `id` TEXT NOT NULL, 
-                `name` TEXT NOT NULL, 
-                `description` TEXT, 
-                `parentId` TEXT, 
-                `createdAt` INTEGER NOT NULL, 
-                `updatedAt` INTEGER, 
-                `synced_at` INTEGER, 
-                `is_deleted` INTEGER NOT NULL DEFAULT 0, 
-                `version` INTEGER NOT NULL DEFAULT 0, 
-                `tags` TEXT, 
-                `relatedLinks` TEXT, 
-                `is_expanded` INTEGER NOT NULL DEFAULT 1, 
-                `goal_order` INTEGER NOT NULL DEFAULT 0, 
-                `is_attachments_expanded` INTEGER NOT NULL DEFAULT 0, 
-                `default_view_mode` TEXT, 
-                `is_completed` INTEGER NOT NULL DEFAULT 0, 
-                `is_context_management_enabled` INTEGER, 
-                `context_status` TEXT, 
-                `context_status_text` TEXT, 
-                `context_log_level` TEXT, 
-                `total_time_spent_minutes` INTEGER, 
-                `valueImportance` REAL NOT NULL DEFAULT 0.0, 
-                `valueImpact` REAL NOT NULL DEFAULT 0.0, 
-                `effort` REAL NOT NULL DEFAULT 0.0, 
-                `cost` REAL NOT NULL DEFAULT 0.0, 
-                `risk` REAL NOT NULL DEFAULT 0.0, 
-                `weightEffort` REAL NOT NULL DEFAULT 1.0, 
-                `weightCost` REAL NOT NULL DEFAULT 1.0, 
-                `weightRisk` REAL NOT NULL DEFAULT 1.0, 
-                `rawScore` REAL NOT NULL DEFAULT 0.0, 
-                `displayScore` INTEGER NOT NULL DEFAULT 0, 
-                `scoring_status` TEXT NOT NULL, 
-                `show_checkboxes` INTEGER NOT NULL DEFAULT 0, 
-                `role_code` TEXT, 
-                PRIMARY KEY(`id`)
+val MIGRATION_95_96 =
+    object : Migration(95, 96) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // 1. Створюємо нову таблицю (Точно за схемою з логу)
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `contexts_new` (
+                    `id` TEXT NOT NULL, 
+                    `name` TEXT NOT NULL, 
+                    `description` TEXT, 
+                    `parentId` TEXT, 
+                    `createdAt` INTEGER NOT NULL, 
+                    `updatedAt` INTEGER, 
+                    `synced_at` INTEGER, 
+                    `is_deleted` INTEGER NOT NULL DEFAULT 0, 
+                    `version` INTEGER NOT NULL DEFAULT 0, 
+                    `tags` TEXT, 
+                    `relatedLinks` TEXT, 
+                    `is_expanded` INTEGER NOT NULL DEFAULT 1, 
+                    `goal_order` INTEGER NOT NULL DEFAULT 0, 
+                    `is_attachments_expanded` INTEGER NOT NULL DEFAULT 0, 
+                    `default_view_mode` TEXT, 
+                    `is_completed` INTEGER NOT NULL DEFAULT 0, 
+                    `is_context_management_enabled` INTEGER, 
+                    `context_status` TEXT, 
+                    `context_status_text` TEXT, 
+                    `context_log_level` TEXT, 
+                    `total_time_spent_minutes` INTEGER, 
+                    `valueImportance` REAL NOT NULL DEFAULT 0.0, 
+                    `valueImpact` REAL NOT NULL DEFAULT 0.0, 
+                    `effort` REAL NOT NULL DEFAULT 0.0, 
+                    `cost` REAL NOT NULL DEFAULT 0.0, 
+                    `risk` REAL NOT NULL DEFAULT 0.0, 
+                    `weightEffort` REAL NOT NULL DEFAULT 1.0, 
+                    `weightCost` REAL NOT NULL DEFAULT 1.0, 
+                    `weightRisk` REAL NOT NULL DEFAULT 1.0, 
+                    `rawScore` REAL NOT NULL DEFAULT 0.0, 
+                    `displayScore` INTEGER NOT NULL DEFAULT 0, 
+                    `scoring_status` TEXT NOT NULL, 
+                    `show_checkboxes` INTEGER NOT NULL DEFAULT 0, 
+                    `role_code` TEXT, 
+                    PRIMARY KEY(`id`)
+                )
+                """.trimIndent(),
             )
-        """.trimIndent())
 
-        // 2. Копіюємо дані
-        db.execSQL("""
-            INSERT INTO `contexts_new` (
-                id, name, description, parentId, createdAt, updatedAt, synced_at, is_deleted, version, 
-                tags, relatedLinks, is_expanded, goal_order, is_attachments_expanded, default_view_mode, 
-                is_completed, is_context_management_enabled, context_status, context_status_text, 
-                context_log_level, total_time_spent_minutes, valueImportance, valueImpact, effort, 
-                cost, risk, weightEffort, weightCost, weightRisk, rawScore, displayScore, 
-                scoring_status, show_checkboxes, role_code
+            // 2. Копіюємо дані
+            db.execSQL(
+                """
+                INSERT INTO `contexts_new` (
+                    id, name, description, parentId, createdAt, updatedAt, synced_at, is_deleted, version, 
+                    tags, relatedLinks, is_expanded, goal_order, is_attachments_expanded, default_view_mode, 
+                    is_completed, is_context_management_enabled, context_status, context_status_text, 
+                    context_log_level, total_time_spent_minutes, valueImportance, valueImpact, effort, 
+                    cost, risk, weightEffort, weightCost, weightRisk, rawScore, displayScore, 
+                    scoring_status, show_checkboxes, role_code
+                )
+                SELECT 
+                    id, name, description, parentId, createdAt, updatedAt, synced_at, is_deleted, version, 
+                    tags, relatedLinks, is_expanded, goal_order, is_attachments_expanded, default_view_mode, 
+                    is_completed, is_context_management_enabled, context_status, context_status_text, 
+                    context_log_level, total_time_spent_minutes, 
+                    COALESCE(valueImportance, 0.0), COALESCE(valueImpact, 0.0), COALESCE(effort, 0.0), 
+                    COALESCE(cost, 0.0), COALESCE(risk, 0.0), COALESCE(weightEffort, 1.0), 
+                    COALESCE(weightCost, 1.0), COALESCE(weightRisk, 1.0), COALESCE(rawScore, 0.0), 
+                    COALESCE(displayScore, 0), 
+                    COALESCE(scoring_status, 'NOT_ASSESSED'), 
+                    show_checkboxes, role_code
+                FROM `contexts`
+                """.trimIndent(),
             )
-            SELECT 
-                id, name, description, parentId, createdAt, updatedAt, synced_at, is_deleted, version, 
-                tags, relatedLinks, is_expanded, goal_order, is_attachments_expanded, default_view_mode, 
-                is_completed, is_context_management_enabled, context_status, context_status_text, 
-                context_log_level, total_time_spent_minutes, 
-                COALESCE(valueImportance, 0.0), COALESCE(valueImpact, 0.0), COALESCE(effort, 0.0), 
-                COALESCE(cost, 0.0), COALESCE(risk, 0.0), COALESCE(weightEffort, 1.0), 
-                COALESCE(weightCost, 1.0), COALESCE(weightRisk, 1.0), COALESCE(rawScore, 0.0), 
-                COALESCE(displayScore, 0), 
-                COALESCE(scoring_status, 'NOT_ASSESSED'), 
-                show_checkboxes, role_code
-            FROM `contexts`
-        """.trimIndent())
 
-        // 3. Перейменування
-        db.execSQL("DROP TABLE `contexts`")
-        db.execSQL("ALTER TABLE `contexts_new` RENAME TO `contexts`")
+            // 3. Перейменування
+            db.execSQL("DROP TABLE `contexts`")
+            db.execSQL("ALTER TABLE `contexts_new` RENAME TO `contexts`")
+        }
     }
-}

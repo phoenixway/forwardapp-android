@@ -31,10 +31,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.core.utils.formatDurationForUi
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextStatusValues
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextTimeMetrics
+import com.romankozak.forwardappmobile.core.utils.formatDurationForUi
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable

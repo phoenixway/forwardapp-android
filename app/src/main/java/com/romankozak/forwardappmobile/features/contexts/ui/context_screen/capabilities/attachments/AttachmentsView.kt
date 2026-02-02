@@ -30,10 +30,10 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
 import com.romankozak.forwardappmobile.features.attachments.ui.project.components.ChecklistItemRow
 import com.romankozak.forwardappmobile.features.attachments.ui.project.components.LinkItemRow
 import com.romankozak.forwardappmobile.features.attachments.ui.project.components.NoteDocumentItemRow
-import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.BacklogViewModel
 
 @Composable

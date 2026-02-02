@@ -11,7 +11,5 @@ import dagger.hilt.components.SingletonComponent
 @InstallIn(SingletonComponent::class)
 abstract class SyncModule {
     @Binds
-    abstract fun bindContentProvider(
-        impl: AndroidContentProvider
-    ): IContentProvider
+    abstract fun bindContentProvider(impl: AndroidContentProvider): IContentProvider
 }

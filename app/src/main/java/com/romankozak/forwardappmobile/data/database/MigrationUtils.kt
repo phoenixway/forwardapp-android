@@ -53,8 +53,6 @@ private fun normalizeSpecialProjectNames(db: SupportSQLiteDatabase) {
     db.execSQL("UPDATE projects SET name = 'strategic-programs' WHERE name IN ('strategic-program', 'strategic-programs')")
     db.execSQL("DELETE FROM projects WHERE name LIKE 'main-beacons-realization%' OR system_key = 'main-beacons-realization'")
 
-
-
     Log.d(
         MIGRATION_LOG_TAG,
         "normalizeSpecialProjectNames: personal-management, strategic, medium-term-strategy and reserved_group aliases normalized (main-beacons-realization removed)",
@@ -124,8 +122,6 @@ private fun migrateSpecialProjectsLegacy(db: SupportSQLiteDatabase) {
                     arrayOf(strategicGroupId, strategicBeaconsGroupId),
                 )
             }
-
-
 
             db.execSQL(
                 "UPDATE projects SET parentId = ? WHERE name = 'long-term-strategy'",

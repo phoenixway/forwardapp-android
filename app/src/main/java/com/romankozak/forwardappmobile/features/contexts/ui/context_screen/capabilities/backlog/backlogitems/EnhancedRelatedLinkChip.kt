@@ -34,7 +34,6 @@ import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 
-
 @Composable
 internal fun EnhancedRelatedLinkChip(
     link: RelatedLink,

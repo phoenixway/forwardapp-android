@@ -14,4 +14,6 @@ data class ConversationEntity(
     var title: String,
     val creationTimestamp: Long = System.currentTimeMillis(),
     val folderId: Long? = null,
+    val version: Long = 0L,
+    val isDeleted: Boolean = false
 )

@@ -3,15 +3,15 @@ package com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
-import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
-import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayPlan
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.NewTaskParameters
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceFrequency
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceRule
-import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
+import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
+import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
@@ -353,29 +353,29 @@ class DayPlanViewModel
             }
         }
 
-    fun toggleTaskCompletion(taskId: String) {
-        viewModelScope.launch {
-            val task = uiState.value.tasks.find { it.dayTask.id == taskId }?.dayTask ?: return@launch
-            try {
-                // Використовуємо ?.let для безпечного розпакування та smart cast
-                task.recurringTaskId?.let { recurringId ->
-                    val recurringTask = dayManagementRepository.getRecurringTask(recurringId)
+        fun toggleTaskCompletion(taskId: String) {
+            viewModelScope.launch {
+                val task = uiState.value.tasks.find { it.dayTask.id == taskId }?.dayTask ?: return@launch
+                try {
+                    // Використовуємо ?.let для безпечного розпакування та smart cast
+                    task.recurringTaskId?.let { recurringId ->
+                        val recurringTask = dayManagementRepository.getRecurringTask(recurringId)
 
-                    if (recurringTask?.recurrenceRule?.frequency == RecurrenceFrequency.HOURLY) {
-                        val intervalMillis = recurringTask.recurrenceRule.interval * 60 * 60 * 1000L // Додав L для Long
-                        val nextOccurrence = System.currentTimeMillis() + intervalMillis
-                        dayManagementRepository.updateTaskNextOccurrence(taskId, nextOccurrence)
-                        return@launch
+                        if (recurringTask?.recurrenceRule?.frequency == RecurrenceFrequency.HOURLY) {
+                            val intervalMillis = recurringTask.recurrenceRule.interval * 60 * 60 * 1000L // Додав L для Long
+                            val nextOccurrence = System.currentTimeMillis() + intervalMillis
+                            dayManagementRepository.updateTaskNextOccurrence(taskId, nextOccurrence)
+                            return@launch
+                        }
                     }
-                }
 
-                // Якщо recurringTaskId == null або частота не HOURLY, просто тоглимо статус
-                dayManagementRepository.toggleTaskCompletion(taskId)
-            } catch (e: Exception) {
-                Log.e("DayPlanViewModel", "Error toggling task completion", e)
+                    // Якщо recurringTaskId == null або частота не HOURLY, просто тоглимо статус
+                    dayManagementRepository.toggleTaskCompletion(taskId)
+                } catch (e: Exception) {
+                    Log.e("DayPlanViewModel", "Error toggling task completion", e)
+                }
             }
         }
-    }
 
         fun refreshPlan() {
             _planId.value?.let { planId ->
@@ -410,16 +410,16 @@ class DayPlanViewModel
             )
         }
 
-    fun hasOverdueTasks(): Boolean {
-        val currentTime = System.currentTimeMillis()
-        return uiState.value.tasks.any { taskWithReminder ->
-            val task = taskWithReminder.dayTask
-            val dueTime = task.dueTime // 1. Фіксуємо значення у локальній змінній
+        fun hasOverdueTasks(): Boolean {
+            val currentTime = System.currentTimeMillis()
+            return uiState.value.tasks.any { taskWithReminder ->
+                val task = taskWithReminder.dayTask
+                val dueTime = task.dueTime // 1. Фіксуємо значення у локальній змінній
 
-            // 2. Використовуємо дужки для чіткості та локальну змінну для smart cast
-            !task.completed && (dueTime != null) && (dueTime < currentTime)
+                // 2. Використовуємо дужки для чіткості та локальну змінну для smart cast
+                !task.completed && (dueTime != null) && (dueTime < currentTime)
+            }
         }
-    }
 
         fun getCompletionStats(): Triple<Int, Int, Float> {
             val tasks = uiState.value.tasks

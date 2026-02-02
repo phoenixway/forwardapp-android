@@ -70,13 +70,14 @@ fun SelectiveImportScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    val importLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
-        if (uri != null) {
-            viewModel.loadBackupFile(uri.toString())
-        } else {
-            onNavigateBack()
+    val importLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
+            if (uri != null) {
+                viewModel.loadBackupFile(uri.toString())
+            } else {
+                onNavigateBack()
+            }
         }
-    }
 
     LaunchedEffect(uiState.isLoading) {
         if (uiState.backupContent == null && !uiState.isLoading && uiState.error == null) {

@@ -1,12 +1,11 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel
 
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
+import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
-import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
-import com.romankozak.forwardappmobile.core.data.models.entities.Goal
-
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.BacklogViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.GoalActionDialogState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.GoalActionType
