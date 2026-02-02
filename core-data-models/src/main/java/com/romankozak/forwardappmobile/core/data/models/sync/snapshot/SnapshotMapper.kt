@@ -276,10 +276,6 @@ fun AiEventSnapshot.toEntity(): AiEventEntity = AiEventEntity(id, type, timestam
 fun AiInsightEntity.toSnapshot(): AiInsightSnapshot = AiInsightSnapshot(id, text, type, timestamp, isRead, isFavorite)
 fun AiInsightSnapshot.toEntity(): AiInsightEntity = AiInsightEntity(id, text, type, timestamp, isRead, isFavorite)
 
-// Misc Mappings
-fun ActivityRecord.toSnapshot(): ActivityRecordSnapshot = ActivityRecordSnapshot(id, text, createdAt, startTime, endTime, reminderTime, targetId, targetType, updatedAt ?: createdAt, goalId, contextId, xpGained, antyXp, isDeleted, version)
-fun ActivityRecordSnapshot.toEntity(): ActivityRecord = ActivityRecord(id, text, createdAt, startTime, endTime, reminderTime, targetId, targetType, updatedAt, goalId, contextId, xpGained, antyXp, isDeleted = isDeleted, version = version)
-
 fun LinkItemEntity.toSnapshot(): LinkItemEntitySnapshot = LinkItemEntitySnapshot(id, linkData.toSnapshot(), createdAt, updatedAt ?: createdAt, isDeleted, version)
 fun LinkItemEntitySnapshot.toEntity(): LinkItemEntity = LinkItemEntity(id, linkData.toEntity(), createdAt, updatedAt, isDeleted = isDeleted, version = version)
 
@@ -466,3 +462,41 @@ fun TacticalMissionSnapshot.toEntity(): TacticalMission = TacticalMission(id, ti
 
 fun TacticalMissionAttachmentCrossRef.toSnapshot(): TacticalMissionAttachmentCrossRefSnapshot = TacticalMissionAttachmentCrossRefSnapshot(missionId, attachmentId)
 fun TacticalMissionAttachmentCrossRefSnapshot.toEntity(): TacticalMissionAttachmentCrossRef = TacticalMissionAttachmentCrossRef(missionId, attachmentId)
+// Activity Mappings
+fun ActivityRecord.toSnapshot(): ActivityRecordSnapshot = ActivityRecordSnapshot(
+    id = this.id,
+    startTime = this.startTime,
+    endTime = this.endTime,
+    text = this.text, // Виправлено: description -> text
+    createdAt = this.createdAt,
+    updatedAt = this.updatedAt ?: this.createdAt,
+    version = this.version,
+    isDeleted = this.isDeleted,
+    // Додаємо нові поля
+    reminderTime = this.reminderTime,
+    targetId = this.targetId,
+    targetType = this.targetType,
+    goalId = this.goalId,
+    contextId = this.contextId,
+    xpGained = this.xpGained,
+    antyXp = this.antyXp
+)
+
+fun ActivityRecordSnapshot.toEntity(): ActivityRecord = ActivityRecord(
+    id = this.id,
+    startTime = this.startTime,
+    endTime = this.endTime,
+    text = this.text, // Виправлено: description -> text
+    createdAt = this.createdAt,
+    updatedAt = this.updatedAt,
+    version = this.version,
+    isDeleted = this.isDeleted,
+    // Додаємо нові поля
+    reminderTime = this.reminderTime,
+    targetId = this.targetId,
+    targetType = this.targetType,
+    goalId = this.goalId,
+    contextId = this.contextId,
+    xpGained = this.xpGained,
+    antyXp = this.antyXp
+)
