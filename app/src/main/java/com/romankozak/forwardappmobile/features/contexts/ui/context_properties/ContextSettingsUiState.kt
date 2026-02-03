@@ -1,8 +1,7 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_properties
 
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.input.TextFieldValue
-import com.romankozak.forwardappmobile.core.capability.CapabilityId // ДОДАНО
+import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
 import com.romankozak.forwardappmobile.core.data.models.entities.ScoringStatusValues
 
@@ -30,9 +29,9 @@ data class ContextSettingsUiState(
     val showCheckboxes: Boolean = true,
     val isProjectManagementEnabled: Boolean = false,
     val currentPresetLabel: String? = null,
-    val availablePresets: List<ContextRoleProfile> = emptyList(),
-    val autoLinkSubprojects: Boolean = true,
-val features: Map<String, Boolean> = emptyMap(),
     val basePresetCode: String? = null,
     val experimentalCapabilityIds: List<CapabilityId> = emptyList(),
+    val availablePresets: List<ContextRoleProfile> = emptyList(),
+    val autoLinkSubprojects: Boolean = true,
+    val features: Map<String, Boolean> = emptyMap(),
 )

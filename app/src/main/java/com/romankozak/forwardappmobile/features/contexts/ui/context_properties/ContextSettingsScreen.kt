@@ -2,6 +2,8 @@
 
 package com.romankozak.forwardappmobile.features.contexts.ui.context_properties
 
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
