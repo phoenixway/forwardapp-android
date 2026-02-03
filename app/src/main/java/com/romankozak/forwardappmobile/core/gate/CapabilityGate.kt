@@ -6,6 +6,7 @@ import com.romankozak.forwardappmobile.core.context.ContextController
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import javax.inject.Inject
 import javax.inject.Singleton
+import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
 
 @Singleton
 class CapabilityGate @Inject constructor(
