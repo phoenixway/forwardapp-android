@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import javax.inject.Inject
+import com.romankozak.forwardappmobile.core.gate.CapabilityGate
 
 @HiltViewModel
 class ContextSettingsViewModel
