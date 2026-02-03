@@ -16,22 +16,22 @@ class CapabilityGate @Inject constructor(
      * Визначає, чи є можливість активною в поточному контексті.
      * Об'єднує стару логіку прапорців та нову систему ID.
      */
-    fun isEnabled(id: CapabilityId): Boolean {
-        // 1. Перевіряємо, чи можливість зареєстрована в реєстрі
-        if (registry.get(id) == null) return false
+    // У CapabilityGate.kt
+fun isEnabled(id: CapabilityId): Boolean {
+    val currentState = contextController.current()
+    val config = (currentState as? ConfigurableState)?.config ?: return false
 
-        // 2. Отримуємо поточний стан
-        val currentState = contextController.current()
+    // 1. Перевірка через роль (пресет)
+    val enabledByRole = ContextRoleRegistry
+        .getCapabilitiesForRole(config.basePresetCode)
+        .contains(id)
 
-        // 3. Пріоритет 1: Перевірка в динамічному наборі (якщо він уже сформований)
-        if (currentState.features.active.contains(id)) return true
+    // 2. Перевірка через прямі ID або старі прапорці
+    return enabledByRole || 
+           config.experimentalCapabilityIds.contains(id) || 
+           isLegacyEnabled(id, config)
+}
 
-        // 4. Пріоритет 2: Перевірка через стабільну конфігурацію
-        // Примітка: використовуємо ConfigurableState для доступу до даних БД у стані
-        val config = (currentState as? ConfigurableState)?.config ?: return false
-
-        return isLegacyEnabled(id, config) || config.experimentalCapabilityIds.contains(id)
-    }
 
     /**
      * Мапінг ідентифікаторів можливостей на старі boolean-поля конфігурації
