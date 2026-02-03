@@ -5,6 +5,8 @@ google-cloud-sdk*
 
 loggy.log
 debug.log
+build.log
+error.log
 communication.log
 
 app/schemas/
