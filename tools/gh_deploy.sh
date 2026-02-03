@@ -3,22 +3,25 @@ set -e
 
 # Colors
 GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
+YELLOW='\1;33m'
 RED='\033[0;31m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-# Шлях до скрипта встановлення (припускаємо, що він у тій же папці)
-INSTALL_SCRIPT="$(dirname "$0")/install_apk.sh"
+# Шляхи та файли
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+INSTALL_SCRIPT="$(dirname "$0")/install_apk.sh"
 DIST_DIR="$PROJECT_ROOT/dist"
 WORKFLOW_FILE="android_build.yml"
+
+# Файли логів у корені проєкту
+BUILD_LOG="$PROJECT_ROOT/build.log"
+ERROR_LOG="$PROJECT_ROOT/error.log"
 
 function check_gh_cli() {
     if ! command -v gh &> /dev/null; then
         echo -e "${RED}Error: GitHub CLI (gh) is not installed.${NC}"
         echo "Please install it: https://cli.github.com/"
-        echo "And login: gh auth login"
         exit 1
     fi
 }
@@ -71,7 +74,6 @@ ARTIFACT_NAME="apk-${FLAVOR}-${TYPE}"
 
 echo ""
 echo -e "${BLUE}Triggering workflow on GitHub...${NC}"
-echo -e "Flavor: ${GREEN}$FLAVOR${NC}, Type: ${GREEN}$TYPE${NC}"
 
 gh workflow run "$WORKFLOW_FILE" \
     --ref "$CURRENT_BRANCH" \
@@ -81,11 +83,7 @@ gh workflow run "$WORKFLOW_FILE" \
 echo -e "${YELLOW}Waiting for workflow to start...${NC}"
 sleep 5
 
-RUN_ID=$(gh run list \
-    --workflow="$WORKFLOW_FILE" \
-    --limit=1 \
-    --json databaseId \
-    --jq '.[0].databaseId')
+RUN_ID=$(gh run list --workflow="$WORKFLOW_FILE" --limit=1 --json databaseId --jq '.[0].databaseId')
 
 if [ -z "$RUN_ID" ]; then
     echo -e "${RED}Could not find the triggered run.${NC}"
@@ -95,41 +93,35 @@ fi
 echo -e "Tracking Run ID: ${GREEN}$RUN_ID${NC}"
 echo ""
 
-# --- WATCH WITH ERROR HANDLING ---
-
+# Спостереження за процесом (Watch)
 set +e
-gh run watch "$RUN_ID" --exit-status
+gh run watch "$RUN_ID"
 RUN_STATUS=$?
 set -e
 
+# --- РОБОТА З ЛОГАМИ ---
+echo -e "${BLUE}Fetching logs...${NC}"
+
+# Зберігаємо повний лог збірки
+gh run view "$RUN_ID" --log > "$BUILD_LOG"
+echo -e "Full build log saved to: ${GREEN}$BUILD_LOG${NC}"
+
+# Якщо збірка впала, зберігаємо помилки окремо
 if [ $RUN_STATUS -ne 0 ]; then
+    gh run view "$RUN_ID" --log-failed > "$ERROR_LOG"
+    echo -e "${RED}❌ Build failed. Error log saved to: ${YELLOW}$ERROR_LOG${NC}"
     echo ""
-    echo -e "${RED}❌ Remote build failed.${NC}"
-    echo ""
-    echo -e "${YELLOW}How to inspect logs:${NC}"
-    echo ""
-    echo -e "  ${BLUE}1) View failed steps only:${NC}"
-    echo -e "     gh run view $RUN_ID --log-failed"
-    echo ""
-    echo -e "  ${BLUE}2) View full logs:${NC}"
-    echo -e "     gh run view $RUN_ID --log"
-    echo ""
-    echo -e "  ${BLUE}3) Open in browser:${NC}"
-    echo -e "     gh run view $RUN_ID --web"
-    echo ""
-    echo -e "${YELLOW}Quick hint:${NC}"
-    echo "  Look for:"
-    echo "   - Gradle task failure"
-    echo "   - Signing / keystore errors"
-    echo "   - assemble${FLAVOR^}${TYPE^}"
-    echo ""
+    echo -e "View errors quickly: ${BLUE}cat $ERROR_LOG${NC}"
     exit 1
+else
+    # Якщо успішно, очищуємо або створюємо пустий файл помилок
+    echo "No errors found in the last build." > "$ERROR_LOG"
 fi
+
+# --- ЗАВАНТАЖЕННЯ АРТЕФАКТУ ---
 
 echo ""
 echo -e "${GREEN}Build complete! Downloading artifact...${NC}"
-
-# --- DOWNLOAD ARTIFACT ---
 
 TMP_DL_DIR=".tmp/forwardapp_gh_build_$RUN_ID"
 mkdir -p "$TMP_DL_DIR"
@@ -137,63 +129,40 @@ mkdir -p "$TMP_DL_DIR"
 gh run download "$RUN_ID" -n "$ARTIFACT_NAME" -D "$TMP_DL_DIR"
 
 APK_FILE=$(find "$TMP_DL_DIR" -name "*universal*.apk" | head -n 1)
+[ -z "$APK_FILE" ] && APK_FILE=$(find "$TMP_DL_DIR" -name "*arm64-v8a*.apk" | head -n 1)
+[ -z "$APK_FILE" ] && APK_FILE=$(find "$TMP_DL_DIR" -name "*.apk" | head -n 1)
 
 if [ -z "$APK_FILE" ]; then
-    echo -e "${YELLOW}Universal APK not found, falling back to ABI-specific...${NC}"
-    APK_FILE=$(find "$TMP_DL_DIR" -name "*arm64-v8a*.apk" | head -n 1)
-fi
-
-if [ -z "$APK_FILE" ]; then
-    echo -e "${RED}No suitable APK found!${NC}"
-    find "$TMP_DL_DIR" -name "*.apk"
-    exit 1
-fi
-
-if [ -z "$APK_FILE" ]; then
-    echo -e "${RED}Artifact downloaded but no APK found inside!${NC}"
-    ls -R "$TMP_DL_DIR"
+    echo -e "${RED}No APK found in artifact!${NC}"
     exit 1
 fi
 
 echo -e "${GREEN}Downloaded: $(basename "$APK_FILE")${NC}"
 
-# --- INSTALL / COPY ---
+# --- ВСТАНОВЛЕННЯ ---
 
 if [ "$HOST" == "device" ]; then
-    echo ""
-    echo -e "${YELLOW}Installing to device...${NC}"
-
     if [ -n "$TERMUX_VERSION" ]; then
-<<<<<<< HEAD
         if [ -f "$INSTALL_SCRIPT" ]; then
             bash "$INSTALL_SCRIPT" "$APK_FILE"
-            echo -e "${GREEN}Installation on Termux Successful!${NC}"
-            exit 0 # Exit after Termux installation
         else
             echo -e "${RED}Error: $INSTALL_SCRIPT not found!${NC}"
             exit 1
         fi
     else
         if ! adb devices | grep -w "device" > /dev/null; then
-            echo -e "${RED}No device connected (ADB).${NC}"
-            echo "APK saved at: $APK_FILE"
+            echo -e "${RED}No device connected via ADB.${NC}"
             exit 1
         fi
 
         PKG_NAME="com.romankozak.forwardappmobile"
-        if [ "$TYPE" == "debug" ]; then
-            PKG_NAME="$PKG_NAME.debug"
-        fi
+        [ "$TYPE" == "debug" ] && PKG_NAME="$PKG_NAME.debug"
 
+        echo -e "${YELLOW}Installing to device...${NC}"
         INSTALL_OUTPUT=$(adb install -r "$APK_FILE" 2>&1)
 
         if echo "$INSTALL_OUTPUT" | grep -q "Success"; then
             echo -e "${GREEN}Installation successful.${NC}"
-        elif echo "$INSTALL_OUTPUT" | grep -q "INSTALL_FAILED_UPDATE_INCOMPATIBLE"; then
-            echo -e "${RED}Signature mismatch detected.${NC}"
-            echo -e "${YELLOW}Uninstalling old version...${NC}"
-            adb uninstall "$PKG_NAME"
-            adb install -r "$APK_FILE"
         else
             echo -e "${RED}Installation failed:${NC}"
             echo "$INSTALL_OUTPUT"
@@ -206,6 +175,6 @@ else
     echo -e "${GREEN}Saved to: $DIST_DIR/$(basename "$APK_FILE")${NC}"
 fi
 
-# Cleanup
+# Очищення тимчасових файлів
 rm -rf "$TMP_DL_DIR"
-
+echo -e "${BLUE}Done.${NC}"

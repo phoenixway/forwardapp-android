@@ -309,6 +309,8 @@ class BacklogViewModel
         }
 
         lateinit var enhancedNavigationManager: EnhancedNavigationManager
+        
+        @Inject lateinit var capabilityGate: CapabilityGate
 
         val canGoBack: StateFlow<Boolean>
             get() = enhancedNavigationManager.canGoBack

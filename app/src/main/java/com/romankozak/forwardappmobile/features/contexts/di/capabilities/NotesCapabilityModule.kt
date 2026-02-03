@@ -1,8 +1,8 @@
 package com.romankozak.forwardappmobile.features.contexts.di.capabilities
 
+import com.romankozak.forwardappmobile.core.capability.Capability
 import com.romankozak.forwardappmobile.core.capability.CapabilityDescriptor
-import com.romankozak.forwardappmobile.core.capability.CapabilityId
-import com.romankozak.forwardappmobile.core.context.ViewId
+import com.romankozak.forwardappmobile.features.contexts.data.models.capabilities.notes.NotesCapability
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -12,19 +12,16 @@ import dagger.multibindings.IntoSet
 @Module
 @InstallIn(SingletonComponent::class)
 object NotesCapabilityModule {
+
     @Provides
     @IntoSet
-    fun provideNotesCapability(): CapabilityDescriptor {
-        return object : CapabilityDescriptor {
-            override val id = CapabilityId("notes")
-            override val label = "Нотатки"
+    fun provideNotesCapability(): Capability {
+        return NotesCapability 
+    }
 
-            // Чітко вказуємо, що іконки немає
-            override val iconRes: Int? = null
-
-            override val navRoute = "notes_root"
-            override val supportedViews: Set<ViewId>
-                get() = emptySet()
-        }
+    @Provides
+    @IntoSet
+    fun provideNotesCapabilityDescriptor(): CapabilityDescriptor {
+        return NotesCapability.descriptor 
     }
 }
