@@ -34,6 +34,7 @@ class ContextSettingsViewModel
         private val structurePresetDao: StructurePresetDao,
         private val contextStructureRepository: ContextStructureRepository,
         private val structurePresetService: StructurePresetService,
+        private val capabilityGate: CapabilityGate
     ) : ViewModel(), EvaluationTabActions, RemindersTabActions {
         private val projectId: String? = savedStateHandle["projectId"]
 
@@ -61,6 +62,12 @@ class ContextSettingsViewModel
                 }
             }
         }
+
+private fun isEnabled(id: CapabilityId, config: ContextConfiguration?): Boolean {
+        if (config == null) return false
+        val enabledByRole = ContextRoleRegistry.getCapabilitiesForRole(config.basePresetCode).contains(id)
+        return enabledByRole || config.experimentalCapabilityIds.contains(id) || isLegacyEnabled(id, config)
+    }
 
 private suspend fun loadExistingProject(projectId: String) {
     // 1. Отримуємо основні дані проекту та його структуру

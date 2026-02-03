@@ -2,6 +2,10 @@
 
 package com.romankozak.forwardappmobile.features.contexts.ui.context_properties
 
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import com.romankozak.forwardappmobile.core.capability.CapabilityId
+
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -202,23 +206,55 @@ fun ProjectSettingsScreen(
 private fun FeaturesTabContent(
     currentPreset: String?,
     onApplyPreset: () -> Unit,
-    features: Map<CapabilityId, Boolean>, // Тепер тут CapabilityId
-    onToggleFeature: (CapabilityId, Boolean) -> Unit,
+    features: Map<String, Boolean>,
+    onToggleFeature: (String, Boolean) -> Unit,
 ) {
-    Column(modifier = Modifier.padding(16.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
         PresetCard(currentPreset = currentPreset, onApplyPreset = onApplyPreset)
         
-        Spacer(Modifier.height(16.dp))
-        
-        Text("Active Capabilities", style = MaterialTheme.typography.titleMedium)
-        
-        features.forEach { (capId, isEnabled) ->
-            FeatureRow(
-                label = capId.raw.replace("_", " ").uppercase(),
-                isEnabled = isEnabled,
-                onToggle = { onToggleFeature(capId, it) }
-            )
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("Feature toggles", style = MaterialTheme.typography.titleMedium)
+                features.forEach { (name, isEnabled) ->
+                    FeatureRow(
+                        label = name,
+                        isEnabled = isEnabled,
+                        onToggle = { onToggleFeature(name, it) }
+                    )
+                }
+            }
         }
+    }
+}
+
+@Composable
+fun FeatureRow(
+    label: String,
+    isEnabled: Boolean,
+    onToggle: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyMedium)
+        Switch(checked = isEnabled, onCheckedChange = onToggle)
     }
 }
 
