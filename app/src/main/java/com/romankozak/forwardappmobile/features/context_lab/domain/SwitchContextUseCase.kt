@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.features.context_lab.domain
 import android.util.Log
 import com.romankozak.forwardappmobile.core.capability.CapabilitySet
 import com.romankozak.forwardappmobile.core.context.*
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.navigation.capability.Navigator
 import com.romankozak.forwardappmobile.core.navigation.capability.ScreenId
 import com.romankozak.forwardappmobile.core.navigation.capability.ViewResolver
@@ -37,6 +38,15 @@ class SwitchContextUseCase
                         override val id: ContextId = context.id
                         override val features: CapabilitySet = CapabilitySet(active = context.config.activeCapabilities)
                         override val views: ViewSet = ViewSet(available = context.config.activeViews, start = context.config.currentView)
+                        
+                        // Додаємо конфігурацію, щоб задовольнити ConfigurableState для CapabilityGate
+                        override val config: ContextConfiguration = ContextConfiguration(
+                            id = "lab_${context.id.raw}",
+                            contextId = context.id.raw,
+                            basePresetCode = context.role.code,
+                            // Передаємо активні можливості в нове поле експериментальних ID
+                            experimentalCapabilityIds = context.config.activeCapabilities.toList()
+                        )
                     }
 
                 systemController.update { newState }
@@ -57,7 +67,6 @@ class SwitchContextUseCase
                 } else {
                     val warnMsg = "No accessible screen found for context ${context.id.raw} with capabilities ${context.config.activeCapabilities}. No navigation will occur."
                     Log.w(TAG, warnMsg)
-                    // Do not throw an exception, just stay on the current screen.
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error during context switch for contextId: ${contextId.raw}", e)
@@ -69,7 +78,7 @@ class SwitchContextUseCase
             preferredView: ViewId,
             availableViews: Set<ViewId>,
         ): ScreenId? {
-            // 1. Try the preferred view first
+            // 1. Спробувати бажаний view
             runCatching {
                 viewResolver.resolve(preferredView)
             }.onSuccess { screenId ->
@@ -79,10 +88,10 @@ class SwitchContextUseCase
                 Log.w(TAG, "Preferred view '${preferredView.raw}' is not accessible: ${it.message}")
             }
 
-            // 2. If preferred fails, iterate through available views
+            // 2. Якщо бажаний недоступний, ітеруємо по доступним
             Log.d(TAG, "Falling back to other available views.")
             for (viewId in availableViews) {
-                if (viewId == preferredView) continue // Already tried
+                if (viewId == preferredView) continue
                 runCatching {
                     viewResolver.resolve(viewId)
                 }.onSuccess { screenId ->
@@ -91,7 +100,6 @@ class SwitchContextUseCase
                 }
             }
 
-            // 3. If no view is accessible
             Log.e(TAG, "No accessible view found in the available set.")
             return null
         }

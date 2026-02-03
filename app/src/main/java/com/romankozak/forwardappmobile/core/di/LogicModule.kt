@@ -12,6 +12,7 @@ import com.romankozak.forwardappmobile.core.context.ContextState
 import com.romankozak.forwardappmobile.core.context.DefaultContextController
 import com.romankozak.forwardappmobile.core.context.ViewId
 import com.romankozak.forwardappmobile.core.context.ViewSet
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.gate.CapabilityGate
 import com.romankozak.forwardappmobile.core.navigation.capability.ContextAwareViewResolver
 import com.romankozak.forwardappmobile.core.navigation.capability.ViewRegistry
@@ -54,6 +55,12 @@ object LogicModule {
                 override val id = ContextId("default")
                 override val features = CapabilitySet(emptySet())
                 override val views = ViewSet(emptySet(), ViewId("main"))
+                
+                // Додаємо дефолтну конфігурацію для задоволення інтерфейсу ConfigurableState
+                override val config = ContextConfiguration(
+                    id = "initial_default",
+                    contextId = "default"
+                )
             }
         return DefaultContextController(initial)
     }
