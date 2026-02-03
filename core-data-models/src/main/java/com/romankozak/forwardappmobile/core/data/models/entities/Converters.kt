@@ -1,16 +1,33 @@
 package com.romankozak.forwardappmobile.core.data.models.entities
 
 import androidx.room.TypeConverter
-import androidx.room.TypeConverters
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
 
-@TypeConverters(Converters::class)
 class Converters {
     private val gson = Gson()
     private val pathSeparator = " / "
+
+    // --- Конвертери для CapabilityId (Крок 1.1) ---
+
+    @TypeConverter
+    fun fromCapabilityIdList(value: List<CapabilityId>?): String? {
+        return gson.toJson(value)
+    }
+
+    @TypeConverter
+    fun toCapabilityIdList(value: String?): List<CapabilityId>? {
+        if (value.isNullOrEmpty()) {
+            return null
+        }
+        val listType = object : TypeToken<List<CapabilityId>>() {}.type
+        return gson.fromJson(value, listType)
+    }
+
+    // --- Базові конвертери ---
 
     @TypeConverter
     fun fromString(value: String?): List<String>? {
@@ -21,6 +38,8 @@ class Converters {
     fun fromList(list: List<String>?): String? {
         return list?.joinToString(pathSeparator)
     }
+
+    // --- Конвертери для RelatedLink ---
 
     @TypeConverter
     fun fromRelatedLinkList(value: List<RelatedLink>?): String? {
@@ -49,6 +68,8 @@ class Converters {
         val objectType = object : TypeToken<RelatedLink>() {}.type
         return gson.fromJson(value, objectType)
     }
+
+    // --- Конвертери для статусів та пріоритетів місій ---
 
     @TypeConverter
     fun fromMissionStatus(status: MissionStatus?): String? {
