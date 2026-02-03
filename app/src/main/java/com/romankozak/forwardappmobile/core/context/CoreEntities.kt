@@ -2,7 +2,6 @@ package com.romankozak.forwardappmobile.core.context
 
 import com.romankozak.forwardappmobile.core.capability.CapabilitySet
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
-import com.romankozak.forwardappmobile.core.gate.ConfigurableState
 
 
 @JvmInline
@@ -15,24 +14,22 @@ data class ViewSet(
     val available: Set<ViewId>,
     val start: ViewId,
 )
+
+
 /**
- * Оновлений інтерфейс стану, який тепер знає про свою конфігурацію.
+ * Інтерфейс для будь-якого об'єкта, що має конфігурацію з БД.
+ */
+interface ConfigurableState {
+    val config: ContextConfiguration
+}
+
+/**
+ * Основний інтерфейс стану, який тепер ОБОВ'ЯЗКОВО 
+ * наслідує ConfigurableState.
  */
 interface ContextState : ConfigurableState {
     val id: ContextId
     val features: CapabilitySet
     val views: ViewSet
-    
-    // Властивість config успадковується з ConfigurableState:
-    // override val config: ContextConfiguration
+    // override val config: ContextConfiguration // успадковується
 }
-
-/**
- * Приклад реалізації для стабільного контексту.
- */
-data class PersistentContextState(
-    override val id: ContextId,
-    override val config: ContextConfiguration, // Конфігурація, отримана з Room
-    override val features: CapabilitySet,
-    override val views: ViewSet
-) : ContextState
