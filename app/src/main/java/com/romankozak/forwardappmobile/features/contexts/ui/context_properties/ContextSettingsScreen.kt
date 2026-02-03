@@ -202,23 +202,23 @@ fun ProjectSettingsScreen(
 private fun FeaturesTabContent(
     currentPreset: String?,
     onApplyPreset: () -> Unit,
-    features: Map<String, Boolean>,
-    onToggleFeature: (String, Boolean) -> Unit,
+    features: Map<CapabilityId, Boolean>, // Тепер тут CapabilityId
+    onToggleFeature: (CapabilityId, Boolean) -> Unit,
 ) {
-    Column(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-                .fillMaxHeight(),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
+    Column(modifier = Modifier.padding(16.dp)) {
         PresetCard(currentPreset = currentPreset, onApplyPreset = onApplyPreset)
-        FeatureFlagCard(
-            modifier = Modifier.fillMaxHeight(),
-            features = features,
-            onToggleFeature = onToggleFeature,
-        )
+        
+        Spacer(Modifier.height(16.dp))
+        
+        Text("Active Capabilities", style = MaterialTheme.typography.titleMedium)
+        
+        features.forEach { (capId, isEnabled) ->
+            FeatureRow(
+                label = capId.raw.replace("_", " ").uppercase(),
+                isEnabled = isEnabled,
+                onToggle = { onToggleFeature(capId, it) }
+            )
+        }
     }
 }
 

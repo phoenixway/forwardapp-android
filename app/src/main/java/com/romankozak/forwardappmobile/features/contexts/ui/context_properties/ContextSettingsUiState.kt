@@ -30,15 +30,7 @@ data class ContextSettingsUiState(
     val currentPresetLabel: String? = null,
     val availablePresets: List<ContextRoleProfile> = emptyList(),
     val autoLinkSubprojects: Boolean = true,
-    val features: Map<String, Boolean> =
-        mapOf(
-            "Inbox" to true,
-            "Log" to true,
-            "Artifact" to true,
-            "Advanced" to false,
-            "Dashboard" to true,
-            "Backlog" to true,
-            "Attachments" to true,
-            "Auto link subprojects" to true,
-        ),
+    val features: Map<CapabilityId, Boolean> = emptyMap(),
+    val basePresetCode: String? = null,
+    val experimentalCapabilityIds: List<CapabilityId> = emptyList(),
 )

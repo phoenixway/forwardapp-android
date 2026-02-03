@@ -62,57 +62,95 @@ class ContextSettingsViewModel
             }
         }
 
-        private suspend fun loadExistingProject(projectId: String) {
-            val project = contextRepository.getContextById(projectId)
-            if (project != null) {
-                _uiState.update {
-                    it.copy(
-                        title = it.title.copy(project.name),
-                        description = it.description.copy(project.description ?: ""),
-                        tags = project.tags ?: emptyList(),
-                        isReady = true,
-                        isNewProject = false,
-                        showCheckboxes = project.showCheckboxes,
-                        valueImportance = project.valueImportance,
-                        valueImpact = project.valueImpact,
-                        effort = project.effort,
-                        cost = project.cost,
-                        risk = project.risk,
-                        weightEffort = project.weightEffort,
-                        weightCost = project.weightCost,
-                        weightRisk = project.weightRisk,
-                        rawScore = project.rawScore,
-                        displayScore = project.displayScore,
-                        scoringStatus = project.scoringStatus,
-                        isScoringEnabled = project.scoringStatus != ScoringStatusValues.IMPOSSIBLE_TO_ASSESS,
-                        isProjectManagementEnabled = project.isContextManagementEnabled ?: false,
-                    )
-                }
-                val structure = contextStructureRepository.getStructureByContext(projectId)
-                val presetLabel = structure?.basePresetCode?.let { code -> structurePresetDao.getByCode(code)?.label }
-                val structureFeatures =
-                    mapOf(
-                        "Inbox" to (structure?.enableInbox ?: _uiState.value.features["Inbox"] ?: true),
-                        "Log" to (structure?.enableLog ?: _uiState.value.features["Log"] ?: true),
-                        "Artifact" to (structure?.enableArtifact ?: _uiState.value.features["Artifact"] ?: true),
-                        "Advanced" to (structure?.enableAdvanced ?: _uiState.value.features["Advanced"] ?: false),
-                        "Dashboard" to (structure?.enableDashboard ?: _uiState.value.features["Dashboard"] ?: true),
-                        "Backlog" to (structure?.enableBacklog ?: _uiState.value.features["Backlog"] ?: true),
-                        "Attachments" to (structure?.enableAttachments ?: _uiState.value.features["Attachments"] ?: true),
-                        "Auto link subprojects" to (structure?.enableAutoLinkSubprojects ?: _uiState.value.features["Auto link subprojects"] ?: true),
-                    )
-                _uiState.update {
-                    it.copy(
-                        currentPresetLabel = presetLabel,
-                        features = structureFeatures,
-                        autoLinkSubprojects = structureFeatures["Auto link subprojects"] ?: true,
-                        isProjectManagementEnabled = structureFeatures["Advanced"] == true,
-                    )
-                }
-            } else {
-                _events.send(ContextSettingsEvent.NavigateBack("Проект не знайдено"))
-            }
+private suspend fun loadExistingProject(projectId: String) {
+    // 1. Отримуємо основні дані проекту та його структуру
+    val project = contextRepository.getContextById(projectId)
+    val structure = contextStructureRepository.getStructureByContext(projectId)
+
+    if (project != null) {
+        // 2. Резолвимо назву пресета (ролі) для відображення в UI
+        val presetLabel = structure?.basePresetCode?.let { code -> 
+            structurePresetDao.getByCode(code)?.label 
+        } ?: "Стандартний (Default)"
+
+        // 3. Формуємо мапу фіч, використовуючи CapabilityGate для перевірки реального стану.
+        // Це дозволяє UI бачити фічу як "Увімкнену", навіть якщо вона активована через Роль, а не прапорцем.
+        val structureFeatures = mapOf(
+            "Inbox" to capabilityGate.isEnabledForConfig(CapabilityId("inbox"), structure),
+            "Log" to capabilityGate.isEnabledForConfig(CapabilityId("log"), structure),
+            "Artifact" to capabilityGate.isEnabledForConfig(CapabilityId("artifact"), structure),
+            "Advanced" to capabilityGate.isEnabledForConfig(CapabilityId("advanced"), structure),
+            "Dashboard" to capabilityGate.isEnabledForConfig(CapabilityId("dashboard"), structure),
+            "Backlog" to capabilityGate.isEnabledForConfig(CapabilityId("backlog"), structure),
+            "Attachments" to capabilityGate.isEnabledForConfig(CapabilityId("attachments"), structure),
+            "Auto link subprojects" to capabilityGate.isEnabledForConfig(CapabilityId("auto_link_subprojects"), structure)
+        )
+
+        // 4. Оновлюємо стан UI одним атомарним блоком
+        _uiState.update { state ->
+            state.copy(
+                // Метадані проекту
+                title = state.title.copy(project.name),
+                description = state.description.copy(project.description ?: ""),
+                tags = project.tags ?: emptyList(),
+                isReady = true,
+                isNewProject = false,
+                showCheckboxes = project.showCheckboxes,
+                
+                // Скоринг та оцінка
+                valueImportance = project.valueImportance,
+                valueImpact = project.valueImpact,
+                effort = project.effort,
+                cost = project.cost,
+                risk = project.risk,
+                weightEffort = project.weightEffort,
+                weightCost = project.weightCost,
+                weightRisk = project.weightRisk,
+                rawScore = project.rawScore,
+                displayScore = project.displayScore,
+                scoringStatus = project.scoringStatus,
+                isScoringEnabled = project.scoringStatus != ScoringStatusValues.IMPOSSIBLE_TO_ASSESS,
+                
+                // Нова системна конфігурація
+                currentPresetLabel = presetLabel,
+                features = structureFeatures,
+                
+                // Синхронізація ключових прапорців для UI-логіки
+                autoLinkSubprojects = structureFeatures["Auto link subprojects"] ?: true,
+                isProjectManagementEnabled = structureFeatures["Advanced"] == true
+            )
         }
+        
+        // Додатково: завантажуємо нагадування, якщо проект знайдено
+        reminderRepository.getRemindersForEntityFlow(projectId).collect { reminders ->
+            _uiState.update { it.copy(reminderTime = reminders.firstOrNull()?.reminderTime) }
+        }
+
+    } else {
+        // Якщо проект видалено або не знайдено — повертаємо користувача назад
+        _events.send(ContextSettingsEvent.NavigateBack("Проект не знайдено"))
+    }
+}
+
+/**
+ * Допоміжний метод-розширення (або приватний метод) для CapabilityGate, 
+ * щоб перевірити стан конкретної конфігурації без доступу до поточного стану контролера.
+ * Додайте цей метод у CapabilityGate або реалізуйте логіку прямо тут.
+ */
+private fun CapabilityGate.isEnabledForConfig(
+    id: CapabilityId, 
+    config: ContextConfiguration?
+): Boolean {
+    if (config == null) return id.raw != "advanced" // дефолтні налаштування для порожнього конфіга
+    
+    // Перевірка через роль
+    val enabledByRole = ContextRoleRegistry.getCapabilitiesForRole(config.basePresetCode).contains(id)
+    
+    // Перевірка через експериментальні ID або старі прапорці
+    return enabledByRole || 
+           config.experimentalCapabilityIds.contains(id) || 
+           isLegacyEnabled(id, config)
+}
 
         fun onSave() {
             viewModelScope.launch {
@@ -247,45 +285,97 @@ class ContextSettingsViewModel
             }
         }
 
-        fun onToggleFeature(
-            key: String,
-            enabled: Boolean,
-        ) {
-            _uiState.update { state ->
-                state.copy(
-                    features = state.features + (key to enabled),
-                    isProjectManagementEnabled = if (key == "Advanced") enabled else state.isProjectManagementEnabled,
-                    autoLinkSubprojects = if (key == "Auto link subprojects") enabled else state.autoLinkSubprojects,
-                )
+      fun onToggleFeature(
+    key: String,
+    enabled: Boolean,
+) {
+    // 1. Мапимо текстовий ключ UI на системний CapabilityId
+    val capabilityId = when (key) {
+        "Inbox" -> CapabilityId("inbox")
+        "Log" -> CapabilityId("log")
+        "Artifact" -> CapabilityId("artifact")
+        "Advanced" -> CapabilityId("advanced")
+        "Dashboard" -> CapabilityId("dashboard")
+        "Backlog" -> CapabilityId("backlog")
+        "Attachments" -> CapabilityId("attachments")
+        "Auto link subprojects" -> CapabilityId("auto_link_subprojects")
+        else -> CapabilityId(key.lowercase().replace(" ", "_"))
+    }
+
+    _uiState.update { state ->
+        // 2. Оновлюємо список експериментальних можливостей для збереження в БД
+        val updatedExperimentalIds = state.experimentalCapabilityIds.toMutableList().apply {
+            if (enabled) {
+                if (!contains(capabilityId)) add(capabilityId)
+            } else {
+                remove(capabilityId)
             }
         }
 
-        private suspend fun persistFeatureFlags() {
-            val pid = projectId ?: return
-            val structure = contextStructureRepository.ensureStructure(pid)
-            val flags =
-                _uiState.value.features +
-                    mapOf(
-                        "Inbox" to (_uiState.value.features["Inbox"] ?: true),
-                        "Log" to (_uiState.value.features["Log"] ?: true),
-                        "Artifact" to (_uiState.value.features["Artifact"] ?: true),
-                        "Advanced" to (_uiState.value.features["Advanced"] ?: false),
-                        "Auto link subprojects" to (_uiState.value.features["Auto link subprojects"] ?: true),
-                    )
-            val updated =
-                structure.copy(
-                    enableInbox = flags["Inbox"],
-                    enableLog = flags["Log"],
-                    enableArtifact = flags["Artifact"],
-                    enableAdvanced = flags["Advanced"],
-                    enableDashboard = flags["Dashboard"],
-                    enableBacklog = flags["Backlog"],
-                    enableAttachments = flags["Attachments"],
-                    enableAutoLinkSubprojects = flags["Auto link subprojects"],
-                )
-            contextStructureRepository.updateStructure(updated)
-            _uiState.update { it.copy(isProjectManagementEnabled = flags["Advanced"] == true) }
-        }
+        // 3. Копіюємо стан із синхронізацією всіх залежних полів
+        state.copy(
+            // Оновлюємо мапу для UI списку
+            features = state.features + (key to enabled),
+            
+            // Оновлюємо список для майбутнього persistFeatureFlags()
+            experimentalCapabilityIds = updatedExperimentalIds,
+            
+            // Синхронізуємо спеціальні прапорці стану
+            isProjectManagementEnabled = if (capabilityId.raw == "advanced") {
+                enabled 
+            } else {
+                state.isProjectManagementEnabled
+            },
+            autoLinkSubprojects = if (capabilityId.raw == "auto_link_subprojects") {
+                enabled 
+            } else {
+                state.autoLinkSubprojects
+            }
+        )
+    }
+}
+
+private suspend fun persistFeatureFlags() {
+    val pid = projectId ?: return
+    val currentState = _uiState.value
+    
+    // 1. Отримуємо існуючу структуру або створюємо нову
+    val structure = contextStructureRepository.ensureStructure(pid)
+    
+    // 2. Створюємо оновлений об'єкт структури.
+    // Ми синхронізуємо нову систему ID та пресетів зі старими прапорцями.
+    val updated = structure.copy(
+        // Зберігаємо код обраної ролі (пресета)
+        basePresetCode = currentState.basePresetCode,
+        
+        // Зберігаємо список активованих ідентифікаторів можливостей
+        experimentalCapabilityIds = currentState.experimentalCapabilityIds,
+        
+        // Підтримка legacy-колонок (для сумісності)
+        enableInbox = currentState.features["Inbox"] ?: true,
+        enableLog = currentState.features["Log"] ?: true,
+        enableArtifact = currentState.features["Artifact"] ?: true,
+        enableAdvanced = currentState.features["Advanced"] ?: false,
+        enableDashboard = currentState.features["Dashboard"] ?: true,
+        enableBacklog = currentState.features["Backlog"] ?: true,
+        enableAttachments = currentState.features["Attachments"] ?: true,
+        enableAutoLinkSubprojects = currentState.features["Auto link subprojects"] ?: true,
+        
+        updatedAt = System.currentTimeMillis()
+    )
+
+    // 3. Записуємо в БД
+    contextStructureRepository.updateStructure(updated)
+
+    // 4. Оновлюємо внутрішній стан UI для миттєвої реакції екрана
+    _uiState.update { state ->
+        state.copy(
+            isProjectManagementEnabled = updated.enableAdvanced == true,
+            autoLinkSubprojects = updated.enableAutoLinkSubprojects == true
+        )
+    }
+}
+
 
         override fun onSetReminder(
             year: Int,
