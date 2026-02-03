@@ -84,6 +84,9 @@ import java.util.UUID
 import javax.inject.Inject
 import android.content.Context as AndroidContext
 
+import com.romankozak.forwardappmobile.core.capability.CapabilityId
+import com.romankozak.forwardappmobile.core.gate.CapabilityGate
+
 private const val TAG = "BacklogVM_DEBUG"
 
 sealed class UiEvent {
@@ -271,6 +274,7 @@ private val ActivityRecord.isOngoing: Boolean
 class BacklogViewModel
     @Inject
     constructor(
+        private val capabilityGate: CapabilityGate,
         private val searchUseCase: SearchUseCase,
         private val application: Application,
         private val contextRepository: ContextRepository,
@@ -295,6 +299,7 @@ class BacklogViewModel
         private val noteRepository: com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository,
         private val inboxRepository: com.romankozak.forwardappmobile.data.repository.InboxRepository,
         private val contextStructureRepository: ContextStructureRepository,
+        
     ) :
     ViewModel(),
         ItemActionHandler.ResultListener,
@@ -310,7 +315,7 @@ class BacklogViewModel
 
         lateinit var enhancedNavigationManager: EnhancedNavigationManager
         
-        @Inject lateinit var capabilityGate: CapabilityGate
+      
 
         val canGoBack: StateFlow<Boolean>
             get() = enhancedNavigationManager.canGoBack
@@ -497,157 +502,176 @@ class BacklogViewModel
         private var pendingActivityForReminder: ActivityRecord? = null
 
         init {
-            Log.d(TAG, "ViewModel instance created: ${this.hashCode()}")
+    Log.d(TAG, "ViewModel instance created: ${this.hashCode()}")
 
-            var autoLinkChildProjectsEnsured = false
-            viewModelScope.launch {
-                contextIdFlow
-                    .filter { it.isNotEmpty() }
-                    .flatMapLatest { contextId ->
-                        contextStructureRepository.observeStructure(contextId).map { contextId to it }
-                    }
-                    .collect { (contextId, structureWithItems) ->
-                        val structure = structureWithItems?.structure
-                        val enableInbox = structure?.enableInbox ?: true
-                        val enableLog = structure?.enableLog ?: true
-                        val enableArtifact = structure?.enableArtifact ?: true
-                        val enableAdvanced = structure?.enableAdvanced ?: false
-                        val enableDashboard = structure?.enableDashboard ?: true
-                        val enableBacklog = structure?.enableBacklog ?: true
-                        val enableAttachments = structure?.enableAttachments ?: true
-                        val enableAutoLinkSubprojects = structure?.enableAutoLinkSubprojects ?: true
-                        if (enableAutoLinkSubprojects && !autoLinkChildProjectsEnsured) {
-                            contextRepository.ensureChildContextListItemsExist(contextId)
-                            autoLinkChildProjectsEnsured = true
-                        }
-                        if (!enableAutoLinkSubprojects) {
-                            autoLinkChildProjectsEnsured = false
-                        }
-                        _uiState.update {
-                            val currentView = it.currentView
-                            val availableTabs =
-                                listOfNotNull(
-                                    ContextManagementTab.Dashboard.takeIf { enableDashboard },
-                                    ContextManagementTab.Log.takeIf { enableLog },
-                                    ContextManagementTab.Artifact.takeIf { enableArtifact },
-                                    ContextManagementTab.Insights,
-                                )
-                            val safeDashboardTab =
-                                if (it.selectedDashboardTab in availableTabs) it.selectedDashboardTab else availableTabs.firstOrNull()
-                            val adjustedView =
-                                when {
-                                    !enableBacklog && currentView == ContextViewMode.BACKLOG && enableDashboard -> ContextViewMode.DASHBOARD
-                                    !enableInbox && currentView == ContextViewMode.INBOX -> if (enableBacklog) ContextViewMode.BACKLOG else ContextViewMode.DASHBOARD
-                                    !enableAttachments && currentView == ContextViewMode.ATTACHMENTS -> if (enableBacklog) ContextViewMode.BACKLOG else ContextViewMode.DASHBOARD
-                                    (!enableLog || !(it.isProjectManagementEnabled || enableAdvanced)) && currentView == ContextViewMode.ADVANCED -> if (enableBacklog) ContextViewMode.BACKLOG else ContextViewMode.DASHBOARD
-                                    !enableDashboard && currentView == ContextViewMode.DASHBOARD && enableBacklog -> ContextViewMode.BACKLOG
-                                    else -> currentView
-                                }
-                            it.copy(
-                                enableInbox = enableInbox,
-                                enableLog = enableLog,
-                                enableArtifact = enableArtifact,
-                                enableBacklog = enableBacklog,
-                                enableDashboard = enableDashboard,
-                                enableAttachments = enableAttachments,
-                                enableAutoLinkSubprojects = enableAutoLinkSubprojects,
-                                isProjectManagementEnabled = it.isProjectManagementEnabled || enableAdvanced,
-                                currentView = adjustedView,
-                                inputMode = getInputModeForView(adjustedView),
-                                selectedDashboardTab = safeDashboardTab ?: ContextManagementTab.Insights,
-                            )
-                        }
-                    }
+    var autoLinkChildProjectsEnsured = false
+
+    // 1. Основний обробник структури та можливостей (Об'єднаний)
+    viewModelScope.launch {
+        contextIdFlow
+            .filter { it.isNotEmpty() }
+            .flatMapLatest { contextId ->
+                contextStructureRepository.observeStructure(contextId).map { contextId to it }
             }
+            .collect { (contextId, structureWithItems) ->
+                // Визначаємо всі дозволи через CapabilityGate (він враховує і старі прапорці, і нові ID)
+                val isManagementEnabled = capabilityGate.isEnabled(CapabilityId("advanced"))
+                val enableInbox = capabilityGate.isEnabled(CapabilityId("inbox"))
+                val enableLog = capabilityGate.isEnabled(CapabilityId("log"))
+                val enableArtifact = capabilityGate.isEnabled(CapabilityId("artifact"))
+                val enableDashboard = capabilityGate.isEnabled(CapabilityId("dashboard"))
+                val enableBacklog = capabilityGate.isEnabled(CapabilityId("backlog"))
+                val enableAttachments = capabilityGate.isEnabled(CapabilityId("attachments"))
+                val enableAutoLinkSubprojects = capabilityGate.isEnabled(CapabilityId("auto_link_subprojects"))
 
-            savedStateHandle.get<String>("initialViewMode")?.let { modeName ->
-                try {
-                    val viewMode = ContextViewMode.valueOf(modeName)
-                    _uiState.update { it.copy(currentView = viewMode) }
-                    Log.d(TAG, "Initial view mode set to $viewMode from navigation argument.")
-                } catch (e: IllegalArgumentException) {
-                    Log.w(TAG, "Invalid initialViewMode provided: $modeName")
+                // Логіка автоматичного створення лінків на підпроекти
+                if (enableAutoLinkSubprojects && !autoLinkChildProjectsEnsured) {
+                    contextRepository.ensureChildContextListItemsExist(contextId)
+                    autoLinkChildProjectsEnsured = true
+                } else if (!enableAutoLinkSubprojects) {
+                    autoLinkChildProjectsEnsured = false
+                }
+
+                _uiState.update { currentState ->
+                    val currentView = currentState.currentView
+                    
+                    // Розрахунок доступних вкладок для DashboardView
+                    val availableTabs = listOfNotNull(
+                        ContextManagementTab.Dashboard.takeIf { enableDashboard },
+                        ContextManagementTab.Log.takeIf { enableLog },
+                        ContextManagementTab.Artifact.takeIf { enableArtifact },
+                        ContextManagementTab.Insights,
+                    )
+                    
+                    val safeDashboardTab = if (currentState.selectedDashboardTab in availableTabs) {
+                        currentState.selectedDashboardTab 
+                    } else {
+                        availableTabs.firstOrNull()
+                    }
+
+                    // Складна логіка валідації поточного режиму перегляду (якщо його вимкнули в налаштуваннях)
+                    val adjustedView = when {
+                        !enableBacklog && currentView == ContextViewMode.BACKLOG && enableDashboard -> ContextViewMode.DASHBOARD
+                        !enableInbox && currentView == ContextViewMode.INBOX -> if (enableBacklog) ContextViewMode.BACKLOG else ContextViewMode.DASHBOARD
+                        !enableAttachments && currentView == ContextViewMode.ATTACHMENTS -> if (enableBacklog) ContextViewMode.BACKLOG else ContextViewMode.DASHBOARD
+                        (!enableLog || !isManagementEnabled) && currentView == ContextViewMode.ADVANCED -> if (enableBacklog) ContextViewMode.BACKLOG else ContextViewMode.DASHBOARD
+                        !enableDashboard && currentView == ContextViewMode.DASHBOARD && enableBacklog -> ContextViewMode.BACKLOG
+                        else -> currentView
+                    }
+
+                    currentState.copy(
+                        enableInbox = enableInbox,
+                        enableLog = enableLog,
+                        enableArtifact = enableArtifact,
+                        enableBacklog = enableBacklog,
+                        enableDashboard = enableDashboard,
+                        enableAttachments = enableAttachments,
+                        enableAutoLinkSubprojects = enableAutoLinkSubprojects,
+                        isProjectManagementEnabled = isManagementEnabled,
+                        currentView = adjustedView,
+                        inputMode = getInputModeForView(adjustedView),
+                        selectedDashboardTab = safeDashboardTab ?: ContextManagementTab.Insights,
+                    )
                 }
             }
+    }
 
-            viewModelScope.launch {
-                project.collect { proj ->
-                    if (proj != null) {
-                        _uiState.update {
-                            it.copy(
-                                showCheckboxes = proj.showCheckboxes,
-                                isProjectManagementEnabled = proj.isContextManagementEnabled == true || it.isProjectManagementEnabled,
-                            )
-                        }
-                        val isManagementEnabled = _uiState.value.isProjectManagementEnabled
-                        val currentView = uiState.value.currentView
-                        if (!isManagementEnabled && currentView == ContextViewMode.ADVANCED) {
-                            Log.d(
-                                TAG,
-                                "Inconsistency detected: Project management is OFF but view is DASHBOARD. Switching to BACKLOG.",
-                            )
-                            onProjectViewChange(ContextViewMode.BACKLOG)
-                        }
-
-                        val currentInputMode = uiState.value.inputMode
-                        if (!isManagementEnabled && currentInputMode == InputMode.AddProjectLog) {
-                            _uiState.update { it.copy(inputMode = InputMode.AddGoal) }
-                        }
-                    }
-                }
-            }
-
-            val inboxIdToHighlight = savedStateHandle.get<String>("inboxRecordIdToHighlight")
-            Log.d(TAG, "Received 'inboxRecordIdToHighlight' from SavedStateHandle: $inboxIdToHighlight")
-
-            viewModelScope.launch {
-                nerManager.nerState.collect { state ->
-                    Log.i(TAG, "NER State Changed -> $state")
-                    _uiState.update { it.copy(nerState = state) }
-                }
-            }
-
-            viewModelScope.launch {
-                project
-                    .filterNotNull()
-                    .map { it.defaultViewModeName }
-                    .distinctUntilChanged()
-                    .collect { savedModeName ->
-                        val viewMode =
-                            try {
-                                ContextViewMode.valueOf(savedModeName ?: ContextViewMode.BACKLOG.name)
-                            } catch (e: Exception) {
-                                ContextViewMode.BACKLOG
-                            }
-                        _uiState.update {
-                            it.copy(currentView = viewMode, inputMode = getInputModeForView(viewMode))
-                        }
-                    }
-            }
-
-            viewModelScope.launch {
-                databaseContentStream.collect { dbContent ->
-                    Log.d(TAG, "databaseContentStream collected, list size: ${dbContent.size}")
-                    _listContent.value = dbContent.withCompletedAtEnd()
-                }
-            }
-
-            viewModelScope.launch {
-                contextIdFlow
-                    .filter { it.isNotEmpty() }
-                    .collect { id ->
-                        contextRepository.getContextById(id)?.let {
-                            recentItemsRepository.logProjectAccess(it)
-                        }
-                    }
-            }
-
-            viewModelScope.launch { withContext(Dispatchers.IO) { contextHandler.initialize() } }
-            loadAllTags()
-            loadAllContexts()
-
-            lazyListState = LazyListState(0, 0)
+    // 2. Обробка початкового режиму перегляду з навігації
+    savedStateHandle.get<String>("initialViewMode")?.let { modeName ->
+        try {
+            val viewMode = ContextViewMode.valueOf(modeName)
+            _uiState.update { it.copy(currentView = viewMode) }
+            Log.d(TAG, "Initial view mode set to $viewMode from navigation argument.")
+        } catch (e: IllegalArgumentException) {
+            Log.w(TAG, "Invalid initialViewMode provided: $modeName")
         }
+    }
+
+    // 3. Спостереження за сутністю проекту (чекбокси та legacy-менеджмент)
+    viewModelScope.launch {
+        project.collect { proj ->
+            if (proj != null) {
+                _uiState.update {
+                    it.copy(
+                        showCheckboxes = proj.showCheckboxes,
+                        // Менеджмент може бути увімкнений або глобально через Gate, або через флаг в проекті
+                        isProjectManagementEnabled = proj.isContextManagementEnabled == true || it.isProjectManagementEnabled,
+                    )
+                }
+                
+                val isManagementEnabled = _uiState.value.isProjectManagementEnabled
+                val currentView = uiState.value.currentView
+                
+                if (!isManagementEnabled && currentView == ContextViewMode.ADVANCED) {
+                    Log.d(TAG, "Inconsistency: Management OFF but view is ADVANCED. Falling back to BACKLOG.")
+                    onProjectViewChange(ContextViewMode.BACKLOG)
+                }
+
+                if (!isManagementEnabled && uiState.value.inputMode == InputMode.AddProjectLog) {
+                    _uiState.update { it.copy(inputMode = InputMode.AddGoal) }
+                }
+            }
+        }
+    }
+
+    // 4. Підсвічування записів з Inbox
+    val inboxIdToHighlight = savedStateHandle.get<String>("inboxRecordIdToHighlight")
+    Log.d(TAG, "Received 'inboxRecordIdToHighlight': $inboxIdToHighlight")
+
+    // 5. Стан розпізнавання мови (NER)
+    viewModelScope.launch {
+        nerManager.nerState.collect { state ->
+            Log.i(TAG, "NER State Changed -> $state")
+            _uiState.update { it.copy(nerState = state) }
+        }
+    }
+
+    // 6. Встановлення дефолтної в'юшки, якщо вона прописана в проекті
+    viewModelScope.launch {
+        project
+            .filterNotNull()
+            .map { it.defaultViewModeName }
+            .distinctUntilChanged()
+            .collect { savedModeName ->
+                val viewMode = try {
+                    ContextViewMode.valueOf(savedModeName ?: ContextViewMode.BACKLOG.name)
+                } catch (e: Exception) {
+                    ContextViewMode.BACKLOG
+                }
+                _uiState.update {
+                    it.copy(currentView = viewMode, inputMode = getInputModeForView(viewMode))
+                }
+            }
+    }
+
+    // 7. Основний потік контенту списку
+    viewModelScope.launch {
+        databaseContentStream.collect { dbContent ->
+            Log.d(TAG, "databaseContentStream collected, size: ${dbContent.size}")
+            _listContent.value = dbContent.withCompletedAtEnd()
+        }
+    }
+
+    // 8. Реєстрація в нещодавніх елементах
+    viewModelScope.launch {
+        contextIdFlow
+            .filter { it.isNotEmpty() }
+            .collect { id ->
+                contextRepository.getContextById(id)?.let {
+                    recentItemsRepository.logProjectAccess(it)
+                }
+            }
+    }
+
+    // 9. Ініціалізація обробника контекстів та завантаження метаданих
+    viewModelScope.launch { withContext(Dispatchers.IO) { contextHandler.initialize() } }
+    
+    loadAllTags()
+    loadAllContexts()
+
+    lazyListState = LazyListState(0, 0)
+}
+
 
         private fun loadAllTags() {
             viewModelScope.launch(Dispatchers.IO) {
