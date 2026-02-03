@@ -672,6 +672,17 @@ class BacklogViewModel
     lazyListState = LazyListState(0, 0)
 }
 
+        private fun validateCurrentView(current: ContextViewMode): ContextViewMode {
+    val id = when(current) {
+        ContextViewMode.INBOX -> CapabilityId("inbox")
+        ContextViewMode.ADVANCED -> CapabilityId("log")
+        ContextViewMode.ATTACHMENTS -> CapabilityId("attachments")
+        ContextViewMode.BACKLOG -> CapabilityId("backlog")
+        ContextViewMode.DASHBOARD -> CapabilityId("dashboard")
+    }
+    
+    return if (capabilityGate.isEnabled(id)) current else ContextViewMode.BACKLOG
+}
 
         private fun loadAllTags() {
             viewModelScope.launch(Dispatchers.IO) {
