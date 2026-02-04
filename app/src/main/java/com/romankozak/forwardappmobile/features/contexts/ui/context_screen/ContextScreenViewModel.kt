@@ -130,7 +130,7 @@ constructor(
         this
     )
     
-    private val inboxHandler = InboxHandler(
+    val inboxHandler = InboxHandler(
         inboxRepository,
         recentItemsRepository,
         this
@@ -177,6 +177,22 @@ constructor(
 
     private var batchSaveJob: Job? = null
 
+    val project = stateManager.uiState.map { it.context }
+    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+val currentView = stateManager.uiState.map { it.currentView }
+    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ContextViewMode.List)
+
+val lastOngoingActivity = activityManager.currentActivity
+    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+val autocompleteSuggestions = tagManager.allTags
+    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+// Ініціалізація нових хандлерів у блоці init або як lazy:
+private val artifactHandler by lazy { 
+    ArtifactHandler(contextRepository, stateManager, viewModelScope, projectId) 
+}
     init {
         setupContextObserver()
         tagManager.loadTags()
@@ -431,4 +447,25 @@ constructor(
     override fun onInboxProcessed() = Unit
     override fun onInboxMarkdownProcessed() = Unit
     override fun onBacklogMarkdownProcessed() = Unit
+un onSaveArtifact(content: String) = artifactHandler.onSaveArtifact(content)
+fun onAutoSaveArtifact(content: String) = artifactHandler.onAutoSaveArtifact(content)
+fun onEditArtifact(artifact: ContextArtifact) = artifactHandler.onEditArtifact(artifact)
+fun onDismissArtifactEditor() = artifactHandler.onDismissArtifactEditor()
+
+fun onToggleProjectManagement() {
+    viewModelScope.launch {
+        stateManager.updateState { it.copy(isProjectManagementEnabled = !it.isProjectManagementEnabled) }
+    }
+}
+
+fun onBackPressed() {
+    // Логіка навігації назад
+    _uiEvent.tryEmit(UiEvent.NavigateBack)
+}
+
+// Для експорту Markdown використовуй вже існуючий BacklogMarkdownHandler або ContextMarkdownExporter
+fun onExportBacklogToMarkdownRequest() {
+    val items = stateManager.uiState.value.items
+    backlogMarkdownHandler.exportToMarkdown(items)
+}
 }

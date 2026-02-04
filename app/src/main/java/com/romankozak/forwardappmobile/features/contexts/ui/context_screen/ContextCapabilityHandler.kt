@@ -15,8 +15,8 @@ class ContextCapabilityHandler {
     fun areConflicting(cap1: CapabilityId, cap2: CapabilityId): Boolean {
         // Приклад: деякі можливості можуть бути взаємовиключними
         return when {
-            cap1.value == "simple_view" && cap2.value == "advanced_view" -> true
-            cap1.value == "readonly" && cap2.value == "editable" -> true
+            cap1.raw == "simple_view" && cap2.raw == "advanced_view" -> true
+            cap1.raw == "readonly" && cap2.raw == "editable" -> true
             else -> false
         }
     }
@@ -25,7 +25,7 @@ class ContextCapabilityHandler {
      * Повертає залежності для певної можливості
      */
     fun getDependencies(capabilityId: CapabilityId): Set<CapabilityId> {
-        return when (capabilityId.value) {
+        return when (capabilityId.raw) {
             "advanced" -> setOf(CapabilityId("backlog"))
             "auto_link_subprojects" -> setOf(CapabilityId("backlog"))
             else -> emptySet()
@@ -47,7 +47,7 @@ class ContextCapabilityHandler {
      * Повертає опис можливості
      */
     fun getDescription(capabilityId: CapabilityId): String {
-        return when (capabilityId.value) {
+        return when (capabilityId.raw) {
             "inbox" -> "Вхідні повідомлення та швидкі нотатки"
             "backlog" -> "Управління задачами та списками"
             "log" -> "Журнал подій та прогрес"
@@ -64,7 +64,7 @@ class ContextCapabilityHandler {
      * Повертає пріоритет можливості для відображення
      */
     fun getPriority(capabilityId: CapabilityId): Int {
-        return when (capabilityId.value) {
+        return when (capabilityId.raw) {
             "backlog" -> 1
             "inbox" -> 2
             "log" -> 3
