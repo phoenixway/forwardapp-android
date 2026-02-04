@@ -548,7 +548,9 @@ constructor(
               val config = structureWithItems?.structure ?: ContextConfiguration(
                   id = java.util.UUID.randomUUID().toString(),
                   contextId = proj.id,
-                  basePresetCode = "default"
+                  basePresetCode = "default",
+                  // Якщо у твоїй моделі є currentViewMode
+                  enableDashboard = true
               )
 
               // 2. Розраховуємо ЕФЕКТИВНІ можливості.
@@ -581,13 +583,15 @@ constructor(
                   // 3. Fallback: Якщо екран заборонено (наприклад, після бекапа),
                   // примусово вмикаємо Беклог (якщо він дозволений) або Інбокс
                   val adjustedView = if (!isViewAllowed) {
-                      if (effectiveCapabilities.contains(CapabilityId("backlog"))) {
-                          ContextViewMode.BACKLOG
-                      } else {
-                          ContextViewMode.INBOX
+                      // ЗМІНЕНО: Пріоритет тепер на DASHBOARD
+                      when {
+                          effectiveCapabilities.contains(CapabilityId("dashboard")) -> ContextViewMode.DASHBOARD
+                          effectiveCapabilities.contains(CapabilityId("backlog")) -> ContextViewMode.BACKLOG
+                          else -> ContextViewMode.INBOX
                       }
                   } else {
-                      targetView
+                      // Якщо проект новий і ми на Беклозі, примусово перемикаємо на Дашборд
+                      if (currentState.currentView == ContextViewMode.BACKLOG) ContextViewMode.DASHBOARD else targetView
                   }
 
                   currentState.copy(
@@ -643,6 +647,18 @@ constructor(
 
     // 6. Ініціалізація фонових обробників
     viewModelScope.launch { withContext(Dispatchers.IO) { contextHandler.initialize() } }
+
+      viewModelScope.launch {
+          // Слухаємо і базу, і зміну в'юшки
+          combine(
+              databaseContentStream,
+              uiState.map { it.currentView }.distinctUntilChanged()
+          ) { content, view ->
+              content
+          }.collect { filteredContent ->
+              _listContent.value = filteredContent.withCompletedAtEnd()
+          }
+      }
 
     loadAllTags()
     loadAllContexts()
