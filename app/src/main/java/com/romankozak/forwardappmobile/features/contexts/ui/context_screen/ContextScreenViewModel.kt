@@ -509,26 +509,32 @@ class BacklogViewModel
 
     // 1. Основний потік: Об'єднуємо структуру (налаштування фіч) та сутність проекту
     viewModelScope.launch {
-        combine(
-            contextIdFlow
-                .filter { it.isNotEmpty() }
-                .flatMapLatest { contextStructureRepository.observeStructure(it) },
-            project.filterNotNull()
-        ) { structure, projectEntity ->
-            structure to projectEntity
-        }.collect { (structure, proj) ->
-            
-            // Визначаємо всі дозволи для КОНКРЕТНОЇ конфігурації цього проекту
-            val enableInbox = isEnabledForConfig(CapabilityId("inbox"), structure)
-            val enableLog = isEnabledForConfig(CapabilityId("log"), structure)
-            val enableArtifact = isEnabledForConfig(CapabilityId("artifact"), structure)
-            val enableDashboard = isEnabledForConfig(CapabilityId("dashboard"), structure)
-            val enableBacklog = isEnabledForConfig(CapabilityId("backlog"), structure)
-            val enableAttachments = isEnabledForConfig(CapabilityId("attachments"), structure)
-            val enableAutoLinkSubprojects = isEnabledForConfig(CapabilityId("auto_link_subprojects"), structure)
-            
-            // Менеджмент (Advanced) активний, якщо дозволено в Gate АБО увімкнено в проекті вручну
-            val isManagementEnabled = isEnabledForConfig(CapabilityId("advanced"), structure) || proj.isContextManagementEnabled == true
+    combine(
+        contextIdFlow
+            .filter { it.isNotEmpty() }
+            .flatMapLatest { contextStructureRepository.observeStructure(it) },
+        project.filterNotNull()
+    ) { structureWithItems, projectEntity ->
+        structureWithItems to projectEntity
+    }.collect { (structureWithItems, proj) ->
+        
+        // Отримуємо саму конфігурацію з обгортки (StructureWithItems -> Configuration)
+        // Якщо structureWithItems null, створюємо дефолтну конфігурацію
+        val config = structureWithItems?.structure ?: com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration(
+            contextId = proj.id,
+            basePresetCode = "default"
+        )
+
+        // Тепер передаємо config (ContextConfiguration), а не structureWithItems
+        val enableInbox = isEnabledForConfig(CapabilityId("inbox"), config)
+        val enableLog = isEnabledForConfig(CapabilityId("log"), config)
+        val enableArtifact = isEnabledForConfig(CapabilityId("artifact"), config)
+        val enableDashboard = isEnabledForConfig(CapabilityId("dashboard"), config)
+        val enableBacklog = isEnabledForConfig(CapabilityId("backlog"), config)
+        val enableAttachments = isEnabledForConfig(CapabilityId("attachments"), config)
+        val enableAutoLinkSubprojects = isEnabledForConfig(CapabilityId("auto_link_subprojects"), config)
+        
+        val isManagementEnabled = isEnabledForConfig(CapabilityId("advanced"), config) || proj.isContextManagementEnabled == true
 
             // Логіка автоматичного створення лінків підпроектів
             if (enableAutoLinkSubprojects && !autoLinkChildProjectsEnsured) {
@@ -588,13 +594,12 @@ class BacklogViewModel
                     isProjectManagementEnabled = isManagementEnabled,
                     
                     // Важливо: Передаємо динамічні ID (ветеринар, нотатки) для ModernInputPanel
-                    experimentalCapabilityIds = structure.experimentalCapabilityIds,
-                    
-                    // Стан проекту
-                    showCheckboxes = proj.showCheckboxes,
-                    currentView = adjustedView,
-                    inputMode = if (adjustedView != currentView) getInputModeForView(adjustedView) else currentState.inputMode,
-                    selectedDashboardTab = safeDashboardTab
+                    experimentalCapabilityIds = config.experimentalCapabilityIds,
+                
+                showCheckboxes = proj.showCheckboxes,
+                currentView = adjustedView,
+                inputMode = if (adjustedView != currentView) getInputModeForView(adjustedView) else currentState.inputMode,
+                selectedDashboardTab = safeDashboardTab
                 )
             }
         }
