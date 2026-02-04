@@ -146,6 +146,7 @@ data class UiState(
     val enableDashboard: Boolean = true,
     val enableAttachments: Boolean = true,
     val enableAutoLinkSubprojects: Boolean = true,
+    val experimentalCapabilityIds: List<CapabilityId> = emptyList(), 
     val currentView: ContextViewMode = ContextViewMode.BACKLOG,
     val showRecentProjectsSheet: Boolean = false,
     val showImportFromMarkdownDialog: Boolean = false,
@@ -506,113 +507,117 @@ class BacklogViewModel
 
     var autoLinkChildProjectsEnsured = false
 
-    // 1. Основний обробник структури та можливостей (Об'єднаний)
-    viewModelScope.launch {
+    // 1. Об'єднаний потік даних: Структура + Проект
+viewModelScope.launch {
+    combine(
         contextIdFlow
             .filter { it.isNotEmpty() }
-            .flatMapLatest { contextId ->
-                contextStructureRepository.observeStructure(contextId).map { contextId to it }
+            .flatMapLatest { contextStructureRepository.observeStructure(it) },
+        project.filterNotNull()
+    ) { structure, projectEntity ->
+        structure to projectEntity
+    }.collect { (structure, proj) ->
+        
+        // Визначаємо дозволи через CapabilityGate
+        val isAdvancedAllowed = capabilityGate.isEnabled(CapabilityId("advanced"))
+        val enableInbox = capabilityGate.isEnabled(CapabilityId("inbox"))
+        val enableLog = capabilityGate.isEnabled(CapabilityId("log"))
+        val enableArtifact = capabilityGate.isEnabled(CapabilityId("artifact"))
+        val enableDashboard = capabilityGate.isEnabled(CapabilityId("dashboard"))
+        val enableBacklog = capabilityGate.isEnabled(CapabilityId("backlog"))
+        val enableAttachments = capabilityGate.isEnabled(CapabilityId("attachments"))
+        val enableAutoLinkSubprojects = capabilityGate.isEnabled(CapabilityId("auto_link_subprojects"))
+
+        // Логіка менеджменту: Gate АБО локальний прапорець проекту
+        val isManagementEnabled = isAdvancedAllowed || proj.isContextManagementEnabled == true
+
+        // Автоматичне створення лінків
+        if (enableAutoLinkSubprojects && !autoLinkChildProjectsEnsured) {
+            contextRepository.ensureChildContextListItemsExist(proj.id)
+            autoLinkChildProjectsEnsured = true
+        } else if (!enableAutoLinkSubprojects) {
+            autoLinkChildProjectsEnsured = false
+        }
+
+        _uiState.update { currentState ->
+            val currentView = currentState.currentView
+            
+            // 1. Розрахунок доступних вкладок Dashboard
+            val availableDashboardTabs = listOfNotNull(
+                ContextManagementTab.Dashboard.takeIf { enableDashboard },
+                ContextManagementTab.Log.takeIf { enableLog },
+                ContextManagementTab.Artifact.takeIf { enableArtifact },
+                ContextManagementTab.Insights,
+            )
+            
+            val safeDashboardTab = if (currentState.selectedDashboardTab in availableDashboardTabs) {
+                currentState.selectedDashboardTab 
+            } else {
+                availableDashboardTabs.firstOrNull() ?: ContextManagementTab.Insights
             }
-            .collect { (contextId, structureWithItems) ->
-                // Визначаємо всі дозволи через CapabilityGate (він враховує і старі прапорці, і нові ID)
-                val isManagementEnabled = capabilityGate.isEnabled(CapabilityId("advanced"))
-                val enableInbox = capabilityGate.isEnabled(CapabilityId("inbox"))
-                val enableLog = capabilityGate.isEnabled(CapabilityId("log"))
-                val enableArtifact = capabilityGate.isEnabled(CapabilityId("artifact"))
-                val enableDashboard = capabilityGate.isEnabled(CapabilityId("dashboard"))
-                val enableBacklog = capabilityGate.isEnabled(CapabilityId("backlog"))
-                val enableAttachments = capabilityGate.isEnabled(CapabilityId("attachments"))
-                val enableAutoLinkSubprojects = capabilityGate.isEnabled(CapabilityId("auto_link_subprojects"))
 
-                // Логіка автоматичного створення лінків на підпроекти
-                if (enableAutoLinkSubprojects && !autoLinkChildProjectsEnsured) {
-                    contextRepository.ensureChildContextListItemsExist(contextId)
-                    autoLinkChildProjectsEnsured = true
-                } else if (!enableAutoLinkSubprojects) {
-                    autoLinkChildProjectsEnsured = false
-                }
-
-                _uiState.update { currentState ->
-                    val currentView = currentState.currentView
-                    
-                    // Розрахунок доступних вкладок для DashboardView
-                    val availableTabs = listOfNotNull(
-                        ContextManagementTab.Dashboard.takeIf { enableDashboard },
-                        ContextManagementTab.Log.takeIf { enableLog },
-                        ContextManagementTab.Artifact.takeIf { enableArtifact },
-                        ContextManagementTab.Insights,
-                    )
-                    
-                    val safeDashboardTab = if (currentState.selectedDashboardTab in availableTabs) {
-                        currentState.selectedDashboardTab 
-                    } else {
-                        availableTabs.firstOrNull()
-                    }
-
-                    // Складна логіка валідації поточного режиму перегляду (якщо його вимкнули в налаштуваннях)
-                    val adjustedView = when {
-                        !enableBacklog && currentView == ContextViewMode.BACKLOG && enableDashboard -> ContextViewMode.DASHBOARD
-                        !enableInbox && currentView == ContextViewMode.INBOX -> if (enableBacklog) ContextViewMode.BACKLOG else ContextViewMode.DASHBOARD
-                        !enableAttachments && currentView == ContextViewMode.ATTACHMENTS -> if (enableBacklog) ContextViewMode.BACKLOG else ContextViewMode.DASHBOARD
-                        (!enableLog || !isManagementEnabled) && currentView == ContextViewMode.ADVANCED -> if (enableBacklog) ContextViewMode.BACKLOG else ContextViewMode.DASHBOARD
-                        !enableDashboard && currentView == ContextViewMode.DASHBOARD && enableBacklog -> ContextViewMode.BACKLOG
-                        else -> currentView
-                    }
-
-                    currentState.copy(
-                        enableInbox = enableInbox,
-                        enableLog = enableLog,
-                        enableArtifact = enableArtifact,
-                        enableBacklog = enableBacklog,
-                        enableDashboard = enableDashboard,
-                        enableAttachments = enableAttachments,
-                        enableAutoLinkSubprojects = enableAutoLinkSubprojects,
-                        isProjectManagementEnabled = isManagementEnabled,
-                        currentView = adjustedView,
-                        inputMode = getInputModeForView(adjustedView),
-                        selectedDashboardTab = safeDashboardTab ?: ContextManagementTab.Insights,
-                    )
-                }
+            // 2. Валідація поточного режиму перегляду (Fallback логіка)
+            val isViewAllowed = when (currentView) {
+                ContextViewMode.INBOX -> enableInbox
+                ContextViewMode.BACKLOG -> enableBacklog
+                ContextViewMode.DASHBOARD -> enableDashboard
+                ContextViewMode.ATTACHMENTS -> enableAttachments
+                ContextViewMode.ADVANCED -> isManagementEnabled && enableLog
             }
+
+            val adjustedView = if (!isViewAllowed) {
+                // Пріоритет відкату: Backlog -> Dashboard -> Перший доступний
+                when {
+                    enableBacklog -> ContextViewMode.BACKLOG
+                    enableDashboard -> ContextViewMode.DASHBOARD
+                    else -> ContextViewMode.BACKLOG // fail-safe
+                }
+            } else {
+                currentView
+            }
+
+            // 3. Оновлення стану
+            currentState.copy(
+                // Дозволи
+                enableInbox = enableInbox,
+                enableLog = enableLog,
+                enableArtifact = enableArtifact,
+                enableBacklog = enableBacklog,
+                enableDashboard = enableDashboard,
+                enableAttachments = enableAttachments,
+                enableAutoLinkSubprojects = enableAutoLinkSubprojects,
+                isProjectManagementEnabled = isManagementEnabled,
+                
+                // Дані проекту
+                showCheckboxes = proj.showCheckboxes,
+                
+                // ВАЖЛИВО: Передаємо експериментальні ID для ModernInputPanel
+                experimentalCapabilityIds = structure.experimentalCapabilityIds,
+                
+                // Навігаційний стан
+                currentView = adjustedView,
+                inputMode = if (adjustedView != currentView) getInputModeForView(adjustedView) else currentState.inputMode,
+                selectedDashboardTab = safeDashboardTab
+            )
+        }
     }
+}
 
-    // 2. Обробка початкового режиму перегляду з навігації
+// 2. Одноразова ініціалізація режиму з навігації
+init {
     savedStateHandle.get<String>("initialViewMode")?.let { modeName ->
         try {
             val viewMode = ContextViewMode.valueOf(modeName)
-            _uiState.update { it.copy(currentView = viewMode) }
-            Log.d(TAG, "Initial view mode set to $viewMode from navigation argument.")
-        } catch (e: IllegalArgumentException) {
-            Log.w(TAG, "Invalid initialViewMode provided: $modeName")
+            _uiState.update { it.copy(
+                currentView = viewMode,
+                inputMode = getInputModeForView(viewMode)
+            ) }
+        } catch (e: Exception) {
+            Log.w("ProjectsViewModel", "Invalid initialViewMode: $modeName")
         }
     }
+}
 
-    // 3. Спостереження за сутністю проекту (чекбокси та legacy-менеджмент)
-    viewModelScope.launch {
-        project.collect { proj ->
-            if (proj != null) {
-                _uiState.update {
-                    it.copy(
-                        showCheckboxes = proj.showCheckboxes,
-                        // Менеджмент може бути увімкнений або глобально через Gate, або через флаг в проекті
-                        isProjectManagementEnabled = proj.isContextManagementEnabled == true || it.isProjectManagementEnabled,
-                    )
-                }
-                
-                val isManagementEnabled = _uiState.value.isProjectManagementEnabled
-                val currentView = uiState.value.currentView
-                
-                if (!isManagementEnabled && currentView == ContextViewMode.ADVANCED) {
-                    Log.d(TAG, "Inconsistency: Management OFF but view is ADVANCED. Falling back to BACKLOG.")
-                    onProjectViewChange(ContextViewMode.BACKLOG)
-                }
-
-                if (!isManagementEnabled && uiState.value.inputMode == InputMode.AddProjectLog) {
-                    _uiState.update { it.copy(inputMode = InputMode.AddGoal) }
-                }
-            }
-        }
-    }
 
     // 4. Підсвічування записів з Inbox
     val inboxIdToHighlight = savedStateHandle.get<String>("inboxRecordIdToHighlight")

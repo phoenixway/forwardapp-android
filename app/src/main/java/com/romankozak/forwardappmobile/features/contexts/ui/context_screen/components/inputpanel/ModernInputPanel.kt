@@ -55,6 +55,8 @@ fun ModernInputPanel(
     isNerActive: Boolean,
     onStartTrackingCurrentProject: () -> Unit,
     isProjectManagementEnabled: Boolean,
+    // --- ДОДАНО: Список експериментальних фіч (для ветеринара, нотаток тощо) ---
+    experimentalCapabilityIds = uiState.experimentalCapabilityIds
     enableInbox: Boolean,
     enableLog: Boolean,
     enableArtifact: Boolean,
@@ -72,16 +74,24 @@ fun ModernInputPanel(
     onSuggestionClick: (String) -> Unit,
     onAddScript: (() -> Unit)? = null,
 ) {
-    val activeCapabilities = remember(enableInbox, enableLog, enableArtifact, enableBacklog, enableDashboard, enableAttachments, isProjectManagementEnabled) {
-        setOfNotNull(
-            if (enableInbox) CapabilityId("inbox") else null,
-            if (enableLog) CapabilityId("log") else null,
-            if (enableArtifact) CapabilityId("artifact") else null,
-            if (enableBacklog) CapabilityId("backlog") else null,
-            if (enableDashboard) CapabilityId("dashboard") else null,
-            if (enableAttachments) CapabilityId("attachments") else null,
-            if (isProjectManagementEnabled) CapabilityId("advanced") else null
-        )
+    // Об'єднуємо старі прапорці та нові ID в єдиний Set можливостей
+    val activeCapabilities = remember(
+        enableInbox, enableLog, enableArtifact, enableBacklog, 
+        enableDashboard, enableAttachments, isProjectManagementEnabled, 
+        experimentalCapabilityIds
+    ) {
+        val base = mutableSetOf<CapabilityId>()
+        if (enableInbox) base.add(CapabilityId("inbox"))
+        if (enableLog) base.add(CapabilityId("log"))
+        if (enableArtifact) base.add(CapabilityId("artifact"))
+        if (enableBacklog) base.add(CapabilityId("backlog"))
+        if (enableDashboard) base.add(CapabilityId("dashboard"))
+        if (enableAttachments) base.add(CapabilityId("attachments"))
+        if (isProjectManagementEnabled) base.add(CapabilityId("advanced"))
+        
+        // Додаємо динамічні фічі (ветеринар, нотатки), щоб вони не відфільтровувалися в UI
+        base.addAll(experimentalCapabilityIds)
+        base
     }
 
     val state = NavPanelState(
@@ -131,13 +141,13 @@ fun ModernInputPanel(
         border = BorderStroke(1.dp, panelColors.contentColor.copy(alpha = 0.1f)),
     ) {
         Column {
+            // Верхня панель (NavigationBar автоматично відфільтрує доступні вкладки через activeCapabilities)
             NavigationBar(state, actions, panelColors.contentColor, holdMenuController)
 
             Row(
                 modifier = Modifier.defaultMinSize(minHeight = 64.dp).padding(horizontal = 8.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.Bottom,
             ) {
-                // Ці компоненти тепер беруться з InputPanelComponents.kt
                 ModeSelectorButton(
                     inputMode = inputMode,
                     panelColors = panelColors,

@@ -406,7 +406,7 @@ private fun ProjectBottomBar(
             enter = slideInVertically { it } + fadeIn(),
             exit = slideOutVertically { it } + fadeOut(),
         ) {
-            ModernInputPanel(
+                        ModernInputPanel(
                 holdMenuController = holdMenuController,
                 inputValue = uiState.inputValue,
                 inputMode = uiState.inputMode,
@@ -430,7 +430,6 @@ private fun ProjectBottomBar(
                 onEditList = {
                     Log.d("EDIT_PROJECT_DEBUG", "LIST EDITING")
                     onMenuExpandedChange(false)
-                    Log.d("EDIT_PROJECT_DEBUG", "List id: ${project?.id}")
                     navController.navigate("project_settings_screen?projectId=${project?.id}")
                 },
                 onShareList = { viewModel.onExportBacklogToMarkdownRequest() },
@@ -448,17 +447,21 @@ private fun ProjectBottomBar(
                 onClearReminder = viewModel::onClearReminder,
                 isNerActive = uiState.nerState is NerState.Ready,
                 onStartTrackingCurrentProject = viewModel::onStartTrackingCurrentProject,
+                
+                // --- ОНОВЛЕНА ЛОГІКА CAPABILITIES ---
                 isProjectManagementEnabled = uiState.isProjectManagementEnabled,
-                enableInbox = uiState.enableInbox,
+                experimentalCapabilityIds = uiState.experimentalCapabilityIds, // ПЕРЕДАЄМО СПИСОК ФІЧ
+                enableInbox = uiState.enableInbox, // Або uiState.features["Inbox"] ?: true
                 enableLog = uiState.enableLog,
                 enableArtifact = uiState.enableArtifact,
                 enableBacklog = uiState.enableBacklog,
                 enableDashboard = uiState.enableDashboard,
                 enableAttachments = uiState.enableAttachments,
-                modifier =
-                    Modifier
-                        .navigationBarsPadding()
-                        .imePadding(),
+                // ------------------------------------
+
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .imePadding(),
                 onToggleProjectManagement = viewModel::onToggleProjectManagement,
                 onExportProjectState = viewModel::onExportProjectStateRequest,
                 onAddProjectToDayPlan = viewModel::addCurrentProjectToDayPlan,
@@ -469,18 +472,15 @@ private fun ProjectBottomBar(
                 suggestions = suggestions,
                 onSuggestionClick = viewModel::onSuggestionClick,
                 onShowDisplayPropertiesClick = onShowDisplayPropertiesClick,
-                onAddScript =
-                    if (FeatureToggles.isEnabled(FeatureFlag.ScriptsLibrary)) {
-                        {
-                            val route =
-                                project?.id?.let { id -> "script_editor_screen?projectId=$id" }
-                                    ?: "script_editor_screen"
-                            navController.navigate(route)
-                        }
-                    } else {
-                        null
-                    },
+                onAddScript = if (FeatureToggles.isEnabled(FeatureFlag.ScriptsLibrary)) {
+                    {
+                        val route = project?.id?.let { id -> "script_editor_screen?projectId=$id" }
+                            ?: "script_editor_screen"
+                        navController.navigate(route)
+                    }
+                } else null,
             )
+
         }
     }
 }
