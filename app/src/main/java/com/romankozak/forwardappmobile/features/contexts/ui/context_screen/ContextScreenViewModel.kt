@@ -1,275 +1,39 @@
+
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen
 
 import android.app.Application
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context as AndroidContext
-import android.util.Log
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
-import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
-import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
-import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
-import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextArtifact
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextLogEntryTypeValues
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextTimeMetrics
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
-import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
-import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
-import com.romankozak.forwardappmobile.core.data.models.entities.RecentItemType
-import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
-import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
+import com.romankozak.forwardappmobile.core.data.models.entities.*
 import com.romankozak.forwardappmobile.core.di.IoDispatcher
 import com.romankozak.forwardappmobile.core.gate.CapabilityGate
-import com.romankozak.forwardappmobile.core.navigation.ClearAndNavigateHomeUseCase
-import com.romankozak.forwardappmobile.core.navigation.ClearCommand
-import com.romankozak.forwardappmobile.core.navigation.ClearExecutionContext
-import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
-import com.romankozak.forwardappmobile.core.navigation.NavTarget
+import com.romankozak.forwardappmobile.core.navigation.*
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
-import com.romankozak.forwardappmobile.data.repository.ActivityRepository
-import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
-import com.romankozak.forwardappmobile.data.repository.ContextRepository
-import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
-import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
-import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
-import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.data.repository.*
 import com.romankozak.forwardappmobile.domain.ner.NerManager
-import com.romankozak.forwardappmobile.domain.ner.NerState
 import com.romankozak.forwardappmobile.domain.ner.ReminderParser
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
-import com.romankozak.forwardappmobile.domain.wifirestapi.FileDataRequest
-import com.romankozak.forwardappmobile.domain.wifirestapi.RetrofitClient
-import com.romankozak.forwardappmobile.features.attachments.ui.context.AttachmentType
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectUiEvent
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.state.PlanningModeManager
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.SearchUseCase
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.withCompletedAtEnd
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ContextManagementTab
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.InputHandler
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.InputMode
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.utils.TagUtils
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.ContextMarkdownExporter
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.InboxHandler
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.InboxHandlerResultListener
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.InboxMarkdownHandler
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.ItemActionHandler
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.SelectionHandler
-import com.romankozak.forwardappmobile.ui.common.editor.NoteTitleExtractor
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.handlers.BacklogMarkdownHandler
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.handlers.BacklogMarkdownHandlerResultListener
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.*
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.*
 import dagger.hilt.android.lifecycle.HiltViewModel
-import java.net.URLDecoder
-import java.net.URLEncoder
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Date
-import java.util.Locale
-import java.util.UUID
-import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-
-private const val TAG = "BacklogVM_DEBUG"
-
-sealed class UiEvent {
-  data class ShowSnackbar(val message: String, val action: String? = null) : UiEvent()
-
-  data class Navigate(val target: NavTarget) : UiEvent()
-
-  data class ResetSwipeState(val itemId: String) : UiEvent()
-
-  data class ScrollTo(val index: Int) : UiEvent()
-
-  data class NavigateBackAndReveal(val contextId: String) : UiEvent()
-
-  data class HandleLinkClick(val link: RelatedLink) : UiEvent()
-
-  data class OpenUri(val uri: String) : UiEvent()
-
-  data object ScrollToLatestInboxRecord : UiEvent()
-
-  data object NavigateBack : UiEvent()
-}
-
-enum class GoalActionType {
-  CreateInstance,
-  MoveInstance,
-  CopyGoal,
-  AddLinkToList,
-  ADD_LIST_SHORTCUT,
-}
-
-sealed class GoalActionDialogState {
-  object Hidden : GoalActionDialogState()
-
-  data class AwaitingActionChoice(val itemContent: BacklogItemContent) : GoalActionDialogState()
-}
-
-data class UiState(
-    val localSearchQuery: String = "",
-    val goalToHighlight: String? = null,
-    val inputMode: InputMode = InputMode.AddGoal,
-    val newlyAddedItemId: String? = null,
-    val selectedItemIds: Set<String> = emptySet(),
-    val inputValue: TextFieldValue = TextFieldValue(""),
-    val resetTriggers: Map<String, Int> = emptyMap(),
-    val swipedItemId: String? = null,
-    val swipeResetCounter: Int = 0,
-    val showAddWebLinkDialog: Boolean = false,
-    val showAddObsidianLinkDialog: Boolean = false,
-    val itemToHighlight: String? = null,
-    val inboxRecordToHighlight: String? = null,
-    val needsStateRefresh: Boolean = false,
-    val enableInbox: Boolean = true,
-    val enableLog: Boolean = true,
-    val enableArtifact: Boolean = true,
-    val isProjectManagementEnabled: Boolean = false,
-    val enableBacklog: Boolean = true,
-    val enableDashboard: Boolean = true,
-    val enableAttachments: Boolean = true,
-    val enableAutoLinkSubprojects: Boolean = true,
-    val experimentalCapabilityIds: List<CapabilityId> = emptyList(),
-    val currentView: ContextViewMode = ContextViewMode.BACKLOG,
-    val showRecentProjectsSheet: Boolean = false,
-    val showImportFromMarkdownDialog: Boolean = false,
-    val showImportBacklogFromMarkdownDialog: Boolean = false,
-    val refreshTrigger: Int = 0,
-    val detectedReminderSuggestion: String? = null,
-    val detectedReminderCalendar: Calendar? = null,
-    val nerState: NerState = NerState.NotInitialized,
-    val recordForReminderDialog: ActivityRecord? = null,
-    val contextTimeMetrics: ContextTimeMetrics? = null,
-    val showShareDialog: Boolean = false,
-    val showCreateNoteDocumentDialog: Boolean = false,
-    val showRemindersDialog: Boolean = false,
-    val itemForRemindersDialog: BacklogItemContent? = null,
-    val remindersForDialog: List<Reminder> = emptyList(),
-    val logEntryToEdit: ContextLog? = null,
-    val artifactToEdit: ContextArtifact? = null,
-    val selectedDashboardTab: ContextManagementTab = ContextManagementTab.Dashboard,
-    val showNoteDocumentEditor: Boolean = false,
-    val showDisplayPropertiesDialog: Boolean = false,
-    val showCheckboxes: Boolean = false,
-) {
-  val isSelectionModeActive: Boolean
-    get() = selectedItemIds.isNotEmpty()
-}
-
-interface BacklogMarkdownHandlerResultListener {
-  fun copyToClipboard(
-      text: String,
-      label: String,
-  )
-
-  fun showSnackbar(
-      message: String,
-      action: String?,
-  )
-
-  fun forceRefresh()
-}
-
-class BacklogMarkdownHandler
-@Inject
-constructor(
-    private val contextRepository: ContextRepository,
-    private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
-    private val scope: CoroutineScope,
-    private val listener: BacklogMarkdownHandlerResultListener,
-) {
-  fun exportToMarkdown(content: List<BacklogItemContent>) {
-    if (content.isEmpty()) {
-      listener.showSnackbar("Backlog is empty. Nothing to export.", null)
-      return
-    }
-    val markdownBuilder = StringBuilder()
-    content.forEach { item ->
-      val line =
-          when (item) {
-            is BacklogItemContent.GoalItem -> {
-              val checkbox = if (item.goal.completed) "- [x]" else "- [ ]"
-              "$checkbox ${item.goal.text}"
-            }
-
-            is BacklogItemContent.SublistItem -> "- [C] ${item.project.name}"
-            is BacklogItemContent.LinkItem -> {
-              val displayName = item.link.linkData.displayName ?: item.link.linkData.target
-              "- [L] [$displayName](${item.link.linkData.target})"
-            }
-            is BacklogItemContent.NoteItem -> "- [N] ${item.note.title}"
-            is BacklogItemContent.NoteDocumentItem -> "- [D] ${item.document.name}"
-            is BacklogItemContent.ChecklistItem -> "- [Ch] ${item.checklist.name}"
-          }
-      markdownBuilder.appendLine(line)
-    }
-    val markdownText = markdownBuilder.toString()
-    listener.copyToClipboard(markdownText, "Backlog Export")
-    listener.showSnackbar("Backlog copied to clipboard.", null)
-  }
-
-  fun importFromMarkdown(
-      markdownText: String,
-      contextId: String,
-  ) {
-    if (markdownText.isBlank()) {
-      listener.showSnackbar("Nothing to import.", null)
-      return
-    }
-    scope.launch(Dispatchers.IO) {
-      val lines = markdownText.lines().filter { it.isNotBlank() }
-      var importedCount = 0
-      for (line in lines) {
-        try {
-          val trimmedLine = line.trim()
-          when {
-            trimmedLine.startsWith("- [ ]") -> {
-              val goalText = trimmedLine.removePrefix("- [ ]").trim()
-              if (goalText.isNotEmpty()) {
-                goalRepository.addGoalToContext(goalText, contextId, completed = false)
-                importedCount++
-              }
-            }
-
-            trimmedLine.startsWith("- [x]") -> {
-              val goalText = trimmedLine.removePrefix("- [x]").trim()
-              if (goalText.isNotEmpty()) {
-                goalRepository.addGoalToContext(goalText, contextId, completed = true)
-                importedCount++
-              }
-            }
-          }
-        } catch (e: Exception) {
-          Log.e("BacklogMarkdownHandler", "Failed to import line: $line", e)
-        }
-      }
-      withContext(Dispatchers.Main) {
-        listener.showSnackbar("Imported $importedCount items.", null)
-        listener.forceRefresh()
-      }
-    }
-  }
-}
-
-private val ActivityRecord.isOngoing: Boolean
-  get() = this.startTime != null && this.endTime == null
+import javax.inject.Inject
 
 @HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -291,2090 +55,380 @@ constructor(
     private val dayManagementRepository: DayManagementRepository,
     private val clearAndNavigateHomeUseCase: ClearAndNavigateHomeUseCase,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-    private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
-    private val listItemRepository:
-        com.romankozak.forwardappmobile.data.repository.ListItemRepository,
+    private val goalRepository: GoalRepository,
+    private val listItemRepository: ListItemRepository,
     private val noteDocumentRepository: NoteDocumentRepository,
     private val checklistRepository: ChecklistRepository,
-    private val reminderRepository:
-        com.romankozak.forwardappmobile.data.repository.ReminderRepository,
-    private val recentItemsRepository:
-        com.romankozak.forwardappmobile.data.repository.RecentItemsRepository,
-    private val contextLogRepository:
-        com.romankozak.forwardappmobile.data.repository.ContextLogRepository,
-    private val noteRepository:
-        com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository,
-    private val inboxRepository: com.romankozak.forwardappmobile.data.repository.InboxRepository,
+    private val reminderRepository: ReminderRepository,
+    private val recentItemsRepository: RecentItemsRepository,
+    private val contextLogRepository: ContextLogRepository,
+    private val noteRepository: LegacyNoteRepository,
+    private val inboxRepository: InboxRepository,
     private val contextStructureRepository: ContextStructureRepository,
-) :
-    ViewModel(),
+    private val capabilityHandler: ContextCapabilityHandler = ContextCapabilityHandler()
+) : ViewModel(),
     ItemActionHandler.ResultListener,
     InputHandler.ResultListener,
     SelectionHandler.ResultListener,
     InboxHandlerResultListener,
     InboxMarkdownHandler.ResultListener,
     BacklogMarkdownHandlerResultListener {
-  companion object {
-    const val HANDLE_LINK_CLICK_ROUTE = "handle_link_click"
-    private const val TAG = "BacklogVM_DEBUG"
-  }
 
-  lateinit var enhancedNavigationManager: EnhancedNavigationManager
+    companion object {
+        const val HANDLE_LINK_CLICK_ROUTE = "handle_link_click"
+        private const val TAG = "BacklogVM_DEBUG"
+    }
 
-  val canGoBack: StateFlow<Boolean>
-    get() = enhancedNavigationManager.canGoBack
+    lateinit var enhancedNavigationManager: EnhancedNavigationManager
 
-  val canGoForward: StateFlow<Boolean>
-    get() = enhancedNavigationManager.canGoForward
+    val canGoBack: StateFlow<Boolean> get() = enhancedNavigationManager.canGoBack
+    val canGoForward: StateFlow<Boolean> get() = enhancedNavigationManager.canGoForward
 
-  private val _isProcessingHome = MutableStateFlow(false)
+    // State managers - делегування логіки
+    private val stateManager = ContextStateManager(viewModelScope)
+    private val capabilityManager = ContextCapabilityManager(capabilityGate, capabilityHandler)
+    private val tagManager = TagManager(contextRepository, viewModelScope)
+    private val activityManager = ActivityManager(
+        activityRepository,
+        contextRepository,
+        settingsRepository,
+        viewModelScope
+    )
+    
+    // Handlers - делегування дій
+    private val contextIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("listId", "")
+    private val _listContent = MutableStateFlow<List<BacklogItemContent>>(emptyList())
+    val listContent: StateFlow<List<BacklogItemContent>> = _listContent.asStateFlow()
 
-  private val _allTags = MutableStateFlow<List<String>>(emptyList())
-  val allTags: StateFlow<List<String>> = _allTags.asStateFlow()
+    val itemActionHandler = ItemActionHandler(
+        contextRepository,
+        goalRepository,
+        recentItemsRepository,
+        viewModelScope,
+        contextIdFlow,
+        this
+    )
+    
+    val selectionHandler = SelectionHandler(
+        contextRepository,
+        goalRepository,
+        viewModelScope,
+        contextIdFlow,
+        _listContent,
+        this
+    )
+    
+    val inputHandler = InputHandler(
+        contextRepository,
+        goalRepository,
+        listItemRepository,
+        viewModelScope,
+        contextIdFlow,
+        nerManager,
+        reminderParser,
+        alarmScheduler,
+        this
+    )
+    
+    private val inboxHandler = InboxHandler(
+        inboxRepository,
+        recentItemsRepository,
+        this
+    )
+    
+    private val backlogMarkdownHandler = BacklogMarkdownHandler(
+        contextRepository,
+        goalRepository,
+        listItemRepository,
+        viewModelScope,
+        this
+    )
 
-  private val _allContexts = MutableStateFlow<List<String>>(emptyList())
-  val allContexts: StateFlow<List<String>> = _allContexts.asStateFlow()
+    // Exposed StateFlows
+    val uiState: StateFlow<ContextUiState> = stateManager.uiState
+    val listScrollState = LazyListState()
+    val allTags: StateFlow<List<String>> = tagManager.allTags
+    val allContexts: StateFlow<List<String>> = tagManager.allContexts
+    
+    private val _uiEventFlow = Channel<UiEvent>(Channel.BUFFERED)
+    val uiEventFlow = _uiEventFlow.receiveAsFlow()
 
-  private val _allProjects =
-      contextRepository
-          .getAllContextsFlow()
-          .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    private val _allProjects = contextRepository
+        .getAllContextsFlow()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-  val subprojectChildren: StateFlow<Map<String?, List<Context>>> =
-      _allProjects
-          .map { allProjects -> allProjects.groupBy { it.parentId } }
-          .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+    val subprojectChildren: StateFlow<Map<String?, List<Context>>> = _allProjects
+        .map { allProjects -> allProjects.groupBy { it.parentId } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
-  private var batchSaveJob: Job? = null
-  private val contextIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("listId", "")
-  private val _listContent = MutableStateFlow<List<BacklogItemContent>>(emptyList())
-  val listContent: StateFlow<List<BacklogItemContent>> = _listContent.asStateFlow()
+    val contextArtifact: StateFlow<ContextArtifact?> = contextIdFlow
+        .flatMapLatest { contextId ->
+            if (contextId.isBlank()) flowOf(null)
+            else contextRepository.getContextArtifactFlow(contextId)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-  val itemActionHandler =
-      ItemActionHandler(
-          contextRepository,
-          goalRepository,
-          recentItemsRepository,
-          viewModelScope,
-          contextIdFlow,
-          this,
-      )
-  val selectionHandler =
-      SelectionHandler(
-          contextRepository,
-          goalRepository,
-          viewModelScope,
-          contextIdFlow,
-          _listContent,
-          this,
-      )
-  val inboxHandler =
-      InboxHandler(contextRepository, inboxRepository, viewModelScope, contextIdFlow, this)
-  val inboxMarkdownHandler =
-      InboxMarkdownHandler(contextRepository, goalRepository, viewModelScope, this)
-  val backlogMarkdownHandler =
-      BacklogMarkdownHandler(contextRepository, goalRepository, viewModelScope, this)
+    val contextTimeMetrics: StateFlow<ContextTimeMetrics?> = contextIdFlow
+        .flatMapLatest { contextId ->
+            if (contextId.isBlank()) flowOf(null)
+            else contextRepository.getContextTimeMetricsFlow(contextId)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-  private lateinit var lazyListState: LazyListState
+    private var batchSaveJob: Job? = null
 
-  private var pendingAttachmentShare: BacklogItemContent? = null
+    init {
+        setupContextObserver()
+        tagManager.loadTags()
+        activityManager.observeCurrentActivity()
+    }
 
-  private val _uiState =
-      MutableStateFlow(
-          UiState(
-              goalToHighlight = savedStateHandle.get<String>("goalId"),
-              itemToHighlight = savedStateHandle.get<String>("itemIdToHighlight"),
-              inboxRecordToHighlight = savedStateHandle.get<String>("inboxRecordIdToHighlight"),
-          ),
-      )
-  val uiState: StateFlow<UiState> = _uiState.asStateFlow()
-
-  private val _isLoading = MutableStateFlow(false)
-  val isLoading = _isLoading.asStateFlow()
-
-  val projectLogs: StateFlow<List<ContextLog>> =
-      contextIdFlow
-          .flatMapLatest { id ->
-            if (id.isNotEmpty()) {
-              contextRepository.getContextLogsStream(id)
-            } else {
-              flowOf(emptyList()) // Прибрано '->', додано правильні дужки
-            }
-          }
-          .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-  val contextArtifact: StateFlow<ContextArtifact?> =
-      contextIdFlow
-          .flatMapLatest { id ->
-            if (id.isNotEmpty()) {
-              contextRepository.getContextArtifactStream(id)
-            } else {
-              flowOf(null)
-            }
-          }
-          .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
-
-  val inputHandler =
-      InputHandler(
-          contextRepository,
-          goalRepository,
-          listItemRepository,
-          viewModelScope,
-          contextIdFlow,
-          this,
-          reminderParser,
-          alarmScheduler,
-      )
-
-  private val _refreshTrigger = MutableStateFlow(0)
-
-  private val _uiEventFlow = Channel<UiEvent>()
-  val uiEventFlow = _uiEventFlow.receiveAsFlow()
-
-  val recentItems: StateFlow<List<RecentItem>> =
-      recentItemsRepository
-          .getRecentItems()
-          .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-  val contextMarkerToEmojiMap: StateFlow<Map<String, String>> =
-      contextHandler.contextMarkerToEmojiMap
-
-  val project: StateFlow<Context?> =
-      combine(contextIdFlow, _refreshTrigger) { id, _ -> id }
-          .flatMapLatest { id ->
-            if (id.isNotEmpty()) contextRepository.getContextByIdFlow(id) else flowOf(null)
-          }
-          .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
-
-  val tagToContextNameMap: StateFlow<Map<String, String>> =
-      contextHandler.tagToContextNameMap.stateIn(
-          viewModelScope,
-          SharingStarted.WhileSubscribed(5000),
-          emptyMap(),
-      )
-
-  val lastOngoingActivity: StateFlow<ActivityRecord?> =
-      activityRepository
-          .getLogStream()
-          .map { log -> log.firstOrNull { it.isOngoing } }
-          .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
-
-  val currentProjectContextMarker: StateFlow<String?> =
-      combine(project, tagToContextNameMap) { proj, tagMap ->
-            val projectTags = proj?.tags ?: emptyList()
-            if (projectTags.isEmpty() || tagMap.isEmpty()) return@combine null
-            val contextName = tagMap.entries.find { (tagKey, _) -> tagKey in projectTags }?.value
-            contextName?.let { contextHandler.getContextMarker(it) }
-          }
-          .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
-
-  val currentProjectContextEmojiToHide: StateFlow<String?> =
-      combine(currentProjectContextMarker, contextMarkerToEmojiMap) { marker, emojiMap ->
-            marker?.let { emojiMap[it] }
-          }
-          .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
-
-  private val databaseContentStream: Flow<List<BacklogItemContent>> =
-      combine(
-              contextIdFlow,
-              _uiState.map { it.localSearchQuery }.distinctUntilChanged(),
-              _refreshTrigger,
-          ) { id, query, _ ->
-            Pair(id, query)
-          }
-          .flatMapLatest { (id, query) ->
-            if (id.isEmpty()) {
-              flowOf(emptyList())
-            } else {
-              contextRepository.getContextContentStream(id).map { content ->
-                if (query.isNotBlank()) {
-                  content.filter { itemContent ->
-                    val textToSearch =
-                        when (itemContent) {
-                          is BacklogItemContent.GoalItem -> itemContent.goal.text
-                          is BacklogItemContent.SublistItem -> itemContent.project.name
-                          is BacklogItemContent.LinkItem ->
-                              itemContent.link.linkData.displayName
-                                  ?: itemContent.link.linkData.target
-                          is BacklogItemContent.NoteItem -> itemContent.note.title
-                          is BacklogItemContent.NoteDocumentItem -> itemContent.document.name
-                          is BacklogItemContent.ChecklistItem -> itemContent.checklist.name
+    private fun setupContextObserver() {
+        viewModelScope.launch {
+            contextIdFlow
+                .distinctUntilChanged()
+                .flatMapLatest { contextId ->
+                    if (contextId.isBlank()) {
+                        flowOf(ContextData.Empty)
+                    } else {
+                        combine(
+                            contextRepository.getContextFlow(contextId),
+                            contextRepository.getListItemsWithRelationshipsFlow(contextId),
+                            contextRepository.getContextConfigurationFlow(contextId),
+                            contextRepository.getContextLogsFlow(contextId),
+                            checklistRepository.getChecklistsFlow(contextId),
+                            noteDocumentRepository.getDocumentsFlow(contextId),
+                            reminderRepository.getRemindersFlow(contextId),
+                            recentItemsRepository.getRecentItemsFlow(contextId),
+                            noteRepository.getNotesForContextFlow(contextId)
+                        ) { context, items, config, logs, checklists, noteDocuments, reminders, recentItems, notes ->
+                            ContextData.Loaded(
+                                context = context,
+                                items = items,
+                                config = config ?: ContextConfiguration.default(contextId),
+                                logs = logs,
+                                checklists = checklists,
+                                noteDocuments = noteDocuments,
+                                reminders = reminders,
+                                recentItems = recentItems,
+                                notes = notes
+                            )
                         }
-                    textToSearch.contains(query, ignoreCase = true)
-                  }
-                } else {
-                  content
+                    }
                 }
-              }
-            }
-          }
-
-  val isSelectionModeActive: StateFlow<Boolean> =
-      _uiState
-          .map { it.selectedItemIds.isNotEmpty() }
-          .onEach { isActive -> Log.d(TAG, "СТАН: isSelectionModeActive змінився на: $isActive") }
-          .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
-
-  val obsidianVaultName: StateFlow<String> =
-      settingsRepository.obsidianVaultNameFlow.stateIn(
-          viewModelScope,
-          SharingStarted.WhileSubscribed(5000),
-          "",
-      )
-
-  private var pendingActivityForReminder: ActivityRecord? = null
-
-  init {
-    Log.d(TAG, "ViewModel instance created: ${this.hashCode()}")
-
-    var autoLinkChildProjectsEnsured = false
-
-    // 1. Основний потік: Об'єднуємо структуру (налаштування фіч) та сутність проекту
-// У ContextScreenViewModel.kt всередині init { ... }
-
-      viewModelScope.launch {
-          combine(
-              contextIdFlow
-                  .filter { it.isNotEmpty() }
-                  .flatMapLatest { contextStructureRepository.observeStructure(it) },
-              project.filterNotNull()
-          ) { structureWithItems, projectEntity ->
-              structureWithItems to projectEntity
-          }.collect { (structureWithItems, proj) ->
-
-              // 1. Створюємо об'єкт конфігурації.
-              // id у тебе String, тому використовуємо випадковий UUID або пустий рядок,
-              // якщо запису в базі ще немає.
-              val config = structureWithItems?.structure ?: ContextConfiguration(
-                  id = java.util.UUID.randomUUID().toString(),
-                  contextId = proj.id,
-                  basePresetCode = "default",
-                  // Якщо у твоїй моделі є currentViewMode
-                  enableDashboard = true
-              )
-
-              // 2. Розраховуємо ЕФЕКТИВНІ можливості.
-              // Це змушує UI побачити фічі пресета (ветеринар, нотатки),
-              // навіть якщо experimentalCapabilityIds ще порожній у базі.
-              val effectiveCapabilities = rememberEffectiveCapabilities(config)
-
-              _uiState.update { currentState ->
-                  val defaultViewName = proj.defaultViewModeName
-
-                  val targetView = if (currentState.currentView == ContextViewMode.BACKLOG && defaultViewName != null) {
-                      try {
-                          ContextViewMode.valueOf(defaultViewName)
-                      } catch (_: Exception) {
-                          currentState.currentView
-                      }
-                  } else {
-                      currentState.currentView
-                  }
-
-                  val isViewAllowed = when (targetView) {
-                      ContextViewMode.INBOX -> effectiveCapabilities.contains(CapabilityId("inbox"))
-                      ContextViewMode.BACKLOG -> effectiveCapabilities.contains(CapabilityId("backlog"))
-                      ContextViewMode.DASHBOARD -> effectiveCapabilities.contains(CapabilityId("dashboard"))
-                      ContextViewMode.ATTACHMENTS -> effectiveCapabilities.contains(CapabilityId("attachments"))
-                      ContextViewMode.ADVANCED -> effectiveCapabilities.contains(CapabilityId("advanced"))
-                      else -> true
-                  }
-
-                  // 3. Fallback: Якщо екран заборонено (наприклад, після бекапа),
-                  // примусово вмикаємо Беклог (якщо він дозволений) або Інбокс
-                  val adjustedView = if (!isViewAllowed) {
-                      // ЗМІНЕНО: Пріоритет тепер на DASHBOARD
-                      when {
-                          effectiveCapabilities.contains(CapabilityId("dashboard")) -> ContextViewMode.DASHBOARD
-                          effectiveCapabilities.contains(CapabilityId("backlog")) -> ContextViewMode.BACKLOG
-                          else -> ContextViewMode.INBOX
-                      }
-                  } else {
-                      // Якщо проект новий і ми на Беклозі, примусово перемикаємо на Дашборд
-                      if (currentState.currentView == ContextViewMode.BACKLOG) ContextViewMode.DASHBOARD else targetView
-                  }
-
-                  currentState.copy(
-                      currentView = adjustedView,
-                      experimentalCapabilityIds = effectiveCapabilities.toList(),
-                      enableInbox = effectiveCapabilities.contains(CapabilityId("inbox")),
-                      enableLog = effectiveCapabilities.contains(CapabilityId("log")),
-                      enableArtifact = effectiveCapabilities.contains(CapabilityId("artifact")),
-                      enableBacklog = effectiveCapabilities.contains(CapabilityId("backlog")),
-                      enableDashboard = effectiveCapabilities.contains(CapabilityId("dashboard")),
-                      enableAttachments = effectiveCapabilities.contains(CapabilityId("attachments")),
-                      isProjectManagementEnabled = effectiveCapabilities.contains(CapabilityId("advanced")) || proj.isContextManagementEnabled == true,
-                      inputMode = if (adjustedView != currentState.currentView) getInputModeForView(adjustedView) else currentState.inputMode
-                  )
-              }
-          }
-      }
-    // 2. Обробка початкового режиму перегляду з навігації (savedStateHandle)
-    val initialMode = savedStateHandle.get<String>("initialViewMode")
-    val inboxIdToHighlight = savedStateHandle.get<String>("inboxRecordIdToHighlight")
-
-    if (initialMode != null) {
-      try {
-        val viewMode = ContextViewMode.valueOf(initialMode)
-        _uiState.update {
-          it.copy(currentView = viewMode, inputMode = getInputModeForView(viewMode))
-        }
-      } catch (e: Exception) {
-        Log.e(TAG, "Invalid initialViewMode: $initialMode")
-      }
-    }
-
-    // 3. Стан розпізнавання мови (NER)
-    viewModelScope.launch {
-      nerManager.nerState.collect { state -> _uiState.update { it.copy(nerState = state) } }
-    }
-
-    // 4. Основний потік контенту списку
-    viewModelScope.launch {
-      databaseContentStream.collect { dbContent ->
-        _listContent.value = dbContent.withCompletedAtEnd()
-      }
-    }
-
-    // 5. Реєстрація в нещодавніх елементах
-    viewModelScope.launch {
-      contextIdFlow
-          .filter { it.isNotEmpty() }
-          .collect { id ->
-            contextRepository.getContextById(id)?.let { recentItemsRepository.logProjectAccess(it) }
-          }
-    }
-
-    // 6. Ініціалізація фонових обробників
-    viewModelScope.launch { withContext(Dispatchers.IO) { contextHandler.initialize() } }
-
-      viewModelScope.launch {
-          // Слухаємо і базу, і зміну в'юшки
-          combine(
-              databaseContentStream,
-              uiState.map { it.currentView }.distinctUntilChanged()
-          ) { content, view ->
-              content
-          }.collect { filteredContent ->
-              _listContent.value = filteredContent.withCompletedAtEnd()
-          }
-      }
-
-    loadAllTags()
-    loadAllContexts()
-
-    lazyListState = LazyListState(0, 0)
-  }
-
-  /**
-   * Внутрішній допоміжний метод для розрахунку прав на основі структури. Вирішує проблему
-   * "Unresolved reference" та баг із відсутністю нових фіч.
-   */
-  private fun isEnabledForConfig(
-      id: CapabilityId,
-      config: com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration,
-  ): Boolean {
-    // 1. Перевірка через Роль (Пресет)
-    val enabledByRole =
-        com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry.getCapabilitiesForRole(
-                config.basePresetCode
-            )
-            .contains(id)
-
-    // 2. Перевірка через експериментальні ID (твої нотатки, ветеринар тощо)
-    val isExperimental = config.experimentalCapabilityIds.contains(id)
-
-    // 3. Підтримка legacy-прапорців (зворотна сумісність)
-    val isLegacy =
-        when (id.raw) {
-          "inbox" -> config.enableInbox == true
-          "log" -> config.enableLog == true
-          "artifact" -> config.enableArtifact == true
-          "advanced" -> config.enableAdvanced == true
-          "dashboard" -> config.enableDashboard == true
-          "backlog" -> config.enableBacklog == true
-          "attachments" -> config.enableAttachments == true
-          "auto_link_subprojects" -> config.enableAutoLinkSubprojects == true
-          else -> false
-        }
-
-    return enabledByRole || isExperimental || isLegacy
-  }
-
-  private fun validateCurrentView(current: ContextViewMode): ContextViewMode {
-    val id =
-        when (current) {
-          ContextViewMode.INBOX -> CapabilityId("inbox")
-          ContextViewMode.ADVANCED -> CapabilityId("log")
-          ContextViewMode.ATTACHMENTS -> CapabilityId("attachments")
-          ContextViewMode.BACKLOG -> CapabilityId("backlog")
-          ContextViewMode.DASHBOARD -> CapabilityId("dashboard")
-        }
-
-    return if (capabilityGate.isEnabled(id)) current else ContextViewMode.BACKLOG
-  }
-
-  private fun loadAllTags() {
-    viewModelScope.launch(Dispatchers.IO) {
-      val projects = contextRepository.getAllContextsFlow().first()
-      val projectTags = projects.flatMap { it.tags ?: emptyList() }
-      val goalTags = mutableListOf<String>()
-      for (project in projects) {
-        val content = contextRepository.getContextContentStream(project.id).first()
-        content.forEach { item ->
-          if (item is BacklogItemContent.GoalItem) {
-            goalTags.addAll(TagUtils.extractTags(item.goal.text).map { it.fullTag })
-          }
-        }
-      }
-      withContext(Dispatchers.Main) { _allTags.value = (projectTags + goalTags).distinct() }
-    }
-  }
-
-  private fun loadAllContexts() {
-    viewModelScope.launch { _allContexts.value = contextHandler.contextNamesFlow.first() }
-  }
-
-  val autocompleteSuggestions =
-      uiState
-          .map { it.inputValue }
-          .debounce(150)
-          .flatMapLatest { inputValue ->
-            val text = inputValue.text
-            val cursorPosition = inputValue.selection.start
-            if (text.isEmpty()) {
-              return@flatMapLatest flowOf(emptyList())
-            }
-
-            val wordInfo = getCurrentWordInfo(text, cursorPosition)
-            if (wordInfo != null) {
-              val (word, type) = wordInfo
-              if (word.length < 2) {
-                return@flatMapLatest flowOf(emptyList())
-              }
-              when (type) {
-                "#" -> {
-                  val filtered =
-                      _allTags.value
-                          .filter { tag ->
-                            tag.removePrefix("#").startsWith(word, ignoreCase = true)
-                          }
-                          .map { tag -> if (tag.startsWith("#")) tag else "#$tag" }
-                  flowOf(filtered)
+                .collect { data ->
+                    when (data) {
+                        is ContextData.Loaded -> {
+                            _listContent.value = data.items
+                            stateManager.updateContext(data)
+                            capabilityManager.updateCapabilities(data.config)
+                        }
+                        is ContextData.Empty -> {
+                            _listContent.value = emptyList()
+                            stateManager.clear()
+                        }
+                    }
                 }
-                "@" -> {
-                  val filtered =
-                      _allContexts.value
-                          .filter { it.startsWith(word, ignoreCase = true) }
-                          .map { "@$it" }
-                  flowOf(filtered)
-                }
-                else -> flowOf(emptyList())
-              }
-            } else {
-              flowOf(emptyList())
-            }
-          }
-          .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-  private fun getCurrentWordInfo(
-      text: String,
-      cursorPosition: Int,
-  ): Pair<String, String>? {
-    val textUpToCursor = text.substring(0, cursorPosition)
-    val lastAt = textUpToCursor.lastIndexOf('@')
-    val lastHash = textUpToCursor.lastIndexOf('#')
-
-    if (lastAt == -1 && lastHash == -1) {
-      return null
-    }
-
-    val (startIndex, prefix) =
-        if (lastAt > lastHash) {
-          lastAt to "@"
-        } else {
-          lastHash to "#"
         }
-
-    val word = textUpToCursor.substring(startIndex + 1)
-    if (word.contains(" ")) {
-      return null
     }
 
-    return word to prefix
-  }
-
-  fun onSuggestionClick(suggestion: String) {
-    val currentText = uiState.value.inputValue.text
-    val cursorPosition = uiState.value.inputValue.selection.start
-    val (word, prefix) = getCurrentWordInfo(currentText, cursorPosition) ?: return
-
-    val startIndex = currentText.substring(0, cursorPosition).lastIndexOf(prefix)
-    val newText =
-        currentText.substring(0, startIndex) +
-            suggestion +
-            " " +
-            currentText.substring(cursorPosition)
-    val newCursorPosition = startIndex + suggestion.length + 1
-
-    _uiState.update {
-      it.copy(
-          inputValue =
-              TextFieldValue(
-                  text = newText,
-                  selection = androidx.compose.ui.text.TextRange(newCursorPosition),
-              ),
-      )
-    }
-  }
-
-  fun onToggleProjectManagement(isEnabled: Boolean) {
-    viewModelScope.launch {
-      contextRepository.toggleContextManagement(contextIdFlow.value, isEnabled)
-    }
-  }
-
-  fun onProjectStatusUpdate(
-      newStatus: String,
-      statusText: String?,
-  ) {
-    viewModelScope.launch {
-      contextRepository.updateContextStatus(contextIdFlow.value, newStatus, statusText)
-    }
-  }
-
-  override fun addProjectComment(text: String) {
-    if (text.isBlank()) return
-    viewModelScope.launch(Dispatchers.IO) {
-      contextRepository.addContextComment(contextIdFlow.value, text)
-      withContext(Dispatchers.Main) {
-        _uiState.update {
-          it.copy(
-              inputValue = TextFieldValue(""),
-              currentView = ContextViewMode.ADVANCED,
-              selectedDashboardTab = ContextManagementTab.Log,
-          )
-        }
-      }
-    }
-  }
-
-  override fun addMilestone(text: String) {
-    if (text.isBlank()) return
-    viewModelScope.launch(Dispatchers.IO) {
-      contextLogRepository.addContextLogEntry(
-          contextId = contextIdFlow.value,
-          type = ContextLogEntryTypeValues.MILESTONE,
-          description = text,
-      )
-      withContext(Dispatchers.Main) {
-        _uiState.update {
-          it.copy(
-              inputValue = TextFieldValue(""),
-              selectedDashboardTab = ContextManagementTab.Log,
-          )
-        }
-      }
-    }
-  }
-    private fun getInputModeForView(viewMode: ContextViewMode): InputMode =
-        when (viewMode) {
-            // 1. Стандартні системні режими
-            ContextViewMode.INBOX -> InputMode.AddQuickRecord
-            ContextViewMode.ADVANCED -> InputMode.AddProjectLog
-            ContextViewMode.DASHBOARD -> InputMode.AddGoal
-            ContextViewMode.BACKLOG -> InputMode.AddGoal
-            ContextViewMode.ATTACHMENTS -> InputMode.AddQuickRecord
-
-            // 2. Специфічні режими для твоїх нових Capability-в’юшок
-            // Тут ми мапимо нові екрани на найбільш логічний спосіб вводу.
-
-            // Наприклад, якщо це Ветеринарний кейс, то введення має йти в Лог (медичні записи)
-            // ContextViewMode.VET_CASE -> InputMode.AddProjectLog
-
-            // Якщо це Нотатки, то логічно використовувати Швидкий запис
-            // ContextViewMode.NOTES -> InputMode.AddQuickRecord
-
-            else -> {
-                // Якщо ми не знаємо, що це за в'юшка (нова експериментальна),
-                // краще залишити універсальний AddGoal або AddQuickRecord
-                InputMode.AddGoal
-            }
-        }
-  override fun requestNavigation(route: String) {
-    viewModelScope.launch {
-      if (route == "back") {
-        _uiEventFlow.send(UiEvent.NavigateBack)
-        return@launch
-      }
-      if (route.startsWith("goal_detail_screen/")) {
-        val contextId = route.substringAfter("goal_detail_screen/")
-
-        val projectName =
-            withContext(ioDispatcher) {
-              contextRepository.getContextById(contextId)?.name ?: "Context"
-            }
-        enhancedNavigationManager.navigateToProject(contextId, projectName)
-        return@launch
-      } else if (route.startsWith(HANDLE_LINK_CLICK_ROUTE)) {
-        val target = route.substringAfter(HANDLE_LINK_CLICK_ROUTE + "/")
-        val link =
-            listContent.value
-                .filterIsInstance<BacklogItemContent.LinkItem>()
-                .map { it.link.linkData }
-                .find { it.target == target }
-        if (link != null) {
-          onLinkItemClick(link)
-        } else {
-          val project = withContext(ioDispatcher) { contextRepository.getContextById(target) }
-          when {
-            project != null -> {
-              enhancedNavigationManager.navigateToProject(project.id, project.name)
-            }
-            target.startsWith("http://") || target.startsWith("https://") -> {
-              _uiEventFlow.send(UiEvent.OpenUri(target))
-            }
-            else -> {
-              Log.w(TAG, "Unknown related link target: $target")
-              _uiEventFlow.send(UiEvent.ShowSnackbar("Unknown link: $target", null))
-            }
-          }
-        }
-      } else {
-        val target = parseRouteToNavTarget(route)
-        if (target != null) {
-          _uiEventFlow.send(UiEvent.Navigate(target))
-        } else {
-          Log.w(TAG, "Unknown navigation route: $route")
-        }
-      }
-    }
-  }
-
-  private fun parseRouteToNavTarget(route: String): NavTarget? {
-    return when {
-      route.startsWith("global_search_screen/") -> {
-        val query = URLDecoder.decode(route.substringAfter("global_search_screen/"), "UTF-8")
-        NavTarget.GlobalSearch(query)
-      }
-      route.startsWith("goal_settings_screen/") -> {
-        val goalId = route.substringAfter("goal_settings_screen/")
-        NavTarget.GoalSettings(goalId)
-      }
-      route.startsWith("note_document_screen/") -> {
-        val tail = route.substringAfter("note_document_screen/")
-        val id = tail.substringBefore("?")
-        val startEdit = tail.substringAfter("?", "").contains("startEdit=true")
-        NavTarget.NoteDocument(id = id, startEdit = startEdit)
-      }
-      route.startsWith("note_document_edit_screen") -> {
-        val params = route.substringAfter("?", "")
-        val paramMap =
-            params
-                .split("&")
-                .mapNotNull {
-                  val parts = it.split("=", limit = 2)
-                  if (parts.size == 2) parts[0] to parts[1] else null
-                }
-                .toMap()
-        NavTarget.NoteDocumentEdit(
-            contextId = paramMap["contextId"]?.takeIf { it.isNotBlank() },
-            documentId = paramMap["documentId"]?.takeIf { it.isNotBlank() },
-        )
-      }
-      route.startsWith("checklist_screen") -> {
-        val params = route.substringAfter("?", "")
-        val paramMap =
-            params
-                .split("&")
-                .mapNotNull {
-                  val parts = it.split("=", limit = 2)
-                  if (parts.size == 2) parts[0] to parts[1] else null
-                }
-                .toMap()
-        NavTarget.Checklist(
-            id = paramMap["checklistId"]?.takeIf { it.isNotBlank() },
-            contextId = paramMap["contextId"]?.takeIf { it.isNotBlank() },
-        )
-      }
-      route.startsWith("list_chooser_screen/") -> {
-        val titleEncoded = route.substringAfter("list_chooser_screen/").substringBefore("?")
-        val params = route.substringAfter("?", "")
-        val paramMap =
-            params
-                .split("&")
-                .mapNotNull {
-                  val parts = it.split("=", limit = 2)
-                  if (parts.size == 2) parts[0] to parts[1] else null
-                }
-                .toMap()
-        NavTarget.ListChooser(
-            title = URLDecoder.decode(titleEncoded, "UTF-8"),
-            currentParentId = paramMap["currentParentId"]?.takeIf { it.isNotBlank() },
-            disabledIds = paramMap["disabledIds"]?.takeIf { it.isNotBlank() },
-        )
-      }
-      route == "activity_tracker_screen" -> NavTarget.Tracker
-      route == "reminders_screen" -> NavTarget.Reminders
-      route == "settings_screen" -> NavTarget.Settings
-      route == "ai_insights_screen" -> NavTarget.AiInsights
-      route == "life_state_screen" -> NavTarget.LifeState
-      route == "attachments_library_screen" -> NavTarget.AttachmentsLibrary
-      route == "scripts_library_screen" -> NavTarget.ScriptsLibrary
-      route == "tactical_management_screen" -> NavTarget.TacticalManagement
-      else -> null
-    }
-  }
-
-  override fun showSnackbar(
-      message: String,
-      action: String?,
-  ) {
-    viewModelScope.launch { _uiEventFlow.send(UiEvent.ShowSnackbar(message, action)) }
-  }
-
-  override fun forceRefresh() {
-    viewModelScope.launch { _refreshTrigger.value++ }
-  }
-
-  override fun isSelectionModeActive(): Boolean = isSelectionModeActive.value
-
-  override fun toggleSelection(itemId: String) {
-    _uiState.update {
-      val currentSelection = it.selectedItemIds.toMutableSet()
-      if (itemId in currentSelection) {
-        currentSelection.remove(itemId)
-      } else {
-        currentSelection.add(itemId)
-      }
-      it.copy(selectedItemIds = currentSelection)
-    }
-  }
-
-  override fun requestAttachmentShare(item: BacklogItemContent) {
-    pendingAttachmentShare = item
-    navigateToListChooser("Select context for attachment")
-  }
-
-  override fun setPendingAction(
-      actionType: GoalActionType,
-      itemIds: Set<String>,
-      goalIds: Set<String>,
-  ) {
-    savedStateHandle["pendingAction"] = actionType.name
-    savedStateHandle["pendingSourceItemIds"] = itemIds.toList()
-    savedStateHandle["pendingSourceGoalIds"] = goalIds.toList()
-
-    val title =
-        when (actionType) {
-          GoalActionType.CreateInstance -> "Create link in..."
-          GoalActionType.MoveInstance -> "Move to..."
-          GoalActionType.CopyGoal -> "Copy to..."
-          GoalActionType.AddLinkToList -> "Add link to context..."
-          GoalActionType.ADD_LIST_SHORTCUT -> "Add context shortcut..."
-        }
-    navigateToListChooser(title)
-  }
-
-  override fun updateInputState(
-      inputValue: TextFieldValue?,
-      inputMode: InputMode?,
-      localSearchQuery: String?,
-      newlyAddedItemId: String?,
-      detectedReminderSuggestion: String?,
-      detectedReminderCalendar: Calendar?,
-      clearDetectedReminder: Boolean,
-  ) {
-    _uiState.update { currentState ->
-      currentState.copy(
-          inputValue = inputValue ?: currentState.inputValue,
-          inputMode = inputMode ?: currentState.inputMode,
-          localSearchQuery = localSearchQuery ?: currentState.localSearchQuery,
-          newlyAddedItemId = newlyAddedItemId,
-          detectedReminderSuggestion =
-              when {
-                clearDetectedReminder -> null
-                detectedReminderSuggestion != null -> detectedReminderSuggestion
-                else -> currentState.detectedReminderSuggestion
-              },
-          detectedReminderCalendar =
-              when {
-                clearDetectedReminder -> null
-                detectedReminderCalendar != null -> detectedReminderCalendar
-                else -> currentState.detectedReminderCalendar
-              },
-      )
-    }
-
-    Log.d(
-        "BacklogViewModel",
-        "updateInputState: clearReminder=$clearDetectedReminder, " +
-            "suggestion=$detectedReminderSuggestion, " +
-            "calendar=${detectedReminderCalendar?.time}",
-    )
-  }
-
-  override fun updateInputState(inputValue: TextFieldValue) {
-    _uiState.update { it.copy(inputValue = inputValue) }
-  }
-
-  override fun updateDialogState(
-      showAddWebLinkDialog: Boolean?,
-      showAddObsidianLinkDialog: Boolean?,
-  ) {
-    _uiState.update {
-      it.copy(
-          showAddWebLinkDialog = showAddWebLinkDialog ?: it.showAddWebLinkDialog,
-          showAddObsidianLinkDialog = showAddObsidianLinkDialog ?: it.showAddObsidianLinkDialog,
-      )
-    }
-  }
-
-  override fun showRecentListsSheet(show: Boolean) {
-    Log.d(
-        "Recents_Debug",
-        "BacklogViewModel: showRecentListsSheet($show) called. Updating UI state.",
-    )
-    _uiState.update { it.copy(showRecentProjectsSheet = show) }
-  }
-
-  override fun updateSelectionState(selectedIds: Set<String>) {
-    Log.d(TAG, "ВИКЛИК: updateSelectionState з ${selectedIds.size} елементами.")
-    _uiState.update { it.copy(selectedItemIds = selectedIds) }
-  }
-
-  fun onListChooserResult(targetcontextId: String) {
-    pendingAttachmentShare?.let { attachment ->
-      pendingAttachmentShare = null
-      shareAttachmentToProject(attachment, targetcontextId)
-      return
-    }
-
-    if (inboxHandler.recordForPromotion.value != null) {
-      inboxHandler.onListSelectedForInboxPromotion(targetcontextId)
-      return
-    }
-
-    val actionTypeName = savedStateHandle.get<String>("pendingAction") ?: return
-    val actionType = GoalActionType.valueOf(actionTypeName)
-    val itemIds = savedStateHandle.get<List<String>>("pendingSourceItemIds") ?: emptyList()
-    val goalIds = savedStateHandle.get<List<String>>("pendingSourceGoalIds") ?: emptyList()
-
-    viewModelScope.launch(Dispatchers.IO) {
-      when (actionType) {
-        GoalActionType.CreateInstance -> goalRepository.createGoalLinks(goalIds, targetcontextId)
-
-        GoalActionType.MoveInstance ->
-            listItemRepository.moveListItemsToContext(itemIds, targetcontextId)
-        GoalActionType.CopyGoal -> goalRepository.copyGoalsToContext(goalIds, targetcontextId)
-        GoalActionType.AddLinkToList -> {
-          val targetProject = contextRepository.getContextById(targetcontextId)
-          val link =
-              RelatedLink(
-                  type = LinkType.CONTEXT,
-                  target = targetcontextId,
-                  displayName = targetProject?.name ?: "Untitled context",
-              )
-          val newItemId = contextRepository.addLinkItemToContextFromLink(contextIdFlow.value, link)
-          withContext(Dispatchers.Main) {
-            _uiState.update { it.copy(newlyAddedItemId = newItemId) }
-          }
-        }
-
-        GoalActionType.ADD_LIST_SHORTCUT -> {
-          if (goalIds.isNotEmpty()) {
-            val subprojectToLinkId = goalIds.first()
-            val newItemId =
-                listItemRepository.addContextLinkToContext(subprojectToLinkId, targetcontextId)
-            withContext(Dispatchers.Main) {
-              _uiState.update { it.copy(newlyAddedItemId = newItemId) }
-            }
-          } else {
-            val newItemId =
-                listItemRepository.addContextLinkToContext(targetcontextId, contextIdFlow.value)
-            withContext(Dispatchers.Main) {
-              _uiState.update { it.copy(newlyAddedItemId = newItemId) }
-            }
-          }
-        }
-      }
-      withContext(Dispatchers.Main) { forceRefresh() }
-    }
-    savedStateHandle.remove<String>("pendingAction")
-    savedStateHandle.remove<List<String>>("pendingSourceItemIds")
-    savedStateHandle.remove<List<String>>("pendingSourceGoalIds")
-    selectionHandler.clearSelection()
-  }
-
-  private fun navigateToListChooser(title: String) {
-    viewModelScope.launch {
-      val disabledIds = contextIdFlow.value
-      _uiEventFlow.send(
-          UiEvent.Navigate(
-              NavTarget.ListChooser(
-                  title = title,
-                  disabledIds = disabledIds.ifBlank { null },
-              ),
-          ),
-      )
-    }
-  }
-
-  fun onHighlightShown() {
-    _uiState.update { it.copy(goalToHighlight = null, itemToHighlight = null) }
-  }
-
-  fun onInboxHighlightShown() {
-    Log.d(TAG, "Clearing inbox highlight state.")
-
-    _uiState.update { it.copy(inboxRecordToHighlight = null) }
-  }
-
-  fun onScrolledToNewItem() {
-    _uiState.update { it.copy(newlyAddedItemId = null) }
-  }
-
-  private fun shareAttachmentToProject(
-      attachment: BacklogItemContent,
-      targetcontextId: String,
-  ) {
-    viewModelScope.launch(Dispatchers.IO) {
-      val isAttachmentSupported =
-          attachment is BacklogItemContent.LinkItem ||
-              attachment is BacklogItemContent.NoteDocumentItem ||
-              attachment is BacklogItemContent.ChecklistItem
-      if (!isAttachmentSupported) {
-        withContext(Dispatchers.Main) {
-          showSnackbar("This attachment type does not support copying", null)
-        }
-        return@launch
-      }
-
-      val itemType = attachment.backlogItem.itemType
-      val entityId = attachment.backlogItem.entityId
-
-      if (itemType == null || entityId == null) {
-        withContext(Dispatchers.Main) { showSnackbar("Cannot share corrupt attachment", null) }
-        return@launch
-      }
-
-      val attachmentId =
-          try {
-            contextRepository.ensureAttachmentLinkedToContext(
-                attachmentType = itemType,
-                entityId = entityId,
-                targetContextId = targetcontextId,
-                ownerContextId =
-                    attachment.backlogItem.contextId.takeIf { it.isNotBlank() }
-                        ?: contextIdFlow.value,
-            )
-            // ДОДАЙТЕ ЦЕ: повертаємо entityId, щоб він зберігся в змінну attachmentId
-            attachment.backlogItem.entityId
-          } catch (e: Exception) {
-            Log.e(TAG, "Failed to link attachment", e)
-            null // У разі помилки повертаємо null
-          }
-
-      // Тепер attachmentId має тип String?, і цей блок скомпілюється:
-      withContext(Dispatchers.Main) {
-        if (targetcontextId == contextIdFlow.value && attachmentId != null) {
-          _uiState.update { it.copy(newlyAddedItemId = attachmentId) }
-          forceRefresh()
-        }
-        showSnackbar("Attachment added to selected context", null)
-      }
-    }
-  }
-
-  fun deleteAttachmentEverywhere(attachment: BacklogItemContent) {
-    val isAttachment =
-        attachment is BacklogItemContent.LinkItem ||
-            attachment is BacklogItemContent.NoteDocumentItem ||
-            attachment is BacklogItemContent.ChecklistItem
-    if (!isAttachment) return
-
-    viewModelScope.launch(Dispatchers.IO) {
-      runCatching { contextRepository.deleteAttachmentEverywhere(attachment.backlogItem.id) }
-          .onSuccess {
-            withContext(Dispatchers.Main) {
-              forceRefresh()
-              showSnackbar("Attachment completely deleted", null)
-            }
-          }
-          .onFailure { e ->
-            Log.e(TAG, "Failed to delete attachment everywhere", e)
-            withContext(Dispatchers.Main) {
-              showSnackbar("Failed to delete attachment completely", null)
-            }
-          }
-    }
-  }
-
-  fun onMove(
-      fromIndex: Int,
-      toIndex: Int,
-  ) {
-    Log.d(TAG, "onMove called with fromIndex: $fromIndex, toIndex: $toIndex")
-    viewModelScope.launch {
-      val currentContent = _listContent.value.toMutableList()
-      val movedItem = currentContent.removeAt(fromIndex)
-      currentContent.add(toIndex, movedItem)
-      val reorderedContent = currentContent.withCompletedAtEnd()
-      Log.d(
-          TAG,
-          "onMove before save: " +
-              reorderedContent
-                  .mapIndexed { idx, item ->
-                    "[$idx:${item.backlogItem.id} order=${item.backlogItem.order} v=${item.backlogItem.version} syncedAt=${item.backlogItem.syncedAt}]"
-                  }
-                  .joinToString(","),
-      )
-      _listContent.value = reorderedContent
-      saveListOrder(reorderedContent)
-    }
-  }
-
-  fun onMoveToTop(item: BacklogItemContent) {
-    val fromIndex = _listContent.value.indexOf(item)
-    if (fromIndex != -1) {
-      onMove(fromIndex, 0)
-      viewModelScope.launch { _uiEventFlow.send(UiEvent.ScrollTo(0)) }
-    }
-  }
-
-  private suspend fun saveListOrder(listToSave: List<BacklogItemContent>) =
-      withContext(Dispatchers.IO) {
-        Log.d(TAG, "[saveListOrder] Starting to save order for ${listToSave.size} items.")
-        try {
-          val attachmentOrders = mutableListOf<Pair<String, Long>>()
-          val updatedItems =
-              listToSave.mapIndexedNotNull { index, content ->
-                val order = index.toLong()
-                when (content.backlogItem.itemType) {
-                  BacklogItemTypeValues.LINK_ITEM,
-                  BacklogItemTypeValues.NOTE_DOCUMENT,
-                  BacklogItemTypeValues.CHECKLIST,
-                  -> {
-                    attachmentOrders += content.backlogItem.id to order
-                    null
-                  }
-                  else -> {
-                    Log.d(
-                        TAG,
-                        "[saveListOrder] prepare id=${content.backlogItem.id} orderOld=${content.backlogItem.order} orderNew=$order v=${content.backlogItem.version} syncedAt=${content.backlogItem.syncedAt}",
-                    )
-                    content.backlogItem.copy(order = order)
-                  }
-                }
-              }
-          if (updatedItems.isNotEmpty()) {
-            listItemRepository.updateListItemsOrder(updatedItems)
-          }
-          if (attachmentOrders.isNotEmpty()) {
-            contextRepository.updateAttachmentOrders(contextIdFlow.value, attachmentOrders)
-          }
-          Log.d(
-              TAG,
-              "[saveListOrder] Successfully saved new order to the database. updatedItems=${updatedItems.size} attachments=${attachmentOrders.size}",
-          )
-        } catch (e: Exception) {
-          Log.e(TAG, "[saveListOrder] Failed to save list order", e)
-        }
-      }
-
-  fun onStateRefreshed() {
-    _uiState.update { it.copy(needsStateRefresh = false) }
-  }
-
-  fun onTagClicked(tag: String) {
-    viewModelScope.launch {
-      val encodedTag = URLEncoder.encode(tag, "UTF-8")
-      requestNavigation("global_search_screen/$encodedTag")
-    }
-  }
-
-  fun onSwipeStart(itemId: String) {
-    if (_uiState.value.swipedItemId != itemId) {
-      _uiState.update { it.copy(swipedItemId = itemId) }
-    }
-  }
-
-  fun onSwipeStateReset(itemId: String) {
-    _uiState.update { currentState ->
-      val newTriggers = currentState.resetTriggers.toMutableMap()
-      newTriggers[itemId] = (newTriggers[itemId] ?: 0) + 1
-      currentState.copy(resetTriggers = newTriggers)
-    }
-  }
-
-  fun resetSwipeStatesExcept(activeItemId: String) {
-    _uiState.update { current ->
-      current.copy(swipedItemId = activeItemId, swipeResetCounter = current.swipeResetCounter + 1)
-    }
-  }
-
-  fun onNoteItemClick(note: LegacyNoteEntity) {
-    viewModelScope.launch {
-      recentItemsRepository.logNoteAccess(note)
-      // legacy notes no longer have dedicated editor; no-op
-    }
-  }
-
-  fun onNoteDocumentItemClick(noteDocument: NoteDocumentEntity) {
-    viewModelScope.launch {
-      recentItemsRepository.logNoteDocumentAccess(noteDocument)
-      _uiEventFlow.send(
-          UiEvent.Navigate(
-              NavTarget.NoteDocument(id = noteDocument.id),
-          ),
-      )
-    }
-  }
-
-  fun onChecklistItemClick(checklist: ChecklistEntity) {
-    viewModelScope.launch {
-      recentItemsRepository.logChecklistAccess(checklist)
-      _uiEventFlow.send(
-          UiEvent.Navigate(
-              NavTarget.Checklist(id = checklist.id),
-          ),
-      )
-    }
-  }
-
-  fun onLinkItemClick(link: RelatedLink) {
-    Log.d(TAG, "onLinkItemClick: Clicked link with type=${link.type}, target=${link.target}")
-    viewModelScope.launch {
-      when (link.type) {
-        LinkType.CONTEXT -> {
-          val projectName = link.displayName ?: "Context"
-          enhancedNavigationManager.navigateToProject(link.target, projectName)
-        }
-        LinkType.OBSIDIAN -> {
-          recentItemsRepository.logObsidianLinkAccess(link)
-          val vaultName = settingsRepository.obsidianVaultNameFlow.first()
-          if (vaultName.isNotBlank()) {
-            val encodedNoteName = URLEncoder.encode(link.target, "UTF-8")
-            val uri = "obsidian://open?vault=$vaultName&file=$encodedNoteName"
-            _uiEventFlow.send(UiEvent.OpenUri(uri))
-          } else {
-            _uiEventFlow.send(UiEvent.ShowSnackbar("Obsidian vault name is not configured."))
-          }
-        }
-        else -> {
-          _uiEventFlow.send(UiEvent.HandleLinkClick(link))
-        }
-      }
-    }
-  }
-
-  fun flushPendingMoves() {
-    batchSaveJob?.cancel()
-  }
-
-  override fun onCleared() {
-    super.onCleared()
-    batchSaveJob?.cancel()
-    inputHandler.cleanup()
-  }
-
-  override fun createObsidianNote(noteName: String) {
-    viewModelScope.launch {
-      val vaultName = settingsRepository.obsidianVaultNameFlow.first()
-      val encodedNoteName = URLEncoder.encode(noteName, "UTF-8")
-      val uri = "obsidian://new?vault=$vaultName&name=$encodedNoteName"
-      _uiEventFlow.send(UiEvent.OpenUri(uri))
-    }
-  }
-
-  fun onAddAttachment(type: AttachmentType) {
-    when (type) {
-      AttachmentType.NOTES -> {
+    // Navigation
+    fun navigateBack() {
         viewModelScope.launch {
-          _uiEventFlow.send(
-              UiEvent.Navigate(
-                  NavTarget.NoteDocumentEdit(contextId = contextIdFlow.value),
-              ),
-          )
+            enhancedNavigationManager.navigateBack()
         }
-      }
-      AttachmentType.WEB_LINK -> inputHandler.onShowAddWebLinkDialog()
-      AttachmentType.OBSIDIAN_LINK -> inputHandler.onShowAddObsidianLinkDialog()
-      AttachmentType.CONTEXT_LINK -> inputHandler.onAddListLinkRequest()
-      AttachmentType.CONTEXT_SHORTCUT -> inputHandler.onAddListShortcutRequest()
-      AttachmentType.CHECKLIST -> {
-        val contextId = contextIdFlow.value
-        if (contextId.isNotBlank()) {
-          viewModelScope.launch {
-            _uiEventFlow.send(
-                UiEvent.Navigate(
-                    NavTarget.Checklist(contextId = contextId),
-                ),
-            )
-          }
-        } else {
-          showSnackbar("Не вдалося визначити проект для створення чекліста", null)
-        }
-      }
-    }
-  }
-
-  override fun copyToClipboard(
-      text: String,
-      label: String,
-  ) {
-    val clipboard =
-        application.getSystemService(AndroidContext.CLIPBOARD_SERVICE) as ClipboardManager
-    val clip = ClipData.newPlainText(label, text)
-    clipboard.setPrimaryClip(clip)
-  }
-
-  fun deleteCurrentProject() {
-    viewModelScope.launch(Dispatchers.IO) {
-      val contextId = contextIdFlow.value
-      if (contextId.isNotEmpty()) {
-        contextRepository.deleteContextsAndSubContexts(listOf(project.value!!))
-        withContext(Dispatchers.Main) { requestNavigation("back") }
-      }
-    }
-  }
-
-  override fun scrollToListEnd() {
-    viewModelScope.launch { _uiEventFlow.send(UiEvent.ScrollToLatestInboxRecord) }
-  }
-
-  fun onProjectViewChange(newView: ContextViewMode) {
-    val flags = uiState.value
-    if (newView == ContextViewMode.INBOX && !flags.enableInbox) return
-    if (
-        newView == ContextViewMode.ADVANCED &&
-            (!flags.isProjectManagementEnabled || !flags.enableLog)
-    )
-        return
-    if (newView == ContextViewMode.ATTACHMENTS && !flags.enableAttachments) return
-    if (newView == ContextViewMode.DASHBOARD && !flags.enableDashboard) return
-    if (newView == ContextViewMode.BACKLOG && !flags.enableBacklog) return
-    Log.d("ATTACHMENT_DEBUG", "VM: onProjectViewChange(newView = $newView) called.")
-    _uiState.update {
-      Log.d("ATTACHMENT_DEBUG", "VM: Updating uiState.currentView to $newView.")
-      it.copy(currentView = newView, inputMode = getInputModeForView(newView))
-    }
-    viewModelScope.launch { contextRepository.updateContextViewMode(contextIdFlow.value, newView) }
-  }
-
-  fun onDashboardTabSelected(tab: ContextManagementTab) {
-    _uiState.update { it.copy(selectedDashboardTab = tab) }
-  }
-
-  override fun addQuickRecord(text: String) {
-    inboxHandler.addQuickRecord(text)
-  }
-
-  fun copyInboxRecordText(text: String) {
-    copyToClipboard(text, "Inbox Record")
-  }
-
-  fun onImportFromMarkdownRequest() {
-    _uiState.update { it.copy(showImportFromMarkdownDialog = true) }
-  }
-
-  fun onImportFromMarkdownDismiss() {
-    _uiState.update { it.copy(showImportFromMarkdownDialog = false) }
-  }
-
-  fun onImportFromMarkdownConfirm(markdownText: String) {
-    inboxMarkdownHandler.importFromMarkdown(markdownText, contextIdFlow.value)
-    onImportFromMarkdownDismiss()
-  }
-
-  fun onExportToMarkdownRequest() {
-    inboxMarkdownHandler.exportToMarkdown(inboxHandler.inboxRecords.value)
-  }
-
-  fun onImportBacklogFromMarkdownRequest() {
-    _uiState.update { it.copy(showImportBacklogFromMarkdownDialog = true) }
-  }
-
-  fun onImportBacklogFromMarkdownDismiss() {
-    _uiState.update { it.copy(showImportBacklogFromMarkdownDialog = false) }
-  }
-
-  fun onImportBacklogFromMarkdownConfirm(markdownText: String) {
-    backlogMarkdownHandler.importFromMarkdown(markdownText, contextIdFlow.value)
-    onImportBacklogFromMarkdownDismiss()
-  }
-
-  fun onExportBacklogToMarkdownRequest() {
-    backlogMarkdownHandler.exportToMarkdown(listContent.value)
-  }
-
-  fun onExportProjectStateRequest() {
-    contextMarkdownExporter.exportProjectStateToMarkdown(
-        project = project.value,
-        backlog = listContent.value,
-        logs = projectLogs.value,
-        listener = this,
-    )
-  }
-
-  fun onSubprojectCompletedChanged(
-      subproject: Context,
-      isCompleted: Boolean,
-  ) {
-    viewModelScope.launch {
-      val updatedSubproject = subproject.copy(isCompleted = isCompleted)
-      contextRepository.updateContext(updatedSubproject)
-      forceRefresh()
-    }
-  }
-
-  fun onClearDetectedReminder() {
-    inputHandler.onClearDetectedReminder()
-  }
-
-  fun onStartTrackingRequest(item: BacklogItemContent) {
-    viewModelScope.launch {
-      val result =
-          when (item) {
-            is BacklogItemContent.GoalItem -> {
-              val record = activityRepository.startGoalActivity(item.goal.id)
-              record to "Відстежую ціль"
-            }
-
-            is BacklogItemContent.SublistItem -> {
-              val record = activityRepository.startContextActivity(item.project.id)
-              record to "Відстежую проєкт"
-            }
-
-            is BacklogItemContent.LinkItem,
-            is BacklogItemContent.NoteItem,
-            is BacklogItemContent.NoteDocumentItem,
-            is BacklogItemContent.ChecklistItem,
-            -> null to null
-          }
-
-      val (newRecord, message) = result
-      if (newRecord != null && message != null) {
-        pendingActivityForReminder = newRecord
-        showSnackbar(message, "Обмежити в часі")
-      }
-    }
-  }
-
-  fun onLimitLastActivityRequested() {
-    _uiState.update { it.copy(recordForReminderDialog = pendingActivityForReminder) }
-    pendingActivityForReminder = null
-  }
-
-  fun onReminderDialogDismiss() {
-    _uiState.update {
-      it.copy(
-          recordForReminderDialog = null,
-          remindersForDialog = emptyList(),
-          showRemindersDialog = false,
-          itemForRemindersDialog = null,
-      )
-    }
-  }
-
-  fun onSetReminder(timestamp: Long) =
-      viewModelScope.launch {
-        val record = _uiState.value.recordForReminderDialog ?: return@launch
-
-        val entityType =
-            when {
-              record.goalId != null -> "GOAL"
-              record.contextId != null -> "PROJECT"
-              else -> "TASK" // Assuming ActivityRecord can also be a task
-            }
-        val entityId = record.goalId ?: record.contextId ?: record.id
-
-        reminderRepository.createReminder(entityId, entityType, timestamp)
-
-        // onReminderDialogDismiss() // Don't dismiss, so user can add more
-        showSnackbar(
-            "Нагадування додано на ${
-                        SimpleDateFormat("dd.MM HH:mm", Locale.getDefault()).format(
-                            Date(timestamp),
-                        )
-                    }",
-            null,
-        )
-        forceRefresh()
-      }
-
-  fun onRemoveReminder(reminderId: String) =
-      viewModelScope.launch {
-        val record = _uiState.value.recordForReminderDialog ?: return@launch
-
-        // Очищаємо всі нагадування для сутності, щоб точно вимкнути
-        reminderRepository.clearRemindersForEntity(record.id)
-
-        val refreshed =
-            reminderRepository.getRemindersForEntityFlow(record.id).firstOrNull().orEmpty()
-        val updatedRecord = record.copy(reminderTime = refreshed.firstOrNull()?.reminderTime)
-
-        _uiState.update {
-          it.copy(remindersForDialog = refreshed, recordForReminderDialog = updatedRecord)
-        }
-
-        showSnackbar("Нагадування видалено", null)
-        forceRefresh()
-      }
-
-  fun onClearReminder() =
-      viewModelScope.launch {
-        val record = _uiState.value.recordForReminderDialog ?: return@launch
-
-        val entityId = record.goalId ?: record.contextId ?: record.id
-        reminderRepository.clearRemindersForEntity(entityId)
-
-        onReminderDialogDismiss()
-        showSnackbar("Нагадування скасовано", null)
-        forceRefresh()
-      }
-
-  fun onSetReminderForItem(item: BacklogItemContent) {
-    viewModelScope.launch {
-      when (item) {
-        is BacklogItemContent.GoalItem -> {
-          val entityId = item.goal.id
-          val reminders =
-              reminderRepository.getRemindersForEntityFlow(entityId).firstOrNull().orEmpty()
-          val record =
-              ActivityRecord(
-                  id = entityId,
-                  text = item.goal.text,
-                  reminderTime = reminders.firstOrNull()?.reminderTime,
-                  createdAt = item.goal.createdAt,
-                  contextId = item.backlogItem.contextId,
-                  goalId = item.goal.id,
-              )
-          _uiState.update {
-            it.copy(recordForReminderDialog = record, remindersForDialog = reminders)
-          }
-        }
-        is BacklogItemContent.SublistItem -> {
-          val entityId = item.project.id
-          val reminders =
-              reminderRepository.getRemindersForEntityFlow(entityId).firstOrNull().orEmpty()
-          val record =
-              ActivityRecord(
-                  id = entityId,
-                  text = item.project.name,
-                  reminderTime = reminders.firstOrNull()?.reminderTime,
-                  createdAt = item.project.createdAt,
-                  contextId = item.project.id,
-                  goalId = null,
-              )
-          _uiState.update {
-            it.copy(recordForReminderDialog = record, remindersForDialog = reminders)
-          }
-        }
-        else -> return@launch
-      }
-    }
-  }
-
-  fun onSetReminderForProject() {
-    viewModelScope.launch {
-      project.value?.let { proj ->
-        val reminders = reminderRepository.getRemindersForEntityFlow(proj.id).firstOrNull()
-        val record =
-            ActivityRecord(
-                id = proj.id,
-                text = proj.name,
-                reminderTime = reminders?.firstOrNull()?.reminderTime,
-                createdAt = proj.createdAt,
-                contextId = proj.id,
-                goalId = null,
-            )
-        _uiState.update { it.copy(recordForReminderDialog = record) }
-      }
-    }
-  }
-
-  fun stopOngoingActivity() {
-    viewModelScope.launch {
-      lastOngoingActivity.value?.let {
-        activityRepository.endLastActivity(System.currentTimeMillis())
-      }
-    }
-  }
-
-  fun setReminderForOngoingActivity() {
-    viewModelScope.launch {
-      lastOngoingActivity.value?.let {
-        _uiState.update { it.copy(recordForReminderDialog = lastOngoingActivity.value) }
-      }
-    }
-  }
-
-  fun onStartTrackingCurrentProject() {
-    val currentcontextId = contextIdFlow.value
-    if (currentcontextId.isBlank()) return
-
-    viewModelScope.launch {
-      val record = activityRepository.startContextActivity(currentcontextId)
-      if (record != null) {
-        showSnackbar("Відстежую проєкт", "Обмежити в часі")
-        pendingActivityForReminder = record
-      }
-    }
-  }
-
-  fun onToggleProjectManagement() {
-    viewModelScope.launch {
-      val proj = project.value ?: return@launch
-      val currentState = proj.isContextManagementEnabled ?: false
-      val newState = !currentState
-      val currentView = uiState.value.currentView
-
-      contextRepository.toggleContextManagement(proj.id, newState)
-
-      if (newState) {
-        onProjectViewChange(ContextViewMode.ADVANCED)
-      } else if (currentView == ContextViewMode.ADVANCED) {
-        onProjectViewChange(ContextViewMode.BACKLOG)
-      }
-    }
-  }
-
-  fun onRecalculateTime() {
-    val currentcontextId = contextIdFlow.value
-    if (currentcontextId.isNotBlank()) {
-      viewModelScope.launch {
-        val metrics = contextRepository.calculateContextTimeMetrics(currentcontextId)
-        _uiState.update { it.copy(contextTimeMetrics = metrics) }
-
-        contextRepository.recalculateAndLogContextTime(currentcontextId)
-      }
-    }
-  }
-
-  fun onDeleteEverywhere(item: BacklogItemContent) {
-    viewModelScope.launch {
-      if (item is BacklogItemContent.GoalItem) {
-        goalRepository.deleteGoal(item.goal.id)
-      }
-    }
-  }
-
-  fun addItemToDailyPlan(itemContent: BacklogItemContent) {
-    viewModelScope.launch {
-      val today = System.currentTimeMillis()
-      val dayPlan = dayManagementRepository.createOrUpdateDayPlan(today)
-
-      val task =
-          when (itemContent) {
-            is BacklogItemContent.GoalItem -> {
-              dayManagementRepository.addGoalToDayPlan(dayPlan.id, itemContent.goal.id)
-            }
-            is BacklogItemContent.SublistItem -> {
-              dayManagementRepository.addProjectToDayPlan(dayPlan.id, itemContent.project.id)
-            }
-            is BacklogItemContent.LinkItem -> null
-            is BacklogItemContent.NoteItem -> null
-            is BacklogItemContent.NoteDocumentItem -> null
-            is BacklogItemContent.ChecklistItem -> null
-          }
-
-      if (task != null) {
-        showSnackbar("Додано до плану на сьогодні", null)
-      } else {
-        showSnackbar("Цей тип елемента неможливо додати до плану", null)
-      }
-    }
-  }
-
-  fun addCurrentProjectToDayPlan() {
-    val currentcontextId = contextIdFlow.value
-    if (currentcontextId.isBlank()) {
-      showSnackbar("Неможливо додати, проект не визначено", null)
-      return
     }
 
-    viewModelScope.launch {
-      val today = System.currentTimeMillis()
-      val dayPlan = dayManagementRepository.createOrUpdateDayPlan(today)
-      dayManagementRepository.addProjectToDayPlan(dayPlan.id, currentcontextId)
-      showSnackbar("Проект додано до плану на сьогодні", null)
-    }
-  }
-
-  fun onExportBacklogRequest() {
-    _uiState.update { it.copy(showShareDialog = true) }
-  }
-
-  fun onShareDialogDismiss() {
-    _uiState.update { it.copy(showShareDialog = false) }
-  }
-
-  fun getBacklogAsMarkdown(): String {
-    val markdownBuilder = StringBuilder()
-    listContent.value.forEach { item ->
-      val line =
-          when (item) {
-            is BacklogItemContent.GoalItem -> {
-              val checkbox = if (item.goal.completed) "- [x]" else "- [ ]"
-              "$checkbox ${item.goal.text}"
-            }
-            is BacklogItemContent.SublistItem -> "- [С] ${item.project.name}"
-            is BacklogItemContent.LinkItem -> {
-              val displayName = item.link.linkData.displayName ?: item.link.linkData.target
-              "- [Л] [$displayName](${item.link.linkData.target})"
-            }
-            is BacklogItemContent.NoteItem -> "- [Н] ${item.note.title}"
-            is BacklogItemContent.NoteDocumentItem -> "- [К] ${item.document.name}"
-            is BacklogItemContent.ChecklistItem -> "- [Ч] ${item.checklist.name}"
-          }
-      markdownBuilder.appendLine(line)
-    }
-    return markdownBuilder.toString()
-  }
-
-  fun onCopyToClipboardRequest() {
-    val markdownText = getBacklogAsMarkdown()
-    copyToClipboard(markdownText, "Backlog Export")
-    showSnackbar("Беклог скопійовано", null)
-    onShareDialogDismiss()
-  }
-
-  fun onTransferBacklogToServerRequest() {
-    viewModelScope.launch {
-      val url = settingsRepository.getFastApiUrl().first()
-      if (url.isNullOrBlank()) {
-        showSnackbar("Server address is not available. Check settings.", null)
-        return@launch
-      }
-      Log.d(TAG, "onTransferBacklogViaWifi: Ініційовано передачу на URL: $url")
-      executeBacklogTransfer(url)
-    }
-  }
-
-  private fun executeBacklogTransfer(url: String) {
-    Log.d(TAG, "executeBacklogTransfer: Початок підготовки даних для відправки.")
-    viewModelScope.launch(Dispatchers.IO) {
-      try {
-        val markdownContent = getBacklogAsMarkdown()
-
-        if (markdownContent.isBlank()) {
-          withContext(Dispatchers.Main) {
-            showSnackbar("Беклог порожній. Нічого передавати.", null)
-          }
-          return@launch
-        }
-
-        val filename = project.value?.name ?: "backlog_export"
-
-        val requestBody = FileDataRequest(filename = filename, content = markdownContent)
-
-        Log.d(TAG, "executeBacklogTransfer: Дані підготовлено. Відправка на: $url")
-
-        val response = RetrofitClient.getInstance(application, url).uploadFileAsJson(requestBody)
-
-        withContext(Dispatchers.Main) {
-          if (response.isSuccessful) {
-            Log.d(
-                TAG,
-                "executeBacklogTransfer: Успішна відповідь від сервера. Код: ${response.code()}",
-            )
-            showSnackbar("Беклог успішно передано", null)
-          } else {
-            val errorMsg = response.errorBody()?.string() ?: "Невідома помилка"
-            Log.e(
-                TAG,
-                "executeBacklogTransfer: Помилка від сервера. Код: ${response.code()}, Повідомлення: $errorMsg",
-            )
-            showSnackbar("Помилка: ${response.code()} - $errorMsg", null)
-          }
-        }
-      } catch (e: Exception) {
-        withContext(Dispatchers.Main) {
-          Log.e(TAG, "executeBacklogTransfer: Критична помилка мережі.", e)
-          showSnackbar("Помилка мережі: ${e.message}", null)
-        }
-      }
-    }
-  }
-
-  fun onHomeClick() {
-    if (_isProcessingHome.value) {
-      Log.w(TAG, "Home click ignored - already processing")
-      return
-    }
-
-    viewModelScope.launch {
-      _isProcessingHome.value = true
-
-      try {
-        Log.d(TAG, "Starting home navigation with UseCase")
-
-        clearAndNavigateHomeUseCase.execute(
-            command = ClearCommand.Home,
-            context = createClearExecutionContext(),
-        )
-
-        Log.d(TAG, "Home navigation completed successfully")
-      } catch (e: Exception) {
-        Log.e(TAG, "Error during home navigation", e)
+    fun navigateForward() {
         viewModelScope.launch {
-          _uiEventFlow.send(UiEvent.ShowSnackbar("Navigation error: ${e.message}"))
-        }
-      } finally {
-        _isProcessingHome.value = false
-      }
-    }
-  }
-
-  private fun createClearExecutionContext(): ClearExecutionContext {
-    return com.romankozak.forwardappmobile.core.navigation.createClearExecutionContext(
-        currentProjects = _allProjects.value,
-        subStateStack =
-            MutableStateFlow(
-                listOf(
-                    ProjectHierarchyScreenSubState.Hierarchy,
-                ),
-            ),
-        searchUseCase = searchUseCase,
-        planningModeManager = PlanningModeManager(),
-        enhancedNavigationManager = enhancedNavigationManager,
-        uiEventChannel = Channel<ProjectUiEvent>(),
-    )
-  }
-
-  fun onForwardPressed() {
-    enhancedNavigationManager.goForward()
-  }
-
-  private fun updateProjectNameInHistory(newName: String) {}
-
-  fun onRevealInExplorer(currentcontextId: String) {
-    if (currentcontextId.isEmpty()) return
-
-    enhancedNavigationManager.navigateHomeWithResult(
-        key = "project_to_reveal",
-        value = currentcontextId,
-    )
-  }
-
-  fun onBackPressed(): Boolean {
-    Log.d(TAG, "onBackPressed TRIGGERED")
-    val state = uiState.value
-
-    if (inboxHandler.recordToEdit.value != null) {
-      inboxHandler.onInboxRecordEditDismiss()
-      return true
-    }
-
-    if (state.showShareDialog) {
-      onShareDialogDismiss()
-      return true
-    }
-    if (state.recordForReminderDialog != null) {
-      onReminderDialogDismiss()
-      return true
-    }
-    if (state.showImportBacklogFromMarkdownDialog) {
-      onImportBacklogFromMarkdownDismiss()
-      return true
-    }
-    if (state.showImportFromMarkdownDialog) {
-      onImportFromMarkdownDismiss()
-      return true
-    }
-    if (state.showRecentProjectsSheet) {
-      inputHandler.onDismissRecentLists()
-      return true
-    }
-    if (state.showAddWebLinkDialog || state.showAddObsidianLinkDialog) {
-      inputHandler.onDismissLinkDialogs()
-      return true
-    }
-
-    if (state.inputMode == InputMode.SearchInList && state.inputValue.text.isNotEmpty()) {
-      Log.d(TAG, "Action: Clearing input field because we are in search mode.")
-      inputHandler.onInputTextChanged(TextFieldValue(""), state.inputMode)
-      return true
-    }
-
-    if (state.inputMode == InputMode.SearchInList) {
-      onCloseSearch()
-      return true
-    }
-
-    if (isSelectionModeActive.value) {
-      Log.d(TAG, "Action: Clearing selection.")
-      selectionHandler.clearSelection()
-      return true
-    }
-
-    if (enhancedNavigationManager.canGoBack.value) {
-      Log.d(TAG, "Action: Navigating back via EnhancedNavigationManager.")
-      flushPendingMoves()
-      enhancedNavigationManager.goBack()
-      return true
-    }
-
-    Log.d(TAG, "Action: No local actions or history, letting system handle back press.")
-    flushPendingMoves()
-    return false
-  }
-
-  fun onCloseSearch() {
-    Log.d(TAG, "Action: Closing local search.")
-
-    updateInputState(
-        localSearchQuery = "",
-        inputValue = TextFieldValue(""),
-        inputMode = getInputModeForView(uiState.value.currentView),
-    )
-  }
-
-  fun onOpenRemindersDialog(item: BacklogItemContent) {
-    _uiState.update { it.copy(showRemindersDialog = true, itemForRemindersDialog = item) }
-  }
-
-  fun onDismissRemindersDialog() {
-    _uiState.update { it.copy(showRemindersDialog = false, itemForRemindersDialog = null) }
-  }
-
-  fun onSubprojectClick(subproject: BacklogItemContent.SublistItem) {
-    viewModelScope.launch {
-      enhancedNavigationManager.navigateToProject(subproject.project.id, subproject.project.name)
-    }
-  }
-
-  fun onRecentItemClick(item: RecentItem) {
-    _uiState.update { it.copy(showRecentProjectsSheet = false) }
-    viewModelScope.launch {
-      when (item.type) {
-        RecentItemType.PROJECT -> {
-          contextRepository.getContextById(item.target)?.let {
-            recentItemsRepository.logProjectAccess(it)
-          }
-          enhancedNavigationManager.navigateToProject(item.target, item.displayName)
-        }
-        RecentItemType.NOTE ->
-            _uiEventFlow.send(UiEvent.ShowSnackbar("Застарілі нотатки доступні лише для читання"))
-        RecentItemType.NOTE_DOCUMENT -> {
-          noteDocumentRepository.getDocumentById(item.target)?.let {
-            recentItemsRepository.logNoteDocumentAccess(it)
-          }
-          _uiEventFlow.send(
-              UiEvent.Navigate(
-                  NavTarget.NoteDocument(id = item.target),
-              ),
-          )
-        }
-        RecentItemType.CHECKLIST -> {
-          checklistRepository.getChecklistById(item.target)?.let {
-            recentItemsRepository.logChecklistAccess(it)
-          }
-          _uiEventFlow.send(
-              UiEvent.Navigate(
-                  NavTarget.Checklist(id = item.target),
-              ),
-          )
-        }
-        RecentItemType.OBSIDIAN_LINK -> {
-          val link =
-              RelatedLink(
-                  type = LinkType.OBSIDIAN,
-                  target = item.target,
-                  displayName = item.displayName,
-              )
-          recentItemsRepository.logObsidianLinkAccess(link)
-          onLinkItemClick(link)
-        }
-      }
-    }
-  }
-
-  fun onPinRecentItem(item: RecentItem) {
-    viewModelScope.launch {
-      recentItemsRepository.updateRecentItem(item.copy(isPinned = !item.isPinned))
-    }
-  }
-
-  fun onChildProjectClick(childProject: Context) {
-    viewModelScope.launch {
-      enhancedNavigationManager.navigateToProject(childProject.id, childProject.name)
-    }
-  }
-
-  fun onDismissCreateNoteDocumentDialog() {
-    _uiState.update { it.copy(showCreateNoteDocumentDialog = false) }
-  }
-
-  fun onShowCreateNoteDocumentDialog() {
-    _uiState.update { it.copy(showNoteDocumentEditor = true) }
-  }
-
-  fun onCreateChecklist() {
-    val contextId = contextIdFlow.value
-    if (contextId.isBlank()) {
-      showSnackbar("Не вдалося створити чекліст для невідомого проєкту", null)
-      return
-    }
-    viewModelScope.launch {
-      _uiEventFlow.send(
-          UiEvent.Navigate(
-              NavTarget.Checklist(contextId = contextId),
-          ),
-      )
-    }
-  }
-
-  fun onCreateNoteDocument(title: String) {
-    viewModelScope.launch {
-      _uiState.update { it.copy(showCreateNoteDocumentDialog = false) }
-      _uiEventFlow.send(
-          UiEvent.Navigate(
-              NavTarget.NoteDocumentEdit(contextId = contextIdFlow.value),
-          ),
-      )
-    }
-  }
-
-  fun onCleanupDatabase() {
-    viewModelScope.launch {
-      contextRepository.cleanupDanglingListItems()
-      forceRefresh()
-    }
-  }
-
-  fun onEditLogEntry(log: ContextLog) {
-    _uiState.update { it.copy(logEntryToEdit = log) }
-  }
-
-  fun onDeleteLogEntry(log: ContextLog) {
-    viewModelScope.launch { contextLogRepository.deleteContextExecutionLog(log) }
-  }
-
-  fun onUpdateLogEntry(
-      description: String,
-      details: String?,
-  ) {
-    viewModelScope.launch {
-      val logToUpdate = uiState.value.logEntryToEdit ?: return@launch
-      val updatedLog =
-          logToUpdate.copy(
-              description = description,
-              details = details,
-          )
-      contextLogRepository.updateContextExecutionLog(updatedLog)
-      onDismissEditLogEntryDialog()
-    }
-  }
-
-  fun onDismissEditLogEntryDialog() {
-    _uiState.update { it.copy(logEntryToEdit = null) }
-  }
-
-  fun onSaveNoteDocument(content: String) {
-    viewModelScope.launch {
-      Log.d("NoteTitleExtractor", "onSaveNoteDocument called, content length=${content.length}")
-      val title = extractTitleFromContent(content)
-      Log.d("NoteTitleExtractor", "onSaveNoteDocument extracted title='$title'")
-      noteDocumentRepository.createDocument(title, contextIdFlow.value, content)
-      onDismissNoteDocumentEditor()
-    }
-  }
-
-  fun onDismissNoteDocumentEditor() {
-    _uiState.update { it.copy(showNoteDocumentEditor = false) }
-  }
-
-  fun onAddMilestone() {
-    viewModelScope.launch {
-      contextLogRepository.addContextLogEntry(
-          contextId = contextIdFlow.value,
-          type = ContextLogEntryTypeValues.MILESTONE,
-          description = "New Milestone",
-      )
-    }
-  }
-
-  fun onSaveArtifact(content: String) {
-    viewModelScope.launch {
-      val currentArtifact = contextArtifact.value
-      if (currentArtifact == null) {
-        contextRepository.createContextArtifact(
-            ContextArtifact(
-                id = UUID.randomUUID().toString(),
-                contextId = contextIdFlow.value,
-                content = content,
-                createdAt = System.currentTimeMillis(),
-                updatedAt = System.currentTimeMillis(),
-            ),
-        )
-      } else {
-        contextRepository.updateContextArtifact(
-            currentArtifact.copy(content = content, updatedAt = System.currentTimeMillis())
-        )
-      }
-      onDismissArtifactEditor()
-    }
-  }
-
-  fun onAutoSaveArtifact(content: String) {
-    viewModelScope.launch {
-      val currentArtifact = contextArtifact.value ?: return@launch
-      contextRepository.updateContextArtifact(
-          currentArtifact.copy(
-              content = content,
-              updatedAt = System.currentTimeMillis(),
-          ),
-      )
-    }
-  }
-
-  fun onEditArtifact(artifact: ContextArtifact) {
-    _uiState.update { it.copy(artifactToEdit = artifact) }
-  }
-
-  fun onDismissArtifactEditor() {
-    _uiState.update { it.copy(artifactToEdit = null) }
-  }
-
-  fun onShowDisplayPropertiesDialog() {
-    _uiState.update { it.copy(showDisplayPropertiesDialog = true) }
-  }
-
-  fun onDismissDisplayPropertiesDialog() {
-    _uiState.update { it.copy(showDisplayPropertiesDialog = false) }
-  }
-
-  private fun extractTitleFromContent(content: String): String {
-    return NoteTitleExtractor.extract(content)
-  }
-
-
-    /**
-     * Розраховує фінальний набір можливостей (Capabilities) для контексту.
-     * Об'єднує дані з трьох джерел: Пресет (Роль), Списки експериментальних фіч та Legacy-прапорці.
-     */
-    private fun rememberEffectiveCapabilities(config: ContextConfiguration): Set<CapabilityId> {
-        return buildSet {
-            // 1. Фічі пресета
-            val preset = config.basePresetCode ?: "default"
-            addAll(com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry.getCapabilitiesForRole(preset))
-
-            // 2. Кастомні фічі з бази
-            addAll(config.experimentalCapabilityIds)
-
-            // 3. Legacy-прапорці (ВИПРАВЛЕНО: null трактуємо як true для базових фіч)
-            if (config.enableInbox != false) add(CapabilityId("inbox"))
-            if (config.enableLog != false) add(CapabilityId("log"))
-            if (config.enableArtifact != false) add(CapabilityId("artifact"))
-            if (config.enableDashboard != false) add(CapabilityId("dashboard"))
-            if (config.enableBacklog != false) add(CapabilityId("backlog"))
-            if (config.enableAttachments != false) add(CapabilityId("attachments"))
-
-            if (config.enableAdvanced == true) add(CapabilityId("advanced"))
-            if (config.enableAutoLinkSubprojects == true) add(CapabilityId("auto_link_subprojects"))
+            enhancedNavigationManager.navigateForward()
         }
     }
 
+    fun navigateHome() {
+        viewModelScope.launch {
+            if (stateManager.isProcessingHome()) return@launch
+            stateManager.setProcessingHome(true)
+            
+            try {
+                clearAndNavigateHomeUseCase(
+                    ClearCommand.CLEAR_WITH_NAVIGATE,
+                    ClearExecutionContext.PROJECT_SCREEN
+                )
+            } finally {
+                stateManager.setProcessingHome(false)
+            }
+        }
     }
+
+    // UI Events
+    fun showSnackbar(message: String, actionLabel: String?) {
+        viewModelScope.launch {
+            _uiEventFlow.send(UiEvent.ShowSnackbar(message, actionLabel))
+        }
+    }
+
+    // Delegated methods
+    fun onSwitchViewMode(mode: ContextViewMode) = stateManager.switchViewMode(mode)
+    fun onSwitchTab(tab: ContextManagementTab) = stateManager.switchTab(tab)
+    fun onToggleSearchMode() = stateManager.toggleSearchMode()
+    fun onSearchQueryChanged(query: String) = stateManager.updateSearchQuery(query)
+    fun onDismissDisplayPropertiesDialog() = stateManager.dismissDisplayPropertiesDialog()
+    fun onShowDisplayPropertiesDialog() = stateManager.showDisplayPropertiesDialog()
+    
+    // Activity tracking
+    fun onStartActivity() = activityManager.startActivity(contextIdFlow.value)
+    fun onStopActivity() = activityManager.stopActivity()
+    fun getCurrentActivity() = activityManager.currentActivity.value
+
+    // Capabilities
+    fun hasCapability(capabilityId: CapabilityId) = capabilityManager.hasCapability(capabilityId)
+    fun getEnabledCapabilities() = capabilityManager.getEnabledCapabilities()
+
+    // Markdown Export/Import
+    fun onExportBacklogToMarkdown() {
+        backlogMarkdownHandler.exportToMarkdown(_listContent.value)
+    }
+
+    fun onImportBacklogFromMarkdown(markdownText: String) {
+        backlogMarkdownHandler.importFromMarkdown(markdownText, contextIdFlow.value)
+    }
+
+    fun onShowImportBacklogFromMarkdownDialog() {
+        viewModelScope.launch {
+            stateManager.updateState { it.copy(showImportBacklogFromMarkdownDialog = true) }
+        }
+    }
+
+    fun onDismissImportBacklogFromMarkdownDialog() {
+        viewModelScope.launch {
+            stateManager.updateState { it.copy(showImportBacklogFromMarkdownDialog = false) }
+        }
+    }
+
+    // Clipboard operations
+    fun copyToClipboard(text: String, label: String) {
+        val clipboard = application.getSystemService(AndroidContext.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText(label, text)
+        clipboard.setPrimaryClip(clip)
+    }
+
+    // Force refresh
+    fun forceRefresh() {
+        viewModelScope.launch {
+            stateManager.updateState { 
+                it.copy(
+                    refreshTrigger = it.refreshTrigger + 1,
+                    needsStateRefresh = true
+                ) 
+            }
+        }
+    }
+
+    // Dialog management
+    fun onShowRecentProjectsSheet() {
+        viewModelScope.launch {
+            stateManager.updateState { it.copy(showRecentProjectsSheet = true) }
+        }
+    }
+
+    fun onDismissRecentProjectsSheet() {
+        viewModelScope.launch {
+            stateManager.updateState { it.copy(showRecentProjectsSheet = false) }
+        }
+    }
+
+    fun onShowShareDialog() {
+        viewModelScope.launch {
+            stateManager.updateState { it.copy(showShareDialog = true) }
+        }
+    }
+
+    fun onDismissShareDialog() {
+        viewModelScope.launch {
+            stateManager.updateState { it.copy(showShareDialog = false) }
+        }
+    }
+
+    // Web & Obsidian Links
+    fun onShowAddWebLinkDialog() {
+        viewModelScope.launch {
+            stateManager.updateState { it.copy(showAddWebLinkDialog = true) }
+        }
+    }
+
+    fun onDismissAddWebLinkDialog() {
+        viewModelScope.launch {
+            stateManager.updateState { it.copy(showAddWebLinkDialog = false) }
+        }
+    }
+
+    fun onShowAddObsidianLinkDialog() {
+        viewModelScope.launch {
+            stateManager.updateState { it.copy(showAddObsidianLinkDialog = true) }
+        }
+    }
+
+    fun onDismissAddObsidianLinkDialog() {
+        viewModelScope.launch {
+            stateManager.updateState { it.copy(showAddObsidianLinkDialog = false) }
+        }
+    }
+
+    // Selection & Highlight
+    fun onHighlightItem(itemId: String?) {
+        viewModelScope.launch {
+            stateManager.updateState { it.copy(itemToHighlight = itemId) }
+        }
+    }
+
+    fun onHighlightGoal(goalId: String?) {
+        viewModelScope.launch {
+            stateManager.updateState { it.copy(goalToHighlight = goalId) }
+        }
+    }
+
+    fun onHighlightInboxRecord(recordId: String?) {
+        viewModelScope.launch {
+            stateManager.updateState { it.copy(inboxRecordToHighlight = recordId) }
+        }
+    }
+
+    // Swipe actions
+    fun onItemSwiped(itemId: String?) {
+        viewModelScope.launch {
+            stateManager.updateState { it.copy(swipedItemId = itemId) }
+        }
+    }
+
+    fun onResetSwipeState() {
+        viewModelScope.launch {
+            stateManager.updateState { 
+                it.copy(
+                    swipedItemId = null,
+                    swipeResetCounter = it.swipeResetCounter + 1
+                ) 
+            }
+        }
+    }
+
+    // Checkboxes
+    fun onToggleCheckboxes() {
+        viewModelScope.launch {
+            stateManager.updateState { it.copy(showCheckboxes = !it.showCheckboxes) }
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        batchSaveJob?.cancel()
+    }
+
+    // Interface implementations будуть тут, але делеговані до відповідних handlers
+    override fun onItemActionCompleted() = Unit
+    override fun onSelectionCompleted() = Unit
+    override fun onInputCompleted() = Unit
+    override fun onInboxProcessed() = Unit
+    override fun onInboxMarkdownProcessed() = Unit
+    override fun onBacklogMarkdownProcessed() = Unit
+}
