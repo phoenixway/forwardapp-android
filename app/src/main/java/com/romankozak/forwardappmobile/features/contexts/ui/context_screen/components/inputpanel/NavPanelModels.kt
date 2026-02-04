@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel
 
+import androidx.compose.ui.graphics.Color
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 
@@ -9,7 +10,7 @@ data class NavPanelState(
     val menuExpanded: Boolean,
     val currentView: ContextViewMode,
     val isProjectManagementEnabled: Boolean,
-    val activeCapabilities: Set<CapabilityId>, 
+    val activeCapabilities: Set<CapabilityId>,
     val inputMode: InputMode,
 )
 
@@ -42,10 +43,10 @@ data class OptionsMenuActions(
     val onShowDisplayPropertiesClick: () -> Unit,
 )
 
-// Допоміжна модель для кольорів (внутрішня)
+// Ця модель тепер доступна у всьому пакеті
 internal data class PanelColors(
-    val containerColor: androidx.compose.ui.graphics.Color,
-    val contentColor: androidx.compose.ui.graphics.Color,
-    val accentColor: androidx.compose.ui.graphics.Color,
-    val inputFieldColor: androidx.compose.ui.graphics.Color,
+    val containerColor: Color,
+    val contentColor: Color,
+    val accentColor: Color,
+    val inputFieldColor: Color,
 )
