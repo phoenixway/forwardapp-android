@@ -1,4 +1,3 @@
-
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.handlers
 
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextArtifact
@@ -7,12 +6,12 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.util.UUID
+import javax.inject.Inject
 
-class ArtifactHandler(
+class ArtifactHandler @Inject constructor(
     private val contextRepository: ContextRepository,
     private val stateManager: ContextStateManager,
-    private val scope: CoroutineScope,
-    private val projectId: String
+    private val scope: CoroutineScope
 ) {
     fun onEditArtifact(artifact: ContextArtifact) {
         stateManager.updateState { it.copy(artifactToEdit = artifact) }
@@ -22,42 +21,26 @@ class ArtifactHandler(
         stateManager.updateState { it.copy(artifactToEdit = null) }
     }
 
-    fun onSaveArtifact(content: String) {
+    fun onSaveArtifact(projectId: String, content: String) {
         scope.launch {
-            val currentArtifact = stateManager.uiState.value.artifactToEdit
-            if (currentArtifact == null) {
-                // Створення нового
-                contextRepository.updateContextArtifact(
-                    ContextArtifact(
-                        id = UUID.randomUUID().toString(),
-                        contextId = projectId,
-                        content = content,
-                        createdAt = System.currentTimeMillis(),
-                        updatedAt = System.currentTimeMillis(),
-                    )
+            val current = stateManager.uiState.value.artifactToEdit
+            val artifact = current?.copy(content = content, updatedAt = System.currentTimeMillis())
+                ?: ContextArtifact(
+                    id = UUID.randomUUID().toString(),
+                    contextId = projectId,
+                    content = content,
+                    createdAt = System.currentTimeMillis(),
+                    updatedAt = System.currentTimeMillis()
                 )
-            } else {
-                // Оновлення існуючого
-                contextRepository.updateContextArtifact(
-                    currentArtifact.copy(
-                        content = content, 
-                        updatedAt = System.currentTimeMillis()
-                    )
-                )
-            }
+            contextRepository.updateContextArtifact(artifact)
             onDismissArtifactEditor()
         }
     }
 
     fun onAutoSaveArtifact(content: String) {
+        val current = stateManager.uiState.value.artifactToEdit ?: return
         scope.launch {
-            val currentArtifact = stateManager.uiState.value.artifactToEdit ?: return@launch
-            contextRepository.updateContextArtifact(
-                currentArtifact.copy(
-                    content = content,
-                    updatedAt = System.currentTimeMillis()
-                )
-            )
+            contextRepository.updateContextArtifact(current.copy(content = content, updatedAt = System.currentTimeMillis()))
         }
     }
 }

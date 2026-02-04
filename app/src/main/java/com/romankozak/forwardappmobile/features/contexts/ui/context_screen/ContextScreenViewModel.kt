@@ -177,10 +177,15 @@ constructor(
 
     private var batchSaveJob: Job? = null
 
-    val project = stateManager.uiState.map { it.context }
+
+// --- Властивості стану для UI ---
+
+val project = stateManager.uiState
+    .map { it.context }
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-val currentView = stateManager.uiState.map { it.currentView }
+val currentView = stateManager.uiState
+    .map { it.currentView }
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ContextViewMode.List)
 
 val lastOngoingActivity = activityManager.currentActivity
@@ -189,10 +194,11 @@ val lastOngoingActivity = activityManager.currentActivity
 val autocompleteSuggestions = tagManager.allTags
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-// Ініціалізація нових хандлерів у блоці init або як lazy:
-private val artifactHandler by lazy { 
-    ArtifactHandler(contextRepository, stateManager, viewModelScope, projectId) 
-}
+private val artifactHandler by lazy { ArtifactHandler(contextRepository, stateManager, viewModelScope) }
+private val logHandler by lazy { LogActivityHandler(contextRepository, activityManager, stateManager, viewModelScope) }
+private val navHandler by lazy { ProjectNavigationHandler(contextRepository, stateManager, _uiEvent, viewModelScope) }
+private val docHandler by lazy { DocumentHandler(contextRepository, stateManager, viewModelScope) }
+private val reminderHandler by lazy { ReminderHandler(alarmScheduler, viewModelScope) }
     init {
         setupContextObserver()
         tagManager.loadTags()
@@ -468,4 +474,60 @@ fun onExportBacklogToMarkdownRequest() {
     val items = stateManager.uiState.value.items
     backlogMarkdownHandler.exportToMarkdown(items)
 }
+
+
+fun onShareDialogDismiss() {
+    stateManager.updateState { it.copy(showShareDialog = false) }
+}
+
+// --- Artifacts (Errors 102, 103, 104, 346, 347) ---
+fun onSaveArtifact(content: String) = artifactHandler.onSaveArtifact(projectId, content)
+fun onAutoSaveArtifact(content: String) = artifactHandler.onAutoSaveArtifact(content)
+fun onDismissArtifactEditor() = artifactHandler.onDismissArtifactEditor()
+fun onEditArtifact(artifact: ContextArtifact) = artifactHandler.onEditArtifact(artifact)
+
+// --- Navigation & Management (Errors 221, 237, 356, 426, 427, 428, 436, 441, 465, 468, 469) ---
+fun onBackPressed() = navHandler.onBackPressed()
+fun onForwardPressed(id: String) = navHandler.onForwardPressed(id)
+fun onHomeClick() = navHandler.onHomeClick()
+fun onCloseSearch() = navHandler.onCloseSearch()
+fun onToggleProjectManagement() = navHandler.onToggleProjectManagement()
+fun onProjectViewChange(mode: ContextViewMode) = navHandler.onProjectViewChange(mode)
+fun deleteCurrentProject() = navHandler.deleteCurrentProject(projectId)
+fun addCurrentProjectToDayPlan() = navHandler.addCurrentProjectToDayPlan(projectId)
+fun onAddMilestone() = navHandler.onAddMilestone(projectId)
+
+// --- Activity Log (Errors 229, 231, 344, 345, 396, 397, 449) ---
+fun onEditLogEntry(log: ContextLog) = logHandler.onEditLogEntry(log)
+fun onDeleteLogEntry(log: ContextLog) = logHandler.onDeleteLogEntry(log)
+fun onUpdateLogEntry(log: ContextLog, text: String) = logHandler.onUpdateLogEntry(log, text)
+fun onDismissEditLogEntryDialog() = logHandler.onDismissEditLogEntryDialog()
+fun stopOngoingActivity() = logHandler.stopOngoingActivity()
+fun setReminderForOngoingActivity(activity: ActivityRecord, time: Long) = logHandler.setReminderForOngoingActivity(activity, time)
+fun onStartTrackingCurrentProject() = logHandler.onStartTrackingCurrentProject(projectId)
+
+// --- Documents & Notes (Errors 117, 119, 470, 471) ---
+fun onSaveNoteDocument(name: String, content: String) = docHandler.onSaveNoteDocument(projectId, name, content)
+fun onDismissNoteDocumentEditor() = docHandler.onDismissNoteDocumentEditor()
+fun onShowCreateNoteDocumentDialog() = docHandler.onShowCreateNoteDocumentDialog()
+fun onCreateChecklist() = docHandler.onCreateChecklist(projectId)
+
+// --- Markdown & External (Errors 195-198, 435, 442-445, 466) ---
+fun onExportBacklogToMarkdownRequest() = backlogMarkdownHandler.exportToMarkdown(stateManager.uiState.value.items)
+fun onImportBacklogFromMarkdownRequest(text: String) = backlogMarkdownHandler.importFromMarkdown(text, projectId)
+fun onExportToMarkdownRequest() = onExportBacklogToMarkdownRequest() // Аліас
+fun onImportFromMarkdownRequest(text: String) = onImportBacklogFromMarkdownRequest(text)
+fun onExportProjectStateRequest() = contextMarkdownExporter.exportProjectStateToMarkdown(
+    project.value, stateManager.uiState.value.items, stateManager.uiState.value.logs, this
+)
+fun getBacklogAsMarkdown(): String = backlogMarkdownHandler.itemToMarkdown(stateManager.uiState.value.items.firstOrNull() ?: return "") 
+
+fun onCopyToClipboardRequest(text: String) = copyToClipboard(text, "Copied")
+fun onShareDialogDismiss() = stateManager.updateState { it.copy(showShareDialog = false) }
+fun onTransferBacklogToServerRequest() { /* Реалізуй за потреби або залиш порожнім */ }
+
+// --- Reminders & Suggestions (Errors 437, 447, 473) ---
+fun onSetReminderForProject(time: Long) = reminderHandler.onSetReminderForProject(projectId, project.value?.name ?: "Project", time)
+fun onClearReminder() = reminderHandler.onClearReminder(projectId)
+fun onSuggestionClick(suggestion: String) = tagManager.addTag(suggestion)
 }
