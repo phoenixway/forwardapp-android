@@ -25,13 +25,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 /**
  * Опис елемента меню.
  */
-internal data class MenuItem(
-    val text: String,
-    val icon: ImageVector,
-    val onClick: () -> Unit,
-    val isVisible: Boolean = true,
-    val isDestructive: Boolean = false,
-)
+
 
 /**
  * Меню опцій проекту (нижній Sheet).
