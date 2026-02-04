@@ -9,7 +9,7 @@ data class NavPanelState(
     val menuExpanded: Boolean,
     val currentView: ContextViewMode,
     val isProjectManagementEnabled: Boolean,
-    val activeCapabilities: Set<CapabilityId>, // Замість 7 окремих Boolean
+    val activeCapabilities: Set<CapabilityId>, 
     val inputMode: InputMode,
 )
 
@@ -40,4 +40,12 @@ data class OptionsMenuActions(
     val onDeleteList: () -> Unit,
     val onSetReminder: () -> Unit,
     val onShowDisplayPropertiesClick: () -> Unit,
+)
+
+// Допоміжна модель для кольорів (внутрішня)
+internal data class PanelColors(
+    val containerColor: androidx.compose.ui.graphics.Color,
+    val contentColor: androidx.compose.ui.graphics.Color,
+    val accentColor: androidx.compose.ui.graphics.Color,
+    val inputFieldColor: androidx.compose.ui.graphics.Color,
 )

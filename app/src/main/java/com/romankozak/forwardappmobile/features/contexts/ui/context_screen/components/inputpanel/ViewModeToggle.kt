@@ -26,17 +26,15 @@ fun ViewModeToggle(
     contentColor: Color,
     holdMenuController: HoldMenu2Controller,
 ) {
-    // Фільтрація доступних екранів на основі Capabilities
-    val availableViews = remember(state.activeCapabilities, state.isProjectManagementEnabled) {
+    val availableViews = remember(state.activeCapabilities) {
         ContextViewMode.entries.filter { mode ->
-            val capId = mode.toCapabilityId()
-            // Backlog завжди доступний, решта - за дозволом
-            mode == ContextViewMode.BACKLOG || state.activeCapabilities.contains(capId)
-        }.sortedBy { it.order() }.reversed()
+            // Backlog доступний завжди як fail-safe, решта — через перевірку ID
+            mode == ContextViewMode.BACKLOG || state.activeCapabilities.contains(mode.toCapabilityId())
+        }.sortedBy { it.orderPriority() }.reversed()
     }
 
     val menuItems = availableViews.map { viewMode ->
-        HoldMenuItem(label = viewMode.displayName(), icon = viewMode.toIcon())
+        HoldMenuItem(label = viewMode.name.lowercase().capitalize(), icon = viewMode.toIcon())
     }
 
     Surface(
@@ -57,7 +55,7 @@ fun ViewModeToggle(
             ) {
                 Icon(
                     imageVector = state.currentView.toIcon(),
-                    contentDescription = null,
+                    contentDescription = "Switch View",
                     modifier = Modifier.size(18.dp),
                     tint = contentColor,
                 )
@@ -66,16 +64,17 @@ fun ViewModeToggle(
     }
 }
 
-// Helpers
+// Приватні мапінги для чистоти коду
 private fun ContextViewMode.toCapabilityId() = CapabilityId(this.name.lowercase())
-private fun ContextViewMode.order() = when(this) {
+
+private fun ContextViewMode.orderPriority() = when(this) {
     ContextViewMode.DASHBOARD -> 0
     ContextViewMode.BACKLOG -> 1
     ContextViewMode.INBOX -> 2
     ContextViewMode.ADVANCED -> 3
     ContextViewMode.ATTACHMENTS -> 4
 }
-private fun ContextViewMode.displayName() = this.name.lowercase().replaceFirstChar { it.uppercase() }
+
 private fun ContextViewMode.toIcon() = when (this) {
     ContextViewMode.BACKLOG -> Icons.AutoMirrored.Outlined.ListAlt
     ContextViewMode.INBOX -> Icons.AutoMirrored.Outlined.Notes
@@ -83,6 +82,7 @@ private fun ContextViewMode.toIcon() = when (this) {
     ContextViewMode.ATTACHMENTS -> Icons.Default.Attachment
     ContextViewMode.DASHBOARD -> Icons.Outlined.ViewModule
 }
+
 private fun ContextViewMode.getDefaultInputMode() = when (this) {
     ContextViewMode.INBOX, ContextViewMode.ADVANCED -> InputMode.AddQuickRecord
     else -> InputMode.AddGoal
