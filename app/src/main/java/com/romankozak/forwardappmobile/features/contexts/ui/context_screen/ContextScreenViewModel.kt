@@ -507,141 +507,127 @@ class BacklogViewModel
 
     var autoLinkChildProjectsEnsured = false
 
-    // 1. Об'єднаний потік даних: Структура + Проект
-viewModelScope.launch {
-    combine(
-        contextIdFlow
-            .filter { it.isNotEmpty() }
-            .flatMapLatest { contextStructureRepository.observeStructure(it) },
-        project.filterNotNull()
-    ) { structure, projectEntity ->
-        structure to projectEntity
-    }.collect { (structure, proj) ->
-        
-        // Визначаємо дозволи через CapabilityGate
-        val isAdvancedAllowed = capabilityGate.isEnabled(CapabilityId("advanced"))
-        val enableInbox = capabilityGate.isEnabled(CapabilityId("inbox"))
-        val enableLog = capabilityGate.isEnabled(CapabilityId("log"))
-        val enableArtifact = capabilityGate.isEnabled(CapabilityId("artifact"))
-        val enableDashboard = capabilityGate.isEnabled(CapabilityId("dashboard"))
-        val enableBacklog = capabilityGate.isEnabled(CapabilityId("backlog"))
-        val enableAttachments = capabilityGate.isEnabled(CapabilityId("attachments"))
-        val enableAutoLinkSubprojects = capabilityGate.isEnabled(CapabilityId("auto_link_subprojects"))
-
-        // Логіка менеджменту: Gate АБО локальний прапорець проекту
-        val isManagementEnabled = isAdvancedAllowed || proj.isContextManagementEnabled == true
-
-        // Автоматичне створення лінків
-        if (enableAutoLinkSubprojects && !autoLinkChildProjectsEnsured) {
-            contextRepository.ensureChildContextListItemsExist(proj.id)
-            autoLinkChildProjectsEnsured = true
-        } else if (!enableAutoLinkSubprojects) {
-            autoLinkChildProjectsEnsured = false
-        }
-
-        _uiState.update { currentState ->
-            val currentView = currentState.currentView
+    // 1. Основний потік: Об'єднуємо структуру (налаштування фіч) та сутність проекту
+    viewModelScope.launch {
+        combine(
+            contextIdFlow
+                .filter { it.isNotEmpty() }
+                .flatMapLatest { contextStructureRepository.observeStructure(it) },
+            project.filterNotNull()
+        ) { structure, projectEntity ->
+            structure to projectEntity
+        }.collect { (structure, proj) ->
             
-            // 1. Розрахунок доступних вкладок Dashboard
-            val availableDashboardTabs = listOfNotNull(
-                ContextManagementTab.Dashboard.takeIf { enableDashboard },
-                ContextManagementTab.Log.takeIf { enableLog },
-                ContextManagementTab.Artifact.takeIf { enableArtifact },
-                ContextManagementTab.Insights,
-            )
+            // Визначаємо всі дозволи для КОНКРЕТНОЇ конфігурації цього проекту
+            val enableInbox = isEnabledForConfig(CapabilityId("inbox"), structure)
+            val enableLog = isEnabledForConfig(CapabilityId("log"), structure)
+            val enableArtifact = isEnabledForConfig(CapabilityId("artifact"), structure)
+            val enableDashboard = isEnabledForConfig(CapabilityId("dashboard"), structure)
+            val enableBacklog = isEnabledForConfig(CapabilityId("backlog"), structure)
+            val enableAttachments = isEnabledForConfig(CapabilityId("attachments"), structure)
+            val enableAutoLinkSubprojects = isEnabledForConfig(CapabilityId("auto_link_subprojects"), structure)
             
-            val safeDashboardTab = if (currentState.selectedDashboardTab in availableDashboardTabs) {
-                currentState.selectedDashboardTab 
-            } else {
-                availableDashboardTabs.firstOrNull() ?: ContextManagementTab.Insights
+            // Менеджмент (Advanced) активний, якщо дозволено в Gate АБО увімкнено в проекті вручну
+            val isManagementEnabled = isEnabledForConfig(CapabilityId("advanced"), structure) || proj.isContextManagementEnabled == true
+
+            // Логіка автоматичного створення лінків підпроектів
+            if (enableAutoLinkSubprojects && !autoLinkChildProjectsEnsured) {
+                contextRepository.ensureChildContextListItemsExist(proj.id)
+                autoLinkChildProjectsEnsured = true
+            } else if (!enableAutoLinkSubprojects) {
+                autoLinkChildProjectsEnsured = false
             }
 
-            // 2. Валідація поточного режиму перегляду (Fallback логіка)
-            val isViewAllowed = when (currentView) {
-                ContextViewMode.INBOX -> enableInbox
-                ContextViewMode.BACKLOG -> enableBacklog
-                ContextViewMode.DASHBOARD -> enableDashboard
-                ContextViewMode.ATTACHMENTS -> enableAttachments
-                ContextViewMode.ADVANCED -> isManagementEnabled && enableLog
-            }
-
-            val adjustedView = if (!isViewAllowed) {
-                // Пріоритет відкату: Backlog -> Dashboard -> Перший доступний
-                when {
-                    enableBacklog -> ContextViewMode.BACKLOG
-                    enableDashboard -> ContextViewMode.DASHBOARD
-                    else -> ContextViewMode.BACKLOG // fail-safe
+            _uiState.update { currentState ->
+                val currentView = currentState.currentView
+                
+                // Розрахунок доступних вкладок для DashboardView
+                val availableDashboardTabs = listOfNotNull(
+                    ContextManagementTab.Dashboard.takeIf { enableDashboard },
+                    ContextManagementTab.Log.takeIf { enableLog },
+                    ContextManagementTab.Artifact.takeIf { enableArtifact },
+                    ContextManagementTab.Insights,
+                )
+                
+                val safeDashboardTab = if (currentState.selectedDashboardTab in availableDashboardTabs) {
+                    currentState.selectedDashboardTab 
+                } else {
+                    availableDashboardTabs.firstOrNull() ?: ContextManagementTab.Insights
                 }
-            } else {
-                currentView
-            }
 
-            // 3. Оновлення стану
-            currentState.copy(
-                // Дозволи
-                enableInbox = enableInbox,
-                enableLog = enableLog,
-                enableArtifact = enableArtifact,
-                enableBacklog = enableBacklog,
-                enableDashboard = enableDashboard,
-                enableAttachments = enableAttachments,
-                enableAutoLinkSubprojects = enableAutoLinkSubprojects,
-                isProjectManagementEnabled = isManagementEnabled,
-                
-                // Дані проекту
-                showCheckboxes = proj.showCheckboxes,
-                
-                // ВАЖЛИВО: Передаємо експериментальні ID для ModernInputPanel
-                experimentalCapabilityIds = capabilityGate.getExperimentalCapabilities(),
-                
-                // Навігаційний стан
-                currentView = adjustedView,
-                inputMode = if (adjustedView != currentView) getInputModeForView(adjustedView) else currentState.inputMode,
-                selectedDashboardTab = safeDashboardTab
-            )
+                // Перевірка валідності поточного режиму перегляду (Fallback логіка)
+                val isViewAllowed = when (currentView) {
+                    ContextViewMode.INBOX -> enableInbox
+                    ContextViewMode.BACKLOG -> enableBacklog
+                    ContextViewMode.DASHBOARD -> enableDashboard
+                    ContextViewMode.ATTACHMENTS -> enableAttachments
+                    ContextViewMode.ADVANCED -> isManagementEnabled && enableLog
+                }
+
+                val adjustedView = if (!isViewAllowed) {
+                    // Пріоритет відкату: Backlog -> Dashboard -> Inbox
+                    when {
+                        enableBacklog -> ContextViewMode.BACKLOG
+                        enableDashboard -> ContextViewMode.DASHBOARD
+                        enableInbox -> ContextViewMode.INBOX
+                        else -> ContextViewMode.BACKLOG
+                    }
+                } else {
+                    currentView
+                }
+
+                currentState.copy(
+                    // Дозволи фіч
+                    enableInbox = enableInbox,
+                    enableLog = enableLog,
+                    enableArtifact = enableArtifact,
+                    enableBacklog = enableBacklog,
+                    enableDashboard = enableDashboard,
+                    enableAttachments = enableAttachments,
+                    enableAutoLinkSubprojects = enableAutoLinkSubprojects,
+                    isProjectManagementEnabled = isManagementEnabled,
+                    
+                    // Важливо: Передаємо динамічні ID (ветеринар, нотатки) для ModernInputPanel
+                    experimentalCapabilityIds = structure.experimentalCapabilityIds,
+                    
+                    // Стан проекту
+                    showCheckboxes = proj.showCheckboxes,
+                    currentView = adjustedView,
+                    inputMode = if (adjustedView != currentView) getInputModeForView(adjustedView) else currentState.inputMode,
+                    selectedDashboardTab = safeDashboardTab
+                )
+            }
         }
     }
-}
 
-    // 4. Підсвічування записів з Inbox
+    // 2. Обробка початкового режиму перегляду з навігації (savedStateHandle)
+    val initialMode = savedStateHandle.get<String>("initialViewMode")
     val inboxIdToHighlight = savedStateHandle.get<String>("inboxRecordIdToHighlight")
-    Log.d(TAG, "Received 'inboxRecordIdToHighlight': $inboxIdToHighlight")
+    
+    if (initialMode != null) {
+        try {
+            val viewMode = ContextViewMode.valueOf(initialMode)
+            _uiState.update { it.copy(currentView = viewMode, inputMode = getInputModeForView(viewMode)) }
+        } catch (e: Exception) {
+            Log.e(TAG, "Invalid initialViewMode: $initialMode")
+        }
+    }
 
-    // 5. Стан розпізнавання мови (NER)
+    // 3. Стан розпізнавання мови (NER)
     viewModelScope.launch {
         nerManager.nerState.collect { state ->
-            Log.i(TAG, "NER State Changed -> $state")
             _uiState.update { it.copy(nerState = state) }
         }
     }
 
-    // 6. Встановлення дефолтної в'юшки, якщо вона прописана в проекті
-    viewModelScope.launch {
-        project
-            .filterNotNull()
-            .map { it.defaultViewModeName }
-            .distinctUntilChanged()
-            .collect { savedModeName ->
-                val viewMode = try {
-                    ContextViewMode.valueOf(savedModeName ?: ContextViewMode.BACKLOG.name)
-                } catch (e: Exception) {
-                    ContextViewMode.BACKLOG
-                }
-                _uiState.update {
-                    it.copy(currentView = viewMode, inputMode = getInputModeForView(viewMode))
-                }
-            }
-    }
-
-    // 7. Основний потік контенту списку
+    // 4. Основний потік контенту списку
     viewModelScope.launch {
         databaseContentStream.collect { dbContent ->
-            Log.d(TAG, "databaseContentStream collected, size: ${dbContent.size}")
             _listContent.value = dbContent.withCompletedAtEnd()
         }
     }
 
-    // 8. Реєстрація в нещодавніх елементах
+    // 5. Реєстрація в нещодавніх елементах
     viewModelScope.launch {
         contextIdFlow
             .filter { it.isNotEmpty() }
@@ -652,14 +638,48 @@ viewModelScope.launch {
             }
     }
 
-    // 9. Ініціалізація обробника контекстів та завантаження метаданих
-    viewModelScope.launch { withContext(Dispatchers.IO) { contextHandler.initialize() } }
+    // 6. Ініціалізація фонових обробників
+    viewModelScope.launch { 
+        withContext(Dispatchers.IO) { contextHandler.initialize() } 
+    }
     
     loadAllTags()
     loadAllContexts()
 
     lazyListState = LazyListState(0, 0)
 }
+
+/**
+ * Внутрішній допоміжний метод для розрахунку прав на основі структури.
+ * Вирішує проблему "Unresolved reference" та баг із відсутністю нових фіч.
+ */
+private fun isEnabledForConfig(
+    id: CapabilityId, 
+    config: com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
+): Boolean {
+    // 1. Перевірка через Роль (Пресет)
+    val enabledByRole = com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
+        .getCapabilitiesForRole(config.basePresetCode).contains(id)
+    
+    // 2. Перевірка через експериментальні ID (твої нотатки, ветеринар тощо)
+    val isExperimental = config.experimentalCapabilityIds.contains(id)
+    
+    // 3. Підтримка legacy-прапорців (зворотна сумісність)
+    val isLegacy = when (id.raw) {
+        "inbox" -> config.enableInbox == true
+        "log" -> config.enableLog == true
+        "artifact" -> config.enableArtifact == true
+        "advanced" -> config.enableAdvanced == true
+        "dashboard" -> config.enableDashboard == true
+        "backlog" -> config.enableBacklog == true
+        "attachments" -> config.enableAttachments == true
+        "auto_link_subprojects" -> config.enableAutoLinkSubprojects == true
+        else -> false
+    }
+    
+    return enabledByRole || isExperimental || isLegacy
+}
+
 
         private fun validateCurrentView(current: ContextViewMode): ContextViewMode {
     val id = when(current) {

@@ -7,17 +7,21 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ListAlt
 import androidx.compose.material.icons.automirrored.outlined.Notes
 import androidx.compose.material.icons.filled.Attachment
+import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material.icons.outlined.Dashboard
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.ViewModule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.*
+import java.util.Locale
 
 @Composable
 fun ViewModeToggle(
@@ -26,15 +30,28 @@ fun ViewModeToggle(
     contentColor: Color,
     holdMenuController: HoldMenu2Controller,
 ) {
+    // 1. Фільтрація доступних екранів
     val availableViews = remember(state.activeCapabilities) {
         ContextViewMode.entries.filter { mode ->
-            // Backlog доступний завжди як fail-safe, решта — через перевірку ID
-            mode == ContextViewMode.BACKLOG || state.activeCapabilities.contains(mode.toCapabilityId())
+            val capId = mode.toCapabilityId()
+            // ПРАВИЛО: Показуємо, якщо є дозвіл у Gate АБО це базовий Backlog
+            state.activeCapabilities.contains(capId) || mode == ContextViewMode.BACKLOG
         }.sortedBy { it.orderPriority() }.reversed()
     }
 
-    val menuItems = availableViews.map { viewMode ->
-        HoldMenuItem(label = viewMode.name.lowercase().capitalize(), icon = viewMode.toIcon())
+    // 2. Створення елементів меню
+    val menuItems = remember(availableViews) {
+        availableViews.map { viewMode ->
+            HoldMenuItem(
+                label = viewMode.displayName(),
+                icon = viewMode.toIcon()
+            )
+        }
+    }
+
+    // Якщо доступний лише один режим (Беклог), можна приховати перемикач або заблокувати
+    if (availableViews.size <= 1 && state.currentView == ContextViewMode.BACKLOG) {
+        // Можна нічого не малювати або малювати неактивну іконку
     }
 
     Surface(
@@ -64,8 +81,15 @@ fun ViewModeToggle(
     }
 }
 
-// Приватні мапінги для чистоти коду
-private fun ContextViewMode.toCapabilityId() = CapabilityId(this.name.lowercase())
+// --- HELPERS (Мапінг станів на системні ID та ресурси) ---
+
+private fun ContextViewMode.toCapabilityId(): CapabilityId {
+    return when(this) {
+        ContextViewMode.ADVANCED -> CapabilityId("advanced")
+        // Для інших використовуємо назву в нижньому регістрі (inbox, backlog, notes...)
+        else -> CapabilityId(this.name.lowercase(Locale.ROOT))
+    }
+}
 
 private fun ContextViewMode.orderPriority() = when(this) {
     ContextViewMode.DASHBOARD -> 0
@@ -75,12 +99,21 @@ private fun ContextViewMode.orderPriority() = when(this) {
     ContextViewMode.ATTACHMENTS -> 4
 }
 
-private fun ContextViewMode.toIcon() = when (this) {
+private fun ContextViewMode.displayName(): String {
+    return this.name.lowercase(Locale.ROOT)
+        .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }
+        .replace("_", " ")
+}
+
+private fun ContextViewMode.toIcon(): ImageVector = when (this) {
     ContextViewMode.BACKLOG -> Icons.AutoMirrored.Outlined.ListAlt
     ContextViewMode.INBOX -> Icons.AutoMirrored.Outlined.Notes
     ContextViewMode.ADVANCED -> Icons.Outlined.Dashboard
     ContextViewMode.ATTACHMENTS -> Icons.Default.Attachment
     ContextViewMode.DASHBOARD -> Icons.Outlined.ViewModule
+    // ДОДАЙ СЮДИ НОВІ РЕЖИМИ:
+    // ContextViewMode.NOTES -> Icons.Outlined.Description
+    // ContextViewMode.VET_CASE -> Icons.Default.MedicalServices
 }
 
 private fun ContextViewMode.getDefaultInputMode() = when (this) {
