@@ -75,23 +75,26 @@ fun ModernInputPanel(
     onAddScript: (() -> Unit)? = null,
 ) {
     // Об'єднуємо старі прапорці та нові ID в єдиний Set можливостей
+    // У ModernInputPanel.kt
+
     val activeCapabilities = remember(
-        enableInbox, enableLog, enableArtifact, enableBacklog, 
-        enableDashboard, enableAttachments, isProjectManagementEnabled, 
+        enableInbox, enableLog, enableArtifact, enableBacklog,
+        enableDashboard, enableAttachments, isProjectManagementEnabled,
         experimentalCapabilityIds
     ) {
-        val base = mutableSetOf<CapabilityId>()
-        if (enableInbox) base.add(CapabilityId("inbox"))
-        if (enableLog) base.add(CapabilityId("log"))
-        if (enableArtifact) base.add(CapabilityId("artifact"))
-        if (enableBacklog) base.add(CapabilityId("backlog"))
-        if (enableDashboard) base.add(CapabilityId("dashboard"))
-        if (enableAttachments) base.add(CapabilityId("attachments"))
-        if (isProjectManagementEnabled) base.add(CapabilityId("advanced"))
-        
-        // Додаємо динамічні фічі (ветеринар, нотатки), щоб вони не відфільтровувалися в UI
-        base.addAll(experimentalCapabilityIds)
-        base
+        buildSet {
+            // 1. Додаємо старі прапорці (Legacy/UI)
+            if (enableInbox) add(CapabilityId("inbox"))
+            if (enableLog) add(CapabilityId("log"))
+            if (enableArtifact) add(CapabilityId("artifact"))
+            if (enableBacklog) add(CapabilityId("backlog"))
+            if (enableDashboard) add(CapabilityId("dashboard"))
+            if (enableAttachments) add(CapabilityId("attachments"))
+            if (isProjectManagementEnabled) add(CapabilityId("advanced"))
+
+            // 2. Додаємо всі динамічні фічі (Ветеринар, Нотатки і т.д.)
+            addAll(experimentalCapabilityIds)
+        }
     }
 
     val state = NavPanelState(
