@@ -1,9 +1,9 @@
 #!/bin/bash
-set -e
+set -Eeuo pipefail
 
 # Colors
 GREEN='\033[0;32m'
-YELLOW='\1;33m'
+YELLOW='\033[0;33m'
 RED='\033[0;31m'
 BLUE='\033[0;34m'
 NC='\033[0m'
@@ -14,14 +14,34 @@ PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DIST_DIR="$PROJECT_ROOT/dist"
 WORKFLOW_FILE="android_build.yml"
 
-# Файли для локального збереження логів (у корінь)
+# Файли логів
 BUILD_LOG="$PROJECT_ROOT/build.log"
 ERROR_LOG="$PROJECT_ROOT/error.log"
+
+RUN_ID=""
+
+# ------------------ SAFE LOGGING ------------------
+
+function save_logs_safely() {
+    [ -z "$RUN_ID" ] && return 0
+
+    echo -e "${BLUE}Saving GitHub Actions logs...${NC}"
+
+    # Повний лог
+    gh run view "$RUN_ID" --log > "$BUILD_LOG" 2>/dev/null || true
+
+    # Лише помилки
+    gh run view "$RUN_ID" --log-failed > "$ERROR_LOG" 2>/dev/null || true
+}
+
+trap save_logs_safely EXIT
+trap save_logs_safely ERR
+
+# ------------------ FUNCTIONS ------------------
 
 function check_gh_cli() {
     if ! command -v gh &> /dev/null; then
         echo -e "${RED}Error: GitHub CLI (gh) is not installed.${NC}"
-        echo "Please install it: https://cli.github.com/"
         exit 1
     fi
 }
@@ -36,12 +56,23 @@ function print_header() {
 
 function show_logging_advice() {
     local RID=$1
+    echo ""
+    echo -e "${YELLOW}Поради щодо логів:${NC}"
+
+    echo -e "${BLUE}GitHub CLI:${NC}"
+    echo "  gh run view $RID --log"
+    echo "  gh run view $RID --log-failed"
+    echo "  gh run view $RID --web"
+
     echo -e ""
-    echo -e "${YELLOW}Поради щодо перегляду логів (GitHub CLI):${NC}"
-    echo -e "  ${BLUE}1) Тільки помилки:${NC}  gh run view $RID --log-failed"
-    echo -e "  ${BLUE}2) Повний лог:${NC}      gh run view $RID --log"
-    echo -e "  ${BLUE}3) У браузері:${NC}      gh run view $RID --web"
-    echo -e "  ${BLUE}4) Локальні копії:${NC}  cat build.log | cat error.log"
+    echo -e "${BLUE}Збереження у файли вручну:${NC}"
+    echo "  gh run view $RID --log > build.log"
+    echo "  gh run view $RID --log-failed > error.log"
+
+    echo -e ""
+    echo -e "${BLUE}Локальні копії (вже збережені):${NC}"
+    echo "  less build.log"
+    echo "  less error.log"
 }
 
 function select_options() {
@@ -60,10 +91,10 @@ function select_options() {
 
     echo ""
     echo -e "${YELLOW}Select Target Host:${NC}"
-    echo "1) Phone: Install + Push to Downloads (ADB/Termux)"
-    echo "2) Local PC: Save to ./dist"
+    echo "1) Phone (ADB / Termux)"
+    echo "2) Local PC (./dist)"
     read -p "Choice [1-2]: " h_choice
-    
+
     case $h_choice in
         1) HOST="device" ;;
         2) HOST="pc" ;;
@@ -71,7 +102,7 @@ function select_options() {
     esac
 }
 
-# --- Main ---
+# ------------------ MAIN ------------------
 
 check_gh_cli
 print_header
@@ -83,101 +114,72 @@ echo -e "Current Branch: ${GREEN}$CURRENT_BRANCH${NC}"
 ARTIFACT_NAME="apk-${FLAVOR}-${TYPE}"
 
 echo ""
-echo -e "${BLUE}Triggering workflow on GitHub...${NC}"
+echo -e "${BLUE}Triggering workflow...${NC}"
 
-gh workflow run "$WORKFLOW_FILE" --ref "$CURRENT_BRANCH" -f flavor="$FLAVOR" -f build_type="$TYPE"
+gh workflow run "$WORKFLOW_FILE" \
+    --ref "$CURRENT_BRANCH" \
+    -f flavor="$FLAVOR" \
+    -f build_type="$TYPE"
 
-echo -e "${YELLOW}Waiting for workflow to start...${NC}"
 sleep 5
 
-RUN_ID=$(gh run list --workflow="$WORKFLOW_FILE" --limit=1 --json databaseId --jq '.[0].databaseId')
+RUN_ID=$(gh run list \
+    --workflow="$WORKFLOW_FILE" \
+    --limit=1 \
+    --json databaseId \
+    --jq '.[0].databaseId')
 
 if [ -z "$RUN_ID" ]; then
-    echo -e "${RED}Could not find the triggered run.${NC}"
+    echo -e "${RED}Failed to detect workflow run.${NC}"
     exit 1
 fi
 
 echo -e "Tracking Run ID: ${GREEN}$RUN_ID${NC}"
 echo ""
 
-# Спостереження за збіркою
 set +e
 gh run watch "$RUN_ID" --exit-status
 RUN_STATUS=$?
 set -e
 
-# Збереження логів у файли (корінь проекту)
-gh run view "$RUN_ID" --log > "$BUILD_LOG"
-
 if [ $RUN_STATUS -ne 0 ]; then
     echo -e "\n${RED}❌ Remote build failed.${NC}"
-    gh run view "$RUN_ID" --log-failed > "$ERROR_LOG"
     show_logging_advice "$RUN_ID"
     exit 1
 fi
 
 echo ""
-echo -e "${GREEN}Build complete! Downloading artifact...${NC}"
+echo -e "${GREEN}Build successful. Downloading artifact...${NC}"
 
-# --- DOWNLOAD ARTIFACT ---
+# ------------------ DOWNLOAD ------------------
+
 TMP_DL_DIR=".tmp/forwardapp_gh_build_$RUN_ID"
 mkdir -p "$TMP_DL_DIR"
 
-gh run download "$RUN_ID" -n "$ARTIFACT_NAME" -D "$TMP_DL_DIR"
+gh run download "$RUN_ID" \
+    -n "$ARTIFACT_NAME" \
+    -D "$TMP_DL_DIR"
 
 APK_FILE=$(find "$TMP_DL_DIR" -name "*universal*.apk" | head -n 1)
 [ -z "$APK_FILE" ] && APK_FILE=$(find "$TMP_DL_DIR" -name "*arm64-v8a*.apk" | head -n 1)
 
 if [ -z "$APK_FILE" ]; then
-    echo -e "${RED}No suitable APK found in artifact!${NC}"
+    echo -e "${RED}APK not found in artifact.${NC}"
     exit 1
 fi
 
 F_NAME=$(basename "$APK_FILE")
 echo -e "${GREEN}Downloaded: $F_NAME${NC}"
 
-# --- INSTALL / PUSH TO DOWNLOADS ---
+# ------------------ DEPLOY ------------------
 
-if [ "$HOST" == "device" ]; then
-    # 1. Спроба закинути в Downloads телефону
-    if [ -n "$TERMUX_VERSION" ]; then
-        echo -e "${YELLOW}Termux detected. Copying to storage Downloads...${NC}"
-        cp "$APK_FILE" ~/storage/downloads/ 2>/dev/null || echo "Storage not linked"
-        
-        if [ -f "$INSTALL_SCRIPT" ]; then
-            bash "$INSTALL_SCRIPT" "$APK_FILE"
-        fi
-    else
-        echo -e "${YELLOW}ADB detected. Pushing to /sdcard/Download/...${NC}"
-        if adb shell ls /sdcard/Download/ > /dev/null 2>&1; then
-            adb push "$APK_FILE" /sdcard/Download/
-            echo -e "${GREEN}File pushed to phone: /sdcard/Download/$F_NAME${NC}"
-        else
-            echo -e "${RED}Cannot access /sdcard/Download/ via ADB.${NC}"
-        fi
-
-        # 2. Встановлення
-        PKG_NAME="com.romankozak.forwardappmobile"
-        [ "$TYPE" == "debug" ] && PKG_NAME="$PKG_NAME.debug"
-
-        echo -e "${YELLOW}Installing APK...${NC}"
-        INSTALL_OUTPUT=$(adb install -r "$APK_FILE" 2>&1)
-        
-        if echo "$INSTALL_OUTPUT" | grep -q "Success"; then
-            echo -e "${GREEN}Installation successful.${NC}"
-        else
-            echo -e "${RED}Installation failed: $INSTALL_OUTPUT${NC}"
-        fi
-    fi
-else
+if [ "$HOST" == "pc" ]; then
     mkdir -p "$DIST_DIR"
     cp "$APK_FILE" "$DIST_DIR/"
     echo -e "${GREEN}Saved to: $DIST_DIR/$F_NAME${NC}"
 fi
 
-# Фінальна порада
 show_logging_advice "$RUN_ID"
 
-# Cleanup
 rm -rf "$TMP_DL_DIR"
 echo -e "\n${BLUE}Done.${NC}"

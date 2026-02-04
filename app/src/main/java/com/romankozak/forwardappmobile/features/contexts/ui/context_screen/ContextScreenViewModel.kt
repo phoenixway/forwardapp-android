@@ -520,10 +520,11 @@ class BacklogViewModel
         
         // Отримуємо саму конфігурацію з обгортки (StructureWithItems -> Configuration)
         // Якщо structureWithItems null, створюємо дефолтну конфігурацію
-        val config = structureWithItems?.structure ?: com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration(
-            contextId = proj.id,
-            basePresetCode = "default"
-        )
+      val config = structureWithItems?.structure ?: com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration(
+    id = 0, // ДОДАНО: передаємо значення для обов'язкового параметра id
+    contextId = proj.id,
+    basePresetCode = "default"
+)
 
         // Тепер передаємо config (ContextConfiguration), а не structureWithItems
         val enableInbox = isEnabledForConfig(CapabilityId("inbox"), config)
