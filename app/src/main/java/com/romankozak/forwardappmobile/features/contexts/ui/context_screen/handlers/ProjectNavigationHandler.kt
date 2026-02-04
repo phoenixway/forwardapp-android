@@ -1,3 +1,4 @@
+package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.handlers
 class ProjectNavigationHandler(
     private val contextRepository: ContextRepository,
     private val stateManager: ContextStateManager,
