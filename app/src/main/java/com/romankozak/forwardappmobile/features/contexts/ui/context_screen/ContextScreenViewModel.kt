@@ -456,7 +456,6 @@ private val reminderHandler by lazy { ReminderHandler(alarmScheduler, viewModelS
 un onSaveArtifact(content: String) = artifactHandler.onSaveArtifact(content)
 fun onAutoSaveArtifact(content: String) = artifactHandler.onAutoSaveArtifact(content)
 fun onEditArtifact(artifact: ContextArtifact) = artifactHandler.onEditArtifact(artifact)
-fun onDismissArtifactEditor() = artifactHandler.onDismissArtifactEditor()
 
 fun onToggleProjectManagement() {
     viewModelScope.launch {
