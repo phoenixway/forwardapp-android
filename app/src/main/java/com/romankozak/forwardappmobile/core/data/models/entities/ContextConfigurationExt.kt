@@ -1,4 +1,3 @@
-
 package com.romankozak.forwardappmobile.core.data.models.entities
 
 import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
