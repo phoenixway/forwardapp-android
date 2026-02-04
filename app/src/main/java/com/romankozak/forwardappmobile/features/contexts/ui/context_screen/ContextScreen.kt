@@ -450,8 +450,8 @@ private fun ProjectBottomBar(
                 
                 // --- ОНОВЛЕНА ЛОГІКА CAPABILITIES ---
                 isProjectManagementEnabled = uiState.isProjectManagementEnabled,
-                experimentalCapabilityIds = uiState.experimentalCapabilityIds, // ПЕРЕДАЄМО СПИСОК ФІЧ
-                enableInbox = uiState.enableInbox, // Або uiState.features["Inbox"] ?: true
+                experimentalCapabilityIds = uiState.experimentalCapabilityIds,
+                enableInbox = uiState.enableInbox,
                 enableLog = uiState.enableLog,
                 enableArtifact = uiState.enableArtifact,
                 enableBacklog = uiState.enableBacklog,

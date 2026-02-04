@@ -592,7 +592,7 @@ viewModelScope.launch {
                 showCheckboxes = proj.showCheckboxes,
                 
                 // ВАЖЛИВО: Передаємо експериментальні ID для ModernInputPanel
-                experimentalCapabilityIds = structure.experimentalCapabilityIds,
+                experimentalCapabilityIds = capabilityGate.getExperimentalCapabilities(),
                 
                 // Навігаційний стан
                 currentView = adjustedView,
@@ -602,22 +602,6 @@ viewModelScope.launch {
         }
     }
 }
-
-// 2. Одноразова ініціалізація режиму з навігації
-init {
-    savedStateHandle.get<String>("initialViewMode")?.let { modeName ->
-        try {
-            val viewMode = ContextViewMode.valueOf(modeName)
-            _uiState.update { it.copy(
-                currentView = viewMode,
-                inputMode = getInputModeForView(viewMode)
-            ) }
-        } catch (e: Exception) {
-            Log.w("ProjectsViewModel", "Invalid initialViewMode: $modeName")
-        }
-    }
-}
-
 
     // 4. Підсвічування записів з Inbox
     val inboxIdToHighlight = savedStateHandle.get<String>("inboxRecordIdToHighlight")

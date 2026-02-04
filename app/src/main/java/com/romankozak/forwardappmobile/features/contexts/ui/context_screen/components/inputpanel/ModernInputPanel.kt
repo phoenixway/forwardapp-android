@@ -56,7 +56,7 @@ fun ModernInputPanel(
     onStartTrackingCurrentProject: () -> Unit,
     isProjectManagementEnabled: Boolean,
     // --- ДОДАНО: Список експериментальних фіч (для ветеринара, нотаток тощо) ---
-    experimentalCapabilityIds = uiState.experimentalCapabilityIds
+    experimentalCapabilityIds: List<CapabilityId> = emptyList(),
     enableInbox: Boolean,
     enableLog: Boolean,
     enableArtifact: Boolean,
