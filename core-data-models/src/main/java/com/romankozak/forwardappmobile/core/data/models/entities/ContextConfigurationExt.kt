@@ -1,6 +1,7 @@
 
 package com.romankozak.forwardappmobile.core.data.models.entities
 
+import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
 // Переконайтеся, що цей імпорт правильний і модуль має доступ до цього пакета
 // import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry 
@@ -13,7 +14,7 @@ fun ContextConfiguration.has(id: CapabilityId): Boolean {
     val isExperimental = experimentalCapabilityIds.contains(id)
     
     val isFromPreset = basePresetCode?.let { preset ->
-        com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
+        ContextRoleRegistry
             .getCapabilitiesForRole(preset)
             .contains(id)
     } ?: false
