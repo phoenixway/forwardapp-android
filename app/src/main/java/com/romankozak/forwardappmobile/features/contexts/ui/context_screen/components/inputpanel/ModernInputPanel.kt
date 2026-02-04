@@ -359,22 +359,3 @@ private fun InputTextField(
         )
     }
 }
-
-@Composable
-private fun AnimatedSendButton(isVisible: Boolean, panelColors: PanelColors, onClick: () -> Unit) {
-    AnimatedVisibility(
-        visible = isVisible,
-        enter = fadeIn() + scaleIn(),
-        exit = fadeOut() + scaleOut()
-    ) {
-        IconButton(
-            onClick = onClick,
-            modifier = Modifier.size(44.dp).background(panelColors.accentColor, CircleShape),
-            colors = IconButtonDefaults.iconButtonColors(
-                contentColor = if (panelColors.accentColor.luminance() > 0.5f) Color.Black else Color.White
-            )
-        ) {
-            Icon(Icons.AutoMirrored.Filled.Send, null, modifier = Modifier.size(20.dp))
-        }
-    }
-}
