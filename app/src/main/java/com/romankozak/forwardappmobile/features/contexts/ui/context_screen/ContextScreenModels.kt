@@ -1,126 +1,63 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen
-
-import android.app.Application
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context as AndroidContext
+/*
 import android.util.Log
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
-import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
-import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextArtifact
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextLogEntryTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextTimeMetrics
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
-import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
-import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
-import com.romankozak.forwardappmobile.core.data.models.entities.RecentItemType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
-import com.romankozak.forwardappmobile.core.di.IoDispatcher
-import com.romankozak.forwardappmobile.core.gate.CapabilityGate
-import com.romankozak.forwardappmobile.core.navigation.ClearAndNavigateHomeUseCase
-import com.romankozak.forwardappmobile.core.navigation.ClearCommand
-import com.romankozak.forwardappmobile.core.navigation.ClearExecutionContext
-import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
-import com.romankozak.forwardappmobile.data.logic.ContextHandler
-import com.romankozak.forwardappmobile.data.repository.ActivityRepository
-import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
-import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
-import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
-import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
-import com.romankozak.forwardappmobile.data.repository.SettingsRepository
-import com.romankozak.forwardappmobile.domain.ner.NerManager
 import com.romankozak.forwardappmobile.domain.ner.NerState
-import com.romankozak.forwardappmobile.domain.ner.ReminderParser
-import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
-import com.romankozak.forwardappmobile.domain.wifirestapi.FileDataRequest
-import com.romankozak.forwardappmobile.domain.wifirestapi.RetrofitClient
-import com.romankozak.forwardappmobile.features.attachments.ui.context.AttachmentType
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectUiEvent
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.state.PlanningModeManager
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.SearchUseCase
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.withCompletedAtEnd
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ContextManagementTab
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.InputHandler
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.InputMode
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.utils.TagUtils
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.ContextMarkdownExporter
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.InboxHandler
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.InboxHandlerResultListener
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.InboxMarkdownHandler
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.ItemActionHandler
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.SelectionHandler
-import com.romankozak.forwardappmobile.ui.common.editor.NoteTitleExtractor
-import dagger.hilt.android.lifecycle.HiltViewModel
-import java.net.URLDecoder
-import java.net.URLEncoder
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Date
-import java.util.Locale
-import java.util.UUID
-import javax.inject.Inject
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.Calendar
+import javax.inject.Inject
 
 internal const val TAG = "BacklogVM_DEBUG"
 
 sealed class UiEvent {
-  data class ShowSnackbar(val message: String, val action: String? = null) : UiEvent()
+    data class ShowSnackbar(val message: String, val action: String? = null) : UiEvent()
 
-  data class Navigate(val target: NavTarget) : UiEvent()
+    data class Navigate(val target: NavTarget) : UiEvent()
 
-  data class ResetSwipeState(val itemId: String) : UiEvent()
+    data class ResetSwipeState(val itemId: String) : UiEvent()
 
-  data class ScrollTo(val index: Int) : UiEvent()
+    data class ScrollTo(val index: Int) : UiEvent()
 
-  data class NavigateBackAndReveal(val contextId: String) : UiEvent()
+    data class NavigateBackAndReveal(val contextId: String) : UiEvent()
 
-  data class HandleLinkClick(val link: RelatedLink) : UiEvent()
+    data class HandleLinkClick(val link: RelatedLink) : UiEvent()
 
-  data class OpenUri(val uri: String) : UiEvent()
+    data class OpenUri(val uri: String) : UiEvent()
 
-  data object ScrollToLatestInboxRecord : UiEvent()
+    data object ScrollToLatestInboxRecord : UiEvent()
 
-  data object NavigateBack : UiEvent()
+    data object NavigateBack : UiEvent()
 }
 
 enum class GoalActionType {
-  CreateInstance,
-  MoveInstance,
-  CopyGoal,
-  AddLinkToList,
-  ADD_LIST_SHORTCUT,
+    CreateInstance,
+    MoveInstance,
+    CopyGoal,
+    AddLinkToList,
+    ADD_LIST_SHORTCUT,
 }
 
 sealed class GoalActionDialogState {
-  object Hidden : GoalActionDialogState()
+    object Hidden : GoalActionDialogState()
 
-  data class AwaitingActionChoice(val itemContent: BacklogItemContent) : GoalActionDialogState()
+    data class AwaitingActionChoice(val itemContent: BacklogItemContent) : GoalActionDialogState()
 }
 
 data class UiState(
@@ -169,101 +106,102 @@ data class UiState(
     val showDisplayPropertiesDialog: Boolean = false,
     val showCheckboxes: Boolean = false,
 ) {
-  val isSelectionModeActive: Boolean
-    get() = selectedItemIds.isNotEmpty()
+    val isSelectionModeActive: Boolean
+        get() = selectedItemIds.isNotEmpty()
 }
 
 interface BacklogMarkdownHandlerResultListener {
-  fun copyToClipboard(
-      text: String,
-      label: String,
-  )
+    fun copyToClipboard(
+        text: String,
+        label: String,
+    )
 
-  fun showSnackbar(
-      message: String,
-      action: String?,
-  )
+    fun showSnackbar(
+        message: String,
+        action: String?,
+    )
 
-  fun forceRefresh()
+    fun forceRefresh()
 }
 
 class BacklogMarkdownHandler
-@Inject
-constructor(
-    private val contextRepository: ContextRepository,
-    private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
-    private val scope: CoroutineScope,
-    private val listener: BacklogMarkdownHandlerResultListener,
-) {
-  fun exportToMarkdown(content: List<BacklogItemContent>) {
-    if (content.isEmpty()) {
-      listener.showSnackbar("Backlog is empty. Nothing to export.", null)
-      return
-    }
-    val markdownBuilder = StringBuilder()
-    content.forEach { item ->
-      val line =
-          when (item) {
-            is BacklogItemContent.GoalItem -> {
-              val checkbox = if (item.goal.completed) "- [x]" else "- [ ]"
-              "$checkbox ${item.goal.text}"
+    @Inject
+    constructor(
+        private val contextRepository: ContextRepository,
+        private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
+        private val scope: CoroutineScope,
+        private val listener: BacklogMarkdownHandlerResultListener,
+    ) {
+        fun exportToMarkdown(content: List<BacklogItemContent>) {
+            if (content.isEmpty()) {
+                listener.showSnackbar("Backlog is empty. Nothing to export.", null)
+                return
             }
+            val markdownBuilder = StringBuilder()
+            content.forEach { item ->
+                val line =
+                    when (item) {
+                        is BacklogItemContent.GoalItem -> {
+                            val checkbox = if (item.goal.completed) "- [x]" else "- [ ]"
+                            "$checkbox ${item.goal.text}"
+                        }
 
-            is BacklogItemContent.SublistItem -> "- [C] ${item.project.name}"
-            is BacklogItemContent.LinkItem -> {
-              val displayName = item.link.linkData.displayName ?: item.link.linkData.target
-              "- [L] [$displayName](${item.link.linkData.target})"
+                        is BacklogItemContent.SublistItem -> "- [C] ${item.project.name}"
+                        is BacklogItemContent.LinkItem -> {
+                            val displayName = item.link.linkData.displayName ?: item.link.linkData.target
+                            "- [L] [$displayName](${item.link.linkData.target})"
+                        }
+                        is BacklogItemContent.NoteItem -> "- [N] ${item.note.title}"
+                        is BacklogItemContent.NoteDocumentItem -> "- [D] ${item.document.name}"
+                        is BacklogItemContent.ChecklistItem -> "- [Ch] ${item.checklist.name}"
+                    }
+                markdownBuilder.appendLine(line)
             }
-            is BacklogItemContent.NoteItem -> "- [N] ${item.note.title}"
-            is BacklogItemContent.NoteDocumentItem -> "- [D] ${item.document.name}"
-            is BacklogItemContent.ChecklistItem -> "- [Ch] ${item.checklist.name}"
-          }
-      markdownBuilder.appendLine(line)
-    }
-    val markdownText = markdownBuilder.toString()
-    listener.copyToClipboard(markdownText, "Backlog Export")
-    listener.showSnackbar("Backlog copied to clipboard.", null)
-  }
-
-  fun importFromMarkdown(
-      markdownText: String,
-      contextId: String,
-  ) {
-    if (markdownText.isBlank()) {
-      listener.showSnackbar("Nothing to import.", null)
-      return
-    }
-    scope.launch(Dispatchers.IO) {
-      val lines = markdownText.lines().filter { it.isNotBlank() }
-      var importedCount = 0
-      for (line in lines) {
-        try {
-          val trimmedLine = line.trim()
-          when {
-            trimmedLine.startsWith("- [ ]") -> {
-              val goalText = trimmedLine.removePrefix("- [ ]").trim()
-              if (goalText.isNotEmpty()) {
-                goalRepository.addGoalToContext(goalText, contextId, completed = false)
-                importedCount++
-              }
-            }
-
-            trimmedLine.startsWith("- [x]") -> {
-              val goalText = trimmedLine.removePrefix("- [x]").trim()
-              if (goalText.isNotEmpty()) {
-                goalRepository.addGoalToContext(goalText, contextId, completed = true)
-                importedCount++
-              }
-            }
-          }
-        } catch (e: Exception) {
-          Log.e("BacklogMarkdownHandler", "Failed to import line: $line", e)
+            val markdownText = markdownBuilder.toString()
+            listener.copyToClipboard(markdownText, "Backlog Export")
+            listener.showSnackbar("Backlog copied to clipboard.", null)
         }
-      }
-      withContext(Dispatchers.Main) {
-        listener.showSnackbar("Imported $importedCount items.", null)
-        listener.forceRefresh()
-      }
+
+        fun importFromMarkdown(
+            markdownText: String,
+            contextId: String,
+        ) {
+            if (markdownText.isBlank()) {
+                listener.showSnackbar("Nothing to import.", null)
+                return
+            }
+            scope.launch(Dispatchers.IO) {
+                val lines = markdownText.lines().filter { it.isNotBlank() }
+                var importedCount = 0
+                for (line in lines) {
+                    try {
+                        val trimmedLine = line.trim()
+                        when {
+                            trimmedLine.startsWith("- [ ]") -> {
+                                val goalText = trimmedLine.removePrefix("- [ ]").trim()
+                                if (goalText.isNotEmpty()) {
+                                    goalRepository.addGoalToContext(goalText, contextId, completed = false)
+                                    importedCount++
+                                }
+                            }
+
+                            trimmedLine.startsWith("- [x]") -> {
+                                val goalText = trimmedLine.removePrefix("- [x]").trim()
+                                if (goalText.isNotEmpty()) {
+                                    goalRepository.addGoalToContext(goalText, contextId, completed = true)
+                                    importedCount++
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("BacklogMarkdownHandler", "Failed to import line: $line", e)
+                    }
+                }
+                withContext(Dispatchers.Main) {
+                    listener.showSnackbar("Imported $importedCount items.", null)
+                    listener.forceRefresh()
+                }
+            }
+        }
     }
-  }
-}
+*/

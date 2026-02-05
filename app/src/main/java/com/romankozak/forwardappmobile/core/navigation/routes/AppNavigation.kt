@@ -47,7 +47,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ProjectHierarchyScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_properties.ProjectSettingsScreen
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.BacklogViewModel
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.ContextScreenViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.ProjectsScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.goalproperties.GoalSettingsScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.inbox.InboxEditorScreen
@@ -282,7 +282,7 @@ private fun NavGraphBuilder.mainGraph(
                 },
             ),
     ) { backStackEntry -> // Add backStackEntry here
-        val viewModel: BacklogViewModel = hiltViewModel()
+        val viewModel: ContextScreenViewModel = hiltViewModel()
         viewModel.enhancedNavigationManager = appNavigationViewModel.navigationManager
 
         // FIX: Extract the 'listId' argument from the route and assign it to a variable.

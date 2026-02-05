@@ -13,7 +13,6 @@ import dagger.multibindings.IntoSet
 @Module
 @InstallIn(SingletonComponent::class)
 object CodeIndexCapabilityModule {
-
     @Provides
     @IntoSet
     fun provideCodeIndexCapability(): Capability {
@@ -31,13 +30,14 @@ object CodeIndexCapabilityModule {
  * Базова реалізація Capability для Індексу коду.
  */
 object CodeIndexCapability : Capability {
-    override val descriptor = object : CapabilityDescriptor {
-        override val id = CapabilityId("code_index")
-        override val label = "Індекс коду"
-        override val iconRes: Int? = null
-        override val navRoute = "code_index_root"
-        override val supportedViews: Set<ViewId> = setOf(ViewId("kanban"))
-    }
+    override val descriptor =
+        object : CapabilityDescriptor {
+            override val id = CapabilityId("code_index")
+            override val label = "Індекс коду"
+            override val iconRes: Int? = null
+            override val navRoute = "code_index_root"
+            override val supportedViews: Set<ViewId> = setOf(ViewId("kanban"))
+        }
 
     override fun register(runtime: com.romankozak.forwardappmobile.core.capability.CapabilityRuntime) {
         // Тут буде реєстрація екранів або сервісів індексування коду

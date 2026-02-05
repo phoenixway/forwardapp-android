@@ -266,4 +266,12 @@ class ActivityRepository
         suspend fun getActivityRecordById(recordId: String): ActivityRecord? {
             return activityRecordDao.findById(recordId)
         }
+
+        fun findLastOngoingActivityFlow(): Flow<ActivityRecord?> {
+            return activityRecordDao.findLastOngoingActivityFlow()
+        }
+
+        fun getActivitiesForContextStream(contextId: String): Flow<List<ActivityRecord>> {
+            return activityRecordDao.getRecordsForContextStream(contextId)
+        }
     }

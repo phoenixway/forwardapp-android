@@ -1,23 +1,47 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.handlers
+
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
+import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.ContextStateManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+
 class ProjectNavigationHandler(
     private val contextRepository: ContextRepository,
     private val stateManager: ContextStateManager,
-    private val uiEventFlow: MutableSharedFlow<UiEvent>,
-    private val scope: CoroutineScope
+    private val resultListener: ResultListener,
+    private val scope: CoroutineScope,
 ) {
-    fun onBackPressed() = scope.launch { uiEventFlow.emit(UiEvent.NavigateBack) }
-    fun onHomeClick() = scope.launch { uiEventFlow.emit(UiEvent.Navigate(NavTarget.Home)) }
-    fun onForwardPressed(id: String) = scope.launch { uiEventFlow.emit(NavTarget.ContextDetails(id)) }
-    
+    interface ResultListener {
+        fun onBackPressed(): Boolean
+
+        fun onHomeClick()
+
+        fun onForwardPressed(id: String)
+
+        fun deleteCurrentProject(id: String)
+    }
+
+    fun onBackPressed() = resultListener.onBackPressed()
+
+    fun onHomeClick() = resultListener.onHomeClick()
+
+    fun onForwardPressed(id: String) = resultListener.onForwardPressed(id)
+
     fun onCloseSearch() = stateManager.updateState { it.copy(searchQuery = "") }
-    fun onProjectViewChange(mode: ContextViewMode) = stateManager.updateState { it.copy(currentView = mode) }
+
+    fun onProjectViewChange(mode: ContextViewMode) = stateManager.updateState { it.copy(currentViewMode = mode) }
+
     fun onToggleProjectManagement() = stateManager.updateState { it.copy(isProjectManagementEnabled = !it.isProjectManagementEnabled) }
 
-    fun deleteCurrentProject(id: String) = scope.launch { 
-        contextRepository.deleteContext(id)
-        uiEventFlow.emit(UiEvent.NavigateBack)
-    }
-    fun addCurrentProjectToDayPlan(id: String) = scope.launch { /* логіка */ }
-    fun onAddMilestone(id: String) = stateManager.updateState { it.copy(showAddMilestoneDialog = true) }
-}
+    fun deleteCurrentProject(id: String) = resultListener.deleteCurrentProject(id)
 
+    fun addCurrentProjectToDayPlan(id: String) = scope.launch { /* TODO */ }
+
+    fun onAddMilestone(id: String) =
+        stateManager.updateState {
+            it.copy(
+                showCreateNoteDocumentDialog = true,
+            )
+        } // TODO check what dialog to show
+}

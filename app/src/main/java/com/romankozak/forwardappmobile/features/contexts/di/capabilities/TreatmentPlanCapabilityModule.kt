@@ -13,7 +13,6 @@ import dagger.multibindings.IntoSet
 @Module
 @InstallIn(SingletonComponent::class)
 object TreatmentPlanCapabilityModule {
-
     @Provides
     @IntoSet
     fun provideTreatmentPlanCapability(): Capability {
@@ -31,13 +30,14 @@ object TreatmentPlanCapabilityModule {
  * Базова реалізація Capability для Плану лікування.
  */
 object TreatmentPlanCapability : Capability {
-    override val descriptor = object : CapabilityDescriptor {
-        override val id = CapabilityId("treatment_plan")
-        override val label = "План лікування"
-        override val iconRes: Int? = null
-        override val navRoute = "treatment_plan_root"
-        override val supportedViews: Set<ViewId> = setOf(ViewId("summary"), ViewId("history"))
-    }
+    override val descriptor =
+        object : CapabilityDescriptor {
+            override val id = CapabilityId("treatment_plan")
+            override val label = "План лікування"
+            override val iconRes: Int? = null
+            override val navRoute = "treatment_plan_root"
+            override val supportedViews: Set<ViewId> = setOf(ViewId("summary"), ViewId("history"))
+        }
 
     override fun register(runtime: com.romankozak.forwardappmobile.core.capability.CapabilityRuntime) {
         // Реєстрація екранів огляду пацієнта та історії лікування

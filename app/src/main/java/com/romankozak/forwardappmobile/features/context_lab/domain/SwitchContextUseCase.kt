@@ -38,15 +38,16 @@ class SwitchContextUseCase
                         override val id: ContextId = context.id
                         override val features: CapabilitySet = CapabilitySet(active = context.config.activeCapabilities)
                         override val views: ViewSet = ViewSet(available = context.config.activeViews, start = context.config.currentView)
-                        
+
                         // Додаємо конфігурацію, щоб задовольнити ConfigurableState для CapabilityGate
-                        override val config: ContextConfiguration = ContextConfiguration(
-                            id = "lab_${context.id.raw}",
-                            contextId = context.id.raw,
-                            basePresetCode = context.role.code,
-                            // Передаємо активні можливості в нове поле експериментальних ID
-                            experimentalCapabilityIds = context.config.activeCapabilities.toList()
-                        )
+                        override val config: ContextConfiguration =
+                            ContextConfiguration(
+                                id = "lab_${context.id.raw}",
+                                contextId = context.id.raw,
+                                basePresetCode = context.role.code,
+                                // Передаємо активні можливості в нове поле експериментальних ID
+                                experimentalCapabilityIds = context.config.activeCapabilities.toList(),
+                            )
                     }
 
                 systemController.update { newState }

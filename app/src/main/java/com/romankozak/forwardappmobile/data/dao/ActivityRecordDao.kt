@@ -101,6 +101,12 @@ interface ActivityRecordDao {
         toTimestamp: Long,
     ): List<ActivityRecord>
 
+    @Query("SELECT * FROM activity_records WHERE endTime IS NULL AND startTime IS NOT NULL ORDER BY startTime DESC LIMIT 1")
+    fun findLastOngoingActivityFlow(): Flow<ActivityRecord?>
+
+    @Query("SELECT * FROM activity_records WHERE context_id = :contextId ORDER BY createdAt DESC")
+    fun getRecordsForContextStream(contextId: String): Flow<List<ActivityRecord>>
+
     @Query("SELECT * FROM activity_records")
     suspend fun getAllRaw(): List<ActivityRecord>
 }

@@ -20,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -32,19 +33,20 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capab
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.BacklogListScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.inbox.InboxView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ProjectDashboardView
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.ContextUiState
 
 private const val TAG = "BACKLOG_UI_DEBUG"
 
 @Composable
 fun GoalDetailContent(
     modifier: Modifier = Modifier,
-    viewModel: BacklogViewModel,
-    uiState: UiState,
+    viewModel: ContextScreenViewModel,
+    uiState: ContextUiState,
     listState: LazyListState,
     inboxListState: LazyListState,
     onEditLog: (ContextLog) -> Unit,
     onDeleteLog: (ContextLog) -> Unit,
-    onSaveArtifact: (String) -> Unit,
+    onSaveArtifact: (String, String) -> Unit,
     onEditArtifact: (ContextArtifact) -> Unit,
     onRemindersClick: (BacklogItemContent) -> Unit,
     onShowProjectProperties: () -> Unit,
@@ -53,12 +55,12 @@ fun GoalDetailContent(
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
     val inboxRecords by viewModel.inboxHandler.inboxRecords.collectAsStateWithLifecycle()
     val goalList by viewModel.project.collectAsStateWithLifecycle()
-    val projectLogs by viewModel.projectLogs.collectAsStateWithLifecycle()
+    val projectLogs = uiState.logs
     val projectArtifact by viewModel.contextArtifact.collectAsStateWithLifecycle()
-    val isSelectionModeActive by viewModel.isSelectionModeActive.collectAsStateWithLifecycle()
+    val isSelectionModeActive = uiState.isSelectionModeActive
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
 
-    when (uiState.currentView) {
+    when (uiState.currentViewMode) {
         ContextViewMode.BACKLOG -> {
             val listContent by viewModel.listContent.collectAsStateWithLifecycle()
             BacklogListScreen(
@@ -128,13 +130,13 @@ fun GoalDetailContent(
                 onRecalculateTime = viewModel::onRecalculateTime,
                 onEditLog = onEditLog,
                 onDeleteLog = onDeleteLog,
-                onSaveArtifact = onSaveArtifact,
-                onEditArtifact = onEditArtifact,
-                selectedTab = uiState.selectedDashboardTab,
+                onSaveArtifact = { content -> viewModel.onSaveArtifact(content) }, // Явно вказуємо один параметр                onEditArtifact = onEditArtifact,
+                selectedTab = uiState.currentTab,
                 onTabSelected = viewModel::onDashboardTabSelected,
                 enableDashboard = uiState.enableDashboard,
                 enableLog = uiState.enableLog,
                 enableArtifact = uiState.enableArtifact,
+                onEditArtifact = {/*TODO*/},
             )
         }
         ContextViewMode.ATTACHMENTS -> {
@@ -274,7 +276,7 @@ private fun DashboardOverview(
                                         color = MaterialTheme.colorScheme.onSurface,
                                         maxLines = 2,
                                         overflow = TextOverflow.Ellipsis,
-                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                        textAlign = TextAlign.Center,
                                     )
                                 }
                             }

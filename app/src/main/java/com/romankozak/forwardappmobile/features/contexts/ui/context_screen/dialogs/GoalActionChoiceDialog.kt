@@ -15,7 +15,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.GoalActionType
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.GoalActionType
 
 @Composable
 fun GoalActionChoiceDialog(

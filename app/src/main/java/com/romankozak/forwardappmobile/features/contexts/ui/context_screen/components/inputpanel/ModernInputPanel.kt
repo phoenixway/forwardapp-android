@@ -63,10 +63,10 @@ fun ModernInputPanel(
     enableBacklog: Boolean,
     enableDashboard: Boolean,
     enableAttachments: Boolean,
-    onToggleProjectManagement: () -> Unit,
+    onToggleProjectManagement: (Boolean) -> Unit,
     onAddProjectToDayPlan: () -> Unit,
     onCloseSearch: () -> Unit,
-    onAddMilestone: () -> Unit,
+    onAddMilestone: (String) -> Unit,
     onShowCreateNoteDocumentDialog: () -> Unit,
     onCreateChecklist: () -> Unit,
     onShowDisplayPropertiesClick: () -> Unit,
@@ -77,62 +77,72 @@ fun ModernInputPanel(
     // Об'єднуємо старі прапорці та нові ID в єдиний Set можливостей
     // У ModernInputPanel.kt
 
-    val activeCapabilities = remember(
-        enableInbox, enableLog, enableArtifact, enableBacklog,
-        enableDashboard, enableAttachments, isProjectManagementEnabled,
-        experimentalCapabilityIds
-    ) {
-        buildSet {
-            // 1. Додаємо старі прапорці (Legacy/UI)
-            if (enableInbox) add(CapabilityId("inbox"))
-            if (enableLog) add(CapabilityId("log"))
-            if (enableArtifact) add(CapabilityId("artifact"))
-            if (enableBacklog) add(CapabilityId("backlog"))
-            if (enableDashboard) add(CapabilityId("dashboard"))
-            if (enableAttachments) add(CapabilityId("attachments"))
-            if (isProjectManagementEnabled) add(CapabilityId("advanced"))
+    val activeCapabilities =
+        remember(
+            enableInbox,
+            enableLog,
+            enableArtifact,
+            enableBacklog,
+            enableDashboard,
+            enableAttachments,
+            isProjectManagementEnabled,
+            experimentalCapabilityIds,
+        ) {
+            buildSet {
+                // 1. Додаємо старі прапорці (Legacy/UI)
+                if (enableInbox) add(CapabilityId("inbox"))
+                if (enableLog) add(CapabilityId("log"))
+                if (enableArtifact) add(CapabilityId("artifact"))
+                if (enableBacklog) add(CapabilityId("backlog"))
+                if (enableDashboard) add(CapabilityId("dashboard"))
+                if (enableAttachments) add(CapabilityId("attachments"))
+                if (isProjectManagementEnabled) add(CapabilityId("advanced"))
 
-            // 2. Додаємо всі динамічні фічі (Ветеринар, Нотатки і т.д.)
-            addAll(experimentalCapabilityIds)
+                // 2. Додаємо всі динамічні фічі (Ветеринар, Нотатки і т.д.)
+                addAll(experimentalCapabilityIds)
+            }
         }
-    }
 
-    val state = NavPanelState(
-        canGoBack = canGoBack,
-        canGoForward = canGoForward,
-        menuExpanded = menuExpanded,
-        currentView = currentView,
-        isProjectManagementEnabled = isProjectManagementEnabled,
-        activeCapabilities = activeCapabilities,
-        inputMode = inputMode,
-    )
+    val state =
+        NavPanelState(
+            canGoBack = canGoBack,
+            canGoForward = canGoForward,
+            menuExpanded = menuExpanded,
+            currentView = currentView,
+            isProjectManagementEnabled = isProjectManagementEnabled,
+            activeCapabilities = activeCapabilities,
+            inputMode = inputMode,
+        )
 
-    val actions = NavPanelActions(
-        onBackClick = onBackClick,
-        onForwardClick = onForwardClick,
-        onShowProjectHierarchy = onShowProjectHierarchy,
-        onNavigateHome = onNavigateHome,
-        onRecentsClick = onRecentsClick,
-        onCloseSearch = onCloseSearch,
-        onViewChange = onViewChange,
-        onInputModeSelected = onInputModeSelected,
-        onMenuExpandedChange = onMenuExpandedChange,
-        onAddProjectToDayPlan = onAddProjectToDayPlan,
-        menuActions = OptionsMenuActions(
-            onEditList = onEditList,
-            onToggleProjectManagement = onToggleProjectManagement,
-            onStartTrackingCurrentProject = onStartTrackingCurrentProject,
-            onShareList = onShareList,
-            onImportFromMarkdown = onImportFromMarkdown,
-            onExportToMarkdown = onExportToMarkdown,
-            onImportBacklogFromMarkdown = onImportBacklogFromMarkdown,
-            onExportBacklogToMarkdown = onExportBacklogToMarkdown,
-            onExportProjectState = onExportProjectState,
-            onDeleteList = onDeleteList,
-            onSetReminder = onSetReminder,
-            onShowDisplayPropertiesClick = onShowDisplayPropertiesClick,
-        ),
-    )
+    val actions =
+        NavPanelActions(
+            onBackClick = onBackClick,
+            onForwardClick = onForwardClick,
+            onShowProjectHierarchy = onShowProjectHierarchy,
+            onNavigateHome = onNavigateHome,
+            onRecentsClick = onRecentsClick,
+            onCloseSearch = onCloseSearch,
+            onViewChange = onViewChange,
+            onInputModeSelected = onInputModeSelected,
+            onMenuExpandedChange = onMenuExpandedChange,
+            onAddProjectToDayPlan = onAddProjectToDayPlan,
+            menuActions =
+                OptionsMenuActions(
+                    onEditList = onEditList,
+                    onToggleProjectManagement = onToggleProjectManagement,
+                    onStartTrackingCurrentProject = onStartTrackingCurrentProject,
+                    onShareList = onShareList,
+                    onImportFromMarkdown = onImportFromMarkdown,
+                    onExportToMarkdown = onExportToMarkdown,
+                    onImportBacklogFromMarkdown = onImportBacklogFromMarkdown,
+                    onExportBacklogToMarkdown = onExportBacklogToMarkdown,
+                    onExportProjectState = onExportProjectState,
+                    onDeleteList = onDeleteList,
+                    onSetReminder = onSetReminder,
+                    onShowDisplayPropertiesClick = onShowDisplayPropertiesClick,
+                    onAddMilestone = onAddMilestone,
+                ),
+        )
 
     val focusRequester = remember { FocusRequester() }
     val panelColors = getPanelColors(inputMode, LocalInputPanelColors.current)
@@ -157,7 +167,7 @@ fun ModernInputPanel(
                     onOpenMenu = { onMenuExpandedChange(true) },
                     onModeChange = onInputModeSelected,
                     isProjectManagementEnabled = isProjectManagementEnabled,
-                    currentView = currentView
+                    currentView = currentView,
                 )
 
                 Spacer(modifier = Modifier.width(8.dp))
@@ -170,7 +180,7 @@ fun ModernInputPanel(
                     focusRequester = focusRequester,
                     onValueChange = onValueChange,
                     onSubmit = onSubmit,
-                    isNerActive = isNerActive
+                    isNerActive = isNerActive,
                 )
 
                 Spacer(modifier = Modifier.width(8.dp))
@@ -178,7 +188,7 @@ fun ModernInputPanel(
                 AnimatedSendButton(
                     isVisible = inputValue.text.isNotBlank(),
                     panelColors = panelColors,
-                    onClick = onSubmit
+                    onClick = onSubmit,
                 )
             }
         }

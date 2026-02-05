@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.view
 import android.util.Log
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.GoalActionType
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.GoalActionType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -20,6 +20,12 @@ class SelectionHandler(
 
     interface ResultListener : BaseHandlerResultListener {
         fun updateSelectionState(selectedIds: Set<String>)
+
+        fun setPendingAction(
+            actionType: GoalActionType,
+            itemIds: Set<String>,
+            goalIds: Set<String>,
+        )
     }
 
     fun toggleSelection(

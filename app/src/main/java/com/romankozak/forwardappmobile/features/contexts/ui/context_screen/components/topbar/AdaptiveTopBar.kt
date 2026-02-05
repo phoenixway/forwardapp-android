@@ -9,7 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.GoalActionType
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.GoalActionType
 
 @Composable
 fun AdaptiveTopBar(

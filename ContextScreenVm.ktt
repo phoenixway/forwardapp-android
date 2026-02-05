@@ -358,6 +358,69 @@ class BacklogViewModel
 
         private var pendingAttachmentShare: BacklogItemContent? = null
 
+
+
+
+
+
+                private fun setupContextObserver() {
+                    viewModelScope.launch {
+                        contextIdFlow
+                            .distinctUntilChanged()
+                            .flatMapLatest { contextId ->
+                                if (contextId.isBlank()) {
+                                    flowOf(ContextData.Empty)
+                                } else {
+                                    combine(
+                                        contextRepository.getContextByIdFlow(contextId),
+                                        listItemRepository.getItemsForContextStream(contextId),
+                                        contextStructureRepository.observeStructureOnly(contextId),
+                                        contextRepository.getContextLogsFlow(contextId),
+                                        checklistRepository.getChecklistsForContext(contextId),
+                                        noteDocumentRepository.getDocumentsForContext(contextId),
+                                        reminderRepository.getRemindersFlow(contextId),
+                                        recentItemsRepository.getRecentItemsForContextFlow(contextId),
+                                        noteRepository.getNotesForContext(contextId),
+                                    ) { context, items, config, logs, checklists, noteDocuments, reminders, recentItems, notes ->
+                                        ContextData.Loaded(
+                                            context = context,
+                                            items = items,
+                                            config = config ?: ContextConfiguration.default(contextId),
+                                            logs = logs,
+                                            checklists = checklists,
+                                            noteDocuments = noteDocuments,
+                                            reminders = reminders,
+                                            recentItems = recentItems,
+                                            notes = notes,
+                                        )
+                                    }
+                                }
+                            }
+                            .collect { data ->
+                                when (data) {
+                                    is ContextData.Loaded -> {
+                                        _listContent.value = data.items
+                                        stateManager.updateContext(data)
+                                        capabilityManager.updateCapabilities(data.config)
+                                    }
+                                    is ContextData.Empty -> {
+                                        _listContent.value = emptyList()
+                                        stateManager.clear()
+                                    }
+                                }
+                            }
+                    }
+                }
+
+
+
+
+
+
+
+
+
+
         private val _uiState =
             MutableStateFlow(
                 UiState(

@@ -28,7 +28,7 @@ fun ArtifactContent(
     artifact: ContextArtifact?,
     isManagementEnabled: Boolean,
     onEditArtifact: (ContextArtifact) -> Unit,
-    onSaveArtifact: () -> Unit,
+    onSaveArtifact: (String) -> Unit,
 ) {
     if (!isManagementEnabled) {
         PlaceholderContent(text = "Увімкніть підтримку реалізації на Дашборді, щоб бачити артефакти.")
@@ -75,8 +75,7 @@ fun ArtifactContent(
                     if (artifact != null) {
                         onEditArtifact(artifact)
                     } else {
-                        onSaveArtifact()
-                    }
+                        onSaveArtifact(artifact?.content ?: "")                    }
                 },
                 modifier = Modifier.align(Alignment.CenterEnd),
                 enabled = isManagementEnabled,

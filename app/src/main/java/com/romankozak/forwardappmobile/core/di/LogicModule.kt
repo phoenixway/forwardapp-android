@@ -55,12 +55,13 @@ object LogicModule {
                 override val id = ContextId("default")
                 override val features = CapabilitySet(emptySet())
                 override val views = ViewSet(emptySet(), ViewId("main"))
-                
+
                 // Додаємо дефолтну конфігурацію для задоволення інтерфейсу ConfigurableState
-                override val config = ContextConfiguration(
-                    id = "initial_default",
-                    contextId = "default"
-                )
+                override val config =
+                    ContextConfiguration(
+                        id = "initial_default",
+                        contextId = "default",
+                    )
             }
         return DefaultContextController(initial)
     }

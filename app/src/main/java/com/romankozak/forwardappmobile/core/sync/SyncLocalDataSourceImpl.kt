@@ -116,13 +116,24 @@ class SyncLocalDataSourceImpl
                             { it.isDeleted },
                         )
                     },
-                documents = local.documents.filter { logicHelper.isUnsynced(
-                    it,
-                    { it.syncedAt },
-                    { it.updatedTs() },
-                    { it.isDeleted },
-                ) },
-                checklists = local.checklists.filter { logicHelper.isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
+                documents =
+                    local.documents.filter {
+                        logicHelper.isUnsynced(
+                            it,
+                            { it.syncedAt },
+                            { it.updatedTs() },
+                            { it.isDeleted },
+                        )
+                    },
+                checklists =
+                    local.checklists.filter {
+                        logicHelper.isUnsynced(
+                            it,
+                            { it.syncedAt },
+                            { it.updatedTs() },
+                            { it.isDeleted },
+                        )
+                    },
                 checklistItems =
                     local.checklistItems.filter {
                         logicHelper.isUnsynced(
@@ -168,12 +179,15 @@ class SyncLocalDataSourceImpl
                             { it.isDeleted },
                         )
                     },
-                scripts = local.scripts.filter { logicHelper.isUnsynced(
-                    it,
-                    { it.syncedAt },
-                    { it.updatedTs() },
-                    { it.isDeleted },
-                ) },
+                scripts =
+                    local.scripts.filter {
+                        logicHelper.isUnsynced(
+                            it,
+                            { it.syncedAt },
+                            { it.updatedTs() },
+                            { it.isDeleted },
+                        )
+                    },
                 attachments =
                     local.attachments.filter {
                         logicHelper.isUnsynced(

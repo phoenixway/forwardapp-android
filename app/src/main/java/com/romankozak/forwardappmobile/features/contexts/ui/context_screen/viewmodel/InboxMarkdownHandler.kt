@@ -8,7 +8,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class InboxMarkdownHandler(
+import javax.inject.Inject
+
+class InboxMarkdownHandler (
     private val contextRepository: ContextRepository,
     private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
     private val scope: CoroutineScope,

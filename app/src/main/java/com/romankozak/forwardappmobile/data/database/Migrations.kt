@@ -1325,14 +1325,13 @@ val MIGRATION_94_95 =
                             while (cursor.moveToNext()) {
                                 val missionId = cursor.getString(idIndex)
                                 val jsonString = cursor.getString(jsonIndex)
-                                if (!jsonString.isNullOrEmpty())
-                                    {
-                                        val updatedJson = jsonString.replace(oldId, newId)
-                                        db.execSQL(
-                                            "UPDATE tactical_missions SET linkedProjectIds = ? WHERE id = ?",
-                                            arrayOf(updatedJson, missionId),
-                                        )
-                                    }
+                                if (!jsonString.isNullOrEmpty()) {
+                                    val updatedJson = jsonString.replace(oldId, newId)
+                                    db.execSQL(
+                                        "UPDATE tactical_missions SET linkedProjectIds = ? WHERE id = ?",
+                                        arrayOf(updatedJson, missionId),
+                                    )
+                                }
                             }
                         }
                     }

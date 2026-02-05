@@ -6,12 +6,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecord
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.BacklogViewModel
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.ContextScreenViewModel
 
 @Composable
 fun InboxView(
     modifier: Modifier = Modifier,
-    viewModel: BacklogViewModel,
+    viewModel: ContextScreenViewModel,
     inboxRecords: List<InboxRecord>,
     listState: LazyListState,
     highlightedRecordId: String?,

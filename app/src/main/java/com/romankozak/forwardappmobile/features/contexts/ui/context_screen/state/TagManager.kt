@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
  */
 class TagManager(
     private val contextRepository: ContextRepository,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
 ) {
     private val _allTags = MutableStateFlow<List<String>>(emptyList())
     val allTags: StateFlow<List<String>> = _allTags.asStateFlow()
@@ -27,17 +27,19 @@ class TagManager(
         scope.launch {
             contextRepository.getAllContextsFlow().collect { contexts ->
                 // Збираємо унікальні теги з усіх контекстів
-                val tags = contexts
-                    .flatMap { it.tags }
-                    .distinct()
-                    .sorted()
+                val tags =
+                    contexts
+                        .flatMap { it.tags ?: emptyList() }
+                        .distinct()
+                        .sorted()
                 _allTags.value = tags
 
                 // Збираємо назви контекстів
-                val contextNames = contexts
-                    .map { it.name }
-                    .distinct()
-                    .sorted()
+                val contextNames =
+                    contexts
+                        .map { it.name }
+                        .distinct()
+                        .sorted()
                 _allContexts.value = contextNames
             }
         }
@@ -57,8 +59,8 @@ class TagManager(
      */
     fun filterTags(query: String): List<String> {
         if (query.isBlank()) return emptyList()
-        return _allTags.value.filter { 
-            it.contains(query, ignoreCase = true) 
+        return _allTags.value.filter {
+            it.contains(query, ignoreCase = true)
         }
     }
 
@@ -67,8 +69,8 @@ class TagManager(
      */
     fun filterContexts(query: String): List<String> {
         if (query.isBlank()) return emptyList()
-        return _allContexts.value.filter { 
-            it.contains(query, ignoreCase = true) 
+        return _allContexts.value.filter {
+            it.contains(query, ignoreCase = true)
         }
     }
 }

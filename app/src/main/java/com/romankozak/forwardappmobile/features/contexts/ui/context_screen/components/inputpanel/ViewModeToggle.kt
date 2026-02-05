@@ -7,9 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ListAlt
 import androidx.compose.material.icons.automirrored.outlined.Notes
 import androidx.compose.material.icons.filled.Attachment
-import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material.icons.outlined.Dashboard
-import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.ViewModule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -31,23 +29,25 @@ fun ViewModeToggle(
     holdMenuController: HoldMenu2Controller,
 ) {
     // 1. Фільтрація доступних екранів
-    val availableViews = remember(state.activeCapabilities) {
-        ContextViewMode.entries.filter { mode ->
-            val capId = mode.toCapabilityId()
-            // ПРАВИЛО: Показуємо, якщо є дозвіл у Gate АБО це базовий Backlog
-            state.activeCapabilities.contains(capId) || mode == ContextViewMode.BACKLOG
-        }.sortedBy { it.orderPriority() }.reversed()
-    }
+    val availableViews =
+        remember(state.activeCapabilities) {
+            ContextViewMode.entries.filter { mode ->
+                val capId = mode.toCapabilityId()
+                // ПРАВИЛО: Показуємо, якщо є дозвіл у Gate АБО це базовий Backlog
+                state.activeCapabilities.contains(capId) || mode == ContextViewMode.BACKLOG
+            }.sortedBy { it.orderPriority() }.reversed()
+        }
 
     // 2. Створення елементів меню
-    val menuItems = remember(availableViews) {
-        availableViews.map { viewMode ->
-            HoldMenuItem(
-                label = viewMode.displayName(),
-                icon = viewMode.toIcon()
-            )
+    val menuItems =
+        remember(availableViews) {
+            availableViews.map { viewMode ->
+                HoldMenuItem(
+                    label = viewMode.displayName(),
+                    icon = viewMode.toIcon(),
+                )
+            }
         }
-    }
 
     // Якщо доступний лише один режим (Беклог), можна приховати перемикач або заблокувати
     if (availableViews.size <= 1 && state.currentView == ContextViewMode.BACKLOG) {
@@ -84,20 +84,21 @@ fun ViewModeToggle(
 // --- HELPERS (Мапінг станів на системні ID та ресурси) ---
 
 private fun ContextViewMode.toCapabilityId(): CapabilityId {
-    return when(this) {
+    return when (this) {
         ContextViewMode.ADVANCED -> CapabilityId("advanced")
         // Для інших використовуємо назву в нижньому регістрі (inbox, backlog, notes...)
         else -> CapabilityId(this.name.lowercase(Locale.ROOT))
     }
 }
 
-private fun ContextViewMode.orderPriority() = when(this) {
-    ContextViewMode.DASHBOARD -> 0
-    ContextViewMode.BACKLOG -> 1
-    ContextViewMode.INBOX -> 2
-    ContextViewMode.ADVANCED -> 3
-    ContextViewMode.ATTACHMENTS -> 4
-}
+private fun ContextViewMode.orderPriority() =
+    when (this) {
+        ContextViewMode.DASHBOARD -> 0
+        ContextViewMode.BACKLOG -> 1
+        ContextViewMode.INBOX -> 2
+        ContextViewMode.ADVANCED -> 3
+        ContextViewMode.ATTACHMENTS -> 4
+    }
 
 private fun ContextViewMode.displayName(): String {
     return this.name.lowercase(Locale.ROOT)
@@ -105,18 +106,20 @@ private fun ContextViewMode.displayName(): String {
         .replace("_", " ")
 }
 
-private fun ContextViewMode.toIcon(): ImageVector = when (this) {
-    ContextViewMode.BACKLOG -> Icons.AutoMirrored.Outlined.ListAlt
-    ContextViewMode.INBOX -> Icons.AutoMirrored.Outlined.Notes
-    ContextViewMode.ADVANCED -> Icons.Outlined.Dashboard
-    ContextViewMode.ATTACHMENTS -> Icons.Default.Attachment
-    ContextViewMode.DASHBOARD -> Icons.Outlined.ViewModule
-    // ДОДАЙ СЮДИ НОВІ РЕЖИМИ:
-    // ContextViewMode.NOTES -> Icons.Outlined.Description
-    // ContextViewMode.VET_CASE -> Icons.Default.MedicalServices
-}
+private fun ContextViewMode.toIcon(): ImageVector =
+    when (this) {
+        ContextViewMode.BACKLOG -> Icons.AutoMirrored.Outlined.ListAlt
+        ContextViewMode.INBOX -> Icons.AutoMirrored.Outlined.Notes
+        ContextViewMode.ADVANCED -> Icons.Outlined.Dashboard
+        ContextViewMode.ATTACHMENTS -> Icons.Default.Attachment
+        ContextViewMode.DASHBOARD -> Icons.Outlined.ViewModule
+        // ДОДАЙ СЮДИ НОВІ РЕЖИМИ:
+        // ContextViewMode.NOTES -> Icons.Outlined.Description
+        // ContextViewMode.VET_CASE -> Icons.Default.MedicalServices
+    }
 
-private fun ContextViewMode.getDefaultInputMode() = when (this) {
-    ContextViewMode.INBOX, ContextViewMode.ADVANCED -> InputMode.AddQuickRecord
-    else -> InputMode.AddGoal
-}
+private fun ContextViewMode.getDefaultInputMode() =
+    when (this) {
+        ContextViewMode.INBOX, ContextViewMode.ADVANCED -> InputMode.AddQuickRecord
+        else -> InputMode.AddGoal
+    }

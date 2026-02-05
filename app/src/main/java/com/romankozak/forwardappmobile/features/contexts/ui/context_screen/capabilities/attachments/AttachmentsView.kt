@@ -34,12 +34,12 @@ import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemCont
 import com.romankozak.forwardappmobile.features.attachments.ui.project.components.ChecklistItemRow
 import com.romankozak.forwardappmobile.features.attachments.ui.project.components.LinkItemRow
 import com.romankozak.forwardappmobile.features.attachments.ui.project.components.NoteDocumentItemRow
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.BacklogViewModel
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.ContextScreenViewModel
 
 @Composable
 fun AttachmentsView(
     modifier: Modifier = Modifier,
-    viewModel: BacklogViewModel,
+    viewModel: ContextScreenViewModel,
     listContent: List<BacklogItemContent>,
 ) {
     val attachments =
@@ -83,12 +83,12 @@ fun AttachmentsView(
                     AttachmentItemCard(
                         item = it,
                         onItemClick = { viewModel.itemActionHandler.onItemClick(it) },
-                        onDeleteItem = { viewModel.deleteAttachmentEverywhere(it) },
+                        onDeleteItem = { viewModel.onDeleteEverywhere(it) },
                         onCopyContentRequest = { viewModel.itemActionHandler.copyContentRequest(it) },
                         onShareAttachment = { attachment ->
                             viewModel.itemActionHandler.shareAttachmentToProject(attachment)
                         },
-                        onDeleteCompletely = { viewModel.deleteAttachmentEverywhere(it) },
+                        onDeleteCompletely = { viewModel.onDeleteEverywhere(it) },
                     )
                 }
             }

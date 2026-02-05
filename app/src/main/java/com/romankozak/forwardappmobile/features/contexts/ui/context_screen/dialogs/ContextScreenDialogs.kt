@@ -5,9 +5,9 @@ import androidx.compose.runtime.*
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.BacklogViewModel
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.GoalActionDialogState
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.GoalActionType
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.ContextScreenViewModel
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.GoalActionDialogState
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.GoalActionType
 import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
 import com.romankozak.forwardappmobile.features.reminders.dialogs.RemindersDialog
 import com.romankozak.forwardappmobile.features.reminders.viewmodel.ReminderViewModel
@@ -15,13 +15,13 @@ import com.romankozak.forwardappmobile.ui.components.NewRecentListsSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GoalDetailDialogs(viewModel: BacklogViewModel) {
+fun GoalDetailDialogs(viewModel: ContextScreenViewModel) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     val goalActionState by viewModel.itemActionHandler.goalActionDialogState.collectAsStateWithLifecycle()
     val showGoalTransportMenu by viewModel.itemActionHandler.showGoalTransportMenu.collectAsStateWithLifecycle()
     val itemForTransportMenu by viewModel.itemActionHandler.itemForTransportMenu.collectAsStateWithLifecycle()
-    val recentItems by viewModel.recentItems.collectAsStateWithLifecycle()
+    val recentItems = uiState.recentItems
 
     if (uiState.showAddWebLinkDialog) {
         AddWebLinkDialog(

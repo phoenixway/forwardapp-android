@@ -2,6 +2,7 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state
 
 import com.romankozak.forwardappmobile.core.data.models.entities.*
+import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ContextManagementTab
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.InputMode
 import kotlinx.coroutines.CoroutineScope
@@ -14,7 +15,7 @@ import kotlinx.coroutines.flow.update
  * Управляє станом UI для Context Screen
  */
 class ContextStateManager(
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
 ) {
     private val _uiState = MutableStateFlow(ContextUiState())
     val uiState: StateFlow<ContextUiState> = _uiState.asStateFlow()
@@ -22,7 +23,7 @@ class ContextStateManager(
     private val _isProcessingHome = MutableStateFlow(false)
 
     fun isProcessingHome() = _isProcessingHome.value
-    
+
     fun setProcessingHome(processing: Boolean) {
         _isProcessingHome.value = processing
     }
@@ -38,7 +39,7 @@ class ContextStateManager(
                 noteDocuments = data.noteDocuments,
                 reminders = data.reminders,
                 recentItems = data.recentItems,
-                notes = data.notes
+                notes = data.notes,
             )
         }
     }
@@ -56,10 +57,10 @@ class ContextStateManager(
     }
 
     fun toggleSearchMode() {
-        _uiState.update { 
+        _uiState.update {
             it.copy(
                 isSearchMode = !it.isSearchMode,
-                searchQuery = if (!it.isSearchMode) it.searchQuery else ""
+                searchQuery = if (!it.isSearchMode) it.searchQuery else "",
             )
         }
     }
@@ -110,11 +111,12 @@ class ContextStateManager(
 
     fun toggleItemSelection(itemId: String) {
         _uiState.update { current ->
-            val newSelection = if (itemId in current.selectedItemIds) {
-                current.selectedItemIds - itemId
-            } else {
-                current.selectedItemIds + itemId
-            }
+            val newSelection =
+                if (itemId in current.selectedItemIds) {
+                    current.selectedItemIds - itemId
+                } else {
+                    current.selectedItemIds + itemId
+                }
             current.copy(selectedItemIds = newSelection)
         }
     }
@@ -125,7 +127,7 @@ class ContextStateManager(
  */
 sealed class ContextData {
     data object Empty : ContextData()
-    
+
     data class Loaded(
         val context: Context?,
         val items: List<BacklogItemContent>,
@@ -135,7 +137,7 @@ sealed class ContextData {
         val noteDocuments: List<NoteDocumentEntity>,
         val reminders: List<Reminder>,
         val recentItems: List<RecentItem>,
-        val notes: List<LegacyNoteEntity>
+        val notes: List<LegacyNoteEntity>,
     ) : ContextData()
 }
 
@@ -143,6 +145,7 @@ sealed class ContextData {
  * Data class для UI стану
  */
 data class ContextUiState(
+    // Data from repositories
     val context: Context? = null,
     val items: List<BacklogItemContent> = emptyList(),
     val configuration: ContextConfiguration? = null,
@@ -152,14 +155,12 @@ data class ContextUiState(
     val reminders: List<Reminder> = emptyList(),
     val recentItems: List<RecentItem> = emptyList(),
     val notes: List<LegacyNoteEntity> = emptyList(),
-    
     // UI State - View Mode & Navigation
     val currentViewMode: ContextViewMode = ContextViewMode.BACKLOG,
     val currentTab: ContextManagementTab = ContextManagementTab.Dashboard,
     val isSearchMode: Boolean = false,
     val searchQuery: String = "",
     val localSearchQuery: String = "",
-    
     // UI State - Dialogs
     val showDisplayPropertiesDialog: Boolean = false,
     val showNoteDocumentEditor: Boolean = false,
@@ -171,15 +172,12 @@ data class ContextUiState(
     val showImportBacklogFromMarkdownDialog: Boolean = false,
     val showShareDialog: Boolean = false,
     val showRemindersDialog: Boolean = false,
-    val showCheckboxes: Boolean = false,
-    
     // UI State - Edit Modes
     val logEntryToEdit: ContextLog? = null,
     val artifactToEdit: ContextArtifact? = null,
     val itemForRemindersDialog: BacklogItemContent? = null,
     val remindersForDialog: List<Reminder> = emptyList(),
     val recordForReminderDialog: ActivityRecord? = null,
-    
     // UI State - Input & Selection
     val inputMode: InputMode = InputMode.AddGoal,
     val inputValue: androidx.compose.ui.text.input.TextFieldValue = androidx.compose.ui.text.input.TextFieldValue(""),
@@ -187,22 +185,19 @@ data class ContextUiState(
     val swipedItemId: String? = null,
     val swipeResetCounter: Int = 0,
     val resetTriggers: Map<String, Int> = emptyMap(),
-    
     // UI State - Highlighting & Focus
     val goalToHighlight: String? = null,
     val itemToHighlight: String? = null,
     val inboxRecordToHighlight: String? = null,
     val newlyAddedItemId: String? = null,
-    
     // UI State - NER & Reminders
     val detectedReminderSuggestion: String? = null,
     val detectedReminderCalendar: java.util.Calendar? = null,
     val nerState: com.romankozak.forwardappmobile.domain.ner.NerState = com.romankozak.forwardappmobile.domain.ner.NerState.NotInitialized,
-    
     // UI State - Metrics & Time
     val contextTimeMetrics: ContextTimeMetrics? = null,
-    
-    // UI State - Capabilities (legacy, потрібно для зворотної сумісності)
+    // UI State - Capabilities & Feature Flags
+    val showCheckboxes: Boolean = false,
     val enableInbox: Boolean = true,
     val enableLog: Boolean = true,
     val enableArtifact: Boolean = true,
@@ -212,11 +207,30 @@ data class ContextUiState(
     val enableAttachments: Boolean = true,
     val enableAutoLinkSubprojects: Boolean = true,
     val experimentalCapabilityIds: List<com.romankozak.forwardappmobile.core.capability.CapabilityId> = emptyList(),
-    
     // UI State - Refresh & State Management
     val needsStateRefresh: Boolean = false,
-    val refreshTrigger: Int = 0
+    val refreshTrigger: Int = 0,
 ) {
     val isSelectionModeActive: Boolean
         get() = selectedItemIds.isNotEmpty()
+}
+
+sealed class UiEvent {
+    data class ShowSnackbar(val message: String, val action: String? = null) : UiEvent()
+
+    data class Navigate(val target: NavTarget) : UiEvent()
+
+    data class ResetSwipeState(val itemId: String) : UiEvent()
+
+    data class ScrollTo(val index: Int) : UiEvent()
+
+    data class NavigateBackAndReveal(val contextId: String) : UiEvent()
+
+    data class HandleLinkClick(val link: RelatedLink) : UiEvent()
+
+    data class OpenUri(val uri: String) : UiEvent()
+
+    data object ScrollToLatestInboxRecord : UiEvent()
+
+    data object NavigateBack : UiEvent()
 }

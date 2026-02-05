@@ -21,6 +21,8 @@ class RecentItemsRepository
     ) {
         fun getRecentItems(limit: Int = 20): Flow<List<RecentItem>> = recentItemDao.getRecentItems(limit)
 
+        fun getRecentItemsForContextFlow(contextId: String): Flow<List<RecentItem>> = recentItemDao.getRecentItemsForContext(contextId)
+
         suspend fun logProjectAccess(project: Context) {
             val existingItem = recentItemDao.getRecentItemById(project.id)
             val recentItem =

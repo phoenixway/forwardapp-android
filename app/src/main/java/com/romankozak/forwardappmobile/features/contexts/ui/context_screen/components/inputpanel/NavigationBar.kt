@@ -1,16 +1,12 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller
@@ -35,7 +31,7 @@ internal fun NavigationBar(
         Spacer(Modifier.weight(1f))
 
         ViewModeToggle(state, actions, contentColor, holdMenuController)
-        
+
         OptionsMenu(state, actions, contentColor)
     }
 }

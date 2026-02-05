@@ -42,6 +42,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.compo
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.dialogs.EditLogEntryDialog
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.dialogs.GoalDetailDialogs
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.dialogs.ProjectDisplayPropertiesDialog
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.ContextUiState
 import com.romankozak.forwardappmobile.features.reminders.dialogs.RemindersDialog
 import com.romankozak.forwardappmobile.ui.common.components.ShareDialog
 import com.romankozak.forwardappmobile.ui.common.editor.UniversalEditorScreen
@@ -50,11 +51,14 @@ import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEdito
 import com.romankozak.forwardappmobile.ui.shared.InProgressIndicator
 import kotlinx.coroutines.delay
 
+private const val TAG = "BacklogVM_DEBUG"
+
+
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun ProjectsScreen(
     navController: NavController,
-    viewModel: BacklogViewModel = hiltViewModel(),
+    viewModel: ContextScreenViewModel = hiltViewModel(),
     projectId: String?,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
@@ -99,7 +103,15 @@ fun ProjectsScreen(
             }
             UniversalEditorScreen(
                 title = "Редагувати Артефакт",
-                onSave = { content, _ -> viewModel.onSaveArtifact(content) },
+                onSave = { content, _ ->
+                    if (projectId != null) {
+                        viewModel.onSaveArtifact(projectId, content)
+                    } else {
+                        // Handle error or show a snackbar
+                        // For now, let's just log it
+                        Log.e(TAG, "projectId is null when trying to save artifact")
+                    }
+                },
                 onAutoSave = { content, _ -> viewModel.onAutoSaveArtifact(content) },
                 onNavigateBack = { viewModel.onDismissArtifactEditor() },
                 navController = navController,
@@ -112,14 +124,20 @@ fun ProjectsScreen(
             LaunchedEffect(Unit) {
                 editorViewModel.onContentChange(TextFieldValue(""))
             }
+            // File: ContextScreen.kt
+
             UniversalEditorScreen(
                 title = "Створити новий документ",
-                onSave = { content, _ -> viewModel.onSaveNoteDocument(content) },
+                onSave = { content, _ ->
+                    // Ми ігноруємо Int від редактора і передаємо null,
+                    // щоб ViewModel використала поточний contextIdFlow.value
+                    viewModel.onSaveNoteDocument(content, null)
+                },
                 onAutoSave = null,
                 onNavigateBack = { viewModel.onDismissNoteDocumentEditor() },
                 navController = navController,
                 viewModel = editorViewModel,
-                contentFocusRequester = focusRequester,
+                contentFocusRequester = focusRequester, // Додано кому для відповідності INFO
             )
         }
         else -> {
@@ -138,7 +156,7 @@ fun ProjectsScreen(
 @Composable
 private fun ProjectScaffold(
     navController: NavController,
-    viewModel: BacklogViewModel,
+    viewModel: ContextScreenViewModel,
     projectId: String?,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
@@ -192,7 +210,7 @@ private fun ProjectScaffold(
 
     if (uiState.showShareDialog) {
         ShareDialog(
-            onDismiss = { viewModel.onShareDialogDismiss() },
+            onDismiss = { viewModel.onDismissShareDialog() },
             onCopyToClipboard = { viewModel.onCopyToClipboardRequest() },
             onTransfer = { viewModel.onTransferBacklogToServerRequest() },
             content = viewModel.getBacklogAsMarkdown(),
@@ -235,7 +253,8 @@ private fun ProjectScaffold(
 
     BackHandler(enabled = true) {
         val wasConsumed = viewModel.onBackPressed()
-        if (!wasConsumed) {
+        // If wasConsumed is false OR null, it will trigger the popBackStack
+        if (wasConsumed != true) {
             navController.popBackStack()
         }
     }
@@ -305,7 +324,7 @@ private fun ProjectScaffold(
                             },
                             onMarkAsComplete = { viewModel.selectionHandler.markSelectedAsComplete(uiState.selectedItemIds) },
                             onMarkAsIncomplete = { viewModel.selectionHandler.markSelectedAsIncomplete(uiState.selectedItemIds) },
-                            currentViewMode = uiState.currentView,
+                            currentViewMode = uiState.currentViewMode,
                             windowInsets = WindowInsets.statusBars,
                         )
                     }
@@ -336,7 +355,7 @@ private fun ProjectScaffold(
                 modifier =
                     Modifier
                         .padding(paddingValues)
-                        .glitch(trigger = uiState.currentView),
+                        .glitch(trigger = uiState.currentViewMode),
                 viewModel = viewModel,
                 uiState = uiState,
                 listState = listState,
@@ -374,9 +393,9 @@ private fun ProjectScaffold(
 
 @Composable
 private fun ProjectBottomBar(
-    viewModel: BacklogViewModel,
+    viewModel: ContextScreenViewModel,
     navController: NavController,
-    uiState: UiState,
+    uiState: ContextUiState,
     lastOngoingActivity: ActivityRecord?,
     canGoBack: Boolean,
     canGoForward: Boolean,
@@ -406,7 +425,7 @@ private fun ProjectBottomBar(
             enter = slideInVertically { it } + fadeIn(),
             exit = slideOutVertically { it } + fadeOut(),
         ) {
-                        ModernInputPanel(
+            ModernInputPanel(
                 holdMenuController = holdMenuController,
                 inputValue = uiState.inputValue,
                 inputMode = uiState.inputMode,
@@ -437,7 +456,7 @@ private fun ProjectBottomBar(
                 onSetReminder = { viewModel.onSetReminderForProject() },
                 menuExpanded = menuExpanded,
                 onMenuExpandedChange = onMenuExpandedChange,
-                currentView = uiState.currentView,
+                currentView = uiState.currentViewMode,
                 onViewChange = { newView -> viewModel.onProjectViewChange(newView) },
                 onImportFromMarkdown = viewModel::onImportFromMarkdownRequest,
                 onExportToMarkdown = viewModel::onExportToMarkdownRequest,
@@ -447,7 +466,6 @@ private fun ProjectBottomBar(
                 onClearReminder = viewModel::onClearReminder,
                 isNerActive = uiState.nerState is NerState.Ready,
                 onStartTrackingCurrentProject = viewModel::onStartTrackingCurrentProject,
-                
                 // --- ОНОВЛЕНА ЛОГІКА CAPABILITIES ---
                 isProjectManagementEnabled = uiState.isProjectManagementEnabled,
                 experimentalCapabilityIds = uiState.experimentalCapabilityIds,
@@ -458,10 +476,10 @@ private fun ProjectBottomBar(
                 enableDashboard = uiState.enableDashboard,
                 enableAttachments = uiState.enableAttachments,
                 // ------------------------------------
-
-                modifier = Modifier
-                    .navigationBarsPadding()
-                    .imePadding(),
+                modifier =
+                    Modifier
+                        .navigationBarsPadding()
+                        .imePadding(),
                 onToggleProjectManagement = viewModel::onToggleProjectManagement,
                 onExportProjectState = viewModel::onExportProjectStateRequest,
                 onAddProjectToDayPlan = viewModel::addCurrentProjectToDayPlan,
@@ -472,15 +490,18 @@ private fun ProjectBottomBar(
                 suggestions = suggestions,
                 onSuggestionClick = viewModel::onSuggestionClick,
                 onShowDisplayPropertiesClick = onShowDisplayPropertiesClick,
-                onAddScript = if (FeatureToggles.isEnabled(FeatureFlag.ScriptsLibrary)) {
-                    {
-                        val route = project?.id?.let { id -> "script_editor_screen?projectId=$id" }
-                            ?: "script_editor_screen"
-                        navController.navigate(route)
-                    }
-                } else null,
+                onAddScript =
+                    if (FeatureToggles.isEnabled(FeatureFlag.ScriptsLibrary)) {
+                        {
+                            val route =
+                                project?.id?.let { id -> "script_editor_screen?projectId=$id" }
+                                    ?: "script_editor_screen"
+                            navController.navigate(route)
+                        }
+                    } else {
+                        null
+                    },
             )
-
         }
     }
 }

@@ -7,12 +7,16 @@ import com.romankozak.forwardappmobile.core.capability.CapabilityId
  * Обробник можливостей контексту
  * Відповідає за додаткову логіку роботи з capabilities
  */
-class ContextCapabilityHandler {
+import javax.inject.Inject
 
+class ContextCapabilityHandler @Inject constructor() {
     /**
      * Перевіряє чи дві можливості конфліктують між собою
      */
-    fun areConflicting(cap1: CapabilityId, cap2: CapabilityId): Boolean {
+    fun areConflicting(
+        cap1: CapabilityId,
+        cap2: CapabilityId,
+    ): Boolean {
         // Приклад: деякі можливості можуть бути взаємовиключними
         return when {
             cap1.raw == "simple_view" && cap2.raw == "advanced_view" -> true
@@ -37,7 +41,7 @@ class ContextCapabilityHandler {
      */
     fun areDependenciesMet(
         capabilityId: CapabilityId,
-        enabledCapabilities: Set<CapabilityId>
+        enabledCapabilities: Set<CapabilityId>,
     ): Boolean {
         val dependencies = getDependencies(capabilityId)
         return dependencies.all { it in enabledCapabilities }

@@ -40,7 +40,22 @@ data class ContextConfiguration(
     val updatedAt: Long = System.currentTimeMillis(),
     val version: Long = 0,
     val isDeleted: Boolean = false
-)
+){
+    companion object {
+        /**
+         * Створює дефолтну конфігурацію, якщо вона відсутня в БД.
+         * Як ID використовуємо префікс + contextId, щоб забезпечити унікальність.
+         */
+        fun default(contextId: String): ContextConfiguration {
+            return ContextConfiguration(
+                id = "default_config_$contextId",
+                contextId = contextId,
+                basePresetCode = "default",
+                updatedAt = System.currentTimeMillis()
+            )
+        }
+    }
+}
 
 @Entity(
     tableName = "context_structure_items",

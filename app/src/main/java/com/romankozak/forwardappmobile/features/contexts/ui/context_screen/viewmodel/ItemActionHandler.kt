@@ -6,9 +6,9 @@ import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.BacklogViewModel
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.GoalActionDialogState
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.GoalActionType
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.ContextScreenViewModel
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.GoalActionDialogState
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.GoalActionType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,6 +33,14 @@ class ItemActionHandler
             fun toggleSelection(itemId: String)
 
             fun requestAttachmentShare(item: BacklogItemContent)
+
+            fun requestNavigation(route: String)
+
+            fun setPendingAction(
+                actionType: GoalActionType,
+                itemIds: Set<String>,
+                goalIds: Set<String>,
+            )
         }
 
         private var recentlyDeletedItems: List<BacklogItemContent>? = null
@@ -87,7 +95,7 @@ class ItemActionHandler
                     is BacklogItemContent.SublistItem ->
                         resultListener.requestNavigation("goal_detail_screen/${item.project.id}")
                     is BacklogItemContent.LinkItem ->
-                        resultListener.requestNavigation(BacklogViewModel.HANDLE_LINK_CLICK_ROUTE + "/${item.link.linkData.target}")
+                        resultListener.requestNavigation(ContextScreenViewModel.HANDLE_LINK_CLICK_ROUTE + "/${item.link.linkData.target}")
                     is BacklogItemContent.NoteItem ->
                         resultListener.showSnackbar("Застарілі нотатки недоступні для редагування", null)
                     is BacklogItemContent.NoteDocumentItem ->
@@ -187,7 +195,7 @@ class ItemActionHandler
         }
 
         fun onRelatedLinkClick(link: RelatedLink) {
-            resultListener.requestNavigation(BacklogViewModel.HANDLE_LINK_CLICK_ROUTE + "/${link.target}")
+            resultListener.requestNavigation(ContextScreenViewModel.HANDLE_LINK_CLICK_ROUTE + "/${link.target}")
         }
 
         fun onItemActionSelected(

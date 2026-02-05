@@ -7,6 +7,7 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
@@ -18,6 +19,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemCont
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.utils.handleRelatedLinkClick
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.UiEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -28,7 +30,7 @@ private const val TAG = "SendDebug"
 @Composable
 fun GoalDetailEffects(
     navController: NavController,
-    viewModel: BacklogViewModel,
+    viewModel: ContextScreenViewModel,
     snackbarHostState: SnackbarHostState,
     listState: LazyListState,
     inboxListState: LazyListState,
@@ -196,7 +198,7 @@ fun GoalDetailEffects(
     LaunchedEffect(uiState.inboxRecordToHighlight, inboxRecords.isNotEmpty()) {
         val recordId = uiState.inboxRecordToHighlight
         val recordsAreLoaded = inboxRecords.isNotEmpty()
-        if (recordId != null && recordsAreLoaded && uiState.currentView != ContextViewMode.INBOX) {
+        if (recordId != null && recordsAreLoaded && uiState.currentViewMode != ContextViewMode.INBOX) {
             if (inboxRecords.any { it.id == recordId }) {
                 Log.d(TAG, "Highlight requested. Switching to INBOX view.")
                 viewModel.onProjectViewChange(ContextViewMode.INBOX)
@@ -204,9 +206,9 @@ fun GoalDetailEffects(
         }
     }
 
-    LaunchedEffect(uiState.inboxRecordToHighlight, uiState.currentView, inboxRecords) {
+    LaunchedEffect(uiState.inboxRecordToHighlight, uiState.currentViewMode, inboxRecords) {
         val recordId = uiState.inboxRecordToHighlight
-        if (recordId != null && uiState.currentView == ContextViewMode.INBOX && inboxRecords.isNotEmpty()) {
+        if (recordId != null && uiState.currentViewMode == ContextViewMode.INBOX && inboxRecords.isNotEmpty()) {
             val indexToScroll = inboxRecords.indexOfFirst { it.id == recordId }
             Log.d(TAG, "INBOX view is active. Searching for record. Found index: $indexToScroll")
             if (indexToScroll != -1) {

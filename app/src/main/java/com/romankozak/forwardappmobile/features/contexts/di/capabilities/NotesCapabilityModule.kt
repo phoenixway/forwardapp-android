@@ -12,16 +12,15 @@ import dagger.multibindings.IntoSet
 @Module
 @InstallIn(SingletonComponent::class)
 object NotesCapabilityModule {
-
     @Provides
     @IntoSet
     fun provideNotesCapability(): Capability {
-        return NotesCapability 
+        return NotesCapability
     }
 
     @Provides
     @IntoSet
     fun provideNotesCapabilityDescriptor(): CapabilityDescriptor {
-        return NotesCapability.descriptor 
+        return NotesCapability.descriptor
     }
 }

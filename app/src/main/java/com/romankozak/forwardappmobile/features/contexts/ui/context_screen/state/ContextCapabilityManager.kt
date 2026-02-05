@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
  */
 class ContextCapabilityManager(
     private val capabilityGate: CapabilityGate,
-    private val capabilityHandler: ContextCapabilityHandler
+    private val capabilityHandler: ContextCapabilityHandler,
 ) {
     private val _enabledCapabilities = MutableStateFlow<Set<CapabilityId>>(emptySet())
     val enabledCapabilities: StateFlow<Set<CapabilityId>> = _enabledCapabilities.asStateFlow()
@@ -30,8 +30,8 @@ class ContextCapabilityManager(
      * Перевіряє, чи доступна певна можливість
      */
     fun hasCapability(capabilityId: CapabilityId): Boolean {
-        return capabilityGate.isEnabled(capabilityId) && 
-               _enabledCapabilities.value.contains(capabilityId)
+        return capabilityGate.isEnabled(capabilityId) &&
+            _enabledCapabilities.value.contains(capabilityId)
     }
 
     /**

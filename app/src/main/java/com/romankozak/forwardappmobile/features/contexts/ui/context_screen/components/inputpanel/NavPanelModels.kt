@@ -30,7 +30,7 @@ data class NavPanelActions(
 
 data class OptionsMenuActions(
     val onEditList: () -> Unit,
-    val onToggleProjectManagement: () -> Unit,
+    val onToggleProjectManagement: (Boolean) -> Unit,
     val onStartTrackingCurrentProject: () -> Unit,
     val onShareList: () -> Unit,
     val onImportFromMarkdown: () -> Unit,
@@ -41,6 +41,7 @@ data class OptionsMenuActions(
     val onDeleteList: () -> Unit,
     val onSetReminder: () -> Unit,
     val onShowDisplayPropertiesClick: () -> Unit,
+    val onAddMilestone: (String) -> Unit,
 )
 
 // Ця модель тепер доступна у всьому пакеті
