@@ -25,6 +25,7 @@ signing.properties
 # Gradle / Kotlin / Android build artifacts
 **/build/
 **/build/**
+dist/**
 apps/android/build/
 forwardapp-devtools/context/.Context.md.kate-swp
 .aider*
