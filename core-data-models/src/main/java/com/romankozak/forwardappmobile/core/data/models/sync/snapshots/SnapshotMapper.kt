@@ -198,7 +198,7 @@ fun RelatedLinkSnapshot.toEntity(): RelatedLink =
     RelatedLink(type?.let { enumValueOf<LinkType>(it) }, target, displayName)
 
 fun RecentProjectEntry.toSnapshot(): RecentProjectEntrySnapshot =
-    RecentProjectEntrySnapshot(contextId, timestamp)
+    RecentProjectEntrySnapshot(contextId ?: "", timestamp)
 fun RecentProjectEntrySnapshot.toEntity(): RecentItem = RecentItem(
     id = this.contextId,
     type = RecentItemType.PROJECT,

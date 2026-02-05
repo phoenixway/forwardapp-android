@@ -113,58 +113,164 @@ class FullBackupLocalDataSourceImpl
         }
 
         private suspend fun insertBundleData(bundle: SnapshotBundle) {
-            // 1. Глобальні налаштування та Ролі
+            Log.d("SyncV2", "--- Starting data insertion from SnapshotBundle V2 ---")
+
+            // Insertion order is critical to avoid foreign key constraint violations.
+            // Independent entities are inserted first.
+
+            Log.d("SyncV2", "Inserting StructurePresets: ${bundle.contextRoleProfiles.size}")
             structurePresetDao.insertAll(bundle.contextRoleProfiles.map { it.toEntity() })
+
+            Log.d("SyncV2", "Inserting SystemApps: ${bundle.systemApps.size}")
             systemAppDao.insertAll(bundle.systemApps.map { it.toEntity() })
+
+            Log.d("SyncV2", "Inserting ConversationFolders: ${bundle.conversationFolders.size}")
             conversationFolderDao.insertAll(bundle.conversationFolders.map { it.toEntity() })
 
-            // 2. Контексти та Цілі
+            Log.d("SyncV2", "Inserting Contexts: ${bundle.contexts.size}")
             contextDao.insertAll(bundle.contexts.map { it.toEntity() })
-            goalDao.insertAll(bundle.goals.map { it.toEntity() })
-            structurePresetItemDao.insertAll(bundle.contextRoleProfileItems.map { it.toEntity() })
 
-            // 3. Конфігурації та Плани
-            contextStructureDao.insertAll(bundle.contextConfigurations.map { it.toEntity() })
-            contextStructureDao.insertAllItems(bundle.projectStructureItems.map { it.toEntity() })
+            val validContextIds = bundle.contexts.map { it.id }.toSet()
+            val missionsToInsert = bundle.tacticalMissions.map { missionSnapshot ->
+                if (missionSnapshot.projectId != null && missionSnapshot.projectId !in validContextIds) {
+                    Log.w("SyncData", "TacticalMission ${missionSnapshot.id} references non-existent Context ${missionSnapshot.projectId}. Setting projectId to null.")
+                    missionSnapshot.copy(projectId = null)
+                } else {
+                    missionSnapshot
+                }
+            }.map { it.toEntity() }
+            Log.d("SyncV2", "Inserting TacticalMissions: ${missionsToInsert.size}")
+            tacticalMissionDao.insertMissions(missionsToInsert)
+
+            Log.d("SyncV2", "Inserting DayPlans: ${bundle.dayPlans.size}")
             dayPlanDao.insertPlans(bundle.dayPlans.map { it.toEntity() })
+
+            Log.d("SyncV2", "Inserting Checklists: ${bundle.checklists.size}")
             checklistDao.insertChecklists(bundle.checklists.map { it.toEntity() })
 
-            // 4. Завдання, Повідомлення та Нотатки
-            dayTaskDao.insertTasks(bundle.dayTasks.map { it.toEntity() })
-            checklistDao.insertItems(bundle.checklistItems.map { it.toEntity() })
-            chatDao.insertConversations(bundle.conversations.map { it.toEntity() })
-            chatDao.insertMessages(bundle.chatMessages.map { it.toEntity() })
+            Log.d("SyncV2", "Inserting NoteDocuments: ${bundle.documents.size}")
             noteDocumentDao.insertAllDocuments(bundle.documents.map { it.toEntity() })
+
+            Log.d("SyncV2", "Inserting Scripts: ${bundle.scripts.size}")
             scriptDao.insertAll(bundle.scripts.map { it.toEntity() })
 
-            // 5. Логи та Атомарні дані
-            activityRecordDao.insertAll(bundle.activityRecords.map { it.toEntity() })
-            inboxRecordDao.insertAll(bundle.inbox.map { it.toEntity() })
-            contextLogDao.insertLogs(bundle.logs.map { it.toEntity() })
-            contextArtifactDao.insertAll(bundle.artifacts.map { it.toEntity() })
+            Log.d("SyncV2", "Inserting Attachments: ${bundle.attachments.size}")
+            attachmentDao.insertAttachments(bundle.attachments.map { it.toEntity() })
 
-            // 6. Метрики та RPG
-            dailyMetricDao.insertMetrics(bundle.dailyMetrics.map { it.toEntity() })
+            Log.d("SyncV2", "Inserting RecurringTasks: ${bundle.recurringTasks.size}")
             recurringTaskDao.insertAll(bundle.recurringTasks.map { it.toEntity() })
+
+            Log.d("SyncV2", "Inserting LifeSystemStates: ${bundle.lifeSystemStates.size}")
             lifeSystemStateDao.insertAll(bundle.lifeSystemStates.map { it.toEntity() })
 
-            // 7. Вкладення та Cross-references
-            attachmentDao.insertAttachments(bundle.attachments.map { it.toEntity() })
-            attachmentDao.insertContextAttachmentCrossRefs(bundle.crossRefs.map { it.toEntity() })
-
-            // 8. Tactical Domain
-            tacticalMissionDao.insertMissions(bundle.tacticalMissions.map { it.toEntity() })
-            tacticalMissionDao.insertMissionAttachments(bundle.tacticalMissionAttachments.map { it.toEntity() })
-
-            // 9. Misc
-            reminderDao.insertAll(bundle.reminders.map { it.toEntity() })
+            Log.d("SyncV2", "Inserting BacklogItems: ${bundle.backlogItems.size}")
             backlogItemDao.insertAll(bundle.backlogItems.map { it.toEntity() })
-            backlogOrderDao.insertAll(bundle.backlogOrders.map { it.toEntity() })
-            recentItemDao.insertAllSync(bundle.recentProjectEntries.map { it.toEntity() })
+
+            Log.d("SyncV2", "Inserting InboxRecords: ${bundle.inbox.size}")
+            inboxRecordDao.insertAll(bundle.inbox.map { it.toEntity() })
+
+            Log.d("SyncV2", "Inserting LinkItems: ${bundle.linkItemEntities.size}")
             linkItemDao.insertAll(bundle.linkItemEntities.map { it.toEntity() })
+
+            Log.d("SyncV2", "Inserting AiInsights: ${bundle.aiInsights.size}")
             aiInsightDao.upsertAll(bundle.aiInsights.map { it.toEntity() })
+
+            Log.d("SyncV2", "Inserting AiEvents: ${bundle.aiEvents.size}")
             aiEventDao.insertAll(bundle.aiEvents.map { it.toEntity() })
 
+            // Level 2: Dependent entities
+            Log.d("SyncV2", "Inserting Goals: ${bundle.goals.size}")
+            goalDao.insertAll(bundle.goals.map { it.toEntity() }) // Depends on Context
+
+            Log.d("SyncV2", "Inserting StructurePresetItems: ${bundle.contextRoleProfileItems.size}")
+            structurePresetItemDao.insertAll(bundle.contextRoleProfileItems.map { it.toEntity() }) // Depends on ContextRoleProfile
+
+            Log.d("SyncV2", "Inserting ContextConfigurations: ${bundle.contextConfigurations.size}")
+            contextStructureDao.insertAll(bundle.contextConfigurations.map { it.toEntity() }) // Depends on Context
+
+            Log.d("SyncV2", "Inserting ProjectStructureItems: ${bundle.projectStructureItems.size}")
+            contextStructureDao.insertAllItems(bundle.projectStructureItems.map { it.toEntity() }) // Depends on ContextConfiguration
+
+            Log.d("SyncV2", "Inserting ActivityRecords: ${bundle.activityRecords.size}")
+            activityRecordDao.insertAll(bundle.activityRecords.map { it.toEntity() }) // Depends on Context
+
+            val validDayPlanIds = bundle.dayPlans.map { it.id }.toSet()
+            val validGoalIds = bundle.goals.map { it.id }.toSet()
+            val validActivityRecordIds = bundle.activityRecords.map { it.id }.toSet()
+            val validRecurringTaskIds = bundle.recurringTasks.map { it.id }.toSet()
+
+            val dayTasksToInsert = bundle.dayTasks.mapNotNull { taskSnapshot ->
+                // Перевірка наявності батьківського DayPlan
+                if (taskSnapshot.dayPlanId !in validDayPlanIds) {
+                    Log.w("SyncData", "DayTask ${taskSnapshot.id} references non-existent DayPlan ${taskSnapshot.dayPlanId}. Skipping this task.")
+                    return@mapNotNull null
+                }
+
+                var sanitizedTask = taskSnapshot
+                // Перевірка та очищення Goal ID
+                if (sanitizedTask.goalId != null && sanitizedTask.goalId !in validGoalIds) {
+                    Log.w("SyncData", "DayTask ${sanitizedTask.id} references non-existent Goal ${sanitizedTask.goalId}. Setting goalId to null.")
+                    sanitizedTask = sanitizedTask.copy(goalId = null)
+                }
+
+                // Перевірка та очищення Project ID
+                if (sanitizedTask.projectId != null && sanitizedTask.projectId !in validContextIds) {
+                    Log.w("SyncData", "DayTask ${sanitizedTask.id} references non-existent Context ${sanitizedTask.projectId}. Setting projectId to null.")
+                    sanitizedTask = sanitizedTask.copy(projectId = null)
+                }
+
+                if (sanitizedTask.activityRecordId != null && sanitizedTask.activityRecordId !in validActivityRecordIds) {
+                    Log.w("SyncData", "DayTask ${sanitizedTask.id} references non-existent ActivityRecord ${sanitizedTask.activityRecordId}. Setting activityRecordId to null.")
+                    sanitizedTask = sanitizedTask.copy(activityRecordId = null)
+                }
+
+                if (sanitizedTask.recurringTaskId != null && sanitizedTask.recurringTaskId !in validRecurringTaskIds) {
+                    Log.w("SyncData", "DayTask ${sanitizedTask.id} references non-existent RecurringTask ${sanitizedTask.recurringTaskId}. Setting recurringTaskId to null.")
+                    sanitizedTask = sanitizedTask.copy(recurringTaskId = null)
+                }
+
+                sanitizedTask
+            }
+
+            Log.d("SyncV2", "Inserting DayTasks: ${dayTasksToInsert.size} (after filtering)")
+            dayTaskDao.insertTasks(dayTasksToInsert.map { it.toEntity() }) // Depends on DayPlan
+
+            Log.d("SyncV2", "Inserting ChecklistItems: ${bundle.checklistItems.size}")
+            checklistDao.insertItems(bundle.checklistItems.map { it.toEntity() }) // Depends on Checklist
+
+            Log.d("SyncV2", "Inserting Conversations: ${bundle.conversations.size}")
+            chatDao.insertConversations(bundle.conversations.map { it.toEntity() }) // Depends on ConversationFolder
+
+            Log.d("SyncV2", "Inserting ChatMessages: ${bundle.chatMessages.size}")
+            chatDao.insertMessages(bundle.chatMessages.map { it.toEntity() }) // Depends on Conversation
+
+            Log.d("SyncV2", "Inserting ContextLogs: ${bundle.logs.size}")
+            contextLogDao.insertLogs(bundle.logs.map { it.toEntity() }) // Depends on Context
+
+            Log.d("SyncV2", "Inserting ContextArtifacts: ${bundle.artifacts.size}")
+            contextArtifactDao.insertAll(bundle.artifacts.map { it.toEntity() }) // Depends on Context
+
+            Log.d("SyncV2", "Inserting DailyMetrics: ${bundle.dailyMetrics.size}")
+            dailyMetricDao.insertMetrics(bundle.dailyMetrics.map { it.toEntity() }) // Depends on DayPlan
+
+            Log.d("SyncV2", "Inserting ContextAttachmentCrossRefs: ${bundle.crossRefs.size}")
+            attachmentDao.insertContextAttachmentCrossRefs(bundle.crossRefs.map { it.toEntity() }) // Depends on Context and Attachment
+
+            Log.d("SyncV2", "Inserting TacticalMissionAttachments: ${bundle.tacticalMissionAttachments.size}")
+            tacticalMissionDao.insertMissionAttachments(bundle.tacticalMissionAttachments.map { it.toEntity() }) // Depends on TacticalMission and Attachment
+
+            Log.d("SyncV2", "Inserting Reminders: ${bundle.reminders.size}")
+            reminderDao.insertAll(bundle.reminders.map { it.toEntity() }) // Depends on Context
+
+
+            Log.d("SyncV2", "Inserting BacklogOrders: ${bundle.backlogOrders.size}")
+            backlogOrderDao.insertAll(bundle.backlogOrders.map { it.toEntity() }) // Depends on BacklogItem
+
+            Log.d("SyncV2", "Inserting RecentProjectEntries: ${bundle.recentProjectEntries.size}")
+            recentItemDao.insertAllSync(bundle.recentProjectEntries.map { it.toEntity() }) // Depends on Context
+
+            Log.d("SyncV2", "--- Data insertion finished. Ensuring system contexts. ---")
+            // Ensure system contexts exist after all other data is inserted.
             systemContextEnsurer.ensureAllSystemContextsExist()
         }
 
@@ -190,9 +296,10 @@ class FullBackupLocalDataSourceImpl
 
         override suspend fun restoreDatabaseFromBackup(content: DatabaseContent) {
             val snapshotBundle = SyncMapper.migrateV1ToV2(content)
+            // Clear tables outside of transaction to prevent nesting issues
+            clearAllTables()
             db.withTransaction {
                 Log.d("SyncV1", "Migrating Legacy V1 to Snapshot V2")
-                clearAllTables()
                 insertBundleData(snapshotBundle)
             }
         }

@@ -11,12 +11,7 @@
   <component name="ChangeListManager">
     <list default="true" id="dec4991f-6ae0-4b6d-adb7-135ff1c91165" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/repository/ContextRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/repository/ContextRepository.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/repository/GoalRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/data/repository/GoalRepository.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/dao/ContextDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/dao/ContextDao.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/dao/GoalDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/data/dao/GoalDao.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreenViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreenViewModel.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/sync/FullBackupLocalDataSourceImpl.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/core/sync/FullBackupLocalDataSourceImpl.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
