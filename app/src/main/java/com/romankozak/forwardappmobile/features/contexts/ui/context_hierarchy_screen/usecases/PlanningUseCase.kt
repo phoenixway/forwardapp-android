@@ -110,25 +110,18 @@ class PlanningUseCase
             baseFilterState
                 .onEach { state ->
                     var ready = _isReadyForFiltering.value
+                    if (!ready) {
+                        Log.d("HierarchyDebug", "PlanningUseCase marking ready on first emission.")
+                        _isReadyForFiltering.value = true
+                        ready = true
+                    }
+
                     if (state.flatList.isNotEmpty()) {
                         Log.d(
                             "HierarchyDebug",
                             "PlanningUseCase storing lastNonEmptyProjects size=${state.flatList.size}",
                         )
                         lastNonEmptyProjects.value = state.flatList
-                        if (!ready) {
-                            Log.d(
-                                "HierarchyDebug",
-                                "PlanningUseCase marking ready due to non-empty flatList size=${state.flatList.size}",
-                            )
-                            _isReadyForFiltering.value = true
-                            ready = true
-                        }
-                    } else if (!ready) {
-                        Log.d(
-                            "HierarchyDebug",
-                            "PlanningUseCase still waiting for projects (current flatList empty)",
-                        )
                     }
 
                     val effectiveFlatList =
