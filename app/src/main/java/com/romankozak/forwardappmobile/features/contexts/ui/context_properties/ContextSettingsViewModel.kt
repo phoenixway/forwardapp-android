@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Calendar
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -81,17 +82,12 @@ class ContextSettingsViewModel
                     } ?: "Стандартний (Default)"
 
                 // 3. Формуємо мапу фіч, використовуючи CapabilityGate для перевірки реального стану
-                val structureFeatures =
-                    mapOf(
-                        "Inbox" to isEnabledForConfig(CapabilityId("inbox"), structure),
-                        "Log" to isEnabledForConfig(CapabilityId("log"), structure),
-                        "Artifact" to isEnabledForConfig(CapabilityId("artifact"), structure),
-                        "Advanced" to isEnabledForConfig(CapabilityId("advanced"), structure),
-                        "Dashboard" to isEnabledForConfig(CapabilityId("dashboard"), structure),
-                        "Backlog" to isEnabledForConfig(CapabilityId("backlog"), structure),
-                        "Attachments" to isEnabledForConfig(CapabilityId("attachments"), structure),
-                        "Auto link subprojects" to isEnabledForConfig(CapabilityId("auto_link_subprojects"), structure),
-                    )
+                val allKnownCapabilities = ContextRoleRegistry.getAllKnownCapabilities()
+                val structureFeatures = allKnownCapabilities.associate { capId ->
+                    val key = capId.raw.replace("_", " ")
+                        .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }
+                    key to isEnabledForConfig(capId, structure)
+                }
 
                 // 4. Оновлюємо стан UI одним атомарним блоком
                 _uiState.update { state ->
@@ -272,11 +268,20 @@ class ContextSettingsViewModel
                 // 2. Отримуємо можливості, що відповідають цьому пресету
                 val presetCapabilities = ContextRoleRegistry.getCapabilitiesForRole(code)
 
-                // 3. Оновлюємо конфігурацію в БД, щоб прапорці відповідали пресету
+                // 3. Розділяємо можливості на legacy та експериментальні
+                val allKnownLegacyCaps =
+                    setOf(
+                        "inbox", "log", "artifact", "advanced", "dashboard", "backlog", "attachments",
+                        "auto_link_subprojects",
+                    )
+                val experimentalIdsFromPreset = presetCapabilities.filter { it.raw !in allKnownLegacyCaps }
+
+                // 4. Оновлюємо конфігурацію в БД, щоб прапорці відповідали пресету
                 val structure = contextStructureRepository.ensureStructure(pid)
                 val updatedStructure =
                     structure.copy(
                         basePresetCode = code,
+                        // Оновлення legacy-прапорців
                         enableInbox = presetCapabilities.contains(CapabilityId("inbox")),
                         enableLog = presetCapabilities.contains(CapabilityId("log")),
                         enableArtifact = presetCapabilities.contains(CapabilityId("artifact")),
@@ -285,10 +290,12 @@ class ContextSettingsViewModel
                         enableBacklog = presetCapabilities.contains(CapabilityId("backlog")),
                         enableAttachments = presetCapabilities.contains(CapabilityId("attachments")),
                         enableAutoLinkSubprojects = presetCapabilities.contains(CapabilityId("auto_link_subprojects")),
+                        // Оновлення списку експериментальних ID
+                        experimentalCapabilityIds = experimentalIdsFromPreset,
                     )
                 contextStructureRepository.updateStructure(updatedStructure)
 
-                // 4. Перезавантажуємо дані, щоб UI оновився згідно зі змінами
+                // 5. Перезавантажуємо дані, щоб UI оновився згідно зі змінами
                 loadExistingProject(pid)
             }
         }
