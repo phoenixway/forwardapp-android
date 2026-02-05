@@ -538,4 +538,10 @@ class ContextRepository
                 listItemRepository.deleteListItems(backlogIds)
             }
         }
+
+    // У файлі ContextRepository.kt додайте:
+    fun getSubprojectsByParentIdFlow(parentId: String): Flow<List<Context>> {
+        return contextDao.getSubprojectsByParentIdFlow(parentId)
+    }
+
     }

@@ -188,6 +188,7 @@ class ContextScreenViewModel
         // Exposed StateFlows
         val uiState: StateFlow<ContextUiState> = stateManager.uiState
         val listScrollState = LazyListState()
+    
         val allTags: StateFlow<List<String>> = tagManager.allTags
         val allContexts: StateFlow<List<String>> = tagManager.allContexts
         val contextMarkerToEmojiMap: StateFlow<Map<String, String>> = contextHandler.contextMarkerToEmojiMap
@@ -300,25 +301,114 @@ class ContextScreenViewModel
             activityManager.observeCurrentActivity()
         }
 
-        private fun setupContextObserver() {
-            viewModelScope.launch {
-                contextIdFlow
-                    .flatMapLatest { contextId ->
-                        if (contextId.isBlank()) {
-                            flowOf(emptyList())
-                        } else {
-                            contextRepository.getContextContentStream(contextId)
+    private fun setupContextObserver() {
+        viewModelScope.launch {
+            contextIdFlow
+                .flatMapLatest { contextId ->
+                    if (contextId.isBlank()) {
+                        flowOf(ContextData.Empty)
+                    } else {
+                        combine(
+                            contextRepository.getContextByIdFlow(contextId),
+                            listItemRepository.getItemsForContextStream(contextId),
+                            contextStructureRepository.observeStructureOnly(contextId),
+                            contextLogRepository.getContextLogsStream(contextId),
+                            checklistRepository.getChecklistsForContext(contextId),
+                            noteDocumentRepository.getDocumentsForContext(contextId),
+                            reminderRepository.getRemindersForEntityFlow(contextId),
+                            recentItemsRepository.getRecentItemsForContextFlow(contextId),
+                            noteRepository.getNotesForContext(contextId),
+                            goalRepository.getGoalsByContextIdFlow(contextId),
+                            contextRepository.getSubprojectsByParentIdFlow(contextId),
+                        ) { args: Array<Any?> ->
+                            val context = args[0] as? com.romankozak.forwardappmobile.core.data.models.entities.Context
+                            val rawItems = (args[1] as? List<*>)?.filterIsInstance<BacklogItem>() ?: emptyList()
+                            val checklists = (args[4] as? List<*>)?.filterIsInstance<ChecklistEntity>() ?: emptyList()
+                            val noteDocuments = (args[5] as? List<*>)?.filterIsInstance<NoteDocumentEntity>() ?: emptyList()
+                            val reminders = (args[6] as? List<*>)?.filterIsInstance<Reminder>() ?: emptyList()
+                            val goals = (args[9] as? List<*>)?.filterIsInstance<Goal>() ?: emptyList()
+                            val subprojects = (args[10] as? List<*>)?.filterIsInstance<com.romankozak.forwardappmobile.core.data.models.entities.Context>() ?: emptyList()
+
+                            // Явна типізація результату when як BacklogItemContent?
+                            val items: List<BacklogItemContent> = rawItems.mapNotNull { item ->
+                                val itemReminders = reminders.filter { it.entityId == item.entityId }
+
+                                val result: BacklogItemContent? = when (item.itemType) {
+                                    "GOAL" -> {
+                                        goals.find { it.id == item.entityId }?.let { foundGoal ->
+                                            BacklogItemContent.GoalItem(
+                                                goal = foundGoal,
+                                                backlogItem = item,
+                                                reminders = itemReminders,
+                                            )
+                                        }
+                                    }
+                                    "PROJECT" -> {
+                                        subprojects.find { it.id == item.entityId }?.let { foundSubProject ->
+                                            BacklogItemContent.SublistItem(
+                                                project = foundSubProject,
+                                                backlogItem = item,
+                                                reminders = itemReminders,
+                                            )
+                                        }
+                                    }
+                                    "NOTE_DOCUMENT" -> {
+                                        noteDocuments.find { it.id == item.entityId }?.let { foundDoc ->
+                                            BacklogItemContent.NoteDocumentItem(
+                                                document = foundDoc,
+                                                backlogItem = item,
+                                            )
+                                        }
+                                    }
+                                    "CHECKLIST" -> {
+                                        checklists.find { it.id == item.entityId }?.let { foundChk ->
+                                            BacklogItemContent.ChecklistItem(
+                                                checklist = foundChk,
+                                                backlogItem = item,
+                                            )
+                                        }
+                                    }
+                                    "LINK" -> null
+                                    else -> null
+                                }
+
+                                result
+                            }
+
+                            val config = args[2] as? ContextConfiguration
+                            val logs = (args[3] as? List<*>)?.filterIsInstance<ContextLog>() ?: emptyList()
+                            val recentItems = (args[7] as? List<*>)?.filterIsInstance<RecentItem>() ?: emptyList()
+                            val notes = (args[8] as? List<*>)?.filterIsInstance<LegacyNoteEntity>() ?: emptyList()
+
+                            ContextData.Loaded(
+                                context = context,
+                                items = items,
+                                config = config ?: ContextConfiguration.default(contextId),
+                                logs = logs,
+                                checklists = checklists,
+                                noteDocuments = noteDocuments,
+                                reminders = reminders,
+                                recentItems = recentItems,
+                                notes = notes,
+                            )
                         }
                     }
-                    .collect { items ->
-                        _listContent.value = items
+                }
+                .collect { data ->
+                    when (data) {
+                        is ContextData.Loaded -> {
+                            _listContent.value = data.items
+                            stateManager.updateContext(data)
+                            capabilityManager.updateCapabilities(data.config)
+                        }
+                        is ContextData.Empty -> {
+                            _listContent.value = emptyList()
+                            stateManager.clear()
+                        }
                     }
-            }
+                }
         }
-
-        // Navigation
-// File: ContextScreenViewModel.kt
-
+    }
     override fun onBackPressed(): Boolean {
         viewModelScope.launch {
             // Прибираємо null, бо це значення за замовчуванням (виправляє WEAK_WARNING)

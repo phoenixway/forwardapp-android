@@ -199,4 +199,8 @@ class GoalRepository
         suspend fun findContextIdForGoal(goalId: String): String? = listItemDao.findContextIdForGoal(goalId)
 
         suspend fun getAllGoals(): List<Goal> = goalDao.getAll()
+
+    fun getGoalsByContextIdFlow(contextId: String): Flow<List<Goal>> {
+        return goalDao.getGoalsByContextIdFlow(contextId)
+    }
     }

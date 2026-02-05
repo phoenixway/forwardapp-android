@@ -365,8 +365,16 @@ private fun ProjectScaffold(
                 onSaveArtifact = viewModel::onSaveArtifact,
                 onEditArtifact = viewModel::onEditArtifact,
                 onRemindersClick = { item ->
-                    selectedItemForReminders = item
-                    showRemindersListDialog = true
+                    // Використовуємо 'as?', щоб не падати, якщо прийшов не той тип
+                    val safeItem = item as? BacklogItemContent
+
+                    if (safeItem != null) {
+                        selectedItemForReminders = safeItem
+                        showRemindersListDialog = true
+                    } else {
+                        // Це допоможе вам побачити в логах, що саме прилітає насправді
+                        Log.e("TYPE_ERROR", "Очікували BacklogItemContent, але прийшло: ${item::class.java.simpleName}")
+                    }
                 },
                 onShowProjectProperties = {
                     menuExpanded = false
