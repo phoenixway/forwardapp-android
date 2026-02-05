@@ -7,7 +7,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ListAlt
 import androidx.compose.material.icons.automirrored.outlined.Notes
 import androidx.compose.material.icons.filled.Attachment
+import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material.icons.outlined.Dashboard
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.ViewModule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -31,10 +35,15 @@ fun ViewModeToggle(
     // 1. Фільтрація доступних екранів
     val availableViews =
         remember(state.activeCapabilities) {
-            ContextViewMode.entries.filter { mode ->
-                val capId = mode.toCapabilityId()
-                // ПРАВИЛО: Показуємо, якщо є дозвіл у Gate АБО це базовий Backlog
-                state.activeCapabilities.contains(capId) || mode == ContextViewMode.BACKLOG
+            val views =
+                ContextViewMode.entries.filter { mode ->
+                    state.activeCapabilities.contains(mode.toCapabilityId())
+                }
+
+            if (views.isEmpty()) {
+                listOf(ContextViewMode.DASHBOARD)
+            } else {
+                views
             }.sortedBy { it.orderPriority() }.reversed()
         }
 
@@ -98,6 +107,10 @@ private fun ContextViewMode.orderPriority() =
         ContextViewMode.INBOX -> 2
         ContextViewMode.ADVANCED -> 3
         ContextViewMode.ATTACHMENTS -> 4
+        ContextViewMode.NOTES -> 5
+        ContextViewMode.LOG -> 6
+        ContextViewMode.ARTIFACT -> 7
+        ContextViewMode.VET_CASE -> 8
     }
 
 private fun ContextViewMode.displayName(): String {
@@ -113,9 +126,10 @@ private fun ContextViewMode.toIcon(): ImageVector =
         ContextViewMode.ADVANCED -> Icons.Outlined.Dashboard
         ContextViewMode.ATTACHMENTS -> Icons.Default.Attachment
         ContextViewMode.DASHBOARD -> Icons.Outlined.ViewModule
-        // ДОДАЙ СЮДИ НОВІ РЕЖИМИ:
-        // ContextViewMode.NOTES -> Icons.Outlined.Description
-        // ContextViewMode.VET_CASE -> Icons.Default.MedicalServices
+        ContextViewMode.NOTES -> Icons.Outlined.Description
+        ContextViewMode.VET_CASE -> Icons.Default.MedicalServices
+        ContextViewMode.LOG -> Icons.Outlined.History
+        ContextViewMode.ARTIFACT -> Icons.Outlined.Inventory2
     }
 
 private fun ContextViewMode.getDefaultInputMode() =

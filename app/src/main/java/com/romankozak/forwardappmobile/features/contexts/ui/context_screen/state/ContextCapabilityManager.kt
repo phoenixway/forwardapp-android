@@ -50,14 +50,7 @@ class ContextCapabilityManager(
      */
     private fun calculateEffectiveCapabilities(config: ContextConfiguration): Set<CapabilityId> {
         return buildSet {
-            // 1. Можливості з пресету ролі
-            val preset = config.basePresetCode ?: "default"
-            addAll(ContextRoleRegistry.getCapabilitiesForRole(preset))
-
-            // 2. Кастомні експериментальні можливості
-            addAll(config.experimentalCapabilityIds)
-
-            // 3. Legacy-прапорці (null трактуємо як true для базових фіч)
+            // 1. Legacy-прапорці є джерелом правди. null трактуємо як true для базових фіч.
             if (config.enableInbox != false) add(CapabilityId("inbox"))
             if (config.enableLog != false) add(CapabilityId("log"))
             if (config.enableArtifact != false) add(CapabilityId("artifact"))
@@ -65,9 +58,12 @@ class ContextCapabilityManager(
             if (config.enableBacklog != false) add(CapabilityId("backlog"))
             if (config.enableAttachments != false) add(CapabilityId("attachments"))
 
-            // Додаткові опціональні можливості
+            // 2. Додаткові опціональні можливості, які дефолтно вимкнені
             if (config.enableAdvanced == true) add(CapabilityId("advanced"))
             if (config.enableAutoLinkSubprojects == true) add(CapabilityId("auto_link_subprojects"))
+
+            // 3. Експериментальні фічі (не керовані через legacy-прапорці)
+            addAll(config.experimentalCapabilityIds)
         }
     }
 }

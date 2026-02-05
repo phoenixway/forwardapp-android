@@ -266,8 +266,29 @@ class ContextSettingsViewModel
         fun onApplyPreset(code: String) {
             val pid = projectId ?: return
             viewModelScope.launch {
+                // 1. Застосовуємо пресет (це оновить basePresetCode та, можливо, структуру)
                 structurePresetService.applyPresetToContext(pid, code)
-                _uiState.update { it.copy(basePresetCode = code) }
+
+                // 2. Отримуємо можливості, що відповідають цьому пресету
+                val presetCapabilities = ContextRoleRegistry.getCapabilitiesForRole(code)
+
+                // 3. Оновлюємо конфігурацію в БД, щоб прапорці відповідали пресету
+                val structure = contextStructureRepository.ensureStructure(pid)
+                val updatedStructure =
+                    structure.copy(
+                        basePresetCode = code,
+                        enableInbox = presetCapabilities.contains(CapabilityId("inbox")),
+                        enableLog = presetCapabilities.contains(CapabilityId("log")),
+                        enableArtifact = presetCapabilities.contains(CapabilityId("artifact")),
+                        enableAdvanced = presetCapabilities.contains(CapabilityId("advanced")),
+                        enableDashboard = presetCapabilities.contains(CapabilityId("dashboard")),
+                        enableBacklog = presetCapabilities.contains(CapabilityId("backlog")),
+                        enableAttachments = presetCapabilities.contains(CapabilityId("attachments")),
+                        enableAutoLinkSubprojects = presetCapabilities.contains(CapabilityId("auto_link_subprojects")),
+                    )
+                contextStructureRepository.updateStructure(updatedStructure)
+
+                // 4. Перезавантажуємо дані, щоб UI оновився згідно зі змінами
                 loadExistingProject(pid)
             }
         }
@@ -279,6 +300,8 @@ class ContextSettingsViewModel
             key: String,
             enabled: Boolean,
         ) {
+            if (key == "Dashboard") return
+
             // 1. Мапимо текстовий ключ UI на системний CapabilityId
             val capabilityId =
                 when (key) {
@@ -345,14 +368,14 @@ class ContextSettingsViewModel
                     // Зберігаємо список активованих ідентифікаторів можливостей
                     experimentalCapabilityIds = currentState.experimentalCapabilityIds,
                     // Підтримка legacy-колонок (для сумісності)
-                    enableInbox = currentState.features["Inbox"] ?: true,
-                    enableLog = currentState.features["Log"] ?: true,
-                    enableArtifact = currentState.features["Artifact"] ?: true,
-                    enableAdvanced = currentState.features["Advanced"] ?: false,
-                    enableDashboard = currentState.features["Dashboard"] ?: true,
-                    enableBacklog = currentState.features["Backlog"] ?: true,
-                    enableAttachments = currentState.features["Attachments"] ?: true,
-                    enableAutoLinkSubprojects = currentState.features["Auto link subprojects"] ?: true,
+                    enableInbox = currentState.features["Inbox"] == true,
+                    enableLog = currentState.features["Log"] == true,
+                    enableArtifact = currentState.features["Artifact"] == true,
+                    enableAdvanced = currentState.features["Advanced"] == true,
+                    enableDashboard = currentState.features["Dashboard"] == true,
+                    enableBacklog = currentState.features["Backlog"] == true,
+                    enableAttachments = currentState.features["Attachments"] == true,
+                    enableAutoLinkSubprojects = currentState.features["Auto link subprojects"] == true,
                     updatedAt = System.currentTimeMillis(),
                 )
 

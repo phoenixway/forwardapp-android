@@ -228,6 +228,7 @@ private fun FeaturesTabContent(
                         label = name,
                         isEnabled = isEnabled,
                         onToggle = { onToggleFeature(name, it) },
+                        isToggleEnabled = name != "Dashboard",
                     )
                 }
             }
@@ -240,6 +241,7 @@ fun FeatureRow(
     label: String,
     isEnabled: Boolean,
     onToggle: (Boolean) -> Unit,
+    isToggleEnabled: Boolean = true,
 ) {
     Row(
         modifier =
@@ -252,7 +254,7 @@ fun FeatureRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(label, style = MaterialTheme.typography.bodyMedium)
-        Switch(checked = isEnabled, onCheckedChange = onToggle)
+        Switch(checked = isEnabled, onCheckedChange = onToggle, enabled = isToggleEnabled)
     }
 }
 

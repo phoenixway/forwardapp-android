@@ -47,6 +47,10 @@ internal fun getViewModeText(viewMode: ContextViewMode): String =
         ContextViewMode.ADVANCED -> "Advanced View"
         ContextViewMode.ATTACHMENTS -> "Attachments"
         ContextViewMode.DASHBOARD -> "Dashboard"
+        ContextViewMode.LOG -> "Log"
+        ContextViewMode.ARTIFACT -> "Artifacts"
+        ContextViewMode.NOTES -> "Notes"
+        ContextViewMode.VET_CASE -> "Vet Case"
     }
 
 @Composable
@@ -117,6 +121,26 @@ private fun ViewModeIndicator(
                 Pair(
                     Color(0xFFFFF3E0).copy(alpha = 0.7f),
                     Color(0xFFEF6C00).copy(alpha = 0.8f),
+                )
+            ContextViewMode.LOG ->
+                Pair(
+                    Color(0xFFE0F2F7).copy(alpha = 0.7f), // Light blue-gray
+                    Color(0xFF0277BD).copy(alpha = 0.8f), // Darker blue
+                )
+            ContextViewMode.ARTIFACT ->
+                Pair(
+                    Color(0xFFFBE9E7).copy(alpha = 0.7f), // Light orange-brown
+                    Color(0xFFD84315).copy(alpha = 0.8f), // Darker orange
+                )
+            ContextViewMode.NOTES ->
+                Pair(
+                    Color(0xFFFFFDE7).copy(alpha = 0.7f), // Light yellow
+                    Color(0xFFFBC02D).copy(alpha = 0.8f), // Darker yellow
+                )
+            ContextViewMode.VET_CASE ->
+                Pair(
+                    Color(0xFFE8F5E9).copy(alpha = 0.7f), // Light green
+                    Color(0xFF388E3C).copy(alpha = 0.8f), // Darker green
                 )
         }
 

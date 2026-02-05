@@ -62,7 +62,7 @@ data class RelatedLink(
 
 
 
-enum class ContextViewMode { BACKLOG, INBOX, ADVANCED, ATTACHMENTS, DASHBOARD }
+enum class ContextViewMode { BACKLOG, INBOX, ADVANCED, ATTACHMENTS, DASHBOARD, LOG, ARTIFACT, NOTES, VET_CASE }
 
 enum class LinkType { CONTEXT, URL, OBSIDIAN }
 

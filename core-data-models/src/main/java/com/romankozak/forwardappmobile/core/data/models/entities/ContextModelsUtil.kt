@@ -16,7 +16,7 @@ class PathSegmentsConverter {
     }
 }
 /*
-enum class ContextViewMode { BACKLOG, INBOX, ADVANCED, ATTACHMENTS, DASHBOARD }
+
 
 enum class LinkType { CONTEXT, URL, OBSIDIAN }
 

@@ -33,9 +33,18 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capab
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.BacklogListScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.inbox.InboxView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ProjectDashboardView
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ContextManagementTab
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.ContextUiState
 
+import java.util.Locale
+
 private const val TAG = "BACKLOG_UI_DEBUG"
+
+private fun ContextViewMode.displayName(): String {
+    return this.name.lowercase(Locale.ROOT)
+        .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }
+        .replace("_", " ")
+}
 
 @Composable
 fun GoalDetailContent(
@@ -160,6 +169,62 @@ fun GoalDetailContent(
                 enableAttachments = uiState.enableAttachments,
             )
         }
+        ContextViewMode.LOG -> {
+            ProjectDashboardView(
+                modifier = modifier,
+                project = goalList,
+                projectLogs = projectLogs,
+                contextArtifact = projectArtifact,
+                onToggleProjectManagement = viewModel::onToggleProjectManagement,
+                onStatusUpdate = viewModel::onProjectStatusUpdate,
+                contextTimeMetrics = uiState.contextTimeMetrics,
+                onRecalculateTime = viewModel::onRecalculateTime,
+                onEditLog = onEditLog,
+                onDeleteLog = onDeleteLog,
+                onSaveArtifact = { content -> viewModel.onSaveArtifact(content) },
+                onEditArtifact = {/* TODO */},
+                selectedTab = ContextManagementTab.Log,
+                onTabSelected = viewModel::onDashboardTabSelected,
+                enableDashboard = uiState.enableDashboard,
+                enableLog = uiState.enableLog,
+                enableArtifact = uiState.enableArtifact,
+            )
+        }
+        ContextViewMode.ARTIFACT -> {
+            ProjectDashboardView(
+                modifier = modifier,
+                project = goalList,
+                projectLogs = projectLogs,
+                contextArtifact = projectArtifact,
+                onToggleProjectManagement = viewModel::onToggleProjectManagement,
+                onStatusUpdate = viewModel::onProjectStatusUpdate,
+                contextTimeMetrics = uiState.contextTimeMetrics,
+                onRecalculateTime = viewModel::onRecalculateTime,
+                onEditLog = onEditLog,
+                onDeleteLog = onDeleteLog,
+                onSaveArtifact = { content -> viewModel.onSaveArtifact(content) },
+                onEditArtifact = {/* TODO */},
+                selectedTab = ContextManagementTab.Artifact,
+                onTabSelected = viewModel::onDashboardTabSelected,
+                enableDashboard = uiState.enableDashboard,
+                enableLog = uiState.enableLog,
+                enableArtifact = uiState.enableArtifact,
+            )
+        }
+        ContextViewMode.NOTES, ContextViewMode.VET_CASE -> {
+            Column(
+                modifier = modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = "${uiState.currentViewMode.displayName()} View - Coming Soon!",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
     }
 }
 

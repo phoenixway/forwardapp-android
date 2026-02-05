@@ -44,6 +44,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URLDecoder
@@ -54,6 +55,26 @@ import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
 import android.content.Context as AndroidContext
+
+private fun ContextViewMode.toCapabilityId(): CapabilityId {
+    return when (this) {
+        ContextViewMode.ADVANCED -> CapabilityId("advanced")
+        else -> CapabilityId(this.name.lowercase(Locale.ROOT))
+    }
+}
+
+private fun ContextViewMode.orderPriority() =
+    when (this) {
+        ContextViewMode.DASHBOARD -> 0
+        ContextViewMode.BACKLOG -> 1
+        ContextViewMode.INBOX -> 2
+        ContextViewMode.ADVANCED -> 3
+        ContextViewMode.ATTACHMENTS -> 4
+        ContextViewMode.NOTES -> 5
+        ContextViewMode.LOG -> 6
+        ContextViewMode.ARTIFACT -> 7
+        ContextViewMode.VET_CASE -> 8
+    }
 
 @HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -301,9 +322,11 @@ class ContextScreenViewModel
             activityManager.observeCurrentActivity()
         }
 
-    private fun setupContextObserver() {
+        private fun setupContextObserver() {
         viewModelScope.launch {
-            contextIdFlow
+            combine(contextIdFlow, uiState.map { it.refreshTrigger }.distinctUntilChanged()) { contextId, _ ->
+                contextId
+            }
                 .flatMapLatest { contextId ->
                     if (contextId.isBlank()) {
                         flowOf(ContextData.Empty)
@@ -400,6 +423,36 @@ class ContextScreenViewModel
                             _listContent.value = data.items
                             stateManager.updateContext(data)
                             capabilityManager.updateCapabilities(data.config)
+
+                            val capabilities = capabilityManager.getEnabledCapabilities()
+                            stateManager.updateState { currentState ->
+                                val availableViews =
+                                    ContextViewMode.entries
+                                        .filter { mode -> capabilities.contains(mode.toCapabilityId()) }
+                                        .sortedBy { it.orderPriority() }
+                                        .reversed()
+
+                                val firstAvailable = availableViews.firstOrNull() ?: ContextViewMode.DASHBOARD
+
+                                val newViewMode =
+                                    if (currentState.currentViewMode in availableViews) {
+                                        currentState.currentViewMode
+                                    } else {
+                                        firstAvailable
+                                    }
+
+                                currentState.copy(
+                                    enableInbox = capabilities.contains(CapabilityId("inbox")),
+                                    enableLog = capabilities.contains(CapabilityId("log")),
+                                    enableArtifact = capabilities.contains(CapabilityId("artifact")),
+                                    enableBacklog = capabilities.contains(CapabilityId("backlog")),
+                                    enableDashboard = capabilities.contains(CapabilityId("dashboard")),
+                                    enableAttachments = capabilities.contains(CapabilityId("attachments")),
+                                    isProjectManagementEnabled = capabilities.contains(CapabilityId("advanced")),
+                                    experimentalCapabilityIds = data.config.experimentalCapabilityIds,
+                                    currentViewMode = newViewMode,
+                                )
+                            }
                         }
                         is ContextData.Empty -> {
                             _listContent.value = emptyList()
