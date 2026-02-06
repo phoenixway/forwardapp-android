@@ -15,7 +15,7 @@ import javax.inject.Inject
 
 import timber.log.Timber
 import java.io.File
-import com.romankozak.forwardappmobile.logging
+import com.romankozak.forwardappmobile.logging.*
 
 @HiltAndroidApp
 class ForwardAppMobileApplication : Application(), Configuration.Provider {
