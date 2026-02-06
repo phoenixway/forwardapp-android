@@ -12,7 +12,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
+import com.romankozak.forwardappmobile.core.storage.getDocumentsLogsDir
 import timber.log.Timber
 import java.io.File
 import com.romankozak.forwardappmobile.logging.*
