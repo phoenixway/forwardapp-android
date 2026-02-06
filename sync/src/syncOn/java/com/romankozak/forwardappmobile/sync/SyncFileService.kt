@@ -13,6 +13,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
+import timber.log.timber
 
 @Singleton
 class SyncFileService @Inject constructor(
@@ -30,7 +31,7 @@ class SyncFileService @Inject constructor(
     // === Legacy Methods (V1) ===
 
     suspend fun exportFullBackupToFile(): Result<String> = withContext(Dispatchers.IO) {
-        Log.d(tag, "Attempting to export full backup to file.")
+        Timber.tag(tag).d( "Attempting to export full backup to file.")
         try {
             val json = createFullBackupJsonString()
             val ts = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
@@ -38,13 +39,13 @@ class SyncFileService @Inject constructor(
 
             contentProvider.saveFile(name, json).fold(
                 onSuccess = {
-                    Log.i(tag, "Full backup successfully exported to file: $name")
+                    Timber.tag(tag).i("Full backup successfully exported to file: $name")
                     Result.success("Файл бекапу успішно збережено")
                 },
                 onFailure = { Result.failure(it) }
             )
         } catch (e: Exception) {
-            Log.e(tag, "Error exporting full backup", e)
+            Timber.tag(tag).e( "Error exporting full backup", e)
             Result.failure(e)
         }
     }
@@ -63,7 +64,7 @@ class SyncFileService @Inject constructor(
     }
 
     suspend fun importFullBackupFromFile(uriString: String): Result<String> = withContext(Dispatchers.IO) {
-        Log.d(tag, "Attempting to import full backup from URI: $uriString")
+        Timber.tag(tag).d( "Attempting to import full backup from URI: $uriString")
         try {
             val backupResult = parseBackupFile(uriString)
             if (backupResult.isFailure) {
@@ -74,29 +75,29 @@ class SyncFileService @Inject constructor(
             backupData.database?.let { localDataSource.restoreDatabaseFromBackup(it) }
             backupData.settings?.settings?.let { localDataSource.restoreSettings(it) }
 
-            Log.i(tag, "Full backup successfully imported from URI: $uriString")
+            Timber.tag(tag).i("Full backup successfully imported from URI: $uriString")
             Result.success("Дані успішно відновлено")
         } catch (e: Exception) {
-            Log.e(tag, "A critical error occurred during the import process.", e)
+            Timber.tag(tag).e("A critical error occurred during the import process.", e)
             Result.failure(e)
         }
     }
 
     suspend fun parseBackupFile(uriString: String): Result<FullAppBackup> = withContext(Dispatchers.IO) {
-        Log.d(tag, "Parsing backup file from URI: $uriString")
+        Timber.tag(tag).d("Parsing backup file from URI: $uriString")
         try {
             val jsonResult = contentProvider.readText(uriString)
             val jsonString = jsonResult.getOrThrow()
 
             if (jsonString.isBlank()) {
-                Log.w(tag, "Parse failed: Backup file is empty or blank.")
+                Timber.tag(tag).w( "Parse failed: Backup file is empty or blank.")
                 return@withContext Result.failure(Exception("Backup file is empty"))
             }
             val backupData = gson.fromJson(jsonString, FullAppBackup::class.java)
-            Log.d(tag, "Successfully parsed backup file object.")
+            Timber.tag(tag).d( "Successfully parsed backup file object.")
             Result.success(backupData)
         } catch (e: Exception) {
-            Log.e(tag, "Failed to parse backup file", e)
+            Timber.tag(tag).e( "Failed to parse backup file", e)
             Result.failure(e)
         }
     }
@@ -104,7 +105,7 @@ class SyncFileService @Inject constructor(
     // === New Snapshot-based Methods (V2) ===
 
     suspend fun exportFullBackupToFileV2(): Result<String> = withContext(Dispatchers.IO) {
-        Log.d(tag, "Attempting to export snapshot backup to file.")
+        Timber.tag(tag).d( "Attempting to export snapshot backup to file.")
         try {
             val json = createFullSnapshotJsonString()
             val ts = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
@@ -112,13 +113,13 @@ class SyncFileService @Inject constructor(
 
             contentProvider.saveFile(name, json).fold(
                 onSuccess = {
-                    Log.i(tag, "Full backup successfully exported to file: $name")
+                    Timber.tag(tag).i("Full backup successfully exported to file: $name")
                     Result.success("Файл бекапу (V2) успішно збережено")
                 },
                 onFailure = { Result.failure(it) }
             )
         } catch (e: Exception) {
-            Log.e(tag, "Error exporting snapshot backup", e)
+            Timber.tag(tag).e( "Error exporting snapshot backup", e)
             Result.failure(e)
         }
     }
@@ -137,7 +138,7 @@ class SyncFileService @Inject constructor(
     }
 
     suspend fun importFullBackupFromFileV2(uriString: String): Result<String> = withContext(Dispatchers.IO) {
-        Log.d(tag, "Attempting to import smart backup (V2) from URI: $uriString")
+        Timber.tag(tag).d( "Attempting to import smart backup (V2) from URI: $uriString")
         try {
             val jsonResult = contentProvider.readText(uriString)
             val jsonString = jsonResult.getOrThrow()
@@ -146,13 +147,13 @@ class SyncFileService @Inject constructor(
             val backupData = gson.fromJson(jsonString, FullAppBackup::class.java)
 
             val snapshotBundleToApply = if (backupData.snapshotBundle != null) {
-                Log.d(tag, "Successfully parsed as new SnapshotBundle format.")
+                Timber.tag(tag).d("Successfully parsed as new SnapshotBundle format.")
                 backupData.snapshotBundle!!
             } else if (backupData.database != null) {
-                Log.d(tag, "Parsed as legacy FullAppBackup format. Migrating to SnapshotBundle...")
+                Timber.tag(tag).d("Parsed as legacy FullAppBackup format. Migrating to SnapshotBundle...")
                 legacyMigrationMapper.toSnapshotBundle(backupData.database!!)
             } else {
-                Log.d(tag, "Could not parse as FullAppBackup, trying as raw DatabaseContent.")
+                Timber.tag(tag).d("Could not parse as FullAppBackup, trying as raw DatabaseContent.")
                 val databaseContent = gson.fromJson(jsonString, DatabaseContent::class.java)
                 legacyMigrationMapper.toSnapshotBundle(databaseContent)
             }
@@ -165,10 +166,10 @@ class SyncFileService @Inject constructor(
                 localDataSource.restoreSettings(it)
             }
 
-            Log.i(tag, "Smart backup successfully imported and merged from URI: $uriString")
+            Timber.tag(tag).i("Smart backup successfully imported and merged from URI: $uriString")
             Result.success("Дані успішно імпортовано та об'єднано (V2)")
         } catch (e: Exception) {
-            Log.e(tag, "A critical error occurred during the smart import process.", e)
+            Timber.tag(tag).e( "A critical error occurred during the smart import process.", e)
             Result.failure(e)
         }
     }
