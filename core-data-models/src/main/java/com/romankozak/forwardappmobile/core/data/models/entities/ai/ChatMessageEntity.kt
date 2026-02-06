@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.google.gson.annotations.SerializedName
 
 @Entity(
     tableName = "chat_messages",
@@ -18,13 +19,13 @@ import androidx.room.PrimaryKey
     indices = [Index(value = ["conversationId"])],
 )
 data class ChatMessageEntity(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val conversationId: Long,
-    val text: String,
-    val isFromUser: Boolean,
-    val isError: Boolean = false,
-    val timestamp: Long,
-    val isStreaming: Boolean = false,
-    val version: Long = 0L,
-    val isDeleted: Boolean = false
+    @PrimaryKey(autoGenerate = true) @SerializedName("id") val id: Long = 0,
+    @SerializedName("conversationId") val conversationId: Long,
+    @SerializedName("text") val text: String,
+    @SerializedName("isFromUser") val isFromUser: Boolean,
+    @SerializedName("isError") val isError: Boolean = false,
+    @SerializedName("timestamp") val timestamp: Long,
+    @SerializedName("isStreaming") val isStreaming: Boolean = false,
+    @SerializedName("version") val version: Long = 0L,
+    @SerializedName("isDeleted") val isDeleted: Boolean = false
 )

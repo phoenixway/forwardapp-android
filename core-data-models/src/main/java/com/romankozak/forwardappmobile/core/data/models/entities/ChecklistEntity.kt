@@ -21,17 +21,17 @@ import java.util.UUID
     indices = [Index(value = ["contextId"], name = "index_checklists_contextId")],
 )
 data class ChecklistEntity(
-    @PrimaryKey val id: String = UUID.randomUUID().toString(),
+    @PrimaryKey @SerializedName("id") val id: String = UUID.randomUUID().toString(),
     @SerializedName("contextId", alternate = ["projectId"])
     val contextId: String = "",
     @SerializedName("name", alternate = ["title"])
     var name: String,
     // Додаємо відсутнє поле:
-    val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis(),
-    val syncedAt: Long? = null,
-    val isDeleted: Boolean = false,
-    val version: Long = 0,
+    @SerializedName("createdAt") val createdAt: Long = System.currentTimeMillis(),
+    @SerializedName("updatedAt") val updatedAt: Long = System.currentTimeMillis(),
+    @SerializedName("syncedAt") val syncedAt: Long? = null,
+    @SerializedName("isDeleted") val isDeleted: Boolean = false,
+    @SerializedName("version") val version: Long = 0,
 )
 
 @Entity(
@@ -47,15 +47,15 @@ data class ChecklistEntity(
     indices = [Index(value = ["checklistId"], name = "index_checklist_items_checklistId")],
 )
 data class ChecklistItemEntity(
-    @PrimaryKey val id: String = UUID.randomUUID().toString(),
+    @PrimaryKey @SerializedName("id") val id: String = UUID.randomUUID().toString(),
     @SerializedName("checklistId")
     val checklistId: String,
     @SerializedName("content", alternate = ["text"])
     var content: String,
-    @ColumnInfo(defaultValue = "0") var isChecked: Boolean = false,
-    var itemOrder: Long = 0,
-    val updatedAt: Long? = null,
-    val syncedAt: Long? = null,
-    val isDeleted: Boolean = false,
-    val version: Long = 0,
+    @ColumnInfo(defaultValue = "0") @SerializedName("isChecked") var isChecked: Boolean = false,
+    @SerializedName("itemOrder") var itemOrder: Long = 0,
+    @SerializedName("updatedAt") val updatedAt: Long? = null,
+    @SerializedName("syncedAt") val syncedAt: Long? = null,
+    @SerializedName("isDeleted") val isDeleted: Boolean = false,
+    @SerializedName("version") val version: Long = 0,
 )

@@ -30,8 +30,8 @@ data class TacticalMission(
     val id: Long = 0,
     @SerializedName("b")
     val title: String,
-    val description: String?,
-    val startTime: Long? = null,
+    @SerializedName("description") val description: String?,
+    @SerializedName("startTime") val startTime: Long? = null,
     @SerializedName("e")
     val deadline: Long,
     @SerializedName("f")
@@ -42,7 +42,7 @@ data class TacticalMission(
     val projectId: String?,
     @SerializedName(value = "linkedProjectIds", alternate = ["i", "j"])
     val linkedProjectIds: List<String>? = emptyList(),
-    val linkedAttachmentIds: List<String>? = emptyList(),
+    @SerializedName("linkedAttachmentIds") val linkedAttachmentIds: List<String>? = emptyList(),
 )
 
 @Entity(
@@ -68,7 +68,7 @@ data class TacticalMission(
     ],
 )
 data class TacticalMissionAttachmentCrossRef(
-    val missionId: Long,
-    @ColumnInfo(name = "attachmentId")
+    @SerializedName("missionId") val missionId: Long,
+    @ColumnInfo(name = "attachmentId") @SerializedName("attachmentId")
     val attachmentId: String,
 )

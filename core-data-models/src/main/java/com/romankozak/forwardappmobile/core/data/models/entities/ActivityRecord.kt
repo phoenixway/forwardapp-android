@@ -10,29 +10,29 @@ import java.util.UUID
 @Entity(tableName = "activity_records")
 data class ActivityRecord(
     @PrimaryKey
-    val id: String = UUID.randomUUID().toString(),
-    val text: String,
-    val createdAt: Long = System.currentTimeMillis(),
-    val startTime: Long? = null,
-    val endTime: Long? = null,
-    val reminderTime: Long? = null,
+    @SerializedName("id") val id: String = UUID.randomUUID().toString(),
+    @SerializedName("text") val text: String,
+    @SerializedName("createdAt") val createdAt: Long = System.currentTimeMillis(),
+    @SerializedName("startTime") val startTime: Long? = null,
+    @SerializedName("endTime") val endTime: Long? = null,
+    @SerializedName("reminderTime") val reminderTime: Long? = null,
     @ColumnInfo(name = "target_id", index = true)
-    val targetId: String? = null,
+    @SerializedName("targetId") val targetId: String? = null,
     @ColumnInfo(name = "target_type")
-    val targetType: String? = null,
-    val updatedAt: Long? = null,
+    @SerializedName("targetType") val targetType: String? = null,
+    @SerializedName("updatedAt") val updatedAt: Long? = null,
     @ColumnInfo(name = "goal_id", index = true)
-    val goalId: String? = null,
+    @SerializedName("goalId") val goalId: String? = null,
     @SerializedName(value = "contextId", alternate = ["listId", "projectId"])
     @ColumnInfo(name = "context_id", index = true)
     val contextId: String? = null,
     @ColumnInfo(name = "xp_gained")
-    val xpGained: Int? = null,
+    @SerializedName("xpGained") val xpGained: Int? = null,
     @ColumnInfo(name = "anty_xp")
-    val antyXp: Int? = null,
-    val syncedAt: Long? = null,
-    val isDeleted: Boolean = false,
-    val version: Long = 0,
+    @SerializedName("antyXp") val antyXp: Int? = null,
+    @SerializedName("syncedAt") val syncedAt: Long? = null,
+    @SerializedName("isDeleted") val isDeleted: Boolean = false,
+    @SerializedName("version") val version: Long = 0,
 ) {
     val isTimeless: Boolean
         get() = startTime == null && endTime == null
@@ -47,5 +47,5 @@ data class ActivityRecord(
 @Fts4(contentEntity = ActivityRecord::class)
 @Entity(tableName = "activity_records_fts")
 data class ActivityRecordFts(
-    val text: String,
+    @SerializedName("text") val text: String,
 )

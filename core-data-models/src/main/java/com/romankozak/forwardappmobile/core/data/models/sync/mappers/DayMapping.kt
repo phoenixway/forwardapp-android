@@ -1,8 +1,12 @@
 package com.romankozak.forwardappmobile.core.data.models.sync.mappers
 
+import com.romankozak.forwardappmobile.core.data.models.entities.DayStatus
+import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
+import com.romankozak.forwardappmobile.core.data.models.entities.TaskStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.*
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.*
 import java.time.DayOfWeek
+
 
 // --- DayPlan Mappings ---
 fun DayPlan.toSnapshot(): DayPlanSnapshot = DayPlanSnapshot(
@@ -28,7 +32,7 @@ fun DayPlanSnapshot.toEntity(): DayPlan = DayPlan(
     id = id,
     date = date,
     name = name,
-    status = enumValueOf(status),
+    status = enumValueOf<DayStatus>(status),
     reflection = reflection,
     energyLevel = energyLevel,
     mood = mood,
@@ -91,8 +95,8 @@ fun DayTaskSnapshot.toEntity(): DayTask = DayTask(
     taskType = taskType,
     entityId = entityId,
     order = order,
-    priority = enumValueOf(priority),
-    status = enumValueOf(status),
+    priority = enumValueOf<TaskPriority>(priority),
+    status = enumValueOf<TaskStatus>(status),
     completed = completed,
     scheduledTime = scheduledTime,
     estimatedDurationMinutes = estimatedDurationMinutes,
@@ -196,7 +200,7 @@ fun RecurringTaskSnapshot.toEntity(): RecurringTask = RecurringTask(
     description = description,
     goalId = goalId,
     duration = duration,
-    priority = enumValueOf(priority),
+    priority = enumValueOf<TaskPriority>(priority),
     points = points,
     recurrenceRule = recurrenceRule.toEntity(),
     startDate = startDate,

@@ -4,27 +4,28 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.google.gson.annotations.SerializedName
 
 @Entity(
     tableName = "structure_presets",
     indices = [Index(value = ["code"], unique = true)],
 )
 data class ContextRoleProfile(
-    @PrimaryKey val id: String,
-    val code: String,
-    val label: String,
-    val description: String?,
-    @ColumnInfo(name = "enable_inbox") val enableInbox: Boolean? = null,
-    @ColumnInfo(name = "enable_log") val enableLog: Boolean? = null,
-    @ColumnInfo(name = "enable_artifact") val enableArtifact: Boolean? = null,
-    @ColumnInfo(name = "enable_advanced") val enableAdvanced: Boolean? = null,
-    @ColumnInfo(name = "enable_dashboard") val enableDashboard: Boolean? = null,
-    @ColumnInfo(name = "enable_backlog") val enableBacklog: Boolean? = null,
-    @ColumnInfo(name = "enable_attachments") val enableAttachments: Boolean? = null,
-    @ColumnInfo(name = "enable_auto_link_subprojects") val enableAutoLinkSubprojects: Boolean? = null,
+    @PrimaryKey @SerializedName("id") val id: String,
+    @SerializedName("code") val code: String,
+    @SerializedName("label") val label: String,
+    @SerializedName("description") val description: String?,
+    @ColumnInfo(name = "enable_inbox") @SerializedName("enableInbox") val enableInbox: Boolean? = null,
+    @ColumnInfo(name = "enable_log") @SerializedName("enableLog") val enableLog: Boolean? = null,
+    @ColumnInfo(name = "enable_artifact") @SerializedName("enableArtifact") val enableArtifact: Boolean? = null,
+    @ColumnInfo(name = "enable_advanced") @SerializedName("enableAdvanced") val enableAdvanced: Boolean? = null,
+    @ColumnInfo(name = "enable_dashboard") @SerializedName("enableDashboard") val enableDashboard: Boolean? = null,
+    @ColumnInfo(name = "enable_backlog") @SerializedName("enableBacklog") val enableBacklog: Boolean? = null,
+    @ColumnInfo(name = "enable_attachments") @SerializedName("enableAttachments") val enableAttachments: Boolean? = null,
+    @ColumnInfo(name = "enable_auto_link_subprojects") @SerializedName("enableAutoLinkSubprojects") val enableAutoLinkSubprojects: Boolean? = null,
     // Додаємо відсутні поля:
-    val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis(),
-    val version: Long = 0,
-    val isDeleted: Boolean = false
+    @SerializedName("createdAt") val createdAt: Long = System.currentTimeMillis(),
+    @SerializedName("updatedAt") val updatedAt: Long = System.currentTimeMillis(),
+    @SerializedName("version") val version: Long = 0,
+    @SerializedName("isDeleted") val isDeleted: Boolean = false
 )

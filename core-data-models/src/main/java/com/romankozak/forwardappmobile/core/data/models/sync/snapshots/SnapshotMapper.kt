@@ -34,6 +34,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceFrequency
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceRule
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurringTask
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionPriority
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMissionAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.sync.RecentProjectEntry
@@ -265,8 +267,8 @@ fun TacticalMissionSnapshot.toEntity(): TacticalMission = TacticalMission(
     description,
     startTime,
     deadline,
-    enumValueOf(status),
-    enumValueOf(priority),
+    enumValueOf<MissionStatus>(status),
+    enumValueOf<MissionPriority>(priority),
     projectId,
     linkedProjectIds,
     linkedAttachmentIds

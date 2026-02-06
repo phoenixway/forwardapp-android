@@ -1,6 +1,8 @@
 package com.romankozak.forwardappmobile.core.data.models.entities
 
+import com.google.gson.annotations.SerializedName
+
 data class ContextTimeMetrics(
-    val timeToday: Long,
-    val timeTotal: Long,
+    @SerializedName("timeToday") val timeToday: Long,
+    @SerializedName("timeTotal") val timeTotal: Long,
 )

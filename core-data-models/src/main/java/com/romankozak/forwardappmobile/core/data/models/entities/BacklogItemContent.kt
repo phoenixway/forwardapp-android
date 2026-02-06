@@ -1,17 +1,39 @@
 package com.romankozak.forwardappmobile.core.data.models.entities
 
+import com.google.gson.annotations.SerializedName
+
 sealed class BacklogItemContent {
     abstract val backlogItem: BacklogItem
 
-    data class GoalItem(val goal: Goal, val reminders: List<Reminder>, override val backlogItem: BacklogItem) : BacklogItemContent()
+    data class GoalItem(
+        @SerializedName("goal") val goal: Goal,
+        @SerializedName("reminders") val reminders: List<Reminder>,
+        @SerializedName("backlogItem") override val backlogItem: BacklogItem
+    ) : BacklogItemContent()
 
-    data class SublistItem(val project: Context, val reminders: List<Reminder>, override val backlogItem: BacklogItem) : BacklogItemContent()
+    data class SublistItem(
+        @SerializedName("project") val project: Context,
+        @SerializedName("reminders") val reminders: List<Reminder>,
+        @SerializedName("backlogItem") override val backlogItem: BacklogItem
+    ) : BacklogItemContent()
 
-    data class LinkItem(val link: LinkItemEntity, override val backlogItem: BacklogItem) : BacklogItemContent()
+    data class LinkItem(
+        @SerializedName("link") val link: LinkItemEntity,
+        @SerializedName("backlogItem") override val backlogItem: BacklogItem
+    ) : BacklogItemContent()
 
-    data class NoteItem(val note: LegacyNoteEntity, override val backlogItem: BacklogItem) : BacklogItemContent()
+    data class NoteItem(
+        @SerializedName("note") val note: LegacyNoteEntity,
+        @SerializedName("backlogItem") override val backlogItem: BacklogItem
+    ) : BacklogItemContent()
 
-    data class NoteDocumentItem(val document: NoteDocumentEntity, override val backlogItem: BacklogItem) : BacklogItemContent()
+    data class NoteDocumentItem(
+        @SerializedName("document") val document: NoteDocumentEntity,
+        @SerializedName("backlogItem") override val backlogItem: BacklogItem
+    ) : BacklogItemContent()
 
-    data class ChecklistItem(val checklist: ChecklistEntity, override val backlogItem: BacklogItem) : BacklogItemContent()
+    data class ChecklistItem(
+        @SerializedName("checklist") val checklist: ChecklistEntity,
+        @SerializedName("backlogItem") override val backlogItem: BacklogItem
+    ) : BacklogItemContent()
 }

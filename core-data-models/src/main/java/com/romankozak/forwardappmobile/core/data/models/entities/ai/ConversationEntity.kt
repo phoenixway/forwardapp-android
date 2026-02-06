@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.core.data.models.entities.ai
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.google.gson.annotations.SerializedName
 
 @Entity(
     tableName = "conversations",
@@ -10,10 +11,10 @@ import androidx.room.PrimaryKey
 )
 data class ConversationEntity(
     @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
-    var title: String,
-    val creationTimestamp: Long = System.currentTimeMillis(),
-    val folderId: Long? = null,
-    val version: Long = 0L,
-    val isDeleted: Boolean = false
+    @SerializedName("id") val id: Long = 0,
+    @SerializedName("title") var title: String,
+    @SerializedName("creationTimestamp") val creationTimestamp: Long = System.currentTimeMillis(),
+    @SerializedName("folderId") val folderId: Long? = null,
+    @SerializedName("version") val version: Long = 0L,
+    @SerializedName("isDeleted") val isDeleted: Boolean = false
 )

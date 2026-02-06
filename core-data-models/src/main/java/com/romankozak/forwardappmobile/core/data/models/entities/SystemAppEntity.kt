@@ -32,17 +32,17 @@ import java.util.UUID
 )
 // File: SystemAppEntity.kt
 data class SystemAppEntity(
-    @PrimaryKey val id: String = UUID.randomUUID().toString(),
-    @ColumnInfo(name = "system_key") val systemKey: String,
-    @ColumnInfo(name = "app_type") val appType: String = SystemAppType.NOTE_DOCUMENT.name,
+    @PrimaryKey @SerializedName("id") val id: String = UUID.randomUUID().toString(),
+    @ColumnInfo(name = "system_key") @SerializedName("systemKey") val systemKey: String,
+    @ColumnInfo(name = "app_type") @SerializedName("appType") val appType: String = SystemAppType.NOTE_DOCUMENT.name,
     @SerializedName(value = "contextId", alternate = ["projectId"])
     @ColumnInfo(name = "context_id") val contextId: String = "",
-    @ColumnInfo(name = "note_document_id") val noteDocumentId: String? = null,
-    @ColumnInfo(name = "createdAt") val createdAt: Long = System.currentTimeMillis(),
-    @ColumnInfo(name = "updatedAt") val updatedAt: Long = System.currentTimeMillis(),
+    @ColumnInfo(name = "note_document_id") @SerializedName("noteDocumentId") val noteDocumentId: String? = null,
+    @ColumnInfo(name = "createdAt") @SerializedName("createdAt") val createdAt: Long = System.currentTimeMillis(),
+    @ColumnInfo(name = "updatedAt") @SerializedName("updatedAt") val updatedAt: Long = System.currentTimeMillis(),
     // Додаємо ці поля, щоб вони відповідали Snapshot:
-    val version: Long = 0,
-    val isDeleted: Boolean = false
+    @SerializedName("version") val version: Long = 0,
+    @SerializedName("isDeleted") val isDeleted: Boolean = false
 )
 enum class SystemAppType {
     NOTE_DOCUMENT,

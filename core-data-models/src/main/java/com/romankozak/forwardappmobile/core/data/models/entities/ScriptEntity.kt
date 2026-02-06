@@ -23,15 +23,15 @@ import java.util.UUID
     ],
 )
 data class ScriptEntity(
-    @PrimaryKey val id: String = UUID.randomUUID().toString(),
+    @PrimaryKey @SerializedName("id") val id: String = UUID.randomUUID().toString(),
     @SerializedName(value = "contextId", alternate = ["projectId"])
     val contextId: String? = null,
-    val name: String,
-    val description: String? = null,
-    val content: String,
-    val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis(),
-    val syncedAt: Long? = null,
-    val isDeleted: Boolean = false,
-    val version: Long = 0,
+    @SerializedName("name") val name: String,
+    @SerializedName("description") val description: String? = null,
+    @SerializedName("content") val content: String,
+    @SerializedName("createdAt") val createdAt: Long = System.currentTimeMillis(),
+    @SerializedName("updatedAt") val updatedAt: Long = System.currentTimeMillis(),
+    @SerializedName("syncedAt") val syncedAt: Long? = null,
+    @SerializedName("isDeleted") val isDeleted: Boolean = false,
+    @SerializedName("version") val version: Long = 0,
 )

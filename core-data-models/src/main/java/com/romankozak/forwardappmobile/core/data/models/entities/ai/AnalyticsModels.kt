@@ -1,22 +1,23 @@
 package com.romankozak.forwardappmobile.core.data.models.entities.ai
 
+import com.google.gson.annotations.SerializedName // Add this import
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DailyMetric
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayPlan
 
 data class DailyAnalytics(
-    val dayPlan: DayPlan,
-    val metric: DailyMetric?,
-    val completionRate: Float,
-    val totalTimeSpent: Long,
+    @SerializedName("dayPlan") val dayPlan: DayPlan,
+    @SerializedName("metric") val metric: DailyMetric?,
+    @SerializedName("completionRate") val completionRate: Float,
+    @SerializedName("totalTimeSpent") val totalTimeSpent: Long,
 )
 
 data class WeeklyInsights(
-    val totalDays: Int,
-    val averageCompletionRate: Float,
-    val totalActiveTime: Long,
-    val averageTasksPerDay: Float,
-    val bestDay: DailyMetric?,
-    val worstDay: DailyMetric?,
-    val totalTasks: Int,
-    val completedTasks: Int,
+    @SerializedName("totalDays") val totalDays: Int,
+    @SerializedName("averageCompletionRate") val averageCompletionRate: Float,
+    @SerializedName("totalActiveTime") val totalActiveTime: Long,
+    @SerializedName("averageTasksPerDay") val averageTasksPerDay: Float,
+    @SerializedName("bestDay") val bestDay: DailyMetric?,
+    @SerializedName("worstDay") val worstDay: DailyMetric?,
+    @SerializedName("totalTasks") val totalTasks: Int,
+    @SerializedName("completedTasks") val completedTasks: Int,
 )

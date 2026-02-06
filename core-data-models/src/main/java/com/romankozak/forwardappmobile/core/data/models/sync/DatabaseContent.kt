@@ -41,7 +41,7 @@ data class DatabaseContent(
     val goals: List<Goal> = emptyList(),
     @SerializedName(value = "projects", alternate = ["goalLists"])
     val projects: List<Context> = emptyList(),
-    @SerializedName(value = "listItems", alternate = ["c"])
+    @SerializedName(value = "listItems", alternate = ["backlogItems_legacy_c"])
     val backlogItems: List<BacklogItem> = emptyList(),
     @SerializedName(value = "backlogOrders", alternate = ["order"])
     val backlogOrders: List<BacklogOrder> = emptyList(),
@@ -51,7 +51,7 @@ data class DatabaseContent(
     val documents: List<NoteDocumentEntity> = emptyList(),
     @SerializedName(value = "checklists", alternate = ["g"])
     val checklists: List<ChecklistEntity> = emptyList(),
-    @SerializedName(value = "checklistItems", alternate = ["h"])
+    @SerializedName(value = "checklistItems", alternate = ["checklistItems_legacy_h"])
     val checklistItems: List<ChecklistItemEntity> = emptyList(),
     @SerializedName(value = "activityRecords", alternate = ["i"])
     val activityRecords: List<ActivityRecord> = emptyList(),

@@ -20,14 +20,14 @@ import java.util.UUID
     indices = [Index(value = ["contextId"])],
 )
 data class LegacyNoteEntity(
-    @PrimaryKey val id: String = UUID.randomUUID().toString(),
+    @PrimaryKey @SerializedName("id") val id: String = UUID.randomUUID().toString(),
     @SerializedName(value = "contextId", alternate = ["projectId"])
     val contextId: String = "",
-    var title: String,
-    var content: String,
-    val createdAt: Long = System.currentTimeMillis(),
-    var updatedAt: Long = System.currentTimeMillis(),
-    val syncedAt: Long? = null,
-    val isDeleted: Boolean = false,
-    val version: Long = 0,
+    @SerializedName("title") var title: String,
+    @SerializedName("content") var content: String,
+    @SerializedName("createdAt") val createdAt: Long = System.currentTimeMillis(),
+    @SerializedName("updatedAt") var updatedAt: Long = System.currentTimeMillis(),
+    @SerializedName("syncedAt") val syncedAt: Long? = null,
+    @SerializedName("isDeleted") val isDeleted: Boolean = false,
+    @SerializedName("version") val version: Long = 0,
 )

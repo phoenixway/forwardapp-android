@@ -23,13 +23,13 @@ data class AttachmentEntity(
     @ColumnInfo(
         name = "owner_context_id",
     ) @SerializedName(value = "ownerContextId", alternate = ["d", "ownerProjectId"]) val ownerContextId: String? = null,
-    @ColumnInfo(name = "role_code") val roleCode: String? = null,
-    @ColumnInfo(name = "is_system", defaultValue = "0") val isSystem: Boolean = false,
+    @ColumnInfo(name = "role_code") @SerializedName("roleCode") val roleCode: String? = null,
+    @ColumnInfo(name = "is_system", defaultValue = "0") @SerializedName("isSystem") val isSystem: Boolean = false,
     @SerializedName(value = "createdAt", alternate = ["crAt"]) val createdAt: Long = System.currentTimeMillis(),
     @SerializedName(value = "updatedAt", alternate = ["upAt"]) val updatedAt: Long = System.currentTimeMillis(),
-    val syncedAt: Long? = null,
-    val isDeleted: Boolean = false,
-    val version: Long = 0,
+    @SerializedName("syncedAt") val syncedAt: Long? = null,
+    @SerializedName("isDeleted") val isDeleted: Boolean = false,
+    @SerializedName("version") val version: Long = 0,
 )
 
 @Entity(
@@ -59,14 +59,14 @@ data class ContextAttachmentCrossRef(
     @ColumnInfo(
         name = "attachment_order",
     ) @SerializedName(value = "attachmentOrder", alternate = ["c"]) val attachmentOrder: Long = -System.currentTimeMillis(),
-    val updatedAt: Long? = null,
-    val syncedAt: Long? = null,
-    val isDeleted: Boolean = false,
-    val version: Long = 0,
+    @SerializedName("updatedAt") val updatedAt: Long? = null,
+    @SerializedName("syncedAt") val syncedAt: Long? = null,
+    @SerializedName("isDeleted") val isDeleted: Boolean = false,
+    @SerializedName("version") val version: Long = 0,
 )
 
 data class AttachmentWithContext(
-    @Embedded val attachment: AttachmentEntity,
-    @ColumnInfo(name = "context_id") val contextId: String?,
-    @ColumnInfo(name = "attachment_order") val attachmentOrder: Long?,
+    @Embedded @SerializedName("attachment") val attachment: AttachmentEntity,
+    @ColumnInfo(name = "context_id") @SerializedName("contextId") val contextId: String?,
+    @ColumnInfo(name = "attachment_order") @SerializedName("attachmentOrder") val attachmentOrder: Long?,
 )

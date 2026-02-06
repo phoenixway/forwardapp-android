@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.core.data.models.sync
 import com.google.gson.annotations.SerializedName
 
 data class SettingsContent(
+    @SerializedName("settings")
     val settings: Map<String, String>,
 )
 

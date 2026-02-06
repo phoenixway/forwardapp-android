@@ -1,5 +1,7 @@
 package com.romankozak.forwardappmobile.core.data.models.entities
 
+import com.google.gson.annotations.SerializedName
+
 object ContextStatusValues {
     const val NO_PLAN = "NO_PLAN"
     const val PLANNING = "PLANNING"
@@ -51,16 +53,11 @@ object BacklogItemTypeValues {
     const val CONTEXT = "CONTEXT"
 }
 
-
-
 data class RelatedLink(
-    val type: LinkType?,
-    val target: String,
-    val displayName: String? = null,
+    @SerializedName("type") val type: LinkType?,
+    @SerializedName("target") val target: String,
+    @SerializedName("displayName") val displayName: String? = null,
 )
-
-
-
 
 enum class ContextViewMode { BACKLOG, INBOX, ADVANCED, ATTACHMENTS, DASHBOARD, LOG, ARTIFACT, NOTES, VET_CASE }
 

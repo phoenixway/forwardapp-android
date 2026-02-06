@@ -5,7 +5,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
-
+import com.google.gson.annotations.SerializedName
 @Entity(
     tableName = "structure_preset_items",
     foreignKeys = [
@@ -22,16 +22,16 @@ import androidx.room.PrimaryKey
     ],
 )
 data class ContextRoleProfileItem(
-    @PrimaryKey val id: String,
-    val presetId: String,
-    val entityType: String,
-    val roleCode: String,
-    val containerType: String?,
-    val title: String,
-    @ColumnInfo(defaultValue = "0") val mandatory: Boolean,
+    @PrimaryKey @SerializedName("id") val id: String,
+    @SerializedName("presetId") val presetId: String,
+    @SerializedName("entityType") val entityType: String,
+    @SerializedName("roleCode") val roleCode: String,
+    @SerializedName("containerType") val containerType: String?,
+    @SerializedName("title") val title: String,
+    @ColumnInfo(defaultValue = "0") @SerializedName("mandatory") val mandatory: Boolean,
     // Додаємо технічні поля для відповідності Snapshot:
-    val itemOrder: Long = 0, // Ви намагалися передати 'order'
-    val version: Long = 0,
-    val updatedAt: Long = System.currentTimeMillis(),
-    val isDeleted: Boolean = false
+    @SerializedName("itemOrder") val itemOrder: Long = 0, // Ви намагалися передати 'order'
+    @SerializedName("version") val version: Long = 0,
+    @SerializedName("updatedAt") val updatedAt: Long = System.currentTimeMillis(),
+    @SerializedName("isDeleted") val isDeleted: Boolean = false
 )

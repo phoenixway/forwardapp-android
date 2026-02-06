@@ -21,15 +21,15 @@ import java.util.UUID
     indices = [Index(value = ["contextId"], name = "index_note_documents_contextId")],
 )
 data class NoteDocumentEntity(
-    @PrimaryKey val id: String = UUID.randomUUID().toString(),
+    @PrimaryKey @SerializedName("id") val id: String = UUID.randomUUID().toString(),
     @SerializedName(value = "contextId", alternate = ["projectId"])
     val contextId: String = "",
-    var name: String,
-    val createdAt: Long = System.currentTimeMillis(),
-    var updatedAt: Long = System.currentTimeMillis(),
-    val content: String? = null,
-    @ColumnInfo(defaultValue = "0") val lastCursorPosition: Int = 0,
-    val syncedAt: Long? = null,
-    val isDeleted: Boolean = false,
-    val version: Long = 0,
+    @SerializedName("name") var name: String,
+    @SerializedName("createdAt") val createdAt: Long = System.currentTimeMillis(),
+    @SerializedName("updatedAt") var updatedAt: Long = System.currentTimeMillis(),
+    @SerializedName("content") val content: String? = null,
+    @ColumnInfo(defaultValue = "0") @SerializedName("lastCursorPosition") val lastCursorPosition: Int = 0,
+    @SerializedName("syncedAt") val syncedAt: Long? = null,
+    @SerializedName("isDeleted") val isDeleted: Boolean = false,
+    @SerializedName("version") val version: Long = 0,
 )

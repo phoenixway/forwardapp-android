@@ -26,59 +26,59 @@ import com.google.gson.annotations.SerializedName
     ],
 )
 data class BacklogOrder(
-    @PrimaryKey val id: String,
+    @PrimaryKey @SerializedName("id") val id: String,
     @SerializedName(value = "listId", alternate = ["contextId", "projectId"])
     @ColumnInfo(name = "list_id")
     val listId: String = "",
-    @ColumnInfo(name = "item_id")
+    @ColumnInfo(name = "item_id") @SerializedName("itemId")
     val itemId: String,
-    @ColumnInfo(name = "item_order") val order: Long,
-    @ColumnInfo(name = "order_version", defaultValue = "0") val orderVersion: Long = 0,
-    val updatedAt: Long? = null,
-    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
-    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
+    @ColumnInfo(name = "item_order") @SerializedName("order") val order: Long,
+    @ColumnInfo(name = "order_version", defaultValue = "0") @SerializedName("orderVersion") val orderVersion: Long = 0,
+    @SerializedName("updatedAt") val updatedAt: Long? = null,
+    @ColumnInfo(name = "synced_at") @SerializedName("syncedAt") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") @SerializedName("isDeleted") val isDeleted: Boolean = false,
 )
 
 @Entity(tableName = "link_items")
 data class LinkItemEntity(
-    @PrimaryKey val id: String,
-    @ColumnInfo(name = "link_data")
+    @PrimaryKey @SerializedName("id") val id: String,
+    @ColumnInfo(name = "link_data") @SerializedName("linkData")
     val linkData: RelatedLink,
-    val createdAt: Long,
-    val updatedAt: Long? = null,
-    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
-    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
-    @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0,
+    @SerializedName("createdAt") val createdAt: Long,
+    @SerializedName("updatedAt") val updatedAt: Long? = null,
+    @ColumnInfo(name = "synced_at") @SerializedName("syncedAt") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") @SerializedName("isDeleted") val isDeleted: Boolean = false,
+    @ColumnInfo(name = "version", defaultValue = "0") @SerializedName("version") val version: Long = 0,
 )
 
 @Entity(tableName = "goals")
 data class Goal(
-    @PrimaryKey val id: String,
-    val text: String,
-    val description: String? = null,
-    val completed: Boolean,
-    val createdAt: Long,
-    val updatedAt: Long?,
-    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
-    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
-    @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0,
-    val tags: List<String>? = null,
-    val relatedLinks: List<RelatedLink>? = null,
-    @ColumnInfo(defaultValue = "0.0") val valueImportance: Float = 0f,
-    @ColumnInfo(defaultValue = "0.0") val valueImpact: Float = 0f,
-    @ColumnInfo(defaultValue = "0.0") val effort: Float = 0f,
-    @ColumnInfo(defaultValue = "0.0") val cost: Float = 0f,
-    @ColumnInfo(defaultValue = "0.0") val risk: Float = 0f,
-    @ColumnInfo(defaultValue = "1.0") val weightEffort: Float = 1f,
-    @ColumnInfo(defaultValue = "1.0") val weightCost: Float = 1f,
-    @ColumnInfo(defaultValue = "1.0") val weightRisk: Float = 1f,
-    @ColumnInfo(defaultValue = "0.0") val rawScore: Float = 0f,
-    @ColumnInfo(defaultValue = "0") val displayScore: Int = 0,
-    @ColumnInfo(name = "scoring_status") val scoringStatus: String = ScoringStatusValues.NOT_ASSESSED,
-    @ColumnInfo(defaultValue = "0.0") val parentValueImportance: Float? = null,
-    @ColumnInfo(defaultValue = "0.0") val impactOnParentGoal: Float? = null,
-    @ColumnInfo(defaultValue = "0.0") val timeCost: Float? = null,
-    @ColumnInfo(defaultValue = "0.0") val financialCost: Float? = null,
+    @PrimaryKey @SerializedName("id") val id: String,
+    @SerializedName("text") val text: String,
+    @SerializedName("description") val description: String? = null,
+    @SerializedName("completed") val completed: Boolean,
+    @SerializedName("createdAt") val createdAt: Long,
+    @SerializedName("updatedAt") val updatedAt: Long?,
+    @ColumnInfo(name = "synced_at") @SerializedName("syncedAt") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") @SerializedName("isDeleted") val isDeleted: Boolean = false,
+    @ColumnInfo(name = "version", defaultValue = "0") @SerializedName("version") val version: Long = 0,
+    @SerializedName("tags") val tags: List<String>? = null,
+    @SerializedName("relatedLinks") val relatedLinks: List<RelatedLink>? = null,
+    @ColumnInfo(defaultValue = "0.0") @SerializedName("valueImportance") val valueImportance: Float = 0f,
+    @ColumnInfo(defaultValue = "0.0") @SerializedName("valueImpact") val valueImpact: Float = 0f,
+    @ColumnInfo(defaultValue = "0.0") @SerializedName("effort") val effort: Float = 0f,
+    @ColumnInfo(defaultValue = "0.0") @SerializedName("cost") val cost: Float = 0f,
+    @ColumnInfo(defaultValue = "0.0") @SerializedName("risk") val risk: Float = 0f,
+    @ColumnInfo(defaultValue = "1.0") @SerializedName("weightEffort") val weightEffort: Float = 1f,
+    @ColumnInfo(defaultValue = "1.0") @SerializedName("weightCost") val weightCost: Float = 1f,
+    @ColumnInfo(defaultValue = "1.0") @SerializedName("weightRisk") val weightRisk: Float = 1f,
+    @ColumnInfo(defaultValue = "0.0") @SerializedName("rawScore") val rawScore: Float = 0f,
+    @ColumnInfo(defaultValue = "0") @SerializedName("displayScore") val displayScore: Int = 0,
+    @ColumnInfo(name = "scoring_status") @SerializedName("scoringStatus") val scoringStatus: String = ScoringStatusValues.NOT_ASSESSED,
+    @ColumnInfo(defaultValue = "0.0") @SerializedName("parentValueImportance") val parentValueImportance: Float? = null,
+    @ColumnInfo(defaultValue = "0.0") @SerializedName("impactOnParentGoal") val impactOnParentGoal: Float? = null,
+    @ColumnInfo(defaultValue = "0.0") @SerializedName("timeCost") val timeCost: Float? = null,
+    @ColumnInfo(defaultValue = "0.0") @SerializedName("financialCost") val financialCost: Float? = null,
 )
 
 @Entity(
@@ -93,17 +93,17 @@ data class Goal(
     ],
 )
 data class ContextLog(
-    @PrimaryKey val id: String,
+    @PrimaryKey @SerializedName("id") val id: String,
     @SerializedName(value = "contextId", alternate = ["projectId"])
     @ColumnInfo(index = true) val contextId: String = "",
-    val timestamp: Long,
-    @ColumnInfo(name = "type") val type: String,
-    val description: String,
-    val details: String? = null,
-    val updatedAt: Long? = null,
-    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
-    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
-    @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0,
+    @SerializedName("timestamp") val timestamp: Long,
+    @ColumnInfo(name = "type") @SerializedName("type") val type: String,
+    @SerializedName("description") val description: String,
+    @SerializedName("details") val details: String? = null,
+    @SerializedName("updatedAt") val updatedAt: Long? = null,
+    @ColumnInfo(name = "synced_at") @SerializedName("syncedAt") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") @SerializedName("isDeleted") val isDeleted: Boolean = false,
+    @ColumnInfo(name = "version", defaultValue = "0") @SerializedName("version") val version: Long = 0,
 )
 
 @Entity(
@@ -118,15 +118,15 @@ data class ContextLog(
     ],
 )
 data class InboxRecord(
-    @PrimaryKey val id: String,
+    @PrimaryKey @SerializedName("id") val id: String,
     @SerializedName(value = "contextId", alternate = ["projectId"])
     @ColumnInfo(index = true) val contextId: String,
-    val text: String,
-    val createdAt: Long,
-    @ColumnInfo(name = "item_order") val order: Long,
-    val updatedAt: Long? = null,
-    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
-    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
+    @SerializedName("text") val text: String,
+    @SerializedName("createdAt") val createdAt: Long,
+    @ColumnInfo(name = "item_order") @SerializedName("order") val order: Long,
+    @SerializedName("updatedAt") val updatedAt: Long? = null,
+    @ColumnInfo(name = "synced_at") @SerializedName("syncedAt") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") @SerializedName("isDeleted") val isDeleted: Boolean = false,
     @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0,
 )
 
@@ -142,65 +142,65 @@ data class InboxRecord(
     ],
 )
 data class BacklogItem(
-    @PrimaryKey val id: String,
+    @PrimaryKey @SerializedName("id") val id: String,
     @SerializedName(value = "contextId", alternate = ["listId", "projectId"])
     @ColumnInfo(name = "context_id", index = true)
     val contextId: String = "",
-    val itemType: String,
-    val entityId: String,
-    @ColumnInfo(name = "item_order") val order: Long,
-    val updatedAt: Long? = null,
-    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
-    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
-    @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0,
+    @SerializedName("itemType") val itemType: String,
+    @SerializedName("entityId") val entityId: String,
+    @ColumnInfo(name = "item_order") @SerializedName("order") val order: Long,
+    @SerializedName("updatedAt") val updatedAt: Long? = null,
+    @ColumnInfo(name = "synced_at") @SerializedName("syncedAt") val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") @SerializedName("isDeleted") val isDeleted: Boolean = false,
+    @ColumnInfo(name = "version", defaultValue = "0") @SerializedName("version") val version: Long = 0,
 )
 
 @Fts4(contentEntity = Goal::class)
 @Entity(tableName = "goals_fts")
 data class GoalFts(
-    val text: String,
-    val description: String?,
+    @SerializedName("text") val text: String,
+    @SerializedName("description") val description: String?,
 )
 
 @Fts4(contentEntity = Context::class)
 @Entity(tableName = "contexts_fts")
 data class ContextsFts(
-    val name: String,
-    val description: String?,
+    @SerializedName("name") val name: String,
+    @SerializedName("description") val description: String?,
 )
 
 data class GlobalGoalSearchResult(
-    @Embedded
+    @Embedded @SerializedName("goal")
     val goal: Goal,
-    val contextId: String,
-    val contextName: String,
-    @TypeConverters(PathSegmentsConverter::class)
+    @SerializedName("contextId") val contextId: String,
+    @SerializedName("contextName") val contextName: String,
+    @TypeConverters(PathSegmentsConverter::class) @SerializedName("pathSegments")
     val pathSegments: List<String>,
 )
 
 data class GlobalLinkSearchResult(
-    @Embedded
+    @Embedded @SerializedName("link")
     val link: LinkItemEntity,
-    val contextId: String,
-    val contextName: String,
-    val listItemId: String,
-    @TypeConverters(PathSegmentsConverter::class)
+    @SerializedName("contextId") val contextId: String,
+    @SerializedName("contextName") val contextName: String,
+    @SerializedName("listItemId") val listItemId: String,
+    @TypeConverters(PathSegmentsConverter::class) @SerializedName("pathSegments")
     val pathSegments: List<String>,
 )
 
 data class GlobalSubcontextSearchResult(
-    @Embedded
+    @Embedded @SerializedName("subcontext")
     val subcontext: Context,
-    val parentContextId: String,
-    val parentContextName: String,
-    @TypeConverters(PathSegmentsConverter::class)
+    @SerializedName("parentContextId") val parentContextId: String,
+    @SerializedName("parentContextName") val parentContextName: String,
+    @TypeConverters(PathSegmentsConverter::class) @SerializedName("pathSegments")
     val pathSegments: List<String>,
 )
 
 data class GlobalContextSearchResult(
-    @Embedded
+    @Embedded @SerializedName("context")
     val context: Context,
-    @TypeConverters(PathSegmentsConverter::class)
+    @TypeConverters(PathSegmentsConverter::class) @SerializedName("pathSegments")
     val pathSegments: List<String>,
 )
 
@@ -209,38 +209,38 @@ sealed class GlobalSearchResultItem {
     abstract val uniqueId: String
 
     data class GoalItem(
-        val goal: Goal,
-        val backlogItem: BacklogItem,
-        val projectName: String,
-        val pathSegments: List<String>,
+        @SerializedName("goal") val goal: Goal,
+        @SerializedName("backlogItem") val backlogItem: BacklogItem,
+        @SerializedName("projectName") val projectName: String,
+        @SerializedName("pathSegments") val pathSegments: List<String>,
     ) : GlobalSearchResultItem() {
         override val timestamp: Long get() = goal.updatedAt ?: goal.createdAt
         override val uniqueId: String get() = "goal_${goal.id}_${backlogItem.contextId}"
     }
 
-    data class LinkItem(val searchResult: GlobalLinkSearchResult) : GlobalSearchResultItem() {
+    data class LinkItem(@SerializedName("searchResult") val searchResult: GlobalLinkSearchResult) : GlobalSearchResultItem() {
         override val timestamp: Long get() = searchResult.link.createdAt
         override val uniqueId: String get() = "link_${searchResult.link.id}_${searchResult.contextId}"
     }
 
-    data class SubcontextItem(val searchResult: GlobalSubcontextSearchResult) : GlobalSearchResultItem() {
+    data class SubcontextItem(@SerializedName("searchResult") val searchResult: GlobalSubcontextSearchResult) : GlobalSearchResultItem() {
         override val timestamp: Long get() = searchResult.subcontext.updatedAt ?: searchResult.subcontext.createdAt
         override val uniqueId: String get() = "sublist_${searchResult.subcontext.id}_${searchResult.parentContextId}"
     }
 
     data class ContextItem(
-        val searchResult: GlobalContextSearchResult,
+        @SerializedName("searchResult") val searchResult: GlobalContextSearchResult,
     ) : GlobalSearchResultItem() {
         override val timestamp: Long get() = searchResult.context.updatedAt ?: searchResult.context.createdAt
         override val uniqueId: String get() = "context_${searchResult.context.id}"
     }
 
-    data class ActivityItem(val record: ActivityRecord) : GlobalSearchResultItem() {
+    data class ActivityItem(@SerializedName("record") val record: ActivityRecord) : GlobalSearchResultItem() {
         override val timestamp: Long get() = record.startTime ?: record.createdAt
         override val uniqueId: String get() = "activity_${record.id}"
     }
 
-    data class InboxItem(val record: InboxRecord) : GlobalSearchResultItem() {
+    data class InboxItem(@SerializedName("record") val record: InboxRecord) : GlobalSearchResultItem() {
         override val timestamp: Long get() = record.createdAt
         override val uniqueId: String get() = "inbox_${record.id}"
     }
