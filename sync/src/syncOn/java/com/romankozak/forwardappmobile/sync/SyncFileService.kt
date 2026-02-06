@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.sync
 
+import Timber.log.Timber
 import android.util.Log
 import com.google.gson.GsonBuilder
 import com.romankozak.forwardappmobile.core.data.interfaces.sync.IContentProvider
