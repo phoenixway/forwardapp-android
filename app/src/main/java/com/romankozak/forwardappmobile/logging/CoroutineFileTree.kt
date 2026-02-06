@@ -1,93 +1,70 @@
-package com.romankozak.forwardappmobile.logging
+package com.romankozak.forwardappmobile.core.logging
 
 import android.util.Log
-import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.Channel
 import timber.log.Timber
 import java.io.File
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.launch
 
+/**
+ * Timber Tree, який асинхронно пише логи у файл у external storage.
+ */
 class CoroutineFileTree(
-    private val logDir: File,
-    private val fileName: String = "app.log",
-    private val maxSizeBytes: Long = 1_000_000, // 1 MB
-    private val maxBackups: Int = 3
+    logsDir: File,
+    private val maxFileSizeBytes: Long = 5 * 1024 * 1024 // 5 MB
 ) : Timber.Tree() {
 
-    private val formatter =
-        SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US)
+    private val logChannel = Channel<String>(Channel.UNLIMITED)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    private val scope = CoroutineScope(
-        SupervisorJob() + Dispatchers.IO
-    )
-
-    private val channel = Channel<String>(capacity = Channel.BUFFERED)
-
-    private var logFile: File
+    private var currentLogFile: File
 
     init {
-        if (!logDir.exists()) logDir.mkdirs()
-        logFile = File(logDir, fileName)
+        if (!logsDir.exists()) logsDir.mkdirs()
+        currentLogFile = File(logsDir, "app.log")
 
         scope.launch {
-            for (line in channel) {
-                rotateIfNeeded()
-                logFile.appendText(line)
+            for (line in logChannel) {
+                try {
+                    checkRotate()
+                    currentLogFile.appendText(line + "\n")
+                } catch (t: Throwable) {
+                    Log.e("CoroutineFileTree", "Error writing log", t)
+                }
             }
         }
     }
 
-    override fun log(
-        priority: Int,
-        tag: String?,
-        message: String,
-        t: Throwable?
-    ) {
-        val time = formatter.format(Date())
-        val record = buildString {
-            append("$time [${priorityToChar(priority)}]")
-            append(" [${tag ?: "NO_TAG"}] ")
-            append(message)
-            append('\n')
-
-            if (t != null) {
-                append(Log.getStackTraceString(t))
-                append('\n')
-            }
+    override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
+        val ts = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.getDefault()).format(Date())
+        val lvl = when (priority) {
+            Log.VERBOSE -> "V"
+            Log.DEBUG -> "D"
+            Log.INFO -> "I"
+            Log.WARN -> "W"
+            Log.ERROR -> "E"
+            Log.ASSERT -> "A"
+            else -> "?"
         }
 
-        // ❗ НЕ блокує викликаючий потік
-        channel.trySend(record)
+        val logLine = "$ts $lvl/${tag ?: "App"}: $message" +
+                (t?.let { "\n${Log.getStackTraceString(it)}" } ?: "")
+
+        // Відправляємо в корутину
+        scope.launch { logChannel.send(logLine) }
     }
 
-    private fun rotateIfNeeded() {
-        if (!logFile.exists()) return
-        if (logFile.length() < maxSizeBytes) return
-
-        for (i in maxBackups downTo 1) {
-            val src = File(logDir, "$fileName.$i")
-            val dst = File(logDir, "$fileName.${i + 1}")
-            if (src.exists()) src.renameTo(dst)
+    private fun checkRotate() {
+        if (currentLogFile.length() > maxFileSizeBytes) {
+            val oldFile = File(currentLogFile.parent, "app-${System.currentTimeMillis()}.log")
+            currentLogFile.renameTo(oldFile)
+            currentLogFile = File(currentLogFile.parent, "app.log")
         }
-
-        logFile.renameTo(File(logDir, "$fileName.1"))
-        logFile = File(logDir, fileName)
-    }
-
-    private fun priorityToChar(priority: Int): Char =
-        when (priority) {
-            Log.VERBOSE -> 'V'
-            Log.DEBUG -> 'D'
-            Log.INFO -> 'I'
-            Log.WARN -> 'W'
-            Log.ERROR -> 'E'
-            Log.ASSERT -> 'A'
-            else -> '?'
-        }
-
-    fun shutdown() {
-        channel.close()
-        scope.cancel()
     }
 }

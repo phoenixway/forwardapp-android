@@ -36,15 +36,14 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
     super.onCreate()
 
     // 1️⃣ ЛОГЕР ПЕРШИМ
-    val logsDir = File(filesDir, "logs")
+val logsDir = File(getExternalFilesDir("logs"), "")
+        Timber.plant(
+            Timber.DebugTree(),           // Logcat
+            CoroutineFileTree(logsDir)    // Файл
+        )
 
-    Timber.plant(
-        Timber.DebugTree(),          // Logcat
-        CoroutineFileTree(logsDir)   // File + coroutines
-    )
-
-    Timber.i("Application onCreate started")
-
+        Timber.i("Application started")
+    }
     // 2️⃣ ВСЕ ІНШЕ
     appScope.launch {
         runCatching {
