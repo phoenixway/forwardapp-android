@@ -1,5 +1,5 @@
-import org.gradle.api.tasks.testing.Test
 import java.util.Properties
+import org.gradle.api.tasks.testing.Test
 
 plugins {
     alias(libs.plugins.android.application)
@@ -19,6 +19,7 @@ plugins {
 
 val signingProps = Properties()
 val signingPropsFile = rootProject.file("signing.properties")
+
 if (signingPropsFile.exists()) {
     signingPropsFile.inputStream().use { signingProps.load(it) }
 }
@@ -45,12 +46,12 @@ android {
         jvmTarget = "11"
         allWarningsAsErrors = false
         freeCompilerArgs +=
-            listOf(
-                "-Xjsr305=strict",
-                "-Xcontext-receivers",
-                "-Xskip-prerelease-check",
-                "-Xenable-k2-mode",
-            )
+                listOf(
+                        "-Xjsr305=strict",
+                        "-Xcontext-receivers",
+                        "-Xskip-prerelease-check",
+                        "-Xenable-k2-mode",
+                )
     }
 
     buildFeatures {
@@ -85,8 +86,8 @@ android {
             buildConfigField("boolean", "SYNC_ENABLED", "false")
             isShrinkResources = true
             proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro",
+                    getDefaultProguardFile("proguard-android-optimize.txt"),
+                    "proguard-rules.pro",
             )
 
             if (signingProps.isNotEmpty()) {
@@ -279,5 +280,7 @@ dependencies {
     implementation("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
 
     implementation(project(":sync"))
+    implementation(project(":core-data-interfaces"))
+}
     implementation(project(":core-data-interfaces"))
 }
