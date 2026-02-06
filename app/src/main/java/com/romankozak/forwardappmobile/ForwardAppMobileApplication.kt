@@ -16,6 +16,7 @@ import javax.inject.Inject
 import timber.log.Timber
 import java.io.File
 import com.romankozak.forwardappmobile.logging.*
+import android.os.Environment
 
 @HiltAndroidApp
 class ForwardAppMobileApplication : Application(), Configuration.Provider {
@@ -36,14 +37,19 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
     super.onCreate()
 
     // 1️⃣ ЛОГЕР ПЕРШИМ
-val logsDir = File(getExternalFilesDir("logs"), "")
-        Timber.plant(
-            Timber.DebugTree(),           // Logcat
-            CoroutineFileTree(logsDir)    // Файл
+    val logsDir = File(
+            Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_DOCUMENTS
+            ),
+            "ForwardApp/logs"
         )
 
-        Timber.i("Application started")
-    
+        Timber.plant(
+            Timber.DebugTree(),              // logcat
+            CoroutineFileTree(logsDir)       // Documents
+        )
+
+        Timber.i("Logger initialized")
     // 2️⃣ ВСЕ ІНШЕ
     appScope.launch {
         runCatching {

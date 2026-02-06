@@ -12,38 +12,39 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 
-/**
- * Timber Tree, який асинхронно пише логи у файл у external storage.
- */
 class CoroutineFileTree(
-    logsDir: File,
+    private val logsDir: File,
     private val maxFileSizeBytes: Long = 5 * 1024 * 1024 // 5 MB
 ) : Timber.Tree() {
 
-    private val logChannel = Channel<String>(Channel.UNLIMITED)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val channel = Channel<String>(Channel.UNLIMITED)
 
-    private var currentLogFile: File
+    private var currentFile: File
 
     init {
         if (!logsDir.exists()) logsDir.mkdirs()
-        currentLogFile = File(logsDir, "app.log")
+        currentFile = File(logsDir, "app.log")
 
         scope.launch {
-            for (line in logChannel) {
+            for (line in channel) {
                 try {
-                    checkRotate()
-                    currentLogFile.appendText(line + "\n")
+                    rotateIfNeeded()
+                    currentFile.appendText(line)
                 } catch (t: Throwable) {
-                    Log.e("CoroutineFileTree", "Error writing log", t)
+                    Log.e("CoroutineFileTree", "File logging failed", t)
                 }
             }
         }
     }
 
     override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
-        val ts = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.getDefault()).format(Date())
-        val lvl = when (priority) {
+        val time = SimpleDateFormat(
+            "yyyy-MM-dd HH:mm:ss.SSS",
+            Locale.US
+        ).format(Date())
+
+        val level = when (priority) {
             Log.VERBOSE -> "V"
             Log.DEBUG -> "D"
             Log.INFO -> "I"
@@ -53,18 +54,34 @@ class CoroutineFileTree(
             else -> "?"
         }
 
-        val logLine = "$ts $lvl/${tag ?: "App"}: $message" +
-                (t?.let { "\n${Log.getStackTraceString(it)}" } ?: "")
+        val sb = StringBuilder()
+        sb.append(time)
+            .append(" ")
+            .append(level)
+            .append("/")
+            .append(tag ?: "App")
+            .append(": ")
+            .append(message)
+            .append("\n")
 
-        // Відправляємо в корутину
-        scope.launch { logChannel.send(logLine) }
+        if (t != null) {
+            sb.append(Log.getStackTraceString(t))
+                .append("\n")
+        }
+
+        scope.launch {
+            channel.send(sb.toString())
+        }
     }
 
-    private fun checkRotate() {
-        if (currentLogFile.length() > maxFileSizeBytes) {
-            val oldFile = File(currentLogFile.parent, "app-${System.currentTimeMillis()}.log")
-            currentLogFile.renameTo(oldFile)
-            currentLogFile = File(currentLogFile.parent, "app.log")
-        }
+    private fun rotateIfNeeded() {
+        if (currentFile.length() <= maxFileSizeBytes) return
+
+        val rotated = File(
+            logsDir,
+            "app-${System.currentTimeMillis()}.log"
+        )
+        currentFile.renameTo(rotated)
+        currentFile = File(logsDir, "app.log")
     }
 }
