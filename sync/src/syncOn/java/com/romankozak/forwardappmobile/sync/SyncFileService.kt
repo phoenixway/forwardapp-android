@@ -1,6 +1,5 @@
 package com.romankozak.forwardappmobile.sync
 
-import Timber.log.Timber
 import android.util.Log
 import com.google.gson.GsonBuilder
 import com.romankozak.forwardappmobile.core.data.interfaces.sync.IContentProvider
@@ -14,7 +13,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
-import timber.log.timber
+import timber.log.Timber
 
 @Singleton
 class SyncFileService @Inject constructor(
