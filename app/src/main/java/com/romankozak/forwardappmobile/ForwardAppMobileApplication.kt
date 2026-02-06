@@ -43,7 +43,7 @@ val logsDir = File(getExternalFilesDir("logs"), "")
         )
 
         Timber.i("Application started")
-    }
+    
     // 2️⃣ ВСЕ ІНШЕ
     appScope.launch {
         runCatching {
