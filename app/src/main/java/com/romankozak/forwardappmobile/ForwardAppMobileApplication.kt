@@ -13,6 +13,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+import timber.log.Timber
+import java.io.File
+
 @HiltAndroidApp
 class ForwardAppMobileApplication : Application(), Configuration.Provider {
     @Inject lateinit var workerFactory: HiltWorkerFactory
@@ -28,11 +31,29 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
                 .setWorkerFactory(workerFactory)
                 .build()
 
-    override fun onCreate() {
-        super.onCreate()
-        appScope.launch {
-            runCatching { settingsRepository.featureTogglesFlow.first() }
-                .onSuccess { toggles -> FeatureToggles.updateAll(toggles) }
+ override fun onCreate() {
+    super.onCreate()
+
+    // 1️⃣ ЛОГЕР ПЕРШИМ
+    val logsDir = File(filesDir, "logs")
+
+    Timber.plant(
+        Timber.DebugTree(),          // Logcat
+        CoroutineFileTree(logsDir)   // File + coroutines
+    )
+
+    Timber.i("Application onCreate started")
+
+    // 2️⃣ ВСЕ ІНШЕ
+    appScope.launch {
+        runCatching {
+            settingsRepository.featureTogglesFlow.first()
+        }.onSuccess { toggles ->
+            Timber.i("Feature toggles loaded")
+            FeatureToggles.updateAll(toggles)
+        }.onFailure {
+            Timber.e(it, "Failed to load feature toggles")
         }
     }
+}   }
 }
