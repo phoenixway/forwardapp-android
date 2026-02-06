@@ -50,6 +50,7 @@ dependencies {
     implementation(libs.ktor.serialization.gson)
     implementation(libs.ktor.client.logging)
 
+implementation(libs.timber)
     // Add other sync-specific dependencies here
     // For example:
     // implementation("androidx.room:room-runtime:2.6.1")
