@@ -37,19 +37,14 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
     super.onCreate()
 
     // 1️⃣ ЛОГЕР ПЕРШИМ
-    val logsDir = File(
-            Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_DOCUMENTS
-            ),
-            "ForwardApp/logs"
-        )
+    val logsDir = applicationContext.getDocumentsLogsDir()
 
         Timber.plant(
-            Timber.DebugTree(),              // logcat
-            CoroutineFileTree(logsDir)       // Documents
+            Timber.DebugTree(),
+            CoroutineFileTree(logsDir)
         )
 
-        Timber.i("Logger initialized")
+        Timber.i("Logger initialized (Android 15)")
     // 2️⃣ ВСЕ ІНШЕ
     appScope.launch {
         runCatching {
