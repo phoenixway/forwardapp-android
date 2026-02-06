@@ -15,6 +15,7 @@ import javax.inject.Inject
 
 import timber.log.Timber
 import java.io.File
+import com.romankozak.forwardappmobile.logging
 
 @HiltAndroidApp
 class ForwardAppMobileApplication : Application(), Configuration.Provider {
@@ -55,5 +56,5 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
             Timber.e(it, "Failed to load feature toggles")
         }
     }
-}   }
+   }
 }
