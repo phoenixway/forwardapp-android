@@ -169,7 +169,7 @@ class SyncFileService @Inject constructor(
             Timber.tag(tag).i("Smart backup successfully imported and merged from URI: $uriString")
             Result.success("Дані успішно імпортовано та об'єднано (V2)")
         } catch (e: Exception) {
-            Timber.tag(tag).e( "A critical error occurred during the smart import process.", e)
+            Timber.tag(tag).e(e, "A critical error occurred during the smart import process.")
             Result.failure(e)
         }
     }
