@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.core.logging
+package com.romankozak.forwardappmobile.logging
 
 import android.util.Log
 import timber.log.Timber
