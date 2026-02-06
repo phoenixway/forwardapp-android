@@ -422,6 +422,11 @@ class ContextScreenViewModel
                         is ContextData.Loaded -> {
                             _listContent.value = data.items
                             stateManager.updateContext(data)
+data.context?.let { project ->
+                viewModelScope.launch {
+                    recentItemsRepository.logProjectAccess(project)
+                }
+            }
                             capabilityManager.updateCapabilities(data.config)
 
                             val capabilities = capabilityManager.getEnabledCapabilities()
