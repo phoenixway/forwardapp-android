@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen
 
+import timber.log.Timber
 import android.app.Application
 import android.util.Log
 import androidx.compose.ui.text.input.TextFieldValue
@@ -433,6 +434,7 @@ class ContextHierarchyScreenViewModel
                     viewModelScope.launch {
                         val result = contextActionsUseCase.onFullImportConfirmed(event.uri)
                         dialogUseCase.dismissDialog()
+                        Timber.tag("IMPORT_DEBUG").e("Import error: ${result.exceptionOrNull()?.message}")
                         _uiEventChannel.send(
                             if (result.isSuccess) {
                                 ProjectUiEvent.ShowToast(result.getOrNull() ?: "Import successful")
