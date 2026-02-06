@@ -15,6 +15,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import timber.log.Timber
 
 class ContextActionsUseCase
     @Inject
@@ -202,7 +203,7 @@ class ContextActionsUseCase
         }
 
         suspend fun onFullImportConfirmedV2(uri: Uri): Result<String> {
-            Log.e("GEMINI_DEBUG", "ProjectActionsUseCase.onFullImportConfirmedV2 is called")
+            Timber.tag("DEBUG_IMPORT").e("ProjectActionsUseCase.onFullImportConfirmedV2 is called")
             return withContext(ioDispatcher) { syncRepository.importFullBackupFromFileV2(uri) }
         }
 
