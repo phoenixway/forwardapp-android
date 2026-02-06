@@ -248,7 +248,11 @@ dependencies {
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.compose.material3:material3-window-size-class:1.1.1")
 
+
+implementation(libs.timber)
+
     // OkHttp
+    //
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
 
@@ -281,6 +285,5 @@ dependencies {
 
     implementation(project(":sync"))
     implementation(project(":core-data-interfaces"))
-}
     implementation(project(":core-data-interfaces"))
 }

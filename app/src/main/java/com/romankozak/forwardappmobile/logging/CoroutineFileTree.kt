@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.common
+package com.romankozak.forwardappmobile.logging
 
 import android.util.Log
 import kotlinx.coroutines.*
