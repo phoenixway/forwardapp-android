@@ -98,7 +98,11 @@ fun DayManagementScreen(
 
                     else -> {
                         val planId = uiState.dayPlanId!!
-                        HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+                        HorizontalPager(
+                            state = pagerState,
+                            modifier = Modifier.fillMaxSize(),
+                            userScrollEnabled = false,
+                        ) { page ->
                             when (tabs[page]) {
                                 DayManagementTab.TRACK -> ActivityTrackerScreen(navController = mainNavController)
                                 DayManagementTab.PLAN ->

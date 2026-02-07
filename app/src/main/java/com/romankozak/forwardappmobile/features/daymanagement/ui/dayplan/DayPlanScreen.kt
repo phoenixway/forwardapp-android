@@ -189,15 +189,7 @@ fun DayPlanScreen(
             modifier = Modifier.fillMaxSize(),
         ) {
             Box(
-                modifier =
-                    Modifier.fillMaxSize().pointerInput(Unit) {
-                        detectHorizontalDragGestures { _, dragAmount: Float ->
-                            when {
-                                dragAmount < -50 && !uiState.isToday -> viewModel.navigateToNextDay()
-                                dragAmount > 50 -> viewModel.navigateToPreviousDay()
-                            }
-                        }
-                    },
+                modifier = Modifier.fillMaxSize(),
             ) {
                 when {
                     uiState.isLoading -> LoadingState()

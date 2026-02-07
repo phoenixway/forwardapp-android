@@ -15,11 +15,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Badge
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -31,6 +36,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import kotlinx.coroutines.launch
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.navigation.routes.GOAL_LISTS_ROUTE
 import com.romankozak.forwardappmobile.core.navigation.routes.STRATEGIC_MANAGEMENT_ROUTE
@@ -84,11 +90,27 @@ fun MainScreenLayout(
     recentViewModel: RecentViewModel = hiltViewModel(),
     commandDeckViewModel: CommandDeckViewModel = hiltViewModel(),
 ) {
-    val tabs = CommandDeckTab.entries.toList()
-    val innerNavController = rememberNavController()
+    val tabs =
+        listOf(
+            CommandDeckTab.Dashboard,
+            CommandDeckTab.Today,
+            CommandDeckTab.Tactics,
+            CommandDeckTab.StrategicArc,
+            CommandDeckTab.Strategy,
+            CommandDeckTab.Core,
+        )
+    val pagerState = rememberPagerState(initialPage = Int.MAX_VALUE / 2 - (Int.MAX_VALUE / 2 % tabs.size)) { Int.MAX_VALUE }
+    val scope = rememberCoroutineScope()
 
-    val navBackStackEntry by innerNavController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
+    val currentRoute =
+        when (tabs[(pagerState.currentPage % tabs.size + tabs.size) % tabs.size]) {
+            CommandDeckTab.Dashboard -> MAIN_SCREEN_DASHBOARD_ROUTE
+            CommandDeckTab.Core -> MAIN_SCREEN_CORE_ROUTE
+            CommandDeckTab.Strategy -> STRATEGIC_MANAGEMENT_ROUTE
+            CommandDeckTab.StrategicArc -> MAIN_SCREEN_STRATEGIC_ARC_ROUTE
+            CommandDeckTab.Tactics -> MAIN_SCREEN_TACTICS_ROUTE
+            CommandDeckTab.Today -> MAIN_SCREEN_TODAY_ROUTE
+        }
 
     val isContextInputVisible by commandDeckViewModel.isContextInputVisible.collectAsStateWithLifecycle()
     val contextInputText by commandDeckViewModel.contextInputText.collectAsStateWithLifecycle()
@@ -99,19 +121,7 @@ fun MainScreenLayout(
             indication = null,
         ) { commandDeckViewModel.openContextInput() }
 
-    val selectedTabIndex =
-        remember(currentRoute) {
-            tabs.indexOfFirst { tab ->
-                when (tab) {
-                    CommandDeckTab.Dashboard -> currentRoute == MAIN_SCREEN_DASHBOARD_ROUTE
-                    CommandDeckTab.Core -> currentRoute == MAIN_SCREEN_CORE_ROUTE
-                    CommandDeckTab.Strategy -> currentRoute == STRATEGIC_MANAGEMENT_ROUTE
-                    CommandDeckTab.StrategicArc -> currentRoute == MAIN_SCREEN_STRATEGIC_ARC_ROUTE
-                    CommandDeckTab.Tactics -> currentRoute == MAIN_SCREEN_TACTICS_ROUTE
-                    CommandDeckTab.Today -> currentRoute == MAIN_SCREEN_TODAY_ROUTE
-                }
-            }.coerceAtLeast(0)
-        }
+    val selectedTabIndex = (pagerState.currentPage % tabs.size + tabs.size) % tabs.size
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
@@ -152,13 +162,9 @@ fun MainScreenLayout(
                         )
 
                     MAIN_SCREEN_TODAY_ROUTE -> {
-                        val dayPlanBackStackEntry =
-                            remember(innerNavController.currentBackStackEntry) {
-                                innerNavController.getBackStackEntry(MAIN_SCREEN_TODAY_ROUTE)
-                            }
-                        val dayPlanViewModel: DayPlanViewModel = hiltViewModel(dayPlanBackStackEntry)
+                        val dayPlanViewModel: DayPlanViewModel = hiltViewModel()
                         val dayPlanUiState by dayPlanViewModel.uiState.collectAsState()
-                        val activityTrackerViewModel: ActivityTrackerViewModel = hiltViewModel(dayPlanBackStackEntry)
+                        val activityTrackerViewModel: ActivityTrackerViewModel = hiltViewModel()
                         val activityLog by activityTrackerViewModel.activityLog.collectAsStateWithLifecycle()
 
                         val (xpToday, antyXpToday) =
@@ -264,14 +270,11 @@ fun MainScreenLayout(
                                 recentViewModel = recentViewModel,
                             )
                         MAIN_SCREEN_STRATEGIC_ARC_ROUTE -> {
-                            val entry =
-                                remember(navBackStackEntry) { innerNavController.getBackStackEntry(MAIN_SCREEN_STRATEGIC_ARC_ROUTE) }
-                            val viewModel: StrategicArcViewModel = hiltViewModel(entry)
+                            val viewModel: StrategicArcViewModel = hiltViewModel()
                             StrategicArcBottomBar(viewModel)
                         }
                         MAIN_SCREEN_TODAY_ROUTE -> {
-                            val entry = remember(navBackStackEntry) { innerNavController.getBackStackEntry(MAIN_SCREEN_TODAY_ROUTE) }
-                            val viewModel: DayPlanViewModel = hiltViewModel(entry)
+                            val viewModel: DayPlanViewModel = hiltViewModel()
                             TodayBottomBar(viewModel, onNavigateToSettings)
                         }
                         MAIN_SCREEN_CORE_ROUTE -> CoreBottomBar()
@@ -293,63 +296,55 @@ fun MainScreenLayout(
                     tabs = tabs,
                     selectedTabIndex = selectedTabIndex,
                     onTabSelected = { index ->
-                        val newRoute =
-                            when (tabs[index]) {
-                                CommandDeckTab.Dashboard -> MAIN_SCREEN_DASHBOARD_ROUTE
-                                CommandDeckTab.Core -> MAIN_SCREEN_CORE_ROUTE
-                                CommandDeckTab.Strategy -> STRATEGIC_MANAGEMENT_ROUTE
-                                CommandDeckTab.StrategicArc -> MAIN_SCREEN_STRATEGIC_ARC_ROUTE
-                                CommandDeckTab.Tactics -> MAIN_SCREEN_TACTICS_ROUTE
-                                CommandDeckTab.Today -> MAIN_SCREEN_TODAY_ROUTE
-                            }
-                        if (newRoute != currentRoute) {
-                            innerNavController.navigate(newRoute) {
-                                popUpTo(innerNavController.graph.startDestinationId) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
+                        scope.launch {
+                            val currentRealIndex = pagerState.currentPage % tabs.size
+                            val diff = index - currentRealIndex
+                            val targetInfinitePage = pagerState.currentPage + diff
+                            pagerState.animateScrollToPage(targetInfinitePage)
                         }
                     },
                 )
 
                 Spacer(Modifier.height(16.dp))
 
-                NavHost(
-                    navController = innerNavController,
-                    startDestination = MAIN_SCREEN_DASHBOARD_ROUTE,
-                ) {
-                    composable(MAIN_SCREEN_DASHBOARD_ROUTE) {
-                        AnimatedCommandDeck(
-                            onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
-                            onNavigateToGlobalSearch = onNavigateToGlobalSearch,
-                            onNavigateToSettings = onNavigateToSettings,
-                            onNavigateToInbox = onNavigateToInbox,
-                            onNavigateToTracker = onNavigateToTracker,
-                            onNavigateToReminders = onNavigateToReminders,
-                            onNavigateToAiChat = onNavigateToAiChat,
-                            onNavigateToAiInsights = onNavigateToAiInsights,
-                            onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
-                            onNavigateToImportExport = { /*TODO: replace with real code*/ },
-                            onNavigateToAttachments = onNavigateToAttachments,
-                            onNavigateToScripts = onNavigateToScripts,
-                        )
-                    }
-                    composable(STRATEGIC_MANAGEMENT_ROUTE) {
-                        StrategicManagementScreen(navController = navController)
-                    }
-                    composable(MAIN_SCREEN_CORE_ROUTE) {
-                        CoreLevelScreen(navController = navController)
-                    }
-                    composable(MAIN_SCREEN_STRATEGIC_ARC_ROUTE) {
-                        StrategicArcScreen(navController = navController)
-                    }
-                    composable(MAIN_SCREEN_TACTICS_ROUTE) {
-                        TacticalManagementScreen()
-                    }
-                    composable(MAIN_SCREEN_TODAY_ROUTE) {
-                        DayManagementScreen(mainNavController = navController, startTab = "PLAN")
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize(),
+                    userScrollEnabled = true, // Enable swiping
+                ) { page ->
+                    val actualTabIndex = (page % tabs.size + tabs.size) % tabs.size
+                    when (tabs[actualTabIndex]) {
+                        CommandDeckTab.Dashboard -> {
+                            AnimatedCommandDeck(
+                                onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                                onNavigateToGlobalSearch = onNavigateToGlobalSearch,
+                                onNavigateToSettings = onNavigateToSettings,
+                                onNavigateToInbox = onNavigateToInbox,
+                                onNavigateToTracker = onNavigateToTracker,
+                                onNavigateToReminders = onNavigateToReminders,
+                                onNavigateToAiChat = onNavigateToAiChat,
+                                onNavigateToAiInsights = onNavigateToAiInsights,
+                                onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
+                                onNavigateToImportExport = { /*TODO: replace with real code*/ },
+                                onNavigateToAttachments = onNavigateToAttachments,
+                                onNavigateToScripts = onNavigateToScripts,
+                            )
+                        }
+                        CommandDeckTab.Strategy -> {
+                            StrategicManagementScreen(navController = navController)
+                        }
+                        CommandDeckTab.Core -> {
+                            CoreLevelScreen(navController = navController)
+                        }
+                        CommandDeckTab.StrategicArc -> {
+                            StrategicArcScreen(navController = navController)
+                        }
+                        CommandDeckTab.Tactics -> {
+                            TacticalManagementScreen()
+                        }
+                        CommandDeckTab.Today -> {
+                            DayManagementScreen(mainNavController = navController, startTab = "PLAN")
+                        }
                     }
                 }
             }
