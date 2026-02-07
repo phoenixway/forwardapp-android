@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.comp
 
 enum class InputMode {
     AddGoal,
+    AddDirection,
     SearchInList,
     SearchGlobal,
     AddQuickRecord,

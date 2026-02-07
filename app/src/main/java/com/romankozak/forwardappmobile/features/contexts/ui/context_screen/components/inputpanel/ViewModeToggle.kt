@@ -138,5 +138,6 @@ private fun ContextViewMode.toIcon(): ImageVector =
 private fun ContextViewMode.getDefaultInputMode() =
     when (this) {
         ContextViewMode.INBOX, ContextViewMode.ADVANCED -> InputMode.AddQuickRecord
+        ContextViewMode.DIRECTION -> InputMode.AddDirection
         else -> InputMode.AddGoal
     }

@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.PostAdd
@@ -118,6 +119,7 @@ fun QuickActionsRow(
                         text =
                             when (mode) {
                                 InputMode.AddGoal -> "Ціль"
+                                InputMode.AddDirection -> "Напрям"
                                 InputMode.AddQuickRecord -> "Запис"
                                 InputMode.SearchInList -> "Пошук"
                                 InputMode.SearchGlobal -> "Глобально"
@@ -152,6 +154,7 @@ fun InputStatusIndicator(
                 hasText ->
                     when (mode) {
                         InputMode.AddGoal -> MaterialTheme.colorScheme.primary
+                        InputMode.AddDirection -> MaterialTheme.colorScheme.primary
                         InputMode.AddQuickRecord -> MaterialTheme.colorScheme.primary
                         InputMode.SearchInList -> MaterialTheme.colorScheme.secondary
                         InputMode.SearchGlobal -> MaterialTheme.colorScheme.tertiary
@@ -189,6 +192,7 @@ object InputModeUtils {
                 InputMode.SearchInList,
                 InputMode.SearchGlobal,
                 InputMode.AddGoal,
+                InputMode.AddDirection,
                 InputMode.AddQuickRecord,
             )
         val currentIndex = modes.indexOf(current)
@@ -201,6 +205,7 @@ object InputModeUtils {
                 InputMode.SearchInList,
                 InputMode.SearchGlobal,
                 InputMode.AddGoal,
+                InputMode.AddDirection,
                 InputMode.AddQuickRecord,
             )
         val currentIndex = modes.indexOf(current)
@@ -210,6 +215,7 @@ object InputModeUtils {
     fun getModeIcon(mode: InputMode) =
         when (mode) {
             InputMode.AddGoal -> Icons.Outlined.Add
+            InputMode.AddDirection -> Icons.Outlined.Explore
             InputMode.AddQuickRecord -> Icons.Outlined.Inbox
             InputMode.SearchInList -> Icons.Outlined.Search
             InputMode.SearchGlobal -> Icons.Outlined.TravelExplore
@@ -222,6 +228,7 @@ object InputModeUtils {
         colorScheme: ColorScheme,
     ) = when (mode) {
         InputMode.AddGoal -> colorScheme.primary
+        InputMode.AddDirection -> colorScheme.primary
         InputMode.AddQuickRecord -> colorScheme.primary
         InputMode.SearchInList -> colorScheme.secondary
         InputMode.SearchGlobal -> colorScheme.tertiary

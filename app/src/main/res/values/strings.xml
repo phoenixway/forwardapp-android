@@ -53,6 +53,7 @@
     <string name="share_list">Share list</string>
     <string name="delete_list">Delete list</string>
     <string name="hint_add_goal">Add goal</string>
+    <string name="hint_add_direction">Add direction</string>
     <string name="hint_add_quick_record">Add quick record</string>
     <string name="hint_search_in_list">Search in list</string>
     <string name="hint_search_global">Global search</string>

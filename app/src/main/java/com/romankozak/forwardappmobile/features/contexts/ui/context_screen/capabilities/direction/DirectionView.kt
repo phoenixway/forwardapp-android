@@ -3,19 +3,16 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capa
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.AlertDialog
@@ -55,39 +52,10 @@ fun DirectionView(
             onMove(from.index, to.index)
         }
 
-    var inputText by remember { mutableStateOf("") }
     var editingItem by remember { mutableStateOf<DirectionItemEntity?>(null) }
     var editingText by remember { mutableStateOf("") }
 
     Column(modifier = modifier.fillMaxSize()) {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            OutlinedTextField(
-                value = inputText,
-                onValueChange = { inputText = it },
-                modifier = Modifier.weight(1f),
-                placeholder = { Text("Add direction") },
-                singleLine = true,
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            IconButton(
-                onClick = {
-                    val trimmed = inputText.trim()
-                    if (trimmed.isNotEmpty()) {
-                        onAddItem(trimmed)
-                        inputText = ""
-                    }
-                },
-            ) {
-                Icon(imageVector = Icons.Outlined.Add, contentDescription = "Add direction")
-            }
-        }
-
         if (items.isEmpty()) {
             Column(
                 modifier =
@@ -104,7 +72,7 @@ fun DirectionView(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Add a direction to start organizing focus",
+                    text = "Use the input panel below to add a direction",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

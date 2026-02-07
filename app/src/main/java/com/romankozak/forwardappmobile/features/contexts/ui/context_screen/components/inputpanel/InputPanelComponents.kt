@@ -74,6 +74,7 @@ internal fun InputTextField(
                                 text =
                                     when (inputMode) {
                                         InputMode.AddGoal -> stringResource(R.string.hint_add_goal)
+                                        InputMode.AddDirection -> stringResource(R.string.hint_add_direction)
                                         InputMode.AddQuickRecord -> stringResource(R.string.hint_add_quick_record)
                                         InputMode.SearchInList -> stringResource(R.string.hint_search_in_list)
                                         else -> "Додати..."
@@ -103,6 +104,7 @@ internal fun ModeSelectorButton(
         remember(isProjectManagementEnabled, currentView) {
             listOfNotNull(
                 InputMode.AddGoal,
+                if (currentView == ContextViewMode.DIRECTION) InputMode.AddDirection else null,
                 InputMode.AddQuickRecord,
                 if (isProjectManagementEnabled) InputMode.AddProjectLog else null,
                 InputMode.SearchGlobal,
@@ -130,6 +132,7 @@ internal fun ModeSelectorButton(
                 imageVector =
                     when (inputMode) {
                         InputMode.AddGoal -> Icons.Outlined.Add
+                        InputMode.AddDirection -> Icons.Outlined.Explore
                         InputMode.AddQuickRecord -> Icons.Outlined.Inbox
                         InputMode.SearchGlobal -> Icons.Outlined.TravelExplore
                         else -> Icons.Outlined.PostAdd

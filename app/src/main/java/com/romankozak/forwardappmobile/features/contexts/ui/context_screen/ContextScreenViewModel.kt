@@ -1258,7 +1258,7 @@ data.context?.let { project ->
             }
         }
 
-        fun addDirectionItem(text: String) {
+        override fun addDirectionItem(text: String) {
             val trimmed = text.trim()
             if (trimmed.isBlank()) {
                 showSnackbar("Напрямок не може бути порожнім.", null)

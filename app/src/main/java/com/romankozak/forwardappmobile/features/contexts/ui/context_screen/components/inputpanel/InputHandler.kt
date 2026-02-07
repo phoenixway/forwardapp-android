@@ -105,6 +105,8 @@ class InputHandler(
 
         fun addMilestone(text: String)
 
+        fun addDirectionItem(text: String)
+
         fun createObsidianNote(noteName: String)
     }
 
@@ -232,6 +234,10 @@ class InputHandler(
             InputMode.AddMilestone -> {
                 resultListener.updateInputState(inputValue = TextFieldValue(""))
                 resultListener.addMilestone(originalText)
+            }
+            InputMode.AddDirection -> {
+                resultListener.updateInputState(inputValue = TextFieldValue(""))
+                resultListener.addDirectionItem(originalText)
             }
         }
     }
