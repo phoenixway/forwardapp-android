@@ -761,7 +761,9 @@ data.context?.let { project ->
                             if (parts.size == 2) parts[0] to parts[1] else null
                         }.toMap()
                     NavTarget.NoteDocumentEdit(
-                        contextId = paramMap["contextId"]?.takeIf { it.isNotBlank() },
+                        contextId =
+                            paramMap["projectId"]?.takeIf { it.isNotBlank() }
+                                ?: paramMap["contextId"]?.takeIf { it.isNotBlank() },
                         documentId = paramMap["documentId"]?.takeIf { it.isNotBlank() },
                     )
                 }
@@ -774,7 +776,9 @@ data.context?.let { project ->
                         }.toMap()
                     NavTarget.Checklist(
                         id = paramMap["checklistId"]?.takeIf { it.isNotBlank() },
-                        contextId = paramMap["contextId"]?.takeIf { it.isNotBlank() },
+                        contextId =
+                            paramMap["projectId"]?.takeIf { it.isNotBlank() }
+                                ?: paramMap["contextId"]?.takeIf { it.isNotBlank() },
                     )
                 }
                 route.startsWith("list_chooser_screen/") -> {
@@ -1155,7 +1159,24 @@ data.context?.let { project ->
         fun onAddMilestone(text: String) = addMilestone(text)
 
         fun onShowCreateNoteDocumentDialog() {
-            stateManager.updateState { it.copy(showCreateNoteDocumentDialog = true) }
+            val contextId = contextIdFlow.value
+            if (contextId.isNotBlank()) {
+                viewModelScope.launch {
+                    val documentId =
+                        noteDocumentRepository.createDocument(
+                            name = "Нова нотатка",
+                            contextId = contextId,
+                            content = "",
+                        )
+                    _uiEventFlow.tryEmit(
+                        UiEvent.Navigate(
+                            NavTarget.NoteDocument(id = documentId, startEdit = true),
+                        ),
+                    )
+                }
+            } else {
+                showSnackbar("Не вдалося визначити проект для створення документа", null)
+            }
         }
 
         fun onCreateChecklist() {

@@ -36,7 +36,7 @@ object NavTargetRouter {
                 "note_document_edit_screen" +
                     buildQuery(
                         listOf(
-                            "contextId" to target.contextId,
+                            "projectId" to target.contextId,
                             "documentId" to target.documentId,
                         ),
                     )
@@ -45,7 +45,7 @@ object NavTargetRouter {
                 "checklist_screen" +
                     buildQuery(
                         listOf(
-                            "contextId" to target.contextId,
+                            "projectId" to target.contextId,
                             "checklistId" to target.id,
                         ),
                     )

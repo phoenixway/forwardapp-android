@@ -145,6 +145,7 @@ fun ModernInputPanel(
         )
 
     val focusRequester = remember { FocusRequester() }
+    var showModeMenu by remember { mutableStateOf(false) }
     val panelColors = getPanelColors(inputMode, LocalInputPanelColors.current)
 
     Surface(
@@ -164,7 +165,7 @@ fun ModernInputPanel(
                 ModeSelectorButton(
                     inputMode = inputMode,
                     panelColors = panelColors,
-                    onOpenMenu = { onMenuExpandedChange(true) },
+                    onOpenMenu = { showModeMenu = true },
                     onModeChange = onInputModeSelected,
                     isProjectManagementEnabled = isProjectManagementEnabled,
                     currentView = currentView,
@@ -192,5 +193,21 @@ fun ModernInputPanel(
                 )
             }
         }
+    }
+
+    if (showModeMenu) {
+        InputPanelAddToProjectActionsDialog(
+            currentInputMode = inputMode,
+            isProjectManagementEnabled = isProjectManagementEnabled,
+            onDismiss = { showModeMenu = false },
+            onInputModeSelected = onInputModeSelected,
+            onAddNestedProjectClick = onAddNestedProjectClick,
+            onShowAddWebLinkDialog = onShowAddWebLinkDialog,
+            onShowAddObsidianLinkDialog = onShowAddObsidianLinkDialog,
+            onAddListShortcutClick = onAddListShortcutClick,
+            onShowCreateNoteDocumentDialog = onShowCreateNoteDocumentDialog,
+            onCreateChecklist = onCreateChecklist,
+            onAddScript = onAddScript,
+        )
     }
 }
