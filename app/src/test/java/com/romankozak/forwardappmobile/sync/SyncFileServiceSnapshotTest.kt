@@ -52,7 +52,7 @@ class SyncFileServiceSnapshotTest {
                             contextLogLevel = null, isContextManagementEnabled = false,
                             parentId = null, description = null, contextStatusText = null,
                             tags = emptyList(), relatedLinks = emptyList(), order = 0, isAttachmentsExpanded = false,
-                            defaultViewModeName = null, isCompleted = false, totalTimeSpentMinutes = 0L,
+                            defaultViewModeName = "DIRECTION", isCompleted = false, totalTimeSpentMinutes = 0L,
                             valueImportance = 0, valueImpact = 0, effort = 0, cost = 0, risk = 0,
                             weightEffort = 1f, weightCost = 1f, weightRisk = 1f, rawScore = 0.0, displayScore = 0.0,
                             scoringStatus = "NOT_ASSESSED", showCheckboxes = false, roleCode = null,
@@ -182,7 +182,12 @@ class SyncFileServiceSnapshotTest {
 
             assertThat(result.isSuccess).isTrue()
             coVerify(exactly = 1) {
-                mockMergeRepository.applyServerChanges(match<SnapshotBundle> { it.contexts.first().id == "new_c1" })
+                mockMergeRepository.applyServerChanges(
+                    match<SnapshotBundle> {
+                        it.contexts.first().id == "new_c1" &&
+                            it.contexts.first().defaultViewModeName == "DIRECTION"
+                    },
+                )
             }
         }
 

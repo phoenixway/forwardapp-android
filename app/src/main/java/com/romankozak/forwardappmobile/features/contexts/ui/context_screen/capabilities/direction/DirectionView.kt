@@ -117,11 +117,11 @@ fun DirectionView(
                                 Icon(
                                     imageVector = Icons.Outlined.DragIndicator,
                                     contentDescription = "Reorder direction",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
                                     modifier =
                                         with(this@ReorderableItem) {
                                             Modifier
-                                                .size(36.dp)
+                                                .size(28.dp)
                                                 .clip(MaterialTheme.shapes.small)
                                                 .longPressDraggableHandle(
                                                     onDragStarted = {

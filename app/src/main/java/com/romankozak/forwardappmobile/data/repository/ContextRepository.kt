@@ -311,7 +311,10 @@ class ContextRepository
         suspend fun updateContextViewMode(
             id: String,
             mode: ContextViewMode,
-        ) = contextDao.updateViewMode(id, mode.name)
+        ) {
+            val context = contextDao.getContextById(id) ?: return
+            updateContext(context.copy(defaultViewModeName = mode.name))
+        }
 
         suspend fun deleteContextsAndSubContexts(contexts: List<Context>) {
             // Відфільтровуємо системні контексти, щоб їх не можна було видалити

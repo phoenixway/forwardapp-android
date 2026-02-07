@@ -445,10 +445,16 @@ data.context?.let { project ->
                                 val firstAvailable = availableViews.firstOrNull() ?: ContextViewMode.DASHBOARD
 
                                 val newViewMode =
-                                    if (currentState.currentViewMode in availableViews) {
-                                        currentState.currentViewMode
-                                    } else {
-                                        firstAvailable
+                                    run {
+                                        val savedMode =
+                                            data.context
+                                                ?.defaultViewModeName
+                                                ?.let { runCatching { ContextViewMode.valueOf(it) }.getOrNull() }
+                                        when {
+                                            savedMode != null && savedMode in availableViews -> savedMode
+                                            currentState.currentViewMode in availableViews -> currentState.currentViewMode
+                                            else -> firstAvailable
+                                        }
                                     }
 
                                 currentState.copy(
@@ -543,7 +549,14 @@ data.context?.let { project ->
         }
 
         // Delegated methods
-        fun onProjectViewChange(mode: ContextViewMode) = stateManager.switchViewMode(mode)
+        fun onProjectViewChange(mode: ContextViewMode) {
+            stateManager.switchViewMode(mode)
+            val contextId = contextIdFlow.value
+            if (contextId.isBlank()) return
+            viewModelScope.launch(ioDispatcher) {
+                contextRepository.updateContextViewMode(contextId, mode)
+            }
+        }
 
         fun onDashboardTabSelected(tab: ContextManagementTab) = stateManager.switchTab(tab)
 
