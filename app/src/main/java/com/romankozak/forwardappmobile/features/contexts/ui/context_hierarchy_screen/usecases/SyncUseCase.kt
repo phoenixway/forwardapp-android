@@ -6,17 +6,18 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.sync.WifiSyncManager
 import com.romankozak.forwardappmobile.features.sync.WifiSyncStatus
 import com.romankozak.forwardappmobile.sync.SyncRepository
-import dagger.hilt.android.scopes.ViewModelScoped
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import javax.inject.Singleton
 
-@ViewModelScoped
+@Singleton
 class SyncUseCase
     @Inject
     constructor(
@@ -36,12 +37,15 @@ class SyncUseCase
 
         private var wifiSyncManager: WifiSyncManager? = null
         private var isInitialized = false
+        private val listeners = LinkedHashSet<Channel<ProjectUiEvent>>()
+        private val internalUiEventChannel = Channel<ProjectUiEvent>(Channel.BUFFERED)
 
         fun initialize(
             scope: CoroutineScope,
             application: Application,
             uiEventChannel: Channel<ProjectUiEvent>,
         ) {
+            listeners.add(uiEventChannel)
             if (isInitialized) return
 
             val manager =
@@ -50,10 +54,17 @@ class SyncUseCase
                     settingsRepository = settingsRepository,
                     application = application,
                     viewModelScope = scope,
-                    uiEventChannel = uiEventChannel,
+                    uiEventChannel = internalUiEventChannel,
                 )
             wifiSyncManager = manager
 
+            scope.launch {
+                internalUiEventChannel.receiveAsFlow().collect { event ->
+                    listeners.forEach { listener ->
+                        listener.trySend(event)
+                    }
+                }
+            }
             scope.launch {
                 combine(
                     manager.showWifiServerDialog,

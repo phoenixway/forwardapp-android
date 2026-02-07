@@ -36,6 +36,8 @@ fun TacticsBottomPanel(
     onExportAttachments: () -> Unit,
     onImportAttachmentsFromFileRequest: (Uri) -> Unit,
     onWifiPush: (String) -> Unit,
+    onShowWifiServer: () -> Unit,
+    onShowWifiImport: () -> Unit,
     onNavigateToRecentItem: (RecentItem) -> Unit,
     recentViewModel: RecentViewModel = hiltViewModel(),
 ) {
@@ -73,6 +75,8 @@ fun TacticsBottomPanel(
                 onExportAttachments = onExportAttachments,
                 onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
                 onWifiPush = onWifiPush,
+                onShowWifiServer = onShowWifiServer,
+                onShowWifiImport = onShowWifiImport,
                 recentViewModel = recentViewModel,
             )
         }

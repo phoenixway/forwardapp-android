@@ -320,7 +320,6 @@ class WifiSyncServer(
     private fun isPortFree(port: Int): Boolean {
         return runCatching {
             ServerSocket().use { socket ->
-                socket.reuseAddress = true
                 socket.bind(InetSocketAddress("0.0.0.0", port))
                 true
             }

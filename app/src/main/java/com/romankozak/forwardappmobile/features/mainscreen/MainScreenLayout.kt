@@ -1,24 +1,34 @@
 package com.romankozak.forwardappmobile.features.mainscreen
 
+import android.net.Uri
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Badge
+import androidx.compose.material3.Button
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -41,6 +51,8 @@ import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.TodayBot
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.features.strategicmanagement.StrategicManagementScreen
+import com.romankozak.forwardappmobile.ui.dialogs.WifiImportDialog
+import com.romankozak.forwardappmobile.ui.dialogs.WifiServerDialog
 import com.romankozak.forwardappmobile.ui.components.CommonBottomPanelLayout
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckHeaderPreset
 import com.romankozak.forwardappmobile.ui.components.header.CoreHeader
@@ -75,11 +87,14 @@ fun MainScreenLayout(
     onNavigateToAiLifeManagement: () -> Unit,
     // New Import/Export Callbacks
     onExportToFile: () -> Unit,
-    onImportFromFileRequest: () -> Unit,
-    onSelectiveImportFromFileRequest: () -> Unit,
+    onImportFromFileRequest: (Uri) -> Unit,
+    onSelectiveImportFromFileRequest: (Uri) -> Unit,
     onExportAttachments: () -> Unit,
-    onImportAttachmentsFromFileRequest: () -> Unit,
+    onImportAttachmentsFromFileRequest: (Uri) -> Unit,
     onWifiPush: (String) -> Unit,
+    onShowWifiServer: () -> Unit,
+    onShowWifiImport: () -> Unit,
+    onNavigateToSyncScreenWithData: (String) -> Unit,
     onNavigateToAttachments: () -> Unit,
     onNavigateToScripts: () -> Unit,
     onNavigateToRecentItem: (RecentItem) -> Unit,
@@ -110,6 +125,21 @@ fun MainScreenLayout(
 
     val isContextInputVisible by commandDeckViewModel.isContextInputVisible.collectAsStateWithLifecycle()
     val contextInputText by commandDeckViewModel.contextInputText.collectAsStateWithLifecycle()
+    val importChoiceUri by commandDeckViewModel.importChoiceUri.collectAsStateWithLifecycle()
+    val exportChoiceVisible by commandDeckViewModel.exportChoiceVisible.collectAsStateWithLifecycle()
+    val syncUiState by commandDeckViewModel.syncUiState.collectAsStateWithLifecycle()
+    val showWifiImportDialog by commandDeckViewModel.showWifiImportDialog.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(commandDeckViewModel) {
+        commandDeckViewModel.uiEvents.collect { message ->
+            when (message) {
+                is CommandDeckUiEvent.ShowMessage -> snackbarHostState.showSnackbar(message.message)
+                is CommandDeckUiEvent.NavigateToSyncScreenWithData ->
+                    onNavigateToSyncScreenWithData(message.json)
+            }
+        }
+    }
 
     val headerModifier =
         Modifier.clickable(
@@ -122,6 +152,7 @@ fun MainScreenLayout(
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             containerColor = Color.Transparent,
+            snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
             topBar = {
                 when (currentRoute) {
                     MAIN_SCREEN_DASHBOARD_ROUTE -> {
@@ -247,6 +278,8 @@ fun MainScreenLayout(
                                 onExportAttachments = onExportAttachments,
                                 onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
                                 onWifiPush = onWifiPush,
+                                onShowWifiServer = onShowWifiServer,
+                                onShowWifiImport = onShowWifiImport,
                                 onNavigateToRecentItem = onNavigateToRecentItem,
                                 recentViewModel = recentViewModel,
                             )
@@ -268,6 +301,8 @@ fun MainScreenLayout(
                                 onExportAttachments = onExportAttachments,
                                 onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
                                 onWifiPush = onWifiPush,
+                                onShowWifiServer = onShowWifiServer,
+                                onShowWifiImport = onShowWifiImport,
                                 onNavigateToRecentItem = onNavigateToRecentItem,
                                 recentViewModel = recentViewModel,
                             )
@@ -289,6 +324,8 @@ fun MainScreenLayout(
                                 onExportAttachments = onExportAttachments,
                                 onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
                                 onWifiPush = onWifiPush,
+                                onShowWifiServer = onShowWifiServer,
+                                onShowWifiImport = onShowWifiImport,
                                 onNavigateToRecentItem = onNavigateToRecentItem,
                                 recentViewModel = recentViewModel,
                             )
@@ -310,6 +347,8 @@ fun MainScreenLayout(
                                 onExportAttachments = onExportAttachments,
                                 onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
                                 onWifiPush = onWifiPush,
+                                onShowWifiServer = onShowWifiServer,
+                                onShowWifiImport = onShowWifiImport,
                                 onNavigateToRecentItem = onNavigateToRecentItem,
                                 recentViewModel = recentViewModel,
                             )
@@ -339,6 +378,8 @@ fun MainScreenLayout(
                                 onExportAttachments = onExportAttachments,
                                 onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
                                 onWifiPush = onWifiPush,
+                                onShowWifiServer = onShowWifiServer,
+                                onShowWifiImport = onShowWifiImport,
                                 onNavigateToRecentItem = onNavigateToRecentItem,
                                 recentViewModel = recentViewModel,
                             )
@@ -422,6 +463,70 @@ fun MainScreenLayout(
             onClear = commandDeckViewModel::clearContextInput,
             onDismiss = commandDeckViewModel::closeContextInput,
         )
+
+        if (importChoiceUri != null) {
+            AlertDialog(
+                onDismissRequest = commandDeckViewModel::onImportChoiceDismiss,
+                title = { Text("Choose Import Version") },
+                text = { Text("Would you like to import a V1 (legacy) or V2 (snapshot) backup file?") },
+                confirmButton = {
+                    Row(horizontalArrangement = Arrangement.SpaceBetween) {
+                        Button(onClick = { commandDeckViewModel.confirmImportV1(importChoiceUri!!) }) {
+                            Text("Import V1")
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Button(onClick = { commandDeckViewModel.confirmImportV2(importChoiceUri!!) }) {
+                            Text("Import V2")
+                        }
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = commandDeckViewModel::onImportChoiceDismiss) {
+                        Text("Cancel")
+                    }
+                },
+            )
+        }
+
+        if (exportChoiceVisible) {
+            AlertDialog(
+                onDismissRequest = commandDeckViewModel::onExportChoiceDismiss,
+                title = { Text("Choose Export Version") },
+                text = { Text("Would you like to export a V1 (legacy) or V2 (snapshot) backup file?") },
+                confirmButton = {
+                    Row(horizontalArrangement = Arrangement.SpaceBetween) {
+                        Button(onClick = commandDeckViewModel::confirmExportV1) {
+                            Text("Export V1")
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Button(onClick = commandDeckViewModel::confirmExportV2) {
+                            Text("Export V2")
+                        }
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = commandDeckViewModel::onExportChoiceDismiss) {
+                        Text("Cancel")
+                    }
+                },
+            )
+        }
+
+        if (syncUiState.showWifiServerDialog) {
+            WifiServerDialog(
+                address = syncUiState.wifiServerAddress,
+                onDismiss = commandDeckViewModel::onDismissWifiServerDialog,
+            )
+        }
+
+        if (showWifiImportDialog) {
+            WifiImportDialog(
+                desktopAddress = syncUiState.desktopAddress,
+                onAddressChange = commandDeckViewModel::onWifiImportAddressChange,
+                onDismiss = commandDeckViewModel::onDismissWifiImportDialog,
+                onConfirm = commandDeckViewModel::onWifiImportConfirm,
+            )
+        }
     }
 }
 

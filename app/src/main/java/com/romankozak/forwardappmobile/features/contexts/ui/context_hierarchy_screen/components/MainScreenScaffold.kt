@@ -2,14 +2,11 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 
 import android.util.Log
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -17,26 +14,20 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CloudDownload
-import androidx.compose.material.icons.filled.CloudUpload
-import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.FormatListBulleted
-import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -89,21 +80,6 @@ fun ProjectHierarchyScreenScaffold(
     var showContextSheet by remember { mutableStateOf(false) }
     var showSearchHistorySheet by remember { mutableStateOf(false) }
 
-    val importLauncher =
-        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
-            uri?.let { onEvent(ContextHierarchyScreenEvent.ImportFromFileRequest(it)) }
-        }
-
-    val importAttachmentsLauncher =
-        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
-            uri?.let { onEvent(ContextHierarchyScreenEvent.ImportAttachmentsFromFile(it)) }
-        }
-
-    val selectiveImportLauncher =
-        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
-            uri?.let { onEvent(ContextHierarchyScreenEvent.SelectiveImportFromFileRequest(it)) }
-        }
-
     val backHandlerEnabled by remember(uiState.subStateStack, uiState.currentBreadcrumbs, uiState.areAnyProjectsExpanded) {
         derivedStateOf {
             val enabled =
@@ -121,7 +97,6 @@ fun ProjectHierarchyScreenScaffold(
     }
 
     val indicatorState = remember { com.romankozak.forwardappmobile.ui.shared.InProgressIndicatorState(isInitiallyExpanded = false) }
-    var showImportExportSheet by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = Modifier.imePadding(),
@@ -156,17 +131,13 @@ fun ProjectHierarchyScreenScaffold(
                 onGoBack = { onEvent(ContextHierarchyScreenEvent.BackClick) },
                 onGoForward = { onEvent(ContextHierarchyScreenEvent.ForwardClick) },
                 onShowHistory = { onEvent(ContextHierarchyScreenEvent.HistoryClick) },
-                onShowWifiServer = { onEvent(ContextHierarchyScreenEvent.ShowWifiServerDialog) },
-                onShowWifiImport = { onEvent(ContextHierarchyScreenEvent.ShowWifiImportDialog) },
-                onShowImportExportSheet = { showImportExportSheet = true },
-                onShowSettings = { onEvent(ContextHierarchyScreenEvent.GoToSettings) },
                 onShowAbout = { onEvent(ContextHierarchyScreenEvent.ShowAboutDialog) },
                 onShowReminders = { onEvent(ContextHierarchyScreenEvent.GoToReminders) },
                 onShowAttachmentsLibrary = { onEvent(ContextHierarchyScreenEvent.OpenAttachmentsLibrary) },
                 onShowScriptsLibrary = { onEvent(ContextHierarchyScreenEvent.OpenScriptsLibrary) },
                 onShowContextLab = { onEvent(ContextHierarchyScreenEvent.NavigateToContextLab) },
                 syncStatus = uiState.syncStatus,
-                onSyncIndicatorClick = { onEvent(ContextHierarchyScreenEvent.ShowWifiServerDialog) },
+                onSyncIndicatorClick = { },
                 featureToggles = uiState.featureToggles,
             )
         },
@@ -383,92 +354,6 @@ fun ProjectHierarchyScreenScaffold(
         onPinClick = { onEvent(ContextHierarchyScreenEvent.RecentItemPinClick(it)) },
     )
 
-    if (showImportExportSheet) {
-        ModalBottomSheet(onDismissRequest = { showImportExportSheet = false }) {
-            Column(modifier = Modifier.padding(bottom = 24.dp)) {
-                Text(
-                    text = "Імпорт / Експорт",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(160.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                ) {
-                    item {
-                        ImportExportTile(
-                            icon = Icons.Default.CloudUpload,
-                            title = "Експорт бекапу",
-                            subtitle = "Зберегти JSON у файлі",
-                            onClick = {
-                                showImportExportSheet = false
-                                onEvent(ContextHierarchyScreenEvent.ExportToFile)
-                            },
-                        )
-                    }
-                    item {
-                        ImportExportTile(
-                            icon = Icons.Default.CloudDownload,
-                            title = "Повний імпорт",
-                            subtitle = "Замінити поточні дані",
-                            onClick = {
-                                showImportExportSheet = false
-                                importLauncher.launch("application/json")
-                            },
-                        )
-                    }
-                    item {
-                        ImportExportTile(
-                            icon = Icons.Default.FolderOpen,
-                            title = "Вибірковий імпорт",
-                            subtitle = "Обрати сутності",
-                            onClick = {
-                                showImportExportSheet = false
-                                selectiveImportLauncher.launch("application/json")
-                            },
-                        )
-                    }
-                    item {
-                        ImportExportTile(
-                            icon = Icons.Default.Description,
-                            title = "Експорт вкладень",
-                            subtitle = "JSON вкладень",
-                            onClick = {
-                                showImportExportSheet = false
-                                onEvent(ContextHierarchyScreenEvent.ExportAttachments)
-                            },
-                        )
-                    }
-                    item {
-                        ImportExportTile(
-                            icon = Icons.Default.FolderOpen,
-                            title = "Імпорт вкладень",
-                            subtitle = "Додати вкладення",
-                            onClick = {
-                                showImportExportSheet = false
-                                importAttachmentsLauncher.launch("application/json")
-                            },
-                        )
-                    }
-                    item {
-                        ImportExportTile(
-                            icon = Icons.Default.CloudUpload,
-                            title = "Push змін по Wi‑Fi",
-                            subtitle = "Надіслати несинхронізоване",
-                            onClick = {
-                                showImportExportSheet = false
-                                onEvent(ContextHierarchyScreenEvent.WifiPush("localhost:8080"))
-                            },
-                        )
-                    }
-                }
-            }
-        }
-    }
-
     HandleProjectHierarchyDialogs(
         uiState = uiState,
         onEvent = onEvent,
@@ -498,50 +383,4 @@ fun ProjectHierarchyScreenScaffold(
     }
 
     HoldMenu2Overlay(controller = holdMenuController)
-}
-
-@Composable
-private fun ImportExportItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit,
-) {
-    DropdownMenuItem(
-        leadingIcon = { Icon(icon, contentDescription = null) },
-        text = {
-            Column {
-                Text(text = title, style = MaterialTheme.typography.bodyLarge)
-                Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        },
-        onClick = onClick,
-    )
-}
-
-@Composable
-private fun ImportExportTile(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit,
-) {
-    Card(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp),
-        onClick = onClick,
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = title, style = MaterialTheme.typography.titleMedium)
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
 }

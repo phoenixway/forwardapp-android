@@ -68,10 +68,6 @@ fun ProjectHierarchyScreenTopAppBar(
     onGoBack: () -> Unit,
     onGoForward: () -> Unit,
     onShowHistory: () -> Unit,
-    onShowWifiServer: () -> Unit,
-    onShowWifiImport: () -> Unit,
-    onShowImportExportSheet: () -> Unit,
-    onShowSettings: () -> Unit,
     onShowAbout: () -> Unit,
     onShowReminders: () -> Unit,
     onShowAttachmentsLibrary: () -> Unit,
@@ -225,38 +221,6 @@ fun ProjectHierarchyScreenTopAppBar(
                                 }
                                 HorizontalDivider()
                             }
-                            if (featureToggles[FeatureFlag.WifiSync] == true) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(id = R.string.menu_run_wifi_server)) },
-                                    onClick = {
-                                        onShowWifiServer()
-                                        menuExpanded = false
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(id = R.string.menu_import_wifi)) },
-                                    onClick = {
-                                        onShowWifiImport()
-                                        menuExpanded = false
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Відправити зміни по Wi‑Fi") },
-                                    onClick = {
-                                        onShowImportExportSheet()
-                                        menuExpanded = false
-                                    },
-                                )
-                                HorizontalDivider()
-                            }
-                            DropdownMenuItem(
-                                text = { Text(stringResource(id = R.string.menu_import_export)) },
-                                onClick = {
-                                    menuExpanded = false
-                                    onShowImportExportSheet()
-                                },
-                            )
-                            HorizontalDivider()
                             if (featureToggles[FeatureFlag.ContextLab] == true) {
                                 DropdownMenuItem(
                                     text = { Text("Context Lab") },
@@ -267,13 +231,6 @@ fun ProjectHierarchyScreenTopAppBar(
                                 )
                                 HorizontalDivider()
                             }
-                            DropdownMenuItem(
-                                text = { Text("Settings") },
-                                onClick = {
-                                    onShowSettings()
-                                    menuExpanded = false
-                                },
-                            )
                             DropdownMenuItem(
                                 text = { Text("About") },
                                 onClick = {

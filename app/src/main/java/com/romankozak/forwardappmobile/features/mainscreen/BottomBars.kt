@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AlternateEmail
 import androidx.compose.material.icons.outlined.AutoAwesome
@@ -83,6 +84,8 @@ fun DashboardBottomBar(
     onExportAttachments: () -> Unit,
     onImportAttachmentsFromFileRequest: (Uri) -> Unit,
     onWifiPush: (String) -> Unit,
+    onShowWifiServer: () -> Unit,
+    onShowWifiImport: () -> Unit,
     recentViewModel: RecentViewModel = hiltViewModel(),
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -248,6 +251,28 @@ fun DashboardBottomBar(
                             onClick = {
                                 showImportExportSheet = false
                                 onWifiPush("localhost:8080")
+                            },
+                        )
+                    }
+                    item {
+                        ImportExportTile(
+                            icon = Icons.Default.Wifi,
+                            title = "Wi‑Fi сервер",
+                            subtitle = "Запустити локальний сервер",
+                            onClick = {
+                                showImportExportSheet = false
+                                onShowWifiServer()
+                            },
+                        )
+                    }
+                    item {
+                        ImportExportTile(
+                            icon = Icons.Default.Wifi,
+                            title = "Wi‑Fi імпорт",
+                            subtitle = "Отримати дані з сервера",
+                            onClick = {
+                                showImportExportSheet = false
+                                onShowWifiImport()
                             },
                         )
                     }

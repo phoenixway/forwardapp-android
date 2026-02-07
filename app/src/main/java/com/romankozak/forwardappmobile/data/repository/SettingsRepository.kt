@@ -231,6 +231,12 @@ class SettingsRepository
             }
         }
 
+        suspend fun saveWifiSyncPort(port: Int) {
+            context.dataStore.edit {
+                it[wifiSyncPortKey] = port
+            }
+        }
+
         suspend fun saveFeatureToggle(
             flag: FeatureFlag,
             enabled: Boolean,

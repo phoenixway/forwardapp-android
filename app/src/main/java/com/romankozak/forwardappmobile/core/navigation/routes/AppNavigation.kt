@@ -72,6 +72,7 @@ import com.romankozak.forwardappmobile.features.vet_case.VetCaseSummaryScreen
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import kotlinx.coroutines.launch
 import java.net.URLDecoder
+import java.net.URLEncoder
 
 const val MAIN_GRAPH_ROUTE = "main_graph"
 const val COMMAND_DECK_ROUTE = "command_deck_screen"
@@ -174,17 +175,26 @@ private fun NavGraphBuilder.mainGraph(
             onNavigateToAiInsights = { navController.navigate(AI_INSIGHTS_ROUTE) },
             onNavigateToAiLifeManagement = { navController.navigate(LIFE_STATE_ROUTE) },
             onExportToFile = { commandDeckViewModel.onEvent(CommandDeckEvent.ExportToFile) },
-            onImportFromFileRequest = {
+            onImportFromFileRequest = { uri ->
                 commandDeckViewModel.onEvent(
-                    CommandDeckEvent.ImportFromFileRequest(""),
+                    CommandDeckEvent.ImportFromFileRequest(uri.toString()),
                 )
-            }, // File picker will handle URI
-            onSelectiveImportFromFileRequest = { navController.navigate(SELECTIVE_IMPORT_ROUTE) }, // This still navigates
+            },
+            onSelectiveImportFromFileRequest = { uri ->
+                val encodedUri = URLEncoder.encode(uri.toString(), "UTF-8")
+                navController.navigate("selective_import_screen?fileUri=$encodedUri")
+            },
             onExportAttachments = { commandDeckViewModel.onEvent(CommandDeckEvent.ExportAttachments) },
-            onImportAttachmentsFromFileRequest = {
-                commandDeckViewModel.onEvent(CommandDeckEvent.ImportAttachmentsFromFile(""))
-            }, // File picker will handle URI
+            onImportAttachmentsFromFileRequest = { uri ->
+                commandDeckViewModel.onEvent(CommandDeckEvent.ImportAttachmentsFromFile(uri.toString()))
+            },
             onWifiPush = { host -> commandDeckViewModel.onEvent(CommandDeckEvent.WifiPush(host)) },
+            onShowWifiServer = { commandDeckViewModel.onShowWifiServerDialog() },
+            onShowWifiImport = { commandDeckViewModel.onShowWifiImportDialog() },
+            onNavigateToSyncScreenWithData = { json ->
+                syncDataViewModel.jsonString = json
+                navController.navigate("sync_screen")
+            },
             onNavigateToAttachments = { navController.navigate("attachments_library_screen") },
             onNavigateToScripts = { navController.navigate("scripts_library_screen") },
             onNavigateToRecentItem = { item: RecentItem ->
@@ -206,6 +216,7 @@ private fun NavGraphBuilder.mainGraph(
                 }
             },
             recentViewModel = hiltViewModel<RecentViewModel>(),
+            commandDeckViewModel = commandDeckViewModel,
         )
     }
 

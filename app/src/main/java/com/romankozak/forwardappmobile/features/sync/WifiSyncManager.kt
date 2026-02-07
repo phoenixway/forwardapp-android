@@ -15,6 +15,9 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.net.BindException
+import java.net.InetSocketAddress
+import java.net.ServerSocket
 
 private const val SYNC_LOG_TAG = "FWD_SYNC_TEST"
 
@@ -80,32 +83,97 @@ class WifiSyncManager(
     }
 
     private fun startWifiServer() {
-        viewModelScope.launch {
-            if (isServerRunning || isServerStarting) {
-                _syncStatus.value = WifiSyncStatus.ServerRunning(_wifiServerAddress.value)
-                return@launch
-            }
-            isServerStarting = true
-            _syncStatus.value = WifiSyncStatus.Syncing
-            val port = settingsRepository.wifiSyncPortFlow.first()
-            Log.d(SYNC_LOG_TAG, "[WifiSyncManager] Starting Wi‑Fi server on port $port")
-            val result = withContext(Dispatchers.IO) { wifiSyncServer.start(port) }
-            result
-                .onSuccess { address ->
-                    isServerRunning = true
-                    _wifiServerAddress.value = address
-                    _syncStatus.value = WifiSyncStatus.ServerRunning(address)
-                    Log.d(SYNC_LOG_TAG, "[WifiSyncManager] Server started at $address")
-                }
-                .onFailure { exception ->
-                    val message = exception.message ?: "Unknown error"
-                    isServerRunning = false
-                    _wifiServerAddress.value = "Error: $message"
-                    _syncStatus.value = WifiSyncStatus.Error(message)
-                    Log.e(SYNC_LOG_TAG, "[WifiSyncManager] Failed to start server: $message", exception)
-                }
-            isServerStarting = false
+        if (isServerRunning || isServerStarting) {
+            _syncStatus.value = WifiSyncStatus.ServerRunning(_wifiServerAddress.value)
+            return
         }
+        isServerStarting = true
+        viewModelScope.launch {
+            try {
+                _syncStatus.value = WifiSyncStatus.Syncing
+                val port = settingsRepository.wifiSyncPortFlow.first()
+                Log.d(SYNC_LOG_TAG, "[WifiSyncManager] Starting Wi‑Fi server on port $port")
+                val result = startServerOnPort(port)
+                result
+                    .onSuccess { address ->
+                        isServerRunning = true
+                        _wifiServerAddress.value = address
+                        _syncStatus.value = WifiSyncStatus.ServerRunning(address)
+                        Log.d(SYNC_LOG_TAG, "[WifiSyncManager] Server started at $address")
+                    }
+                    .onFailure { exception ->
+                        val message = exception.message ?: "Unknown error"
+                        val isPortBusy = exception is BindException || message.contains("Address already in use")
+                        if (isPortBusy) {
+                            val fallbackPort = findAvailablePort(port + 1, 20)
+                            if (fallbackPort != null) {
+                                settingsRepository.saveWifiSyncPort(fallbackPort)
+                                val fallbackResult = startServerOnPort(fallbackPort)
+                                fallbackResult
+                                    .onSuccess { address ->
+                                        isServerRunning = true
+                                        _wifiServerAddress.value = address
+                                        _syncStatus.value = WifiSyncStatus.ServerRunning(address)
+                                        val notice = "Port $port busy. Started on $fallbackPort."
+                                        Log.w(SYNC_LOG_TAG, "[WifiSyncManager] $notice")
+                                        uiEventChannel.send(ProjectUiEvent.ShowToast(notice))
+                                    }
+                                    .onFailure { fallbackException ->
+                                        val fallbackMessage = fallbackException.message ?: "Unknown error"
+                                        isServerRunning = false
+                                        _wifiServerAddress.value = "Error: $fallbackMessage"
+                                        _syncStatus.value = WifiSyncStatus.Error(fallbackMessage)
+                                        Log.e(
+                                            SYNC_LOG_TAG,
+                                            "[WifiSyncManager] Failed to start fallback server: $fallbackMessage",
+                                            fallbackException,
+                                        )
+                                    }
+                            } else {
+                                isServerRunning = false
+                                _wifiServerAddress.value = "Error: $message"
+                                _syncStatus.value = WifiSyncStatus.Error(message)
+                                Log.e(SYNC_LOG_TAG, "[WifiSyncManager] Failed to start server: $message", exception)
+                            }
+                        } else {
+                            isServerRunning = false
+                            _wifiServerAddress.value = "Error: $message"
+                            _syncStatus.value = WifiSyncStatus.Error(message)
+                            Log.e(SYNC_LOG_TAG, "[WifiSyncManager] Failed to start server: $message", exception)
+                        }
+                    }
+            } finally {
+                isServerStarting = false
+            }
+        }
+    }
+
+    private suspend fun startServerOnPort(port: Int): Result<String> {
+        return runCatching {
+            withContext(Dispatchers.IO) { wifiSyncServer.start(port) }
+        }.getOrElse { exception ->
+            Result.failure(exception)
+        }
+    }
+
+    private fun findAvailablePort(
+        startPort: Int,
+        maxAttempts: Int,
+    ): Int? {
+        val endPort = startPort + maxAttempts
+        for (port in startPort..endPort) {
+            val available =
+                runCatching {
+                    ServerSocket().use { socket ->
+                        socket.bind(InetSocketAddress("0.0.0.0", port))
+                        true
+                    }
+                }.getOrDefault(false)
+            if (available) {
+                return port
+            }
+        }
+        return null
     }
 
     private fun stopWifiServer(disable: Boolean = false) {

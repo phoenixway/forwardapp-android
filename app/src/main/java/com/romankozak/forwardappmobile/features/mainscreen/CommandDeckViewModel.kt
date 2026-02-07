@@ -7,9 +7,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.domain.lifecontext.StartContextTrackingUseCase
 import com.romankozak.forwardappmobile.domain.lifecontext.SubmitContextInputUseCase
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.DialogUseCase
-import com.romankozak.forwardappmobile.sync.SyncRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,8 +21,7 @@ class CommandDeckViewModel
         private val application: Application,
         private val submitContextInputUseCase: SubmitContextInputUseCase,
         private val startContextTrackingUseCase: StartContextTrackingUseCase,
-        private val dialogUseCase: DialogUseCase,
-        private val syncRepository: SyncRepository,
+        private val importExportHandler: CommandDeckImportExportHandler,
     ) : ViewModel() {
         private val sharedPreferences = application.getSharedPreferences("command_deck_prefs", Context.MODE_PRIVATE)
 
@@ -34,6 +30,20 @@ class CommandDeckViewModel
 
         private val _contextInputText = MutableStateFlow("")
         val contextInputText: StateFlow<String> = _contextInputText.asStateFlow()
+
+        val importChoiceUri: StateFlow<Uri?> = importExportHandler.importChoiceUri
+        val exportChoiceVisible: StateFlow<Boolean> = importExportHandler.exportChoiceVisible
+        val syncUiState: StateFlow<com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.SyncUseCase.SyncUiState> =
+            importExportHandler.syncUiState
+        val showWifiImportDialog: StateFlow<Boolean> = importExportHandler.showWifiImportDialog
+        val uiEvents = importExportHandler.uiEvents
+
+        init {
+            importExportHandler.initialize(
+                scope = viewModelScope,
+                application = application,
+            )
+        }
 
         fun isCategoryExpanded(categoryTitle: String): Boolean {
             return sharedPreferences.getBoolean(categoryTitle, false)
@@ -88,35 +98,83 @@ class CommandDeckViewModel
             }
         }
 
+        fun onImportChoiceDismiss() {
+            importExportHandler.dismissImportChoice()
+        }
+
+        fun onExportChoiceDismiss() {
+            importExportHandler.dismissExportChoice()
+        }
+
+        fun confirmImportV1(uri: Uri) {
+            viewModelScope.launch {
+                importExportHandler.confirmImportV1(uri)
+            }
+        }
+
+        fun confirmImportV2(uri: Uri) {
+            viewModelScope.launch {
+                importExportHandler.confirmImportV2(uri)
+            }
+        }
+
+        fun confirmExportV1() {
+            viewModelScope.launch {
+                importExportHandler.confirmExportV1()
+            }
+        }
+
+        fun confirmExportV2() {
+            viewModelScope.launch {
+                importExportHandler.confirmExportV2()
+            }
+        }
+
+        fun onShowWifiServerDialog() {
+            importExportHandler.showWifiServerDialog()
+        }
+
+        fun onDismissWifiServerDialog() {
+            importExportHandler.dismissWifiServerDialog()
+        }
+
+        fun onShowWifiImportDialog() {
+            importExportHandler.showWifiImportDialog()
+        }
+
+        fun onDismissWifiImportDialog() {
+            importExportHandler.dismissWifiImportDialog()
+        }
+
+        fun onWifiImportAddressChange(address: String) {
+            importExportHandler.updateWifiImportAddress(address)
+        }
+
+        fun onWifiImportConfirm(address: String) {
+            importExportHandler.performWifiImport(address)
+        }
+
         fun onEvent(event: CommandDeckEvent) {
             when (event) {
                 CommandDeckEvent.ExportToFile -> {
-                    viewModelScope.launch {
-                        dialogUseCase.onExportToFileRequested()
-                    }
+                    importExportHandler.requestExportToFile()
                 }
                 is CommandDeckEvent.ImportFromFileRequest -> {
-                    viewModelScope.launch {
-                        ContextHierarchyScreenEvent.ImportFromFileRequest(Uri.parse(event.fileUri))
-                    }
+                    importExportHandler.requestImportFromFile(Uri.parse(event.fileUri))
                 }
                 CommandDeckEvent.ExportAttachments -> {
                     viewModelScope.launch {
-                        syncRepository.exportAttachmentsToFile().onFailure {
-                            // TODO: Show error message
-                        }
+                        importExportHandler.exportAttachments()
                     }
                 }
                 is CommandDeckEvent.ImportAttachmentsFromFile -> {
                     viewModelScope.launch {
-                        syncRepository.importAttachmentsFromFile(Uri.parse(event.fileUri)).onFailure {
-                            // TODO: Show error message
-                        }
+                        importExportHandler.importAttachments(Uri.parse(event.fileUri))
                     }
                 }
                 is CommandDeckEvent.WifiPush -> {
                     viewModelScope.launch {
-                        // TODO: remove this action
+                        importExportHandler.wifiPush(event.host)
                     }
                 }
             }
