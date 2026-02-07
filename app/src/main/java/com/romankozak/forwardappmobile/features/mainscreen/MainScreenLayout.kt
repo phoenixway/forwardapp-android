@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.features.mainscreen
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -16,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -27,7 +29,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.navigation.routes.STRATEGIC_MANAGEMENT_ROUTE
+import com.romankozak.forwardappmobile.features.activitytracker.ActivityTrackerViewModel
 import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementScreen
+import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.CoreBottomPanel
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.DashboardBottomPanel
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.StrategicArcBottomPanel
@@ -39,8 +43,13 @@ import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.features.strategicmanagement.StrategicManagementScreen
 import com.romankozak.forwardappmobile.ui.components.CommonBottomPanelLayout
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckHeaderPreset
+import com.romankozak.forwardappmobile.ui.components.header.CoreHeader
 import com.romankozak.forwardappmobile.ui.components.header.FAHeader
 import com.romankozak.forwardappmobile.ui.components.header.FAHeaderBackground
+import com.romankozak.forwardappmobile.ui.components.header.StrategicArcHeader
+import com.romankozak.forwardappmobile.ui.components.header.StrategyHeader
+import com.romankozak.forwardappmobile.ui.components.header.TacticsHeader
+import com.romankozak.forwardappmobile.ui.components.header.TodayHeader
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
@@ -114,29 +123,108 @@ fun MainScreenLayout(
         Scaffold(
             containerColor = Color.Transparent,
             topBar = {
-                val showBadge = com.romankozak.forwardappmobile.BuildConfig.DEBUG || com.romankozak.forwardappmobile.BuildConfig.IS_EXPERIMENTAL_BUILD
-                FAHeader(
-                    layout =
-                        CommandDeckHeaderPreset(
-                            onClick = {},
-                            onRightClick = { onNavigateToCharacter() },
-                            rightContent = {
-                                if (showBadge) {
-                                    Badge(
-                                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                                    ) {
-                                        Text(
-                                            text = if (com.romankozak.forwardappmobile.BuildConfig.DEBUG) "Debug" else "Experimental",
-                                            style = MaterialTheme.typography.labelSmall,
-                                        )
+                when (currentRoute) {
+                    MAIN_SCREEN_DASHBOARD_ROUTE -> {
+                        val showBadge = com.romankozak.forwardappmobile.BuildConfig.DEBUG || com.romankozak.forwardappmobile.BuildConfig.IS_EXPERIMENTAL_BUILD
+                        FAHeader(
+                            layout =
+                                CommandDeckHeaderPreset(
+                                    onClick = {},
+                                    onRightClick = { onNavigateToCharacter() },
+                                    rightContent = {
+                                        if (showBadge) {
+                                            Badge(
+                                                containerColor = MaterialTheme.colorScheme.errorContainer,
+                                                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                                            ) {
+                                                Text(
+                                                    text = if (com.romankozak.forwardappmobile.BuildConfig.DEBUG) "Debug" else "Experimental",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                )
+                                            }
+                                        }
+                                    },
+                                ),
+                            backgroundStyle = FAHeaderBackground.CommandDeck,
+                            modifier = headerModifier,
+                        )
+                    }
+
+                    MAIN_SCREEN_CORE_ROUTE ->
+                        FAHeader(
+                            layout = CoreHeader(),
+                            backgroundStyle = FAHeaderBackground.CommandDeck,
+                            modifier = headerModifier,
+                        )
+
+                    MAIN_SCREEN_TODAY_ROUTE -> {
+                        val dayPlanViewModel: DayPlanViewModel = hiltViewModel()
+                        val dayPlanUiState by dayPlanViewModel.uiState.collectAsState()
+                        val activityTrackerViewModel: ActivityTrackerViewModel = hiltViewModel()
+                        val activityLog by activityTrackerViewModel.activityLog.collectAsStateWithLifecycle()
+
+                        val (xpToday, antyXpToday) =
+                            remember(activityLog, dayPlanUiState.dayPlan?.date) {
+                                val targetDate = dayPlanUiState.dayPlan?.date ?: System.currentTimeMillis()
+                                val recordsForDay =
+                                    activityLog.filter { record ->
+                                        isSameDay(record.createdAt, targetDate)
                                     }
-                                }
-                            },
-                        ),
-                    backgroundStyle = FAHeaderBackground.CommandDeck,
-                    modifier = headerModifier,
-                )
+                                val xp = recordsForDay.sumOf { it.xpGained ?: 0 }
+                                val antyXp = recordsForDay.sumOf { it.antyXp ?: 0 }
+                                xp to antyXp
+                            }
+
+                        FAHeader(
+                            layout =
+                                TodayHeader(
+                                    onNavigateToPreviousDay = {
+                                        Log.d("TodayTab", "onNavigateToPreviousDay callback invoked.")
+                                        dayPlanViewModel.navigateToPreviousDay()
+                                    },
+                                    onNavigateToNextDay = {
+                                        Log.d(
+                                            "TodayTab",
+                                            "onNavigateToNextDay callback invoked. Enabled: ${!dayPlanUiState.isToday}",
+                                        )
+                                        dayPlanViewModel.navigateToNextDay()
+                                    },
+                                    isNextDayNavigationEnabled = !dayPlanUiState.isToday,
+                                    date = dayPlanUiState.dayPlan?.date,
+                                ),
+                            backgroundStyle = FAHeaderBackground.CommandDeck,
+                            modifier = headerModifier,
+                        )
+                    }
+
+                    STRATEGIC_MANAGEMENT_ROUTE ->
+                        FAHeader(
+                            layout = StrategyHeader(onModeClick = {}),
+                            backgroundStyle = FAHeaderBackground.CommandDeck,
+                            modifier = headerModifier,
+                        )
+
+                    MAIN_SCREEN_STRATEGIC_ARC_ROUTE ->
+                        FAHeader(
+                            layout = StrategicArcHeader(onModeClick = {}),
+                            backgroundStyle = FAHeaderBackground.CommandDeck,
+                            modifier = headerModifier,
+                        )
+
+                    MAIN_SCREEN_TACTICS_ROUTE ->
+                        FAHeader(
+                            layout = TacticsHeader(),
+                            backgroundStyle = FAHeaderBackground.CommandDeck,
+                            modifier = headerModifier,
+                        )
+
+                    else ->
+                        FAHeader(
+                            layout = CommandDeckHeaderPreset(onClick = {}),
+                            backgroundStyle = FAHeaderBackground.CommandDeck,
+                            modifier = headerModifier,
+                        )
+                }
             },
             bottomBar = {
                 CommonBottomPanelLayout {

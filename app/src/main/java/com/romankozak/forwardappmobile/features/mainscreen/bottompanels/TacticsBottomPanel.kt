@@ -10,6 +10,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import android.net.Uri
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.navigation.routes.GOAL_LISTS_ROUTE
 import com.romankozak.forwardappmobile.features.mainscreen.DashboardBottomBar
@@ -30,10 +31,10 @@ fun TacticsBottomPanel(
     onNavigateToReminders: () -> Unit,
     onNavigateToAiInsights: () -> Unit,
     onExportToFile: () -> Unit,
-    onImportFromFileRequest: () -> Unit,
-    onSelectiveImportFromFileRequest: () -> Unit,
+    onImportFromFileRequest: (Uri) -> Unit,
+    onSelectiveImportFromFileRequest: (Uri) -> Unit,
     onExportAttachments: () -> Unit,
-    onImportAttachmentsFromFileRequest: () -> Unit,
+    onImportAttachmentsFromFileRequest: (Uri) -> Unit,
     onWifiPush: (String) -> Unit,
     onNavigateToRecentItem: (RecentItem) -> Unit,
     recentViewModel: RecentViewModel = hiltViewModel(),

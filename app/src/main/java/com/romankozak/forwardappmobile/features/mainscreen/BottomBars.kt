@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.features.mainscreen
 
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -77,10 +78,10 @@ fun DashboardBottomBar(
     onNavigateToRecentItem: (RecentItem) -> Unit,
     // New lambdas for Import/Export actions
     onExportToFile: () -> Unit,
-    onImportFromFileRequest: () -> Unit,
-    onSelectiveImportFromFileRequest: () -> Unit,
+    onImportFromFileRequest: (Uri) -> Unit,
+    onSelectiveImportFromFileRequest: (Uri) -> Unit,
     onExportAttachments: () -> Unit,
-    onImportAttachmentsFromFileRequest: () -> Unit,
+    onImportAttachmentsFromFileRequest: (Uri) -> Unit,
     onWifiPush: (String) -> Unit,
     recentViewModel: RecentViewModel = hiltViewModel(),
 ) {
@@ -97,17 +98,17 @@ fun DashboardBottomBar(
 
     val importLauncher =
         rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
-            uri?.let { onImportFromFileRequest() }
+            uri?.let { onImportFromFileRequest(it) }
         }
 
     val selectiveImportLauncher =
         rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
-            uri?.let { onSelectiveImportFromFileRequest() }
+            uri?.let { onSelectiveImportFromFileRequest(it) }
         }
 
     val importAttachmentsLauncher =
         rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
-            uri?.let { onImportAttachmentsFromFileRequest() }
+            uri?.let { onImportAttachmentsFromFileRequest(it) }
         }
 
     if (showMoreBottomSheet) {

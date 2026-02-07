@@ -10,6 +10,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.ui.components.CommonBottomPanelLayout
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
+import android.net.Uri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
@@ -31,10 +32,10 @@ fun TodayBottomPanel(
     onNavigateToReminders: () -> Unit,
     onNavigateToAiInsights: () -> Unit,
     onExportToFile: () -> Unit,
-    onImportFromFileRequest: () -> Unit,
-    onSelectiveImportFromFileRequest: () -> Unit,
+    onImportFromFileRequest: (Uri) -> Unit,
+    onSelectiveImportFromFileRequest: (Uri) -> Unit,
     onExportAttachments: () -> Unit,
-    onImportAttachmentsFromFileRequest: () -> Unit,
+    onImportAttachmentsFromFileRequest: (Uri) -> Unit,
     onWifiPush: (String) -> Unit,
     onNavigateToRecentItem: (RecentItem) -> Unit,
     recentViewModel: RecentViewModel = hiltViewModel(),
