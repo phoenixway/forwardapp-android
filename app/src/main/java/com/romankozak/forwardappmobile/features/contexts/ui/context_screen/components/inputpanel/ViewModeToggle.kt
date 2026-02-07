@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Attachment
 import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.ViewModule
@@ -107,10 +108,11 @@ private fun ContextViewMode.orderPriority() =
         ContextViewMode.INBOX -> 2
         ContextViewMode.ADVANCED -> 3
         ContextViewMode.ATTACHMENTS -> 4
-        ContextViewMode.NOTES -> 5
-        ContextViewMode.LOG -> 6
-        ContextViewMode.ARTIFACT -> 7
-        ContextViewMode.VET_CASE -> 8
+        ContextViewMode.DIRECTION -> 5
+        ContextViewMode.NOTES -> 6
+        ContextViewMode.LOG -> 7
+        ContextViewMode.ARTIFACT -> 8
+        ContextViewMode.VET_CASE -> 9
     }
 
 private fun ContextViewMode.displayName(): String {
@@ -126,6 +128,7 @@ private fun ContextViewMode.toIcon(): ImageVector =
         ContextViewMode.ADVANCED -> Icons.Outlined.Dashboard
         ContextViewMode.ATTACHMENTS -> Icons.Default.Attachment
         ContextViewMode.DASHBOARD -> Icons.Outlined.ViewModule
+        ContextViewMode.DIRECTION -> Icons.Outlined.Explore
         ContextViewMode.NOTES -> Icons.Outlined.Description
         ContextViewMode.VET_CASE -> Icons.Default.MedicalServices
         ContextViewMode.LOG -> Icons.Outlined.History

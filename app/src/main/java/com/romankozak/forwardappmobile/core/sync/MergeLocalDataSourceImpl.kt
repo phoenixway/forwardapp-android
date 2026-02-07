@@ -60,6 +60,7 @@ class MergeLocalDataSourceImpl
         private val structurePresetDao: StructurePresetDao,
         private val structurePresetItemDao: StructurePresetItemDao,
         private val contextStructureDao: ContextStructureDao,
+        private val directionDao: DirectionDao,
     ) : MergeLocalDataSource {
         override suspend fun getContexts(): List<Context> = contextDao.getAll()
 
@@ -70,6 +71,7 @@ class MergeLocalDataSourceImpl
                 projects = contextDao.getAll(),
                 goals = goalDao.getAll(),
                 backlogItems = listItemDao.getAll(),
+                directionItems = directionDao.getAllRaw(),
                 documents = noteDocumentDao.getAllDocuments(),
                 attachments = attachmentDao.getAll(),
                 contextAttachmentCrossRefs = attachmentDao.getAllContextAttachmentCrossRefs(),
@@ -153,6 +155,7 @@ class MergeLocalDataSourceImpl
 
             db.withTransaction {
                 contextDao.insertAll(bundle.contexts.map { it.toEntity() })
+                directionDao.insertAll(bundle.directionItems.map { it.toEntity() })
                 goalDao.insertAll(bundle.goals.map { it.toEntity() })
                 noteDocumentDao.insertAllDocuments(bundle.documents.map { it.toEntity() })
                 checklistDao.insertChecklists(bundle.checklists.map { it.toEntity() })

@@ -11,6 +11,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfileItem
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextStructureItem
+import com.romankozak.forwardappmobile.core.data.models.entities.DirectionItemEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.LifeSystemStateEntity
@@ -62,6 +63,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.C
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextRoleProfileItemSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextRoleProfileSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextStructureItemSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.DirectionItemSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.InboxRecordSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.LinkItemEntitySnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.RelatedLinkSnapshot
@@ -91,6 +93,30 @@ fun BacklogOrder.toSnapshot(): BacklogOrderSnapshot = BacklogOrderSnapshot(
 )
 fun BacklogOrderSnapshot.toEntity(): BacklogOrder =
     BacklogOrder(id, listId, itemId, order, orderVersion, updatedAt, isDeleted = isDeleted)
+
+fun DirectionItemEntity.toSnapshot(): DirectionItemSnapshot =
+    DirectionItemSnapshot(
+        id = id,
+        contextId = contextId,
+        text = text,
+        itemOrder = itemOrder,
+        updatedAt = updatedAt,
+        syncedAt = syncedAt,
+        isDeleted = isDeleted,
+        version = version,
+    )
+
+fun DirectionItemSnapshot.toEntity(): DirectionItemEntity =
+    DirectionItemEntity(
+        id = id,
+        contextId = contextId,
+        text = text,
+        itemOrder = itemOrder,
+        updatedAt = updatedAt,
+        syncedAt = syncedAt,
+        isDeleted = isDeleted,
+        version = version,
+    )
 
 fun ContextArtifact.toSnapshot(): ContextArtifactSnapshot = ContextArtifactSnapshot(id, contextId, content, createdAt, updatedAt)
 fun ContextArtifactSnapshot.toEntity(): ContextArtifact =

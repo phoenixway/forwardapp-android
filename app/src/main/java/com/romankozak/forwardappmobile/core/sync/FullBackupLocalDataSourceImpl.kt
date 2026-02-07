@@ -61,6 +61,7 @@ class FullBackupLocalDataSourceImpl
         private val structurePresetDao: StructurePresetDao,
         private val structurePresetItemDao: StructurePresetItemDao,
         private val contextStructureDao: ContextStructureDao,
+        private val directionDao: DirectionDao,
     ) : FullBackupLocalDataSource {
         override suspend fun loadFullSnapshotBundle(): SnapshotBundle {
             Log.d("SyncV2", "Starting export to SnapshotBundle V2")
@@ -72,6 +73,7 @@ class FullBackupLocalDataSourceImpl
                 goals = goalDao.getAllRaw().map { it.toSnapshot() },
                 backlogItems = backlogItemDao.getAllRaw().map { it.toSnapshot() },
                 backlogOrders = backlogOrderDao.getAllRaw().map { it.toSnapshot() },
+                directionItems = directionDao.getAllRaw().map { it.toSnapshot() },
                 inbox = inboxRecordDao.getAllRaw().map { it.toSnapshot() },
                 logs = contextLogDao.getAllLogs().map { it.toSnapshot() },
                 artifacts = contextArtifactDao.getAllRaw().map { it.toSnapshot() },
@@ -129,6 +131,9 @@ class FullBackupLocalDataSourceImpl
 
             Log.d("SyncV2", "Inserting Contexts: ${bundle.contexts.size}")
             contextDao.insertAll(bundle.contexts.map { it.toEntity() })
+
+            Log.d("SyncV2", "Inserting DirectionItems: ${bundle.directionItems.size}")
+            directionDao.insertAll(bundle.directionItems.map { it.toEntity() })
 
             val validContextIds = bundle.contexts.map { it.id }.toSet()
             val missionsToInsert = bundle.tacticalMissions.map { missionSnapshot ->
@@ -288,6 +293,7 @@ class FullBackupLocalDataSourceImpl
                 documents = noteDocumentDao.getAllDocuments(),
                 checklists = checklistDao.getAllChecklistsRaw(),
                 checklistItems = checklistDao.getAllChecklistItemsRaw(),
+                directionItems = directionDao.getAllRaw(),
                 activityRecords = activityRecordDao.getAllRaw(),
                 inboxRecords = inboxRecordDao.getAllRaw(),
                 tacticalMissions = tacticalMissionDao.getAllMissionsSync(),

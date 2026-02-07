@@ -31,6 +31,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.attachments.AttachmentsView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.BacklogListScreen
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.direction.DirectionView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.inbox.InboxView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ProjectDashboardView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ContextManagementTab
@@ -153,6 +154,16 @@ fun GoalDetailContent(
                 modifier = modifier,
                 viewModel = viewModel,
                 listContent = listContent,
+            )
+        }
+        ContextViewMode.DIRECTION -> {
+            DirectionView(
+                items = uiState.directionItems,
+                modifier = modifier,
+                onAddItem = viewModel::addDirectionItem,
+                onEditItem = viewModel::updateDirectionItemText,
+                onDeleteItem = viewModel::deleteDirectionItem,
+                onMove = viewModel::onMoveDirectionItem,
             )
         }
         ContextViewMode.DASHBOARD -> {

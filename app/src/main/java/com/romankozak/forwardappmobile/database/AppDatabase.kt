@@ -17,6 +17,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfigur
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfileItem
+import com.romankozak.forwardappmobile.core.data.models.entities.DirectionItemEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextStructureItem
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextsFts
 import com.romankozak.forwardappmobile.core.data.models.entities.Converters
@@ -67,6 +68,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextArtifac
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.DirectionDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
@@ -81,6 +83,7 @@ import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
         ConversationEntity::class,
         Goal::class,
         Context::class,
+        DirectionItemEntity::class,
         BacklogItem::class,
         BacklogOrder::class,
         ActivityRecord::class,
@@ -119,7 +122,7 @@ import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
         LegacyNoteFts::class,
         RecurringTaskFts::class,
     ],
-    version = 100,
+    version = 101,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
@@ -133,6 +136,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun backlogOrderDao(): BacklogOrderDao
 
     abstract fun linkItemDao(): LinkItemDao
+
+    abstract fun directionDao(): DirectionDao
 
     abstract fun inboxRecordDao(): InboxRecordDao
 

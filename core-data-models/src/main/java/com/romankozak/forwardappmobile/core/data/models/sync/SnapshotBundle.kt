@@ -26,6 +26,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.C
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextRoleProfileSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextStructureItemSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.DirectionItemSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.GoalSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.InboxRecordSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.LinkItemEntitySnapshot
@@ -53,6 +54,7 @@ data class SnapshotBundle(
     @SerializedName("goals") val goals: List<GoalSnapshot> = emptyList(),
     @SerializedName("backlogItems") val backlogItems: List<BacklogItemSnapshot> = emptyList(),
     @SerializedName("backlogOrders") val backlogOrders: List<BacklogOrderSnapshot> = emptyList(),
+    @SerializedName("directionItems") val directionItems: List<DirectionItemSnapshot> = emptyList(),
     @SerializedName("notes") val notes: List<LegacyNoteSnapshot> = emptyList(),
     @SerializedName("documents") val documents: List<NoteDocumentSnapshot> = emptyList(),
     @SerializedName("checklists") val checklists: List<ChecklistSnapshot> = emptyList(),

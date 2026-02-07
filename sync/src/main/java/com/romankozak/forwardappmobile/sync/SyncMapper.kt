@@ -16,6 +16,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkItemEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.DirectionItemEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.core.data.models.entities.ScoringStatusValues
 import com.romankozak.forwardappmobile.core.data.models.entities.ScriptEntity
@@ -46,6 +47,7 @@ object SyncMapper {
             goals = legacy.goals.map { it.toSnapshot() },
             backlogItems = legacy.backlogItems.map { it.toSnapshot() },
             backlogOrders = legacy.backlogOrders.map { it.toSnapshot() },
+            directionItems = legacy.directionItems.map { it.toSnapshot() },
             documents = legacy.documents.map { it.toSnapshot() },
             checklists = legacy.checklists.map { it.toSnapshot() },
             checklistItems = legacy.checklistItems.map { it.toSnapshot() },
@@ -194,6 +196,8 @@ object SyncMapper {
     fun DailyMetric.updatedTs(): Long = this.updatedAt ?: this.createdAt
 
     fun Reminder.updatedTs(): Long = this.updatedAt ?: this.creationTime
+
+    fun DirectionItemEntity.updatedTs(): Long = this.updatedAt ?: this.version
 
 
 }

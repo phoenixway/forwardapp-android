@@ -43,13 +43,6 @@ fun StrategicManagementScreen(
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
-        bottomBar = {
-            StrategicManagementBottomNav(
-                currentTab = currentTab,
-                onTabSelected = viewModel::onTabSelected,
-                onHomeClick = { navController.popBackStack() },
-            )
-        },
     ) { paddingValues ->
         Column(modifier = Modifier.fillMaxSize()) { // Removed padding(paddingValues) here
             if (uiState.isLoading) {
@@ -69,7 +62,7 @@ fun StrategicManagementScreen(
                             onRevealProject = { projectId ->
                                 mainScreenViewModel.onEvent(ContextHierarchyScreenEvent.RevealContextInHierarchy(projectId))
                             },
-                            scaffoldPadding = paddingValues, // Pass paddingValues here
+                            scaffoldPadding = PaddingValues(),
                         )
                     }
 

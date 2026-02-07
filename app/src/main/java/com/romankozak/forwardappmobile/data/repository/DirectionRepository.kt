@@ -15,23 +15,42 @@ class DirectionRepository @Inject constructor(private val directionDao: Directio
 
     suspend fun addDirectionItem(contextId: String, text: String) {
         val count = directionDao.count(contextId)
+        val now = System.currentTimeMillis()
         val newItem = DirectionItemEntity(
             contextId = contextId,
             text = text,
-            itemOrder = count + 1
+            itemOrder = count + 1,
+            updatedAt = now,
+            version = 1
         )
         directionDao.insert(newItem)
     }
 
     suspend fun updateDirectionItem(item: DirectionItemEntity) {
-        directionDao.update(item)
+        val now = System.currentTimeMillis()
+        directionDao.update(
+            item.copy(
+                updatedAt = now,
+                version = item.version + 1,
+            ),
+        )
     }
 
     suspend fun updateAll(items: List<DirectionItemEntity>) {
-        directionDao.updateAll(items)
+        val now = System.currentTimeMillis()
+        directionDao.updateAll(
+            items.map { item ->
+                item.copy(
+                    updatedAt = now,
+                    version = item.version + 1,
+                )
+            },
+        )
     }
 
     suspend fun deleteDirectionItem(itemId: String) {
-        directionDao.delete(itemId)
+        val now = System.currentTimeMillis()
+        val existing = directionDao.getById(itemId) ?: return
+        directionDao.markDeleted(itemId, now, existing.version + 1)
     }
 }

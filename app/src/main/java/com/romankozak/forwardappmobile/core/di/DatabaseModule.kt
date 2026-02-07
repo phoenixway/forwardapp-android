@@ -87,6 +87,7 @@ import com.romankozak.forwardappmobile.data.database.MIGRATION_90_91
 import com.romankozak.forwardappmobile.data.database.MIGRATION_91_92
 import com.romankozak.forwardappmobile.data.database.MIGRATION_92_93
 import com.romankozak.forwardappmobile.data.database.MIGRATION_94_95
+import com.romankozak.forwardappmobile.data.database.MIGRATION_100_101
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
@@ -96,6 +97,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextArtifac
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.DirectionDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
@@ -235,6 +237,7 @@ object DatabaseModule {
             MIGRATION_92_93,
             MIGRATION_93_94,
             MIGRATION_94_95,
+            MIGRATION_100_101,
         ).build()
     }
 
@@ -289,6 +292,10 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideLinkItemDao(appDatabase: AppDatabase): LinkItemDao = appDatabase.linkItemDao()
+
+    @Provides
+    @Singleton
+    fun provideDirectionDao(appDatabase: AppDatabase): DirectionDao = appDatabase.directionDao()
 
     @Provides
     @Singleton

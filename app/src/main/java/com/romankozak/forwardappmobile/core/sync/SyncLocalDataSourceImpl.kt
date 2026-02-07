@@ -27,6 +27,7 @@ class SyncLocalDataSourceImpl
         private val contextDao: ContextDao,
         private val listItemDao: ListItemDao,
         private val linkItemDao: LinkItemDao,
+        private val directionDao: DirectionDao,
         private val activityRecordDao: ActivityRecordDao,
         private val inboxRecordDao: InboxRecordDao,
         private val contextManagementDao: ContextManagementDao,
@@ -74,6 +75,7 @@ class SyncLocalDataSourceImpl
                 checklistItems = checklistDao.getAllChecklistItems(),
                 activityRecords = activityRecordDao.getAllRecordsStream().first(),
                 linkItemEntities = linkItemDao.getAllEntities(),
+                directionItems = directionDao.getAllRaw(),
                 inboxRecords = inboxRecordDao.getAll(),
                 contextLogs = contextManagementDao.getAllLogs(),
                 recentProjectEntries = recentProjectEntries,
@@ -161,6 +163,15 @@ class SyncLocalDataSourceImpl
                             { it.isDeleted },
                         )
                     },
+                directionItems =
+                    local.directionItems.filter {
+                        logicHelper.isUnsynced(
+                            it,
+                            { it.syncedAt },
+                            { it.updatedTs() },
+                            { it.isDeleted },
+                        )
+                    },
                 inboxRecords =
                     local.inboxRecords.filter {
                         logicHelper.isUnsynced(
@@ -213,6 +224,7 @@ class SyncLocalDataSourceImpl
                 documents = local.documents.filter { it.updatedTs() > since },
                 attachments = local.attachments.filter { it.updatedTs() > since },
                 contextAttachmentCrossRefs = local.contextAttachmentCrossRefs.filter { it.updatedTs() > since },
+                directionItems = local.directionItems.filter { it.updatedTs() > since },
                 scripts = local.scripts.filter { it.updatedTs() > since },
             )
         }
@@ -236,6 +248,7 @@ class SyncLocalDataSourceImpl
 
                 activityRecordDao.insertAll(content.activityRecords.map { it.copy(syncedAt = ts) })
                 linkItemDao.insertAll(content.linkItemEntities.map { it.copy(syncedAt = ts) })
+                directionDao.updateAll(content.directionItems.map { it.copy(syncedAt = ts) })
                 inboxRecordDao.insertAll(content.inboxRecords.map { it.copy(syncedAt = ts) })
                 contextManagementDao.insertAllLogs(content.contextLogs.map { it.copy(syncedAt = ts) })
 
@@ -278,6 +291,7 @@ class SyncLocalDataSourceImpl
                 systemAppDao.deleteAll()
                 recentItemDao.deleteAll()
                 scriptDao.deleteAll()
+                directionDao.deleteAll()
                 contextDao.deleteAll()
                 goalDao.deleteAll()
             }

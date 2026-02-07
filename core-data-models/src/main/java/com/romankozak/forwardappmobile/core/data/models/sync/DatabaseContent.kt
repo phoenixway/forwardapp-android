@@ -15,6 +15,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfileItem
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextStructureItem
+import com.romankozak.forwardappmobile.core.data.models.entities.DirectionItemEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntity
@@ -61,6 +62,8 @@ data class DatabaseContent(
     val recentProjectEntries: List<RecentProjectEntry> = emptyList(),
     @SerializedName(value = "linkItemEntities", alternate = ["k"])
     val linkItemEntities: List<LinkItemEntity> = emptyList(),
+    @SerializedName(value = "directionItems")
+    val directionItems: List<DirectionItemEntity> = emptyList(),
     @SerializedName(value = "inboxRecords", alternate = ["l"])
     val inboxRecords: List<InboxRecord> = emptyList(),
     @SerializedName(value = "projectExecutionLogs", alternate = ["m"])

@@ -60,6 +60,7 @@ class ContextCapabilityHandler @Inject constructor() {
             "attachments" -> "Вкладення та файли"
             "advanced" -> "Розширені можливості"
             "auto_link_subprojects" -> "Автоматичне зв'язування підпроєктів"
+            "direction" -> "Довгострокові напрямки та фокуси"
             else -> "Невідома можливість"
         }
     }
@@ -76,6 +77,7 @@ class ContextCapabilityHandler @Inject constructor() {
             "dashboard" -> 5
             "attachments" -> 6
             "advanced" -> 7
+            "direction" -> 8
             else -> 99
         }
     }

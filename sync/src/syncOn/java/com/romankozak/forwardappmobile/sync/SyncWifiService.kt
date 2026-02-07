@@ -98,6 +98,7 @@ class SyncWifiService @Inject constructor(
                 content.goals.isEmpty() &&
                 content.backlogItems.isEmpty() &&
                 content.attachments.isEmpty() &&
-                content.documents.isEmpty()
+                content.documents.isEmpty() &&
+                content.directionItems.isEmpty()
     }
 }

@@ -70,10 +70,11 @@ private fun ContextViewMode.orderPriority() =
         ContextViewMode.INBOX -> 2
         ContextViewMode.ADVANCED -> 3
         ContextViewMode.ATTACHMENTS -> 4
-        ContextViewMode.NOTES -> 5
-        ContextViewMode.LOG -> 6
-        ContextViewMode.ARTIFACT -> 7
-        ContextViewMode.VET_CASE -> 8
+        ContextViewMode.DIRECTION -> 5
+        ContextViewMode.NOTES -> 6
+        ContextViewMode.LOG -> 7
+        ContextViewMode.ARTIFACT -> 8
+        ContextViewMode.VET_CASE -> 9
     }
 
 @HiltViewModel
@@ -103,6 +104,7 @@ class ContextScreenViewModel
         private val reminderRepository: ReminderRepository,
         private val recentItemsRepository: RecentItemsRepository,
         private val contextLogRepository: ContextLogRepository,
+        private val directionRepository: DirectionRepository,
         private val noteRepository: LegacyNoteRepository,
         private val inboxRepository: InboxRepository,
         private val contextStructureRepository: ContextStructureRepository,
@@ -338,6 +340,7 @@ class ContextScreenViewModel
                             contextLogRepository.getContextLogsStream(contextId),
                             checklistRepository.getChecklistsForContext(contextId),
                             noteDocumentRepository.getDocumentsForContext(contextId),
+                            directionRepository.getDirectionItemsForContext(contextId),
                             reminderRepository.getRemindersForEntityFlow(contextId),
                             recentItemsRepository.getRecentItemsForContextFlow(contextId),
                             noteRepository.getNotesForContext(contextId),
@@ -348,9 +351,10 @@ class ContextScreenViewModel
                             val rawItems = (args[1] as? List<*>)?.filterIsInstance<BacklogItem>() ?: emptyList()
                             val checklists = (args[4] as? List<*>)?.filterIsInstance<ChecklistEntity>() ?: emptyList()
                             val noteDocuments = (args[5] as? List<*>)?.filterIsInstance<NoteDocumentEntity>() ?: emptyList()
-                            val reminders = (args[6] as? List<*>)?.filterIsInstance<Reminder>() ?: emptyList()
-                            val goals = (args[9] as? List<*>)?.filterIsInstance<Goal>() ?: emptyList()
-                            val subprojects = (args[10] as? List<*>)?.filterIsInstance<com.romankozak.forwardappmobile.core.data.models.entities.Context>() ?: emptyList()
+                            val directionItems = (args[6] as? List<*>)?.filterIsInstance<DirectionItemEntity>() ?: emptyList()
+                            val reminders = (args[7] as? List<*>)?.filterIsInstance<Reminder>() ?: emptyList()
+                            val goals = (args[10] as? List<*>)?.filterIsInstance<Goal>() ?: emptyList()
+                            val subprojects = (args[11] as? List<*>)?.filterIsInstance<com.romankozak.forwardappmobile.core.data.models.entities.Context>() ?: emptyList()
 
                             // Явна типізація результату when як BacklogItemContent?
                             val items: List<BacklogItemContent> = rawItems.mapNotNull { item ->
@@ -400,8 +404,8 @@ class ContextScreenViewModel
 
                             val config = args[2] as? ContextConfiguration
                             val logs = (args[3] as? List<*>)?.filterIsInstance<ContextLog>() ?: emptyList()
-                            val recentItems = (args[7] as? List<*>)?.filterIsInstance<RecentItem>() ?: emptyList()
-                            val notes = (args[8] as? List<*>)?.filterIsInstance<LegacyNoteEntity>() ?: emptyList()
+                            val recentItems = (args[8] as? List<*>)?.filterIsInstance<RecentItem>() ?: emptyList()
+                            val notes = (args[9] as? List<*>)?.filterIsInstance<LegacyNoteEntity>() ?: emptyList()
 
                             ContextData.Loaded(
                                 context = context,
@@ -410,6 +414,7 @@ class ContextScreenViewModel
                                 logs = logs,
                                 checklists = checklists,
                                 noteDocuments = noteDocuments,
+                                directionItems = directionItems,
                                 reminders = reminders,
                                 recentItems = recentItems,
                                 notes = notes,
@@ -1229,6 +1234,60 @@ data.context?.let { project ->
                 currentList.add(to, movedItem)
                 _listContent.value = currentList
                 // TODO: save order to repository
+            }
+        }
+
+        fun addDirectionItem(text: String) {
+            val trimmed = text.trim()
+            if (trimmed.isBlank()) {
+                showSnackbar("Напрямок не може бути порожнім.", null)
+                return
+            }
+            viewModelScope.launch(ioDispatcher) {
+                directionRepository.addDirectionItem(contextIdFlow.value, trimmed)
+            }
+        }
+
+        fun updateDirectionItemText(
+            item: DirectionItemEntity,
+            text: String,
+        ) {
+            val trimmed = text.trim()
+            if (trimmed.isBlank()) {
+                showSnackbar("Напрямок не може бути порожнім.", null)
+                return
+            }
+            viewModelScope.launch(ioDispatcher) {
+                directionRepository.updateDirectionItem(item.copy(text = trimmed))
+            }
+        }
+
+        fun deleteDirectionItem(itemId: String) {
+            viewModelScope.launch(ioDispatcher) {
+                directionRepository.deleteDirectionItem(itemId)
+            }
+        }
+
+        fun onMoveDirectionItem(
+            from: Int,
+            to: Int,
+        ) {
+            val current = uiState.value.directionItems
+            if (from !in current.indices || to !in current.indices || from == to) return
+
+            val mutable = current.toMutableList()
+            val moved = mutable.removeAt(from)
+            mutable.add(to, moved)
+
+            val reordered =
+                mutable.mapIndexed { index, item ->
+                    val newOrder = index + 1
+                    if (item.itemOrder != newOrder) item.copy(itemOrder = newOrder) else item
+                }
+
+            stateManager.updateState { it.copy(directionItems = reordered) }
+            viewModelScope.launch(ioDispatcher) {
+                directionRepository.updateAll(reordered)
             }
         }
 

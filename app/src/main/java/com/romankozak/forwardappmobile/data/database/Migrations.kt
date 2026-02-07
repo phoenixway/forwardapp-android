@@ -1437,3 +1437,28 @@ val MIGRATION_95_96 =
             db.execSQL("ALTER TABLE `contexts_new` RENAME TO `contexts`")
         }
     }
+
+val MIGRATION_100_101 =
+    object : Migration(100, 101) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `direction_items` (
+                    `id` TEXT NOT NULL,
+                    `contextId` TEXT NOT NULL,
+                    `text` TEXT NOT NULL,
+                    `itemOrder` INTEGER NOT NULL,
+                    `updatedAt` INTEGER,
+                    `synced_at` INTEGER,
+                    `is_deleted` INTEGER NOT NULL DEFAULT 0,
+                    `version` INTEGER NOT NULL DEFAULT 0,
+                    PRIMARY KEY(`id`),
+                    FOREIGN KEY(`contextId`) REFERENCES `contexts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_direction_items_contextId ON direction_items(contextId)",
+            )
+        }
+    }

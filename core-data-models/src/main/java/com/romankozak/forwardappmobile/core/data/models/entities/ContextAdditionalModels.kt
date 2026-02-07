@@ -59,7 +59,18 @@ data class RelatedLink(
     @SerializedName("displayName") val displayName: String? = null,
 )
 
-enum class ContextViewMode { BACKLOG, INBOX, ADVANCED, ATTACHMENTS, DASHBOARD, LOG, ARTIFACT, NOTES, VET_CASE }
+enum class ContextViewMode {
+    BACKLOG,
+    INBOX,
+    ADVANCED,
+    ATTACHMENTS,
+    DASHBOARD,
+    DIRECTION,
+    LOG,
+    ARTIFACT,
+    NOTES,
+    VET_CASE,
+}
 
 enum class LinkType { CONTEXT, URL, OBSIDIAN }
 

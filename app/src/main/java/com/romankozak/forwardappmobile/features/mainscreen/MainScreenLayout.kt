@@ -1,6 +1,5 @@
 package com.romankozak.forwardappmobile.features.mainscreen
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -8,53 +7,41 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Badge
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.PagerState
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
-import kotlinx.coroutines.launch
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
-import com.romankozak.forwardappmobile.core.navigation.routes.GOAL_LISTS_ROUTE
 import com.romankozak.forwardappmobile.core.navigation.routes.STRATEGIC_MANAGEMENT_ROUTE
-import com.romankozak.forwardappmobile.features.activitytracker.ActivityTrackerViewModel
 import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementScreen
-import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
+import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.CoreBottomPanel
+import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.DashboardBottomPanel
+import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.StrategicArcBottomPanel
+import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.StrategyBottomPanel
+import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.TacticsBottomPanel
+import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.TodayBottomPanel
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.features.strategicmanagement.StrategicManagementScreen
-import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
+import com.romankozak.forwardappmobile.ui.components.CommonBottomPanelLayout
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckHeaderPreset
-import com.romankozak.forwardappmobile.ui.components.header.CoreHeader
 import com.romankozak.forwardappmobile.ui.components.header.FAHeader
 import com.romankozak.forwardappmobile.ui.components.header.FAHeaderBackground
-import com.romankozak.forwardappmobile.ui.components.header.StrategicArcHeader
-import com.romankozak.forwardappmobile.ui.components.header.StrategyHeader
-import com.romankozak.forwardappmobile.ui.components.header.TacticsHeader
-import com.romankozak.forwardappmobile.ui.components.header.TodayHeader
+import kotlinx.coroutines.launch
 import java.util.Calendar
 
 const val MAIN_SCREEN_DASHBOARD_ROUTE = "command_deck_dashboard"
@@ -127,158 +114,146 @@ fun MainScreenLayout(
         Scaffold(
             containerColor = Color.Transparent,
             topBar = {
-                when (currentRoute) {
-                    MAIN_SCREEN_DASHBOARD_ROUTE -> {
-                        val showBadge = com.romankozak.forwardappmobile.BuildConfig.DEBUG || com.romankozak.forwardappmobile.BuildConfig.IS_EXPERIMENTAL_BUILD
-                        FAHeader(
-                            layout =
-                                CommandDeckHeaderPreset(
-                                    onClick = {},
-                                    onRightClick = { onNavigateToCharacter() },
-                                    rightContent = {
-                                        if (showBadge) {
-                                            Badge(
-                                                containerColor = MaterialTheme.colorScheme.errorContainer,
-                                                contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                                            ) {
-                                                Text(
-                                                    text = if (com.romankozak.forwardappmobile.BuildConfig.DEBUG) "Debug" else "Experimental",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                )
-                                            }
-                                        }
-                                    },
-                                ),
-                            backgroundStyle = FAHeaderBackground.CommandDeck,
-                            modifier = headerModifier,
-                        )
-                    }
-
-                    MAIN_SCREEN_CORE_ROUTE ->
-                        FAHeader(
-                            layout = CoreHeader(),
-                            backgroundStyle = FAHeaderBackground.CommandDeck,
-                            modifier = headerModifier,
-                        )
-
-                    MAIN_SCREEN_TODAY_ROUTE -> {
-                        val dayPlanViewModel: DayPlanViewModel = hiltViewModel()
-                        val dayPlanUiState by dayPlanViewModel.uiState.collectAsState()
-                        val activityTrackerViewModel: ActivityTrackerViewModel = hiltViewModel()
-                        val activityLog by activityTrackerViewModel.activityLog.collectAsStateWithLifecycle()
-
-                        val (xpToday, antyXpToday) =
-                            remember(activityLog, dayPlanUiState.dayPlan?.date) {
-                                val targetDate = dayPlanUiState.dayPlan?.date ?: System.currentTimeMillis()
-                                val recordsForDay =
-                                    activityLog.filter { record ->
-                                        isSameDay(record.createdAt, targetDate)
-                                    }
-                                val xp = recordsForDay.sumOf { it.xpGained ?: 0 }
-                                val antyXp = recordsForDay.sumOf { it.antyXp ?: 0 }
-                                xp to antyXp
-                            }
-
-                        FAHeader(
-                            layout =
-                                TodayHeader(
-                                    onNavigateToPreviousDay = {
-                                        Log.d("TodayTab", "onNavigateToPreviousDay callback invoked.")
-                                        dayPlanViewModel.navigateToPreviousDay()
-                                    },
-                                    onNavigateToNextDay = {
-                                        Log.d(
-                                            "TodayTab",
-                                            "onNavigateToNextDay callback invoked. Enabled: ${!dayPlanUiState.isToday}",
+                val showBadge = com.romankozak.forwardappmobile.BuildConfig.DEBUG || com.romankozak.forwardappmobile.BuildConfig.IS_EXPERIMENTAL_BUILD
+                FAHeader(
+                    layout =
+                        CommandDeckHeaderPreset(
+                            onClick = {},
+                            onRightClick = { onNavigateToCharacter() },
+                            rightContent = {
+                                if (showBadge) {
+                                    Badge(
+                                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                                    ) {
+                                        Text(
+                                            text = if (com.romankozak.forwardappmobile.BuildConfig.DEBUG) "Debug" else "Experimental",
+                                            style = MaterialTheme.typography.labelSmall,
                                         )
-                                        dayPlanViewModel.navigateToNextDay()
-                                    },
-                                    isNextDayNavigationEnabled = !dayPlanUiState.isToday,
-                                    date = dayPlanUiState.dayPlan?.date,
-                                ),
-                            backgroundStyle = FAHeaderBackground.CommandDeck,
-                            modifier = headerModifier,
-                        )
-                    }
-
-                    STRATEGIC_MANAGEMENT_ROUTE ->
-                        FAHeader(
-                            layout = StrategyHeader(onModeClick = {}),
-                            backgroundStyle = FAHeaderBackground.CommandDeck,
-                            modifier = headerModifier,
-                        )
-
-                    MAIN_SCREEN_STRATEGIC_ARC_ROUTE ->
-                        FAHeader(
-                            layout = StrategicArcHeader(onModeClick = {}),
-                            backgroundStyle = FAHeaderBackground.CommandDeck,
-                            modifier = headerModifier,
-                        )
-
-                    MAIN_SCREEN_TACTICS_ROUTE ->
-                        FAHeader(
-                            layout = TacticsHeader(),
-                            backgroundStyle = FAHeaderBackground.CommandDeck,
-                            modifier = headerModifier,
-                        )
-
-                    else ->
-                        FAHeader(
-                            layout = CommandDeckHeaderPreset(onClick = {}),
-                            backgroundStyle = FAHeaderBackground.CommandDeck,
-                            modifier = headerModifier,
-                        )
-                }
+                                    }
+                                }
+                            },
+                        ),
+                    backgroundStyle = FAHeaderBackground.CommandDeck,
+                    modifier = headerModifier,
+                )
             },
             bottomBar = {
-                Box(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
-                            .clip(RoundedCornerShape(20.dp))
-                            .then(CommandDeckBackgroundModifier())
-                            .padding(horizontal = 22.dp, vertical = 12.dp),
-                ) {
+                CommonBottomPanelLayout {
                     when (currentRoute) {
                         MAIN_SCREEN_DASHBOARD_ROUTE ->
-                            DashboardBottomBar(
+                            DashboardBottomPanel(
+                                navController = navController,
                                 onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
-                                onNavigateToProjectSearch = {
-                                    navController.navigate(GOAL_LISTS_ROUTE) {
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                    runCatching {
-                                        navController.getBackStackEntry(GOAL_LISTS_ROUTE)
-                                            .savedStateHandle["open_search_dialog"] = true
-                                    }
-                                },
-                                onNavigateToTracker = onNavigateToTracker,
-                                onNavigateToInbox = onNavigateToInbox,
-                                onNavigateToReminders = onNavigateToReminders,
                                 onNavigateToPresets = onNavigateToPresets,
-                                onNavigateToAiInsights = onNavigateToAiInsights,
+                                onNavigateToCharacter = onNavigateToCharacter,
+                                onNavigateToGlobalSearch = onNavigateToGlobalSearch,
                                 onNavigateToSettings = onNavigateToSettings,
-                                onNavigateToRecentItem = onNavigateToRecentItem,
+                                onNavigateToInbox = onNavigateToInbox,
+                                onNavigateToTracker = onNavigateToTracker,
+                                onNavigateToReminders = onNavigateToReminders,
+                                onNavigateToAiInsights = onNavigateToAiInsights,
                                 onExportToFile = onExportToFile,
                                 onImportFromFileRequest = onImportFromFileRequest,
                                 onSelectiveImportFromFileRequest = onSelectiveImportFromFileRequest,
                                 onExportAttachments = onExportAttachments,
                                 onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
                                 onWifiPush = onWifiPush,
+                                onNavigateToRecentItem = onNavigateToRecentItem,
                                 recentViewModel = recentViewModel,
                             )
-                        MAIN_SCREEN_STRATEGIC_ARC_ROUTE -> {
-                            val viewModel: StrategicArcViewModel = hiltViewModel()
-                            StrategicArcBottomBar(viewModel)
-                        }
-                        MAIN_SCREEN_TODAY_ROUTE -> {
-                            val viewModel: DayPlanViewModel = hiltViewModel()
-                            TodayBottomBar(viewModel, onNavigateToSettings)
-                        }
-                        MAIN_SCREEN_CORE_ROUTE -> CoreBottomBar()
-                        MAIN_SCREEN_TACTICS_ROUTE -> TacticsBottomBar()
+                        MAIN_SCREEN_TODAY_ROUTE ->
+                            TodayBottomPanel(
+                                navController = navController,
+                                onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                                onNavigateToPresets = onNavigateToPresets,
+                                onNavigateToCharacter = onNavigateToCharacter,
+                                onNavigateToGlobalSearch = onNavigateToGlobalSearch,
+                                onNavigateToSettings = onNavigateToSettings,
+                                onNavigateToInbox = onNavigateToInbox,
+                                onNavigateToTracker = onNavigateToTracker,
+                                onNavigateToReminders = onNavigateToReminders,
+                                onNavigateToAiInsights = onNavigateToAiInsights,
+                                onExportToFile = onExportToFile,
+                                onImportFromFileRequest = onImportFromFileRequest,
+                                onSelectiveImportFromFileRequest = onSelectiveImportFromFileRequest,
+                                onExportAttachments = onExportAttachments,
+                                onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
+                                onWifiPush = onWifiPush,
+                                onNavigateToRecentItem = onNavigateToRecentItem,
+                                recentViewModel = recentViewModel,
+                            )
+                        MAIN_SCREEN_TACTICS_ROUTE ->
+                            TacticsBottomPanel(
+                                navController = navController,
+                                onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                                onNavigateToPresets = onNavigateToPresets,
+                                onNavigateToCharacter = onNavigateToCharacter,
+                                onNavigateToGlobalSearch = onNavigateToGlobalSearch,
+                                onNavigateToSettings = onNavigateToSettings,
+                                onNavigateToInbox = onNavigateToInbox,
+                                onNavigateToTracker = onNavigateToTracker,
+                                onNavigateToReminders = onNavigateToReminders,
+                                onNavigateToAiInsights = onNavigateToAiInsights,
+                                onExportToFile = onExportToFile,
+                                onImportFromFileRequest = onImportFromFileRequest,
+                                onSelectiveImportFromFileRequest = onSelectiveImportFromFileRequest,
+                                onExportAttachments = onExportAttachments,
+                                onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
+                                onWifiPush = onWifiPush,
+                                onNavigateToRecentItem = onNavigateToRecentItem,
+                                recentViewModel = recentViewModel,
+                            )
+                        MAIN_SCREEN_STRATEGIC_ARC_ROUTE ->
+                            StrategicArcBottomPanel(
+                                navController = navController,
+                                onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                                onNavigateToPresets = onNavigateToPresets,
+                                onNavigateToCharacter = onNavigateToCharacter,
+                                onNavigateToGlobalSearch = onNavigateToGlobalSearch,
+                                onNavigateToSettings = onNavigateToSettings,
+                                onNavigateToInbox = onNavigateToInbox,
+                                onNavigateToTracker = onNavigateToTracker,
+                                onNavigateToReminders = onNavigateToReminders,
+                                onNavigateToAiInsights = onNavigateToAiInsights,
+                                onExportToFile = onExportToFile,
+                                onImportFromFileRequest = onImportFromFileRequest,
+                                onSelectiveImportFromFileRequest = onSelectiveImportFromFileRequest,
+                                onExportAttachments = onExportAttachments,
+                                onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
+                                onWifiPush = onWifiPush,
+                                onNavigateToRecentItem = onNavigateToRecentItem,
+                                recentViewModel = recentViewModel,
+                            )
+                        STRATEGIC_MANAGEMENT_ROUTE -> // Strategy
+                            StrategyBottomPanel(
+                                navController = navController,
+                            )
+                        MAIN_SCREEN_CORE_ROUTE ->
+                            CoreBottomPanel(
+                                navController = navController,
+                            )
+                        else ->
+                            DashboardBottomPanel( // Fallback to Dashboard for unknown routes
+                                navController = navController,
+                                onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                                onNavigateToPresets = onNavigateToPresets,
+                                onNavigateToCharacter = onNavigateToCharacter,
+                                onNavigateToGlobalSearch = onNavigateToGlobalSearch,
+                                onNavigateToSettings = onNavigateToSettings,
+                                onNavigateToInbox = onNavigateToInbox,
+                                onNavigateToTracker = onNavigateToTracker,
+                                onNavigateToReminders = onNavigateToReminders,
+                                onNavigateToAiInsights = onNavigateToAiInsights,
+                                onExportToFile = onExportToFile,
+                                onImportFromFileRequest = onImportFromFileRequest,
+                                onSelectiveImportFromFileRequest = onSelectiveImportFromFileRequest,
+                                onExportAttachments = onExportAttachments,
+                                onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
+                                onWifiPush = onWifiPush,
+                                onNavigateToRecentItem = onNavigateToRecentItem,
+                                recentViewModel = recentViewModel,
+                            )
                     }
                 }
             },
