@@ -27,7 +27,7 @@ import androidx.compose.material.icons.outlined.FolderOff
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -78,13 +78,11 @@ fun ContextLinkList(
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.weight(1f),
                 )
-                FilledTonalButton(
+                FilledTonalIconButton(
                     onClick = onAddClick,
                     shape = RoundedCornerShape(12.dp),
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(addLabel, fontWeight = FontWeight.Medium)
+                    Icon(Icons.Default.Add, contentDescription = addLabel, modifier = Modifier.size(18.dp))
                 }
             }
         }

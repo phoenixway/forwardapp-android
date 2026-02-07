@@ -1,7 +1,11 @@
 package com.romankozak.forwardappmobile.features.strategicmanagement
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -13,6 +17,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -25,6 +30,7 @@ import com.romankozak.forwardappmobile.features.lifestate.ChatSection
 import com.romankozak.forwardappmobile.features.lifestate.LifeStateChatViewModel
 import com.romankozak.forwardappmobile.features.lifestate.LifeStateViewModel
 import com.romankozak.forwardappmobile.ui.components.ContextLinkList
+import com.romankozak.forwardappmobile.ui.screens.common.ProjectListItem
 import java.net.URLEncoder
 
 @Composable
