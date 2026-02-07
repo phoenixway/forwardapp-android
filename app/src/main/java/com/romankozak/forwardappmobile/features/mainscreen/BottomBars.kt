@@ -24,14 +24,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AlternateEmail
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.DashboardCustomize
 import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.MoveToInbox
 import androidx.compose.material.icons.outlined.Notifications
@@ -59,6 +62,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
@@ -86,6 +90,11 @@ fun DashboardBottomBar(
     onWifiPush: (String) -> Unit,
     onShowWifiServer: () -> Unit,
     onShowWifiImport: () -> Unit,
+    onNavigateToAttachments: () -> Unit,
+    onNavigateToScripts: () -> Unit,
+    onNavigateToContextLab: () -> Unit,
+    onShowAbout: () -> Unit,
+    featureToggles: Map<FeatureFlag, Boolean>,
     recentViewModel: RecentViewModel = hiltViewModel(),
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -161,6 +170,38 @@ fun DashboardBottomBar(
                         showImportExportSheet = true
                     }
                 },
+                onNavigateToAttachments = {
+                    coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
+                        if (!modalSheetState.isVisible) {
+                            showMoreBottomSheet = false
+                        }
+                        onNavigateToAttachments()
+                    }
+                },
+                onNavigateToScripts = {
+                    coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
+                        if (!modalSheetState.isVisible) {
+                            showMoreBottomSheet = false
+                        }
+                        onNavigateToScripts()
+                    }
+                },
+                onNavigateToContextLab = {
+                    coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
+                        if (!modalSheetState.isVisible) {
+                            showMoreBottomSheet = false
+                        }
+                        onNavigateToContextLab()
+                    }
+                },
+                onShowAbout = {
+                    coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
+                        if (!modalSheetState.isVisible) {
+                            showMoreBottomSheet = false
+                        }
+                        onShowAbout()
+                    }
+                },
                 onNavigateToSettings = {
                     coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
                         if (!modalSheetState.isVisible) {
@@ -169,6 +210,7 @@ fun DashboardBottomBar(
                         onNavigateToSettings()
                     }
                 },
+                featureToggles = featureToggles,
             )
         }
     }
@@ -338,7 +380,12 @@ private fun MoreBottomSheetContent(
     onNavigateToPresets: () -> Unit,
     onNavigateToAiInsights: () -> Unit,
     onShowImportExportSheet: () -> Unit,
+    onNavigateToAttachments: () -> Unit,
+    onNavigateToScripts: () -> Unit,
+    onNavigateToContextLab: () -> Unit,
+    onShowAbout: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    featureToggles: Map<FeatureFlag, Boolean>,
 ) {
     Box(
         modifier =
@@ -398,6 +445,51 @@ private fun MoreBottomSheetContent(
                 Spacer(modifier = Modifier.width(16.dp))
                 Text("AI Insights")
             }
+            val showAttachmentsLibrary = featureToggles[FeatureFlag.AttachmentsLibrary] == true
+            if (showAttachmentsLibrary) {
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = onNavigateToAttachments)
+                            .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Default.Description, contentDescription = "Attachments Library")
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text("Attachments")
+                }
+            }
+            val showScriptsLibrary = featureToggles[FeatureFlag.ScriptsLibrary] == true
+            if (showScriptsLibrary) {
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = onNavigateToScripts)
+                            .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Default.Code, contentDescription = "Scripts Library")
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text("Scripts")
+                }
+            }
+            val showContextLab = featureToggles[FeatureFlag.ContextLab] == true
+            if (showContextLab) {
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = onNavigateToContextLab)
+                            .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Default.Science, contentDescription = "Context Lab")
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text("Context Lab")
+                }
+            }
             Row(
                 modifier =
                     Modifier
@@ -409,6 +501,18 @@ private fun MoreBottomSheetContent(
                 Icon(Icons.Outlined.SwapVert, contentDescription = "Import/Export")
                 Spacer(modifier = Modifier.width(16.dp))
                 Text("Import/Export")
+            }
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onShowAbout)
+                        .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Outlined.Info, contentDescription = "About")
+                Spacer(modifier = Modifier.width(16.dp))
+                Text("About")
             }
             Row(
                 modifier =

@@ -28,10 +28,7 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.NorthEast
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -68,11 +65,7 @@ fun ProjectHierarchyScreenTopAppBar(
     onGoBack: () -> Unit,
     onGoForward: () -> Unit,
     onShowHistory: () -> Unit,
-    onShowAbout: () -> Unit,
     onShowReminders: () -> Unit,
-    onShowAttachmentsLibrary: () -> Unit,
-    onShowScriptsLibrary: () -> Unit,
-    onShowContextLab: () -> Unit,
     syncStatus: WifiSyncStatus,
     onSyncIndicatorClick: () -> Unit,
     featureToggles: Map<FeatureFlag, Boolean>,
@@ -188,56 +181,6 @@ fun ProjectHierarchyScreenTopAppBar(
                             IconButton(onClick = onGoForward) {
                                 Icon(Icons.AutoMirrored.Outlined.ArrowForward, stringResource(id = R.string.forward))
                             }
-                        }
-                        var menuExpanded by remember { mutableStateOf(false) }
-                        IconButton(onClick = { menuExpanded = true }) {
-                            Icon(Icons.Default.MoreVert, stringResource(id = R.string.more_options))
-                        }
-                        DropdownMenu(
-                            expanded = menuExpanded,
-                            onDismissRequest = { menuExpanded = false },
-                            modifier = Modifier.background(MaterialTheme.colorScheme.surface),
-                        ) {
-                            val showAttachmentsLibrary = featureToggles[FeatureFlag.AttachmentsLibrary] == true
-                            val showScriptsLibrary = featureToggles[FeatureFlag.ScriptsLibrary] == true
-                            if (showAttachmentsLibrary || showScriptsLibrary) {
-                                if (showAttachmentsLibrary) {
-                                    DropdownMenuItem(
-                                        text = { Text(stringResource(id = R.string.menu_attachments_library)) },
-                                        onClick = {
-                                            onShowAttachmentsLibrary()
-                                            menuExpanded = false
-                                        },
-                                    )
-                                }
-                                if (showScriptsLibrary) {
-                                    DropdownMenuItem(
-                                        text = { Text(stringResource(id = R.string.menu_scripts_library)) },
-                                        onClick = {
-                                            onShowScriptsLibrary()
-                                            menuExpanded = false
-                                        },
-                                    )
-                                }
-                                HorizontalDivider()
-                            }
-                            if (featureToggles[FeatureFlag.ContextLab] == true) {
-                                DropdownMenuItem(
-                                    text = { Text("Context Lab") },
-                                    onClick = {
-                                        onShowContextLab()
-                                        menuExpanded = false
-                                    },
-                                )
-                                HorizontalDivider()
-                            }
-                            DropdownMenuItem(
-                                text = { Text("About") },
-                                onClick = {
-                                    onShowAbout()
-                                    menuExpanded = false
-                                },
-                            )
                         }
                     }
                 }

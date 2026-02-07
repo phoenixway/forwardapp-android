@@ -29,8 +29,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -42,6 +44,7 @@ import com.romankozak.forwardappmobile.core.navigation.routes.STRATEGIC_MANAGEME
 import com.romankozak.forwardappmobile.features.activitytracker.ActivityTrackerViewModel
 import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementScreen
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ContextHierarchyScreenViewModel
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.CoreBottomPanel
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.DashboardBottomPanel
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.StrategicArcBottomPanel
@@ -95,11 +98,13 @@ fun MainScreenLayout(
     onShowWifiServer: () -> Unit,
     onShowWifiImport: () -> Unit,
     onNavigateToSyncScreenWithData: (String) -> Unit,
+    onNavigateToContextLab: () -> Unit,
     onNavigateToAttachments: () -> Unit,
     onNavigateToScripts: () -> Unit,
     onNavigateToRecentItem: (RecentItem) -> Unit,
     recentViewModel: RecentViewModel = hiltViewModel(),
     commandDeckViewModel: CommandDeckViewModel = hiltViewModel(),
+    contextHierarchyViewModel: ContextHierarchyScreenViewModel = hiltViewModel(),
 ) {
     val tabs =
         listOf(
@@ -130,6 +135,8 @@ fun MainScreenLayout(
     val syncUiState by commandDeckViewModel.syncUiState.collectAsStateWithLifecycle()
     val showWifiImportDialog by commandDeckViewModel.showWifiImportDialog.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val contextUiState by contextHierarchyViewModel.uiState.collectAsStateWithLifecycle()
+    var showAboutDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(commandDeckViewModel) {
         commandDeckViewModel.uiEvents.collect { message ->
@@ -280,6 +287,11 @@ fun MainScreenLayout(
                                 onWifiPush = onWifiPush,
                                 onShowWifiServer = onShowWifiServer,
                                 onShowWifiImport = onShowWifiImport,
+                                onNavigateToAttachments = onNavigateToAttachments,
+                                onNavigateToScripts = onNavigateToScripts,
+                                onNavigateToContextLab = onNavigateToContextLab,
+                                onShowAbout = { showAboutDialog = true },
+                                featureToggles = contextUiState.featureToggles,
                                 onNavigateToRecentItem = onNavigateToRecentItem,
                                 recentViewModel = recentViewModel,
                             )
@@ -303,6 +315,11 @@ fun MainScreenLayout(
                                 onWifiPush = onWifiPush,
                                 onShowWifiServer = onShowWifiServer,
                                 onShowWifiImport = onShowWifiImport,
+                                onNavigateToAttachments = onNavigateToAttachments,
+                                onNavigateToScripts = onNavigateToScripts,
+                                onNavigateToContextLab = onNavigateToContextLab,
+                                onShowAbout = { showAboutDialog = true },
+                                featureToggles = contextUiState.featureToggles,
                                 onNavigateToRecentItem = onNavigateToRecentItem,
                                 recentViewModel = recentViewModel,
                             )
@@ -326,6 +343,11 @@ fun MainScreenLayout(
                                 onWifiPush = onWifiPush,
                                 onShowWifiServer = onShowWifiServer,
                                 onShowWifiImport = onShowWifiImport,
+                                onNavigateToAttachments = onNavigateToAttachments,
+                                onNavigateToScripts = onNavigateToScripts,
+                                onNavigateToContextLab = onNavigateToContextLab,
+                                onShowAbout = { showAboutDialog = true },
+                                featureToggles = contextUiState.featureToggles,
                                 onNavigateToRecentItem = onNavigateToRecentItem,
                                 recentViewModel = recentViewModel,
                             )
@@ -349,6 +371,11 @@ fun MainScreenLayout(
                                 onWifiPush = onWifiPush,
                                 onShowWifiServer = onShowWifiServer,
                                 onShowWifiImport = onShowWifiImport,
+                                onNavigateToAttachments = onNavigateToAttachments,
+                                onNavigateToScripts = onNavigateToScripts,
+                                onNavigateToContextLab = onNavigateToContextLab,
+                                onShowAbout = { showAboutDialog = true },
+                                featureToggles = contextUiState.featureToggles,
                                 onNavigateToRecentItem = onNavigateToRecentItem,
                                 recentViewModel = recentViewModel,
                             )
@@ -380,6 +407,11 @@ fun MainScreenLayout(
                                 onWifiPush = onWifiPush,
                                 onShowWifiServer = onShowWifiServer,
                                 onShowWifiImport = onShowWifiImport,
+                                onNavigateToAttachments = onNavigateToAttachments,
+                                onNavigateToScripts = onNavigateToScripts,
+                                onNavigateToContextLab = onNavigateToContextLab,
+                                onShowAbout = { showAboutDialog = true },
+                                featureToggles = contextUiState.featureToggles,
                                 onNavigateToRecentItem = onNavigateToRecentItem,
                                 recentViewModel = recentViewModel,
                             )
@@ -525,6 +557,13 @@ fun MainScreenLayout(
                 onAddressChange = commandDeckViewModel::onWifiImportAddressChange,
                 onDismiss = commandDeckViewModel::onDismissWifiImportDialog,
                 onConfirm = commandDeckViewModel::onWifiImportConfirm,
+            )
+        }
+
+        if (showAboutDialog) {
+            com.romankozak.forwardappmobile.ui.dialogs.AboutAppDialog(
+                stats = contextUiState.appStatistics,
+                onDismiss = { showAboutDialog = false },
             )
         }
     }

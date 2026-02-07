@@ -195,6 +195,7 @@ private fun NavGraphBuilder.mainGraph(
                 syncDataViewModel.jsonString = json
                 navController.navigate("sync_screen")
             },
+            onNavigateToContextLab = { navController.navigate(CONTEXT_LAB_ROUTE) },
             onNavigateToAttachments = { navController.navigate("attachments_library_screen") },
             onNavigateToScripts = { navController.navigate("scripts_library_screen") },
             onNavigateToRecentItem = { item: RecentItem ->
@@ -217,6 +218,7 @@ private fun NavGraphBuilder.mainGraph(
             },
             recentViewModel = hiltViewModel<RecentViewModel>(),
             commandDeckViewModel = commandDeckViewModel,
+            contextHierarchyViewModel = goalListViewModel,
         )
     }
 

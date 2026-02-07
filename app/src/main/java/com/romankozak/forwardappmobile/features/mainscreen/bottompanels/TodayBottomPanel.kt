@@ -13,6 +13,7 @@ import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroun
 import android.net.Uri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.navigation.routes.GOAL_LISTS_ROUTE
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
@@ -39,6 +40,11 @@ fun TodayBottomPanel(
     onWifiPush: (String) -> Unit,
     onShowWifiServer: () -> Unit,
     onShowWifiImport: () -> Unit,
+    onNavigateToAttachments: () -> Unit,
+    onNavigateToScripts: () -> Unit,
+    onNavigateToContextLab: () -> Unit,
+    onShowAbout: () -> Unit,
+    featureToggles: Map<FeatureFlag, Boolean>,
     onNavigateToRecentItem: (RecentItem) -> Unit,
     recentViewModel: RecentViewModel = hiltViewModel(),
 ) {
@@ -78,6 +84,11 @@ fun TodayBottomPanel(
                 onWifiPush = onWifiPush,
                 onShowWifiServer = onShowWifiServer,
                 onShowWifiImport = onShowWifiImport,
+                onNavigateToAttachments = onNavigateToAttachments,
+                onNavigateToScripts = onNavigateToScripts,
+                onNavigateToContextLab = onNavigateToContextLab,
+                onShowAbout = onShowAbout,
+                featureToggles = featureToggles,
                 recentViewModel = recentViewModel,
             )
         }
