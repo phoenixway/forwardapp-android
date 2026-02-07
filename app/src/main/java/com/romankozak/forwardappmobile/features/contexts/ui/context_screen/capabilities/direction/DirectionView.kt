@@ -1,7 +1,9 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.direction
 
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,14 +17,17 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.DragIndicator
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -32,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.DirectionItemEntity
@@ -95,15 +101,31 @@ fun DirectionView(
                                 Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 16.dp),
+                            shape = MaterialTheme.shapes.large,
                             elevation = CardDefaults.cardElevation(defaultElevation = elevation),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                         ) {
                             Row(
                                 modifier =
                                     Modifier
                                         .fillMaxWidth()
-                                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                                        .padding(horizontal = 12.dp, vertical = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
+                                Surface(
+                                    modifier = Modifier.size(36.dp).clip(MaterialTheme.shapes.small),
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(
+                                            text = if (item.itemOrder > 0) item.itemOrder.toString() else "•",
+                                            style = MaterialTheme.typography.labelMedium,
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.size(12.dp))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = item.text,
@@ -111,12 +133,31 @@ fun DirectionView(
                                         maxLines = 2,
                                         overflow = TextOverflow.Ellipsis,
                                     )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.DragIndicator,
+                                            contentDescription = "Reorder direction",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(16.dp),
+                                        )
+                                        Spacer(modifier = Modifier.size(4.dp))
+                                        Text(
+                                            text = "Drag to reorder",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
                                 }
                                 IconButton(
                                     onClick = {
                                         editingItem = item
                                         editingText = item.text
                                     },
+                                    colors =
+                                        IconButtonDefaults.iconButtonColors(
+                                            contentColor = MaterialTheme.colorScheme.primary,
+                                        ),
                                 ) {
                                     Icon(
                                         imageVector = Icons.Outlined.Edit,
@@ -125,6 +166,10 @@ fun DirectionView(
                                 }
                                 IconButton(
                                     onClick = { onDeleteItem(item.id) },
+                                    colors =
+                                        IconButtonDefaults.iconButtonColors(
+                                            contentColor = MaterialTheme.colorScheme.error,
+                                        ),
                                 ) {
                                     Icon(
                                         imageVector = Icons.Outlined.Delete,
