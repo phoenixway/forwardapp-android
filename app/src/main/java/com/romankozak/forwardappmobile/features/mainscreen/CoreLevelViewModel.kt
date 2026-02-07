@@ -9,7 +9,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+private val CORE_TAGS = setOf("core", "main-beacons")
 
 data class CoreLevelUiState(
     val projects: List<Context> = emptyList(),
@@ -37,4 +40,35 @@ class CoreLevelViewModel
                     started = SharingStarted.WhileSubscribed(5000),
                     initialValue = CoreLevelUiState(isLoading = true),
                 )
+
+        fun addCoreLink(contextId: String) {
+            viewModelScope.launch {
+                updateTags(contextId, addTag = "core")
+            }
+        }
+
+        fun removeCoreLink(contextId: String) {
+            viewModelScope.launch {
+                updateTags(contextId, removeTags = CORE_TAGS)
+            }
+        }
+
+        private suspend fun updateTags(
+            contextId: String,
+            addTag: String? = null,
+            removeTags: Set<String> = emptySet(),
+        ) {
+            val context = contextRepository.getContextById(contextId) ?: return
+            val current = context.tags.orEmpty()
+            val next =
+                current
+                    .filterNot { it in removeTags }
+                    .toMutableList()
+            if (addTag != null && addTag !in next) {
+                next.add(addTag)
+            }
+            if (next != current) {
+                contextRepository.updateContext(context.copy(tags = next))
+            }
+        }
     }

@@ -1,10 +1,6 @@
 package com.romankozak.forwardappmobile.features.strategicmanagement
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -17,7 +13,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -29,7 +24,8 @@ import com.romankozak.forwardappmobile.features.lifestate.AnalysisContent
 import com.romankozak.forwardappmobile.features.lifestate.ChatSection
 import com.romankozak.forwardappmobile.features.lifestate.LifeStateChatViewModel
 import com.romankozak.forwardappmobile.features.lifestate.LifeStateViewModel
-import com.romankozak.forwardappmobile.ui.screens.common.ProjectListItem
+import com.romankozak.forwardappmobile.ui.components.ContextLinkList
+import java.net.URLEncoder
 
 @Composable
 fun StrategicManagementScreen(
@@ -40,6 +36,20 @@ fun StrategicManagementScreen(
     val uiState by viewModel.uiState.collectAsState()
     val mainScreenViewModel: ContextHierarchyScreenViewModel =
         hiltViewModel(remember(navController.currentBackStackEntry) { navController.getBackStackEntry(MAIN_GRAPH_ROUTE) })
+
+    LaunchedEffect(navController) {
+        val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
+        savedStateHandle
+            ?.getStateFlow<String?>("list_chooser_result", null)
+            ?.collect { result ->
+                if (result != null) {
+                    savedStateHandle["list_chooser_result"] = null
+                    if (result != "root") {
+                        viewModel.addStrategicLink(result)
+                    }
+                }
+            }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -62,7 +72,10 @@ fun StrategicManagementScreen(
                             onRevealProject = { projectId ->
                                 mainScreenViewModel.onEvent(ContextHierarchyScreenEvent.RevealContextInHierarchy(projectId))
                             },
-                            scaffoldPadding = PaddingValues(),
+                            onRemoveProject = { projectId ->
+                                viewModel.removeStrategicLink(projectId)
+                            },
+                            scaffoldPadding = paddingValues,
                         )
                     }
 
@@ -83,6 +96,7 @@ private fun DashboardContent(
     projects: List<Context>,
     navController: NavController,
     onRevealProject: (String) -> Unit,
+    onRemoveProject: (String) -> Unit,
     scaffoldPadding: PaddingValues, // New parameter for Scaffold's padding
     modifier: Modifier = Modifier,
 ) {
@@ -95,39 +109,38 @@ private fun DashboardContent(
             missionProjects + otherProjects
         }
 
-    LazyColumn(
-        modifier =
-            modifier
-                .fillMaxSize() // Fills the available space given by its parent (the Column in StrategicManagementScreen)
-                .padding(horizontal = 20.dp),
-        // Re-introducing horizontal padding
+    ContextLinkList(
+        title = "Стратегія",
+        items = sortedProjects,
+        onAddClick = {
+            val disabledIds = sortedProjects.joinToString(",") { it.id }
+            val title = URLEncoder.encode("Додати стратегічний контекст", "UTF-8")
+            val route =
+                if (disabledIds.isBlank()) {
+                    "list_chooser_screen/$title"
+                } else {
+                    "list_chooser_screen/$title?disabledIds=$disabledIds"
+                }
+            navController.navigate(route)
+        },
+        onItemClick = { project ->
+            navController.navigate("goal_detail_screen/${project.id}")
+        },
+        onRevealClick = { project ->
+            onRevealProject(project.id)
+            navController.popBackStack()
+        },
+        onRemoveClick = { project ->
+            onRemoveProject(project.id)
+        },
         contentPadding =
             PaddingValues(
                 bottom = scaffoldPadding.calculateBottomPadding(),
             ),
-        // Applies Scaffold's bottom inset as content padding
-        verticalArrangement = Arrangement.spacedBy(12.dp), // Re-introducing vertical spacing between items
-    ) {
-        item {
-            Text(
-                text = "Key Steps",
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.padding(bottom = 8.dp),
-            )
-        }
-
-        items(sortedProjects) { project ->
-            ProjectListItem(
-                project = project,
-                onItemClick = { navController.navigate("goal_detail_screen/${project.id}") },
-                onRevealClick = {
-                    onRevealProject(project.id)
-                    navController.popBackStack()
-                },
-            )
-        }
-    }
+        modifier = modifier.fillMaxSize(),
+        emptyTitle = "Немає стратегічних посилань",
+        emptyBody = "Додайте контексти, які хочете бачити у стратегічному блоці.",
+    )
 }
 
 @Composable
