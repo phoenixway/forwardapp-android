@@ -154,12 +154,12 @@ echo -e "${GREEN}Build successful. Downloading artifact...${NC}"
 # ------------------ DOWNLOAD ------------------
 
 mkdir -p "$DIST_DIR"
+ARTIFACT_DIR="$DIST_DIR/$ARTIFACT_NAME"
+rm -rf "$ARTIFACT_DIR"
 
 gh run download "$RUN_ID" \
     -n "$ARTIFACT_NAME" \
     -D "$DIST_DIR"
-
-ARTIFACT_DIR="$DIST_DIR/$ARTIFACT_NAME"
 
 APK_FILE=$(find "$ARTIFACT_DIR" -name "*universal*.apk" | head -n 1)
 [ -z "$APK_FILE" ] && APK_FILE=$(find "$ARTIFACT_DIR" -name "*arm64-v8a*.apk" | head -n 1)

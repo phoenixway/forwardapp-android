@@ -191,7 +191,7 @@ class ContextScreenViewModel
         private var pendingDirectionLinkItemId: String? = null
         private var isLinkedNavigationInProgress: Boolean = false
         private var pendingLinkedContextReplace: Boolean = false
-        private var lastSyncKey: Triple<String, String?, ContextViewMode>? = null
+        private var lastSyncKey: Pair<String, String?>? = null
 
         // Exposed StateFlows
         val uiState: StateFlow<ContextUiState> = stateManager.uiState
@@ -437,6 +437,7 @@ class ContextScreenViewModel
                         }
                     }
                 }
+                .debounce(80)
                 .collect { data ->
                     when (data) {
                         is ContextData.Loaded -> {
@@ -450,7 +451,7 @@ data.context?.let { project ->
                             stateManager.updateState { currentState ->
                                 val contextId = data.context?.id ?: currentState.context?.id.orEmpty()
                                 val preferredViewName = data.context?.defaultViewModeName
-                                val syncKey = Triple(contextId, preferredViewName, currentState.currentViewMode)
+                                val syncKey = contextId to preferredViewName
                                 val session =
                                     if (lastSyncKey == syncKey) {
                                         contextSessionStore.state.value

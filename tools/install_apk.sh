@@ -36,6 +36,7 @@ if [ ! -f "$APK_FILE" ]; then
 fi
 
 FILENAME=$(basename "$APK_FILE")
+PKG_DEBUG="com.romankozak.forwardappmobile.debug"
 
 # --- Перевірка rish ---
 if [ ! -x "$HOME/bin/rish" ]; then
@@ -76,6 +77,20 @@ RISH_COPY_OUTPUT=$(~/bin/rish -c "cp /sdcard/Download/$FILENAME /tmp/app.apk" 2>
 
 if echo "$RISH_COPY_OUTPUT" | rg -q "Request timeout"; then
   die "Timeout під час копіювання через rish (Shizuku впав)"
+fi
+
+# --- Видалення старої версії для debug ---
+if echo "$FILENAME" | rg -q "debug"; then
+  info "Видалення старої debug-версії ($PKG_DEBUG)"
+  RISH_UNINSTALL_OUTPUT=$(~/bin/rish -c "pm uninstall $PKG_DEBUG" 2>&1 || true)
+  if echo "$RISH_UNINSTALL_OUTPUT" | rg -q "Request timeout"; then
+    warn "Timeout під час видалення (Shizuku недоступний)"
+  elif echo "$RISH_UNINSTALL_OUTPUT" | rg -q "Success"; then
+    success "Стару debug-версію видалено"
+  else
+    warn "Не вдалося видалити debug-версію (можливо, не встановлена):
+$RISH_UNINSTALL_OUTPUT"
+  fi
 fi
 
 # --- Встановлення ---
