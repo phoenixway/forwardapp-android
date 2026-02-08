@@ -44,7 +44,7 @@ interface DirectionDao {
         SET is_deleted = 1,
             updatedAt = :updatedAt,
             version = version + 1,
-            syncedAt = NULL
+            synced_at = NULL
         WHERE linked_context_id IN (:contextIds)
           AND is_deleted = 0
         """,
