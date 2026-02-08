@@ -54,6 +54,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import java.util.UUID
 import javax.inject.Inject
 import android.content.Context as AndroidContext
 
@@ -1393,7 +1394,20 @@ data.context?.let { project ->
                 return
             }
             viewModelScope.launch(ioDispatcher) {
-                directionRepository.addDirectionItem(contextIdFlow.value, trimmed)
+                val parentContextId = contextIdFlow.value
+                if (parentContextId.isBlank()) return@launch
+
+                val childContextId = UUID.randomUUID().toString()
+                contextRepository.createContextWithId(
+                    id = childContextId,
+                    name = trimmed,
+                    parentId = parentContextId,
+                )
+                directionRepository.addDirectionItem(
+                    contextId = parentContextId,
+                    text = trimmed,
+                    linkedContextId = childContextId,
+                )
             }
         }
 

@@ -32,6 +32,7 @@ import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
 @Composable
+@Suppress("UNUSED_PARAMETER")
 fun DirectionView(
     items: List<DirectionItemEntity>,
     modifier: Modifier = Modifier,
@@ -86,7 +87,6 @@ fun DirectionView(
                     ReorderableItem(reorderableState, key = item.id) { isDragging ->
                         DirectionItemCard(
                             item = item,
-                            linkedContextName = item.linkedContextId?.let { linkedContextNames[it] ?: "Context" },
                             isDragging = isDragging,
                             dragHandleModifier =
                                 with(this@ReorderableItem) {

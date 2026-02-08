@@ -15,8 +15,10 @@ class ContextCapabilitiesResolver {
 
             if (config.enableAdvanced == true) add(CapabilityId("advanced"))
             if (config.enableAutoLinkSubprojects == true) add(CapabilityId("auto_link_subprojects"))
-
-            addAll(config.experimentalCapabilityIds)
+            config.experimentalCapabilityIds.forEach { id ->
+                val normalized = runCatching { id.raw.trim() }.getOrNull()?.takeIf { it.isNotEmpty() } ?: return@forEach
+                add(CapabilityId(normalized))
+            }
         }
     }
 }

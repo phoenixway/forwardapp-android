@@ -101,8 +101,11 @@ fun ModernInputPanel(
                 if (enableAttachments) add(CapabilityId("attachments"))
                 if (isProjectManagementEnabled) add(CapabilityId("advanced"))
 
-                // 2. Додаємо всі динамічні фічі (Ветеринар, Нотатки і т.д.)
-                addAll(experimentalCapabilityIds)
+                // 2. Додаємо всі динамічні фічі (Ветеринар, Нотатки і т.д.), ігноруючи пошкоджені значення
+                experimentalCapabilityIds.forEach { id ->
+                    val normalized = runCatching { id.raw.trim() }.getOrNull()?.takeIf { it.isNotEmpty() } ?: return@forEach
+                    add(CapabilityId(normalized))
+                }
             }
         }
 

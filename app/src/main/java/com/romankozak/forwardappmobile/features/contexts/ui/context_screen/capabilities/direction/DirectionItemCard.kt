@@ -15,7 +15,6 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DragIndicator
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Link
-import androidx.compose.material.icons.outlined.LinkOff
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -34,7 +33,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.DirectionItemEn
 @Composable
 fun DirectionItemCard(
     item: DirectionItemEntity,
-    linkedContextName: String?,
     isDragging: Boolean,
     dragHandleModifier: Modifier,
     onEdit: () -> Unit,
@@ -83,29 +81,20 @@ fun DirectionItemCard(
 
                 if (linkedContextId != null) {
                     Spacer(modifier = Modifier.height(4.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = linkedContextName ?: "Context",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f),
+                    IconButton(
+                        onClick = { onOpenLinkedContext(linkedContextId) },
+                        colors =
+                            IconButtonDefaults.iconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                contentColor = MaterialTheme.colorScheme.primary,
+                            ),
+                        modifier = Modifier.size(28.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
+                            contentDescription = "Open linked context",
+                            modifier = Modifier.size(16.dp),
                         )
-                        IconButton(
-                            onClick = { onOpenLinkedContext(linkedContextId) },
-                            colors =
-                                IconButtonDefaults.iconButtonColors(
-                                    contentColor = MaterialTheme.colorScheme.primary,
-                                ),
-                            modifier = Modifier.size(28.dp),
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
-                                contentDescription = "Open linked context",
-                                modifier = Modifier.size(18.dp),
-                            )
-                        }
                     }
                 }
             }
@@ -123,17 +112,19 @@ fun DirectionItemCard(
                 )
             }
 
-            IconButton(
-                onClick = onToggleLink,
-                colors =
-                    IconButtonDefaults.iconButtonColors(
-                        contentColor = MaterialTheme.colorScheme.primary,
-                    ),
-            ) {
-                Icon(
-                    imageVector = if (item.linkedContextId == null) Icons.Outlined.Link else Icons.Outlined.LinkOff,
-                    contentDescription = if (item.linkedContextId == null) "Link direction" else "Unlink direction",
-                )
+            if (linkedContextId == null) {
+                IconButton(
+                    onClick = onToggleLink,
+                    colors =
+                        IconButtonDefaults.iconButtonColors(
+                            contentColor = MaterialTheme.colorScheme.primary,
+                        ),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Link,
+                        contentDescription = "Link direction",
+                    )
+                }
             }
 
             IconButton(
