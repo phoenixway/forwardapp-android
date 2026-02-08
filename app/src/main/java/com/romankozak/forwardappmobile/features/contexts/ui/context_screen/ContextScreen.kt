@@ -39,7 +39,6 @@ import com.romankozak.forwardappmobile.features.common.components.holdmenu2.Hold
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.rememberHoldMenu2
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.ModernInputPanel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.topbar.AdaptiveTopBar
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.topbar.BrowserNavigationBar
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.dialogs.EditLogEntryDialog
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.dialogs.GoalDetailDialogs
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.dialogs.ProjectDisplayPropertiesDialog
@@ -332,28 +331,7 @@ private fun ProjectScaffold(
                                 windowInsets = WindowInsets.statusBars,
                             )
 
-                            if (!uiState.isSelectionModeActive) {
-                                BrowserNavigationBar(
-                                    canGoBack = canGoBack,
-                                    onBackClick = { viewModel.onBackPressed() },
-                                    onForwardClick = { viewModel.onForwardPressed() },
-                                    onHomeClick = { viewModel.onHomeClick() },
-                                    isAttachmentsExpanded = project?.isAttachmentsExpanded == true,
-                                    onToggleAttachments = viewModel::onToggleAttachmentsExpanded,
-                                    onEditList = {
-                                        navController.navigate("project_settings_screen?projectId=${project?.id}")
-                                    },
-                                    onShareList = { viewModel.onExportBacklogToMarkdownRequest() },
-                                    onDeleteList = { viewModel.deleteCurrentProject() },
-                                    menuExpanded = menuExpanded,
-                                    onMenuExpandedChange = { menuExpanded = it },
-                currentView = sessionState.currentView,
-                                    onViewChange = { newView -> viewModel.onProjectViewChange(newView) },
-                                    onImportFromMarkdown = viewModel::onImportBacklogFromMarkdownRequest,
-                                    onExportToMarkdown = viewModel::onExportBacklogToMarkdownRequest,
-                                    enabledCapabilities = sessionState.enabledCapabilities,
-                                )
-                            }
+                            // Action panel removed to avoid duplicating ModernInputPanel controls.
                         }
                     }
                 }
