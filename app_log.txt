@@ -1,9 +1,3 @@
-2026-02-08 17:37:35.617 I/App: Logger initialized (Android 15)
-2026-02-08 17:37:35.638 I/App: Feature toggles loaded
-2026-02-08 17:37:51.510 D/SyncFileService: Attempting to import smart backup (V2) from URI: content://com.android.externalstorage.documents/document/primary%3ADownload%2FForwardApp%2Fforward_snapshot_backup_20260208_074344.json
-2026-02-08 17:37:52.595 D/SyncFileService: Successfully parsed as new SnapshotBundle format.
-2026-02-08 17:37:53.988 I/SyncFileService: Smart backup successfully imported and merged from URI: content://com.android.externalstorage.documents/document/primary%3ADownload%2FForwardApp%2Fforward_snapshot_backup_20260208_074344.json
-2026-02-08 17:38:12.154 I/DirectionLinkNav: NavCommand.Navigate: route=goal_detail_screen/d13c6109-7357-4491-9e9e-7a9109b7a5c7
-2026-02-08 17:38:18.028 I/DirectionLinkNav: Navigate: route=list_chooser_screen/Link+direction+to...?disabledIds=d13c6109-7357-4491-9e9e-7a9109b7a5c7
-2026-02-08 17:38:24.746 I/DirectionLinkNav: openLinkedContext: from=d13c6109-7357-4491-9e9e-7a9109b7a5c7 to=7eb94941-2c14-4122-82a5-ed080f6e46e1
-2026-02-08 17:38:24.749 I/DirectionLinkNav: Navigate(replace): current=d13c6109-7357-4491-9e9e-7a9109b7a5c7 route=goal_detail_screen/7eb94941-2c14-4122-82a5-ed080f6e46e1
+2026-02-08 18:04:10.470 I/DirectionLinkNav: NavCommand.Navigate: route=goal_detail_screen/d13c6109-7357-4491-9e9e-7a9109b7a5c7
+2026-02-08 18:04:12.353 I/DirectionLinkNav: openLinkedContext: from=d13c6109-7357-4491-9e9e-7a9109b7a5c7 to=8bb0b2da-b6f6-4661-92fd-b5bf2eec5d4e
+2026-02-08 18:04:12.357 I/DirectionLinkNav: Navigate(replace): current=d13c6109-7357-4491-9e9e-7a9109b7a5c7 route=goal_detail_screen/8bb0b2da-b6f6-4661-92fd-b5bf2eec5d4e

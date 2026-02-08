@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 data class ContextSessionState(
     val enabledCapabilities: Set<CapabilityId> = emptySet(),
     val availableViews: List<ContextViewMode> = emptyList(),
-    val currentView: ContextViewMode = ContextViewMode.BACKLOG,
+    val currentView: ContextViewMode = ContextViewMode.DASHBOARD,
 )
 
 sealed interface ContextCommand {
