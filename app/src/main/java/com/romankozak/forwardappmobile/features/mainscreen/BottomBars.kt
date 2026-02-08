@@ -94,6 +94,9 @@ fun DashboardBottomBar(
     onNavigateToScripts: () -> Unit,
     onShowAbout: () -> Unit,
     featureToggles: Map<FeatureFlag, Boolean>,
+    quickActionIcon: ImageVector = Icons.Outlined.History,
+    quickActionLabel: String = "Recent",
+    onQuickActionClick: (() -> Unit)? = null,
     recentViewModel: RecentViewModel = hiltViewModel(),
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -352,9 +355,9 @@ fun DashboardBottomBar(
             label = "Contexts",
         )
         BarButton(
-            icon = Icons.Outlined.History,
-            label = "Recent",
-            onClick = { showRecentSheet = true },
+            icon = quickActionIcon,
+            label = quickActionLabel,
+            onClick = onQuickActionClick ?: { showRecentSheet = true },
         )
         BarButton(
             icon = Icons.Outlined.MoreHoriz,

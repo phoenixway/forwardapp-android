@@ -52,6 +52,7 @@ class ContextRepository
         private val contextTimeTrackingRepository: ContextTimeTrackingRepository,
         private val contextArtifactRepository: ContextArtifactRepository,
         private val listItemRepository: ListItemRepository,
+        private val directionDao: DirectionDao,
         private val backlogOrderRepository: BacklogOrderRepository,
         private val aiEventRepository: AiEventRepository,
         // ДОДАНО: Потрібен провайдер для уникнення циклічної залежності
@@ -68,7 +69,7 @@ class ContextRepository
 
         // --- Базові операції з Контекстами ---
         fun getAllContextsFlow(): Flow<List<Context>> =
-            contextDao.getAllContextsFlow().map {
+            contextDao.getAllContexts().map {
                     list ->
                 list.map { it.withNormalizedParentId() }
             }
@@ -88,7 +89,7 @@ class ContextRepository
                 backlogOrderRepository.observeAll(),
                 reminderRepository.getAllReminders(),
                 goalRepository.getAllGoalsFlow(),
-                contextDao.getAllContextsFlow(),
+                contextDao.getAllContexts(),
                 listItemRepository.getAllEntitiesAsFlow(),
                 legacyNoteRepository.getAllAsFlow(),
                 noteDocumentRepository.getAllDocumentsAsFlow(),
@@ -328,6 +329,7 @@ class ContextRepository
             val ids = contextsToDelete.map { it.id }
             listItemRepository.deleteItemsForContexts(ids)
             val now = System.currentTimeMillis()
+            directionDao.markDeletedByLinkedContextIds(ids, now)
             contextsToDelete.forEach { contextDao.insert(it.softDelete(now)) }
         }
 

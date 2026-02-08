@@ -38,6 +38,22 @@ interface DirectionDao {
         version: Long,
     )
 
+    @Query(
+        """
+        UPDATE direction_items
+        SET is_deleted = 1,
+            updatedAt = :updatedAt,
+            version = version + 1,
+            syncedAt = NULL
+        WHERE linked_context_id IN (:contextIds)
+          AND is_deleted = 0
+        """,
+    )
+    suspend fun markDeletedByLinkedContextIds(
+        contextIds: List<String>,
+        updatedAt: Long,
+    )
+
     @Query("SELECT COUNT(id) FROM direction_items WHERE contextId = :contextId AND is_deleted = 0")
     suspend fun count(contextId: String): Int
 

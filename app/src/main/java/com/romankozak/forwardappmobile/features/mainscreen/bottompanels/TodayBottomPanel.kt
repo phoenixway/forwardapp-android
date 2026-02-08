@@ -11,11 +11,14 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.ui.components.CommonBottomPanelLayout
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
 import android.net.Uri
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.navigation.routes.GOAL_LISTS_ROUTE
+import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.features.mainscreen.DashboardBottomBar
 import kotlinx.coroutines.launch // Assuming launch is used inside DashboardBottomBar
@@ -45,6 +48,7 @@ fun TodayBottomPanel(
     onShowAbout: () -> Unit,
     featureToggles: Map<FeatureFlag, Boolean>,
     onNavigateToRecentItem: (RecentItem) -> Unit,
+    dayPlanViewModel: DayPlanViewModel = hiltViewModel(),
     recentViewModel: RecentViewModel = hiltViewModel(),
 ) {
     CommonBottomPanelLayout {
@@ -87,6 +91,9 @@ fun TodayBottomPanel(
                 onNavigateToScripts = onNavigateToScripts,
                 onShowAbout = onShowAbout,
                 featureToggles = featureToggles,
+                quickActionIcon = Icons.Outlined.Add,
+                quickActionLabel = "Додати ціль",
+                onQuickActionClick = { dayPlanViewModel.openAddTaskDialog() },
                 recentViewModel = recentViewModel,
             )
         }
