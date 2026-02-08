@@ -1,0 +1,68 @@
+2026-02-06 17:28:21.732 I/App: Logger initialized (Android 15)
+2026-02-06 17:28:21.754 I/App: Feature toggles loaded
+2026-02-06 17:28:32.220 E/DEBUG_IMPORT: ProjectActionsUseCase.onFullImportConfirmedV2 is called
+2026-02-06 17:28:32.225 D/SyncFileService: Attempting to import smart backup (V2) from URI: content://com.android.providers.downloads.documents/document/msf%3A1000278572
+2026-02-06 17:28:32.313 E/SyncFileService: A critical error occurred during the smart import process.
+2026-02-06 18:30:02.661 I/App: Logger initialized (Android 15)
+2026-02-06 18:30:02.700 I/App: Feature toggles loaded
+2026-02-06 18:30:20.428 E/DEBUG_IMPORT: ProjectActionsUseCase.onFullImportConfirmedV2 is called
+2026-02-06 18:30:20.430 D/SyncFileService: Attempting to import smart backup (V2) from URI: content://com.android.providers.downloads.documents/document/msf%3A1000278572
+2026-02-06 18:30:20.520 E/SyncFileService: A critical error occurred during the smart import process.
+java.lang.IllegalArgumentException: Class cd.c declares multiple JSON fields named 'c'; conflict is caused by fields cd.c#c and cd.c#h
+See https://github.com/google/gson/blob/main/Troubleshooting.md#duplicate-fields
+	at ac.u.b(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:69)
+	at ac.u.c(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:378)
+	at ac.u.a(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:76)
+	at xb.m.e(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:74)
+	at ac.d.a(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:209)
+	at xb.m.e(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:74)
+	at ac.u.c(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:311)
+	at ac.u.a(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:76)
+	at xb.m.e(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:74)
+	at ac.u.c(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:311)
+	at ac.u.a(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:76)
+	at xb.m.e(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:74)
+	at xb.m.b(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:18)
+	at xb.m.c(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:15)
+	at vh.h0.invokeSuspend(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:105)
+	at vh.h0.invoke(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:18)
+	at p8.g9.c(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:5)
+	at po.f0.K(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:74)
+	at com.romankozak.forwardappmobile.sync.SyncFileService.importFullBackupFromFileV2-gIAlu-s(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:62)
+	at vh.v0.g(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:68)
+	at vf.e.invokeSuspend(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:42)
+	at nl.a.resumeWith(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:8)
+	at po.n0.run(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:117)
+	at u8.y2.run(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:1241)
+	at wo.j.run(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:3)
+	at wo.a.run(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:90)
+
+java.lang.IllegalArgumentException: Class cd.c declares multiple JSON fields named 'c'; conflict is caused by fields cd.c#c and cd.c#h
+See https://github.com/google/gson/blob/main/Troubleshooting.md#duplicate-fields
+	at ac.u.b(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:69)
+	at ac.u.c(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:378)
+	at ac.u.a(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:76)
+	at xb.m.e(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:74)
+	at ac.d.a(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:209)
+	at xb.m.e(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:74)
+	at ac.u.c(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:311)
+	at ac.u.a(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:76)
+	at xb.m.e(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:74)
+	at ac.u.c(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:311)
+	at ac.u.a(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:76)
+	at xb.m.e(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:74)
+	at xb.m.b(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:18)
+	at xb.m.c(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:15)
+	at vh.h0.invokeSuspend(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:105)
+	at vh.h0.invoke(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:18)
+	at p8.g9.c(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:5)
+	at po.f0.K(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:74)
+	at com.romankozak.forwardappmobile.sync.SyncFileService.importFullBackupFromFileV2-gIAlu-s(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:62)
+	at vh.v0.g(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:68)
+	at vf.e.invokeSuspend(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:42)
+	at nl.a.resumeWith(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:8)
+	at po.n0.run(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:117)
+	at u8.y2.run(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:1241)
+	at wo.j.run(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:3)
+	at wo.a.run(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:90)
+
