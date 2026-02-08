@@ -1,0 +1,107 @@
+# План міграції на централізований Navigation Manager (Варіант 2)
+
+## Мета
+Зробити `EnhancedNavigationManager` єдиним джерелом істини для навігації, з централізацією back/forward, replace, popUpTo та історії переходів. Усі переходи мають проходити через один API.
+
+## Проблема зараз
+Є два паралельні шляхи навігації:
+- `NavController` (через `UiEvent.Navigate`, прямі `navController.navigate`)
+- `EnhancedNavigationManager` (власна історія + `NavigationCommand`)
+
+Це створює дублікати, несинхронізовану історію, флікеринг, неконсистентний `Back`.
+
+---
+
+## Етап 1. Визначити єдиний API
+**Ціль:** всі переходи мають викликати один метод (наприклад `navigationManager.navigateTo(...)`).
+
+Кандидат API:
+- `navigateToTarget(NavTarget)`
+- `navigateToProject(contextId, projectName)`
+- `navigateBack()`
+- `navigateReplace(target)`
+- `navigateWithResult(key, value)`
+
+**Рішення:** закріпити `NavTarget` як універсальну DTO для переходів.
+
+---
+
+## Етап 2. Стандартизувати типи переходів
+**Ціль:** навігаційний менеджер має підтримувати явні типи:
+- `PUSH` (звичайний navigate)
+- `REPLACE` (remove current + navigate)
+- `POP` (back)
+- `POP_TO` (popUpTo)
+
+Додати enum `NavigationMode` і центральну логіку:
+```
+NavigationCommand.Navigate(target, mode, options)
+```
+
+---
+
+## Етап 3. Інтеграція з NavController
+**Ціль:** `EnhancedNavigationManager` єдиний, хто викликає `NavController`.
+
+- `AppNavigation` підписується на `navigationCommandFlow`.
+- Команди перетворюються в `navController.navigate(route) { ... }`.
+- Використовуються стандартні flags (`launchSingleTop`, `restoreState`, `popUpTo`).
+
+---
+
+## Етап 4. Міграція екранів
+**Ціль:** поетапно прибрати прямі `navController.navigate`.
+
+### Рекомендована послідовність:
+1. `ContextScreen` / `goal_detail_screen`
+2. `ContextHierarchyScreen`
+3. `GlobalSearch`
+4. `Attachments` / `Scripts` / `Settings`
+
+Для кожного екрана:
+- замінити прямі `navController.navigate` на `navigationManager.navigateToTarget(...)`
+- замінити `UiEvent.Navigate` на `navigationManager.navigateToTarget`
+
+---
+
+## Етап 5. Зворотна сумісність
+**Ціль:** уникнути масового рефактору за один раз.
+
+- Додати адаптер `NavigationDispatcher` як фасад.
+- Старі виклики `UiEvent.Navigate` переводяться всередині на `navigationManager`.
+
+---
+
+## Етап 6. Обробка Back/Forward
+**Ціль:** централізувати `Back` логіку і синхронізувати з історією.
+
+- Всі `BackHandler` мають викликати `navigationManager.goBack()`.
+- `navigationManager.goBack()` вирішує чи потрібно `popBackStack` чи custom pop.
+- `goForward()` працює через власну історію.
+
+---
+
+## Етап 7. Тестування і стабілізація
+**Ціль:** підтвердити відсутність флікерингу та дубльованих переходів.
+
+Рекомендовані тести:
+- переходи між контекстами
+- `Back` зі складних сценаріїв (вкладені екрани)
+- `forward/back` історія
+- `popUpTo` після replace
+
+---
+
+## Ризики
+- Потрібно слідкувати за stack consistency (щоб history і NavController синхронізувалися).
+- Старі переходи можуть залишатися у коді і створювати подвійні навігації.
+
+---
+
+## Результат
+Після міграції:
+- уніфікований API навігації
+- контрольований back/forward
+- мінімум флікерингу
+- єдине джерело істини для переходів
+
