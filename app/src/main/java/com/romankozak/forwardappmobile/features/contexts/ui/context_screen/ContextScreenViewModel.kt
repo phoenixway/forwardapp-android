@@ -1342,11 +1342,7 @@ data.context?.let { project ->
             if (isLinkedNavigationInProgress) return
             isLinkedNavigationInProgress = true
             viewModelScope.launch {
-                val projectName =
-                    withContext(ioDispatcher) {
-                        contextRepository.getContextById(contextId)?.name ?: "Context"
-                    }
-                enhancedNavigationManager.navigateToProject(contextId, projectName)
+                _uiEventFlow.tryEmit(UiEvent.Navigate(NavTarget.ContextDetail(contextId = contextId)))
                 kotlinx.coroutines.delay(500)
                 isLinkedNavigationInProgress = false
             }
