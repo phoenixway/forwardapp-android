@@ -68,6 +68,13 @@ fun GoalDetailEffects(
                 is UiEvent.Navigate -> {
                     Log.d(TAG, "GoalDetailEffects: Отримано подію Navigate.")
                     val route = NavTargetRouter.routeOf(event.target)
+                    val currentListId = list?.id
+                    if (event.target is com.romankozak.forwardappmobile.core.navigation.NavTarget.ContextDetail &&
+                        currentListId == event.target.contextId
+                    ) {
+                        Timber.tag("DirectionLinkNav").i("Navigate skipped (same context): %s", route)
+                        return@collect
+                    }
                     if (viewModel.consumeLinkedContextReplace()) {
                         val currentContextId = list?.id
                         Timber.tag("DirectionLinkNav").i(
