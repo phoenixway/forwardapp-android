@@ -82,8 +82,16 @@ fun GoalDetailEffects(
                     }
                     val isContextRoute = route.startsWith("goal_detail_screen/")
                     if (isContextRoute) {
-                        Timber.tag("DirectionLinkNav").i("Navigate(context): route=%s", route)
+                        val currentDestId = navController.currentBackStackEntry?.destination?.id
+                        Timber.tag("DirectionLinkNav").i(
+                            "Navigate(context-replace): route=%s currentDestId=%s",
+                            route,
+                            currentDestId,
+                        )
                         navController.navigate(route) {
+                            if (currentDestId != null) {
+                                popUpTo(currentDestId) { inclusive = true }
+                            }
                             launchSingleTop = true
                             restoreState = false
                         }
