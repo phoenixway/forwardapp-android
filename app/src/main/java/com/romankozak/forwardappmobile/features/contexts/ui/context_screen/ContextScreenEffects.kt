@@ -81,32 +81,16 @@ fun GoalDetailEffects(
                         return@collect
                     }
                     val isContextRoute = route.startsWith("goal_detail_screen/")
-                    val currentContextId = list?.id
                     if (isContextRoute) {
-                        Timber.tag("DirectionLinkNav").i(
-                            "Navigate(replace-context): current=%s route=%s",
-                            currentContextId,
-                            route,
-                        )
+                        Timber.tag("DirectionLinkNav").i("Navigate(context): route=%s", route)
                         navController.navigate(route) {
-                            if (!currentContextId.isNullOrBlank()) {
-                                popUpTo("goal_detail_screen/$currentContextId") { inclusive = true }
-                            }
                             launchSingleTop = true
                             restoreState = false
                         }
-                        // consume flag if it was set
                         viewModel.consumeLinkedContextReplace()
                     } else if (viewModel.consumeLinkedContextReplace()) {
-                        Timber.tag("DirectionLinkNav").i(
-                            "Navigate(replace): current=%s route=%s",
-                            currentContextId,
-                            route,
-                        )
+                        Timber.tag("DirectionLinkNav").i("Navigate(replace): route=%s", route)
                         navController.navigate(route) {
-                            if (!currentContextId.isNullOrBlank()) {
-                                popUpTo("goal_detail_screen/$currentContextId") { inclusive = true }
-                            }
                             launchSingleTop = true
                             restoreState = false
                         }
