@@ -556,17 +556,15 @@ class ContextHierarchyScreenViewModel
                     }
                 }
                 is ContextHierarchyScreenEvent.ImportAttachmentsFromFile -> {
-                    Log.d(
-                        "SyncRepo_AttachmentsImport",
-                        "MainScreenViewModel received ImportAttachmentsFromFile event with uri=${event.uri}",
-                    )
+                    Timber
+                        .tag("SyncRepo_AttachmentsImport")
+                        .d("MainScreenViewModel received ImportAttachmentsFromFile event with uri=${event.uri}")
                     viewModelScope.launch {
-                        Log.d("SyncRepo_AttachmentsImport", "Starting attachment import coroutine")
+                        Timber.tag("SyncRepo_AttachmentsImport").d("Starting attachment import coroutine")
                         val result = contextActionsUseCase.importAttachments(event.uri)
-                        Log.d(
-                            "SyncRepo_AttachmentsImport",
-                            "Import completed with result: isSuccess=${result.isSuccess}, message=${result.getOrNull()}",
-                        )
+                        Timber
+                            .tag("SyncRepo_AttachmentsImport")
+                            .d("Import completed with result: isSuccess=${result.isSuccess}, message=${result.getOrNull()}")
                         dialogUseCase.dismissDialog()
                         _uiEventChannel.send(
                             if (result.isSuccess) {

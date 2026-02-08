@@ -1,10 +1,11 @@
 package com.romankozak.forwardappmobile.sync
 
-import android.util.Log
 import com.google.gson.GsonBuilder
+import com.google.gson.JsonParser
 import com.romankozak.forwardappmobile.core.data.interfaces.sync.IContentProvider
 import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
+import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.SettingsContent
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
 import kotlinx.coroutines.Dispatchers
@@ -142,26 +143,41 @@ class SyncFileService @Inject constructor(
         try {
             val jsonResult = contentProvider.readText(uriString)
             val jsonString = jsonResult.getOrThrow()
+            val jsonObject = JsonParser.parseString(jsonString).asJsonObject
 
-            // Спроба розпарсити як новий формат (FullAppBackup)
             val backupData = gson.fromJson(jsonString, FullAppBackup::class.java)
 
-            val snapshotBundleToApply = if (backupData.snapshotBundle != null) {
-                Timber.tag(tag).d("Successfully parsed as new SnapshotBundle format.")
-                backupData.snapshotBundle!!
-            } else if (backupData.database != null) {
-                Timber.tag(tag).d("Parsed as legacy FullAppBackup format. Migrating to SnapshotBundle...")
-                legacyMigrationMapper.toSnapshotBundle(backupData.database!!)
-            } else {
-                Timber.tag(tag).d("Could not parse as FullAppBackup, trying as raw DatabaseContent.")
-                val databaseContent = gson.fromJson(jsonString, DatabaseContent::class.java)
-                legacyMigrationMapper.toSnapshotBundle(databaseContent)
+            val snapshotBundleToApply =
+                when {
+                    backupData.snapshotBundle != null -> {
+                        Timber.tag(tag).d("Successfully parsed as FullAppBackup with SnapshotBundle payload.")
+                        backupData.snapshotBundle!!
+                    }
+                    backupData.database != null -> {
+                        Timber.tag(tag).d("Parsed as legacy FullAppBackup format. Migrating to SnapshotBundle...")
+                        legacyMigrationMapper.toSnapshotBundle(backupData.database!!)
+                    }
+                    // Some external exports may store SnapshotBundle as top-level JSON.
+                    hasSnapshotBundleKeys(jsonObject) -> {
+                        Timber.tag(tag).d("Detected raw SnapshotBundle payload.")
+                        gson.fromJson(jsonString, SnapshotBundle::class.java)
+                    }
+                    hasDatabaseContentKeys(jsonObject) -> {
+                        Timber.tag(tag).d("Detected raw DatabaseContent payload. Migrating to SnapshotBundle...")
+                        val databaseContent = gson.fromJson(jsonString, DatabaseContent::class.java)
+                        legacyMigrationMapper.toSnapshotBundle(databaseContent)
+                    }
+                    else -> {
+                        throw IllegalArgumentException("Unsupported backup format: no recognizable SnapshotBundle or DatabaseContent payload.")
+                    }
+                }
+
+            if (isEffectivelyEmpty(snapshotBundleToApply)) {
+                throw IllegalArgumentException("Backup payload is empty. Nothing to import.")
             }
 
-            // Використання логіки об'єднання
-            mergeRepository.applyServerChanges(snapshotBundleToApply)
+            mergeRepository.applyServerChanges(snapshotBundleToApply).getOrThrow()
 
-            // Відновлення налаштувань
             backupData.settings?.settings?.let {
                 localDataSource.restoreSettings(it)
             }
@@ -172,5 +188,25 @@ class SyncFileService @Inject constructor(
             Timber.tag(tag).e(e, "A critical error occurred during the smart import process.")
             Result.failure(e)
         }
+    }
+
+    private fun hasSnapshotBundleKeys(jsonObject: com.google.gson.JsonObject): Boolean {
+        return jsonObject.has("contexts") || jsonObject.has("snapshotVersion")
+    }
+
+    private fun hasDatabaseContentKeys(jsonObject: com.google.gson.JsonObject): Boolean {
+        return jsonObject.has("projects") || jsonObject.has("goals") || jsonObject.has("backlogItems")
+    }
+
+    private fun isEffectivelyEmpty(bundle: SnapshotBundle): Boolean {
+        return bundle.contexts.isEmpty() &&
+            bundle.goals.isEmpty() &&
+            bundle.backlogItems.isEmpty() &&
+            bundle.documents.isEmpty() &&
+            bundle.checklists.isEmpty() &&
+            bundle.attachments.isEmpty() &&
+            bundle.inbox.isEmpty() &&
+            bundle.logs.isEmpty() &&
+            bundle.directionItems.isEmpty()
     }
 }

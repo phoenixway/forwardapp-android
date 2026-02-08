@@ -126,6 +126,8 @@ class ContextScreenViewModel
         private val originContextId: String? = savedStateHandle.get<String>("originContextId")
         private val _listContent = MutableStateFlow<List<BacklogItemContent>>(emptyList())
         val listContent: StateFlow<List<BacklogItemContent>> = _listContent.asStateFlow()
+        private val _attachmentItems = MutableStateFlow<List<BacklogItemContent>>(emptyList())
+        val attachmentItems: StateFlow<List<BacklogItemContent>> = _attachmentItems.asStateFlow()
 
         val itemActionHandler =
             ItemActionHandler(
@@ -189,6 +191,7 @@ class ContextScreenViewModel
 
         private var pendingAttachmentShare: BacklogItemContent? = null
         private var pendingDirectionLinkItemId: String? = null
+        private var pendingAddDirectionFromContextChooser: Boolean = false
         private var isLinkedNavigationInProgress: Boolean = false
         private var pendingLinkedContextReplace: Boolean = false
         private var lastSyncKey: Pair<String, String?>? = null
@@ -318,6 +321,7 @@ class ContextScreenViewModel
                     .collect {
                         stateManager.updateState { it.copy(isContextSwitching = true) }
                         _listContent.value = emptyList()
+                        _attachmentItems.value = emptyList()
                     }
             }
         }
@@ -340,6 +344,8 @@ class ContextScreenViewModel
                             noteDocumentRepository.getDocumentsForContext(contextId),
                             directionRepository.getDirectionItemsForContext(contextId),
                             contextRepository.getAllContextsFlow(),
+                            contextRepository.getAttachmentsForContextStream(contextId),
+                            listItemRepository.getAllEntitiesAsFlow(),
                             reminderRepository.getRemindersForEntityFlow(contextId),
                             recentItemsRepository.getRecentItemsForContextFlow(contextId),
                             noteRepository.getNotesForContext(contextId),
@@ -352,11 +358,15 @@ class ContextScreenViewModel
                             val noteDocuments = (args[5] as? List<*>)?.filterIsInstance<NoteDocumentEntity>() ?: emptyList()
                             val directionItems = (args[6] as? List<*>)?.filterIsInstance<DirectionItemEntity>() ?: emptyList()
                             val allContexts = (args[7] as? List<*>)?.filterIsInstance<com.romankozak.forwardappmobile.core.data.models.entities.Context>() ?: emptyList()
-                            val reminders = (args[8] as? List<*>)?.filterIsInstance<Reminder>() ?: emptyList()
-                            val goals = (args[11] as? List<*>)?.filterIsInstance<Goal>() ?: emptyList()
-                            val subprojects = (args[12] as? List<*>)?.filterIsInstance<com.romankozak.forwardappmobile.core.data.models.entities.Context>() ?: emptyList()
+                            val attachments = (args[8] as? List<*>)?.filterIsInstance<AttachmentWithContext>() ?: emptyList()
+                            val linkItems = (args[9] as? List<*>)?.filterIsInstance<LinkItemEntity>() ?: emptyList()
+                            val reminders = (args[10] as? List<*>)?.filterIsInstance<Reminder>() ?: emptyList()
+                            val goals = (args[13] as? List<*>)?.filterIsInstance<Goal>() ?: emptyList()
+                            val subprojects = (args[14] as? List<*>)?.filterIsInstance<com.romankozak.forwardappmobile.core.data.models.entities.Context>() ?: emptyList()
 
                             // Явна типізація результату when як BacklogItemContent?
+                            val linkItemsMap = linkItems.associateBy { it.id }
+
                             val items: List<BacklogItemContent> = rawItems.mapNotNull { item ->
                                 val itemReminders = reminders.filter { it.entityId == item.entityId }
 
@@ -395,6 +405,11 @@ class ContextScreenViewModel
                                             )
                                         }
                                     }
+                                    BacklogItemTypeValues.LINK_ITEM -> {
+                                        linkItemsMap[item.entityId]?.let { linkItem ->
+                                            BacklogItemContent.LinkItem(linkItem, item)
+                                        }
+                                    }
                                     "LINK" -> null
                                     else -> null
                                 }
@@ -402,10 +417,46 @@ class ContextScreenViewModel
                                 result
                             }
 
+                            val noteDocumentsMap = noteDocuments.associateBy { it.id }
+                            val checklistsMap = checklists.associateBy { it.id }
+                            val attachmentItems =
+                                attachments
+                                    .sortedWith { a, b ->
+                                        val orderA = a.attachmentOrder ?: -a.attachment.createdAt
+                                        val orderB = b.attachmentOrder ?: -b.attachment.createdAt
+                                        val orderCompare = orderA.compareTo(orderB)
+                                        if (orderCompare != 0) orderCompare else a.attachment.id.compareTo(b.attachment.id)
+                                    }
+                                    .mapNotNull { attachment ->
+                                        val backlogItem =
+                                            BacklogItem(
+                                                id = attachment.attachment.id,
+                                                contextId = contextId,
+                                                itemType = attachment.attachment.attachmentType,
+                                                entityId = attachment.attachment.entityId,
+                                                order = attachment.attachmentOrder ?: -attachment.attachment.createdAt,
+                                            )
+                                        when (attachment.attachment.attachmentType) {
+                                            BacklogItemTypeValues.NOTE_DOCUMENT ->
+                                                noteDocumentsMap[attachment.attachment.entityId]?.let { doc ->
+                                                    BacklogItemContent.NoteDocumentItem(doc, backlogItem)
+                                                }
+                                            BacklogItemTypeValues.CHECKLIST ->
+                                                checklistsMap[attachment.attachment.entityId]?.let { checklist ->
+                                                    BacklogItemContent.ChecklistItem(checklist, backlogItem)
+                                                }
+                                            BacklogItemTypeValues.LINK_ITEM ->
+                                                linkItemsMap[attachment.attachment.entityId]?.let { linkItem ->
+                                                    BacklogItemContent.LinkItem(linkItem, backlogItem)
+                                                }
+                                            else -> null
+                                        }
+                                    }
+
                             val config = args[2] as? ContextConfiguration
                             val logs = (args[3] as? List<*>)?.filterIsInstance<ContextLog>() ?: emptyList()
-                            val recentItems = (args[9] as? List<*>)?.filterIsInstance<RecentItem>() ?: emptyList()
-                            val notes = (args[10] as? List<*>)?.filterIsInstance<LegacyNoteEntity>() ?: emptyList()
+                            val recentItems = (args[11] as? List<*>)?.filterIsInstance<RecentItem>() ?: emptyList()
+                            val notes = (args[12] as? List<*>)?.filterIsInstance<LegacyNoteEntity>() ?: emptyList()
 
                             val linkedContextNames =
                                 if (directionItems.isEmpty()) {
@@ -423,6 +474,7 @@ class ContextScreenViewModel
                             ContextData.Loaded(
                                 context = context,
                                 items = items,
+                                attachmentItems = attachmentItems,
                                 config = config ?: ContextConfiguration.default(contextId),
                                 logs = logs,
                                 checklists = checklists,
@@ -441,6 +493,7 @@ class ContextScreenViewModel
                     when (data) {
                         is ContextData.Loaded -> {
                             _listContent.value = data.items
+                            _attachmentItems.value = data.attachmentItems
                             stateManager.updateContext(data)
 data.context?.let { project ->
                 viewModelScope.launch {
@@ -504,6 +557,7 @@ data.context?.let { project ->
                         }
                         is ContextData.Empty -> {
                             _listContent.value = emptyList()
+                            _attachmentItems.value = emptyList()
                             stateManager.clear()
                             stateManager.updateState { it.copy(isContextSwitching = false) }
                         }
@@ -1343,6 +1397,26 @@ data.context?.let { project ->
             }
         }
 
+        fun onAddDirectionWithLinkedContextRequest() {
+            if (!hasCapability(CapabilityId("direction"))) {
+                showSnackbar("Можливість direction недоступна.", null)
+                return
+            }
+            pendingAddDirectionFromContextChooser = true
+            savedStateHandle["pendingAddDirectionFromContextChooser"] = true
+            viewModelScope.launch {
+                val disabledIds = contextIdFlow.value.ifBlank { null }
+                _uiEventFlow.tryEmit(
+                    UiEvent.Navigate(
+                        NavTarget.ListChooser(
+                            title = "Add direction to...",
+                            disabledIds = disabledIds,
+                        ),
+                    ),
+                )
+            }
+        }
+
         fun updateDirectionItemText(
             item: DirectionItemEntity,
             text: String,
@@ -1427,6 +1501,8 @@ data.context?.let { project ->
             pendingDirectionLinkItemId = null
             savedStateHandle.remove<String>("pendingDirectionLinkItemId")
             savedStateHandle.remove<Boolean>("pendingDirectionLink")
+            pendingAddDirectionFromContextChooser = false
+            savedStateHandle.remove<Boolean>("pendingAddDirectionFromContextChooser")
         }
 
         fun onMoveDirectionItem(
@@ -1538,6 +1614,16 @@ data.context?.let { project ->
                 return
             }
 
+            val pendingDirectionAdd =
+                pendingAddDirectionFromContextChooser ||
+                    (savedStateHandle.get<Boolean>("pendingAddDirectionFromContextChooser") == true)
+            if (pendingDirectionAdd) {
+                pendingAddDirectionFromContextChooser = false
+                savedStateHandle.remove<Boolean>("pendingAddDirectionFromContextChooser")
+                addDirectionLinkedToContext(targetcontextId)
+                return
+            }
+
             pendingAttachmentShare?.let { attachment ->
                 pendingAttachmentShare = null
                 shareAttachmentToProject(attachment, targetcontextId)
@@ -1597,6 +1683,24 @@ data.context?.let { project ->
             savedStateHandle.remove<List<String>>("pendingSourceItemIds")
             savedStateHandle.remove<List<String>>("pendingSourceGoalIds")
             selectionHandler.clearSelection()
+        }
+
+        private fun addDirectionLinkedToContext(targetcontextId: String) {
+            val linkedContextId = targetcontextId.takeIf { it.isNotBlank() && it != "root" }
+            if (linkedContextId == null) {
+                showSnackbar("Оберіть контекст для напрямку.", null)
+                return
+            }
+            viewModelScope.launch(ioDispatcher) {
+                val linkedContextName =
+                    contextRepository.getContextById(linkedContextId)?.name?.takeIf { it.isNotBlank() }
+                        ?: "Context"
+                directionRepository.addDirectionItem(
+                    contextId = contextIdFlow.value,
+                    text = linkedContextName,
+                    linkedContextId = linkedContextId,
+                )
+            }
         }
 
         private fun shareAttachmentToProject(

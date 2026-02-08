@@ -1,7 +1,6 @@
 package com.romankozak.forwardappmobile.sync
 
 import android.net.Uri
-import android.util.Log
 import com.google.gson.GsonBuilder
 import com.romankozak.forwardappmobile.core.data.interfaces.sync.IContentProvider
 import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
@@ -15,6 +14,7 @@ import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
+import timber.log.Timber
 
 @Singleton
 class AttachmentsRepositoryImpl @Inject constructor(
@@ -41,7 +41,7 @@ class AttachmentsRepositoryImpl @Inject constructor(
                 Result.failure(saveResult.exceptionOrNull() ?: Exception("Unknown save error"))
             }
         } catch (e: Exception) {
-            Log.e(tag, "Error exporting attachments", e)
+            Timber.tag(tag).e(e, "Error exporting attachments")
             Result.failure(e)
         }
 
@@ -71,7 +71,7 @@ class AttachmentsRepositoryImpl @Inject constructor(
             val orphanCount = localDataSource.importAttachments(backupData)
             Result.success("Імпорт завершено. Знайдено $orphanCount вкладень без прив'язки.")
         } catch (e: Exception) {
-            Log.e(tag, "Import error", e)
+            Timber.tag(tag).e(e, "Import error")
             Result.failure(e)
         }
 

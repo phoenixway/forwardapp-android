@@ -2,7 +2,6 @@ package com.romankozak.forwardappmobile.features.sync.selectiveimport
 
 import android.app.Application
 import android.net.Uri
-import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -19,6 +18,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import timber.log.Timber
 
 @HiltViewModel
 class SelectiveImportViewModel
@@ -36,23 +36,23 @@ class SelectiveImportViewModel
 
         init {
             val uri = savedStateHandle.get<String>("fileUri")
-            Log.d("IMPORT_SELECTIVE_INIT", "Init called, fileUri from SavedStateHandle: $uri")
+            Timber.tag("IMPORT_SELECTIVE_INIT").d("Init called, fileUri from SavedStateHandle: $uri")
             loadBackupFile(uri)
         }
 
         internal fun loadBackupFile(fileUriString: String?) {
             viewModelScope.launch {
-                Log.d("IMPORT_SELECTIVE", "loadBackupFile called with: $fileUriString")
+                Timber.tag("IMPORT_SELECTIVE").d("loadBackupFile called with: $fileUriString")
                 _uiState.update { it.copy(isLoading = true) }
 
                 if (fileUriString == null) {
-                    Log.d("IMPORT_SELECTIVE", "File URI is null!")
+                    Timber.tag("IMPORT_SELECTIVE").d("File URI is null!")
                     _uiState.update { it.copy(isLoading = false, error = "File URI not provided.") }
                     return@launch
                 }
 
                 val fileUri = Uri.parse(fileUriString)
-                Log.d("IMPORT_SELECTIVE", "Loading backup from URI: $fileUri")
+                Timber.tag("IMPORT_SELECTIVE").d("Loading backup from URI: $fileUri")
 
                 syncRepository.parseBackupFile(fileUri)
                     .onSuccess { fullAppBackup ->
@@ -60,16 +60,15 @@ class SelectiveImportViewModel
                         val version = (fullAppBackup.backupSchemaVersion.takeIf { it != 0 } ?: 1)
                         if (version !in listOf(1, 2)) {
                             val msg = "Unsupported backup version: $version. Expected 1 or 2."
-                            Log.e("IMPORT_SELECTIVE", msg)
+                            Timber.tag("IMPORT_SELECTIVE").e(msg)
                             _uiState.update { it.copy(isLoading = false, error = msg) }
                             return@onSuccess
                         }
-                        Log.d("IMPORT_SELECTIVE", "Database projects: ${dbContent.projects.size}")
-                        Log.d("IMPORT_SELECTIVE", "Database attachments: ${dbContent.attachments.size}")
-                        Log.d(
-                            "IMPORT_SELECTIVE",
-                            "Database contextAttachmentCrossRefs: ${dbContent.contextAttachmentCrossRefs.size}",
-                        )
+                        Timber.tag("IMPORT_SELECTIVE").d("Database projects: ${dbContent.projects.size}")
+                        Timber.tag("IMPORT_SELECTIVE").d("Database attachments: ${dbContent.attachments.size}")
+                        Timber
+                            .tag("IMPORT_SELECTIVE")
+                            .d("Database contextAttachmentCrossRefs: ${dbContent.contextAttachmentCrossRefs.size}")
                         val diff = syncRepository.createBackupDiff(dbContent)
                         _uiState.update {
                             it.copy(
@@ -79,7 +78,7 @@ class SelectiveImportViewModel
                         }
                     }
                     .onFailure { error ->
-                        Log.e("IMPORT_SELECTIVE", "Failed to parse backup", error)
+                        Timber.tag("IMPORT_SELECTIVE").e(error, "Failed to parse backup")
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
@@ -109,14 +108,16 @@ class SelectiveImportViewModel
                 val selectedScripts = contentToImport.scripts.filter { it.isSelected && it.isSelectable }.map { it.item }
                 val selectedAttachments = contentToImport.attachments.filter { it.isSelected && it.isSelectable }.map { it.item }
 
-                Log.d("IMPORT_DEBUG", "Total projects selected: ${selectedProjects.size}")
-                Log.d("IMPORT_DEBUG", "Projects with parents: ${selectedProjects.filter { it.parentId != null }.size}")
-                Log.d("IMPORT_DEBUG", "Root projects (no parent): ${selectedProjects.filter { it.parentId == null }.size}")
+                Timber.tag("IMPORT_DEBUG").d("Total projects selected: ${selectedProjects.size}")
+                Timber.tag("IMPORT_DEBUG").d("Projects with parents: ${selectedProjects.filter { it.parentId != null }.size}")
+                Timber.tag("IMPORT_DEBUG").d("Root projects (no parent): ${selectedProjects.filter { it.parentId == null }.size}")
 
                 // Filter out system projects (those with systemKey) to prevent duplication
                 val regularProjects = selectedProjects.filter { !SystemContexts.isSystem(ContextId(it.id)) }
                 val systemProjectsCount = selectedProjects.size - regularProjects.size
-                Log.d("IMPORT_DEBUG", "Regular (non-system) projects: ${regularProjects.size}, System projects: $systemProjectsCount")
+                Timber
+                    .tag("IMPORT_DEBUG")
+                    .d("Regular (non-system) projects: ${regularProjects.size}, System projects: $systemProjectsCount")
 
                 // Get all available projects from backup to check for parent references
                 val allBackupProjects = contentToImport.projects.map { it.item }

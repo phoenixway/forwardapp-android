@@ -133,6 +133,7 @@ sealed class ContextData {
     data class Loaded(
         val context: Context?,
         val items: List<BacklogItemContent>,
+        val attachmentItems: List<BacklogItemContent>,
         val config: ContextConfiguration,
         val logs: List<ContextLog>,
         val checklists: List<ChecklistEntity>,

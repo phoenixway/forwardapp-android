@@ -14,17 +14,20 @@ import kotlinx.coroutines.launch
 
 class CoroutineFileTree(
     private val logsDir: File,
-    private val maxFileSizeBytes: Long = 5 * 1024 * 1024 // 5 MB
+    private val maxFileSizeBytes: Long = 5 * 1024 * 1024, // 5 MB
+    private val maxLogFiles: Int = 6,
 ) : Timber.Tree() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val channel = Channel<String>(Channel.UNLIMITED)
 
     private var currentFile: File
+    private val currentFileName = "app_log.txt"
 
     init {
         if (!logsDir.exists()) logsDir.mkdirs()
-        currentFile = File(logsDir, "app.log")
+        currentFile = File(logsDir, currentFileName)
+        migrateLegacyLogIfNeeded()
         rotateOnStartupIfNeeded()
 
         scope.launch {
@@ -78,21 +81,43 @@ class CoroutineFileTree(
     private fun rotateIfNeeded() {
         if (currentFile.length() <= maxFileSizeBytes) return
 
-        val rotated = File(
-            logsDir,
-            "app-${System.currentTimeMillis()}.log"
-        )
+        val rotated = File(logsDir, "app-${timestampForFilename()}.log")
         currentFile.renameTo(rotated)
-        currentFile = File(logsDir, "app.log")
+        currentFile = File(logsDir, currentFileName)
+        cleanupOldLogs()
     }
 
     private fun rotateOnStartupIfNeeded() {
         if (!currentFile.exists() || currentFile.length() == 0L) return
-        val rotated = File(
-            logsDir,
-            "app-startup-${System.currentTimeMillis()}.log"
-        )
+        val rotated = File(logsDir, "app-startup-${timestampForFilename()}.log")
         currentFile.renameTo(rotated)
-        currentFile = File(logsDir, "app.log")
+        currentFile = File(logsDir, currentFileName)
+        cleanupOldLogs()
+    }
+
+    private fun migrateLegacyLogIfNeeded() {
+        val legacy = File(logsDir, "app.log")
+        if (currentFile.exists()) return
+        if (legacy.exists()) {
+            legacy.renameTo(currentFile)
+        }
+    }
+
+    private fun cleanupOldLogs() {
+        val files =
+            logsDir.listFiles()
+                ?.filter { it.isFile }
+                ?.filterNot { it.name == currentFileName }
+                ?.sortedByDescending { it.lastModified() }
+                .orEmpty()
+
+        val allowed = (maxLogFiles - 1).coerceAtLeast(0)
+        if (files.size <= allowed) return
+
+        files.drop(allowed).forEach { it.delete() }
+    }
+
+    private fun timestampForFilename(): String {
+        return SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(Date())
     }
 }

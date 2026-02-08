@@ -69,6 +69,7 @@ fun ModernInputPanel(
     onAddMilestone: (String) -> Unit,
     onShowCreateNoteDocumentDialog: () -> Unit,
     onCreateChecklist: () -> Unit,
+    onAddDirectionWithLinkedContextClick: () -> Unit,
     onShowDisplayPropertiesClick: () -> Unit,
     suggestions: List<String>,
     onSuggestionClick: (String) -> Unit,
@@ -209,6 +210,8 @@ fun ModernInputPanel(
             onAddListShortcutClick = onAddListShortcutClick,
             onShowCreateNoteDocumentDialog = onShowCreateNoteDocumentDialog,
             onCreateChecklist = onCreateChecklist,
+            onAddDirectionWithLinkedContextClick = onAddDirectionWithLinkedContextClick,
+            isDirectionEnabled = activeCapabilities.contains(CapabilityId("direction")),
             onAddScript = onAddScript,
         )
     }

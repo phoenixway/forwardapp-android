@@ -40,10 +40,10 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.Conte
 fun AttachmentsView(
     modifier: Modifier = Modifier,
     viewModel: ContextScreenViewModel,
-    listContent: List<BacklogItemContent>,
+    attachmentItems: List<BacklogItemContent>,
 ) {
     val attachments =
-        listContent.filter {
+        attachmentItems.filter {
             it is BacklogItemContent.LinkItem || it is BacklogItemContent.NoteDocumentItem || it is BacklogItemContent.ChecklistItem
         }
 

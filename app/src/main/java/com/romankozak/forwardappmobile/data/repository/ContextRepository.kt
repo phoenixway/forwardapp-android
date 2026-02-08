@@ -112,6 +112,10 @@ class ContextRepository
             }
         }
 
+        fun getAttachmentsForContextStream(contextId: String): Flow<List<AttachmentWithContext>> {
+            return attachmentRepository.getAttachmentsForContext(contextId)
+        }
+
         private fun mapToListItemContent(
             contextId: String,
             items: List<BacklogItem>,

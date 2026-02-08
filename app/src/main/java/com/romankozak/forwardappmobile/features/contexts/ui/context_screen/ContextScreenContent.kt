@@ -68,6 +68,7 @@ fun GoalDetailContent(
     linkedContextNames: Map<String, String>,
 ) {
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
+    val attachmentItems by viewModel.attachmentItems.collectAsStateWithLifecycle()
     val inboxRecords by viewModel.inboxHandler.inboxRecords.collectAsStateWithLifecycle()
     val goalList by viewModel.project.collectAsStateWithLifecycle()
     val projectLogs = uiState.logs
@@ -158,7 +159,7 @@ fun GoalDetailContent(
             AttachmentsView(
                 modifier = modifier,
                 viewModel = viewModel,
-                listContent = listContent,
+                attachmentItems = attachmentItems,
             )
         }
         ContextViewMode.DIRECTION -> {
@@ -176,14 +177,10 @@ fun GoalDetailContent(
             )
         }
         ContextViewMode.DASHBOARD -> {
-            val attachments =
-                listContent.filter {
-                    it is BacklogItemContent.LinkItem || it is BacklogItemContent.NoteDocumentItem || it is BacklogItemContent.ChecklistItem
-                }
             DashboardOverview(
                 modifier = modifier,
                 project = goalList,
-                attachments = attachments,
+                attachments = attachmentItems,
                 onAttachmentClick = { item -> viewModel.itemActionHandler.onItemClick(item) },
                 onShowProperties = onShowProjectProperties,
                 enableAttachments = uiState.enableAttachments,

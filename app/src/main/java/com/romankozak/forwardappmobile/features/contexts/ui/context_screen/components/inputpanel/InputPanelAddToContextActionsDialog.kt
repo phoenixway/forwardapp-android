@@ -52,6 +52,8 @@ fun InputPanelAddToProjectActionsDialog(
     onAddListShortcutClick: () -> Unit,
     onShowCreateNoteDocumentDialog: () -> Unit,
     onCreateChecklist: () -> Unit,
+    onAddDirectionWithLinkedContextClick: () -> Unit,
+    isDirectionEnabled: Boolean,
     onAddScript: (() -> Unit)? = null,
 ) {
     val haptic = LocalHapticFeedback.current
@@ -125,6 +127,19 @@ fun InputPanelAddToProjectActionsDialog(
                     },
                 ),
             )
+            if (isDirectionEnabled) {
+                add(
+                    ActionItem(
+                        title = "Add direction",
+                        icon = Icons.Outlined.Link,
+                        color = MaterialTheme.colorScheme.tertiary,
+                        action = {
+                            onAddDirectionWithLinkedContextClick()
+                            onDismiss()
+                        },
+                    ),
+                )
+            }
             if (scriptsEnabled && onAddScript != null) {
                 add(
                     ActionItem(

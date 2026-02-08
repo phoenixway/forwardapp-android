@@ -517,6 +517,7 @@ private fun ProjectBottomBar(
                 onAddMilestone = viewModel::onAddMilestone,
                 onShowCreateNoteDocumentDialog = viewModel::onShowCreateNoteDocumentDialog,
                 onCreateChecklist = viewModel::onCreateChecklist,
+                onAddDirectionWithLinkedContextClick = viewModel::onAddDirectionWithLinkedContextRequest,
                 suggestions = suggestions,
                 onSuggestionClick = viewModel::onSuggestionClick,
                 onShowDisplayPropertiesClick = onShowDisplayPropertiesClick,

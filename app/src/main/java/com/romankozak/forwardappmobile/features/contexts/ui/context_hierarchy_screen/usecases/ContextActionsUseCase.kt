@@ -1,7 +1,6 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases
 
 import android.net.Uri
-import android.util.Log
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.di.IoDispatcher
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
@@ -198,7 +197,7 @@ class ContextActionsUseCase
         }
 
         suspend fun onFullImportConfirmed(uri: Uri): Result<String> {
-            Log.e("GEMINI_DEBUG", "ProjectActionsUseCase.onFullImportConfirmed is called")
+            Timber.tag("DEBUG_IMPORT").d("ProjectActionsUseCase.onFullImportConfirmed is called")
             return withContext(ioDispatcher) { syncRepository.importFullBackupFromFile(uri) }
         }
 
@@ -208,9 +207,9 @@ class ContextActionsUseCase
         }
 
         suspend fun importAttachments(uri: Uri): Result<String> {
-            Log.d("SyncRepo_AttachmentsImport", "ProjectActionsUseCase.importAttachments called with uri=$uri")
+            Timber.tag("SyncRepo_AttachmentsImport").d("ProjectActionsUseCase.importAttachments called with uri=$uri")
             return withContext(ioDispatcher) {
-                Log.d("SyncRepo_AttachmentsImport", "About to call syncRepository.importAttachmentsFromFile")
+                Timber.tag("SyncRepo_AttachmentsImport").d("About to call syncRepository.importAttachmentsFromFile")
                 syncRepository.importAttachmentsFromFile(uri)
             }
         }

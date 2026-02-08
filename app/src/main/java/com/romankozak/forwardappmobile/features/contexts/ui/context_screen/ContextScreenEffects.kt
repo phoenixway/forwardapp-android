@@ -168,7 +168,10 @@ fun GoalDetailEffects(
                         }
 
                         savedStateHandle.remove<String>("list_chooser_result")
-                    } else if (savedStateHandle?.get<Boolean>("pendingDirectionLink") == true) {
+                    } else if (
+                        savedStateHandle?.get<Boolean>("pendingDirectionLink") == true ||
+                        savedStateHandle?.get<Boolean>("pendingAddDirectionFromContextChooser") == true
+                    ) {
                         viewModel.clearPendingDirectionLink()
                     }
                 }

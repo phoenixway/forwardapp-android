@@ -13,15 +13,20 @@ class DirectionRepository @Inject constructor(private val directionDao: Directio
         return directionDao.getDirectionItemsForContext(contextId)
     }
 
-    suspend fun addDirectionItem(contextId: String, text: String) {
+    suspend fun addDirectionItem(
+        contextId: String,
+        text: String,
+        linkedContextId: String? = null,
+    ) {
         val count = directionDao.count(contextId)
         val now = System.currentTimeMillis()
         val newItem = DirectionItemEntity(
             contextId = contextId,
             text = text,
+            linkedContextId = linkedContextId,
             itemOrder = count + 1,
             updatedAt = now,
-            version = 1
+            version = 1,
         )
         directionDao.insert(newItem)
     }
