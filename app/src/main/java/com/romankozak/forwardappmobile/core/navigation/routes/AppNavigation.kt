@@ -68,6 +68,7 @@ import com.romankozak.forwardappmobile.features.vet_case.VetCaseHistoryScreen
 import com.romankozak.forwardappmobile.features.vet_case.VetCaseSummaryScreen
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import java.net.URLDecoder
 import java.net.URLEncoder
 
@@ -101,6 +102,7 @@ fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
             when (command) {
                 is NavigationCommand.Navigate -> {
                     val options = command.builder
+                    Timber.tag("DirectionLinkNav").i("NavCommand.Navigate: route=%s", command.route)
                     navController.navigate(command.route, options ?: {})
                 }
 

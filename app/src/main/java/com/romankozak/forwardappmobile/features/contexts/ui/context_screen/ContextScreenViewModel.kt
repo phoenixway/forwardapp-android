@@ -5,6 +5,7 @@ import android.app.Application
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.util.Log
+import timber.log.Timber
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
@@ -1343,6 +1344,11 @@ data.context?.let { project ->
             if (isLinkedNavigationInProgress) return
             isLinkedNavigationInProgress = true
             viewModelScope.launch {
+                Timber.tag("DirectionLinkNav").i(
+                    "openLinkedContext: from=%s to=%s",
+                    currentId,
+                    contextId,
+                )
                 pendingLinkedContextReplace = true
                 _uiEventFlow.tryEmit(UiEvent.Navigate(NavTarget.ContextDetail(contextId = contextId)))
                 kotlinx.coroutines.delay(500)

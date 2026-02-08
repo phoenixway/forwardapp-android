@@ -25,6 +25,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
+import timber.log.Timber
 
 private const val TAG = "SendDebug"
 
@@ -69,6 +70,11 @@ fun GoalDetailEffects(
                     val route = NavTargetRouter.routeOf(event.target)
                     if (viewModel.consumeLinkedContextReplace()) {
                         val currentContextId = list?.id
+                        Timber.tag("DirectionLinkNav").i(
+                            "Navigate(replace): current=%s route=%s",
+                            currentContextId,
+                            route,
+                        )
                         navController.navigate(route) {
                             if (!currentContextId.isNullOrBlank()) {
                                 popUpTo("goal_detail_screen/$currentContextId") { inclusive = true }
@@ -76,6 +82,7 @@ fun GoalDetailEffects(
                             launchSingleTop = true
                         }
                     } else {
+                        Timber.tag("DirectionLinkNav").i("Navigate: route=%s", route)
                         navController.navigate(route)
                     }
                 }
