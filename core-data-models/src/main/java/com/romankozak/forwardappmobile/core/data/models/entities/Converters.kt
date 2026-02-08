@@ -16,7 +16,7 @@ class Converters {
 
     @TypeConverter
     fun fromCapabilityIdList(value: List<CapabilityId>?): String? {
-        if (value.isNullOrEmpty()) return null
+        if (value.isNullOrEmpty()) return "[]"
         val normalized =
             value
                 .mapNotNull { capability ->
