@@ -10,7 +10,7 @@ data class ContextConfigurationSnapshot(
     @SerializedName("id") val id: String,
     @SerializedName("contextId") val contextId: String,
     @SerializedName("basePresetCode") val basePresetCode: String,
-    @SerializedName("experimentalCapabilityIds") val experimentalCapabilityIds: List<CapabilityId> = emptyList(),
+    @SerializedName("experimentalCapabilityIds") val experimentalCapabilityIds: List<CapabilityId>? = emptyList(),
     @SerializedName("applyMode") val applyMode: String,
     @SerializedName("enableInbox") val enableInbox: Boolean,
     @SerializedName("enableLog") val enableLog: Boolean,

@@ -102,7 +102,9 @@ FILE_NAME=$(basename "$APK_FILE")
 # Логіка передачі файлу
 if [ "$HOST" == "install" ]; then
     echo -e "\n${YELLOW}Installing to device...${NC}"
+    SECONDS=0
     adb install -r "$APK_FILE" && echo -e "${GREEN}Success! App installed.${NC}"
+    echo -e "${BLUE}Install time: ${SECONDS}s${NC}"
     
     read -p "Launch app? (y/n): " launch_opt
     if [[ "$launch_opt" == "y" || "$launch_opt" == "Y" ]]; then
@@ -118,13 +120,17 @@ elif [ "$HOST" == "phone_storage" ]; then
         echo -e "${RED}Error: Phone not connected via ADB!${NC}"
         exit 1
     fi
+    SECONDS=0
     adb push "$APK_FILE" /sdcard/Download/
     echo -e "${GREEN}Success! File pushed to: /sdcard/Download/$FILE_NAME${NC}"
+    echo -e "${BLUE}Push time: ${SECONDS}s${NC}"
 
 else
     mkdir -p "$DIST_DIR"
+    SECONDS=0
     cp "$APK_FILE" "$DIST_DIR/"
     echo -e "\n${GREEN}Success! APK saved to: $DIST_DIR/$FILE_NAME${NC}"
+    echo -e "${BLUE}Copy time: ${SECONDS}s${NC}"
 fi
 
 show_log_hint
