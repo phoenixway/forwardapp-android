@@ -520,6 +520,9 @@ data.context?.let { project ->
             val session = contextSessionStore.dispatch(ContextCommand.SelectView(mode))
             val resolved = session.currentView
             stateManager.switchViewMode(resolved)
+            if (resolved == ContextViewMode.DIRECTION) {
+                stateManager.setInputMode(InputMode.AddDirection)
+            }
             val contextId = contextIdFlow.value
             if (contextId.isBlank()) return
             viewModelScope.launch(ioDispatcher) {

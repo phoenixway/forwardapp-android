@@ -88,7 +88,7 @@ fun DirectionView(
         } else {
             LazyColumn(
                 state = lazyListState,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().padding(top = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 items(items, key = { it.id }) { item ->
