@@ -9,7 +9,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
@@ -37,21 +36,10 @@ fun TacticalManagementScreen(viewModel: TacticalMissionViewModel = hiltViewModel
     val missions by viewModel.missions.collectAsState()
     val attachmentOptions by viewModel.attachmentOptions.collectAsState()
     val projectOptions by viewModel.projectOptions.collectAsState()
-    var showAddDialog by remember { mutableStateOf(false) }
+    val showAddDialog by viewModel.isAddMissionDialogOpen.collectAsState()
     var editingMission by remember { mutableStateOf<TacticalMission?>(null) }
 
-    Scaffold(
-        floatingActionButton = {
-            if (editingMission == null) {
-                FloatingActionButton(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    onClick = { showAddDialog = true },
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Add Mission")
-                }
-            }
-        },
-    ) { padding ->
+    Scaffold { padding ->
         TacticalMissionList(
             missions = missions,
             onMissionToggled = { viewModel.toggleMissionCompleted(it) },
@@ -72,10 +60,10 @@ fun TacticalManagementScreen(viewModel: TacticalMissionViewModel = hiltViewModel
         if (showAddDialog) {
             AddMissionDialog(
                 attachmentOptions = attachmentOptions,
-                onDismiss = { showAddDialog = false },
+                onDismiss = viewModel::dismissAddMissionDialog,
                 onConfirm = { title, description, deadline, projects, attachments ->
                     viewModel.addMission(title, description, deadline, projects, attachments)
-                    showAddDialog = false
+                    viewModel.dismissAddMissionDialog()
                 },
             )
         }

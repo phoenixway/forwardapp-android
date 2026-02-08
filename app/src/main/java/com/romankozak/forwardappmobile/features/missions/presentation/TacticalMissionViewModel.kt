@@ -43,6 +43,9 @@ class TacticalMissionViewModel
         private val _attachmentOptions = MutableStateFlow<List<AttachmentOption>>(emptyList())
         val attachmentOptions: StateFlow<List<AttachmentOption>> = _attachmentOptions.asStateFlow()
 
+        private val _isAddMissionDialogOpen = MutableStateFlow(false)
+        val isAddMissionDialogOpen: StateFlow<Boolean> = _isAddMissionDialogOpen.asStateFlow()
+
         init {
             loadMissions()
 
@@ -145,6 +148,14 @@ class TacticalMissionViewModel
                 }
             val updatedMission = mission.copy(status = updatedStatus)
             updateMission(updatedMission)
+        }
+
+        fun openAddMissionDialog() {
+            _isAddMissionDialogOpen.value = true
+        }
+
+        fun dismissAddMissionDialog() {
+            _isAddMissionDialogOpen.value = false
         }
     }
 
