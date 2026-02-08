@@ -62,6 +62,10 @@ fun GoalDetailContent(
     onRemindersClick: (BacklogItemContent) -> Unit,
     onShowProjectProperties: () -> Unit,
     onSwitchView: (ContextViewMode) -> Unit,
+    onLinkDirectionRequest: (String) -> Unit,
+    onUnlinkDirectionRequest: (String) -> Unit,
+    onOpenLinkedDirectionContext: (String) -> Unit,
+    linkedContextNames: Map<String, String>,
 ) {
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
     val inboxRecords by viewModel.inboxHandler.inboxRecords.collectAsStateWithLifecycle()
@@ -165,6 +169,10 @@ fun GoalDetailContent(
                 onEditItem = viewModel::updateDirectionItemText,
                 onDeleteItem = viewModel::deleteDirectionItem,
                 onMove = viewModel::onMoveDirectionItem,
+                onLinkRequest = onLinkDirectionRequest,
+                onUnlinkRequest = onUnlinkDirectionRequest,
+                onOpenLinkedContext = onOpenLinkedDirectionContext,
+                linkedContextNames = linkedContextNames,
             )
         }
         ContextViewMode.DASHBOARD -> {

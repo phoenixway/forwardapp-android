@@ -6,6 +6,7 @@ data class DirectionItemSnapshot(
     @SerializedName("id") val id: String,
     @SerializedName("contextId") val contextId: String,
     @SerializedName("text") val text: String,
+    @SerializedName("linkedContextId") val linkedContextId: String? = null,
     @SerializedName("itemOrder") val itemOrder: Int,
     @SerializedName("updatedAt") val updatedAt: Long? = null,
     @SerializedName("syncedAt") val syncedAt: Long? = null,

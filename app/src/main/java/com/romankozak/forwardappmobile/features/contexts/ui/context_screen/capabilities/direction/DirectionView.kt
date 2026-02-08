@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capa
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,6 +19,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DragIndicator
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.LinkOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -52,6 +55,10 @@ fun DirectionView(
     onEditItem: (DirectionItemEntity, String) -> Unit,
     onDeleteItem: (String) -> Unit,
     onMove: (from: Int, to: Int) -> Unit,
+    onLinkRequest: (String) -> Unit,
+    onUnlinkRequest: (String) -> Unit,
+    onOpenLinkedContext: (String) -> Unit,
+    linkedContextNames: Map<String, String>,
 ) {
     val lazyListState = rememberLazyListState()
     val reorderableState =
@@ -111,6 +118,10 @@ fun DirectionView(
                                 modifier =
                                     Modifier
                                         .fillMaxWidth()
+                                        .clickable(
+                                            enabled = item.linkedContextId != null,
+                                            onClick = { onOpenLinkedContext(item.linkedContextId!!) },
+                                        )
                                         .padding(horizontal = 12.dp, vertical = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
@@ -138,6 +149,17 @@ fun DirectionView(
                                         maxLines = 2,
                                         overflow = TextOverflow.Ellipsis,
                                     )
+                                    if (item.linkedContextId != null) {
+                                        val linkedName = linkedContextNames[item.linkedContextId] ?: "Linked context"
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = linkedName,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                        )
+                                    }
                                 }
                                 IconButton(
                                     onClick = {
@@ -152,6 +174,24 @@ fun DirectionView(
                                     Icon(
                                         imageVector = Icons.Outlined.Edit,
                                         contentDescription = "Edit direction",
+                                    )
+                                }
+                                IconButton(
+                                    onClick = {
+                                        if (item.linkedContextId == null) {
+                                            onLinkRequest(item.id)
+                                        } else {
+                                            onUnlinkRequest(item.id)
+                                        }
+                                    },
+                                    colors =
+                                        IconButtonDefaults.iconButtonColors(
+                                            contentColor = MaterialTheme.colorScheme.primary,
+                                        ),
+                                ) {
+                                    Icon(
+                                        imageVector = if (item.linkedContextId == null) Icons.Outlined.Link else Icons.Outlined.LinkOff,
+                                        contentDescription = if (item.linkedContextId == null) "Link direction" else "Unlink direction",
                                     )
                                 }
                                 IconButton(

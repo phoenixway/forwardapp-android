@@ -1462,3 +1462,12 @@ val MIGRATION_100_101 =
             )
         }
     }
+
+val MIGRATION_101_102 =
+    object : Migration(101, 102) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "ALTER TABLE `direction_items` ADD COLUMN `linked_context_id` TEXT",
+            )
+        }
+    }

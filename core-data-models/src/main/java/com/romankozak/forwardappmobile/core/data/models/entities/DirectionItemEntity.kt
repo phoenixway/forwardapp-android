@@ -25,6 +25,7 @@ data class DirectionItemEntity(
     @SerializedName(value = "contextId", alternate = ["projectId"])
     val contextId: String,
     @SerializedName("text") val text: String,
+    @ColumnInfo(name = "linked_context_id") @SerializedName("linkedContextId") val linkedContextId: String? = null,
     @SerializedName("itemOrder") val itemOrder: Int,
     @SerializedName("updatedAt") val updatedAt: Long? = null,
     @ColumnInfo(name = "synced_at") @SerializedName("syncedAt") val syncedAt: Long? = null,

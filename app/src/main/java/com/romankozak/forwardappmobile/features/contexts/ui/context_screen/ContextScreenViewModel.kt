@@ -187,6 +187,7 @@ class ContextScreenViewModel
             )
 
         private var pendingAttachmentShare: BacklogItemContent? = null
+        private var pendingDirectionLinkItemId: String? = null
 
         // Exposed StateFlows
         val uiState: StateFlow<ContextUiState> = stateManager.uiState
@@ -322,6 +323,7 @@ class ContextScreenViewModel
                             checklistRepository.getChecklistsForContext(contextId),
                             noteDocumentRepository.getDocumentsForContext(contextId),
                             directionRepository.getDirectionItemsForContext(contextId),
+                            contextRepository.getAllContextsFlow(),
                             reminderRepository.getRemindersForEntityFlow(contextId),
                             recentItemsRepository.getRecentItemsForContextFlow(contextId),
                             noteRepository.getNotesForContext(contextId),
@@ -333,9 +335,10 @@ class ContextScreenViewModel
                             val checklists = (args[4] as? List<*>)?.filterIsInstance<ChecklistEntity>() ?: emptyList()
                             val noteDocuments = (args[5] as? List<*>)?.filterIsInstance<NoteDocumentEntity>() ?: emptyList()
                             val directionItems = (args[6] as? List<*>)?.filterIsInstance<DirectionItemEntity>() ?: emptyList()
-                            val reminders = (args[7] as? List<*>)?.filterIsInstance<Reminder>() ?: emptyList()
-                            val goals = (args[10] as? List<*>)?.filterIsInstance<Goal>() ?: emptyList()
-                            val subprojects = (args[11] as? List<*>)?.filterIsInstance<com.romankozak.forwardappmobile.core.data.models.entities.Context>() ?: emptyList()
+                            val allContexts = (args[7] as? List<*>)?.filterIsInstance<com.romankozak.forwardappmobile.core.data.models.entities.Context>() ?: emptyList()
+                            val reminders = (args[8] as? List<*>)?.filterIsInstance<Reminder>() ?: emptyList()
+                            val goals = (args[11] as? List<*>)?.filterIsInstance<Goal>() ?: emptyList()
+                            val subprojects = (args[12] as? List<*>)?.filterIsInstance<com.romankozak.forwardappmobile.core.data.models.entities.Context>() ?: emptyList()
 
                             // Явна типізація результату when як BacklogItemContent?
                             val items: List<BacklogItemContent> = rawItems.mapNotNull { item ->
@@ -385,8 +388,21 @@ class ContextScreenViewModel
 
                             val config = args[2] as? ContextConfiguration
                             val logs = (args[3] as? List<*>)?.filterIsInstance<ContextLog>() ?: emptyList()
-                            val recentItems = (args[8] as? List<*>)?.filterIsInstance<RecentItem>() ?: emptyList()
-                            val notes = (args[9] as? List<*>)?.filterIsInstance<LegacyNoteEntity>() ?: emptyList()
+                            val recentItems = (args[9] as? List<*>)?.filterIsInstance<RecentItem>() ?: emptyList()
+                            val notes = (args[10] as? List<*>)?.filterIsInstance<LegacyNoteEntity>() ?: emptyList()
+
+                            val linkedContextNames =
+                                if (directionItems.isEmpty()) {
+                                    emptyMap()
+                                } else {
+                                    val linkedIds = directionItems.mapNotNull { it.linkedContextId }.toSet()
+                                    if (linkedIds.isEmpty()) {
+                                        emptyMap()
+                                    } else {
+                                        val nameById = allContexts.associateBy({ it.id }, { it.name })
+                                        linkedIds.associateWith { id -> nameById[id] ?: "Context" }
+                                    }
+                                }
 
                             ContextData.Loaded(
                                 context = context,
@@ -396,6 +412,7 @@ class ContextScreenViewModel
                                 checklists = checklists,
                                 noteDocuments = noteDocuments,
                                 directionItems = directionItems,
+                                linkedContextNames = linkedContextNames,
                                 reminders = reminders,
                                 recentItems = recentItems,
                                 notes = notes,
@@ -1284,6 +1301,43 @@ data.context?.let { project ->
             }
         }
 
+        fun onLinkDirectionItemRequest(itemId: String) {
+            pendingDirectionLinkItemId = itemId
+            savedStateHandle["pendingDirectionLinkItemId"] = itemId
+            savedStateHandle["pendingDirectionLink"] = true
+            viewModelScope.launch {
+                val disabledIds = contextIdFlow.value.ifBlank { null }
+                _uiEventFlow.tryEmit(
+                    UiEvent.Navigate(
+                        NavTarget.ListChooser(
+                            title = "Link direction to...",
+                            disabledIds = disabledIds,
+                        ),
+                    ),
+                )
+            }
+        }
+
+        fun onUnlinkDirectionItem(itemId: String) {
+            updateDirectionItemLink(itemId, null)
+        }
+
+        private fun updateDirectionItemLink(
+            itemId: String,
+            linkedContextId: String?,
+        ) {
+            val item = uiState.value.directionItems.firstOrNull { it.id == itemId } ?: return
+            viewModelScope.launch(ioDispatcher) {
+                directionRepository.updateDirectionItem(item.copy(linkedContextId = linkedContextId))
+            }
+        }
+
+        fun clearPendingDirectionLink() {
+            pendingDirectionLinkItemId = null
+            savedStateHandle.remove<String>("pendingDirectionLinkItemId")
+            savedStateHandle.remove<Boolean>("pendingDirectionLink")
+        }
+
         fun onMoveDirectionItem(
             from: Int,
             to: Int,
@@ -1384,6 +1438,15 @@ data.context?.let { project ->
 // ... (rest of the imports)
 
         fun onListChooserResult(targetcontextId: String) {
+            pendingDirectionLinkItemId?.let { itemId ->
+                pendingDirectionLinkItemId = null
+                savedStateHandle.remove<String>("pendingDirectionLinkItemId")
+                savedStateHandle.remove<Boolean>("pendingDirectionLink")
+                val resolved = targetcontextId.takeIf { it != "root" }
+                updateDirectionItemLink(itemId, resolved)
+                return
+            }
+
             pendingAttachmentShare?.let { attachment ->
                 pendingAttachmentShare = null
                 shareAttachmentToProject(attachment, targetcontextId)

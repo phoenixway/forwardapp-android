@@ -389,6 +389,16 @@ private fun ProjectScaffold(
                     navController.navigate("project_settings_screen?projectId=${project?.id}")
                 },
                 onSwitchView = viewModel::onProjectViewChange,
+                onLinkDirectionRequest = { itemId ->
+                    viewModel.onLinkDirectionItemRequest(itemId)
+                },
+                onUnlinkDirectionRequest = { itemId ->
+                    viewModel.onUnlinkDirectionItem(itemId)
+                },
+                onOpenLinkedDirectionContext = { contextId ->
+                    viewModel.requestNavigation("goal_detail_screen/$contextId")
+                },
+                linkedContextNames = uiState.linkedContextNames,
             )
         }
 
