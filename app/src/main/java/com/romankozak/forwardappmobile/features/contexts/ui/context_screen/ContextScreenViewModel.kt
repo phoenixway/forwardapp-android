@@ -313,7 +313,6 @@ class ContextScreenViewModel
         private fun observeContextIdChanges() {
             viewModelScope.launch {
                 contextIdFlow
-                    .distinctUntilChanged()
                     .drop(1)
                     .collect {
                         _listContent.value = emptyList()
