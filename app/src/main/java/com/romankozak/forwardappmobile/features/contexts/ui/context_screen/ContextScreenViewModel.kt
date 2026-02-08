@@ -189,6 +189,7 @@ class ContextScreenViewModel
         private var pendingAttachmentShare: BacklogItemContent? = null
         private var pendingDirectionLinkItemId: String? = null
         private var isLinkedNavigationInProgress: Boolean = false
+        private var pendingLinkedContextReplace: Boolean = false
 
         // Exposed StateFlows
         val uiState: StateFlow<ContextUiState> = stateManager.uiState
@@ -1342,10 +1343,17 @@ data.context?.let { project ->
             if (isLinkedNavigationInProgress) return
             isLinkedNavigationInProgress = true
             viewModelScope.launch {
+                pendingLinkedContextReplace = true
                 _uiEventFlow.tryEmit(UiEvent.Navigate(NavTarget.ContextDetail(contextId = contextId)))
                 kotlinx.coroutines.delay(500)
                 isLinkedNavigationInProgress = false
             }
+        }
+
+        fun consumeLinkedContextReplace(): Boolean {
+            if (!pendingLinkedContextReplace) return false
+            pendingLinkedContextReplace = false
+            return true
         }
 
         fun clearPendingDirectionLink() {

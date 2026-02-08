@@ -66,8 +66,18 @@ fun GoalDetailEffects(
             when (event) {
                 is UiEvent.Navigate -> {
                     Log.d(TAG, "GoalDetailEffects: Отримано подію Navigate.")
-
-                    navController.navigate(NavTargetRouter.routeOf(event.target))
+                    val route = NavTargetRouter.routeOf(event.target)
+                    if (viewModel.consumeLinkedContextReplace()) {
+                        val currentContextId = list?.id
+                        navController.navigate(route) {
+                            if (!currentContextId.isNullOrBlank()) {
+                                popUpTo("goal_detail_screen/$currentContextId") { inclusive = true }
+                            }
+                            launchSingleTop = true
+                        }
+                    } else {
+                        navController.navigate(route)
+                    }
                 }
 
                 is UiEvent.NavigateBack -> {
