@@ -1,68 +1,9 @@
-2026-02-06 17:28:21.732 I/App: Logger initialized (Android 15)
-2026-02-06 17:28:21.754 I/App: Feature toggles loaded
-2026-02-06 17:28:32.220 E/DEBUG_IMPORT: ProjectActionsUseCase.onFullImportConfirmedV2 is called
-2026-02-06 17:28:32.225 D/SyncFileService: Attempting to import smart backup (V2) from URI: content://com.android.providers.downloads.documents/document/msf%3A1000278572
-2026-02-06 17:28:32.313 E/SyncFileService: A critical error occurred during the smart import process.
-2026-02-06 18:30:02.661 I/App: Logger initialized (Android 15)
-2026-02-06 18:30:02.700 I/App: Feature toggles loaded
-2026-02-06 18:30:20.428 E/DEBUG_IMPORT: ProjectActionsUseCase.onFullImportConfirmedV2 is called
-2026-02-06 18:30:20.430 D/SyncFileService: Attempting to import smart backup (V2) from URI: content://com.android.providers.downloads.documents/document/msf%3A1000278572
-2026-02-06 18:30:20.520 E/SyncFileService: A critical error occurred during the smart import process.
-java.lang.IllegalArgumentException: Class cd.c declares multiple JSON fields named 'c'; conflict is caused by fields cd.c#c and cd.c#h
-See https://github.com/google/gson/blob/main/Troubleshooting.md#duplicate-fields
-	at ac.u.b(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:69)
-	at ac.u.c(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:378)
-	at ac.u.a(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:76)
-	at xb.m.e(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:74)
-	at ac.d.a(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:209)
-	at xb.m.e(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:74)
-	at ac.u.c(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:311)
-	at ac.u.a(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:76)
-	at xb.m.e(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:74)
-	at ac.u.c(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:311)
-	at ac.u.a(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:76)
-	at xb.m.e(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:74)
-	at xb.m.b(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:18)
-	at xb.m.c(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:15)
-	at vh.h0.invokeSuspend(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:105)
-	at vh.h0.invoke(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:18)
-	at p8.g9.c(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:5)
-	at po.f0.K(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:74)
-	at com.romankozak.forwardappmobile.sync.SyncFileService.importFullBackupFromFileV2-gIAlu-s(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:62)
-	at vh.v0.g(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:68)
-	at vf.e.invokeSuspend(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:42)
-	at nl.a.resumeWith(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:8)
-	at po.n0.run(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:117)
-	at u8.y2.run(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:1241)
-	at wo.j.run(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:3)
-	at wo.a.run(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:90)
-
-java.lang.IllegalArgumentException: Class cd.c declares multiple JSON fields named 'c'; conflict is caused by fields cd.c#c and cd.c#h
-See https://github.com/google/gson/blob/main/Troubleshooting.md#duplicate-fields
-	at ac.u.b(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:69)
-	at ac.u.c(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:378)
-	at ac.u.a(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:76)
-	at xb.m.e(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:74)
-	at ac.d.a(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:209)
-	at xb.m.e(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:74)
-	at ac.u.c(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:311)
-	at ac.u.a(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:76)
-	at xb.m.e(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:74)
-	at ac.u.c(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:311)
-	at ac.u.a(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:76)
-	at xb.m.e(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:74)
-	at xb.m.b(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:18)
-	at xb.m.c(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:15)
-	at vh.h0.invokeSuspend(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:105)
-	at vh.h0.invoke(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:18)
-	at p8.g9.c(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:5)
-	at po.f0.K(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:74)
-	at com.romankozak.forwardappmobile.sync.SyncFileService.importFullBackupFromFileV2-gIAlu-s(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:62)
-	at vh.v0.g(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:68)
-	at vf.e.invokeSuspend(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:42)
-	at nl.a.resumeWith(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:8)
-	at po.n0.run(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:117)
-	at u8.y2.run(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:1241)
-	at wo.j.run(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:3)
-	at wo.a.run(r8-map-id-36c81adbc907e3c29ac2d7c36690050fcc12c2e349782af461ecda98ed144c98:90)
-
+2026-02-08 17:37:35.617 I/App: Logger initialized (Android 15)
+2026-02-08 17:37:35.638 I/App: Feature toggles loaded
+2026-02-08 17:37:51.510 D/SyncFileService: Attempting to import smart backup (V2) from URI: content://com.android.externalstorage.documents/document/primary%3ADownload%2FForwardApp%2Fforward_snapshot_backup_20260208_074344.json
+2026-02-08 17:37:52.595 D/SyncFileService: Successfully parsed as new SnapshotBundle format.
+2026-02-08 17:37:53.988 I/SyncFileService: Smart backup successfully imported and merged from URI: content://com.android.externalstorage.documents/document/primary%3ADownload%2FForwardApp%2Fforward_snapshot_backup_20260208_074344.json
+2026-02-08 17:38:12.154 I/DirectionLinkNav: NavCommand.Navigate: route=goal_detail_screen/d13c6109-7357-4491-9e9e-7a9109b7a5c7
+2026-02-08 17:38:18.028 I/DirectionLinkNav: Navigate: route=list_chooser_screen/Link+direction+to...?disabledIds=d13c6109-7357-4491-9e9e-7a9109b7a5c7
+2026-02-08 17:38:24.746 I/DirectionLinkNav: openLinkedContext: from=d13c6109-7357-4491-9e9e-7a9109b7a5c7 to=7eb94941-2c14-4122-82a5-ed080f6e46e1
+2026-02-08 17:38:24.749 I/DirectionLinkNav: Navigate(replace): current=d13c6109-7357-4491-9e9e-7a9109b7a5c7 route=goal_detail_screen/7eb94941-2c14-4122-82a5-ed080f6e46e1

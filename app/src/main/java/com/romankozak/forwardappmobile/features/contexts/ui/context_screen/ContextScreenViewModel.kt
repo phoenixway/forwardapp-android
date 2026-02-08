@@ -305,8 +305,21 @@ class ContextScreenViewModel
 
         init {
             setupContextObserver()
+            observeContextIdChanges()
             tagManager.loadTags()
             activityManager.observeCurrentActivity()
+        }
+
+        private fun observeContextIdChanges() {
+            viewModelScope.launch {
+                contextIdFlow
+                    .distinctUntilChanged()
+                    .drop(1)
+                    .collect {
+                        _listContent.value = emptyList()
+                        stateManager.clear()
+                    }
+            }
         }
 
         private fun setupContextObserver() {

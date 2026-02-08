@@ -25,6 +25,7 @@ class CoroutineFileTree(
     init {
         if (!logsDir.exists()) logsDir.mkdirs()
         currentFile = File(logsDir, "app.log")
+        rotateOnStartupIfNeeded()
 
         scope.launch {
             for (line in channel) {
@@ -80,6 +81,16 @@ class CoroutineFileTree(
         val rotated = File(
             logsDir,
             "app-${System.currentTimeMillis()}.log"
+        )
+        currentFile.renameTo(rotated)
+        currentFile = File(logsDir, "app.log")
+    }
+
+    private fun rotateOnStartupIfNeeded() {
+        if (!currentFile.exists() || currentFile.length() == 0L) return
+        val rotated = File(
+            logsDir,
+            "app-startup-${System.currentTimeMillis()}.log"
         )
         currentFile.renameTo(rotated)
         currentFile = File(logsDir, "app.log")
