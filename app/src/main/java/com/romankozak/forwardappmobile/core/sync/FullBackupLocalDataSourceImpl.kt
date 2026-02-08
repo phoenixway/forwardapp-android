@@ -5,6 +5,7 @@ package com.romankozak.forwardappmobile.core.sync
 import android.util.Log
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.interfaces.SystemContextEnsurer
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.*
@@ -191,7 +192,28 @@ class FullBackupLocalDataSourceImpl
             structurePresetItemDao.insertAll(bundle.contextRoleProfileItems.map { it.toEntity() }) // Depends on ContextRoleProfile
 
             Log.d("SyncV2", "Inserting ContextConfigurations: ${bundle.contextConfigurations.size}")
-            contextStructureDao.insertAll(bundle.contextConfigurations.map { it.toEntity() }) // Depends on Context
+            contextStructureDao.insertAll(
+                bundle.contextConfigurations.map { snapshot ->
+                    ContextConfiguration(
+                        id = snapshot.id,
+                        contextId = snapshot.contextId,
+                        basePresetCode = snapshot.basePresetCode,
+                        experimentalCapabilityIds = snapshot.experimentalCapabilityIds.orEmpty(),
+                        applyMode = snapshot.applyMode,
+                        enableInbox = snapshot.enableInbox,
+                        enableLog = snapshot.enableLog,
+                        enableArtifact = snapshot.enableArtifact,
+                        enableAdvanced = snapshot.enableAdvanced,
+                        enableDashboard = snapshot.enableDashboard,
+                        enableBacklog = snapshot.enableBacklog,
+                        enableAttachments = snapshot.enableAttachments,
+                        enableAutoLinkSubprojects = snapshot.enableAutoLinkSubprojects,
+                        version = snapshot.version,
+                        updatedAt = snapshot.updatedAt,
+                        isDeleted = snapshot.isDeleted,
+                    )
+                },
+            ) // Depends on Context
 
             Log.d("SyncV2", "Inserting ProjectStructureItems: ${bundle.projectStructureItems.size}")
             contextStructureDao.insertAllItems(bundle.projectStructureItems.map { it.toEntity() }) // Depends on ContextConfiguration

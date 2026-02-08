@@ -6,6 +6,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntit
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.sync.ChangeType
@@ -246,7 +247,28 @@ class MergeLocalDataSourceImpl
                 lifeSystemStateDao.insertAll(bundle.lifeSystemStates.map { it.toEntity() })
                 structurePresetDao.insertAll(bundle.contextRoleProfiles.map { it.toEntity() })
                 structurePresetItemDao.insertAll(bundle.contextRoleProfileItems.map { it.toEntity() })
-                contextStructureDao.insertAll(bundle.contextConfigurations.map { it.toEntity() })
+                contextStructureDao.insertAll(
+                    bundle.contextConfigurations.map { snapshot ->
+                        ContextConfiguration(
+                            id = snapshot.id,
+                            contextId = snapshot.contextId,
+                            basePresetCode = snapshot.basePresetCode,
+                            experimentalCapabilityIds = snapshot.experimentalCapabilityIds.orEmpty(),
+                            applyMode = snapshot.applyMode,
+                            enableInbox = snapshot.enableInbox,
+                            enableLog = snapshot.enableLog,
+                            enableArtifact = snapshot.enableArtifact,
+                            enableAdvanced = snapshot.enableAdvanced,
+                            enableDashboard = snapshot.enableDashboard,
+                            enableBacklog = snapshot.enableBacklog,
+                            enableAttachments = snapshot.enableAttachments,
+                            enableAutoLinkSubprojects = snapshot.enableAutoLinkSubprojects,
+                            version = snapshot.version,
+                            updatedAt = snapshot.updatedAt,
+                            isDeleted = snapshot.isDeleted,
+                        )
+                    },
+                )
                 contextStructureDao.insertAllItems(bundle.projectStructureItems.map { it.toEntity() })
             }
         }

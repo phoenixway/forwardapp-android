@@ -113,7 +113,15 @@ fun ContextConfigurationSnapshot.toEntity(): ContextConfiguration = ContextConfi
     id = id,
     contextId = contextId,
     basePresetCode = basePresetCode,
-    experimentalCapabilityIds = experimentalCapabilityIds ?: emptyList(),
+    experimentalCapabilityIds =
+        experimentalCapabilityIds
+            .orEmpty()
+            .mapNotNull { capability ->
+                runCatching { capability.raw.trim() }
+                    .getOrNull()
+                    ?.takeIf { it.isNotEmpty() }
+                    ?.let { com.romankozak.forwardappmobile.core.capability.CapabilityId(it) }
+            },
     applyMode = applyMode,
     enableInbox = enableInbox,
     enableLog = enableLog,
